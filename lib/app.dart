@@ -39,7 +39,10 @@ import 'family/family_service.dart';
 import 'env.dart';
 import 'auth/recovery_gate.dart';
 import 'l10n/generated/app_localizations.dart';
+import 'invites/deep_link_service.dart';
+import 'invites/invite_link.dart';
 import 'main.dart' show rootNavigatorKey;
+import 'screens/join_by_invite_screen.dart';
 import 'screens/navigation/route_return.dart' show appRoutes;
 import 'media/audio_file_cache.dart';
 import 'media/video_file_cache.dart';
@@ -224,6 +227,19 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   // finishes booting and a signed-in session exists.
   String? _pendingPushRoomId;
 
+  /// An invite link that arrived before the app could act on it.
+  ///
+  /// Same problem and same shape as [_pendingPushRoomId], and it bites harder
+  /// here: a cold start from a tapped link delivers the URL through
+  /// `getInitialLink` exactly once, with no session restored and no navigator
+  /// mounted yet. Dropped, the tap silently does nothing and the user is
+  /// looking at a chat list wondering what happened to the invite.
+  ///
+  /// Unlike a push room this is also held across SIGN-IN. Tapping a group
+  /// invite is a perfectly ordinary reason to install the app, and the invite
+  /// has to survive the whole account-creation detour to be worth anything.
+  InviteLink? _pendingInvite;
+
   // Last presence status successfully handed to the server, so a lifecycle
   // sequence that resolves to the same value twice doesn't write twice. Null
   // means "unknown" — on sign-out, or after a failed write — and always sends.
@@ -381,6 +397,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     // Web Push banner clicks (background/closed tab) open the room too — the
     // service worker posts the roomId to whichever tab it focuses.
     WebPush.setOnOpenRoom(_openRoomFromPush);
+    // Inbound universal links / App Links. Reported here rather than acted on:
+    // `_openInvite` decides whether the app is ready and stashes if not.
+    DeepLinkService.instance.onInvite = _openInvite;
+    unawaited(DeepLinkService.instance.start());
     // Web only: a closing tab flips us offline immediately (best-effort; the
     // server staleness sweep is the backstop). No-op off web.
     WebPresence.registerOffline(() {
@@ -561,6 +581,56 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         builder: (_) => RoomScreen(roomId: roomId, repo: _repo, api: _api),
       ),
     );
+  }
+
+  /// An invite link was tapped. Show the join screen — never join anything.
+  ///
+  /// Held back in exactly two states, and they are different waits:
+  ///
+  ///  * **No navigator yet** — a cold start. One post-frame hop and it exists.
+  ///  * **Signed out** — could be a long wait. The user has to make an account
+  ///    or sign in first, and the invite must still be there when they do,
+  ///    which is why [_pendingInvite] is flushed from the auth listener rather
+  ///    than only at boot.
+  ///
+  /// Pushes onto the ROOT navigator on every window class. This is not an
+  /// `openRoom`-style two-pane decision: the user is not yet in the room and
+  /// there is nothing to select — the join screen is a full-screen gate on
+  /// desktop too, and it hands off to the pane itself once the join lands.
+  void _openInvite(InviteLink invite) {
+    if (_auth.session == null || rootNavigatorKey.currentState == null) {
+      _pendingInvite = invite;
+      return;
+    }
+    _pendingInvite = null;
+    final nav = rootNavigatorKey.currentState!;
+    // Land cleanly on the shell first. Without this, a link tapped while a
+    // room, a sheet or a settings sub-screen is open buries the join screen
+    // under whatever was there and leaves a back stack nobody expects.
+    nav.popUntil((r) => r.isFirst);
+    nav.push(
+      MaterialPageRoute(
+        builder: (_) => JoinByInviteScreen(
+          repo: _repo,
+          api: _api,
+          code: invite.code,
+          serverUrl: invite.serverUrl,
+        ),
+      ),
+    );
+  }
+
+  void _consumePendingInvite() {
+    final pending = _pendingInvite;
+    if (pending == null) return;
+    if (_auth.session == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      // A newer link landing while this one waited wins; replaying the stale
+      // one on top of it would open the wrong room's invite.
+      if (_pendingInvite != pending) return;
+      _openInvite(pending);
+    });
   }
 
   void _consumePendingPushRoom() {
@@ -841,6 +911,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     // session. Captured on a Galaxy S24: r=37 AND r=39 for `listUserRooms`,
     // r=40 AND r=41 for `listFriends`, and so on down the group.
     _consumePendingPushRoom();
+    _consumePendingInvite();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       UpdateChecker.instance.ensure();
       // Keeps the Settings badge honest after launch: an app that is never
@@ -1034,6 +1105,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         BadgeManager.instance.bind(_repo);
         MessageAlerts.instance.bind(_repo);
         _consumePendingPushRoom();
+        // The sign-in that a tapped invite sent someone through. This is the
+        // flush that matters most: on a fresh install the link arrives long
+        // before there is an account to join with.
+        _consumePendingInvite();
         // Covers the fresh-sign-in case, including the rotation owed after a
         // password reset — the reset signs the user in, which disposes the
         // LoginScreen that would otherwise have pushed the gate.

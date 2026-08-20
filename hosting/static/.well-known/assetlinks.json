@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.walhallaa.chattest20241220",
+      "sha256_cert_fingerprints": [
+        "90:3E:C6:73:4B:30:3E:F6:DD:3B:D7:FC:21:E9:02:ED:EC:07:9A:E4:59:39:F3:39:50:35:E4:09:2E:C8:37:3F"
+      ]
+    }
+  }
+]

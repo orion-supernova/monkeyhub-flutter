@@ -415,6 +415,23 @@
 				<string>com.googleusercontent.apps.691782206017-5shp2ce3g12b8raojl263fg6u711jrhr</string>
 			</array>
 		</dict>
+		<!-- The invite-link fallback door. NOT what gets shared: a shared
+		     invite is always the https universal link, which is an ordinary
+		     web page for anyone without the app. This scheme exists for the
+		     case where the universal link fails to reach us — a link opened
+		     from an app that strips the association, or a device whose AASA
+		     fetch failed — and for hand-testing with `xcrun simctl openurl`.
+		     See lib/invites/invite_link.dart. -->
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.walhallaa.monkeyhub.invite</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>monkeyhub</string>
+			</array>
+		</dict>
 	</array>
 	<key>GIDClientID</key>
 	<string>691782206017-5shp2ce3g12b8raojl263fg6u711jrhr.apps.googleusercontent.com</string>

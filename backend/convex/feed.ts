@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 
 import { assertChildPolicy } from "./childGuard";
 import { deleteStored } from "./files";
@@ -195,7 +196,10 @@ async function canSeeMoment(ctx: any, viewerId: any, moment: any) {
 }
 
 /** The ids of everyone [userId] has an accepted friendship with. */
-async function friendIdsOf(ctx: any, userId: any): Promise<any[]> {
+async function friendIdsOf(
+  ctx: any,
+  userId: Id<"users">,
+): Promise<Id<"users">[]> {
   const rows = await ctx.db
     .query("friendships")
     .withIndex("by_user", (q: any) => q.eq("userId", userId))
@@ -233,7 +237,11 @@ export const board = query({
     // is already absent from the fan-out above and their content cannot reach
     // this board. Nothing further to filter — but that is a consequence of the
     // friendship model, not an accident, so it is written down here.
-    const authorIds = [userId, ...friendIds];
+    // Typed all the way through from `friendIdsOf`, so `ctx.db.get(playerId)`
+    // below resolves to a user row. While these were `any[]`, `db.get` fell
+    // back to the union of every table's document type and `player.name` did
+    // not exist on it — on the line that builds the scoreboard's names.
+    const authorIds: Id<"users">[] = [userId, ...friendIds];
 
     const out: any[] = [];
     for (const authorId of authorIds) {

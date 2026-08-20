@@ -1,0 +1,52 @@
+{
+  /* This TypeScript project config describes the environment that
+   * Convex functions run in and is used to typecheck them.
+   *
+   * It is the one the Convex CLI generates for a new project (see
+   * `tsconfigCodegen` in the CLI bundle), kept verbatim apart from the
+   * comments below. This deployment went a long time without one, which meant
+   * `convex codegen --typecheck` — whose default is "try, and skip silently if
+   * you can't" — skipped, every time, and a deploy was the first thing that
+   * ever looked at these types. On a single self-hosted deployment that means
+   * a type error is found in production.
+   *
+   * Two settings do most of the work and are worth not "modernising":
+   *
+   *   lib: ES2023, NOT ESNext. TypeScript 5.7 made `Uint8Array` generic over
+   *     its backing buffer (`Uint8Array<ArrayBufferLike>`), which under ESNext
+   *     stops being assignable to `BufferSource` and `BodyInit`. That alone
+   *     invented thirteen errors in `webPush.ts` for code that is correct and
+   *     has been running in production for months. Convex's runtime is not
+   *     ESNext-latest, so ES2023 is both the accurate answer and the quiet one.
+   *
+   *   exclude: ./_generated. Generated code is the compiler's own output and
+   *     is not ours to answer for.
+   */
+  "compilerOptions": {
+    /* These settings are not required by Convex and can be modified. */
+    "allowJs": true,
+    "strict": true,
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+
+    /* Empty ON PURPOSE, and not the same as omitting the field: with no
+     * `types` key TypeScript pulls in every `@types/*` it can find in
+     * node_modules, so installing @types/node for an unrelated tool would
+     * silently change what this backend typechecks against. `process.env` —
+     * the one Node-ish global in use — is declared in `env.d.ts`; see the note
+     * there for why depending on @types/node was tried and rejected. */
+    "types": [],
+
+    /* These compiler options are required by Convex */
+    "target": "ESNext",
+    "lib": ["ES2023", "dom"],
+    "forceConsistentCasingInFileNames": true,
+    "module": "ESNext",
+    "isolatedModules": true,
+    "noEmit": true
+  },
+  "include": ["./**/*"],
+  "exclude": ["./_generated"]
+}

@@ -649,15 +649,59 @@ export const listGuardianQueue = query({
           createdAt: a.createdAt,
           note: a.note ?? "",
           child: childBrief,
-          room: room
-            ? {
-                _id: room._id,
-                name: room.name,
-                description: room.description,
-                memberCount: room.memberCount,
-                avatarStorageId: room.avatarStorageId,
-              }
-            : null,
+          room: room ? roomBriefOf(room) : null,
+        });
+      }
+
+      // 4. My child wants to pull someone into a group chat.
+      const roomOutgoing = await ctx.db
+        .query("roomInvitations")
+        .withIndex("by_stage_inviter", (q) =>
+          q.eq("stage", STAGE_SENDER_GUARDIAN).eq("inviterId", childId),
+        )
+        .collect();
+      for (const r of roomOutgoing) {
+        if (r.status !== "pending") continue;
+        const other = await ctx.db.get(r.inviteeId);
+        const room = await ctx.db.get(r.roomId);
+        if (!other || !room) continue;
+        items.push({
+          type: "roomInviteOutgoing",
+          _id: r._id,
+          createdAt: r.createdAt,
+          note: "",
+          child: childBrief,
+          other: briefOf(lens, other),
+          room: roomBriefOf(room),
+        });
+      }
+
+      // 5. Someone wants to pull my child into a group chat.
+      //
+      // The one queue item that grants something beyond itself: approving it
+      // also writes the child a `joinRoom` grant (see
+      // `roomInvitations.advance`), because this card already asked the
+      // guardian the exact question the grant answers — this child, this room
+      // — and asking it twice would read as the app not having listened.
+      const roomIncoming = await ctx.db
+        .query("roomInvitations")
+        .withIndex("by_stage_invitee", (q) =>
+          q.eq("stage", STAGE_RECIPIENT_GUARDIAN).eq("inviteeId", childId),
+        )
+        .collect();
+      for (const r of roomIncoming) {
+        if (r.status !== "pending") continue;
+        const other = await ctx.db.get(r.inviterId);
+        const room = await ctx.db.get(r.roomId);
+        if (!other || !room) continue;
+        items.push({
+          type: "roomInviteIncoming",
+          _id: r._id,
+          createdAt: r.createdAt,
+          note: "",
+          child: childBrief,
+          other: briefOf(lens, other),
+          room: roomBriefOf(room),
         });
       }
     }
@@ -675,6 +719,16 @@ export const listGuardianQueue = query({
  * renders co-guardians and the strangers in a child's approval queue, and
  * neither of those has consented to anything.
  */
+function roomBriefOf(room: any) {
+  return {
+    _id: room._id,
+    name: room.name,
+    description: room.description,
+    memberCount: room.memberCount,
+    avatarStorageId: room.avatarStorageId,
+  };
+}
+
 function briefOf(lens: any, u: any) {
   return {
     _id: u._id,

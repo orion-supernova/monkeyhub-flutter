@@ -4,11 +4,15 @@ import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/enums.dart';
+import '../auth/auth_errors.dart';
+import '../invites/room_admin_errors.dart';
 import '../models/friend_request.dart';
+import '../models/room_admin.dart';
 import '../screens/friend_request_draft_screen.dart';
 import '../screens/navigation/open_room.dart';
 import '../theme/theme_scope.dart';
 import 'approval_gate.dart';
+import 'remote_image.dart';
 import 'user_avatar.dart';
 import 'visibility_badge.dart';
 
@@ -200,6 +204,173 @@ class _IncomingRequestCardState extends State<IncomingRequestCard> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// A group somebody is asking you into, with the decision attached.
+///
+/// The sibling of [IncomingRequestCard], deliberately: being pulled into a
+/// group chat is the same category of act as being added as a contact, so it
+/// gets the same card, in the same list, with the same two buttons. Anything
+/// less prominent would be a nudge toward the default of "just accept", which
+/// is precisely what makes group invites a nuisance in other messengers.
+///
+/// The card leads with the ROOM, not the inviter. The question being asked is
+/// "do you want to be in here", and the inviter is context for that answer —
+/// the reverse ordering reads as a message from a friend and gets accepted on
+/// the strength of who sent it.
+class RoomInvitationCard extends StatefulWidget {
+  const RoomInvitationCard({
+    super.key,
+    required this.invitation,
+    required this.repo,
+    required this.api,
+  });
+
+  final RoomInvitation invitation;
+  final ChatRepository repo;
+  final ChatApi api;
+
+  @override
+  State<RoomInvitationCard> createState() => _RoomInvitationCardState();
+}
+
+class _RoomInvitationCardState extends State<RoomInvitationCard> {
+  bool _busy = false;
+
+  Future<void> _respond(bool accept) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final roomId = await widget.repo.respondToRoomInvitation(
+        invitationId: widget.invitation.invitationId,
+        accept: accept,
+      );
+      if (!mounted) return;
+      // Straight into the room on accept. Saying yes to a group and then
+      // having to go find it in a list is a beat of nothing where the payoff
+      // should be — the same reasoning as accepting a friend request.
+      if (accept && roomId != null) {
+        openRoom(context, roomId: roomId, repo: widget.repo, api: widget.api);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(humanizeAuthError(
+            e,
+            l10n,
+            fallback: l10n.roomAdminGenericError,
+            overrides: roomAdminErrorMessages(l10n),
+          )),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final inv = widget.invitation;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: theme.roomCardDecoration(ephemeral: false, active: false),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(theme.radiusMd),
+                child: SizedBox(
+                  width: 42,
+                  height: 42,
+                  child: inv.avatarStorageId == null
+                      ? Container(
+                          color: theme.surfaceSunken,
+                          alignment: Alignment.center,
+                          child: Icon(
+                            Icons.groups_outlined,
+                            size: 20,
+                            color: theme.inkMuted,
+                          ),
+                        )
+                      : RemoteImage(
+                          storageId: inv.avatarStorageId!,
+                          api: widget.api,
+                          width: 42,
+                          height: 42,
+                        ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      inv.roomName,
+                      style: theme.displaySmall,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      l10n.roomInvitationCardFrom(
+                        inv.inviter.displayName,
+                        inv.memberCount,
+                      ),
+                      style: theme.mono.copyWith(color: theme.inkMuted),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Text(requestAgo(context, inv.createdAt), style: theme.monoTiny),
+            ],
+          ),
+          if ((inv.description ?? '').isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              decoration: BoxDecoration(
+                color: theme.surfaceSunken,
+                borderRadius: BorderRadius.circular(theme.radiusMd),
+                border: Border(left: BorderSide(color: theme.accent, width: 2)),
+              ),
+              child: Text(inv.description!, style: theme.bodySoft),
+            ),
+          ],
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: RequestAction(
+                  label: _busy ? '…' : l10n.roomInvitationCardJoin,
+                  filled: true,
+                  onTap: _busy ? null : () => _respond(true),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: RequestAction(
+                  label: l10n.fileMessageDeclineButton,
+                  filled: false,
+                  onTap: _busy ? null : () => _respond(false),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

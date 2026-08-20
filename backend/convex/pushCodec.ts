@@ -5,6 +5,27 @@
 // Convex's V8 isolate does not implement `crypto.subtle.deriveBits` for ECDH —
 // import the same code as the V8-runtime senders instead of duplicating it.
 
+/**
+ * A byte string backed by a plain `ArrayBuffer`.
+ *
+ * TypeScript 5.7 made `Uint8Array` generic over its backing buffer, and a bare
+ * `Uint8Array` now means `Uint8Array<ArrayBufferLike>` — which INCLUDES
+ * `SharedArrayBuffer`, and is therefore not a valid `BufferSource` or
+ * `BodyInit`. Every `crypto.subtle` call and every `fetch` body in this module
+ * and in `webPush.ts` was rejected on that basis, for code that has been
+ * delivering push notifications in production the whole time.
+ *
+ * The narrowing is accurate rather than a silencing cast: every value typed
+ * `Bytes` here is freshly allocated — `new Uint8Array(n)`, `TextEncoder.encode`,
+ * or a view over an `ArrayBuffer` that `crypto.subtle` just returned. None of
+ * them can be a `SharedArrayBuffer` view, because nothing in this backend ever
+ * creates one.
+ *
+ * Used on the boundaries — parameters and return types — so the inference
+ * flows through the call graph on its own.
+ */
+export type Bytes = Uint8Array<ArrayBuffer>;
+
 export async function signJwt(
   header: Record<string, unknown>,
   claims: Record<string, unknown>,
@@ -35,8 +56,8 @@ export async function signJwt(
   return `${enc}.${b64url(new Uint8Array(sig))}`;
 }
 
-export function b64url(input: string | Uint8Array): string {
-  let bytes: Uint8Array;
+export function b64url(input: string | Bytes): string {
+  let bytes: Bytes;
   if (typeof input === "string") {
     bytes = new TextEncoder().encode(input);
   } else {
@@ -48,7 +69,7 @@ export function b64url(input: string | Uint8Array): string {
 }
 
 /** Inverse of [b64url]. Also accepts standard base64 (browsers send both). */
-export function b64urlToBytes(input: string): Uint8Array {
+export function b64urlToBytes(input: string): Bytes {
   const b64 = input.replace(/-/g, "+").replace(/_/g, "/");
   const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
   const bin = atob(padded);
@@ -57,7 +78,7 @@ export function b64urlToBytes(input: string): Uint8Array {
   return out;
 }
 
-export function pemToDer(pem: string): Uint8Array {
+export function pemToDer(pem: string): Bytes {
   const b64 = pem
     .replace(/-----BEGIN [A-Z ]+-----/g, "")
     .replace(/-----END [A-Z ]+-----/g, "")

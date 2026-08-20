@@ -126,6 +126,15 @@ class ChatRoom {
   /// conversation. See [systemRole].
   bool get isSystemRoom => systemRole != null && systemRole!.isNotEmpty;
 
+  /// A real group: not a DM, not Saved Messages, not a room the app owns.
+  ///
+  /// The one place "does this room have admins and members" is decided on the
+  /// client. Mirrors `roomAdmin.isGroupRoom` server-side, and exists so screens
+  /// can answer that question from the room they already have rather than
+  /// waiting on `roomAdmin:myPermissions` — a permission query in flight must
+  /// not be the reason a control is drawn.
+  bool get isGroupChat => !isDm && !isSystemRoom;
+
   // ───────────── mute, resolved against the wall clock ─────────────
   //
   // Four getters rather than four `room.mute.silences...(DateTime.now())` call

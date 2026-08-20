@@ -6687,4 +6687,480 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get deviceLoginScanScreenDeniedConfirmation =>
       'sign-in request denied';
+
+  @override
+  String get roomAdminSectionLabel => 'GRUPP';
+
+  @override
+  String get roomAdminRoleOwner => 'ÄGARE';
+
+  @override
+  String get roomAdminRoleAdmin => 'ADMIN';
+
+  @override
+  String get roomAdminActionViewProfile => 'Visa profil';
+
+  @override
+  String get roomAdminActionPromote => 'Gör till admin';
+
+  @override
+  String get roomAdminActionPromoteSub =>
+      'Kan bjuda in, ta bort medlemmar och ändra gruppen';
+
+  @override
+  String get roomAdminActionDemote => 'Ta bort admin';
+
+  @override
+  String get roomAdminActionDemoteSub => 'Är kvar i gruppen som medlem';
+
+  @override
+  String get roomAdminActionTransfer => 'Överlåt gruppen';
+
+  @override
+  String get roomAdminActionTransferSub => 'Du blir kvar som admin';
+
+  @override
+  String get roomAdminActionRemove => 'Ta bort ur gruppen';
+
+  @override
+  String get roomAdminAddFriendsRow => 'Lägg till vänner';
+
+  @override
+  String get roomAdminAddFriendsRowSub =>
+      'De får en inbjudan att tacka ja eller nej till';
+
+  @override
+  String get roomAdminInviteLinkRow => 'Inbjudningslänk';
+
+  @override
+  String get roomAdminInviteLinkRowSub =>
+      'Dela en länk eller en kod för att släppa in folk';
+
+  @override
+  String get roomAdminJoinRequestsRow => 'Ansökningar';
+
+  @override
+  String roomAdminJoinRequestsRowSub(Object count) {
+    return '$count väntar på svar';
+  }
+
+  @override
+  String roomAdminTransferConfirmHeadline(Object name) {
+    return 'Lämna över gruppen till $name?';
+  }
+
+  @override
+  String get roomAdminTransferConfirmBody =>
+      'Den personen blir ägare och kan radera gruppen. Du blir kvar som admin, och bara hen kan lämna tillbaka den.';
+
+  @override
+  String get roomAdminTransferConfirmCta => 'ÖVERLÅT';
+
+  @override
+  String roomAdminRemoveConfirmHeadline(Object name) {
+    return 'Ta bort $name?';
+  }
+
+  @override
+  String get roomAdminRemoveConfirmBody =>
+      'Personen förlorar åtkomst till gruppen och allt i den. Hen kan bjudas in igen, eller komma tillbaka via inbjudningslänken.';
+
+  @override
+  String get roomAdminRemoveConfirmCta => 'TA BORT';
+
+  @override
+  String get roomAdminGenericError => 'Det gick inte. Försök igen.';
+
+  @override
+  String get roomAdminErrorNotMember => 'Du är inte kvar i den här gruppen.';
+
+  @override
+  String get roomAdminErrorNotAdmin => 'Bara admins kan göra det.';
+
+  @override
+  String get roomAdminErrorNotOwner => 'Bara gruppens ägare kan göra det.';
+
+  @override
+  String get roomAdminErrorNotGroup =>
+      'Det finns inget att administrera i en direktchatt.';
+
+  @override
+  String get roomAdminErrorOwnerImmutable =>
+      'Ägarens roll ändras bara genom att gruppen överlåts.';
+
+  @override
+  String get roomAdminErrorInvitesLocked =>
+      'Bara admins kan bjuda in till den här gruppen.';
+
+  @override
+  String get roomInviteSheetTitle => 'Inbjudningslänk';
+
+  @override
+  String get roomInviteSheetBlurb =>
+      'En länk och en kod, och de är samma sak. Så fort du gör en ny slutar den gamla fungera.';
+
+  @override
+  String get roomInviteNoLinkYet => 'Gruppen har ingen inbjudningslänk än.';
+
+  @override
+  String get roomInviteCreateButton => 'SKAPA LÄNK';
+
+  @override
+  String get roomInviteRegenerateButton => 'NY LÄNK';
+
+  @override
+  String get roomInviteRevokeButton => 'SPÄRRA LÄNKEN';
+
+  @override
+  String get roomInviteCopyLink => 'Kopiera länk';
+
+  @override
+  String get roomInviteCopyCode => 'Kopiera kod';
+
+  @override
+  String get roomInviteShare => 'Dela';
+
+  @override
+  String get roomInviteLinkCopied => 'Länken kopierad.';
+
+  @override
+  String get roomInviteCodeCopied => 'Koden kopierad.';
+
+  @override
+  String get roomInviteRegenerateHeadline => 'Göra en ny länk?';
+
+  @override
+  String get roomInviteRegenerateBody =>
+      'Den nuvarande länken och koden slutar fungera direkt, överallt där de har delats. Alla som redan är med är kvar.';
+
+  @override
+  String get roomInviteRegenerateConfirm => 'NY LÄNK';
+
+  @override
+  String get roomInviteRevokeHeadline => 'Spärra den här länken?';
+
+  @override
+  String get roomInviteRevokeBody =>
+      'Ingen ny kan gå med via länk förrän du gör en till. Alla som redan är med är kvar.';
+
+  @override
+  String get roomInviteRevokeConfirm => 'SPÄRRA';
+
+  @override
+  String get roomInviteLimitsLabel => 'GRÄNSER';
+
+  @override
+  String get roomInviteExpiryLabel => 'Slutar gälla efter';
+
+  @override
+  String get roomInviteMaxUsesLabel => 'Antal användningar';
+
+  @override
+  String get roomInviteNeverExpires => 'Aldrig';
+
+  @override
+  String get roomInviteUnlimited => 'Obegränsat';
+
+  @override
+  String roomInviteExpiryHours(Object count) {
+    return '$count h';
+  }
+
+  @override
+  String roomInviteExpiryDays(Object count) {
+    return '$count d';
+  }
+
+  @override
+  String get roomInviteLimitsApplyToNew => 'Gäller länken du skapar.';
+
+  @override
+  String get roomInviteLimitsApplyOnRegenerate =>
+      'Gäller nästa länk. Den ovanför behåller gränserna den skapades med.';
+
+  @override
+  String get roomInvitePermissionsLabel => 'BEHÖRIGHETER';
+
+  @override
+  String get roomInviteMembersCanInviteLabel => 'Medlemmar får bjuda in vänner';
+
+  @override
+  String get roomInviteMembersCanInviteSub =>
+      'Stäng av så kan bara admins ta in folk';
+
+  @override
+  String get roomInviteApprovalLabel => 'Godkänn varje ny medlem';
+
+  @override
+  String get roomInviteApprovalSub =>
+      'Den som har länken frågar först, och en admin säger ja eller nej';
+
+  @override
+  String roomInviteUsesCount(Object count) {
+    return 'Använd $count gånger';
+  }
+
+  @override
+  String roomInviteUsesOfMax(Object max, Object used) {
+    return '$used av $max användningar';
+  }
+
+  @override
+  String roomInviteExpiresOn(Object date) {
+    return 'slutar gälla $date';
+  }
+
+  @override
+  String get roomInviteDeadExpired => 'Länken har slutat gälla. Gör en ny.';
+
+  @override
+  String get roomInviteDeadExhausted =>
+      'Länken har inga användningar kvar. Gör en ny.';
+
+  @override
+  String get roomInviteDeadRevoked => 'Länken spärrades.';
+
+  @override
+  String get roomInviteDeadGeneric => 'Länken fungerar inte längre.';
+
+  @override
+  String get roomInviteFriendsTitle => 'Lägg till vänner';
+
+  @override
+  String get roomInviteFriendsBlurb =>
+      'De får en inbjudan och kan tacka ja eller nej.';
+
+  @override
+  String get roomInviteFriendsSearchHint => 'Sök bland vänner';
+
+  @override
+  String get roomInviteFriendsInviteButton => 'BJUD IN';
+
+  @override
+  String get roomInviteFriendsSent => 'Inbjuden';
+
+  @override
+  String get roomInviteFriendsEmpty =>
+      'Alla dina vänner är redan här eller redan inbjudna.';
+
+  @override
+  String get roomInviteFriendsNoMatch => 'Ingen vän matchar det.';
+
+  @override
+  String get roomInviteFriendsDone => 'KLAR';
+
+  @override
+  String get roomJoinRequestsTitle => 'Ansökningar';
+
+  @override
+  String get roomJoinRequestsBlurb =>
+      'De här personerna har använt inbjudningslänken. De ser ingenting i gruppen förrän du säger ja.';
+
+  @override
+  String get roomJoinRequestsEmpty => 'Ingen väntar.';
+
+  @override
+  String get roomJoinRequestsApprove => 'SLÄPP IN';
+
+  @override
+  String get roomJoinRequestsReject => 'NEJ';
+
+  @override
+  String roomInfoScreenInvitedLabel(Object count) {
+    return 'INBJUDNA · $count';
+  }
+
+  @override
+  String get roomInfoScreenInviteAwaitingGuardian => 'väntar på en förälder';
+
+  @override
+  String get roomInfoScreenInviteWithdraw => 'ÅTERKALLA';
+
+  @override
+  String roomInvitationCardFrom(Object inviter, Object members) {
+    return 'från $inviter · $members medlemmar';
+  }
+
+  @override
+  String get roomInvitationCardJoin => 'GÅ MED';
+
+  @override
+  String get discoverScreenJoinByCodeTitle => 'gå med via kod';
+
+  @override
+  String get discoverScreenJoinByCodeSubtitle =>
+      'öppna en grupp som någon delat med dig';
+
+  @override
+  String get joinInviteTitle => 'Gå med i en grupp';
+
+  @override
+  String get joinInviteBack => 'Tillbaka';
+
+  @override
+  String get joinInviteCodeBlurb =>
+      'Skriv in koden någon delat med dig. En hel inbjudningslänk funkar också.';
+
+  @override
+  String get joinInviteCodeLabel => 'Inbjudningskod';
+
+  @override
+  String get joinInviteCodeHint => 'K7M2-XQ94-RB';
+
+  @override
+  String get joinInviteCodeInvalid =>
+      'Det där ser inte ut som en inbjudningskod.';
+
+  @override
+  String get joinInviteLookupButton => 'FORTSÄTT';
+
+  @override
+  String get joinInviteLookupFailed =>
+      'Kunde inte kolla koden. Kolla din uppkoppling och försök igen.';
+
+  @override
+  String joinInviteMemberCount(Object count) {
+    return '$count medlemmar';
+  }
+
+  @override
+  String get joinInviteJoinButton => 'GÅ MED I GRUPPEN';
+
+  @override
+  String get joinInviteRequestButton => 'BE ATT FÅ GÅ MED';
+
+  @override
+  String get joinInviteOpenNote =>
+      'Du ser gruppens meddelanden så fort du gått med.';
+
+  @override
+  String get joinInviteApprovalNote =>
+      'En admin måste säga ja innan du kan se något här inne.';
+
+  @override
+  String get joinInviteOpenRoom => 'ÖPPNA GRUPPEN';
+
+  @override
+  String get joinInvitePendingHeadline => 'Väntar på en admin';
+
+  @override
+  String get joinInvitePendingBody => 'Du får en notis så fort någon svarar.';
+
+  @override
+  String get joinInviteBadLinkHeadline => 'Inbjudan fungerar inte';
+
+  @override
+  String get joinInviteBadLinkBody => 'Kolla koden, eller be om en ny länk.';
+
+  @override
+  String get joinInviteExpiredHeadline => 'Inbjudan har gått ut';
+
+  @override
+  String get joinInviteExpiredBody => 'Be den som bjöd in dig om en ny länk.';
+
+  @override
+  String get joinInviteExhaustedHeadline => 'Inbjudan är förbrukad';
+
+  @override
+  String get joinInviteExhaustedBody =>
+      'Den var satt att fungera ett begränsat antal gånger. Be om en ny.';
+
+  @override
+  String get joinInviteRevokedHeadline => 'Inbjudan har ersatts';
+
+  @override
+  String get joinInviteRevokedBody =>
+      'En admin gjorde en ny länk. Be om den aktuella.';
+
+  @override
+  String get joinInviteWrongServerHeadline => 'Inbjudan gäller en annan server';
+
+  @override
+  String joinInviteWrongServerBody(Object host) {
+    return 'Den hör till $host. Ditt konto ligger på en annan server, så gruppen går inte att nå härifrån.';
+  }
+
+  @override
+  String get roomInviteErrorNotFound =>
+      'Den inbjudningskoden matchar ingenting.';
+
+  @override
+  String get roomInviteErrorRevoked =>
+      'Inbjudan har ersatts. Be om den aktuella länken.';
+
+  @override
+  String get roomInviteErrorExpired => 'Inbjudan har gått ut.';
+
+  @override
+  String get roomInviteErrorExhausted => 'Inbjudan är förbrukad.';
+
+  @override
+  String get roomInviteErrorAlreadyMember => 'Personen är redan med i gruppen.';
+
+  @override
+  String get roomInviteErrorAlreadyInvited => 'Personen är redan inbjuden.';
+
+  @override
+  String get roomInviteErrorSelf => 'Du är redan med i gruppen.';
+
+  @override
+  String get roomInviteErrorInvitationGone => 'Inbjudan finns inte längre.';
+
+  @override
+  String get roomInviteErrorRequestPending =>
+      'Du har redan bett om att gå med. En admin svarar.';
+
+  @override
+  String get roomInviteErrorRequestGone =>
+      'Någon har redan svarat på den ansökan.';
+
+  @override
+  String get roomInviteErrorRoomPrivate =>
+      'Man kommer bara in i den här gruppen via inbjudan.';
+
+  @override
+  String get roomInviteErrorInvalidLimits => 'De gränserna gäller inte.';
+
+  @override
+  String approvalsScreenHeadlineRoomInviteOutgoing(
+    Object child,
+    Object other,
+    Object room,
+  ) {
+    return '$child vill bjuda in $other till $room';
+  }
+
+  @override
+  String approvalsScreenHeadlineRoomInviteIncoming(
+    Object child,
+    Object other,
+    Object room,
+  ) {
+    return '$other bjöd in $child till $room';
+  }
+
+  @override
+  String get approvalsScreenConsequenceRoomInviteOutgoing =>
+      'Inbjudan skickas, och den andra personen bestämmer fortfarande själv.';
+
+  @override
+  String approvalsScreenConsequenceRoomInviteIncoming(Object child) {
+    return '$child ser inbjudan och kan tacka ja eller nej. Godkänner du släpps hen också in i gruppen om hen tackar ja.';
+  }
+
+  @override
+  String get roomAdminErrorCannotRemoveSelf =>
+      'Du kan inte ta bort dig själv. Lämna gruppen i stället.';
+
+  @override
+  String get roomAdminActionMessage => 'Skicka meddelande';
+
+  @override
+  String get roomAdminActionVoiceCall => 'Röstsamtal';
+
+  @override
+  String get roomAdminActionVideoCall => 'Videosamtal';
+
+  @override
+  String get roomAdminYouSuffix => 'du';
 }

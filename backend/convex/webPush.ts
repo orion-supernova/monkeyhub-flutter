@@ -2,7 +2,7 @@
 
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
-import { b64url, b64urlToBytes, signJwt } from "./pushCodec";
+import { b64url, b64urlToBytes, signJwt, type Bytes } from "./pushCodec";
 
 // Web Push, spoken directly to whatever push service the browser handed us
 // (fcm.googleapis.com for Chrome, updates.push.services.mozilla.com for
@@ -127,7 +127,7 @@ export const sendOne = internalAction({
       };
     }
 
-    let body: Uint8Array;
+    let body: Bytes;
     try {
       const asKeyPair = (await crypto.subtle.generateKey(
         { name: "ECDH", namedCurve: "P-256" },
@@ -203,11 +203,11 @@ function classify(status: number, body: string): string {
  */
 async function encryptPayload(
   plaintextJson: string,
-  uaPublic: Uint8Array,
-  authSecret: Uint8Array,
-  salt: Uint8Array,
+  uaPublic: Bytes,
+  authSecret: Bytes,
+  salt: Bytes,
   asKeyPair: CryptoKeyPair,
-): Promise<Uint8Array> {
+): Promise<Bytes> {
   const asPublic = new Uint8Array(
     await crypto.subtle.exportKey("raw", asKeyPair.publicKey),
   );
@@ -269,11 +269,11 @@ async function encryptPayload(
 }
 
 async function hkdf(
-  salt: Uint8Array,
-  ikm: Uint8Array,
-  info: Uint8Array,
+  salt: Bytes,
+  ikm: Bytes,
+  info: Bytes,
   lengthBytes: number,
-): Promise<Uint8Array> {
+): Promise<Bytes> {
   const key = await crypto.subtle.importKey("raw", ikm, "HKDF", false, [
     "deriveBits",
   ]);
@@ -285,16 +285,16 @@ async function hkdf(
   return new Uint8Array(bits);
 }
 
-function utf8(s: string): Uint8Array {
+function utf8(s: string): Bytes {
   return new TextEncoder().encode(s);
 }
 
 /** The RFC's info strings are all NUL-terminated. */
-function utf8z(s: string): Uint8Array {
+function utf8z(s: string): Bytes {
   return concat(utf8(s), Uint8Array.of(0));
 }
 
-function concat(...parts: Uint8Array[]): Uint8Array {
+function concat(...parts: Bytes[]): Bytes {
   let n = 0;
   for (const p of parts) n += p.length;
   const out = new Uint8Array(n);
@@ -432,10 +432,10 @@ async function importEcdhKeyPair(
 
 /** The receiver's half of RFC 8291, so the self-test can verify a round trip. */
 async function decryptForTest(
-  body: Uint8Array,
+  body: Bytes,
   uaPrivate: CryptoKey,
-  uaPublic: Uint8Array,
-  authSecret: Uint8Array,
+  uaPublic: Bytes,
+  authSecret: Bytes,
 ): Promise<string> {
   const salt = body.slice(0, 16);
   const idlen = body[20];

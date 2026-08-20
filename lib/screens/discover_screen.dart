@@ -18,6 +18,7 @@ import '../widgets/request_cards.dart';
 import '../widgets/search_field.dart';
 import 'discover_lists.dart';
 import 'navigation/destinations.dart';
+import 'join_by_invite_screen.dart';
 import 'navigation/enter_public_room.dart';
 import 'navigation/open_room.dart';
 import 'navigation/route_return.dart';
@@ -322,6 +323,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     final friends = widget.repo.friends;
     final incoming = widget.repo.incomingRequests;
     final outgoing = widget.repo.outgoingRequests;
+    final groupInvites = widget.repo.roomInvitations;
 
     final showPeople = _peopleUnlocked;
     final showRooms = _roomsUnlocked;
@@ -386,7 +388,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
         const SizedBox(height: 10),
         _RequestSegments(
           active: _requestsTab,
-          incoming: incoming.length,
+          incoming: incoming.length + groupInvites.length,
           outgoing: outgoing.length,
           onChange: (tab) => setState(() => _requestsTab = tab),
         ),
@@ -402,16 +404,30 @@ class _DiscoverScreenState extends State<DiscoverScreen>
             // With no outgoing half there is nothing to switch between, so
             // the incoming list stands alone.
             if (!showOutgoing || _requestsTab == _RequestsTab.incoming)
-              if (incoming.isEmpty)
+              // Group invites share the incoming list rather than getting a
+              // section of their own. They are the same question — somebody is
+              // proposing to connect you to something and you decide — and a
+              // separate section would be a second inbox to remember to check.
+              // Invites first: they expire in practice (an admin rotates the
+              // link, the group fills up) where a friend request does not.
+              if (incoming.isEmpty && groupInvites.isEmpty)
                 DiscoverEmptyLine(t.discoverScreenInboxQuiet)
-              else
+              else ...[
+                for (final inv in groupInvites)
+                  RoomInvitationCard(
+                    key: ValueKey('roominv_${inv.invitationId}'),
+                    invitation: inv,
+                    repo: widget.repo,
+                    api: widget.api,
+                  ),
                 for (final r in incoming)
                   IncomingRequestCard(
                     key: ValueKey('in_${r.user.id}'),
                     req: r,
                     repo: widget.repo,
                     api: widget.api,
-                  )
+                  ),
+              ]
             else if (outgoing.isEmpty)
               DiscoverEmptyLine(t.discoverScreenNothingPending)
             else
@@ -480,6 +496,23 @@ class _DiscoverScreenState extends State<DiscoverScreen>
               title: t.discoverScreenSearchRoomsTitle,
               subtitle: t.discoverScreenSearchRoomsSubtitle,
               onTap: () => _openSearch(SearchMode.rooms),
+            ),
+            const SizedBox(height: _withinSection),
+            // The typed half of the invite token. Its other half is the link,
+            // which arrives through the OS and never touches this screen — but
+            // a code read off somebody's screen or over a call has to land
+            // somewhere, and next to the room search is where a person looks
+            // for a room they cannot find by searching. Private rooms are not
+            // listed anywhere by design, so for those this row and a tapped
+            // link are the only two doors that exist.
+            _DoorRow(
+              circular: false,
+              icon: Icons.vpn_key_outlined,
+              title: t.discoverScreenJoinByCodeTitle,
+              subtitle: t.discoverScreenJoinByCodeSubtitle,
+              onTap: () => _push(
+                JoinByInviteScreen(repo: widget.repo, api: widget.api),
+              ),
             ),
             const SizedBox(height: _betweenSections),
             DiscoverSectionHeader(
@@ -843,7 +876,7 @@ class _JumpChip extends StatelessWidget {
 /// overflow.
 class _DoorRow extends StatelessWidget {
   const _DoorRow({
-    required this.heroTag,
+    this.heroTag,
     required this.circular,
     required this.icon,
     required this.title,
@@ -851,7 +884,13 @@ class _DoorRow extends StatelessWidget {
     required this.onTap,
   });
 
-  final Object heroTag;
+  /// The search field this door flies into, when it opens one.
+  ///
+  /// Null for a door that opens an ordinary screen instead — the join-by-code
+  /// row. A Hero with no counterpart on the incoming route does not degrade
+  /// gracefully; it animates into nothing, which reads as the row falling
+  /// apart mid-transition.
+  final Object? heroTag;
   final bool circular;
   final IconData icon;
   final String title;
@@ -868,8 +907,7 @@ class _DoorRow extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: SearchFieldHero(
-          tag: heroTag,
+        child: _maybeHero(
           child: Container(
             decoration: theme.inputDecoration(),
             padding: const EdgeInsets.symmetric(
@@ -917,8 +955,13 @@ class _DoorRow extends StatelessWidget {
                 // The one glyph the door and the bar share, and the one the
                 // flight shuttle carries between them — same size at both ends
                 // so it never resizes mid-air.
+                // The door's trailing glyph. For a search door it is the one
+                // the flight shuttle carries into the search bar — same size
+                // at both ends so it never resizes mid-air. A door that opens
+                // an ordinary screen gets a chevron instead, because a
+                // magnifier there promises a search that is not coming.
                 Icon(
-                  Icons.search,
+                  heroTag == null ? Icons.chevron_right : Icons.search,
                   size: searchFieldIconSize,
                   color: theme.inkMuted,
                 ),
@@ -928,5 +971,11 @@ class _DoorRow extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _maybeHero({required Widget child}) {
+    final tag = heroTag;
+    if (tag == null) return child;
+    return SearchFieldHero(tag: tag, child: child);
   }
 }

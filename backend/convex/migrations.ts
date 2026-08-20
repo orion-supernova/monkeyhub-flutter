@@ -1,6 +1,7 @@
 import { internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 import { LINK_PATTERN, galleryBucketFor } from "./messages";
 
 /**
@@ -45,7 +46,10 @@ export const backfillRootIds = internalMutation({
       // Walk up to the top of the chain. Bounded by 20 hops with a cycle
       // guard, matching the walk in the legacy `messages:getThread`. Stops
       // early if an ancestor already carries a rootId.
-      let rootId: any = msg.replyToId;
+      // Typed for the same reason as `messages.threadFor`'s walker: as `any`,
+      // `ctx.db.get(rootId)` resolved to the union of every table's document
+      // and neither `rootId` nor `replyToId` existed on it.
+      let rootId: Id<"messages"> = msg.replyToId;
       const seen = new Set<string>([msg._id.toString()]);
       for (let i = 0; i < 20; i++) {
         const key = rootId.toString();

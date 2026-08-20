@@ -10,6 +10,7 @@ import '../models/friend_request.dart';
 import '../models/family.dart';
 import '../models/friend_request_message.dart';
 import '../models/message_formatting.dart';
+import '../models/room_admin.dart';
 import '../models/room_content_item.dart';
 import 'convex_client.dart';
 import 'hashing.dart';
@@ -685,6 +686,292 @@ class ChatApi {
   Future<String> ensureSavedMessagesRoom({required String userId}) async {
     final res = await _cv.mutation('rooms:ensureSavedMessagesRoom', {'userId': userId});
     return res.toString();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Group administration
+  // ─────────────────────────────────────────────────────────────────────────
+  //
+  // Roles, the join link, and the two kinds of invite. See `roomAdmin.ts`,
+  // `roomInvites.ts` and `roomInvitations.ts`; the models are in
+  // `models/room_admin.dart`.
+  //
+  // Nothing here is an authorization boundary. Every one of these mutations
+  // re-derives the caller's role server-side and refuses on its own — the
+  // permission flags this file fetches exist to stop us DRAWING a control that
+  // would refuse, which is a different job and a much less important one.
+
+  /// The caller's own standing in one room. Null when they are not in it.
+  Future<RoomPermissions?> roomPermissions({
+    required String roomId,
+    required String userId,
+  }) async {
+    final res = await _cv.query('roomAdmin:myPermissions', {
+      'roomId': roomId,
+      'userId': userId,
+    });
+    if (res == null) return null;
+    return RoomPermissions.fromJson((res as Map).cast<String, dynamic>());
+  }
+
+  /// Promote a member to admin, or demote an admin back to member. One call
+  /// for both directions, because the UI is one toggle and the two share every
+  /// check — see `roomAdmin.setAdmin`.
+  Future<void> setRoomAdmin({
+    required String roomId,
+    required String userId,
+    required String targetUserId,
+    required bool makeAdmin,
+  }) async {
+    await _cv.mutation('roomAdmin:setAdmin', {
+      'roomId': roomId,
+      'userId': userId,
+      'targetUserId': targetUserId,
+      'makeAdmin': makeAdmin,
+    });
+  }
+
+  /// Hand the room to another member. The caller becomes an admin, not a
+  /// plain member — giving a group away is not the same as walking out of it.
+  Future<void> transferRoomOwnership({
+    required String roomId,
+    required String userId,
+    required String targetUserId,
+  }) async {
+    await _cv.mutation('roomAdmin:transferOwnership', {
+      'roomId': roomId,
+      'userId': userId,
+      'targetUserId': targetUserId,
+    });
+  }
+
+  Future<void> removeRoomMember({
+    required String roomId,
+    required String userId,
+    required String targetUserId,
+  }) async {
+    await _cv.mutation('roomAdmin:removeMember', {
+      'roomId': roomId,
+      'userId': userId,
+      'targetUserId': targetUserId,
+    });
+  }
+
+  /// The room's two administrative switches. Both optional so the caller can
+  /// flip one without restating the other.
+  Future<void> setRoomPolicy({
+    required String roomId,
+    required String userId,
+    bool? membersCanInvite,
+    RoomJoinPolicy? linkJoinPolicy,
+  }) async {
+    await _cv.mutation('roomAdmin:setRoomPolicy', {
+      'roomId': roomId,
+      'userId': userId,
+      'membersCanInvite': ?membersCanInvite,
+      'linkJoinPolicy': ?linkJoinPolicy?.wire,
+    });
+  }
+
+  // ── The join link ────────────────────────────────────────────────────────
+
+  /// The room's current link, or null when no link has ever been issued.
+  ///
+  /// Reading deliberately does NOT create one: a room with no link should not
+  /// grow one because an admin opened a settings screen.
+  Future<RoomInviteLink?> getRoomInviteLink({
+    required String roomId,
+    required String userId,
+  }) async {
+    final res = await _cv.query('roomInvites:getLink', {
+      'roomId': roomId,
+      'userId': userId,
+    });
+    if (res == null) return null;
+    return RoomInviteLink.fromJson((res as Map).cast<String, dynamic>());
+  }
+
+  /// Issue a link, revoking any existing one in the same breath. This is both
+  /// "create" and "regenerate" — see `roomInvites.rotate`.
+  ///
+  /// [expiresIn] is sent as a DURATION, never as an absolute instant: the
+  /// server computes the deadline from its own clock so a phone that is hours
+  /// off cannot mint a link that is already dead.
+  Future<RoomInviteLink> rotateRoomInviteLink({
+    required String roomId,
+    required String userId,
+    Duration? expiresIn,
+    int? maxUses,
+  }) async {
+    final res = await _cv.mutation('roomInvites:rotate', {
+      'roomId': roomId,
+      'userId': userId,
+      'expiresInMs': ?expiresIn?.inMilliseconds,
+      'maxUses': ?maxUses,
+    });
+    return RoomInviteLink.fromJson((res as Map).cast<String, dynamic>());
+  }
+
+  /// Kill the link without issuing a replacement.
+  Future<void> revokeRoomInviteLink({
+    required String roomId,
+    required String userId,
+  }) async {
+    await _cv.mutation('roomInvites:revoke', {'roomId': roomId, 'userId': userId});
+  }
+
+  /// What is behind a code, without joining. Never throws for a bad code —
+  /// the outcome comes back as [InvitePreview.problem], because this is the
+  /// first screen after tapping a link and a typo is not an exception.
+  Future<InvitePreview> previewInvite({
+    required String code,
+    String? userId,
+  }) async {
+    final res = await _cv.query('roomInvites:preview', {
+      'code': code,
+      'userId': ?userId,
+    });
+    return InvitePreview.fromJson((res as Map).cast<String, dynamic>());
+  }
+
+  /// Use a code. Joins, or files a request, depending on the room's policy.
+  Future<({RedeemOutcome outcome, String roomId})> redeemInvite({
+    required String code,
+    required String userId,
+  }) async {
+    final res = await _cv.mutation('roomInvites:redeem', {
+      'code': code,
+      'userId': userId,
+    });
+    final m = (res as Map).cast<String, dynamic>();
+    final status = m['status'] as String?;
+    return (
+      outcome: switch (status) {
+        'joined' => RedeemOutcome.joined,
+        'pending' => RedeemOutcome.requested,
+        _ => RedeemOutcome.alreadyMember,
+      },
+      roomId: m['roomId'].toString(),
+    );
+  }
+
+  // ── Join requests (someone with the link asking to come in) ──────────────
+
+  Future<List<RoomJoinRequest>> listJoinRequests({
+    required String roomId,
+    required String userId,
+  }) async {
+    final res = await _cv.query('roomInvites:listJoinRequests', {
+      'roomId': roomId,
+      'userId': userId,
+    });
+    return ((res as List?) ?? const [])
+        .map((e) => RoomJoinRequest.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
+  Future<void> decideJoinRequest({
+    required String requestId,
+    required String userId,
+    required bool approve,
+  }) async {
+    await _cv.mutation('roomInvites:decideJoinRequest', {
+      'requestId': requestId,
+      'userId': userId,
+      'approve': approve,
+    });
+  }
+
+  // ── Direct invites (a member naming a friend) ────────────────────────────
+
+  /// The friend picker's list: friends not already in the room and not
+  /// already invited to it. Filtered server-side — doing it here would mean
+  /// shipping the client a roster of a room the user might not be in.
+  Future<List<ChatUser>> invitableFriends({
+    required String roomId,
+    required String userId,
+  }) async {
+    final res = await _cv.query('roomInvitations:invitableFriends', {
+      'roomId': roomId,
+      'userId': userId,
+    });
+    return ((res as List?) ?? const [])
+        .map((e) => ChatUser.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
+  Future<void> inviteToRoom({
+    required String roomId,
+    required String userId,
+    required String inviteeId,
+  }) async {
+    await _cv.mutation('roomInvitations:invite', {
+      'roomId': roomId,
+      'userId': userId,
+      'inviteeId': inviteeId,
+    });
+  }
+
+  /// The invitee's answer. Returns the room so an accept can open it.
+  Future<String> respondToRoomInvitation({
+    required String invitationId,
+    required String userId,
+    required bool accept,
+  }) async {
+    final res = await _cv.mutation('roomInvitations:respond', {
+      'invitationId': invitationId,
+      'userId': userId,
+      'accept': accept,
+    });
+    return ((res as Map).cast<String, dynamic>())['roomId'].toString();
+  }
+
+  /// Withdraw an invite — the sender's own, or anyone's if the caller is an
+  /// admin.
+  /// A guardian releasing (or refusing) one hop of a group invite — the exact
+  /// counterpart of `family:advanceContactRequest`, and the mutation the
+  /// [QueueRelay.roomInvite] branch of the approvals queue calls.
+  Future<void> advanceRoomInvitation({
+    required String invitationId,
+    required String guardianId,
+    required bool approve,
+  }) async {
+    await _cv.mutation('roomInvitations:advance', {
+      'invitationId': invitationId,
+      'guardianId': guardianId,
+      'approve': approve,
+    });
+  }
+
+  Future<void> cancelRoomInvitation({
+    required String invitationId,
+    required String userId,
+  }) async {
+    await _cv.mutation('roomInvitations:cancel', {
+      'invitationId': invitationId,
+      'userId': userId,
+    });
+  }
+
+  Future<List<RoomInvitation>> listIncomingRoomInvitations(String userId) async {
+    final res = await _cv.query('roomInvitations:listIncoming', {'userId': userId});
+    return ((res as List?) ?? const [])
+        .map((e) => RoomInvitation.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
+  /// Invites this room has out and nobody has answered yet.
+  Future<List<PendingRoomInvite>> listRoomInvitations({
+    required String roomId,
+    required String userId,
+  }) async {
+    final res = await _cv.query('roomInvitations:listForRoom', {
+      'roomId': roomId,
+      'userId': userId,
+    });
+    return ((res as List?) ?? const [])
+        .map((e) => PendingRoomInvite.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
   }
 
   // ─────────────────────────────────────────────────────────────────────────

@@ -6730,4 +6730,488 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get deviceLoginScanScreenDeniedConfirmation =>
       'sign-in request denied';
+
+  @override
+  String get roomAdminSectionLabel => 'GRUPO';
+
+  @override
+  String get roomAdminRoleOwner => 'PROPIETARIO';
+
+  @override
+  String get roomAdminRoleAdmin => 'ADMIN';
+
+  @override
+  String get roomAdminActionViewProfile => 'Ver perfil';
+
+  @override
+  String get roomAdminActionPromote => 'Hacer admin';
+
+  @override
+  String get roomAdminActionPromoteSub =>
+      'Podrá invitar, expulsar y editar el grupo';
+
+  @override
+  String get roomAdminActionDemote => 'Quitar admin';
+
+  @override
+  String get roomAdminActionDemoteSub => 'Sigue en el grupo como miembro';
+
+  @override
+  String get roomAdminActionTransfer => 'Transferir propiedad';
+
+  @override
+  String get roomAdminActionTransferSub => 'Tú te quedas como admin';
+
+  @override
+  String get roomAdminActionRemove => 'Expulsar del grupo';
+
+  @override
+  String get roomAdminAddFriendsRow => 'Añadir amigos';
+
+  @override
+  String get roomAdminAddFriendsRowSub =>
+      'Reciben una invitación que pueden aceptar o rechazar';
+
+  @override
+  String get roomAdminInviteLinkRow => 'Enlace de invitación';
+
+  @override
+  String get roomAdminInviteLinkRowSub =>
+      'Comparte un enlace o un código para dejar entrar a gente';
+
+  @override
+  String get roomAdminJoinRequestsRow => 'Solicitudes para unirse';
+
+  @override
+  String roomAdminJoinRequestsRowSub(Object count) {
+    return '$count esperando respuesta';
+  }
+
+  @override
+  String roomAdminTransferConfirmHeadline(Object name) {
+    return '¿Entregar el grupo a $name?';
+  }
+
+  @override
+  String get roomAdminTransferConfirmBody =>
+      'Pasa a ser el propietario y puede borrar el grupo. Tú te quedas como admin, y solo esa persona puede devolvértelo.';
+
+  @override
+  String get roomAdminTransferConfirmCta => 'TRANSFERIR';
+
+  @override
+  String roomAdminRemoveConfirmHeadline(Object name) {
+    return '¿Expulsar a $name?';
+  }
+
+  @override
+  String get roomAdminRemoveConfirmBody =>
+      'Pierde el acceso al grupo y a todo lo que hay dentro. Se le puede volver a invitar, o puede entrar con el enlace.';
+
+  @override
+  String get roomAdminRemoveConfirmCta => 'EXPULSAR';
+
+  @override
+  String get roomAdminGenericError => 'No ha funcionado. Inténtalo de nuevo.';
+
+  @override
+  String get roomAdminErrorNotMember => 'Ya no estás en este grupo.';
+
+  @override
+  String get roomAdminErrorNotAdmin => 'Eso solo lo pueden hacer los admins.';
+
+  @override
+  String get roomAdminErrorNotOwner =>
+      'Eso solo lo puede hacer el propietario del grupo.';
+
+  @override
+  String get roomAdminErrorNotGroup =>
+      'En un chat directo no hay nada que administrar.';
+
+  @override
+  String get roomAdminErrorOwnerImmutable =>
+      'El rol del propietario solo cambia transfiriendo el grupo.';
+
+  @override
+  String get roomAdminErrorInvitesLocked =>
+      'A este grupo solo pueden invitar los admins.';
+
+  @override
+  String get roomInviteSheetTitle => 'Enlace de invitación';
+
+  @override
+  String get roomInviteSheetBlurb =>
+      'Un enlace y un código, y son lo mismo. En cuanto creas uno nuevo, el anterior deja de funcionar.';
+
+  @override
+  String get roomInviteNoLinkYet =>
+      'Este grupo todavía no tiene enlace de invitación.';
+
+  @override
+  String get roomInviteCreateButton => 'CREAR ENLACE';
+
+  @override
+  String get roomInviteRegenerateButton => 'NUEVO ENLACE';
+
+  @override
+  String get roomInviteRevokeButton => 'REVOCAR ENLACE';
+
+  @override
+  String get roomInviteCopyLink => 'Copiar enlace';
+
+  @override
+  String get roomInviteCopyCode => 'Copiar código';
+
+  @override
+  String get roomInviteShare => 'Compartir';
+
+  @override
+  String get roomInviteLinkCopied => 'Enlace copiado.';
+
+  @override
+  String get roomInviteCodeCopied => 'Código copiado.';
+
+  @override
+  String get roomInviteRegenerateHeadline => '¿Crear un enlace nuevo?';
+
+  @override
+  String get roomInviteRegenerateBody =>
+      'El enlace y el código actuales dejan de funcionar al instante, en todos los sitios donde se hayan compartido. Quien ya esté en el grupo se queda.';
+
+  @override
+  String get roomInviteRegenerateConfirm => 'NUEVO ENLACE';
+
+  @override
+  String get roomInviteRevokeHeadline => '¿Revocar este enlace?';
+
+  @override
+  String get roomInviteRevokeBody =>
+      'Nadie nuevo podrá entrar con el enlace hasta que crees otro. Quien ya esté en el grupo se queda.';
+
+  @override
+  String get roomInviteRevokeConfirm => 'REVOCAR';
+
+  @override
+  String get roomInviteLimitsLabel => 'LÍMITES';
+
+  @override
+  String get roomInviteExpiryLabel => 'Caduca en';
+
+  @override
+  String get roomInviteMaxUsesLabel => 'Número de usos';
+
+  @override
+  String get roomInviteNeverExpires => 'Nunca';
+
+  @override
+  String get roomInviteUnlimited => 'Sin límite';
+
+  @override
+  String roomInviteExpiryHours(Object count) {
+    return '$count h';
+  }
+
+  @override
+  String roomInviteExpiryDays(Object count) {
+    return '$count d';
+  }
+
+  @override
+  String get roomInviteLimitsApplyToNew => 'Se aplican al enlace que crees.';
+
+  @override
+  String get roomInviteLimitsApplyOnRegenerate =>
+      'Se aplican al próximo enlace. El de arriba conserva los límites con los que se creó.';
+
+  @override
+  String get roomInvitePermissionsLabel => 'PERMISOS';
+
+  @override
+  String get roomInviteMembersCanInviteLabel =>
+      'Los miembros pueden invitar amigos';
+
+  @override
+  String get roomInviteMembersCanInviteSub =>
+      'Desactívalo y solo los admins podrán traer gente';
+
+  @override
+  String get roomInviteApprovalLabel => 'Aprobar cada entrada';
+
+  @override
+  String get roomInviteApprovalSub =>
+      'Quien tenga el enlace lo pide primero, y un admin dice sí o no';
+
+  @override
+  String roomInviteUsesCount(Object count) {
+    return 'Usado $count veces';
+  }
+
+  @override
+  String roomInviteUsesOfMax(Object max, Object used) {
+    return '$used de $max usos';
+  }
+
+  @override
+  String roomInviteExpiresOn(Object date) {
+    return 'caduca el $date';
+  }
+
+  @override
+  String get roomInviteDeadExpired =>
+      'Este enlace ha caducado. Crea uno nuevo.';
+
+  @override
+  String get roomInviteDeadExhausted =>
+      'Este enlace se ha quedado sin usos. Crea uno nuevo.';
+
+  @override
+  String get roomInviteDeadRevoked => 'Este enlace fue revocado.';
+
+  @override
+  String get roomInviteDeadGeneric => 'Este enlace ya no funciona.';
+
+  @override
+  String get roomInviteFriendsTitle => 'Añadir amigos';
+
+  @override
+  String get roomInviteFriendsBlurb =>
+      'Recibirán una invitación y podrán aceptarla o rechazarla.';
+
+  @override
+  String get roomInviteFriendsSearchHint => 'Buscar amigos';
+
+  @override
+  String get roomInviteFriendsInviteButton => 'INVITAR';
+
+  @override
+  String get roomInviteFriendsSent => 'Invitado';
+
+  @override
+  String get roomInviteFriendsEmpty =>
+      'Todos tus amigos ya están aquí o ya están invitados.';
+
+  @override
+  String get roomInviteFriendsNoMatch => 'Ningún amigo coincide con eso.';
+
+  @override
+  String get roomInviteFriendsDone => 'LISTO';
+
+  @override
+  String get roomJoinRequestsTitle => 'Solicitudes para unirse';
+
+  @override
+  String get roomJoinRequestsBlurb =>
+      'Estas personas han usado el enlace. No ven nada del grupo hasta que digas que sí.';
+
+  @override
+  String get roomJoinRequestsEmpty => 'No hay nadie esperando.';
+
+  @override
+  String get roomJoinRequestsApprove => 'DEJAR ENTRAR';
+
+  @override
+  String get roomJoinRequestsReject => 'NO';
+
+  @override
+  String roomInfoScreenInvitedLabel(Object count) {
+    return 'INVITADOS · $count';
+  }
+
+  @override
+  String get roomInfoScreenInviteAwaitingGuardian =>
+      'esperando a un padre o madre';
+
+  @override
+  String get roomInfoScreenInviteWithdraw => 'RETIRAR';
+
+  @override
+  String roomInvitationCardFrom(Object inviter, Object members) {
+    return 'de $inviter · $members miembros';
+  }
+
+  @override
+  String get roomInvitationCardJoin => 'UNIRME';
+
+  @override
+  String get discoverScreenJoinByCodeTitle => 'unirse con un código';
+
+  @override
+  String get discoverScreenJoinByCodeSubtitle =>
+      'abre un grupo que alguien te ha compartido';
+
+  @override
+  String get joinInviteTitle => 'Unirse a un grupo';
+
+  @override
+  String get joinInviteBack => 'Atrás';
+
+  @override
+  String get joinInviteCodeBlurb =>
+      'Introduce el código que te han compartido. Un enlace de invitación completo también vale.';
+
+  @override
+  String get joinInviteCodeLabel => 'Código de invitación';
+
+  @override
+  String get joinInviteCodeHint => 'K7M2-XQ94-RB';
+
+  @override
+  String get joinInviteCodeInvalid => 'Eso no parece un código de invitación.';
+
+  @override
+  String get joinInviteLookupButton => 'CONTINUAR';
+
+  @override
+  String get joinInviteLookupFailed =>
+      'No se ha podido comprobar el código. Revisa tu conexión e inténtalo de nuevo.';
+
+  @override
+  String joinInviteMemberCount(Object count) {
+    return '$count miembros';
+  }
+
+  @override
+  String get joinInviteJoinButton => 'UNIRME AL GRUPO';
+
+  @override
+  String get joinInviteRequestButton => 'PEDIR ENTRAR';
+
+  @override
+  String get joinInviteOpenNote =>
+      'Podrás ver los mensajes del grupo en cuanto entres.';
+
+  @override
+  String get joinInviteApprovalNote =>
+      'Un admin tiene que decir que sí antes de que puedas ver nada aquí dentro.';
+
+  @override
+  String get joinInviteOpenRoom => 'ABRIR GRUPO';
+
+  @override
+  String get joinInvitePendingHeadline => 'Esperando a un admin';
+
+  @override
+  String get joinInvitePendingBody =>
+      'Recibirás una notificación en cuanto alguien responda.';
+
+  @override
+  String get joinInviteBadLinkHeadline => 'Esta invitación no funciona';
+
+  @override
+  String get joinInviteBadLinkBody =>
+      'Revisa el código o pide un enlace nuevo.';
+
+  @override
+  String get joinInviteExpiredHeadline => 'Esta invitación ha caducado';
+
+  @override
+  String get joinInviteExpiredBody =>
+      'Pídele un enlace nuevo a quien te invitó.';
+
+  @override
+  String get joinInviteExhaustedHeadline => 'Esta invitación está agotada';
+
+  @override
+  String get joinInviteExhaustedBody =>
+      'Estaba configurada para funcionar un número limitado de veces. Pide otra.';
+
+  @override
+  String get joinInviteRevokedHeadline => 'Esta invitación fue sustituida';
+
+  @override
+  String get joinInviteRevokedBody =>
+      'Un admin creó un enlace nuevo. Pídele el actual.';
+
+  @override
+  String get joinInviteWrongServerHeadline =>
+      'Esta invitación es de otro servidor';
+
+  @override
+  String joinInviteWrongServerBody(Object host) {
+    return 'Pertenece a $host. Tu cuenta está en otro servidor, así que este grupo no es accesible desde aquí.';
+  }
+
+  @override
+  String get roomInviteErrorNotFound =>
+      'Ese código de invitación no coincide con nada.';
+
+  @override
+  String get roomInviteErrorRevoked =>
+      'Esa invitación fue sustituida. Pide el enlace actual.';
+
+  @override
+  String get roomInviteErrorExpired => 'Esa invitación ha caducado.';
+
+  @override
+  String get roomInviteErrorExhausted => 'Esa invitación está agotada.';
+
+  @override
+  String get roomInviteErrorAlreadyMember => 'Ya está en este grupo.';
+
+  @override
+  String get roomInviteErrorAlreadyInvited => 'Ya se le ha invitado.';
+
+  @override
+  String get roomInviteErrorSelf => 'Ya estás en este grupo.';
+
+  @override
+  String get roomInviteErrorInvitationGone => 'Esa invitación ya no está.';
+
+  @override
+  String get roomInviteErrorRequestPending =>
+      'Ya has pedido entrar. Un admin responderá.';
+
+  @override
+  String get roomInviteErrorRequestGone =>
+      'Alguien ya respondió a esa solicitud.';
+
+  @override
+  String get roomInviteErrorRoomPrivate =>
+      'A este grupo solo se entra con invitación.';
+
+  @override
+  String get roomInviteErrorInvalidLimits => 'Esos límites no son válidos.';
+
+  @override
+  String approvalsScreenHeadlineRoomInviteOutgoing(
+    Object child,
+    Object other,
+    Object room,
+  ) {
+    return '$child quiere invitar a $other a $room';
+  }
+
+  @override
+  String approvalsScreenHeadlineRoomInviteIncoming(
+    Object child,
+    Object other,
+    Object room,
+  ) {
+    return '$other ha invitado a $child a $room';
+  }
+
+  @override
+  String get approvalsScreenConsequenceRoomInviteOutgoing =>
+      'La invitación se envía, y la otra persona sigue decidiendo.';
+
+  @override
+  String approvalsScreenConsequenceRoomInviteIncoming(Object child) {
+    return '$child verá la invitación y podrá aceptarla o rechazarla. Aprobarla también le da acceso a ese grupo si acepta.';
+  }
+
+  @override
+  String get roomAdminErrorCannotRemoveSelf =>
+      'No puedes expulsarte a ti mismo. Sal del grupo en su lugar.';
+
+  @override
+  String get roomAdminActionMessage => 'Enviar mensaje';
+
+  @override
+  String get roomAdminActionVoiceCall => 'Llamada de voz';
+
+  @override
+  String get roomAdminActionVideoCall => 'Videollamada';
+
+  @override
+  String get roomAdminYouSuffix => 'tú';
 }

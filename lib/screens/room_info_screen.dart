@@ -13,6 +13,11 @@ import '../media/upload_service.dart';
 import '../models/chat_message.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
+import '../auth/auth_errors.dart';
+import '../invites/room_admin_errors.dart';
+import '../calls/call_models.dart';
+import '../calls/call_service.dart';
+import '../models/room_admin.dart';
 import '../models/room_capabilities.dart';
 import '../models/room_content_item.dart';
 import '../theme/app_theme.dart';
@@ -23,10 +28,16 @@ import '../widgets/mute_room_sheet.dart';
 import '../widgets/password_field.dart';
 import '../widgets/photo_chrome.dart';
 import '../widgets/remote_image.dart';
+import '../widgets/room_invite_friends_sheet.dart';
+import '../widgets/room_invite_sheet.dart';
+import '../widgets/room_join_requests_sheet.dart';
+import '../widgets/room_member_actions_sheet.dart';
 import '../widgets/steady_hero.dart';
 import '../widgets/user_avatar.dart';
+import '../widgets/destructive_sheet.dart';
 import 'fullscreen_image_viewer.dart';
 import 'image_crop_screen.dart';
+import 'navigation/open_room.dart';
 import 'profile_screen.dart';
 import 'room_content_screen.dart';
 
@@ -75,16 +86,127 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   String _membersSig = '';
   ChatRoom? _lastObservedRoom;
 
+  // ── Group administration ────────────────────────────────────────────────
+  //
+  // Subscribed, not fetched once. Being promoted or demoted has to change this
+  // screen while it is open — an admin who just handed someone the role should
+  // see their row gain the badge, and someone who just lost it should watch the
+  // controls go rather than tap one and be refused.
+  //
+  // Starts at [RoomPermissions.none], which draws a plain member's view. The
+  // first frame is wrong either way; wrong in this direction merely omits
+  // controls for an instant, where the other direction flashes admin buttons at
+  // people who do not have them.
+  RoomPermissions _perms = RoomPermissions.none;
+  Subscription? _permsSub;
+
+  /// Live so the badge is a real count and not a number from screen-open.
+  List<RoomJoinRequest> _joinRequests = const [];
+  Subscription? _joinRequestsSub;
+
+  /// Invites this room has out and nobody has answered. Shown under the roster
+  /// because "who is in this group" and "who is on their way" are the same
+  /// question to the person reading it.
+  List<PendingRoomInvite> _pendingInvites = const [];
+  Subscription? _pendingInvitesSub;
+
   ChatRoom? get _room => widget.repo.roomById(widget.roomId);
-  bool get _isOwner =>
-      (widget.repo.userId ?? '') == (_room?.createdBy ?? '__none__');
+
+  /// May this viewer delete the room.
+  ///
+  /// For a group this is the OWNER ROLE, which is no longer the same thing as
+  /// `rooms.createdBy` — ownership transfers, and an owner who deletes their
+  /// account hands the room to an heir. A DM has no owner at all and either
+  /// side may end it, which `caps.canDelete && r.isDm` covers at the call site.
+  bool get _isOwner => _perms.isOwner;
 
   @override
   void initState() {
     super.initState();
     _hydrate();
     _loadContentCounts();
+    _loadAdminState();
     widget.repo.addListener(_onRepo);
+  }
+
+  /// The three administration subscriptions, opened together and torn down
+  /// together in [dispose].
+  ///
+  /// All three are best-effort: offline, or on a room where the caller is not
+  /// an admin, each simply stays at its empty value and the corresponding
+  /// section does not draw. None of them is an authorization boundary — the
+  /// mutations behind every control re-check server-side — so a failure here
+  /// costs a button, never a permission.
+  Future<void> _loadAdminState() async {
+    final me = widget.repo.userId;
+    if (me == null) return;
+    try {
+      _permsSub?.cancel();
+      _permsSub = await widget.repo.cv.subscribe(
+        'roomAdmin:myPermissions',
+        {'roomId': widget.roomId, 'userId': me},
+        onData: (data) {
+          if (!mounted) return;
+          setState(() {
+            _perms = data == null
+                ? RoomPermissions.none
+                : RoomPermissions.fromJson((data as Map).cast<String, dynamic>());
+          });
+        },
+        onError: (err) => debugPrint('permissions sub error: $err'),
+      );
+
+      _joinRequestsSub?.cancel();
+      _joinRequestsSub = await widget.repo.cv.subscribe(
+        'roomInvites:listJoinRequests',
+        {'roomId': widget.roomId, 'userId': me},
+        onData: (data) {
+          if (!mounted) return;
+          final list = (data as List?) ?? const [];
+          setState(() {
+            _joinRequests = list
+                .map((e) =>
+                    RoomJoinRequest.fromJson((e as Map).cast<String, dynamic>()))
+                .toList();
+          });
+        },
+        onError: (err) => debugPrint('join requests sub error: $err'),
+      );
+
+      _pendingInvitesSub?.cancel();
+      _pendingInvitesSub = await widget.repo.cv.subscribe(
+        'roomInvitations:listForRoom',
+        {'roomId': widget.roomId, 'userId': me},
+        onData: (data) {
+          if (!mounted) return;
+          final list = (data as List?) ?? const [];
+          setState(() {
+            _pendingInvites = list
+                .map((e) =>
+                    PendingRoomInvite.fromJson((e as Map).cast<String, dynamic>()))
+                .toList();
+          });
+        },
+        onError: (err) => debugPrint('pending invites sub error: $err'),
+      );
+    } catch (e) {
+      // Loud in debug, silent in release.
+      //
+      // These three subscriptions failing is indistinguishable, on screen, from
+      // "you are an ordinary member": every control is gated on `_perms`, which
+      // stays at `RoomPermissions.none`. That is the correct thing to RENDER —
+      // never flash admin controls at someone who may not have them — but it
+      // cost an hour once when the real cause was that the backend functions
+      // had not been deployed yet, and the screen said nothing at all.
+      //
+      // Offline is a legitimate reason to land here, so this is not an error
+      // the user is shown. It IS something the next person debugging an empty
+      // member list should find in the console immediately.
+      debugPrint(
+        'room admin state unavailable for ${widget.roomId} — group controls '
+        'will not render. Offline, or roomAdmin/roomInvites not deployed: $e',
+      );
+    }
   }
 
   /// How much each shared-content tab holds.
@@ -199,6 +321,9 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   @override
   void dispose() {
     _membersSub?.cancel();
+    _permsSub?.cancel();
+    _joinRequestsSub?.cancel();
+    _pendingInvitesSub?.cancel();
     widget.repo.removeListener(_onRepo);
     _name.dispose();
     _desc.dispose();
@@ -502,7 +627,27 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     // Resolved from the live member list rather than the repo's friends cache,
     // so it is right on the first frame — `_dmPeer()` above already had to
     // solve that problem, and the peer is half the answer for a bot DM.
-    final caps = roomCapabilitiesFor(r, peer: peer);
+    var caps = roomCapabilitiesFor(r, peer: peer);
+    // `roomCapabilitiesFor` answers what KIND of room this is — whether a room
+    // like this one has a name, a description, a visibility. Whether THIS
+    // viewer may change them is a second question it has never known the
+    // answer to, and before the admin tier there was nothing to ask: every
+    // member could edit every group.
+    //
+    // Folded into the capability rather than checked at each of the five call
+    // sites below, so a field added later inherits the rule instead of quietly
+    // staying editable by everyone.
+    //
+    // Tested against the ROOM's own shape, not against `_perms.isGroup`. The
+    // permissions arrive one round trip late, and `RoomPermissions.none` — the
+    // value they start at — reports `isGroup: false`, so keying the clamp off
+    // it would leave the fields editable for exactly as long as the query takes
+    // and then snatch them away. Reading the room means the conservative answer
+    // is the one on screen first, and an admin gets the fields back a moment
+    // later rather than a member losing them.
+    if (r.isGroupChat && !_perms.canEditRoom) {
+      caps = caps.copyWith(canEditSettings: false, hasDescription: false);
+    }
     // The save button's own condition: is there a single editable field above
     // it. Kept as its own expression rather than collapsed to
     // [RoomCapabilities.canEditSettings] — the two say different things, and
@@ -605,7 +750,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                             ],
                           ),
                         ],
-                        if (_isOwner && caps.canEditSettings) ...[
+                        if (_perms.canEditRoom && caps.canEditSettings) ...[
                           const SizedBox(height: 22),
                           Row(children: [
                             FieldLabel(AppLocalizations.of(context).roomInfoScreenPasswordLabel),
@@ -699,6 +844,16 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                         // "Members (1): you" is not information — and neither
                         // is "Members (2): you and a bot", or "you and the
                         // person this screen is already titled after".
+                        // Above the roster, because every row in it is a way
+                        // to CHANGE that roster — and below the room's own
+                        // settings, because none of them changes the room.
+                        if (r.isGroupChat &&
+                            (_perms.canInvite || _perms.canManageLink)) ...[
+                          const SizedBox(height: 28),
+                          FieldLabel(AppLocalizations.of(context).roomAdminSectionLabel),
+                          const SizedBox(height: 2),
+                          _groupAdmin(theme),
+                        ],
                         if (caps.hasMembers) ...[
                           const SizedBox(height: 28),
                           FieldLabel(AppLocalizations.of(context).roomInfoScreenMembersLabel(_members.length)),
@@ -982,6 +1137,11 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                   ),
                 ),
               ),
+            // The edit badge, only for people who may actually change it.
+            // `rooms.updateRoomAvatar` is admin-only for a group now, and
+            // without this gate a member could pick a photo, sit through the
+            // upload, and be refused at the very last step.
+            if (!r.isGroupChat || _perms.canEditRoom)
             Positioned(
               right: 0,
               bottom: 0,
@@ -1016,17 +1176,94 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     if (_members.isEmpty) {
       return Text(AppLocalizations.of(context).roomInfoScreenLoadingMembers, style: theme.bodySoft);
     }
+    // Ranked, then alphabetical. Sorting on the ROLE rather than on
+    // `rooms.createdBy` is what makes a promoted admin actually rise up the
+    // list — the old comparator only ever knew about one privileged person and
+    // pinned whoever happened to create the room, even after the room had been
+    // handed to somebody else.
     final ordered = [..._members]..sort((a, b) {
-      final aOwner = a.id == r.createdBy ? 0 : 1;
-      final bOwner = b.id == r.createdBy ? 0 : 1;
-      if (aOwner != bOwner) return aOwner - bOwner;
+      final ra = _rankOf(a);
+      final rb = _rankOf(b);
+      if (ra != rb) return ra - rb;
       return a.displayName.compareTo(b.displayName);
     });
     final me = widget.repo.userId;
     return Column(
-      children: [for (final m in ordered) _memberRow(theme, r, m, me)],
+      children: [
+        // First row of the roster, above the people — where every mainstream
+        // chat app puts it, and where someone looking at "who is in here"
+        // already is when they think "and X should be". It ALSO lives in the
+        // GROUP block above; that is not a duplicate so much as the difference
+        // between managing the room and reading it.
+        if (_perms.canInvite) _addMembersRow(theme),
+        for (final m in ordered) _memberRow(theme, r, m, me),
+        // Outstanding invites, below the real roster and visibly apart from it.
+        // These people are NOT members — they have been asked and have not
+        // answered — and a list that mixed the two would be a roster nobody
+        // could trust.
+        if (_pendingInvites.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          FieldLabel(AppLocalizations.of(context)
+              .roomInfoScreenInvitedLabel(_pendingInvites.length)),
+          const SizedBox(height: 4),
+          for (final inv in _pendingInvites) _pendingInviteRow(theme, inv),
+        ],
+      ],
     );
   }
+
+  Widget _addMembersRow(AppTheme theme) {
+    final l10n = AppLocalizations.of(context);
+    void open() => showRoomInviteFriendsSheet(
+          context,
+          repo: widget.repo,
+          api: widget.api,
+          roomId: widget.roomId,
+        );
+    return FocusableTap(
+      onTap: open,
+      semanticLabel: l10n.roomAdminAddFriendsRow,
+      radius: theme.radiusMd,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: open,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            children: [
+              // Same 32px circle the avatars use, so the row sits on the
+              // roster's rhythm instead of looking like a button that wandered
+              // into a list.
+              Container(
+                width: 32,
+                height: 32,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: theme.accentSoft,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.add, size: 18, color: theme.accent),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  l10n.roomAdminAddFriendsRow,
+                  style: theme.body.copyWith(color: theme.accent),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Owner first, then admins, then everyone else.
+  int _rankOf(ChatUser u) => switch (RoomRoleWire.parse(u.role)) {
+        RoomRole.owner => 0,
+        RoomRole.admin => 1,
+        RoomRole.member => 2,
+      };
 
   Widget _memberRow(AppTheme theme, ChatRoom r, ChatUser m, String? me) {
     // Two members lead nowhere: yourself, and the app's own account. The second
@@ -1035,19 +1272,31 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     // call `calls.ts` refuses. It matters HERE now that a system room can have
     // a member list at all: this is the only row in the app that would draw the
     // bot next to a chevron.
-    final opensProfile = m.id != me && !m.isSystem;
+    final role = RoomRoleWire.parse(m.role);
+    final isSelf = m.id == me;
+
+    // EVERY row opens the sheet, not just an admin's. It used to jump straight
+    // to the profile for anyone who could not moderate, which meant a plain
+    // member tapping a face got a full-screen push and no way to simply
+    // message them — the sheet's own first row. The sheet varies its contents
+    // by permission; the gesture does not vary at all, which is what makes the
+    // list feel consistent to tap.
+    //
+    // The app's own account is the one exception: there is nothing to message,
+    // call or moderate there. Your own row still opens — it is the one place
+    // that says, plainly, what your role in this group is.
+    final hasSheet = !m.isSystem;
+
+    void open() {
+      if (hasSheet) _openMemberActions(m, role, isSelf: isSelf);
+    }
+
     return GestureDetector(
-      onTap: !opensProfile
-          ? null
-          : () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => ProfileScreen(
-                    user: m,
-                    repo: widget.repo,
-                    api: widget.api,
-                  ),
-                ),
-              ),
+      onTap: hasSheet ? open : null,
+      // Long-press lands on the same sheet. Muscle memory from every other
+      // chat app expects it, and a long-press that does nothing reads as the
+      // row being broken rather than as the gesture being unsupported.
+      onLongPress: hasSheet ? open : null,
       behavior: HitTestBehavior.opaque,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
@@ -1059,22 +1308,382 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(m.displayName, style: theme.body),
-                  Text('@${m.username}', style: theme.monoTiny),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          m.displayName,
+                          style: theme.body,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (isSelf) ...[
+                        const SizedBox(width: 6),
+                        Text(
+                          AppLocalizations.of(context).roomAdminYouSuffix,
+                          style: theme.monoTiny,
+                        ),
+                      ],
+                    ],
+                  ),
+                  Text(
+                    '@${m.username}',
+                    style: theme.monoTiny,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),
-            if (m.id == r.createdBy)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                decoration: theme.chipDecoration(filled: true),
-                child: Text(AppLocalizations.of(context).roomInfoScreenOwnerBadge, style: theme.monoTiny.copyWith(color: theme.accentInk)),
-              ),
-            if (opensProfile) ...[
+            // The badge reads the ROLE. It used to read `id == r.createdBy`,
+            // which is why a transferred room kept labelling the wrong person.
+            // Shared with the sheet's header via [RoleChip] so one fact cannot
+            // be styled two ways.
+            if (role != RoomRole.member) RoleChip(role: role, dense: true),
+            if (hasSheet) ...[
               const SizedBox(width: 6),
-              Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
+              Icon(Icons.more_horiz, size: 16, color: theme.inkMuted),
             ],
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _pendingInviteRow(AppTheme theme, PendingRoomInvite inv) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Opacity(
+        // Dimmed rather than badged: the whole block is already labelled
+        // "invited", and the row needs to read as provisional at a glance.
+        opacity: 0.7,
+        child: Row(
+          children: [
+            UserAvatar(user: inv.invitee, size: 28, api: widget.api),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(inv.invitee.displayName, style: theme.bodySoft),
+                  Text(
+                    // "Waiting on a parent" instead of nothing, because two
+                    // days of silence from a supervised invitee otherwise
+                    // reads as a snub rather than as a guardian who has not
+                    // looked yet.
+                    inv.awaitingGuardian
+                        ? l10n.roomInfoScreenInviteAwaitingGuardian
+                        : '@${inv.invitee.username}',
+                    style: theme.monoTiny,
+                  ),
+                ],
+              ),
+            ),
+            if (inv.canCancel)
+              FocusableTap(
+                onTap: () => _cancelInvite(inv),
+                semanticLabel: l10n.roomInfoScreenInviteWithdraw,
+                radius: theme.radiusSm,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _cancelInvite(inv),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    child: Text(
+                      l10n.roomInfoScreenInviteWithdraw,
+                      style: theme.monoTiny.copyWith(color: theme.danger),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Administration actions ──────────────────────────────────────────────
+  //
+  // Every one of these confirms nothing the server would not also refuse. The
+  // confirmations exist because removing someone or handing a group away are
+  // socially irreversible even when they are technically undoable, not because
+  // the client is trusted to enforce anything.
+
+  Future<void> _openMemberActions(
+    ChatUser m,
+    RoomRole role, {
+    required bool isSelf,
+  }) async {
+    final action = await showRoomMemberActions(
+      context,
+      member: m,
+      memberRole: role,
+      permissions: _perms,
+      api: widget.api,
+      isSelf: isSelf,
+    );
+    if (action == null || !mounted) return;
+    switch (action) {
+      // The three everyday rows. They leave this screen rather than acting on
+      // it, so none of them touches `_runAdmin` — there is no room mutation to
+      // report the failure of.
+      case RoomMemberAction.message:
+        await _messageMember(m);
+      case RoomMemberAction.voiceCall:
+        await _callMember(m, CallMediaKind.audio);
+      case RoomMemberAction.videoCall:
+        await _callMember(m, CallMediaKind.video);
+      case RoomMemberAction.openProfile:
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) =>
+                ProfileScreen(user: m, repo: widget.repo, api: widget.api),
+          ),
+        );
+      case RoomMemberAction.promote:
+        await _runAdmin(() => widget.repo.setRoomAdmin(
+              roomId: widget.roomId,
+              targetUserId: m.id,
+              makeAdmin: true,
+            ));
+      case RoomMemberAction.demote:
+        await _runAdmin(() => widget.repo.setRoomAdmin(
+              roomId: widget.roomId,
+              targetUserId: m.id,
+              makeAdmin: false,
+            ));
+      case RoomMemberAction.transferOwnership:
+        await _confirmThen(
+          headline: AppLocalizations.of(context)
+              .roomAdminTransferConfirmHeadline(m.displayName),
+          body: AppLocalizations.of(context).roomAdminTransferConfirmBody,
+          confirmLabel: AppLocalizations.of(context).roomAdminTransferConfirmCta,
+          run: () => widget.repo.transferRoomOwnership(
+            roomId: widget.roomId,
+            targetUserId: m.id,
+          ),
+        );
+      case RoomMemberAction.remove:
+        await _confirmThen(
+          headline: AppLocalizations.of(context)
+              .roomAdminRemoveConfirmHeadline(m.displayName),
+          body: AppLocalizations.of(context).roomAdminRemoveConfirmBody,
+          confirmLabel: AppLocalizations.of(context).roomAdminRemoveConfirmCta,
+          run: () => widget.repo.removeRoomMember(
+            roomId: widget.roomId,
+            targetUserId: m.id,
+          ),
+        );
+    }
+  }
+
+  /// Open (or create) the one-to-one chat with this member.
+  ///
+  /// Replaces nothing: the group's info screen stays underneath, so backing out
+  /// of the DM returns you to the roster you were reading rather than dumping
+  /// you at the chat list.
+  Future<void> _messageMember(ChatUser m) async {
+    try {
+      final roomId = await widget.repo.openDmWith(m);
+      if (!mounted) return;
+      openRoom(context, roomId: roomId, repo: widget.repo, api: widget.api);
+    } catch (e) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(humanizeAuthError(e, l10n,
+            fallback: l10n.roomAdminGenericError))),
+      );
+    }
+  }
+
+  /// Ring this member one-to-one.
+  ///
+  /// Deliberately NOT a group call: the sheet is about one person, and the
+  /// group's own call button is elsewhere. The DM room is resolved first
+  /// because `CallService.initiate` rings INTO a room — calling from the group
+  /// room would ring everybody in it.
+  Future<void> _callMember(ChatUser m, CallMediaKind kind) async {
+    final service = CallService.instance;
+    if (service.inCall) return;
+    try {
+      final roomId = await widget.repo.openDmWith(m);
+      await service.initiate(
+        peerUserId: m.id,
+        peerName: m.displayName,
+        roomId: roomId,
+        kind: kind,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
+      final str = e.toString();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            str.contains('BUSY')
+                ? l10n.callButtonErrorBusy
+                : str.contains('NOT_A_MEMBER')
+                    ? l10n.callButtonErrorNotMember
+                    : l10n.callButtonErrorGeneric,
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _cancelInvite(PendingRoomInvite inv) =>
+      _runAdmin(() => widget.repo.cancelRoomInvitation(inv.invitationId));
+
+  Future<void> _confirmThen({
+    required String headline,
+    required String body,
+    required String confirmLabel,
+    required Future<void> Function() run,
+  }) async {
+    final ok = await showConfirmSheet(
+      context,
+      headline: headline,
+      body: body,
+      confirmLabel: confirmLabel,
+    );
+    if (!ok || !mounted) return;
+    await _runAdmin(run);
+  }
+
+  /// Run a mutation and put any refusal in front of the user.
+  ///
+  /// Nothing is applied optimistically: the member list is a live subscription,
+  /// so the truthful result arrives on its own a moment later, and guessing at
+  /// it first would mean a rejected promotion visibly un-happening.
+  Future<void> _runAdmin(Future<void> Function() run) async {
+    try {
+      await run();
+    } catch (e) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(humanizeAuthError(
+            e,
+            l10n,
+            fallback: l10n.roomAdminGenericError,
+            overrides: roomAdminErrorMessages(l10n),
+          )),
+        ),
+      );
+    }
+  }
+
+  /// The group-management block: the link, the friend picker, and the queue.
+  ///
+  /// Only drawn for a group the viewer can actually do something in, and each
+  /// row appears on its own condition — a plain member in a room that still
+  /// allows member invites gets the friend picker and nothing else, which is
+  /// exactly the surface their permissions describe.
+  Widget _groupAdmin(AppTheme theme) {
+    final l10n = AppLocalizations.of(context);
+    final pendingRequests = _joinRequests.length;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (_perms.canInvite)
+          _adminRow(
+            theme,
+            icon: Icons.person_add_alt,
+            label: l10n.roomAdminAddFriendsRow,
+            sub: l10n.roomAdminAddFriendsRowSub,
+            onTap: () => showRoomInviteFriendsSheet(
+              context,
+              repo: widget.repo,
+              api: widget.api,
+              roomId: widget.roomId,
+            ),
+          ),
+        if (_perms.canManageLink)
+          _adminRow(
+            theme,
+            icon: Icons.link,
+            label: l10n.roomAdminInviteLinkRow,
+            sub: l10n.roomAdminInviteLinkRowSub,
+            onTap: () => showRoomInviteSheet(
+              context,
+              repo: widget.repo,
+              roomId: widget.roomId,
+              permissions: _perms,
+            ),
+          ),
+        // Only when there is something to review. An always-present row
+        // reading "0 requests" is a permanent invitation to check a queue that
+        // announces itself perfectly well by appearing.
+        if (_perms.canReviewJoinRequests && pendingRequests > 0)
+          _adminRow(
+            theme,
+            icon: Icons.how_to_reg_outlined,
+            label: l10n.roomAdminJoinRequestsRow,
+            sub: l10n.roomAdminJoinRequestsRowSub(pendingRequests),
+            badge: pendingRequests,
+            onTap: () => showRoomJoinRequestsSheet(
+              context,
+              repo: widget.repo,
+              api: widget.api,
+              roomId: widget.roomId,
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _adminRow(
+    AppTheme theme, {
+    required IconData icon,
+    required String label,
+    required String sub,
+    required VoidCallback onTap,
+    int? badge,
+  }) {
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: label,
+      radius: theme.radiusMd,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 11),
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: theme.ink),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: theme.body),
+                    const SizedBox(height: 2),
+                    Text(sub, style: theme.monoTiny),
+                  ],
+                ),
+              ),
+              if (badge != null && badge > 0) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: theme.accent,
+                    borderRadius: BorderRadius.circular(theme.radiusSm),
+                  ),
+                  child: Text(
+                    '$badge',
+                    style: theme.monoTiny.copyWith(color: theme.accentInk),
+                  ),
+                ),
+                const SizedBox(width: 6),
+              ],
+              Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
+            ],
+          ),
         ),
       ),
     );

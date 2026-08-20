@@ -6671,4 +6671,484 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get deviceLoginScanScreenDeniedConfirmation =>
       'sign-in request denied';
+
+  @override
+  String get roomAdminSectionLabel => 'ग्रुप';
+
+  @override
+  String get roomAdminRoleOwner => 'मालिक';
+
+  @override
+  String get roomAdminRoleAdmin => 'एडमिन';
+
+  @override
+  String get roomAdminActionViewProfile => 'प्रोफ़ाइल देखें';
+
+  @override
+  String get roomAdminActionPromote => 'एडमिन बनाएँ';
+
+  @override
+  String get roomAdminActionPromoteSub =>
+      'वे न्योता भेज सकेंगे, सदस्य हटा सकेंगे और ग्रुप बदल सकेंगे';
+
+  @override
+  String get roomAdminActionDemote => 'एडमिन हटाएँ';
+
+  @override
+  String get roomAdminActionDemoteSub =>
+      'वे सदस्य के तौर पर ग्रुप में बने रहेंगे';
+
+  @override
+  String get roomAdminActionTransfer => 'मालिकाना हक सौंपें';
+
+  @override
+  String get roomAdminActionTransferSub => 'आप एडमिन बने रहेंगे';
+
+  @override
+  String get roomAdminActionRemove => 'ग्रुप से हटाएँ';
+
+  @override
+  String get roomAdminAddFriendsRow => 'दोस्त जोड़ें';
+
+  @override
+  String get roomAdminAddFriendsRowSub =>
+      'उन्हें न्योता मिलेगा, जिसे वे मान या ठुकरा सकते हैं';
+
+  @override
+  String get roomAdminInviteLinkRow => 'न्योते का लिंक';
+
+  @override
+  String get roomAdminInviteLinkRowSub =>
+      'लोगों को अंदर लाने के लिए लिंक या कोड साझा करें';
+
+  @override
+  String get roomAdminJoinRequestsRow => 'जुड़ने की गुज़ारिशें';
+
+  @override
+  String roomAdminJoinRequestsRowSub(Object count) {
+    return '$count जवाब का इंतज़ार कर रहे हैं';
+  }
+
+  @override
+  String roomAdminTransferConfirmHeadline(Object name) {
+    return 'ग्रुप $name को सौंपें?';
+  }
+
+  @override
+  String get roomAdminTransferConfirmBody =>
+      'वे मालिक बन जाएँगे और ग्रुप मिटा सकेंगे। आप एडमिन बने रहेंगे, और वापस देना सिर्फ़ उन्हीं के हाथ में होगा।';
+
+  @override
+  String get roomAdminTransferConfirmCta => 'सौंपें';
+
+  @override
+  String roomAdminRemoveConfirmHeadline(Object name) {
+    return '$name को हटाएँ?';
+  }
+
+  @override
+  String get roomAdminRemoveConfirmBody =>
+      'उनकी ग्रुप और उसमें मौजूद हर चीज़ तक पहुँच खत्म हो जाएगी। उन्हें दोबारा न्योता दिया जा सकता है, या वे न्योते के लिंक से वापस आ सकते हैं।';
+
+  @override
+  String get roomAdminRemoveConfirmCta => 'हटाएँ';
+
+  @override
+  String get roomAdminGenericError => 'यह नहीं हो पाया। दोबारा कोशिश करें।';
+
+  @override
+  String get roomAdminErrorNotMember => 'अब आप इस ग्रुप में नहीं हैं।';
+
+  @override
+  String get roomAdminErrorNotAdmin => 'यह सिर्फ़ एडमिन कर सकते हैं।';
+
+  @override
+  String get roomAdminErrorNotOwner => 'यह सिर्फ़ ग्रुप का मालिक कर सकता है।';
+
+  @override
+  String get roomAdminErrorNotGroup =>
+      'आमने-सामने की चैट में संभालने को कुछ नहीं होता।';
+
+  @override
+  String get roomAdminErrorOwnerImmutable =>
+      'मालिक की भूमिका सिर्फ़ ग्रुप सौंपने से बदलती है।';
+
+  @override
+  String get roomAdminErrorInvitesLocked =>
+      'इस ग्रुप में सिर्फ़ एडमिन ही न्योता भेज सकते हैं।';
+
+  @override
+  String get roomInviteSheetTitle => 'न्योते का लिंक';
+
+  @override
+  String get roomInviteSheetBlurb =>
+      'एक लिंक और एक कोड, और दोनों एक ही चीज़ हैं। नया बनाते ही पुराना काम करना बंद कर देता है।';
+
+  @override
+  String get roomInviteNoLinkYet =>
+      'इस ग्रुप का अभी कोई न्योते का लिंक नहीं है।';
+
+  @override
+  String get roomInviteCreateButton => 'लिंक बनाएँ';
+
+  @override
+  String get roomInviteRegenerateButton => 'नया लिंक';
+
+  @override
+  String get roomInviteRevokeButton => 'लिंक रद्द करें';
+
+  @override
+  String get roomInviteCopyLink => 'लिंक कॉपी करें';
+
+  @override
+  String get roomInviteCopyCode => 'कोड कॉपी करें';
+
+  @override
+  String get roomInviteShare => 'साझा करें';
+
+  @override
+  String get roomInviteLinkCopied => 'लिंक कॉपी हो गया।';
+
+  @override
+  String get roomInviteCodeCopied => 'कोड कॉपी हो गया।';
+
+  @override
+  String get roomInviteRegenerateHeadline => 'नया लिंक बनाएँ?';
+
+  @override
+  String get roomInviteRegenerateBody =>
+      'मौजूदा लिंक और कोड जहाँ-जहाँ साझा हुए हैं, वहाँ तुरंत काम करना बंद कर देंगे। जो पहले से ग्रुप में हैं वे बने रहेंगे।';
+
+  @override
+  String get roomInviteRegenerateConfirm => 'नया लिंक';
+
+  @override
+  String get roomInviteRevokeHeadline => 'यह लिंक रद्द करें?';
+
+  @override
+  String get roomInviteRevokeBody =>
+      'जब तक आप दूसरा नहीं बनाते, लिंक से कोई नया नहीं जुड़ सकेगा। जो पहले से ग्रुप में हैं वे बने रहेंगे।';
+
+  @override
+  String get roomInviteRevokeConfirm => 'रद्द करें';
+
+  @override
+  String get roomInviteLimitsLabel => 'सीमाएँ';
+
+  @override
+  String get roomInviteExpiryLabel => 'इतने समय बाद खत्म';
+
+  @override
+  String get roomInviteMaxUsesLabel => 'कितनी बार चलेगा';
+
+  @override
+  String get roomInviteNeverExpires => 'कभी नहीं';
+
+  @override
+  String get roomInviteUnlimited => 'कोई सीमा नहीं';
+
+  @override
+  String roomInviteExpiryHours(Object count) {
+    return '$count घं';
+  }
+
+  @override
+  String roomInviteExpiryDays(Object count) {
+    return '$count दिन';
+  }
+
+  @override
+  String get roomInviteLimitsApplyToNew =>
+      'ये उस लिंक पर लागू होंगी जो आप बनाएँगे।';
+
+  @override
+  String get roomInviteLimitsApplyOnRegenerate =>
+      'ये अगले लिंक पर लागू होंगी। ऊपर वाला उन्हीं सीमाओं पर रहेगा जिनके साथ वह बना था।';
+
+  @override
+  String get roomInvitePermissionsLabel => 'अनुमतियाँ';
+
+  @override
+  String get roomInviteMembersCanInviteLabel =>
+      'सदस्य दोस्तों को न्योता दे सकते हैं';
+
+  @override
+  String get roomInviteMembersCanInviteSub =>
+      'बंद करने पर सिर्फ़ एडमिन ही लोगों को ला सकेंगे';
+
+  @override
+  String get roomInviteApprovalLabel => 'हर जुड़ने को मंज़ूरी दें';
+
+  @override
+  String get roomInviteApprovalSub =>
+      'लिंक वाले पहले पूछते हैं, और एडमिन हाँ या ना कहता है';
+
+  @override
+  String roomInviteUsesCount(Object count) {
+    return '$count बार इस्तेमाल हुआ';
+  }
+
+  @override
+  String roomInviteUsesOfMax(Object max, Object used) {
+    return '$max में से $used बार';
+  }
+
+  @override
+  String roomInviteExpiresOn(Object date) {
+    return '$date को खत्म';
+  }
+
+  @override
+  String get roomInviteDeadExpired => 'इस लिंक की मियाद खत्म हो गई। नया बनाएँ।';
+
+  @override
+  String get roomInviteDeadExhausted =>
+      'इस लिंक के इस्तेमाल खत्म हो गए। नया बनाएँ।';
+
+  @override
+  String get roomInviteDeadRevoked => 'यह लिंक रद्द कर दिया गया था।';
+
+  @override
+  String get roomInviteDeadGeneric => 'यह लिंक अब काम नहीं करता।';
+
+  @override
+  String get roomInviteFriendsTitle => 'दोस्त जोड़ें';
+
+  @override
+  String get roomInviteFriendsBlurb =>
+      'उन्हें न्योता मिलेगा और वे मान या ठुकरा सकते हैं।';
+
+  @override
+  String get roomInviteFriendsSearchHint => 'दोस्तों में खोजें';
+
+  @override
+  String get roomInviteFriendsInviteButton => 'न्योता';
+
+  @override
+  String get roomInviteFriendsSent => 'न्योता भेजा';
+
+  @override
+  String get roomInviteFriendsEmpty =>
+      'आपके सारे दोस्त या तो यहीं हैं या उन्हें न्योता जा चुका है।';
+
+  @override
+  String get roomInviteFriendsNoMatch => 'इससे मिलता कोई दोस्त नहीं।';
+
+  @override
+  String get roomInviteFriendsDone => 'हो गया';
+
+  @override
+  String get roomJoinRequestsTitle => 'जुड़ने की गुज़ारिशें';
+
+  @override
+  String get roomJoinRequestsBlurb =>
+      'इन लोगों ने न्योते का लिंक इस्तेमाल किया है। जब तक आप हाँ नहीं कहते, इन्हें ग्रुप का कुछ नहीं दिखता।';
+
+  @override
+  String get roomJoinRequestsEmpty => 'कोई इंतज़ार में नहीं है।';
+
+  @override
+  String get roomJoinRequestsApprove => 'अंदर लें';
+
+  @override
+  String get roomJoinRequestsReject => 'नहीं';
+
+  @override
+  String roomInfoScreenInvitedLabel(Object count) {
+    return 'न्योता भेजा · $count';
+  }
+
+  @override
+  String get roomInfoScreenInviteAwaitingGuardian => 'अभिभावक का इंतज़ार';
+
+  @override
+  String get roomInfoScreenInviteWithdraw => 'वापस लें';
+
+  @override
+  String roomInvitationCardFrom(Object inviter, Object members) {
+    return '$inviter की ओर से · $members सदस्य';
+  }
+
+  @override
+  String get roomInvitationCardJoin => 'जुड़ें';
+
+  @override
+  String get discoverScreenJoinByCodeTitle => 'कोड से जुड़ें';
+
+  @override
+  String get discoverScreenJoinByCodeSubtitle =>
+      'किसी ने जो ग्रुप साझा किया है उसे खोलें';
+
+  @override
+  String get joinInviteTitle => 'ग्रुप से जुड़ें';
+
+  @override
+  String get joinInviteBack => 'पीछे';
+
+  @override
+  String get joinInviteCodeBlurb =>
+      'जो कोड आपके साथ साझा किया गया है वह डालें। पूरा न्योते का लिंक भी यहाँ चलता है।';
+
+  @override
+  String get joinInviteCodeLabel => 'न्योते का कोड';
+
+  @override
+  String get joinInviteCodeHint => 'K7M2-XQ94-RB';
+
+  @override
+  String get joinInviteCodeInvalid => 'यह न्योते का कोड नहीं लगता।';
+
+  @override
+  String get joinInviteLookupButton => 'आगे बढ़ें';
+
+  @override
+  String get joinInviteLookupFailed =>
+      'कोड जाँचा नहीं जा सका। कनेक्शन देखकर दोबारा कोशिश करें।';
+
+  @override
+  String joinInviteMemberCount(Object count) {
+    return '$count सदस्य';
+  }
+
+  @override
+  String get joinInviteJoinButton => 'ग्रुप से जुड़ें';
+
+  @override
+  String get joinInviteRequestButton => 'जुड़ने को कहें';
+
+  @override
+  String get joinInviteOpenNote => 'जुड़ते ही आप ग्रुप के संदेश देख पाएँगे।';
+
+  @override
+  String get joinInviteApprovalNote =>
+      'यहाँ कुछ भी देखने से पहले किसी एडमिन का हाँ कहना ज़रूरी है।';
+
+  @override
+  String get joinInviteOpenRoom => 'ग्रुप खोलें';
+
+  @override
+  String get joinInvitePendingHeadline => 'एडमिन का इंतज़ार';
+
+  @override
+  String get joinInvitePendingBody =>
+      'जैसे ही कोई जवाब देगा, आपको सूचना मिल जाएगी।';
+
+  @override
+  String get joinInviteBadLinkHeadline => 'यह न्योता काम नहीं करता';
+
+  @override
+  String get joinInviteBadLinkBody => 'कोड जाँचें, या नया लिंक माँगें।';
+
+  @override
+  String get joinInviteExpiredHeadline => 'इस न्योते की मियाद खत्म हो गई';
+
+  @override
+  String get joinInviteExpiredBody =>
+      'जिसने न्योता दिया था, उससे नया लिंक माँगें।';
+
+  @override
+  String get joinInviteExhaustedHeadline => 'यह न्योता खप चुका है';
+
+  @override
+  String get joinInviteExhaustedBody =>
+      'इसे गिनी-चुनी बार चलने के लिए बनाया गया था। नया माँगें।';
+
+  @override
+  String get joinInviteRevokedHeadline => 'इस न्योते की जगह नया आ गया';
+
+  @override
+  String get joinInviteRevokedBody =>
+      'एडमिन ने नया लिंक बनाया है। उनसे मौजूदा लिंक माँगें।';
+
+  @override
+  String get joinInviteWrongServerHeadline => 'यह न्योता किसी और सर्वर का है';
+
+  @override
+  String joinInviteWrongServerBody(Object host) {
+    return 'यह $host का है। आपका खाता किसी दूसरे सर्वर पर है, इसलिए यह ग्रुप यहाँ से नहीं खुलेगा।';
+  }
+
+  @override
+  String get roomInviteErrorNotFound => 'उस न्योते के कोड से कुछ नहीं मिलता।';
+
+  @override
+  String get roomInviteErrorRevoked =>
+      'उस न्योते की जगह नया आ गया। मौजूदा लिंक माँगें।';
+
+  @override
+  String get roomInviteErrorExpired => 'उस न्योते की मियाद खत्म हो गई।';
+
+  @override
+  String get roomInviteErrorExhausted => 'वह न्योता खप चुका है।';
+
+  @override
+  String get roomInviteErrorAlreadyMember => 'वे पहले से इस ग्रुप में हैं।';
+
+  @override
+  String get roomInviteErrorAlreadyInvited =>
+      'उन्हें पहले ही न्योता भेजा जा चुका है।';
+
+  @override
+  String get roomInviteErrorSelf => 'आप पहले से इस ग्रुप में हैं।';
+
+  @override
+  String get roomInviteErrorInvitationGone => 'वह न्योता अब नहीं है।';
+
+  @override
+  String get roomInviteErrorRequestPending =>
+      'आप पहले ही जुड़ने को कह चुके हैं। एडमिन जवाब देगा।';
+
+  @override
+  String get roomInviteErrorRequestGone =>
+      'उस गुज़ारिश का जवाब कोई पहले ही दे चुका है।';
+
+  @override
+  String get roomInviteErrorRoomPrivate =>
+      'इस ग्रुप में सिर्फ़ न्योते से जुड़ा जा सकता है।';
+
+  @override
+  String get roomInviteErrorInvalidLimits => 'ये सीमाएँ मान्य नहीं हैं।';
+
+  @override
+  String approvalsScreenHeadlineRoomInviteOutgoing(
+    Object child,
+    Object other,
+    Object room,
+  ) {
+    return '$child $other को $room में बुलाना चाहता है';
+  }
+
+  @override
+  String approvalsScreenHeadlineRoomInviteIncoming(
+    Object child,
+    Object other,
+    Object room,
+  ) {
+    return '$other ने $child को $room में बुलाया है';
+  }
+
+  @override
+  String get approvalsScreenConsequenceRoomInviteOutgoing =>
+      'न्योता चला जाएगा, और फ़ैसला फिर भी सामने वाले का होगा।';
+
+  @override
+  String approvalsScreenConsequenceRoomInviteIncoming(Object child) {
+    return '$child को न्योता दिखेगा और वह मान या ठुकरा सकेगा। मंज़ूरी देने पर, मानने की सूरत में उस ग्रुप में जाने की इजाज़त भी मिल जाएगी।';
+  }
+
+  @override
+  String get roomAdminErrorCannotRemoveSelf =>
+      'आप खुद को नहीं हटा सकते। इसके बजाय ग्रुप छोड़ दें।';
+
+  @override
+  String get roomAdminActionMessage => 'संदेश भेजें';
+
+  @override
+  String get roomAdminActionVoiceCall => 'वॉइस कॉल';
+
+  @override
+  String get roomAdminActionVideoCall => 'वीडियो कॉल';
+
+  @override
+  String get roomAdminYouSuffix => 'आप';
 }

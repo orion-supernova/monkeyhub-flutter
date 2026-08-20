@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["37TC2VKVJ6.com.walhallaa.chatTest-20241220"],
+        "components": [
+          {
+            "/": "/j/*",
+            "comment": "Room invite links. Everything else on this host stays in the browser."
+          }
+        ]
+      }
+    ]
+  }
+}

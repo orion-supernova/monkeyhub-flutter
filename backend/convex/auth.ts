@@ -4,6 +4,7 @@ import { internal } from "./_generated/api";
 import { ACCOUNT_CHILD, ERR_MUST_PAIR, ERR_NOT_ALLOWED } from "./childGuard";
 import { SOCIAL_ONLY_PASSWORD_SENTINEL, ERR_USE_SOCIAL } from "./socialAuth";
 import { wipeRoomCompletely } from "./roomCleanup";
+import { ensureOwner } from "./roomAdmin";
 import { purgeScheduledForUser } from "./scheduledMessages";
 import {
   ERR_DISPLAY_NAME_RESERVED,
@@ -251,7 +252,16 @@ export const changeUsername = mutation({
     username: v.string(),
   },
   returns: v.object({ username: v.string() }),
-  handler: async (ctx, { userId, passwordHash, username }) => {
+  // Annotated to break a self-referential inference cycle: this handler calls
+  // through `internal.users.applyUsernameChange`, and the generated api type
+  // covers this module too — so inferring the return type needs the return
+  // type. TypeScript gives up and makes the mutation `any`, which is worse
+  // than it sounds: `any` is what every CALLER then sees. The type restates
+  // the `returns:` validator directly above, so the two cannot drift.
+  handler: async (
+    ctx,
+    { userId, passwordHash, username },
+  ): Promise<{ username: string }> => {
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("USER_NOT_FOUND");
 
@@ -377,20 +387,19 @@ async function purgeUser(ctx: any, userId: any) {
     // that had already drifted heals here.
     const patch: any = { memberCount: remaining.length };
 
-    // `rooms.createdBy` gates NOT_OWNER (rooms.ts). Leaving it pointing at a
-    // deleted user would freeze the room for everyone still in it — nobody
-    // could ever rename or delete it again. Hand it to whoever has been there
-    // longest, and make that real by promoting their membership too.
-    if (room.createdBy?.toString() === userId.toString()) {
-      const heir = remaining.reduce((a: any, b: any) =>
-        (a.joinedAt ?? 0) <= (b.joinedAt ?? 0) ? a : b,
-      );
-      patch.createdBy = heir.userId;
-      if (heir.role !== "owner") {
-        await ctx.db.patch(heir._id, { role: "owner" });
-      }
-    }
     await ctx.db.patch(roomId, patch);
+
+    // The owner SEAT, not `rooms.createdBy`, is what would otherwise be left
+    // pointing at a deleted user — and a room with no owner is frozen for
+    // everyone still in it: nobody can rename it, delete it, or demote a rogue
+    // admin, and no screen anywhere can repair that.
+    //
+    // `ensureOwner` is the same re-seating that runs when an owner simply
+    // leaves, and it prefers the longest-standing ADMIN over the
+    // longest-standing member — people the departing owner had already
+    // trusted. It drags `createdBy` along so that record keeps naming somebody
+    // who is actually still here; it grants nothing either way.
+    await ensureOwner(ctx, roomId, remaining);
   }
 
   // ── Messages this user sent in rooms that survived ───────────────────────
@@ -507,6 +516,57 @@ async function purgeUser(ctx: any, userId: any) {
     await ctx.db
       .query("friendRequestMessages")
       .withIndex("by_user", byUser(userId))
+      .collect(),
+  );
+
+  // ── Group invites ────────────────────────────────────────────────────────
+  //
+  // Every direction each table can point at this user. Missed rows here are
+  // not cosmetic: a surviving `roomInvitations` row addressed to a deleted
+  // account is a pending invite nobody can ever answer, and one SENT by a
+  // deleted account still shows their name to the person deciding.
+  //
+  // The links this user issued go too. A live `roomInvites` row outliving its
+  // creator is a working join token for a room, attributed to somebody who no
+  // longer exists — the rooms themselves survive (they have other members, or
+  // the loop above already wiped them), so the token would keep admitting
+  // people with no admin able to explain where it came from.
+  const invitationGroups = [];
+  for (const status of ["pending", "accepted", "rejected", "cancelled"]) {
+    invitationGroups.push(
+      await ctx.db
+        .query("roomInvitations")
+        .withIndex("by_invitee_status", (q: any) =>
+          q.eq("inviteeId", userId).eq("status", status),
+        )
+        .collect(),
+    );
+  }
+  invitationGroups.push(
+    await ctx.db
+      .query("roomInvitations")
+      .withIndex("by_inviter", (q: any) => q.eq("inviterId", userId))
+      .collect(),
+  );
+  await deleteRows(ctx, ...invitationGroups);
+
+  await deleteRows(
+    ctx,
+    await ctx.db
+      .query("roomJoinRequests")
+      .withIndex("by_user", byUser(userId))
+      .collect(),
+    await ctx.db
+      .query("roomJoinRequests")
+      .withIndex("by_decider", (q: any) => q.eq("decidedBy", userId))
+      .collect(),
+  );
+
+  await deleteRows(
+    ctx,
+    await ctx.db
+      .query("roomInvites")
+      .withIndex("by_creator", (q: any) => q.eq("createdBy", userId))
       .collect(),
   );
   await deleteRows(

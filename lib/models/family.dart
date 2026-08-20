@@ -247,7 +247,19 @@ enum QueueItemType {
   contactIncoming,
 
   /// My child asked to join a room.
-  joinRoom;
+  joinRoom,
+
+  /// My child wants to pull someone into a group chat.
+  roomInviteOutgoing,
+
+  /// Someone wants to pull my child into a group chat. The child does not know
+  /// this exists until it is released.
+  ///
+  /// The one queue item that grants something beyond itself: approving it also
+  /// writes the child a room grant (see `roomInvitations.advance`), because
+  /// this card has already asked the guardian the exact question the grant
+  /// answers — this child, this room.
+  roomInviteIncoming;
 
   static QueueItemType? parse(String? s) {
     switch (s) {
@@ -257,10 +269,27 @@ enum QueueItemType {
         return QueueItemType.contactIncoming;
       case 'joinRoom':
         return QueueItemType.joinRoom;
+      case 'roomInviteOutgoing':
+        return QueueItemType.roomInviteOutgoing;
+      case 'roomInviteIncoming':
+        return QueueItemType.roomInviteIncoming;
       default:
         return null;
     }
   }
+}
+
+/// Where a queue decision is sent. See [QueueItem.relay].
+enum QueueRelay {
+  /// `family:advanceContactRequest` — both contact directions, since the
+  /// backend works out whose hop it is from the row's stage.
+  contact,
+
+  /// `family:decideApproval` — a child's own request to join a room.
+  roomGrant,
+
+  /// `roomInvitations:advance` — either direction of a group invite.
+  roomInvite,
 }
 
 /// A room as it appears inside a queue item — deliberately lighter than
@@ -308,8 +337,11 @@ class QueueItem {
 
   final QueueItemType type;
 
-  /// A `friendships` id for the contact types, an `approvalRequests` id for
-  /// [QueueItemType.joinRoom] — they go to different mutations.
+  /// Which table this row lives in depends on [type], and so does the mutation
+  /// that answers it: a `friendships` id for the contact types, an
+  /// `approvalRequests` id for [QueueItemType.joinRoom], and a
+  /// `roomInvitations` id for the two room-invite types. See
+  /// [QueueItem.relay].
   final String id;
   final DateTime createdAt;
 
@@ -319,11 +351,28 @@ class QueueItem {
   /// The other person, for the contact types.
   final ChatUser? other;
 
-  /// The room, for [QueueItemType.joinRoom].
+  /// The room — for [QueueItemType.joinRoom] and both room-invite types.
   final RoomBrief? room;
   final String note;
 
-  bool get isContact => type != QueueItemType.joinRoom;
+  /// Which relay mutation answers this row.
+  ///
+  /// An enum rather than a pair of booleans because there are three
+  /// destinations now, and the `isContact ? A : B` this replaced silently sent
+  /// every new kind to B — a room invite would have been handed to
+  /// `family:decideApproval` with an id from a table it has never heard of.
+  QueueRelay get relay => switch (type) {
+        QueueItemType.contactOutgoing ||
+        QueueItemType.contactIncoming =>
+          QueueRelay.contact,
+        QueueItemType.joinRoom => QueueRelay.roomGrant,
+        QueueItemType.roomInviteOutgoing ||
+        QueueItemType.roomInviteIncoming =>
+          QueueRelay.roomInvite,
+      };
+
+  @Deprecated('Use `relay` — there are three destinations now, not two.')
+  bool get isContact => relay == QueueRelay.contact;
 
   static QueueItem? fromJson(Map<String, dynamic> j) {
     final type = QueueItemType.parse(j['type'] as String?);

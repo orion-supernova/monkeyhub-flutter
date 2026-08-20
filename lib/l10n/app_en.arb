@@ -7683,5 +7683,545 @@
   "deviceLoginScanScreenDeniedConfirmation": "sign-in request denied",
   "@deviceLoginScanScreenDeniedConfirmation": {
     "description": "Confirmation message on the phone's device-login scan screen after DENY succeeds — deliberately not the same 'on your phone' wording the desktop side shows, since that phrase would read oddly on the phone that just did the denying."
+  },
+  "roomAdminSectionLabel": "GROUP",
+  "@roomAdminSectionLabel": {
+    "description": "All-caps section label above the group-management rows (invite link, add friends, join requests) in room info."
+  },
+  "roomAdminRoleOwner": "OWNER",
+  "@roomAdminRoleOwner": {
+    "description": "Badge on the one member who owns the group. Same word as the existing owner badge, reused in the member-action sheet."
+  },
+  "roomAdminRoleAdmin": "ADMIN",
+  "@roomAdminRoleAdmin": {
+    "description": "Badge on a member promoted to admin."
+  },
+  "roomAdminActionViewProfile": "View profile",
+  "@roomAdminActionViewProfile": {
+    "description": "First row of the member-action sheet — opens the tapped member's profile."
+  },
+  "roomAdminActionPromote": "Make admin",
+  "@roomAdminActionPromote": {
+    "description": "Member-action row that promotes a plain member to admin."
+  },
+  "roomAdminActionPromoteSub": "They can invite, remove members and edit the group",
+  "@roomAdminActionPromoteSub": {
+    "description": "Sub-line under 'Make admin', listing what the role actually grants."
+  },
+  "roomAdminActionDemote": "Remove admin",
+  "@roomAdminActionDemote": {
+    "description": "Member-action row that demotes an admin back to a plain member."
+  },
+  "roomAdminActionDemoteSub": "They stay in the group as a member",
+  "@roomAdminActionDemoteSub": {
+    "description": "Sub-line under 'Remove admin', making clear demotion is not removal."
+  },
+  "roomAdminActionTransfer": "Transfer ownership",
+  "@roomAdminActionTransfer": {
+    "description": "Owner-only member-action row that hands the group to another member."
+  },
+  "roomAdminActionTransferSub": "You stay on as an admin",
+  "@roomAdminActionTransferSub": {
+    "description": "Sub-line under 'Transfer ownership' — the outgoing owner becomes an admin, not a plain member."
+  },
+  "roomAdminActionRemove": "Remove from group",
+  "@roomAdminActionRemove": {
+    "description": "Destructive member-action row that removes the tapped member from the room."
+  },
+  "roomAdminAddFriendsRow": "Add friends",
+  "@roomAdminAddFriendsRow": {
+    "description": "Room-info row that opens the friend picker for inviting people to the group."
+  },
+  "roomAdminAddFriendsRowSub": "They get an invite to accept or decline",
+  "@roomAdminAddFriendsRowSub": {
+    "description": "Sub-line under 'Add friends' — an invite is a request, never a silent addition."
+  },
+  "roomAdminInviteLinkRow": "Invite link",
+  "@roomAdminInviteLinkRow": {
+    "description": "Admin-only room-info row that opens the invite-link sheet."
+  },
+  "roomAdminInviteLinkRowSub": "Share a link or a code to let people in",
+  "@roomAdminInviteLinkRowSub": {
+    "description": "Sub-line under 'Invite link'."
+  },
+  "roomAdminJoinRequestsRow": "Join requests",
+  "@roomAdminJoinRequestsRow": {
+    "description": "Admin-only room-info row that opens the queue of people asking to join."
+  },
+  "roomAdminJoinRequestsRowSub": "{count} waiting for an answer",
+  "@roomAdminJoinRequestsRowSub": {
+    "description": "Sub-line under 'Join requests'. {count} is the number of pending requests."
+  },
+  "roomAdminTransferConfirmHeadline": "Hand the group to {name}?",
+  "@roomAdminTransferConfirmHeadline": {
+    "description": "Confirmation-sheet headline before transferring ownership. {name} is the new owner's display name."
+  },
+  "roomAdminTransferConfirmBody": "They become the owner and can delete the group. You stay on as an admin, and only they can hand it back.",
+  "@roomAdminTransferConfirmBody": {
+    "description": "Confirmation-sheet body for transferring ownership, spelling out that the move is not reversible by you."
+  },
+  "roomAdminTransferConfirmCta": "TRANSFER",
+  "@roomAdminTransferConfirmCta": {
+    "description": "Confirm button for transferring group ownership."
+  },
+  "roomAdminRemoveConfirmHeadline": "Remove {name}?",
+  "@roomAdminRemoveConfirmHeadline": {
+    "description": "Confirmation-sheet headline before removing a member. {name} is their display name."
+  },
+  "roomAdminRemoveConfirmBody": "They lose access to the group and everything in it. They can be invited back, or come back through the invite link.",
+  "@roomAdminRemoveConfirmBody": {
+    "description": "Confirmation-sheet body for removing a member, noting removal is not a ban."
+  },
+  "roomAdminRemoveConfirmCta": "REMOVE",
+  "@roomAdminRemoveConfirmCta": {
+    "description": "Confirm button for removing a member from the group."
+  },
+  "roomAdminGenericError": "That didn't work. Try again.",
+  "@roomAdminGenericError": {
+    "description": "Fallback message when a group-administration action fails for a reason we have no specific copy for."
+  },
+  "roomAdminErrorNotMember": "You're not in this group any more.",
+  "@roomAdminErrorNotMember": {
+    "description": "Shown when an action is refused because the caller has left or been removed from the room."
+  },
+  "roomAdminErrorNotAdmin": "Only admins can do that.",
+  "@roomAdminErrorNotAdmin": {
+    "description": "Shown when a non-admin attempts an admin-only action."
+  },
+  "roomAdminErrorNotOwner": "Only the group's owner can do that.",
+  "@roomAdminErrorNotOwner": {
+    "description": "Shown when an admin attempts an owner-only action, such as removing another admin."
+  },
+  "roomAdminErrorNotGroup": "There's nothing to manage in a direct chat.",
+  "@roomAdminErrorNotGroup": {
+    "description": "Shown when an administration action is attempted on a one-to-one conversation, which has no roles."
+  },
+  "roomAdminErrorOwnerImmutable": "The owner's role can only change by transferring the group.",
+  "@roomAdminErrorOwnerImmutable": {
+    "description": "Shown when someone tries to demote or remove the owner."
+  },
+  "roomAdminErrorInvitesLocked": "Only admins can invite people to this group.",
+  "@roomAdminErrorInvitesLocked": {
+    "description": "Shown to a member when the room's 'members can invite' switch is off."
+  },
+  "roomInviteSheetTitle": "Invite link",
+  "@roomInviteSheetTitle": {
+    "description": "Title of the admin sheet holding the group's join link, code and limits."
+  },
+  "roomInviteSheetBlurb": "One link and one code, and they're the same thing. Make a new one and the old one stops working immediately.",
+  "@roomInviteSheetBlurb": {
+    "description": "Blurb under the invite-sheet title, explaining that rotation is revocation."
+  },
+  "roomInviteNoLinkYet": "This group has no invite link yet.",
+  "@roomInviteNoLinkYet": {
+    "description": "Empty state in the invite sheet before any link has been issued."
+  },
+  "roomInviteCreateButton": "CREATE LINK",
+  "@roomInviteCreateButton": {
+    "description": "Button that issues the group's first invite link."
+  },
+  "roomInviteRegenerateButton": "NEW LINK",
+  "@roomInviteRegenerateButton": {
+    "description": "Button that issues a replacement link, killing the current one."
+  },
+  "roomInviteRevokeButton": "REVOKE LINK",
+  "@roomInviteRevokeButton": {
+    "description": "Button that kills the current link without issuing a replacement."
+  },
+  "roomInviteCopyLink": "Copy link",
+  "@roomInviteCopyLink": {
+    "description": "Small button under the code that copies the full invite URL."
+  },
+  "roomInviteCopyCode": "Copy code",
+  "@roomInviteCopyCode": {
+    "description": "Small button under the code that copies just the code."
+  },
+  "roomInviteShare": "Share",
+  "@roomInviteShare": {
+    "description": "Small button under the code that opens the system share sheet."
+  },
+  "roomInviteLinkCopied": "Link copied.",
+  "@roomInviteLinkCopied": {
+    "description": "Toast after copying the invite URL."
+  },
+  "roomInviteCodeCopied": "Code copied.",
+  "@roomInviteCodeCopied": {
+    "description": "Toast after copying the invite code."
+  },
+  "roomInviteRegenerateHeadline": "Make a new link?",
+  "@roomInviteRegenerateHeadline": {
+    "description": "Confirmation headline before rotating the invite link."
+  },
+  "roomInviteRegenerateBody": "The current link and code stop working straight away, everywhere they've been shared. Anyone already in the group stays in.",
+  "@roomInviteRegenerateBody": {
+    "description": "Confirmation body for rotating the link, clarifying that rotation does not remove existing members."
+  },
+  "roomInviteRegenerateConfirm": "NEW LINK",
+  "@roomInviteRegenerateConfirm": {
+    "description": "Confirm button for rotating the invite link."
+  },
+  "roomInviteRevokeHeadline": "Revoke this link?",
+  "@roomInviteRevokeHeadline": {
+    "description": "Confirmation headline before killing the link without a replacement."
+  },
+  "roomInviteRevokeBody": "Nobody new can join by link until you make another one. Anyone already in the group stays in.",
+  "@roomInviteRevokeBody": {
+    "description": "Confirmation body for revoking the invite link."
+  },
+  "roomInviteRevokeConfirm": "REVOKE",
+  "@roomInviteRevokeConfirm": {
+    "description": "Confirm button for revoking the invite link."
+  },
+  "roomInviteLimitsLabel": "LIMITS",
+  "@roomInviteLimitsLabel": {
+    "description": "All-caps sub-heading above the expiry and max-uses choices in the invite sheet."
+  },
+  "roomInviteExpiryLabel": "Expires after",
+  "@roomInviteExpiryLabel": {
+    "description": "Label above the row of expiry choices for the next link."
+  },
+  "roomInviteMaxUsesLabel": "Number of uses",
+  "@roomInviteMaxUsesLabel": {
+    "description": "Label above the row of use-cap choices for the next link."
+  },
+  "roomInviteNeverExpires": "Never",
+  "@roomInviteNeverExpires": {
+    "description": "The 'no expiry' choice in the invite sheet."
+  },
+  "roomInviteUnlimited": "Any",
+  "@roomInviteUnlimited": {
+    "description": "The 'no use cap' choice in the invite sheet."
+  },
+  "roomInviteExpiryHours": "{count}h",
+  "@roomInviteExpiryHours": {
+    "description": "An expiry choice under a day, e.g. '24h'. {count} is a number of hours."
+  },
+  "roomInviteExpiryDays": "{count}d",
+  "@roomInviteExpiryDays": {
+    "description": "An expiry choice of a day or more, e.g. '7d'. {count} is a number of days."
+  },
+  "roomInviteLimitsApplyToNew": "These apply to the link you create.",
+  "@roomInviteLimitsApplyToNew": {
+    "description": "Note under the limit choices when no link exists yet."
+  },
+  "roomInviteLimitsApplyOnRegenerate": "These apply to the next link. The one above keeps the limits it was made with.",
+  "@roomInviteLimitsApplyOnRegenerate": {
+    "description": "Note under the limit choices when a link already exists — limits are fixed at issue time."
+  },
+  "roomInvitePermissionsLabel": "PERMISSIONS",
+  "@roomInvitePermissionsLabel": {
+    "description": "All-caps sub-heading above the two room-policy switches in the invite sheet."
+  },
+  "roomInviteMembersCanInviteLabel": "Members can invite friends",
+  "@roomInviteMembersCanInviteLabel": {
+    "description": "Switch label: whether plain members may send invites, or only admins."
+  },
+  "roomInviteMembersCanInviteSub": "Turn this off and only admins can bring people in",
+  "@roomInviteMembersCanInviteSub": {
+    "description": "Sub-line under the members-can-invite switch."
+  },
+  "roomInviteApprovalLabel": "Approve each join",
+  "@roomInviteApprovalLabel": {
+    "description": "Switch label: whether redeeming the link joins outright or files a request."
+  },
+  "roomInviteApprovalSub": "People with the link ask first, and an admin says yes or no",
+  "@roomInviteApprovalSub": {
+    "description": "Sub-line under the approve-each-join switch."
+  },
+  "roomInviteUsesCount": "Used {count} times",
+  "@roomInviteUsesCount": {
+    "description": "Status line under a link with no use cap. {count} is how many people have used it."
+  },
+  "roomInviteUsesOfMax": "{used} of {max} uses",
+  "@roomInviteUsesOfMax": {
+    "description": "Status line under a link with a use cap. {used} is how many have been used, {max} is the cap."
+  },
+  "roomInviteExpiresOn": "expires {date}",
+  "@roomInviteExpiresOn": {
+    "description": "Second half of the status line for a link with an expiry. {date} is a short date."
+  },
+  "roomInviteDeadExpired": "This link has expired. Make a new one.",
+  "@roomInviteDeadExpired": {
+    "description": "Shown in place of the status line when the admin's current link is past its expiry."
+  },
+  "roomInviteDeadExhausted": "This link has run out of uses. Make a new one.",
+  "@roomInviteDeadExhausted": {
+    "description": "Shown in place of the status line when the admin's current link has hit its use cap."
+  },
+  "roomInviteDeadRevoked": "This link was revoked.",
+  "@roomInviteDeadRevoked": {
+    "description": "Shown in place of the status line when the current link has been revoked."
+  },
+  "roomInviteDeadGeneric": "This link no longer works.",
+  "@roomInviteDeadGeneric": {
+    "description": "Shown in place of the status line when the current link is dead for an unrecognised reason."
+  },
+  "roomInviteFriendsTitle": "Add friends",
+  "@roomInviteFriendsTitle": {
+    "description": "Title of the sheet for inviting friends into a group."
+  },
+  "roomInviteFriendsBlurb": "They'll get an invite and can accept or decline.",
+  "@roomInviteFriendsBlurb": {
+    "description": "Blurb under the add-friends title, making clear nobody is added without agreeing."
+  },
+  "roomInviteFriendsSearchHint": "Search friends",
+  "@roomInviteFriendsSearchHint": {
+    "description": "Placeholder in the friend picker's search field."
+  },
+  "roomInviteFriendsInviteButton": "INVITE",
+  "@roomInviteFriendsInviteButton": {
+    "description": "Per-row button that sends a group invite to that friend."
+  },
+  "roomInviteFriendsSent": "Invited",
+  "@roomInviteFriendsSent": {
+    "description": "Replaces the per-row button once the invite has been sent."
+  },
+  "roomInviteFriendsEmpty": "Everyone you're friends with is already here or already invited.",
+  "@roomInviteFriendsEmpty": {
+    "description": "Empty state when there is nobody left to invite."
+  },
+  "roomInviteFriendsNoMatch": "No friends match that.",
+  "@roomInviteFriendsNoMatch": {
+    "description": "Empty state when the picker's search finds nothing."
+  },
+  "roomInviteFriendsDone": "DONE",
+  "@roomInviteFriendsDone": {
+    "description": "Closes the friend picker."
+  },
+  "roomJoinRequestsTitle": "Join requests",
+  "@roomJoinRequestsTitle": {
+    "description": "Title of the admin sheet listing people who used the link and are waiting to be let in."
+  },
+  "roomJoinRequestsBlurb": "These people used the invite link. They can't see anything in the group until you say yes.",
+  "@roomJoinRequestsBlurb": {
+    "description": "Blurb under the join-requests title."
+  },
+  "roomJoinRequestsEmpty": "Nobody's waiting.",
+  "@roomJoinRequestsEmpty": {
+    "description": "Empty state for the join-request queue."
+  },
+  "roomJoinRequestsApprove": "LET IN",
+  "@roomJoinRequestsApprove": {
+    "description": "Per-row button that approves a join request."
+  },
+  "roomJoinRequestsReject": "NO",
+  "@roomJoinRequestsReject": {
+    "description": "Per-row button that rejects a join request."
+  },
+  "roomInfoScreenInvitedLabel": "INVITED · {count}",
+  "@roomInfoScreenInvitedLabel": {
+    "description": "All-caps label above the list of people invited to the group who have not answered yet. {count} is how many."
+  },
+  "roomInfoScreenInviteAwaitingGuardian": "waiting on a parent",
+  "@roomInfoScreenInviteAwaitingGuardian": {
+    "description": "Shown instead of the handle on an invited row that is still held for a guardian's approval, so the silence reads as supervision rather than a snub."
+  },
+  "roomInfoScreenInviteWithdraw": "WITHDRAW",
+  "@roomInfoScreenInviteWithdraw": {
+    "description": "Small button that takes back an invite that has not been answered."
+  },
+  "roomInvitationCardFrom": "from {inviter} · {members} members",
+  "@roomInvitationCardFrom": {
+    "description": "Second line of an incoming group-invite card. {inviter} is who invited you, {members} is the group's size."
+  },
+  "roomInvitationCardJoin": "JOIN",
+  "@roomInvitationCardJoin": {
+    "description": "Accept button on an incoming group-invite card."
+  },
+  "discoverScreenJoinByCodeTitle": "join with a code",
+  "@discoverScreenJoinByCodeTitle": {
+    "description": "Discover row that opens the screen for entering an invite code by hand."
+  },
+  "discoverScreenJoinByCodeSubtitle": "open a group someone shared with you",
+  "@discoverScreenJoinByCodeSubtitle": {
+    "description": "Sub-line under the join-with-a-code row in Discover."
+  },
+  "joinInviteTitle": "Join a group",
+  "@joinInviteTitle": {
+    "description": "Title of the screen a tapped invite link lands on, and where a code is typed."
+  },
+  "joinInviteBack": "Back",
+  "@joinInviteBack": {
+    "description": "Accessibility label for the back arrow on the join screen."
+  },
+  "joinInviteCodeBlurb": "Enter the code someone shared with you. A full invite link works here too.",
+  "@joinInviteCodeBlurb": {
+    "description": "Blurb above the code field when the screen was opened without a code."
+  },
+  "joinInviteCodeLabel": "Invite code",
+  "@joinInviteCodeLabel": {
+    "description": "Label on the code field."
+  },
+  "joinInviteCodeHint": "K7M2-XQ94-RB",
+  "@joinInviteCodeHint": {
+    "description": "Placeholder in the code field, showing the grouped shape of a real code."
+  },
+  "joinInviteCodeInvalid": "That doesn't look like an invite code.",
+  "@joinInviteCodeInvalid": {
+    "description": "Shown when what was typed cannot be read as a code or a link at all."
+  },
+  "joinInviteLookupButton": "CONTINUE",
+  "@joinInviteLookupButton": {
+    "description": "Button that looks up a typed invite code."
+  },
+  "joinInviteLookupFailed": "Couldn't check that code. Check your connection and try again.",
+  "@joinInviteLookupFailed": {
+    "description": "Shown when the invite lookup fails for a network or server reason."
+  },
+  "joinInviteMemberCount": "{count} members",
+  "@joinInviteMemberCount": {
+    "description": "Member count under the room name on the join confirmation."
+  },
+  "joinInviteJoinButton": "JOIN GROUP",
+  "@joinInviteJoinButton": {
+    "description": "Confirmation button on a room whose link admits people outright."
+  },
+  "joinInviteRequestButton": "ASK TO JOIN",
+  "@joinInviteRequestButton": {
+    "description": "Confirmation button on a room whose link files a request for an admin."
+  },
+  "joinInviteOpenNote": "You'll be able to see the group's messages once you join.",
+  "@joinInviteOpenNote": {
+    "description": "Note under the join button for a room that admits by link."
+  },
+  "joinInviteApprovalNote": "An admin has to say yes before you can see anything in here.",
+  "@joinInviteApprovalNote": {
+    "description": "Note under the ask-to-join button for a room that requires approval."
+  },
+  "joinInviteOpenRoom": "OPEN GROUP",
+  "@joinInviteOpenRoom": {
+    "description": "Button shown when you are already a member of the room behind the link."
+  },
+  "joinInvitePendingHeadline": "Waiting for an admin",
+  "@joinInvitePendingHeadline": {
+    "description": "Headline shown after asking to join a room that requires approval."
+  },
+  "joinInvitePendingBody": "You'll get a notification as soon as somebody answers.",
+  "@joinInvitePendingBody": {
+    "description": "Body under the waiting-for-an-admin headline."
+  },
+  "joinInviteBadLinkHeadline": "This invite doesn't work",
+  "@joinInviteBadLinkHeadline": {
+    "description": "Headline for a code that matches nothing."
+  },
+  "joinInviteBadLinkBody": "Check the code, or ask for a new link.",
+  "@joinInviteBadLinkBody": {
+    "description": "Body under the invite-doesn't-work headline."
+  },
+  "joinInviteExpiredHeadline": "This invite has expired",
+  "@joinInviteExpiredHeadline": {
+    "description": "Headline for a link that is past its expiry."
+  },
+  "joinInviteExpiredBody": "Ask whoever invited you for a fresh link.",
+  "@joinInviteExpiredBody": {
+    "description": "Body under the expired headline."
+  },
+  "joinInviteExhaustedHeadline": "This invite is used up",
+  "@joinInviteExhaustedHeadline": {
+    "description": "Headline for a link that has hit its use cap."
+  },
+  "joinInviteExhaustedBody": "It was set to work a limited number of times. Ask for a new one.",
+  "@joinInviteExhaustedBody": {
+    "description": "Body under the used-up headline."
+  },
+  "joinInviteRevokedHeadline": "This invite was replaced",
+  "@joinInviteRevokedHeadline": {
+    "description": "Headline for a link that has been rotated or revoked."
+  },
+  "joinInviteRevokedBody": "An admin made a new link. Ask them for the current one.",
+  "@joinInviteRevokedBody": {
+    "description": "Body under the invite-was-replaced headline."
+  },
+  "joinInviteWrongServerHeadline": "This invite is for another server",
+  "@joinInviteWrongServerHeadline": {
+    "description": "Headline when the invite names a MonkeyHub deployment other than the one this app is signed in to."
+  },
+  "joinInviteWrongServerBody": "It belongs to {host}. Your account lives on a different server, so this group isn't reachable from here.",
+  "@joinInviteWrongServerBody": {
+    "description": "Body under the wrong-server headline. {host} is the other server's hostname."
+  },
+  "roomInviteErrorNotFound": "That invite code doesn't match anything.",
+  "@roomInviteErrorNotFound": {
+    "description": "Toast for an unrecognised invite code."
+  },
+  "roomInviteErrorRevoked": "That invite was replaced. Ask for the current link.",
+  "@roomInviteErrorRevoked": {
+    "description": "Toast for a rotated or revoked link."
+  },
+  "roomInviteErrorExpired": "That invite has expired.",
+  "@roomInviteErrorExpired": {
+    "description": "Toast for a link past its expiry."
+  },
+  "roomInviteErrorExhausted": "That invite has been used up.",
+  "@roomInviteErrorExhausted": {
+    "description": "Toast for a link at its use cap."
+  },
+  "roomInviteErrorAlreadyMember": "They're already in this group.",
+  "@roomInviteErrorAlreadyMember": {
+    "description": "Toast when inviting somebody who is already a member."
+  },
+  "roomInviteErrorAlreadyInvited": "They've already been invited.",
+  "@roomInviteErrorAlreadyInvited": {
+    "description": "Toast when inviting somebody with an invite already pending."
+  },
+  "roomInviteErrorSelf": "You're already in this group.",
+  "@roomInviteErrorSelf": {
+    "description": "Toast when somebody manages to invite themselves."
+  },
+  "roomInviteErrorInvitationGone": "That invite is no longer there.",
+  "@roomInviteErrorInvitationGone": {
+    "description": "Toast when answering or withdrawing an invite that has already been dealt with."
+  },
+  "roomInviteErrorRequestPending": "You've already asked to join. An admin will answer.",
+  "@roomInviteErrorRequestPending": {
+    "description": "Toast when redeeming a link twice on a room that requires approval."
+  },
+  "roomInviteErrorRequestGone": "Somebody already answered that request.",
+  "@roomInviteErrorRequestGone": {
+    "description": "Toast when two admins rule on the same join request."
+  },
+  "roomInviteErrorRoomPrivate": "This group can only be joined with an invite.",
+  "@roomInviteErrorRoomPrivate": {
+    "description": "Toast when a private room is reached by a route that is not an invite."
+  },
+  "roomInviteErrorInvalidLimits": "Those limits aren't valid.",
+  "@roomInviteErrorInvalidLimits": {
+    "description": "Toast when the expiry or use cap sent with a new link is out of range."
+  },
+  "approvalsScreenHeadlineRoomInviteOutgoing": "{child} wants to invite {other} to {room}",
+  "@approvalsScreenHeadlineRoomInviteOutgoing": {
+    "description": "Guardian queue card: the guardian's own child wants to pull somebody into a group chat. {child} and {other} are display names, {room} is the group's name."
+  },
+  "approvalsScreenHeadlineRoomInviteIncoming": "{other} invited {child} to {room}",
+  "@approvalsScreenHeadlineRoomInviteIncoming": {
+    "description": "Guardian queue card: somebody wants to pull the guardian's child into a group chat. {other} and {child} are display names, {room} is the group's name."
+  },
+  "approvalsScreenConsequenceRoomInviteOutgoing": "The invite goes out, and the other person still decides.",
+  "@approvalsScreenConsequenceRoomInviteOutgoing": {
+    "description": "Explanatory line under an outgoing group-invite queue card: approving does not put anyone in the group."
+  },
+  "approvalsScreenConsequenceRoomInviteIncoming": "{child} will see the invite and can accept or decline. Approving also lets them into that group if they accept.",
+  "@approvalsScreenConsequenceRoomInviteIncoming": {
+    "description": "Explanatory line under an incoming group-invite queue card, saying out loud that a yes here also grants access to that room."
+  },
+  "roomAdminErrorCannotRemoveSelf": "You can't remove yourself. Leave the group instead.",
+  "@roomAdminErrorCannotRemoveSelf": {
+    "description": "Shown if a removal is somehow aimed at the caller's own row. Leaving is the right door, and it also hands the room on properly if they own it."
+  },
+  "roomAdminActionMessage": "Message",
+  "@roomAdminActionMessage": {
+    "description": "Member-sheet row that opens the one-to-one chat with the tapped person."
+  },
+  "roomAdminActionVoiceCall": "Voice call",
+  "@roomAdminActionVoiceCall": {
+    "description": "Member-sheet row that starts a one-to-one voice call."
+  },
+  "roomAdminActionVideoCall": "Video call",
+  "@roomAdminActionVideoCall": {
+    "description": "Member-sheet row that starts a one-to-one video call."
+  },
+  "roomAdminYouSuffix": "you",
+  "@roomAdminYouSuffix": {
+    "description": "Small label after your own name in the member list and the member sheet, marking which row is yours."
   }
 }

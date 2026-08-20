@@ -6328,4 +6328,450 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get deviceLoginScanScreenDeniedConfirmation =>
       'sign-in request denied';
+
+  @override
+  String get roomAdminSectionLabel => '群组';
+
+  @override
+  String get roomAdminRoleOwner => '群主';
+
+  @override
+  String get roomAdminRoleAdmin => '管理员';
+
+  @override
+  String get roomAdminActionViewProfile => '查看资料';
+
+  @override
+  String get roomAdminActionPromote => '设为管理员';
+
+  @override
+  String get roomAdminActionPromoteSub => '可以邀请他人、移出成员、修改群组';
+
+  @override
+  String get roomAdminActionDemote => '取消管理员';
+
+  @override
+  String get roomAdminActionDemoteSub => '仍以成员身份留在群里';
+
+  @override
+  String get roomAdminActionTransfer => '转让群主';
+
+  @override
+  String get roomAdminActionTransferSub => '你会留任管理员';
+
+  @override
+  String get roomAdminActionRemove => '移出群组';
+
+  @override
+  String get roomAdminAddFriendsRow => '添加好友';
+
+  @override
+  String get roomAdminAddFriendsRowSub => '他们会收到邀请，可以接受或拒绝';
+
+  @override
+  String get roomAdminInviteLinkRow => '邀请链接';
+
+  @override
+  String get roomAdminInviteLinkRowSub => '分享链接或口令码让人进群';
+
+  @override
+  String get roomAdminJoinRequestsRow => '入群申请';
+
+  @override
+  String roomAdminJoinRequestsRowSub(Object count) {
+    return '$count 人等待答复';
+  }
+
+  @override
+  String roomAdminTransferConfirmHeadline(Object name) {
+    return '把群交给 $name？';
+  }
+
+  @override
+  String get roomAdminTransferConfirmBody =>
+      '对方将成为群主，可以解散群组。你会留任管理员，能不能拿回来只取决于对方。';
+
+  @override
+  String get roomAdminTransferConfirmCta => '转让';
+
+  @override
+  String roomAdminRemoveConfirmHeadline(Object name) {
+    return '把 $name 移出群组？';
+  }
+
+  @override
+  String get roomAdminRemoveConfirmBody =>
+      '对方将失去群组及其中所有内容的访问权。你可以再次邀请，对方也可以通过邀请链接回来。';
+
+  @override
+  String get roomAdminRemoveConfirmCta => '移出';
+
+  @override
+  String get roomAdminGenericError => '没成功，请再试一次。';
+
+  @override
+  String get roomAdminErrorNotMember => '你已经不在这个群里了。';
+
+  @override
+  String get roomAdminErrorNotAdmin => '只有管理员能这么做。';
+
+  @override
+  String get roomAdminErrorNotOwner => '只有群主能这么做。';
+
+  @override
+  String get roomAdminErrorNotGroup => '单聊没有什么可管理的。';
+
+  @override
+  String get roomAdminErrorOwnerImmutable => '群主的身份只能通过转让群组来改变。';
+
+  @override
+  String get roomAdminErrorInvitesLocked => '这个群只有管理员能邀请人。';
+
+  @override
+  String get roomInviteSheetTitle => '邀请链接';
+
+  @override
+  String get roomInviteSheetBlurb => '一条链接和一个口令码，其实是同一样东西。一旦生成新的，旧的立刻失效。';
+
+  @override
+  String get roomInviteNoLinkYet => '这个群还没有邀请链接。';
+
+  @override
+  String get roomInviteCreateButton => '生成链接';
+
+  @override
+  String get roomInviteRegenerateButton => '换新链接';
+
+  @override
+  String get roomInviteRevokeButton => '作废链接';
+
+  @override
+  String get roomInviteCopyLink => '复制链接';
+
+  @override
+  String get roomInviteCopyCode => '复制口令码';
+
+  @override
+  String get roomInviteShare => '分享';
+
+  @override
+  String get roomInviteLinkCopied => '链接已复制。';
+
+  @override
+  String get roomInviteCodeCopied => '口令码已复制。';
+
+  @override
+  String get roomInviteRegenerateHeadline => '换一条新链接？';
+
+  @override
+  String get roomInviteRegenerateBody => '当前链接和口令码会在所有分享过的地方立刻失效。已经在群里的人不受影响。';
+
+  @override
+  String get roomInviteRegenerateConfirm => '换新链接';
+
+  @override
+  String get roomInviteRevokeHeadline => '作废这条链接？';
+
+  @override
+  String get roomInviteRevokeBody => '在你生成新链接之前，没人能通过链接进群。已经在群里的人不受影响。';
+
+  @override
+  String get roomInviteRevokeConfirm => '作废';
+
+  @override
+  String get roomInviteLimitsLabel => '限制';
+
+  @override
+  String get roomInviteExpiryLabel => '有效期';
+
+  @override
+  String get roomInviteMaxUsesLabel => '可用次数';
+
+  @override
+  String get roomInviteNeverExpires => '永久';
+
+  @override
+  String get roomInviteUnlimited => '不限';
+
+  @override
+  String roomInviteExpiryHours(Object count) {
+    return '$count 小时';
+  }
+
+  @override
+  String roomInviteExpiryDays(Object count) {
+    return '$count 天';
+  }
+
+  @override
+  String get roomInviteLimitsApplyToNew => '这些设置对你即将生成的链接生效。';
+
+  @override
+  String get roomInviteLimitsApplyOnRegenerate => '这些设置对下一条链接生效。上面那条保持生成时的限制。';
+
+  @override
+  String get roomInvitePermissionsLabel => '权限';
+
+  @override
+  String get roomInviteMembersCanInviteLabel => '成员可以邀请好友';
+
+  @override
+  String get roomInviteMembersCanInviteSub => '关掉之后，只有管理员能带人进来';
+
+  @override
+  String get roomInviteApprovalLabel => '逐个审批入群';
+
+  @override
+  String get roomInviteApprovalSub => '拿到链接的人先申请，由管理员决定同意与否';
+
+  @override
+  String roomInviteUsesCount(Object count) {
+    return '已使用 $count 次';
+  }
+
+  @override
+  String roomInviteUsesOfMax(Object max, Object used) {
+    return '已用 $used/$max 次';
+  }
+
+  @override
+  String roomInviteExpiresOn(Object date) {
+    return '$date 到期';
+  }
+
+  @override
+  String get roomInviteDeadExpired => '这条链接已过期，请生成新的。';
+
+  @override
+  String get roomInviteDeadExhausted => '这条链接的可用次数已用完，请生成新的。';
+
+  @override
+  String get roomInviteDeadRevoked => '这条链接已被作废。';
+
+  @override
+  String get roomInviteDeadGeneric => '这条链接已经无效。';
+
+  @override
+  String get roomInviteFriendsTitle => '添加好友';
+
+  @override
+  String get roomInviteFriendsBlurb => '他们会收到邀请，可以接受或拒绝。';
+
+  @override
+  String get roomInviteFriendsSearchHint => '搜索好友';
+
+  @override
+  String get roomInviteFriendsInviteButton => '邀请';
+
+  @override
+  String get roomInviteFriendsSent => '已邀请';
+
+  @override
+  String get roomInviteFriendsEmpty => '你的好友都已经在群里，或者已经邀请过了。';
+
+  @override
+  String get roomInviteFriendsNoMatch => '没有匹配的好友。';
+
+  @override
+  String get roomInviteFriendsDone => '完成';
+
+  @override
+  String get roomJoinRequestsTitle => '入群申请';
+
+  @override
+  String get roomJoinRequestsBlurb => '这些人用了邀请链接。在你同意之前，他们看不到群里的任何内容。';
+
+  @override
+  String get roomJoinRequestsEmpty => '没有人在等。';
+
+  @override
+  String get roomJoinRequestsApprove => '放进来';
+
+  @override
+  String get roomJoinRequestsReject => '拒绝';
+
+  @override
+  String roomInfoScreenInvitedLabel(Object count) {
+    return '已邀请 · $count';
+  }
+
+  @override
+  String get roomInfoScreenInviteAwaitingGuardian => '等待家长确认';
+
+  @override
+  String get roomInfoScreenInviteWithdraw => '撤回';
+
+  @override
+  String roomInvitationCardFrom(Object inviter, Object members) {
+    return '来自 $inviter · $members 名成员';
+  }
+
+  @override
+  String get roomInvitationCardJoin => '加入';
+
+  @override
+  String get discoverScreenJoinByCodeTitle => '用口令码加入';
+
+  @override
+  String get discoverScreenJoinByCodeSubtitle => '打开别人分享给你的群组';
+
+  @override
+  String get joinInviteTitle => '加入群组';
+
+  @override
+  String get joinInviteBack => '返回';
+
+  @override
+  String get joinInviteCodeBlurb => '输入别人分享给你的口令码。直接粘贴整条邀请链接也可以。';
+
+  @override
+  String get joinInviteCodeLabel => '邀请口令码';
+
+  @override
+  String get joinInviteCodeHint => 'K7M2-XQ94-RB';
+
+  @override
+  String get joinInviteCodeInvalid => '这看起来不像邀请口令码。';
+
+  @override
+  String get joinInviteLookupButton => '继续';
+
+  @override
+  String get joinInviteLookupFailed => '无法核对这个口令码。检查网络后再试一次。';
+
+  @override
+  String joinInviteMemberCount(Object count) {
+    return '$count 名成员';
+  }
+
+  @override
+  String get joinInviteJoinButton => '加入群组';
+
+  @override
+  String get joinInviteRequestButton => '申请加入';
+
+  @override
+  String get joinInviteOpenNote => '加入后你就能看到群里的消息。';
+
+  @override
+  String get joinInviteApprovalNote => '要先有管理员同意，你才能看到这里的内容。';
+
+  @override
+  String get joinInviteOpenRoom => '打开群组';
+
+  @override
+  String get joinInvitePendingHeadline => '等待管理员处理';
+
+  @override
+  String get joinInvitePendingBody => '一有人答复就会通知你。';
+
+  @override
+  String get joinInviteBadLinkHeadline => '这个邀请无效';
+
+  @override
+  String get joinInviteBadLinkBody => '检查一下口令码，或者要一条新链接。';
+
+  @override
+  String get joinInviteExpiredHeadline => '这个邀请已过期';
+
+  @override
+  String get joinInviteExpiredBody => '找邀请你的人要一条新链接。';
+
+  @override
+  String get joinInviteExhaustedHeadline => '这个邀请已用完';
+
+  @override
+  String get joinInviteExhaustedBody => '它被设成只能用有限次数。再要一个吧。';
+
+  @override
+  String get joinInviteRevokedHeadline => '这个邀请已被替换';
+
+  @override
+  String get joinInviteRevokedBody => '管理员换了新链接，找他们要当前的那条。';
+
+  @override
+  String get joinInviteWrongServerHeadline => '这个邀请属于另一台服务器';
+
+  @override
+  String joinInviteWrongServerBody(Object host) {
+    return '它属于 $host。你的账号在另一台服务器上，所以从这里进不了这个群。';
+  }
+
+  @override
+  String get roomInviteErrorNotFound => '没有找到与这个口令码对应的群组。';
+
+  @override
+  String get roomInviteErrorRevoked => '这个邀请已被替换，去要当前的链接。';
+
+  @override
+  String get roomInviteErrorExpired => '这个邀请已过期。';
+
+  @override
+  String get roomInviteErrorExhausted => '这个邀请已用完。';
+
+  @override
+  String get roomInviteErrorAlreadyMember => '对方已经在这个群里了。';
+
+  @override
+  String get roomInviteErrorAlreadyInvited => '已经邀请过对方了。';
+
+  @override
+  String get roomInviteErrorSelf => '你已经在这个群里了。';
+
+  @override
+  String get roomInviteErrorInvitationGone => '那个邀请已经不在了。';
+
+  @override
+  String get roomInviteErrorRequestPending => '你已经申请过了，管理员会答复。';
+
+  @override
+  String get roomInviteErrorRequestGone => '已经有人处理过这条申请了。';
+
+  @override
+  String get roomInviteErrorRoomPrivate => '这个群只能通过邀请加入。';
+
+  @override
+  String get roomInviteErrorInvalidLimits => '这些限制不可用。';
+
+  @override
+  String approvalsScreenHeadlineRoomInviteOutgoing(
+    Object child,
+    Object other,
+    Object room,
+  ) {
+    return '$child 想邀请 $other 加入 $room';
+  }
+
+  @override
+  String approvalsScreenHeadlineRoomInviteIncoming(
+    Object child,
+    Object other,
+    Object room,
+  ) {
+    return '$other 邀请 $child 加入 $room';
+  }
+
+  @override
+  String get approvalsScreenConsequenceRoomInviteOutgoing =>
+      '邀请会发出去，是否加入仍由对方决定。';
+
+  @override
+  String approvalsScreenConsequenceRoomInviteIncoming(Object child) {
+    return '$child 会看到这个邀请，可以接受或拒绝。你同意的话，也就允许孩子在接受后进入那个群。';
+  }
+
+  @override
+  String get roomAdminErrorCannotRemoveSelf => '你不能把自己移出群组。请改用退出群组。';
+
+  @override
+  String get roomAdminActionMessage => '发消息';
+
+  @override
+  String get roomAdminActionVoiceCall => '语音通话';
+
+  @override
+  String get roomAdminActionVideoCall => '视频通话';
+
+  @override
+  String get roomAdminYouSuffix => '你';
 }

@@ -34,7 +34,7 @@ import {
 // clear the user-level field instead).
 export const _loadUserDevices = internalQuery({
   args: { userId: v.id("users") },
-  handler: async (ctx, { userId }) => {
+  handler: async (ctx, { userId }): Promise<DeviceRow[]> => {
     const rows = await ctx.db
       .query("userDevices")
       .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -77,7 +77,16 @@ export const sendVoip = internalAction({
     roomId: v.id("rooms"),
   },
   handler: async (ctx, args) => {
-    const devices = await ctx.runQuery(internal.voipPush._loadUserDevices, {
+    // Annotated at the USE site, not just on the query.
+    //
+    // `internal` is typed from `fullApi`, which includes `typeof voipPush` —
+    // this whole module, this action included. Resolving that needs the
+    // module's type, which needs this line's type: a cycle TypeScript ends by
+    // making the lot `any`. Declaring the type here needs nothing from
+    // `internal` and so cannot participate in the cycle. Without it `devices`
+    // is `any[]`, every `.map((d) => …)` below loses its parameter type, and
+    // `d.apnsEnv` resolves on legacy rows that have never had one.
+    const devices: DeviceRow[] = await ctx.runQuery(internal.voipPush._loadUserDevices, {
       userId: args.calleeId,
     });
     if (devices.length === 0) {
@@ -158,7 +167,16 @@ export const sendVoipTaken = internalAction({
     ),
   },
   handler: async (ctx, args) => {
-    const devices = await ctx.runQuery(internal.voipPush._loadUserDevices, {
+    // Annotated at the USE site, not just on the query.
+    //
+    // `internal` is typed from `fullApi`, which includes `typeof voipPush` —
+    // this whole module, this action included. Resolving that needs the
+    // module's type, which needs this line's type: a cycle TypeScript ends by
+    // making the lot `any`. Declaring the type here needs nothing from
+    // `internal` and so cannot participate in the cycle. Without it `devices`
+    // is `any[]`, every `.map((d) => …)` below loses its parameter type, and
+    // `d.apnsEnv` resolves on legacy rows that have never had one.
+    const devices: DeviceRow[] = await ctx.runQuery(internal.voipPush._loadUserDevices, {
       userId: args.targetUserId,
     });
     // Any device with a native token, exactly like the invite fan-out in
@@ -183,6 +201,26 @@ export const sendVoipTaken = internalAction({
   },
 });
 
+/**
+ * One push destination, in the two shapes `_loadUserDevices` can produce:
+ * a row from `userDevices`, or the pre-`userDevices` fallback that reads the
+ * tokens straight off the user document. `legacy` is the discriminant, and it
+ * is why `deviceRowId` is nullable — a legacy row has no device row for the
+ * dead-token sweep in `pushToDevice` to clear.
+ *
+ * Named, and declared as `_loadUserDevices`'s return type, because the actions
+ * below cannot infer it. They read the query back through
+ * `internal.voipPush._loadUserDevices`, and `internal` is typed from `fullApi`
+ * — which includes this whole module, those actions included. TypeScript ends
+ * that cycle by making the lot `any`: `devices` became `any[]`, every
+ * `.map((d) => …)` lost its parameter type, and `d.apnsEnv` resolved happily on
+ * legacy rows that have never had one.
+ *
+ * Annotating the query alone does NOT fix that — the cycle is over the module,
+ * not over one function — which is why each `ctx.runQuery` call site below
+ * declares `DeviceRow[]` too. That annotation needs nothing from `internal`, so
+ * it cannot be part of the cycle. This type is what both ends name.
+ */
 type DeviceRow =
   | {
       deviceRowId: Id<"userDevices">;

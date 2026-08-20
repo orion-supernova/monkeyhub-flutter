@@ -6425,4 +6425,456 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get deviceLoginScanScreenDeniedConfirmation =>
       'sign-in request denied';
+
+  @override
+  String get roomAdminSectionLabel => '그룹';
+
+  @override
+  String get roomAdminRoleOwner => '소유자';
+
+  @override
+  String get roomAdminRoleAdmin => '관리자';
+
+  @override
+  String get roomAdminActionViewProfile => '프로필 보기';
+
+  @override
+  String get roomAdminActionPromote => '관리자로 지정';
+
+  @override
+  String get roomAdminActionPromoteSub => '초대하고, 멤버를 내보내고, 그룹을 수정할 수 있어요';
+
+  @override
+  String get roomAdminActionDemote => '관리자 해제';
+
+  @override
+  String get roomAdminActionDemoteSub => '멤버로 그룹에 남아요';
+
+  @override
+  String get roomAdminActionTransfer => '소유권 넘기기';
+
+  @override
+  String get roomAdminActionTransferSub => '당신은 관리자로 남아요';
+
+  @override
+  String get roomAdminActionRemove => '그룹에서 내보내기';
+
+  @override
+  String get roomAdminAddFriendsRow => '친구 추가';
+
+  @override
+  String get roomAdminAddFriendsRowSub => '수락하거나 거절할 수 있는 초대를 받아요';
+
+  @override
+  String get roomAdminInviteLinkRow => '초대 링크';
+
+  @override
+  String get roomAdminInviteLinkRowSub => '링크나 코드를 공유해 사람을 들여요';
+
+  @override
+  String get roomAdminJoinRequestsRow => '참여 요청';
+
+  @override
+  String roomAdminJoinRequestsRowSub(Object count) {
+    return '$count명이 답을 기다리고 있어요';
+  }
+
+  @override
+  String roomAdminTransferConfirmHeadline(Object name) {
+    return '그룹을 $name님에게 넘길까요?';
+  }
+
+  @override
+  String get roomAdminTransferConfirmBody =>
+      '그 사람이 소유자가 되고 그룹을 삭제할 수 있어요. 당신은 관리자로 남고, 돌려받는 건 그 사람만 할 수 있어요.';
+
+  @override
+  String get roomAdminTransferConfirmCta => '넘기기';
+
+  @override
+  String roomAdminRemoveConfirmHeadline(Object name) {
+    return '$name님을 내보낼까요?';
+  }
+
+  @override
+  String get roomAdminRemoveConfirmBody =>
+      '그룹과 그 안의 모든 것에 접근할 수 없게 돼요. 다시 초대하거나, 초대 링크로 돌아올 수 있어요.';
+
+  @override
+  String get roomAdminRemoveConfirmCta => '내보내기';
+
+  @override
+  String get roomAdminGenericError => '안 됐어요. 다시 시도해 보세요.';
+
+  @override
+  String get roomAdminErrorNotMember => '이제 이 그룹에 없어요.';
+
+  @override
+  String get roomAdminErrorNotAdmin => '관리자만 할 수 있어요.';
+
+  @override
+  String get roomAdminErrorNotOwner => '그룹 소유자만 할 수 있어요.';
+
+  @override
+  String get roomAdminErrorNotGroup => '1:1 대화에는 관리할 게 없어요.';
+
+  @override
+  String get roomAdminErrorOwnerImmutable => '소유자의 역할은 그룹을 넘길 때만 바뀌어요.';
+
+  @override
+  String get roomAdminErrorInvitesLocked => '이 그룹에는 관리자만 초대할 수 있어요.';
+
+  @override
+  String get roomInviteSheetTitle => '초대 링크';
+
+  @override
+  String get roomInviteSheetBlurb =>
+      '링크와 코드는 하나씩이고, 사실 같은 거예요. 새로 만들면 이전 것은 바로 안 통해요.';
+
+  @override
+  String get roomInviteNoLinkYet => '이 그룹에는 아직 초대 링크가 없어요.';
+
+  @override
+  String get roomInviteCreateButton => '링크 만들기';
+
+  @override
+  String get roomInviteRegenerateButton => '새 링크';
+
+  @override
+  String get roomInviteRevokeButton => '링크 폐기';
+
+  @override
+  String get roomInviteCopyLink => '링크 복사';
+
+  @override
+  String get roomInviteCopyCode => '코드 복사';
+
+  @override
+  String get roomInviteShare => '공유';
+
+  @override
+  String get roomInviteLinkCopied => '링크를 복사했어요.';
+
+  @override
+  String get roomInviteCodeCopied => '코드를 복사했어요.';
+
+  @override
+  String get roomInviteRegenerateHeadline => '새 링크를 만들까요?';
+
+  @override
+  String get roomInviteRegenerateBody =>
+      '지금 링크와 코드는 공유된 모든 곳에서 즉시 안 통하게 돼요. 이미 그룹에 있는 사람은 그대로 남아요.';
+
+  @override
+  String get roomInviteRegenerateConfirm => '새 링크';
+
+  @override
+  String get roomInviteRevokeHeadline => '이 링크를 폐기할까요?';
+
+  @override
+  String get roomInviteRevokeBody =>
+      '새로 만들기 전까지는 링크로 아무도 못 들어와요. 이미 그룹에 있는 사람은 그대로 남아요.';
+
+  @override
+  String get roomInviteRevokeConfirm => '폐기';
+
+  @override
+  String get roomInviteLimitsLabel => '제한';
+
+  @override
+  String get roomInviteExpiryLabel => '유효 기간';
+
+  @override
+  String get roomInviteMaxUsesLabel => '사용 횟수';
+
+  @override
+  String get roomInviteNeverExpires => '없음';
+
+  @override
+  String get roomInviteUnlimited => '무제한';
+
+  @override
+  String roomInviteExpiryHours(Object count) {
+    return '$count시간';
+  }
+
+  @override
+  String roomInviteExpiryDays(Object count) {
+    return '$count일';
+  }
+
+  @override
+  String get roomInviteLimitsApplyToNew => '지금 만들 링크에 적용돼요.';
+
+  @override
+  String get roomInviteLimitsApplyOnRegenerate =>
+      '다음 링크에 적용돼요. 위의 링크는 만들어질 때의 제한을 그대로 유지해요.';
+
+  @override
+  String get roomInvitePermissionsLabel => '권한';
+
+  @override
+  String get roomInviteMembersCanInviteLabel => '멤버도 친구를 초대할 수 있음';
+
+  @override
+  String get roomInviteMembersCanInviteSub => '끄면 관리자만 사람을 데려올 수 있어요';
+
+  @override
+  String get roomInviteApprovalLabel => '참여를 하나씩 승인';
+
+  @override
+  String get roomInviteApprovalSub => '링크를 가진 사람이 먼저 요청하고, 관리자가 수락할지 정해요';
+
+  @override
+  String roomInviteUsesCount(Object count) {
+    return '$count번 사용됨';
+  }
+
+  @override
+  String roomInviteUsesOfMax(Object max, Object used) {
+    return '$max번 중 $used번';
+  }
+
+  @override
+  String roomInviteExpiresOn(Object date) {
+    return '$date까지';
+  }
+
+  @override
+  String get roomInviteDeadExpired => '이 링크는 만료됐어요. 새로 만드세요.';
+
+  @override
+  String get roomInviteDeadExhausted => '이 링크는 사용 횟수를 다 썼어요. 새로 만드세요.';
+
+  @override
+  String get roomInviteDeadRevoked => '이 링크는 폐기됐어요.';
+
+  @override
+  String get roomInviteDeadGeneric => '이 링크는 더 이상 안 통해요.';
+
+  @override
+  String get roomInviteFriendsTitle => '친구 추가';
+
+  @override
+  String get roomInviteFriendsBlurb => '초대를 받고, 수락하거나 거절할 수 있어요.';
+
+  @override
+  String get roomInviteFriendsSearchHint => '친구 검색';
+
+  @override
+  String get roomInviteFriendsInviteButton => '초대';
+
+  @override
+  String get roomInviteFriendsSent => '초대함';
+
+  @override
+  String get roomInviteFriendsEmpty => '친구가 모두 이미 여기 있거나 이미 초대됐어요.';
+
+  @override
+  String get roomInviteFriendsNoMatch => '일치하는 친구가 없어요.';
+
+  @override
+  String get roomInviteFriendsDone => '완료';
+
+  @override
+  String get roomJoinRequestsTitle => '참여 요청';
+
+  @override
+  String get roomJoinRequestsBlurb =>
+      '초대 링크를 쓴 사람들이에요. 승인하기 전까지는 그룹 안을 아무것도 못 봐요.';
+
+  @override
+  String get roomJoinRequestsEmpty => '기다리는 사람이 없어요.';
+
+  @override
+  String get roomJoinRequestsApprove => '들이기';
+
+  @override
+  String get roomJoinRequestsReject => '거절';
+
+  @override
+  String roomInfoScreenInvitedLabel(Object count) {
+    return '초대함 · $count';
+  }
+
+  @override
+  String get roomInfoScreenInviteAwaitingGuardian => '보호자 확인 대기 중';
+
+  @override
+  String get roomInfoScreenInviteWithdraw => '취소';
+
+  @override
+  String roomInvitationCardFrom(Object inviter, Object members) {
+    return '$inviter님이 초대 · 멤버 $members명';
+  }
+
+  @override
+  String get roomInvitationCardJoin => '참여';
+
+  @override
+  String get discoverScreenJoinByCodeTitle => '코드로 참여';
+
+  @override
+  String get discoverScreenJoinByCodeSubtitle => '누군가 공유한 그룹을 열어요';
+
+  @override
+  String get joinInviteTitle => '그룹 참여';
+
+  @override
+  String get joinInviteBack => '뒤로';
+
+  @override
+  String get joinInviteCodeBlurb => '공유받은 코드를 입력하세요. 초대 링크 전체를 붙여 넣어도 돼요.';
+
+  @override
+  String get joinInviteCodeLabel => '초대 코드';
+
+  @override
+  String get joinInviteCodeHint => 'K7M2-XQ94-RB';
+
+  @override
+  String get joinInviteCodeInvalid => '초대 코드 같지 않아요.';
+
+  @override
+  String get joinInviteLookupButton => '계속';
+
+  @override
+  String get joinInviteLookupFailed => '코드를 확인하지 못했어요. 연결을 확인하고 다시 시도해 보세요.';
+
+  @override
+  String joinInviteMemberCount(Object count) {
+    return '멤버 $count명';
+  }
+
+  @override
+  String get joinInviteJoinButton => '그룹 참여';
+
+  @override
+  String get joinInviteRequestButton => '참여 요청';
+
+  @override
+  String get joinInviteOpenNote => '참여하면 그룹의 메시지를 볼 수 있어요.';
+
+  @override
+  String get joinInviteApprovalNote => '여기 안을 보려면 먼저 관리자가 승인해야 해요.';
+
+  @override
+  String get joinInviteOpenRoom => '그룹 열기';
+
+  @override
+  String get joinInvitePendingHeadline => '관리자를 기다리는 중';
+
+  @override
+  String get joinInvitePendingBody => '누군가 답하면 바로 알림이 가요.';
+
+  @override
+  String get joinInviteBadLinkHeadline => '이 초대는 안 통해요';
+
+  @override
+  String get joinInviteBadLinkBody => '코드를 확인하거나, 새 링크를 받으세요.';
+
+  @override
+  String get joinInviteExpiredHeadline => '이 초대는 만료됐어요';
+
+  @override
+  String get joinInviteExpiredBody => '초대한 사람에게 새 링크를 받으세요.';
+
+  @override
+  String get joinInviteExhaustedHeadline => '이 초대는 다 쓰였어요';
+
+  @override
+  String get joinInviteExhaustedBody => '정해진 횟수만 쓸 수 있게 설정돼 있었어요. 새로 받으세요.';
+
+  @override
+  String get joinInviteRevokedHeadline => '이 초대는 교체됐어요';
+
+  @override
+  String get joinInviteRevokedBody => '관리자가 새 링크를 만들었어요. 지금 링크를 받으세요.';
+
+  @override
+  String get joinInviteWrongServerHeadline => '이 초대는 다른 서버의 것이에요';
+
+  @override
+  String joinInviteWrongServerBody(Object host) {
+    return '$host에 속해 있어요. 계정이 다른 서버에 있어서 여기서는 이 그룹에 갈 수 없어요.';
+  }
+
+  @override
+  String get roomInviteErrorNotFound => '그 초대 코드와 맞는 게 없어요.';
+
+  @override
+  String get roomInviteErrorRevoked => '그 초대는 교체됐어요. 지금 링크를 받으세요.';
+
+  @override
+  String get roomInviteErrorExpired => '그 초대는 만료됐어요.';
+
+  @override
+  String get roomInviteErrorExhausted => '그 초대는 다 쓰였어요.';
+
+  @override
+  String get roomInviteErrorAlreadyMember => '이미 이 그룹에 있어요.';
+
+  @override
+  String get roomInviteErrorAlreadyInvited => '이미 초대했어요.';
+
+  @override
+  String get roomInviteErrorSelf => '당신은 이미 이 그룹에 있어요.';
+
+  @override
+  String get roomInviteErrorInvitationGone => '그 초대는 이제 없어요.';
+
+  @override
+  String get roomInviteErrorRequestPending => '이미 참여를 요청했어요. 관리자가 답할 거예요.';
+
+  @override
+  String get roomInviteErrorRequestGone => '그 요청에는 이미 누가 답했어요.';
+
+  @override
+  String get roomInviteErrorRoomPrivate => '이 그룹에는 초대로만 들어올 수 있어요.';
+
+  @override
+  String get roomInviteErrorInvalidLimits => '그 제한은 쓸 수 없어요.';
+
+  @override
+  String approvalsScreenHeadlineRoomInviteOutgoing(
+    Object child,
+    Object other,
+    Object room,
+  ) {
+    return '$child이(가) $other을(를) $room에 초대하려고 해요';
+  }
+
+  @override
+  String approvalsScreenHeadlineRoomInviteIncoming(
+    Object child,
+    Object other,
+    Object room,
+  ) {
+    return '$other이(가) $child을(를) $room에 초대했어요';
+  }
+
+  @override
+  String get approvalsScreenConsequenceRoomInviteOutgoing =>
+      '초대가 나가고, 참여할지는 상대가 정해요.';
+
+  @override
+  String approvalsScreenConsequenceRoomInviteIncoming(Object child) {
+    return '$child이(가) 초대를 보고 수락하거나 거절할 수 있어요. 승인하면 수락했을 때 그 그룹에 들어가는 것도 허용돼요.';
+  }
+
+  @override
+  String get roomAdminErrorCannotRemoveSelf =>
+      '자기 자신은 내보낼 수 없어요. 대신 그룹에서 나가세요.';
+
+  @override
+  String get roomAdminActionMessage => '메시지';
+
+  @override
+  String get roomAdminActionVoiceCall => '음성 통화';
+
+  @override
+  String get roomAdminActionVideoCall => '영상 통화';
+
+  @override
+  String get roomAdminYouSuffix => '나';
 }

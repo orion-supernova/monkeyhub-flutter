@@ -6741,4 +6741,469 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get deviceLoginScanScreenDeniedConfirmation =>
       'sign-in request denied';
+
+  @override
+  String get roomAdminSectionLabel => 'المجموعة';
+
+  @override
+  String get roomAdminRoleOwner => 'المالك';
+
+  @override
+  String get roomAdminRoleAdmin => 'مشرف';
+
+  @override
+  String get roomAdminActionViewProfile => 'عرض الملف الشخصي';
+
+  @override
+  String get roomAdminActionPromote => 'تعيينه مشرفًا';
+
+  @override
+  String get roomAdminActionPromoteSub =>
+      'سيتمكن من الدعوة وإخراج الأعضاء وتعديل المجموعة';
+
+  @override
+  String get roomAdminActionDemote => 'إزالة الإشراف';
+
+  @override
+  String get roomAdminActionDemoteSub => 'يبقى في المجموعة كعضو';
+
+  @override
+  String get roomAdminActionTransfer => 'نقل الملكية';
+
+  @override
+  String get roomAdminActionTransferSub => 'تبقى أنت مشرفًا';
+
+  @override
+  String get roomAdminActionRemove => 'إخراج من المجموعة';
+
+  @override
+  String get roomAdminAddFriendsRow => 'إضافة أصدقاء';
+
+  @override
+  String get roomAdminAddFriendsRowSub => 'تصلهم دعوة يمكنهم قبولها أو رفضها';
+
+  @override
+  String get roomAdminInviteLinkRow => 'رابط الدعوة';
+
+  @override
+  String get roomAdminInviteLinkRowSub => 'شارِك رابطًا أو رمزًا لإدخال الناس';
+
+  @override
+  String get roomAdminJoinRequestsRow => 'طلبات الانضمام';
+
+  @override
+  String roomAdminJoinRequestsRowSub(Object count) {
+    return '$count في انتظار الرد';
+  }
+
+  @override
+  String roomAdminTransferConfirmHeadline(Object name) {
+    return 'تسليم المجموعة إلى $name؟';
+  }
+
+  @override
+  String get roomAdminTransferConfirmBody =>
+      'سيصبح المالك ويستطيع حذف المجموعة. تبقى أنت مشرفًا، وإعادتها إليك بيده وحده.';
+
+  @override
+  String get roomAdminTransferConfirmCta => 'نقل';
+
+  @override
+  String roomAdminRemoveConfirmHeadline(Object name) {
+    return 'إخراج $name؟';
+  }
+
+  @override
+  String get roomAdminRemoveConfirmBody =>
+      'يفقد الوصول إلى المجموعة وكل ما فيها. يمكن دعوته مرة أخرى، أو العودة عبر رابط الدعوة.';
+
+  @override
+  String get roomAdminRemoveConfirmCta => 'إخراج';
+
+  @override
+  String get roomAdminGenericError => 'لم ينجح ذلك. حاول مرة أخرى.';
+
+  @override
+  String get roomAdminErrorNotMember => 'لم تعد في هذه المجموعة.';
+
+  @override
+  String get roomAdminErrorNotAdmin => 'لا يستطيع ذلك إلا المشرفون.';
+
+  @override
+  String get roomAdminErrorNotOwner => 'لا يستطيع ذلك إلا مالك المجموعة.';
+
+  @override
+  String get roomAdminErrorNotGroup => 'لا شيء لإدارته في محادثة ثنائية.';
+
+  @override
+  String get roomAdminErrorOwnerImmutable =>
+      'دور المالك لا يتغير إلا بنقل المجموعة.';
+
+  @override
+  String get roomAdminErrorInvitesLocked =>
+      'لا يستطيع الدعوة إلى هذه المجموعة إلا المشرفون.';
+
+  @override
+  String get roomInviteSheetTitle => 'رابط الدعوة';
+
+  @override
+  String get roomInviteSheetBlurb =>
+      'رابط واحد ورمز واحد، وهما الشيء نفسه. ما إن تنشئ رابطًا جديدًا حتى يتوقف القديم عن العمل.';
+
+  @override
+  String get roomInviteNoLinkYet => 'لا يوجد رابط دعوة لهذه المجموعة بعد.';
+
+  @override
+  String get roomInviteCreateButton => 'إنشاء رابط';
+
+  @override
+  String get roomInviteRegenerateButton => 'رابط جديد';
+
+  @override
+  String get roomInviteRevokeButton => 'إبطال الرابط';
+
+  @override
+  String get roomInviteCopyLink => 'نسخ الرابط';
+
+  @override
+  String get roomInviteCopyCode => 'نسخ الرمز';
+
+  @override
+  String get roomInviteShare => 'مشاركة';
+
+  @override
+  String get roomInviteLinkCopied => 'تم نسخ الرابط.';
+
+  @override
+  String get roomInviteCodeCopied => 'تم نسخ الرمز.';
+
+  @override
+  String get roomInviteRegenerateHeadline => 'إنشاء رابط جديد؟';
+
+  @override
+  String get roomInviteRegenerateBody =>
+      'يتوقف الرابط والرمز الحاليان عن العمل فورًا في كل مكان شُورِكا فيه. ومن هم في المجموعة يبقون فيها.';
+
+  @override
+  String get roomInviteRegenerateConfirm => 'رابط جديد';
+
+  @override
+  String get roomInviteRevokeHeadline => 'إبطال هذا الرابط؟';
+
+  @override
+  String get roomInviteRevokeBody =>
+      'لن ينضم أحد جديد بالرابط حتى تنشئ غيره. ومن هم في المجموعة يبقون فيها.';
+
+  @override
+  String get roomInviteRevokeConfirm => 'إبطال';
+
+  @override
+  String get roomInviteLimitsLabel => 'الحدود';
+
+  @override
+  String get roomInviteExpiryLabel => 'ينتهي بعد';
+
+  @override
+  String get roomInviteMaxUsesLabel => 'عدد مرات الاستخدام';
+
+  @override
+  String get roomInviteNeverExpires => 'أبدًا';
+
+  @override
+  String get roomInviteUnlimited => 'بلا حد';
+
+  @override
+  String roomInviteExpiryHours(Object count) {
+    return '$count ساعة';
+  }
+
+  @override
+  String roomInviteExpiryDays(Object count) {
+    return '$count يوم';
+  }
+
+  @override
+  String get roomInviteLimitsApplyToNew => 'تنطبق على الرابط الذي ستنشئه.';
+
+  @override
+  String get roomInviteLimitsApplyOnRegenerate =>
+      'تنطبق على الرابط التالي. أما الذي في الأعلى فيحتفظ بالحدود التي أُنشئ بها.';
+
+  @override
+  String get roomInvitePermissionsLabel => 'الأذونات';
+
+  @override
+  String get roomInviteMembersCanInviteLabel => 'يمكن للأعضاء دعوة أصدقائهم';
+
+  @override
+  String get roomInviteMembersCanInviteSub =>
+      'أوقِفه فلا يُدخل الناس إلا المشرفون';
+
+  @override
+  String get roomInviteApprovalLabel => 'الموافقة على كل انضمام';
+
+  @override
+  String get roomInviteApprovalSub =>
+      'من معه الرابط يطلب أولًا، ويقرر مشرف بالقبول أو الرفض';
+
+  @override
+  String roomInviteUsesCount(Object count) {
+    return 'استُخدم $count مرة';
+  }
+
+  @override
+  String roomInviteUsesOfMax(Object max, Object used) {
+    return '$used من $max استخدامات';
+  }
+
+  @override
+  String roomInviteExpiresOn(Object date) {
+    return 'ينتهي في $date';
+  }
+
+  @override
+  String get roomInviteDeadExpired => 'انتهت صلاحية هذا الرابط. أنشئ غيره.';
+
+  @override
+  String get roomInviteDeadExhausted => 'نفدت استخدامات هذا الرابط. أنشئ غيره.';
+
+  @override
+  String get roomInviteDeadRevoked => 'أُبطِل هذا الرابط.';
+
+  @override
+  String get roomInviteDeadGeneric => 'لم يعد هذا الرابط يعمل.';
+
+  @override
+  String get roomInviteFriendsTitle => 'إضافة أصدقاء';
+
+  @override
+  String get roomInviteFriendsBlurb => 'ستصلهم دعوة ويمكنهم قبولها أو رفضها.';
+
+  @override
+  String get roomInviteFriendsSearchHint => 'ابحث في الأصدقاء';
+
+  @override
+  String get roomInviteFriendsInviteButton => 'دعوة';
+
+  @override
+  String get roomInviteFriendsSent => 'تمت الدعوة';
+
+  @override
+  String get roomInviteFriendsEmpty => 'كل أصدقائك هنا بالفعل أو دُعوا بالفعل.';
+
+  @override
+  String get roomInviteFriendsNoMatch => 'لا يطابق ذلك أي صديق.';
+
+  @override
+  String get roomInviteFriendsDone => 'تم';
+
+  @override
+  String get roomJoinRequestsTitle => 'طلبات الانضمام';
+
+  @override
+  String get roomJoinRequestsBlurb =>
+      'هؤلاء استخدموا رابط الدعوة. لا يرون شيئًا في المجموعة حتى توافق.';
+
+  @override
+  String get roomJoinRequestsEmpty => 'لا أحد ينتظر.';
+
+  @override
+  String get roomJoinRequestsApprove => 'أدخِله';
+
+  @override
+  String get roomJoinRequestsReject => 'لا';
+
+  @override
+  String roomInfoScreenInvitedLabel(Object count) {
+    return 'مدعوّون · $count';
+  }
+
+  @override
+  String get roomInfoScreenInviteAwaitingGuardian => 'بانتظار وليّ الأمر';
+
+  @override
+  String get roomInfoScreenInviteWithdraw => 'سحب';
+
+  @override
+  String roomInvitationCardFrom(Object inviter, Object members) {
+    return 'من $inviter · $members عضوًا';
+  }
+
+  @override
+  String get roomInvitationCardJoin => 'انضمام';
+
+  @override
+  String get discoverScreenJoinByCodeTitle => 'الانضمام برمز';
+
+  @override
+  String get discoverScreenJoinByCodeSubtitle => 'افتح مجموعة شاركها أحدهم معك';
+
+  @override
+  String get joinInviteTitle => 'الانضمام إلى مجموعة';
+
+  @override
+  String get joinInviteBack => 'رجوع';
+
+  @override
+  String get joinInviteCodeBlurb =>
+      'أدخِل الرمز الذي شاركه أحدهم معك. ورابط الدعوة كاملًا يعمل هنا أيضًا.';
+
+  @override
+  String get joinInviteCodeLabel => 'رمز الدعوة';
+
+  @override
+  String get joinInviteCodeHint => 'K7M2-XQ94-RB';
+
+  @override
+  String get joinInviteCodeInvalid => 'لا يبدو هذا رمز دعوة.';
+
+  @override
+  String get joinInviteLookupButton => 'متابعة';
+
+  @override
+  String get joinInviteLookupFailed =>
+      'تعذّر التحقق من الرمز. تأكد من اتصالك وحاول مرة أخرى.';
+
+  @override
+  String joinInviteMemberCount(Object count) {
+    return '$count عضوًا';
+  }
+
+  @override
+  String get joinInviteJoinButton => 'الانضمام إلى المجموعة';
+
+  @override
+  String get joinInviteRequestButton => 'طلب الانضمام';
+
+  @override
+  String get joinInviteOpenNote => 'ستتمكن من رؤية رسائل المجموعة فور انضمامك.';
+
+  @override
+  String get joinInviteApprovalNote =>
+      'لا بد أن يوافق مشرف قبل أن ترى أي شيء هنا.';
+
+  @override
+  String get joinInviteOpenRoom => 'فتح المجموعة';
+
+  @override
+  String get joinInvitePendingHeadline => 'بانتظار مشرف';
+
+  @override
+  String get joinInvitePendingBody => 'سيصلك إشعار فور أن يرد أحدهم.';
+
+  @override
+  String get joinInviteBadLinkHeadline => 'هذه الدعوة لا تعمل';
+
+  @override
+  String get joinInviteBadLinkBody => 'تحقق من الرمز، أو اطلب رابطًا جديدًا.';
+
+  @override
+  String get joinInviteExpiredHeadline => 'انتهت صلاحية هذه الدعوة';
+
+  @override
+  String get joinInviteExpiredBody => 'اطلب رابطًا جديدًا ممن دعاك.';
+
+  @override
+  String get joinInviteExhaustedHeadline => 'استُنفدت هذه الدعوة';
+
+  @override
+  String get joinInviteExhaustedBody =>
+      'كانت مضبوطة لعدد محدود من المرات. اطلب غيرها.';
+
+  @override
+  String get joinInviteRevokedHeadline => 'استُبدلت هذه الدعوة';
+
+  @override
+  String get joinInviteRevokedBody =>
+      'أنشأ مشرف رابطًا جديدًا. اطلب منه الرابط الحالي.';
+
+  @override
+  String get joinInviteWrongServerHeadline => 'هذه الدعوة تخص خادمًا آخر';
+
+  @override
+  String joinInviteWrongServerBody(Object host) {
+    return 'هي تخص $host. حسابك على خادم مختلف، فلا يمكن الوصول إلى هذه المجموعة من هنا.';
+  }
+
+  @override
+  String get roomInviteErrorNotFound => 'رمز الدعوة هذا لا يطابق أي شيء.';
+
+  @override
+  String get roomInviteErrorRevoked =>
+      'استُبدلت هذه الدعوة. اطلب الرابط الحالي.';
+
+  @override
+  String get roomInviteErrorExpired => 'انتهت صلاحية هذه الدعوة.';
+
+  @override
+  String get roomInviteErrorExhausted => 'استُنفدت هذه الدعوة.';
+
+  @override
+  String get roomInviteErrorAlreadyMember => 'هو في هذه المجموعة بالفعل.';
+
+  @override
+  String get roomInviteErrorAlreadyInvited => 'دُعي بالفعل.';
+
+  @override
+  String get roomInviteErrorSelf => 'أنت في هذه المجموعة بالفعل.';
+
+  @override
+  String get roomInviteErrorInvitationGone => 'لم تعد تلك الدعوة موجودة.';
+
+  @override
+  String get roomInviteErrorRequestPending =>
+      'طلبت الانضمام بالفعل. سيرد أحد المشرفين.';
+
+  @override
+  String get roomInviteErrorRequestGone => 'ردّ أحدهم على ذلك الطلب بالفعل.';
+
+  @override
+  String get roomInviteErrorRoomPrivate =>
+      'لا يُنضم إلى هذه المجموعة إلا بدعوة.';
+
+  @override
+  String get roomInviteErrorInvalidLimits => 'هذه الحدود غير صالحة.';
+
+  @override
+  String approvalsScreenHeadlineRoomInviteOutgoing(
+    Object child,
+    Object other,
+    Object room,
+  ) {
+    return 'يريد $child دعوة $other إلى $room';
+  }
+
+  @override
+  String approvalsScreenHeadlineRoomInviteIncoming(
+    Object child,
+    Object other,
+    Object room,
+  ) {
+    return 'دعا $other ابنك $child إلى $room';
+  }
+
+  @override
+  String get approvalsScreenConsequenceRoomInviteOutgoing =>
+      'تُرسَل الدعوة، ويبقى القرار للطرف الآخر.';
+
+  @override
+  String approvalsScreenConsequenceRoomInviteIncoming(Object child) {
+    return 'سيرى $child الدعوة ويمكنه قبولها أو رفضها. وموافقتك تمنحه أيضًا الدخول إلى تلك المجموعة إن قَبِل.';
+  }
+
+  @override
+  String get roomAdminErrorCannotRemoveSelf =>
+      'لا يمكنك إخراج نفسك. غادِر المجموعة بدلًا من ذلك.';
+
+  @override
+  String get roomAdminActionMessage => 'مراسلة';
+
+  @override
+  String get roomAdminActionVoiceCall => 'مكالمة صوتية';
+
+  @override
+  String get roomAdminActionVideoCall => 'مكالمة فيديو';
+
+  @override
+  String get roomAdminYouSuffix => 'أنت';
 }

@@ -6,6 +6,7 @@ import {
 } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import type { Doc } from "./_generated/dataModel";
 import { childMayReach, childPolicyOf } from "./childGuard";
 import { assertNoSystemAccount } from "./systemAccount";
 import { lensFor } from "./visibility";
@@ -415,7 +416,11 @@ export const pendingInviteForUser = query({
       )
       .collect();
     const now = Date.now();
-    let best: any = null;
+    // Typed, so `best.call.startedBy` is an `Id<"users">` and the `db.get`
+    // below resolves to a user rather than the union of every table — which is
+    // what made `starter?.name` unreachable on the line that names the caller.
+    let best: { inv: Doc<"groupCallParticipants">; call: Doc<"groupCalls"> } | null =
+      null;
     for (const inv of invites) {
       if (now - inv.invitedAt > INVITE_RING_WINDOW_MS) continue;
       const call = await ctx.db.get(inv.groupCallId);

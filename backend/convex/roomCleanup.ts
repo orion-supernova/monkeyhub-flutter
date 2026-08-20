@@ -74,6 +74,29 @@ async function wipeRoomContents(ctx: any, roomId: any) {
     .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId))
     .collect();
   for (const t of typing) await ctx.db.delete(t._id);
+  // The room's join link, its outstanding invites, and its join-request queue.
+  //
+  // The link matters most and is the easiest to forget, because it is the one
+  // row here that is not obviously "about" a member: a `roomInvites` row that
+  // outlives its room is a live code whose redemption resolves to a deleted
+  // roomId, which is a crash on the join screen rather than the "this link is
+  // no longer valid" a person deserves. Swept, not revoked — the room is gone,
+  // so there is nothing left for the row to be the audit trail OF.
+  const invites = await ctx.db
+    .query("roomInvites")
+    .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
+    .collect();
+  for (const i of invites) await ctx.db.delete(i._id);
+  const invitations = await ctx.db
+    .query("roomInvitations")
+    .withIndex("by_room_invitee", (q: any) => q.eq("roomId", roomId))
+    .collect();
+  for (const i of invitations) await ctx.db.delete(i._id);
+  const joinRequests = await ctx.db
+    .query("roomJoinRequests")
+    .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId))
+    .collect();
+  for (const r of joinRequests) await ctx.db.delete(r._id);
   // Messages staged for a room that is about to stop existing — every member's,
   // not just the caller's. Left behind, each would wake up on its own schedule,
   // fail `guardOutgoing` against a room with no memberships, and settle as a

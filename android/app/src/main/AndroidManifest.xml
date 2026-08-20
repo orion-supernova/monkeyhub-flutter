@@ -80,6 +80,45 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+
+            <!-- Room invite links. `autoVerify` is what makes this an App Link
+                 rather than just another handler in a chooser dialog: at
+                 install time Android fetches
+                 https://monkeyhub.walhallaa.com/.well-known/assetlinks.json
+                 and, if this package and the signing certificate's SHA-256
+                 fingerprint are listed there, opens the URL here with no
+                 disambiguation prompt at all.
+
+                 Verification is per-INSTALL and needs the network. It fails
+                 silently — the link simply opens in a browser — and the only
+                 way to see why is
+                 `adb shell pm get-app-links com.walhallaa.chattest20241220`.
+                 The Play-signed certificate is a DIFFERENT fingerprint from a
+                 locally-signed build, so assetlinks.json has to carry both or
+                 Play installs never verify. See DEEP_LINKS.md.
+
+                 The path prefix is deliberately narrow. `/` would claim every
+                 URL on the site — the landing page, /downloads/, the Flutter
+                 web app at /web/ — and an app that swallows its own download
+                 page is a very confusing thing to debug. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="monkeyhub.walhallaa.com"
+                    android:pathPrefix="/j/" />
+            </intent-filter>
+
+            <!-- The fallback door, for a device whose App Link verification
+                 failed. Never shared; see lib/invites/invite_link.dart. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="monkeyhub" />
+            </intent-filter>
         </activity>
 
         <!-- Receives the backend's data-only call pushes (voipPush.ts) and

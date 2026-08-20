@@ -30,7 +30,7 @@ import {
   internalMutation,
   internalQuery,
 } from "./_generated/server";
-import { v } from "convex/values";
+import { v, type Infer } from "convex/values";
 import { internal } from "./_generated/api";
 import { ACCOUNT_CHILD, ERR_MUST_PAIR } from "./childGuard";
 import { verifyIdToken, PROVIDER_APPLE, type Provider } from "./idToken";
@@ -139,7 +139,12 @@ export const signIn = action({
     fullName: v.optional(v.string()),
   },
   returns: signInResultValidator,
-  handler: async (ctx, args) => {
+  // Annotated to break a self-referential inference cycle — see the note on
+  // `Infer` above; `internal.socialAuth` includes this very action.
+  handler: async (
+    ctx,
+    args,
+  ): Promise<Infer<typeof signInResultValidator>> => {
     const identity = await verifyIdToken(args.provider, args.idToken, args.rawNonce);
 
     const existing = await ctx.runQuery(internal.socialAuth.findIdentity, {
@@ -185,7 +190,12 @@ export const completeSignUp = action({
     name: v.optional(v.string()),
   },
   returns: authResultValidator,
-  handler: async (ctx, args) => {
+  // Annotated to break a self-referential inference cycle — see the note on
+  // `Infer` above; `internal.socialAuth` includes this very action.
+  handler: async (
+    ctx,
+    args,
+  ): Promise<Infer<typeof authResultValidator>> => {
     const identity = await verifyIdToken(args.provider, args.idToken, args.rawNonce);
     const appleRefreshToken = await captureAppleRefresh(
       args.provider,
@@ -226,7 +236,12 @@ export const linkExistingAccount = action({
     passwordHash: v.string(),
   },
   returns: authResultValidator,
-  handler: async (ctx, args) => {
+  // Annotated to break a self-referential inference cycle — see the note on
+  // `Infer` above; `internal.socialAuth` includes this very action.
+  handler: async (
+    ctx,
+    args,
+  ): Promise<Infer<typeof authResultValidator>> => {
     const identity = await verifyIdToken(args.provider, args.idToken, args.rawNonce);
     const appleRefreshToken = await captureAppleRefresh(
       args.provider,
@@ -310,7 +325,9 @@ export const changeUsernameWithIdentity = action({
     username: v.string(),
   },
   returns: v.object({ username: v.string() }),
-  handler: async (ctx, args) => {
+  // Annotated to break a self-referential inference cycle — see the note on
+  // `Infer` above; `internal.socialAuth` includes this very action.
+  handler: async (ctx, args): Promise<{ username: string }> => {
     const identity = await verifyIdToken(args.provider, args.idToken, args.rawNonce);
 
     const existing = await ctx.runQuery(internal.socialAuth.findIdentity, {

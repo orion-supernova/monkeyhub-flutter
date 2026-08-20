@@ -33,5 +33,25 @@
 	<array>
 		<string>$(AppIdentifierPrefix)$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	</array>
+	<!-- Universal links. `applinks:` is the invite link
+	     (https://monkeyhub.walhallaa.com/j/<code>) — see
+	     lib/invites/invite_link.dart and DEEP_LINKS.md.
+
+	     THREE things have to agree or the tap silently opens Safari instead
+	     of the app, with no error anywhere:
+	       1. this entitlement,
+	       2. Associated Domains enabled on the App ID in the developer
+	          portal (signing does NOT fail without it — the capability is
+	          simply absent from the profile),
+	       3. https://monkeyhub.walhallaa.com/.well-known/apple-app-site-association
+	          served as application/json, no redirect, no extension.
+
+	     Apple's CDN caches the AASA for up to 24h, so a fix to (3) is not
+	     visible on a device that has already fetched a bad copy until the app
+	     is reinstalled. -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:monkeyhub.walhallaa.com</string>
+	</array>
 </dict>
 </plist>

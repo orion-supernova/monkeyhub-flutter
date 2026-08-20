@@ -20,6 +20,7 @@
 #   /            landing page      /srv/monkeyhub/site
 #   /downloads/  every platform    /srv/monkeyhub/downloads
 #   /web/        Flutter web app   /srv/monkeyhub/web
+#   /j/<code>    room invite       /srv/monkeyhub/site/j.html
 #
 # Android used to ship as a self-hosted APK from that /downloads/ page. It now
 # ships through Play only, and the page is the migration notice instead — see
@@ -631,6 +632,31 @@ if [ "$RUN_CONVEX" = true ]; then
     #
     # Deliberately NOT retried forever: three attempts distinguishes a blip
     # from a genuine schema or type error, which no amount of retrying fixes.
+    # Typecheck BEFORE the push, as its own step.
+    #
+    # `convex deploy` runs its own typecheck, but its default is "try": with no
+    # tsconfig and no local `typescript`, it skips — silently, with a zero exit
+    # — and this deployment had neither for its whole life. A deploy was
+    # therefore the first thing that ever looked at these types, and on a
+    # single self-hosted deployment that means production is the test.
+    #
+    # Both are now real (`backend/convex/tsconfig.json`, `typescript` in
+    # devDependencies), so this is belt and braces — but it is the half that
+    # fails FAST and says which file, instead of surfacing as a push that
+    # bundles and then dies during module evaluation.
+    #
+    # Skipped rather than failed when `node_modules` is absent: a checkout that
+    # has not run `npm install` is not a broken build, and `convex deploy`
+    # below will install what it needs anyway.
+    convex_typecheck() {
+        if [ ! -x backend/node_modules/.bin/tsc ]; then
+            echo "   (no backend/node_modules — skipping typecheck; convex deploy will still run its own)" >&2
+            return 0
+        fi
+        (cd backend && npm run --silent typecheck)
+    }
+    run_with_spinner "Typechecking Convex functions" convex_typecheck
+
     convex_deploy() {
         local attempt=1
         while true; do
@@ -845,12 +871,21 @@ deploy_site() {
     sed -e "s/__APP_VERSION__/$DISPLAY_VERSION/g" \
         -e "s/__UPDATED_AT__/$STAMP_DATE/g" \
         hosting/site.template.html | strip_doc > hosting/public/site/index.html
-    # robots.txt, the service-worker tombstone and the self-hosted webfonts are
-    # served from the site root alongside the page — see
-    # hosting/static/flutter_service_worker.js and hosting/static/fonts/.
+    # The invite page. One document for every code — Caddy rewrites every path
+    # under /j/ to it (see the `handle /j/*` block) and the page reads the code
+    # out of its own URL. No placeholders to substitute; it goes through
+    # strip_doc for the same reason the others do, so the MH:DOC block
+    # explaining why this page never names the room stays out of the browser.
+    strip_doc < hosting/invite.template.html > hosting/public/site/j.html
+    # robots.txt, the service-worker tombstone, the self-hosted webfonts and
+    # the two app-association files are served from the site root alongside the
+    # page — see hosting/static/flutter_service_worker.js, hosting/static/fonts/
+    # and hosting/static/.well-known/.
     #
-    # `-R … /.` rather than `*`: the fonts live in a subdirectory, and plain cp
-    # skips directories with a non-zero exit that would abort the deploy.
+    # `-R … /.` rather than `*`: the fonts live in a subdirectory, `.well-known`
+    # is a DOTFILE directory that a `*` glob would skip entirely — silently
+    # breaking every universal link on the next deploy — and plain cp skips
+    # directories with a non-zero exit that would abort the deploy.
     cp -R hosting/static/. hosting/public/site/
 
     if [ "$RUN_UPLOAD" = false ]; then

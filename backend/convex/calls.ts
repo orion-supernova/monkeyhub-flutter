@@ -7,6 +7,7 @@ import {
 } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import type { Doc } from "./_generated/dataModel";
 import { childMayReach, childPolicyOf } from "./childGuard";
 import { assertNoSystemAccount } from "./systemAccount";
 import { lensFor } from "./visibility";
@@ -751,7 +752,11 @@ export const activeCallForUser = query({
     // Resolves to my live `ringing` or `active` call so the UI can re-attach
     // after a cold start. Active calls (the more interesting state for the
     // global "Move call here" pill) are checked first.
-    let call = null as any;
+    // `Doc<"calls"> | null`, not `any`. The `any` here spread: `peerId` became
+    // `any`, `ctx.db.get(peerId)` fell back to the union of EVERY table's
+    // document type, and `peer.name` stopped resolving — on a line whose whole
+    // job is reading a name.
+    let call: Doc<"calls"> | null = null;
     outer: for (const status of ["active", "ringing"] as const) {
       const asCallee = await ctx.db
         .query("calls")
@@ -788,10 +793,16 @@ export const activeCallForUser = query({
     let acceptingDeviceName: string | null = null;
     let acceptingPlatform: string | null = null;
     if (call.acceptingDeviceId) {
+      // Captured into consts before the index callback. `call` is a `let`, so
+      // TypeScript discards the narrowing from the guard above the moment the
+      // value is read inside a closure — it cannot prove nothing reassigns
+      // `call` in between. Nothing does, but the fix is to stop asking it to
+      // prove that rather than to assert past it.
+      const { calleeId, acceptingDeviceId } = call;
       const dev = await ctx.db
         .query("userDevices")
         .withIndex("by_user_device", (q) =>
-          q.eq("userId", call.calleeId).eq("deviceId", call.acceptingDeviceId),
+          q.eq("userId", calleeId).eq("deviceId", acceptingDeviceId),
         )
         .first();
       if (dev) {

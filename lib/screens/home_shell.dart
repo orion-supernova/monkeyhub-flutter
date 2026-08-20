@@ -102,7 +102,11 @@ class _HomeShellState extends State<HomeShell> {
   /// simply absent; [CountBadge] renders nothing at zero anyway.
   Map<HomeSection, int> get _badges => {
     HomeSection.chat: widget.repo.unreadMessageTotal,
-    HomeSection.discover: widget.repo.incomingRequests.length,
+    // Group invites live in the same Discover inbox as friend requests, so
+    // they have to move the same badge — a pending invite the tab bar does not
+    // mention is one nobody finds until the pushed banner is gone.
+    HomeSection.discover: widget.repo.incomingRequests.length +
+        widget.repo.roomInvitations.length,
     // Moments from friends the user hasn't opened. One entry lights the badge
     // in all three nav chromes, and it is the only reason anyone opens this
     // tab on day thirty. FeedStore is subscribed app-wide (attached in

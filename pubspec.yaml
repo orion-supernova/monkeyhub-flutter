@@ -171,6 +171,16 @@ dependencies:
   # browser for tapped links (SFSafariViewController / Chrome Custom Tabs).
   url_launcher: ^6.3.0
   flutter_custom_tabs: ^2.6.0
+  # Inbound links: universal links (iOS/macOS), Android App Links, and the
+  # registered `monkeyhub://` fallback. Only room invites use this today —
+  # see lib/invites/. Chosen over uni_links, which is unmaintained and has no
+  # macOS implementation, and over Firebase Dynamic Links, which is shut down.
+  #
+  # The platform side is NOT plugin-managed and does not come from here: the
+  # `associated-domains` entitlement, the Android intent-filters, and the two
+  # association files served from `hosting/` all have to agree with the URL
+  # shape in `invites/invite_link.dart`. See DEEP_LINKS.md.
+  app_links: ^6.3.2
   # OG-tag parser for link previews.
   html: ^0.15.4
   # Hands a received document to the OS: the system share sheet natively, and on

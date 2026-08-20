@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<!-- MH:DOC — this comment is stripped at render time, it never reaches a browser.
+
+     The invite page: https://monkeyhub.walhallaa.com/j/<code>
+     Template — deploy.sh writes the rendered copy to
+     hosting/public/site/j.html, which Caddy serves for every path under /j/
+     (see the `handle /j/*` block in caddy-monkeyhub.conf). Edit THIS file,
+     never the copy under public/.
+
+     WHO ACTUALLY SEES THIS PAGE
+     ---------------------------
+     Almost nobody with the app. A tapped invite on a device where MonkeyHub is
+     installed is intercepted by the OS — universal link on iOS/macOS, App Link
+     on Android — and the request never reaches the server at all. This page is
+     the other half of the feature: what a person WITHOUT the app lands on, and
+     what a link unfurler in some other messenger fetches.
+
+     IT DELIBERATELY DOES NOT NAME THE ROOM
+     ---------------------------------------
+     There is no backend call here and no room name, member count or avatar,
+     and that is a decision rather than an omission.
+
+     An invite URL gets pasted into other chats. Every one of those runs an
+     unfurler — WhatsApp, Slack, Telegram, iMessage, Discord — which fetches
+     this page from a datacentre and renders a preview card to everyone in that
+     conversation. If this page resolved the code server-side, the name of a
+     PRIVATE room would be shown to every person in an unrelated group chat the
+     instant somebody pasted the link, and to the operators of five companies
+     besides. The room would leak without a single person tapping anything.
+
+     So the code is resolved in ONE place: the app, for a signed-in user, over
+     the authenticated connection (`roomInvites.preview`). This page knows only
+     that an invite exists. It also means the page makes zero cross-origin
+     requests, which is the same property site.template.html goes out of its
+     way to keep.
+
+     Shares its type scale, palette and motion with site.template.html and
+     downloads.template.html so the pages read as one site. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>You've been invited — MonkeyHub</title>
+<meta name="description" content="Someone invited you to a group on MonkeyHub. Get the app to open it.">
+<meta property="og:title" content="A MonkeyHub invite">
+<meta property="og:description" content="Someone invited you to a group chat. Open it in MonkeyHub.">
+<meta property="og:type" content="website">
+<!-- No og:url: it would carry the code into every unfurler's cache and every
+     preview card. The point of the page is that the code goes no further than
+     the person holding it. -->
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐵</text></svg>">
+<style>
+  /* Self-hosted; see hosting/static/fonts/. No third-party request. */
+  @font-face {
+    font-family: "Atkinson Hyperlegible";
+    src: url("/fonts/AtkinsonHyperlegible-Regular.woff2") format("woff2");
+    font-weight: 400; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: "Atkinson Hyperlegible";
+    src: url("/fonts/AtkinsonHyperlegible-Bold.woff2") format("woff2");
+    font-weight: 700; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: "Fredoka";
+    src: url("/fonts/Fredoka-SemiBold.woff2") format("woff2");
+    font-weight: 600; font-style: normal; font-display: swap;
+  }
+  :root {
+    --jungle: #0d1410;
+    --jungle-2: #131c16;
+    --banana: #ffc53d;
+    --banana-deep: #e8a20c;
+    --leaf: #2e4d38;
+    --ink: #f2efe6;
+    --ink-dim: #9aa694;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Atkinson Hyperlegible", sans-serif;
+    background:
+      radial-gradient(1100px 700px at 85% -10%, rgba(46,77,56,.55), transparent 60%),
+      radial-gradient(900px 600px at -10% 110%, rgba(232,162,12,.12), transparent 55%),
+      var(--jungle);
+    background-attachment: fixed;
+    color: var(--ink);
+    min-height: 100vh;
+    padding: 48px 24px 32px;
+    display: flex; align-items: center; justify-content: center;
+    overflow-x: hidden;
+  }
+  main { max-width: 30rem; width: 100%; text-align: center; }
+  .mark {
+    font-size: 68px; line-height: 1; display: inline-block;
+    filter: drop-shadow(0 12px 28px rgba(0,0,0,.5));
+    animation: drop .7s cubic-bezier(.2,1.4,.4,1) both;
+  }
+  h1 {
+    font-family: "Fredoka", sans-serif; font-weight: 600;
+    font-size: clamp(1.9rem, 7vw, 2.5rem); letter-spacing: .5px;
+    margin-top: 14px; animation: rise .55s .12s ease-out both;
+  }
+  .tag {
+    color: var(--ink-dim); margin-top: 10px; line-height: 1.6;
+    animation: rise .55s .2s ease-out both;
+  }
+  /* The code, big enough to read off a screen and retype. For most visitors
+     this IS the payload of the page — someone who already has the app open on
+     another device types this into "join with a code" and never touches a
+     link. */
+  .code {
+    font-family: "Fredoka", sans-serif; font-weight: 600;
+    font-size: clamp(1.6rem, 8vw, 2.2rem); letter-spacing: .28em;
+    margin: 26px auto 0; padding: 18px 20px 18px 26px;
+    border-radius: 16px; word-break: break-all;
+    background: rgba(46,77,56,.35);
+    border: 1px solid rgba(242,239,230,.16);
+    animation: rise .55s .26s ease-out both;
+  }
+  .code.empty { letter-spacing: normal; font-size: 1.1rem; color: var(--ink-dim); }
+  .cta { display: flex; flex-direction: column; gap: 12px; margin-top: 26px;
+         animation: rise .55s .34s ease-out both; }
+  .btn {
+    font-family: "Fredoka", sans-serif; font-weight: 600; font-size: 1.1rem;
+    text-decoration: none; text-align: center;
+    padding: 15px 26px; border-radius: 16px;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+  }
+  .btn-primary {
+    color: #201500;
+    background: linear-gradient(180deg, var(--banana), var(--banana-deep));
+    box-shadow: 0 10px 24px rgba(232,162,12,.28), inset 0 1px 0 rgba(255,255,255,.35);
+  }
+  .btn-primary:hover { transform: translateY(-2px); }
+  .btn-ghost {
+    color: var(--ink);
+    background: rgba(46,77,56,.35);
+    border: 1px solid rgba(242,239,230,.16);
+  }
+  .btn-ghost:hover { border-color: rgba(255,197,61,.5); }
+  .note { color: var(--ink-dim); font-size: .9rem; margin-top: 22px; line-height: 1.6; }
+  .note a { color: var(--banana); }
+  @keyframes drop { from { transform: translateY(-24px) scale(.9); opacity: 0 } }
+  @keyframes rise { from { transform: translateY(10px); opacity: 0 } }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="mark">🐵</div>
+  <h1>You've been invited</h1>
+  <p class="tag">Someone asked you into a group chat on MonkeyHub.</p>
+
+  <div class="code" id="code">…</div>
+
+  <div class="cta">
+    <a class="btn btn-primary" id="open" href="#">Open in MonkeyHub</a>
+    <a class="btn btn-ghost" href="/downloads/">Get the app</a>
+  </div>
+
+  <p class="note">
+    Already have MonkeyHub? Open it, go to <strong>Discover → Join with a code</strong>
+    and enter the code above. <a href="/">What is MonkeyHub?</a>
+  </p>
+</main>
+
+<script>
+  // The code lives in the path — /j/<code> — and is never sent anywhere from
+  // this page. Nothing here resolves it into a room name, and that is the
+  // point rather than a limitation: this URL gets pasted into other chats,
+  // whose unfurlers would then render a private group's name to everyone in
+  // them. Only the app resolves the code, over an authenticated connection.
+  // (Full reasoning in hosting/invite.template.html.)
+  (function () {
+    var parts = location.pathname.split('/').filter(Boolean);
+    var raw = parts.length >= 2 ? decodeURIComponent(parts[1]) : '';
+    // Same alphabet the server mints from. Anything else is a mangled paste —
+    // a trailing bracket, a smart quote, a truncated URL — and showing it back
+    // as though it were a code just sends someone off to type nonsense.
+    var clean = raw.toUpperCase().replace(/[^0-9A-Z]/g, '');
+    var el = document.getElementById('code');
+    var open = document.getElementById('open');
+
+    if (!clean) {
+      el.textContent = 'This link is missing its code.';
+      el.className = 'code empty';
+      open.style.display = 'none';
+      return;
+    }
+
+    // Grouped exactly as the app shows it, so the two are recognisably the
+    // same string when someone is comparing them across two screens.
+    el.textContent = clean.replace(/(.{4})(?=.)/g, '$1-');
+
+    // The private-scheme fallback. On a device where the App Link or universal
+    // link verified, the OS never let this page load in the first place — so
+    // reaching this button means verification failed or the app is absent, and
+    // this scheme is the only door left. It does nothing when the app is not
+    // installed, which is why "Get the app" sits directly beneath it rather
+    // than behind a timeout that guesses.
+    open.href = 'monkeyhub://join/' + encodeURIComponent(clean) + location.search;
+  })();
+</script>
+</body>
+</html>

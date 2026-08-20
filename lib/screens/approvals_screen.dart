@@ -62,20 +62,31 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final loc = AppLocalizations.of(context);
     try {
-      if (item.isContact) {
-        // Both contact directions go through the same relay mutation — the
-        // backend works out whose hop it is from the row's stage.
-        await widget.api.advanceContactRequest(
-          friendshipId: item.id,
-          guardianId: widget.guardianId,
-          approve: approve,
-        );
-      } else {
-        await widget.api.decideApproval(
-          approvalId: item.id,
-          guardianId: widget.guardianId,
-          approve: approve,
-        );
+      // Three destinations, switched on the item's own [QueueItem.relay].
+      // This used to be `isContact ? advance : decideApproval`, which meant any
+      // new queue kind silently fell into the else branch and handed
+      // `family:decideApproval` an id from a table it has never heard of.
+      switch (item.relay) {
+        case QueueRelay.contact:
+          // Both contact directions go through the same relay mutation — the
+          // backend works out whose hop it is from the row's stage.
+          await widget.api.advanceContactRequest(
+            friendshipId: item.id,
+            guardianId: widget.guardianId,
+            approve: approve,
+          );
+        case QueueRelay.roomGrant:
+          await widget.api.decideApproval(
+            approvalId: item.id,
+            guardianId: widget.guardianId,
+            approve: approve,
+          );
+        case QueueRelay.roomInvite:
+          await widget.api.advanceRoomInvitation(
+            invitationId: item.id,
+            guardianId: widget.guardianId,
+            approve: approve,
+          );
       }
       if (!mounted) return;
       setState(() => _items = _items.where((i) => i.id != item.id).toList());
@@ -220,6 +231,18 @@ class _QueueCard extends StatelessWidget {
           child,
           item.room?.name ?? loc.approvalsScreenRoomFallback,
         );
+      case QueueItemType.roomInviteOutgoing:
+        return loc.approvalsScreenHeadlineRoomInviteOutgoing(
+          child,
+          item.other?.displayName ?? loc.approvalsScreenSomeoneLower,
+          item.room?.name ?? loc.approvalsScreenRoomFallback,
+        );
+      case QueueItemType.roomInviteIncoming:
+        return loc.approvalsScreenHeadlineRoomInviteIncoming(
+          child,
+          item.other?.displayName ?? loc.approvalsScreenSomeoneCapital,
+          item.room?.name ?? loc.approvalsScreenRoomFallback,
+        );
     }
   }
 
@@ -234,6 +257,12 @@ class _QueueCard extends StatelessWidget {
         return loc.approvalsScreenConsequenceContactIncoming(_childName);
       case QueueItemType.joinRoom:
         return loc.approvalsScreenConsequenceJoinRoom;
+      case QueueItemType.roomInviteOutgoing:
+        return loc.approvalsScreenConsequenceRoomInviteOutgoing;
+      // Says out loud that this one grants the room, because it does — unlike
+      // every other incoming card here, a yes is not merely "let them ask".
+      case QueueItemType.roomInviteIncoming:
+        return loc.approvalsScreenConsequenceRoomInviteIncoming(_childName);
     }
   }
 
@@ -247,6 +276,9 @@ class _QueueCard extends StatelessWidget {
         return Icons.waving_hand_outlined;
       case QueueItemType.joinRoom:
         return Icons.tag;
+      case QueueItemType.roomInviteOutgoing:
+      case QueueItemType.roomInviteIncoming:
+        return Icons.group_add_outlined;
     }
   }
 

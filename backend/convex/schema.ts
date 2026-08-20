@@ -228,6 +228,24 @@ export default defineSchema({
     // client reads it straight off the row (`listUserRooms` spreads the whole
     // document) to decide which chrome the room gets.
     system: v.optional(v.string()),
+    // ── Who may widen the room ──────────────────────────────────────────
+    //
+    // Both absent on every room written before they existed, and both read
+    // through a default that preserves exactly the behaviour those rooms
+    // already had. No backfill.
+    //
+    //   membersCanInvite — may a plain member invite one of their friends?
+    //     Defaults to TRUE (`roomAdmin.membersMayInvite`). An admin turning it
+    //     off narrows invites to admins; it never gates the LINK, which is
+    //     admin-only regardless — a member handing out a permanent join token
+    //     is a different and much larger act than naming one person.
+    //   linkJoinPolicy — what redeeming the invite link does. "open" (the
+    //     default) puts the holder straight in: the link IS the secret, and
+    //     rotating it is how an admin takes that back. "approval" turns a
+    //     redemption into a `roomJoinRequests` row an admin rules on, for
+    //     rooms where holding the link should not be the whole test.
+    membersCanInvite: v.optional(v.boolean()),
+    linkJoinPolicy: v.optional(v.string()), // "open" | "approval"
   })
     .index("by_name", ["name"])
     .index("by_last_activity", ["lastMessageTime"])
@@ -238,7 +256,20 @@ export default defineSchema({
     roomId: v.id("rooms"),
     userId: v.id("users"),
     joinedAt: v.number(),
-    role: v.string(), // "owner" | "member"
+    // "owner" | "admin" | "member".
+    //
+    // THIS ROW IS THE AUTHORITY on what someone may do in a room. It did not
+    // used to be: every check in `rooms.ts` tested `rooms.createdBy` instead,
+    // which made the role decorative and capped a group at exactly one
+    // privileged person — the one who happened to create it. `roomAdmin.ts`
+    // now reads this field and nothing else, and `rooms.createdBy` is left as
+    // what it always honestly was, a record of who opened the room.
+    //
+    // Exactly one "owner" per room, kept true by `roomAdmin.transferOwnership`
+    // (which demotes the old owner in the same mutation) and by the heir
+    // promotion in `auth.purgeUser`. Rooms written before the admin tier
+    // existed have one "owner" and the rest "member", which is already valid.
+    role: v.string(),
     // ms since epoch — last time this user "read" the room. Used to compute
     // read receipts: a message is "seen by X" when roomMembers[room,X].lastReadAt >= message.createdAt.
     lastReadAt: v.optional(v.number()),
@@ -324,6 +355,106 @@ export default defineSchema({
     // members of this room" read as a prefix scan on `roomId`.
     .index("by_user", ["userId"])
     .index("by_room_user", ["roomId", "userId"]),
+
+  // ── Group invites ─────────────────────────────────────────────────────────
+
+  // The room's join token. ONE row is live per room at a time — see
+  // `roomInvites.rotate`, which stamps `revokedAt` on the outgoing row in the
+  // same mutation that inserts the replacement. Old rows are kept, not
+  // deleted, so a redemption attempt on a rotated code can answer
+  // INVITE_REVOKED instead of the indistinguishable INVITE_NOT_FOUND, and so
+  // an admin can see that a link was rotated rather than never made.
+  //
+  // The `code` is the whole secret and the whole address: the shared URL is
+  // just `<site>/j/<code>`, and typing the code by hand is the same act as
+  // opening the link. There is no second "invite code" concept — one token,
+  // rendered two ways.
+  roomInvites: defineTable({
+    roomId: v.id("rooms"),
+    // Uppercase, from `roomInvites.ALPHABET` — no O/0/I/1, because this is
+    // read aloud and retyped. Stored exactly as generated; redemption
+    // normalizes the caller's input rather than the stored value.
+    code: v.string(),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    // Set the moment a newer link replaces this one, or an admin revokes
+    // without issuing a replacement. A row with this set is dead forever.
+    revokedAt: v.optional(v.number()),
+    // Optional admin-set limits. Absent means "no limit" for both, which is
+    // the default an admin gets without opening the sheet.
+    //
+    // Both are checked at redemption against the SERVER's clock and the
+    // stored counter, never trusted from the client, and neither is swept:
+    // an expired or exhausted row simply stops redeeming. There is nothing
+    // to garbage-collect and nothing that can fire late.
+    expiresAt: v.optional(v.number()),
+    maxUses: v.optional(v.number()),
+    // Incremented on every redemption that actually admits someone — a join
+    // request that an admin later rejects still counted, because the link
+    // did its work. Existing members re-opening the link do not count.
+    useCount: v.number(),
+  })
+    .index("by_code", ["code"])
+    .index("by_room", ["roomId"])
+    // Account teardown: links this user issued.
+    .index("by_creator", ["createdBy"]),
+
+  // A directed invite: one member naming one person, who then accepts or
+  // rejects. Deliberately the same shape as a friend request in `friendships`
+  // — including the guardian relay in `stage` — because it is the same social
+  // act and must not behave differently when either party is a child.
+  //
+  // Separate from `roomJoinRequests` even though both end in a membership,
+  // because they point opposite ways: this one is the ROOM asking a person,
+  // and needs the invitee's yes; that one is a person asking the room, and
+  // needs an admin's. Merging them would mean one table where "who decides"
+  // depends on a direction column, and every query would have to remember it.
+  roomInvitations: defineTable({
+    roomId: v.id("rooms"),
+    inviterId: v.id("users"),
+    inviteeId: v.id("users"),
+    status: v.string(), // "pending" | "accepted" | "rejected" | "cancelled"
+    createdAt: v.number(),
+    respondedAt: v.optional(v.number()),
+    // Same three values and same meaning as `friendships.stage`, resolved by
+    // the same `childGuard.initialStageFor`. Absent means fully visible to
+    // the invitee. A party who has not been released to sees NOTHING — the
+    // row is filtered out of their list and no push fires.
+    stage: v.optional(v.string()),
+  })
+    // The invitee's pending list, which is the query that runs constantly.
+    .index("by_invitee_status", ["inviteeId", "status"])
+    // "Is this person already invited here?" — the duplicate guard, and the
+    // per-room roster of outstanding invites. Prefix-scannable on roomId
+    // alone, so it serves both without a separate by_room index.
+    .index("by_room_invitee", ["roomId", "inviteeId"])
+    .index("by_inviter", ["inviterId"])
+    // Guardian queues, mirroring `friendships`.
+    .index("by_stage_invitee", ["stage", "inviteeId"])
+    .index("by_stage_inviter", ["stage", "inviterId"]),
+
+  // Someone redeemed the link on a room whose `linkJoinPolicy` is "approval".
+  // They are not a member yet and cannot read anything; this row is only the
+  // question, and any admin may answer it.
+  roomJoinRequests: defineTable({
+    roomId: v.id("rooms"),
+    userId: v.id("users"),
+    // Which link let them ask. Kept so rotating a link can also be read as
+    // "these pending requests came in on the code I just killed", and so a
+    // request survives its invite row being rotated away.
+    inviteId: v.optional(v.id("roomInvites")),
+    status: v.string(), // "pending" | "approved" | "rejected"
+    createdAt: v.number(),
+    decidedAt: v.optional(v.number()),
+    decidedBy: v.optional(v.id("users")),
+  })
+    // The admin queue for one room.
+    .index("by_room_status", ["roomId", "status"])
+    // Duplicate guard, and "have I already asked?" for the requester's UI.
+    .index("by_room_user", ["roomId", "userId"])
+    .index("by_user", ["userId"])
+    // Account teardown: requests this user ruled on.
+    .index("by_decider", ["decidedBy"]),
 
   // ── Family ────────────────────────────────────────────────────────────────
 

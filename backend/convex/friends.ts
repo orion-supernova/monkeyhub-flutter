@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 import {
   ERR_NOT_ALLOWED,
   STAGE_RECIPIENT_GUARDIAN,
@@ -95,7 +96,13 @@ async function getDirectFriendship(ctx: any, userId: any, otherUserId: any) {
   return { outgoing, incoming };
 }
 
-async function createDirectRoom(ctx: any, requesterId: any, receiverId: any, roomType?: string, messageLifetime?: number) {
+async function createDirectRoom(
+  ctx: any,
+  requesterId: any,
+  receiverId: any,
+  roomType?: string,
+  messageLifetime?: number,
+): Promise<Id<"rooms">> {
   const normalizedRoomType = roomType ?? "Regular Room";
   const roomKey = normalizedRoomType === "Chamber of Secrets" ? "secret" : "regular";
   const ordered = [requesterId.toString(), receiverId.toString()].sort();
@@ -451,7 +458,10 @@ export const approveDirectRequest = mutation({
     // Only create a room if there are messages to migrate (or a room already exists).
     // A plain friend request with no messages just marks the friendship as accepted.
     const hasMessages = requestMessages.length > 0;
-    const roomId: string | null = hasMessages
+    // `Id<"rooms">`, not `string`. This annotation was hand-written as `string`,
+    // which is not the same type — every `db.insert`/`db.patch` that took this
+    // value below was rejected, and the id itself lost the table it belongs to.
+    const roomId: Id<"rooms"> | null = hasMessages
       ? (request.roomId ??
           (await createDirectRoom(
             ctx,

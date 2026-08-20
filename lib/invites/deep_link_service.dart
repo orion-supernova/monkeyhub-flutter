@@ -1,0 +1,90 @@
+import 'dart:async';
+
+import 'package:app_links/app_links.dart';
+import 'package:flutter/foundation.dart';
+
+import 'invite_link.dart';
+
+/// Inbound links, from the OS to the app.
+///
+/// Two arrival paths and they behave differently, which is the whole reason
+/// this class exists rather than a `listen` somewhere in `app.dart`:
+///
+///  * **Cold start** — the app was not running. The URL is waiting in
+///    [AppLinks.getInitialLink] and has ALREADY happened; nothing will re-emit
+///    it. Miss it and the tap silently did nothing.
+///  * **Warm** — the app was backgrounded. The URL arrives on the stream, and
+///    can arrive at any moment, including while the user is mid-call or on the
+///    login screen.
+///
+/// Both are read here and both go to the same [onInvite], so no caller has to
+/// know which one it got. What a caller DOES have to handle is that a link can
+/// land before the app is ready for it — before auth is restored, before the
+/// root navigator is mounted — so the callback is expected to stash and replay
+/// rather than assume it can navigate. That is the same rule the push-tap
+/// handler in `app.dart` already follows, and for the same reason.
+///
+/// Deliberately narrow: this only ever reports ROOM INVITES. Every other URL
+/// the OS might hand us — including links to this app's own site that are not
+/// invites — is dropped, because the alternative is a generic router that
+/// guesses, and a wrong guess here opens a screen the user did not ask for.
+class DeepLinkService {
+  DeepLinkService._();
+  static final DeepLinkService instance = DeepLinkService._();
+
+  AppLinks? _links;
+  StreamSubscription<Uri>? _sub;
+
+  /// Called with the parsed invite. May fire before the app can act on it.
+  void Function(InviteLink invite)? onInvite;
+
+  bool _started = false;
+
+  /// Begins listening. Idempotent — safe to call from a widget's `initState`
+  /// that can run more than once across a hot restart or a server switch.
+  ///
+  /// Never throws. Deep linking is unsupported or unconfigured on some
+  /// platforms and builds (a bare `flutter run` on desktop, a web build served
+  /// from a path the association files do not cover), and an app that failed to
+  /// start because an optional URL channel was missing would be a much worse
+  /// bug than the one this prevents.
+  Future<void> start() async {
+    if (_started) return;
+    _started = true;
+    try {
+      final links = _links ??= AppLinks();
+      // The stream first, then the initial link. The other order has a real
+      // race on Android: a link delivered between reading the initial value
+      // and attaching the listener belongs to neither, and is lost.
+      _sub = links.uriLinkStream.listen(
+        _handle,
+        onError: (Object e) => debugPrint('deep link stream error: $e'),
+      );
+      final initial = await links.getInitialLink();
+      if (initial != null) _handle(initial);
+    } catch (e) {
+      debugPrint('deep links unavailable: $e');
+    }
+  }
+
+  /// Feed a URL in by hand — a pasted link, a QR scan, a test.
+  void handleExternal(String raw) {
+    final parsed = parseInviteLink(raw);
+    if (parsed != null) onInvite?.call(parsed);
+  }
+
+  void _handle(Uri uri) {
+    final parsed = parseInviteLink(uri.toString());
+    if (parsed == null) {
+      debugPrint('deep link ignored (not an invite): $uri');
+      return;
+    }
+    onInvite?.call(parsed);
+  }
+
+  Future<void> dispose() async {
+    await _sub?.cancel();
+    _sub = null;
+    _started = false;
+  }
+}

@@ -3,10 +3,14 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "convex dev",
-    "deploy": "convex deploy"
+    "deploy": "convex deploy",
+    "typecheck": "tsc --noEmit -p convex/tsconfig.json"
   },
   "dependencies": {
     "convex": "^1.17.0",
     "jose": "^6.2.8"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
   }
 }

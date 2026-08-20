@@ -1,6 +1,7 @@
 import { mutation, query, internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import type { Doc, Id } from "./_generated/dataModel";
 import {
   ERR_APPROVAL_REQUIRED,
   ERR_NOT_ALLOWED,
@@ -2122,7 +2123,10 @@ export const getThread = query({
     const cap = Math.min(maxTotal ?? 50, 100);
 
     // 1. Walk up to the root. Bounded by 20 hops + cycle-guard set.
-    let rootId: any = messageId;
+    // Typed, so `ctx.db.get(rootId)` below resolves to a message. As `any` it
+    // fell back to the union of every table's document type, where
+    // `replyToId` does not exist — on the two lines that walk the chain by it.
+    let rootId: Id<"messages"> = messageId;
     const seenUp = new Set<string>();
     for (let i = 0; i < 20; i++) {
       const key = rootId.toString();
@@ -2134,11 +2138,20 @@ export const getThread = query({
     }
 
     // 2. BFS down from the root through the by_replyTo index.
-    const collected: any[] = [];
+    // Both typed, for the same reason `rootId` above is: `ctx.db.get(id)` on an
+    // `any` resolves to the union of every table's document, so `m.userId` was
+    // not an `Id<"users">` and the `db.get` in the enrichment below could not
+    // find `name` or `username` on what it returned.
+    const collected: Doc<"messages">[] = [];
     const seenDown = new Set<string>();
-    const queue: any[] = [rootId];
+    const queue: Id<"messages">[] = [rootId];
     while (queue.length > 0 && collected.length < cap) {
       const id = queue.shift();
+      // `shift()` is typed `T | undefined` regardless of the length check in
+      // the loop condition, and the next line dereferences it. The guard is
+      // free and turns an impossible-today crash into a `break` if the loop
+      // condition is ever loosened.
+      if (id === undefined) break;
       const key = id.toString();
       if (seenDown.has(key)) continue;
       seenDown.add(key);

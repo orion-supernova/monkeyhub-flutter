@@ -6635,4 +6635,483 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get deviceLoginScanScreenDeniedConfirmation =>
       'sign-in request denied';
+
+  @override
+  String get roomAdminSectionLabel => 'GRUP';
+
+  @override
+  String get roomAdminRoleOwner => 'SAHİP';
+
+  @override
+  String get roomAdminRoleAdmin => 'YÖNETİCİ';
+
+  @override
+  String get roomAdminActionViewProfile => 'Profili gör';
+
+  @override
+  String get roomAdminActionPromote => 'Yönetici yap';
+
+  @override
+  String get roomAdminActionPromoteSub =>
+      'Davet edebilir, üye çıkarabilir ve grubu düzenleyebilir';
+
+  @override
+  String get roomAdminActionDemote => 'Yöneticilikten al';
+
+  @override
+  String get roomAdminActionDemoteSub => 'Grupta üye olarak kalır';
+
+  @override
+  String get roomAdminActionTransfer => 'Sahipliği devret';
+
+  @override
+  String get roomAdminActionTransferSub => 'Sen yönetici olarak kalırsın';
+
+  @override
+  String get roomAdminActionRemove => 'Gruptan çıkar';
+
+  @override
+  String get roomAdminAddFriendsRow => 'Arkadaş ekle';
+
+  @override
+  String get roomAdminAddFriendsRowSub =>
+      'Kabul ya da reddedebilecekleri bir davet alırlar';
+
+  @override
+  String get roomAdminInviteLinkRow => 'Davet bağlantısı';
+
+  @override
+  String get roomAdminInviteLinkRowSub =>
+      'İnsanları almak için bir bağlantı ya da kod paylaş';
+
+  @override
+  String get roomAdminJoinRequestsRow => 'Katılma istekleri';
+
+  @override
+  String roomAdminJoinRequestsRowSub(Object count) {
+    return '$count kişi yanıt bekliyor';
+  }
+
+  @override
+  String roomAdminTransferConfirmHeadline(Object name) {
+    return 'Grup $name kişisine devredilsin mi?';
+  }
+
+  @override
+  String get roomAdminTransferConfirmBody =>
+      'Sahip olur ve grubu silebilir. Sen yönetici olarak kalırsın, geri vermek yalnızca onun elinde olur.';
+
+  @override
+  String get roomAdminTransferConfirmCta => 'DEVRET';
+
+  @override
+  String roomAdminRemoveConfirmHeadline(Object name) {
+    return '$name çıkarılsın mı?';
+  }
+
+  @override
+  String get roomAdminRemoveConfirmBody =>
+      'Gruba ve içindeki her şeye erişimi biter. Yeniden davet edilebilir ya da davet bağlantısıyla geri gelebilir.';
+
+  @override
+  String get roomAdminRemoveConfirmCta => 'ÇIKAR';
+
+  @override
+  String get roomAdminGenericError => 'Bu işe yaramadı. Tekrar dene.';
+
+  @override
+  String get roomAdminErrorNotMember => 'Artık bu grupta değilsin.';
+
+  @override
+  String get roomAdminErrorNotAdmin => 'Bunu yalnızca yöneticiler yapabilir.';
+
+  @override
+  String get roomAdminErrorNotOwner => 'Bunu yalnızca grubun sahibi yapabilir.';
+
+  @override
+  String get roomAdminErrorNotGroup =>
+      'Birebir sohbette yönetilecek bir şey yok.';
+
+  @override
+  String get roomAdminErrorOwnerImmutable =>
+      'Sahibin rolü yalnızca grup devredilerek değişir.';
+
+  @override
+  String get roomAdminErrorInvitesLocked =>
+      'Bu gruba yalnızca yöneticiler davet edebilir.';
+
+  @override
+  String get roomInviteSheetTitle => 'Davet bağlantısı';
+
+  @override
+  String get roomInviteSheetBlurb =>
+      'Tek bir bağlantı ve tek bir kod; ikisi de aynı şey. Yenisini yaptığın anda eskisi çalışmayı bırakır.';
+
+  @override
+  String get roomInviteNoLinkYet => 'Bu grubun henüz davet bağlantısı yok.';
+
+  @override
+  String get roomInviteCreateButton => 'BAĞLANTI OLUŞTUR';
+
+  @override
+  String get roomInviteRegenerateButton => 'YENİ BAĞLANTI';
+
+  @override
+  String get roomInviteRevokeButton => 'BAĞLANTIYI İPTAL ET';
+
+  @override
+  String get roomInviteCopyLink => 'Bağlantıyı kopyala';
+
+  @override
+  String get roomInviteCopyCode => 'Kodu kopyala';
+
+  @override
+  String get roomInviteShare => 'Paylaş';
+
+  @override
+  String get roomInviteLinkCopied => 'Bağlantı kopyalandı.';
+
+  @override
+  String get roomInviteCodeCopied => 'Kod kopyalandı.';
+
+  @override
+  String get roomInviteRegenerateHeadline => 'Yeni bağlantı yapılsın mı?';
+
+  @override
+  String get roomInviteRegenerateBody =>
+      'Şu anki bağlantı ve kod, paylaşıldıkları her yerde anında çalışmayı bırakır. Grupta olanlar grupta kalır.';
+
+  @override
+  String get roomInviteRegenerateConfirm => 'YENİ BAĞLANTI';
+
+  @override
+  String get roomInviteRevokeHeadline => 'Bu bağlantı iptal edilsin mi?';
+
+  @override
+  String get roomInviteRevokeBody =>
+      'Yenisini yapana kadar kimse bağlantıyla katılamaz. Grupta olanlar grupta kalır.';
+
+  @override
+  String get roomInviteRevokeConfirm => 'İPTAL ET';
+
+  @override
+  String get roomInviteLimitsLabel => 'SINIRLAR';
+
+  @override
+  String get roomInviteExpiryLabel => 'Geçerlilik süresi';
+
+  @override
+  String get roomInviteMaxUsesLabel => 'Kullanım sayısı';
+
+  @override
+  String get roomInviteNeverExpires => 'Süresiz';
+
+  @override
+  String get roomInviteUnlimited => 'Sınırsız';
+
+  @override
+  String roomInviteExpiryHours(Object count) {
+    return '$count sa';
+  }
+
+  @override
+  String roomInviteExpiryDays(Object count) {
+    return '$count gün';
+  }
+
+  @override
+  String get roomInviteLimitsApplyToNew =>
+      'Bunlar oluşturacağın bağlantı için geçerli.';
+
+  @override
+  String get roomInviteLimitsApplyOnRegenerate =>
+      'Bunlar bir sonraki bağlantı için geçerli. Yukarıdaki, oluşturulduğu sınırlarla kalır.';
+
+  @override
+  String get roomInvitePermissionsLabel => 'İZİNLER';
+
+  @override
+  String get roomInviteMembersCanInviteLabel => 'Üyeler arkadaş davet edebilir';
+
+  @override
+  String get roomInviteMembersCanInviteSub =>
+      'Kapatırsan insanları yalnızca yöneticiler alabilir';
+
+  @override
+  String get roomInviteApprovalLabel => 'Her katılımı onayla';
+
+  @override
+  String get roomInviteApprovalSub =>
+      'Bağlantısı olanlar önce sorar, bir yönetici evet ya da hayır der';
+
+  @override
+  String roomInviteUsesCount(Object count) {
+    return '$count kez kullanıldı';
+  }
+
+  @override
+  String roomInviteUsesOfMax(Object max, Object used) {
+    return '$max kullanımdan $used tanesi';
+  }
+
+  @override
+  String roomInviteExpiresOn(Object date) {
+    return 'bitiş $date';
+  }
+
+  @override
+  String get roomInviteDeadExpired =>
+      'Bu bağlantının süresi doldu. Yenisini yap.';
+
+  @override
+  String get roomInviteDeadExhausted =>
+      'Bu bağlantının kullanım hakkı bitti. Yenisini yap.';
+
+  @override
+  String get roomInviteDeadRevoked => 'Bu bağlantı iptal edildi.';
+
+  @override
+  String get roomInviteDeadGeneric => 'Bu bağlantı artık çalışmıyor.';
+
+  @override
+  String get roomInviteFriendsTitle => 'Arkadaş ekle';
+
+  @override
+  String get roomInviteFriendsBlurb =>
+      'Bir davet alacaklar; kabul ya da reddedebilirler.';
+
+  @override
+  String get roomInviteFriendsSearchHint => 'Arkadaşlarda ara';
+
+  @override
+  String get roomInviteFriendsInviteButton => 'DAVET ET';
+
+  @override
+  String get roomInviteFriendsSent => 'Davet edildi';
+
+  @override
+  String get roomInviteFriendsEmpty =>
+      'Arkadaşlarının hepsi ya burada ya da çoktan davet edildi.';
+
+  @override
+  String get roomInviteFriendsNoMatch => 'Buna uyan arkadaş yok.';
+
+  @override
+  String get roomInviteFriendsDone => 'TAMAM';
+
+  @override
+  String get roomJoinRequestsTitle => 'Katılma istekleri';
+
+  @override
+  String get roomJoinRequestsBlurb =>
+      'Bu kişiler davet bağlantısını kullandı. Sen evet demeden grupta hiçbir şey göremezler.';
+
+  @override
+  String get roomJoinRequestsEmpty => 'Bekleyen kimse yok.';
+
+  @override
+  String get roomJoinRequestsApprove => 'AL';
+
+  @override
+  String get roomJoinRequestsReject => 'ALMA';
+
+  @override
+  String roomInfoScreenInvitedLabel(Object count) {
+    return 'DAVET EDİLDİ · $count';
+  }
+
+  @override
+  String get roomInfoScreenInviteAwaitingGuardian => 'ebeveyn bekleniyor';
+
+  @override
+  String get roomInfoScreenInviteWithdraw => 'GERİ AL';
+
+  @override
+  String roomInvitationCardFrom(Object inviter, Object members) {
+    return '$inviter davet etti · $members üye';
+  }
+
+  @override
+  String get roomInvitationCardJoin => 'KATIL';
+
+  @override
+  String get discoverScreenJoinByCodeTitle => 'kodla katıl';
+
+  @override
+  String get discoverScreenJoinByCodeSubtitle => 'birinin paylaştığı grubu aç';
+
+  @override
+  String get joinInviteTitle => 'Bir gruba katıl';
+
+  @override
+  String get joinInviteBack => 'Geri';
+
+  @override
+  String get joinInviteCodeBlurb =>
+      'Birinin seninle paylaştığı kodu gir. Davet bağlantısının tamamı da burada çalışır.';
+
+  @override
+  String get joinInviteCodeLabel => 'Davet kodu';
+
+  @override
+  String get joinInviteCodeHint => 'K7M2-XQ94-RB';
+
+  @override
+  String get joinInviteCodeInvalid => 'Bu bir davet koduna benzemiyor.';
+
+  @override
+  String get joinInviteLookupButton => 'DEVAM';
+
+  @override
+  String get joinInviteLookupFailed =>
+      'Kod kontrol edilemedi. Bağlantını kontrol edip tekrar dene.';
+
+  @override
+  String joinInviteMemberCount(Object count) {
+    return '$count üye';
+  }
+
+  @override
+  String get joinInviteJoinButton => 'GRUBA KATIL';
+
+  @override
+  String get joinInviteRequestButton => 'KATILMAK İSTE';
+
+  @override
+  String get joinInviteOpenNote =>
+      'Katıldığında grubun mesajlarını görebileceksin.';
+
+  @override
+  String get joinInviteApprovalNote =>
+      'Buradaki hiçbir şeyi görebilmen için önce bir yöneticinin evet demesi gerekiyor.';
+
+  @override
+  String get joinInviteOpenRoom => 'GRUBU AÇ';
+
+  @override
+  String get joinInvitePendingHeadline => 'Yönetici bekleniyor';
+
+  @override
+  String get joinInvitePendingBody =>
+      'Biri yanıtlar yanıtlamaz bildirim alacaksın.';
+
+  @override
+  String get joinInviteBadLinkHeadline => 'Bu davet çalışmıyor';
+
+  @override
+  String get joinInviteBadLinkBody =>
+      'Kodu kontrol et ya da yeni bir bağlantı iste.';
+
+  @override
+  String get joinInviteExpiredHeadline => 'Bu davetin süresi doldu';
+
+  @override
+  String get joinInviteExpiredBody =>
+      'Seni davet edenden yeni bir bağlantı iste.';
+
+  @override
+  String get joinInviteExhaustedHeadline => 'Bu davet tükendi';
+
+  @override
+  String get joinInviteExhaustedBody =>
+      'Sınırlı sayıda çalışacak şekilde ayarlanmıştı. Yenisini iste.';
+
+  @override
+  String get joinInviteRevokedHeadline => 'Bu davetin yerine yenisi geldi';
+
+  @override
+  String get joinInviteRevokedBody =>
+      'Bir yönetici yeni bağlantı yaptı. Güncel olanı ondan iste.';
+
+  @override
+  String get joinInviteWrongServerHeadline => 'Bu davet başka bir sunucu için';
+
+  @override
+  String joinInviteWrongServerBody(Object host) {
+    return '$host sunucusuna ait. Hesabın farklı bir sunucuda olduğu için bu gruba buradan ulaşılamaz.';
+  }
+
+  @override
+  String get roomInviteErrorNotFound =>
+      'Bu davet kodu hiçbir şeyle eşleşmiyor.';
+
+  @override
+  String get roomInviteErrorRevoked =>
+      'Bu davetin yerine yenisi geldi. Güncel bağlantıyı iste.';
+
+  @override
+  String get roomInviteErrorExpired => 'Bu davetin süresi doldu.';
+
+  @override
+  String get roomInviteErrorExhausted => 'Bu davet tükendi.';
+
+  @override
+  String get roomInviteErrorAlreadyMember => 'Bu kişi zaten grupta.';
+
+  @override
+  String get roomInviteErrorAlreadyInvited => 'Bu kişi zaten davet edildi.';
+
+  @override
+  String get roomInviteErrorSelf => 'Zaten bu gruptasın.';
+
+  @override
+  String get roomInviteErrorInvitationGone => 'Bu davet artık orada değil.';
+
+  @override
+  String get roomInviteErrorRequestPending =>
+      'Katılmayı zaten istedin. Bir yönetici yanıtlayacak.';
+
+  @override
+  String get roomInviteErrorRequestGone =>
+      'Bu isteği başka biri çoktan yanıtladı.';
+
+  @override
+  String get roomInviteErrorRoomPrivate =>
+      'Bu gruba yalnızca davetle katılınabilir.';
+
+  @override
+  String get roomInviteErrorInvalidLimits => 'Bu sınırlar geçerli değil.';
+
+  @override
+  String approvalsScreenHeadlineRoomInviteOutgoing(
+    Object child,
+    Object other,
+    Object room,
+  ) {
+    return '$child, $other kişisini $room grubuna davet etmek istiyor';
+  }
+
+  @override
+  String approvalsScreenHeadlineRoomInviteIncoming(
+    Object child,
+    Object other,
+    Object room,
+  ) {
+    return '$other, $child çocuğunu $room grubuna davet etti';
+  }
+
+  @override
+  String get approvalsScreenConsequenceRoomInviteOutgoing =>
+      'Davet gönderilir, kararı yine karşı taraf verir.';
+
+  @override
+  String approvalsScreenConsequenceRoomInviteIncoming(Object child) {
+    return '$child daveti görür ve kabul ya da reddedebilir. Onaylaman, kabul ederse o gruba girmesine de izin verir.';
+  }
+
+  @override
+  String get roomAdminErrorCannotRemoveSelf =>
+      'Kendini çıkaramazsın. Bunun yerine gruptan ayrıl.';
+
+  @override
+  String get roomAdminActionMessage => 'Mesaj gönder';
+
+  @override
+  String get roomAdminActionVoiceCall => 'Sesli ara';
+
+  @override
+  String get roomAdminActionVideoCall => 'Görüntülü ara';
+
+  @override
+  String get roomAdminYouSuffix => 'sen';
 }

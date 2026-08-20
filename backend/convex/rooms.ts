@@ -14,6 +14,16 @@ import { unreadForRoom } from "./badges";
 import { MUTE_ALWAYS, resolveMute } from "./mute";
 import { deleteStored } from "./files";
 import { wipeRoomCompletely } from "./roomCleanup";
+import {
+  ROLE_MEMBER,
+  ROLE_OWNER,
+  addMembership,
+  assertAdmin,
+  assertOwner,
+  isGroupRoom,
+  membershipOf,
+  removeMembership,
+} from "./roomAdmin";
 
 export const create = mutation({
   args: {
@@ -54,7 +64,7 @@ export const create = mutation({
       roomId,
       userId,
       joinedAt: Date.now(),
-      role: "owner",
+      role: ROLE_OWNER,
       seenVisibility: await seenVisibilityOf(ctx, userId),
     });
     return roomId;
@@ -70,6 +80,20 @@ export const join = mutation({
   handler: async (ctx, { roomId, userId, passwordHash }) => {
     const room = await ctx.db.get(roomId);
     if (!room) throw new Error("ROOM_NOT_FOUND");
+
+    // This is the DISCOVER door, and Discover lists public rooms only. A
+    // private room is reachable here solely by knowing its id, and room ids
+    // travel further than people assume — they ride along in forwarded
+    // content, in shared-media payloads, in anything a member ever copied.
+    // Every legitimate way into a private room now goes through a token
+    // somebody chose to hand out (`roomInvites.redeem`) or a person who was
+    // named (`roomInvitations.respond`), so the id alone stops being a key.
+    //
+    // Existing rooms are unaffected: nothing in the client has ever called
+    // this with a private room, because nothing shows the user one to call it
+    // with.
+    if (room.isPrivate) throw new Error("ROOM_IS_PRIVATE");
+
     if (room.passwordHash) {
       if (!passwordHash || passwordHash.length === 0) throw new Error("ROOM_PASSWORD_REQUIRED");
       if (passwordHash !== room.passwordHash) throw new Error("ROOM_PASSWORD_INVALID");
@@ -85,20 +109,10 @@ export const join = mutation({
       }
     }
 
-    const existing = await ctx.db
-      .query("roomMembers")
-      .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))
-      .first();
-    if (existing) return;
-
-    await ctx.db.insert("roomMembers", {
-      roomId,
-      userId,
-      joinedAt: Date.now(),
-      role: "member",
-      seenVisibility: await seenVisibilityOf(ctx, userId),
-    });
-    await ctx.db.patch(roomId, { memberCount: room.memberCount + 1 });
+    // Idempotent, and the single place `memberCount` and the `seenVisibility`
+    // stamp are kept honest — shared with the invite and link paths so the
+    // three cannot drift. See `roomAdmin.addMembership`.
+    await addMembership(ctx, roomId, userId, ROLE_MEMBER);
   },
 });
 
@@ -109,55 +123,18 @@ export const leave = mutation({
     // it half-works: the membership row goes, the room lives on, and the next
     // report arrives somewhere the maintainer can no longer see.
     await assertNotSystemRoom(ctx, roomId);
-    const member = await ctx.db
-      .query("roomMembers")
-      .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))
-      .first();
-    if (!member) return;
 
-    await ctx.db.delete(member._id);
-
-    // This member's bookmarks in this room go with their membership, and
-    // pointedly unlike their pins, which stay. A pin is room state — it belongs
-    // to the room the way its name does, and survives whoever left. A bookmark
-    // is one person's private mark on a conversation they can no longer read,
-    // so keeping it would leave `bookmarks:listForRoom` — which deliberately
-    // does not re-check membership, see there — able to hand a departed member
-    // their old room's message content back. Sweeping here is what lets that
-    // query stay cheap.
-    const bookmarks = await ctx.db
-      .query("messageBookmarks")
-      .withIndex("by_room_user_message", (q) =>
-        q.eq("roomId", roomId).eq("userId", userId)
-      )
-      .collect();
-    for (const b of bookmarks) await ctx.db.delete(b._id);
-
-    const room = await ctx.db.get(roomId);
-    if (room && room.memberCount > 0) {
-      await ctx.db.patch(roomId, { memberCount: room.memberCount - 1 });
-    }
-
-    // Auto-delete room if now empty
-    const remaining = await ctx.db
-      .query("roomMembers")
-      .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
-      .collect();
-    if (remaining.length === 0) {
-      await wipeRoomCompletely(ctx, roomId);
-      return;
-    }
-
-    // Someone leaving can complete a view-once photo's audience: the people
-    // still here may all have opened it already, and were only waiting on the
-    // person who just walked out. Without this the blob idles until its 14-day
-    // deadline. Deferred rather than inline — this is repair work, and it has
-    // no business lengthening the mutation the user is waiting on.
-    await ctx.scheduler.runAfter(
-      0,
-      internal.messages.recountViewOnceRecipients,
-      { roomId },
-    );
+    // The teardown itself lives in `roomAdmin.removeMembership`, shared with
+    // being removed by an admin. Walking out and being shown the door leave
+    // exactly the same debris — the departing member's bookmarks (which go,
+    // pointedly unlike their pins), their outstanding invite and join-request
+    // rows, the room's member count, the empty-room wipe, and the deferred
+    // view-once recount — and that sweep is easy to get subtly wrong twice.
+    //
+    // It also re-seats the owner if the person leaving held that seat, which
+    // this mutation never used to do: before the admin tier, an owner walking
+    // out left a room nobody could rename, retitle or delete ever again.
+    await removeMembership(ctx, roomId, userId);
   },
 });
 
@@ -174,14 +151,18 @@ export const deleteRoom = mutation({
     // people happened to open it first. Gating deletion on that would leave
     // the other participant unable to ever end the conversation, so either
     // side of a DM may delete it. Group rooms keep the owner-only rule.
-    if (room.name.startsWith("dm:")) {
-      const membership = await ctx.db
-        .query("roomMembers")
-        .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))
-        .first();
-      if (!membership) throw new Error("NOT_AUTHORIZED");
-    } else if (room.createdBy.toString() !== userId.toString()) {
-      throw new Error("NOT_OWNER");
+    //
+    // For groups that rule is now the membership ROLE, not `createdBy`. The
+    // difference is load-bearing: ownership can be transferred, and an owner
+    // who deletes their account hands the room to an heir. Both left the old
+    // `createdBy` test pointing at somebody who could no longer act — or, after
+    // `auth.purgeUser`, at a row nobody could reach at all.
+    if (!isGroupRoom(room)) {
+      if (!(await membershipOf(ctx, roomId, userId))) {
+        throw new Error("NOT_AUTHORIZED");
+      }
+    } else {
+      await assertOwner(ctx, roomId, userId);
     }
 
     await wipeRoomCompletely(ctx, roomId);
@@ -197,7 +178,10 @@ export const updatePassword = mutation({
   handler: async (ctx, { roomId, userId, passwordHash }) => {
     const room = await ctx.db.get(roomId);
     if (!room) throw new Error("ROOM_NOT_FOUND");
-    if (room.createdBy.toString() !== userId.toString()) throw new Error("NOT_OWNER");
+    // Any admin, not just the creator. A room password is a door key like the
+    // invite link is, and the people trusted to rotate one are the people
+    // trusted to rotate the other.
+    await assertAdmin(ctx, roomId, userId);
     await ctx.db.patch(roomId, {
       passwordHash: passwordHash && passwordHash.length > 0 ? passwordHash : undefined,
     });
@@ -221,11 +205,18 @@ export const updateRoom = mutation({
     // visibility a user should be setting. The client hides the fields; this
     // makes it a rule.
     await assertNotSystemRoom(ctx, roomId);
-    const membership = await ctx.db
-      .query("roomMembers")
-      .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))
-      .first();
-    if (!membership) throw new Error("NOT_AUTHORIZED"); // any member can update
+    // Group settings are an ADMIN act now. This used to be "any member can
+    // update", which in a group of any size meant the name, description,
+    // visibility and disappearing-message timer were editable by whoever felt
+    // like it — including someone who joined a minute ago off a link.
+    //
+    // A DM keeps the any-participant rule: it has no admins to ask, and the
+    // client only ever sends the message-lifetime field for one.
+    if (isGroupRoom(room)) {
+      await assertAdmin(ctx, roomId, userId);
+    } else if (!(await membershipOf(ctx, roomId, userId))) {
+      throw new Error("NOT_AUTHORIZED");
+    }
 
     const trimmed = name.trim();
     if (!trimmed) throw new Error("ROOM_NAME_REQUIRED");
@@ -257,11 +248,13 @@ export const updateRoomAvatar = mutation({
   handler: async (ctx, { roomId, userId, storageId }) => {
     const room = await ctx.db.get(roomId);
     if (!room) throw new Error("ROOM_NOT_FOUND");
-    const membership = await ctx.db
-      .query("roomMembers")
-      .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))
-      .first();
-    if (!membership) throw new Error("NOT_AUTHORIZED"); // any member can update avatar
+    // Same rule as `updateRoom`, for the same reason — the avatar is the most
+    // visible thing about a group, and it is the one a griefer reaches for.
+    if (isGroupRoom(room)) {
+      await assertAdmin(ctx, roomId, userId);
+    } else if (!(await membershipOf(ctx, roomId, userId))) {
+      throw new Error("NOT_AUTHORIZED");
+    }
     const previous = room.avatarStorageId;
     await ctx.db.patch(roomId, { avatarStorageId: storageId });
     // Free the blob we just stopped pointing at, or it bills forever with

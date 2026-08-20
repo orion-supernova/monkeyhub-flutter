@@ -11440,6 +11440,824 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'sign-in request denied'**
   String get deviceLoginScanScreenDeniedConfirmation;
+
+  /// All-caps section label above the group-management rows (invite link, add friends, join requests) in room info.
+  ///
+  /// In en, this message translates to:
+  /// **'GROUP'**
+  String get roomAdminSectionLabel;
+
+  /// Badge on the one member who owns the group. Same word as the existing owner badge, reused in the member-action sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'OWNER'**
+  String get roomAdminRoleOwner;
+
+  /// Badge on a member promoted to admin.
+  ///
+  /// In en, this message translates to:
+  /// **'ADMIN'**
+  String get roomAdminRoleAdmin;
+
+  /// First row of the member-action sheet — opens the tapped member's profile.
+  ///
+  /// In en, this message translates to:
+  /// **'View profile'**
+  String get roomAdminActionViewProfile;
+
+  /// Member-action row that promotes a plain member to admin.
+  ///
+  /// In en, this message translates to:
+  /// **'Make admin'**
+  String get roomAdminActionPromote;
+
+  /// Sub-line under 'Make admin', listing what the role actually grants.
+  ///
+  /// In en, this message translates to:
+  /// **'They can invite, remove members and edit the group'**
+  String get roomAdminActionPromoteSub;
+
+  /// Member-action row that demotes an admin back to a plain member.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove admin'**
+  String get roomAdminActionDemote;
+
+  /// Sub-line under 'Remove admin', making clear demotion is not removal.
+  ///
+  /// In en, this message translates to:
+  /// **'They stay in the group as a member'**
+  String get roomAdminActionDemoteSub;
+
+  /// Owner-only member-action row that hands the group to another member.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer ownership'**
+  String get roomAdminActionTransfer;
+
+  /// Sub-line under 'Transfer ownership' — the outgoing owner becomes an admin, not a plain member.
+  ///
+  /// In en, this message translates to:
+  /// **'You stay on as an admin'**
+  String get roomAdminActionTransferSub;
+
+  /// Destructive member-action row that removes the tapped member from the room.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from group'**
+  String get roomAdminActionRemove;
+
+  /// Room-info row that opens the friend picker for inviting people to the group.
+  ///
+  /// In en, this message translates to:
+  /// **'Add friends'**
+  String get roomAdminAddFriendsRow;
+
+  /// Sub-line under 'Add friends' — an invite is a request, never a silent addition.
+  ///
+  /// In en, this message translates to:
+  /// **'They get an invite to accept or decline'**
+  String get roomAdminAddFriendsRowSub;
+
+  /// Admin-only room-info row that opens the invite-link sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite link'**
+  String get roomAdminInviteLinkRow;
+
+  /// Sub-line under 'Invite link'.
+  ///
+  /// In en, this message translates to:
+  /// **'Share a link or a code to let people in'**
+  String get roomAdminInviteLinkRowSub;
+
+  /// Admin-only room-info row that opens the queue of people asking to join.
+  ///
+  /// In en, this message translates to:
+  /// **'Join requests'**
+  String get roomAdminJoinRequestsRow;
+
+  /// Sub-line under 'Join requests'. {count} is the number of pending requests.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} waiting for an answer'**
+  String roomAdminJoinRequestsRowSub(Object count);
+
+  /// Confirmation-sheet headline before transferring ownership. {name} is the new owner's display name.
+  ///
+  /// In en, this message translates to:
+  /// **'Hand the group to {name}?'**
+  String roomAdminTransferConfirmHeadline(Object name);
+
+  /// Confirmation-sheet body for transferring ownership, spelling out that the move is not reversible by you.
+  ///
+  /// In en, this message translates to:
+  /// **'They become the owner and can delete the group. You stay on as an admin, and only they can hand it back.'**
+  String get roomAdminTransferConfirmBody;
+
+  /// Confirm button for transferring group ownership.
+  ///
+  /// In en, this message translates to:
+  /// **'TRANSFER'**
+  String get roomAdminTransferConfirmCta;
+
+  /// Confirmation-sheet headline before removing a member. {name} is their display name.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {name}?'**
+  String roomAdminRemoveConfirmHeadline(Object name);
+
+  /// Confirmation-sheet body for removing a member, noting removal is not a ban.
+  ///
+  /// In en, this message translates to:
+  /// **'They lose access to the group and everything in it. They can be invited back, or come back through the invite link.'**
+  String get roomAdminRemoveConfirmBody;
+
+  /// Confirm button for removing a member from the group.
+  ///
+  /// In en, this message translates to:
+  /// **'REMOVE'**
+  String get roomAdminRemoveConfirmCta;
+
+  /// Fallback message when a group-administration action fails for a reason we have no specific copy for.
+  ///
+  /// In en, this message translates to:
+  /// **'That didn\'t work. Try again.'**
+  String get roomAdminGenericError;
+
+  /// Shown when an action is refused because the caller has left or been removed from the room.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re not in this group any more.'**
+  String get roomAdminErrorNotMember;
+
+  /// Shown when a non-admin attempts an admin-only action.
+  ///
+  /// In en, this message translates to:
+  /// **'Only admins can do that.'**
+  String get roomAdminErrorNotAdmin;
+
+  /// Shown when an admin attempts an owner-only action, such as removing another admin.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the group\'s owner can do that.'**
+  String get roomAdminErrorNotOwner;
+
+  /// Shown when an administration action is attempted on a one-to-one conversation, which has no roles.
+  ///
+  /// In en, this message translates to:
+  /// **'There\'s nothing to manage in a direct chat.'**
+  String get roomAdminErrorNotGroup;
+
+  /// Shown when someone tries to demote or remove the owner.
+  ///
+  /// In en, this message translates to:
+  /// **'The owner\'s role can only change by transferring the group.'**
+  String get roomAdminErrorOwnerImmutable;
+
+  /// Shown to a member when the room's 'members can invite' switch is off.
+  ///
+  /// In en, this message translates to:
+  /// **'Only admins can invite people to this group.'**
+  String get roomAdminErrorInvitesLocked;
+
+  /// Title of the admin sheet holding the group's join link, code and limits.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite link'**
+  String get roomInviteSheetTitle;
+
+  /// Blurb under the invite-sheet title, explaining that rotation is revocation.
+  ///
+  /// In en, this message translates to:
+  /// **'One link and one code, and they\'re the same thing. Make a new one and the old one stops working immediately.'**
+  String get roomInviteSheetBlurb;
+
+  /// Empty state in the invite sheet before any link has been issued.
+  ///
+  /// In en, this message translates to:
+  /// **'This group has no invite link yet.'**
+  String get roomInviteNoLinkYet;
+
+  /// Button that issues the group's first invite link.
+  ///
+  /// In en, this message translates to:
+  /// **'CREATE LINK'**
+  String get roomInviteCreateButton;
+
+  /// Button that issues a replacement link, killing the current one.
+  ///
+  /// In en, this message translates to:
+  /// **'NEW LINK'**
+  String get roomInviteRegenerateButton;
+
+  /// Button that kills the current link without issuing a replacement.
+  ///
+  /// In en, this message translates to:
+  /// **'REVOKE LINK'**
+  String get roomInviteRevokeButton;
+
+  /// Small button under the code that copies the full invite URL.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy link'**
+  String get roomInviteCopyLink;
+
+  /// Small button under the code that copies just the code.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy code'**
+  String get roomInviteCopyCode;
+
+  /// Small button under the code that opens the system share sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get roomInviteShare;
+
+  /// Toast after copying the invite URL.
+  ///
+  /// In en, this message translates to:
+  /// **'Link copied.'**
+  String get roomInviteLinkCopied;
+
+  /// Toast after copying the invite code.
+  ///
+  /// In en, this message translates to:
+  /// **'Code copied.'**
+  String get roomInviteCodeCopied;
+
+  /// Confirmation headline before rotating the invite link.
+  ///
+  /// In en, this message translates to:
+  /// **'Make a new link?'**
+  String get roomInviteRegenerateHeadline;
+
+  /// Confirmation body for rotating the link, clarifying that rotation does not remove existing members.
+  ///
+  /// In en, this message translates to:
+  /// **'The current link and code stop working straight away, everywhere they\'ve been shared. Anyone already in the group stays in.'**
+  String get roomInviteRegenerateBody;
+
+  /// Confirm button for rotating the invite link.
+  ///
+  /// In en, this message translates to:
+  /// **'NEW LINK'**
+  String get roomInviteRegenerateConfirm;
+
+  /// Confirmation headline before killing the link without a replacement.
+  ///
+  /// In en, this message translates to:
+  /// **'Revoke this link?'**
+  String get roomInviteRevokeHeadline;
+
+  /// Confirmation body for revoking the invite link.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody new can join by link until you make another one. Anyone already in the group stays in.'**
+  String get roomInviteRevokeBody;
+
+  /// Confirm button for revoking the invite link.
+  ///
+  /// In en, this message translates to:
+  /// **'REVOKE'**
+  String get roomInviteRevokeConfirm;
+
+  /// All-caps sub-heading above the expiry and max-uses choices in the invite sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'LIMITS'**
+  String get roomInviteLimitsLabel;
+
+  /// Label above the row of expiry choices for the next link.
+  ///
+  /// In en, this message translates to:
+  /// **'Expires after'**
+  String get roomInviteExpiryLabel;
+
+  /// Label above the row of use-cap choices for the next link.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of uses'**
+  String get roomInviteMaxUsesLabel;
+
+  /// The 'no expiry' choice in the invite sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Never'**
+  String get roomInviteNeverExpires;
+
+  /// The 'no use cap' choice in the invite sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Any'**
+  String get roomInviteUnlimited;
+
+  /// An expiry choice under a day, e.g. '24h'. {count} is a number of hours.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}h'**
+  String roomInviteExpiryHours(Object count);
+
+  /// An expiry choice of a day or more, e.g. '7d'. {count} is a number of days.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}d'**
+  String roomInviteExpiryDays(Object count);
+
+  /// Note under the limit choices when no link exists yet.
+  ///
+  /// In en, this message translates to:
+  /// **'These apply to the link you create.'**
+  String get roomInviteLimitsApplyToNew;
+
+  /// Note under the limit choices when a link already exists — limits are fixed at issue time.
+  ///
+  /// In en, this message translates to:
+  /// **'These apply to the next link. The one above keeps the limits it was made with.'**
+  String get roomInviteLimitsApplyOnRegenerate;
+
+  /// All-caps sub-heading above the two room-policy switches in the invite sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'PERMISSIONS'**
+  String get roomInvitePermissionsLabel;
+
+  /// Switch label: whether plain members may send invites, or only admins.
+  ///
+  /// In en, this message translates to:
+  /// **'Members can invite friends'**
+  String get roomInviteMembersCanInviteLabel;
+
+  /// Sub-line under the members-can-invite switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn this off and only admins can bring people in'**
+  String get roomInviteMembersCanInviteSub;
+
+  /// Switch label: whether redeeming the link joins outright or files a request.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve each join'**
+  String get roomInviteApprovalLabel;
+
+  /// Sub-line under the approve-each-join switch.
+  ///
+  /// In en, this message translates to:
+  /// **'People with the link ask first, and an admin says yes or no'**
+  String get roomInviteApprovalSub;
+
+  /// Status line under a link with no use cap. {count} is how many people have used it.
+  ///
+  /// In en, this message translates to:
+  /// **'Used {count} times'**
+  String roomInviteUsesCount(Object count);
+
+  /// Status line under a link with a use cap. {used} is how many have been used, {max} is the cap.
+  ///
+  /// In en, this message translates to:
+  /// **'{used} of {max} uses'**
+  String roomInviteUsesOfMax(Object max, Object used);
+
+  /// Second half of the status line for a link with an expiry. {date} is a short date.
+  ///
+  /// In en, this message translates to:
+  /// **'expires {date}'**
+  String roomInviteExpiresOn(Object date);
+
+  /// Shown in place of the status line when the admin's current link is past its expiry.
+  ///
+  /// In en, this message translates to:
+  /// **'This link has expired. Make a new one.'**
+  String get roomInviteDeadExpired;
+
+  /// Shown in place of the status line when the admin's current link has hit its use cap.
+  ///
+  /// In en, this message translates to:
+  /// **'This link has run out of uses. Make a new one.'**
+  String get roomInviteDeadExhausted;
+
+  /// Shown in place of the status line when the current link has been revoked.
+  ///
+  /// In en, this message translates to:
+  /// **'This link was revoked.'**
+  String get roomInviteDeadRevoked;
+
+  /// Shown in place of the status line when the current link is dead for an unrecognised reason.
+  ///
+  /// In en, this message translates to:
+  /// **'This link no longer works.'**
+  String get roomInviteDeadGeneric;
+
+  /// Title of the sheet for inviting friends into a group.
+  ///
+  /// In en, this message translates to:
+  /// **'Add friends'**
+  String get roomInviteFriendsTitle;
+
+  /// Blurb under the add-friends title, making clear nobody is added without agreeing.
+  ///
+  /// In en, this message translates to:
+  /// **'They\'ll get an invite and can accept or decline.'**
+  String get roomInviteFriendsBlurb;
+
+  /// Placeholder in the friend picker's search field.
+  ///
+  /// In en, this message translates to:
+  /// **'Search friends'**
+  String get roomInviteFriendsSearchHint;
+
+  /// Per-row button that sends a group invite to that friend.
+  ///
+  /// In en, this message translates to:
+  /// **'INVITE'**
+  String get roomInviteFriendsInviteButton;
+
+  /// Replaces the per-row button once the invite has been sent.
+  ///
+  /// In en, this message translates to:
+  /// **'Invited'**
+  String get roomInviteFriendsSent;
+
+  /// Empty state when there is nobody left to invite.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone you\'re friends with is already here or already invited.'**
+  String get roomInviteFriendsEmpty;
+
+  /// Empty state when the picker's search finds nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'No friends match that.'**
+  String get roomInviteFriendsNoMatch;
+
+  /// Closes the friend picker.
+  ///
+  /// In en, this message translates to:
+  /// **'DONE'**
+  String get roomInviteFriendsDone;
+
+  /// Title of the admin sheet listing people who used the link and are waiting to be let in.
+  ///
+  /// In en, this message translates to:
+  /// **'Join requests'**
+  String get roomJoinRequestsTitle;
+
+  /// Blurb under the join-requests title.
+  ///
+  /// In en, this message translates to:
+  /// **'These people used the invite link. They can\'t see anything in the group until you say yes.'**
+  String get roomJoinRequestsBlurb;
+
+  /// Empty state for the join-request queue.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody\'s waiting.'**
+  String get roomJoinRequestsEmpty;
+
+  /// Per-row button that approves a join request.
+  ///
+  /// In en, this message translates to:
+  /// **'LET IN'**
+  String get roomJoinRequestsApprove;
+
+  /// Per-row button that rejects a join request.
+  ///
+  /// In en, this message translates to:
+  /// **'NO'**
+  String get roomJoinRequestsReject;
+
+  /// All-caps label above the list of people invited to the group who have not answered yet. {count} is how many.
+  ///
+  /// In en, this message translates to:
+  /// **'INVITED · {count}'**
+  String roomInfoScreenInvitedLabel(Object count);
+
+  /// Shown instead of the handle on an invited row that is still held for a guardian's approval, so the silence reads as supervision rather than a snub.
+  ///
+  /// In en, this message translates to:
+  /// **'waiting on a parent'**
+  String get roomInfoScreenInviteAwaitingGuardian;
+
+  /// Small button that takes back an invite that has not been answered.
+  ///
+  /// In en, this message translates to:
+  /// **'WITHDRAW'**
+  String get roomInfoScreenInviteWithdraw;
+
+  /// Second line of an incoming group-invite card. {inviter} is who invited you, {members} is the group's size.
+  ///
+  /// In en, this message translates to:
+  /// **'from {inviter} · {members} members'**
+  String roomInvitationCardFrom(Object inviter, Object members);
+
+  /// Accept button on an incoming group-invite card.
+  ///
+  /// In en, this message translates to:
+  /// **'JOIN'**
+  String get roomInvitationCardJoin;
+
+  /// Discover row that opens the screen for entering an invite code by hand.
+  ///
+  /// In en, this message translates to:
+  /// **'join with a code'**
+  String get discoverScreenJoinByCodeTitle;
+
+  /// Sub-line under the join-with-a-code row in Discover.
+  ///
+  /// In en, this message translates to:
+  /// **'open a group someone shared with you'**
+  String get discoverScreenJoinByCodeSubtitle;
+
+  /// Title of the screen a tapped invite link lands on, and where a code is typed.
+  ///
+  /// In en, this message translates to:
+  /// **'Join a group'**
+  String get joinInviteTitle;
+
+  /// Accessibility label for the back arrow on the join screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get joinInviteBack;
+
+  /// Blurb above the code field when the screen was opened without a code.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the code someone shared with you. A full invite link works here too.'**
+  String get joinInviteCodeBlurb;
+
+  /// Label on the code field.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite code'**
+  String get joinInviteCodeLabel;
+
+  /// Placeholder in the code field, showing the grouped shape of a real code.
+  ///
+  /// In en, this message translates to:
+  /// **'K7M2-XQ94-RB'**
+  String get joinInviteCodeHint;
+
+  /// Shown when what was typed cannot be read as a code or a link at all.
+  ///
+  /// In en, this message translates to:
+  /// **'That doesn\'t look like an invite code.'**
+  String get joinInviteCodeInvalid;
+
+  /// Button that looks up a typed invite code.
+  ///
+  /// In en, this message translates to:
+  /// **'CONTINUE'**
+  String get joinInviteLookupButton;
+
+  /// Shown when the invite lookup fails for a network or server reason.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t check that code. Check your connection and try again.'**
+  String get joinInviteLookupFailed;
+
+  /// Member count under the room name on the join confirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} members'**
+  String joinInviteMemberCount(Object count);
+
+  /// Confirmation button on a room whose link admits people outright.
+  ///
+  /// In en, this message translates to:
+  /// **'JOIN GROUP'**
+  String get joinInviteJoinButton;
+
+  /// Confirmation button on a room whose link files a request for an admin.
+  ///
+  /// In en, this message translates to:
+  /// **'ASK TO JOIN'**
+  String get joinInviteRequestButton;
+
+  /// Note under the join button for a room that admits by link.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ll be able to see the group\'s messages once you join.'**
+  String get joinInviteOpenNote;
+
+  /// Note under the ask-to-join button for a room that requires approval.
+  ///
+  /// In en, this message translates to:
+  /// **'An admin has to say yes before you can see anything in here.'**
+  String get joinInviteApprovalNote;
+
+  /// Button shown when you are already a member of the room behind the link.
+  ///
+  /// In en, this message translates to:
+  /// **'OPEN GROUP'**
+  String get joinInviteOpenRoom;
+
+  /// Headline shown after asking to join a room that requires approval.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for an admin'**
+  String get joinInvitePendingHeadline;
+
+  /// Body under the waiting-for-an-admin headline.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ll get a notification as soon as somebody answers.'**
+  String get joinInvitePendingBody;
+
+  /// Headline for a code that matches nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'This invite doesn\'t work'**
+  String get joinInviteBadLinkHeadline;
+
+  /// Body under the invite-doesn't-work headline.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the code, or ask for a new link.'**
+  String get joinInviteBadLinkBody;
+
+  /// Headline for a link that is past its expiry.
+  ///
+  /// In en, this message translates to:
+  /// **'This invite has expired'**
+  String get joinInviteExpiredHeadline;
+
+  /// Body under the expired headline.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask whoever invited you for a fresh link.'**
+  String get joinInviteExpiredBody;
+
+  /// Headline for a link that has hit its use cap.
+  ///
+  /// In en, this message translates to:
+  /// **'This invite is used up'**
+  String get joinInviteExhaustedHeadline;
+
+  /// Body under the used-up headline.
+  ///
+  /// In en, this message translates to:
+  /// **'It was set to work a limited number of times. Ask for a new one.'**
+  String get joinInviteExhaustedBody;
+
+  /// Headline for a link that has been rotated or revoked.
+  ///
+  /// In en, this message translates to:
+  /// **'This invite was replaced'**
+  String get joinInviteRevokedHeadline;
+
+  /// Body under the invite-was-replaced headline.
+  ///
+  /// In en, this message translates to:
+  /// **'An admin made a new link. Ask them for the current one.'**
+  String get joinInviteRevokedBody;
+
+  /// Headline when the invite names a MonkeyHub deployment other than the one this app is signed in to.
+  ///
+  /// In en, this message translates to:
+  /// **'This invite is for another server'**
+  String get joinInviteWrongServerHeadline;
+
+  /// Body under the wrong-server headline. {host} is the other server's hostname.
+  ///
+  /// In en, this message translates to:
+  /// **'It belongs to {host}. Your account lives on a different server, so this group isn\'t reachable from here.'**
+  String joinInviteWrongServerBody(Object host);
+
+  /// Toast for an unrecognised invite code.
+  ///
+  /// In en, this message translates to:
+  /// **'That invite code doesn\'t match anything.'**
+  String get roomInviteErrorNotFound;
+
+  /// Toast for a rotated or revoked link.
+  ///
+  /// In en, this message translates to:
+  /// **'That invite was replaced. Ask for the current link.'**
+  String get roomInviteErrorRevoked;
+
+  /// Toast for a link past its expiry.
+  ///
+  /// In en, this message translates to:
+  /// **'That invite has expired.'**
+  String get roomInviteErrorExpired;
+
+  /// Toast for a link at its use cap.
+  ///
+  /// In en, this message translates to:
+  /// **'That invite has been used up.'**
+  String get roomInviteErrorExhausted;
+
+  /// Toast when inviting somebody who is already a member.
+  ///
+  /// In en, this message translates to:
+  /// **'They\'re already in this group.'**
+  String get roomInviteErrorAlreadyMember;
+
+  /// Toast when inviting somebody with an invite already pending.
+  ///
+  /// In en, this message translates to:
+  /// **'They\'ve already been invited.'**
+  String get roomInviteErrorAlreadyInvited;
+
+  /// Toast when somebody manages to invite themselves.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re already in this group.'**
+  String get roomInviteErrorSelf;
+
+  /// Toast when answering or withdrawing an invite that has already been dealt with.
+  ///
+  /// In en, this message translates to:
+  /// **'That invite is no longer there.'**
+  String get roomInviteErrorInvitationGone;
+
+  /// Toast when redeeming a link twice on a room that requires approval.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve already asked to join. An admin will answer.'**
+  String get roomInviteErrorRequestPending;
+
+  /// Toast when two admins rule on the same join request.
+  ///
+  /// In en, this message translates to:
+  /// **'Somebody already answered that request.'**
+  String get roomInviteErrorRequestGone;
+
+  /// Toast when a private room is reached by a route that is not an invite.
+  ///
+  /// In en, this message translates to:
+  /// **'This group can only be joined with an invite.'**
+  String get roomInviteErrorRoomPrivate;
+
+  /// Toast when the expiry or use cap sent with a new link is out of range.
+  ///
+  /// In en, this message translates to:
+  /// **'Those limits aren\'t valid.'**
+  String get roomInviteErrorInvalidLimits;
+
+  /// Guardian queue card: the guardian's own child wants to pull somebody into a group chat. {child} and {other} are display names, {room} is the group's name.
+  ///
+  /// In en, this message translates to:
+  /// **'{child} wants to invite {other} to {room}'**
+  String approvalsScreenHeadlineRoomInviteOutgoing(
+    Object child,
+    Object other,
+    Object room,
+  );
+
+  /// Guardian queue card: somebody wants to pull the guardian's child into a group chat. {other} and {child} are display names, {room} is the group's name.
+  ///
+  /// In en, this message translates to:
+  /// **'{other} invited {child} to {room}'**
+  String approvalsScreenHeadlineRoomInviteIncoming(
+    Object child,
+    Object other,
+    Object room,
+  );
+
+  /// Explanatory line under an outgoing group-invite queue card: approving does not put anyone in the group.
+  ///
+  /// In en, this message translates to:
+  /// **'The invite goes out, and the other person still decides.'**
+  String get approvalsScreenConsequenceRoomInviteOutgoing;
+
+  /// Explanatory line under an incoming group-invite queue card, saying out loud that a yes here also grants access to that room.
+  ///
+  /// In en, this message translates to:
+  /// **'{child} will see the invite and can accept or decline. Approving also lets them into that group if they accept.'**
+  String approvalsScreenConsequenceRoomInviteIncoming(Object child);
+
+  /// Shown if a removal is somehow aimed at the caller's own row. Leaving is the right door, and it also hands the room on properly if they own it.
+  ///
+  /// In en, this message translates to:
+  /// **'You can\'t remove yourself. Leave the group instead.'**
+  String get roomAdminErrorCannotRemoveSelf;
+
+  /// Member-sheet row that opens the one-to-one chat with the tapped person.
+  ///
+  /// In en, this message translates to:
+  /// **'Message'**
+  String get roomAdminActionMessage;
+
+  /// Member-sheet row that starts a one-to-one voice call.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice call'**
+  String get roomAdminActionVoiceCall;
+
+  /// Member-sheet row that starts a one-to-one video call.
+  ///
+  /// In en, this message translates to:
+  /// **'Video call'**
+  String get roomAdminActionVideoCall;
+
+  /// Small label after your own name in the member list and the member sheet, marking which row is yours.
+  ///
+  /// In en, this message translates to:
+  /// **'you'**
+  String get roomAdminYouSuffix;
 }
 
 class _AppLocalizationsDelegate

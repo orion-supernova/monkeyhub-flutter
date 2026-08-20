@@ -16,6 +16,7 @@ import '../models/message_bookmark.dart';
 import '../models/message_capabilities.dart';
 import '../models/message_formatting.dart';
 import '../models/pending_upload.dart';
+import '../models/room_admin.dart';
 import '../models/room_capabilities.dart';
 import '../models/room_mute.dart';
 import '../models/room_pin.dart';
@@ -156,6 +157,17 @@ class ChatRepository extends ChangeNotifier {
   List<FriendRequest> _outgoingRequests = [];
   List<FriendRequest> get outgoingRequests => List.unmodifiable(_outgoingRequests);
 
+  /// Group invites waiting on this user's yes or no.
+  ///
+  /// Lives here, next to the friend requests, because it is the same kind of
+  /// thing and shares their fate: both feed the Discover badge, both have to be
+  /// live rather than fetched on screen-open, and both must be empty the
+  /// instant the account changes. Rows still held at a guardian hop are
+  /// filtered out server-side, so anything in this list is genuinely the
+  /// user's to answer.
+  List<RoomInvitation> _roomInvitations = [];
+  List<RoomInvitation> get roomInvitations => List.unmodifiable(_roomInvitations);
+
   final Map<String, List<ChatMessage>> _messages = {}; // roomId → ordered list
   final Map<String, List<ChatMessage>> _pending = {}; // optimistic messages
   // Newest message id we've seen per room. Used to dedup [markRoomRead]
@@ -194,6 +206,7 @@ class ChatRepository extends ChangeNotifier {
   Subscription? _friendsSub;
   Subscription? _incomingSub;
   Subscription? _outgoingSub;
+  Subscription? _roomInvitationsSub;
   Subscription? _globalTypingSub;
   String? _activeRoomIdValue;
 
@@ -418,11 +431,13 @@ class ChatRepository extends ChangeNotifier {
     _friendsSub?.cancel();
     _incomingSub?.cancel();
     _outgoingSub?.cancel();
+    _roomInvitationsSub?.cancel();
     _globalTypingSub?.cancel();
     _roomsSub = null;
     _friendsSub = null;
     _incomingSub = null;
     _outgoingSub = null;
+    _roomInvitationsSub = null;
     _globalTypingSub = null;
 
     _roomsSub = await cv.subscribe(
@@ -480,6 +495,19 @@ class ChatRepository extends ChangeNotifier {
         notifyListeners();
       },
       onError: (err) => debugPrint('outgoing sub error: $err'),
+    );
+
+    _roomInvitationsSub = await cv.subscribe(
+      'roomInvitations:listIncoming',
+      {'userId': userId},
+      onData: (data) {
+        final list = (data as List?) ?? const [];
+        _roomInvitations = list
+            .map((e) => RoomInvitation.fromJson((e as Map).cast<String, dynamic>()))
+            .toList();
+        notifyListeners();
+      },
+      onError: (err) => debugPrint('room invitations sub error: $err'),
     );
 
     // Global typing — used to surface a thin indicator on room cards.
@@ -628,6 +656,7 @@ class ChatRepository extends ChangeNotifier {
     _friendsSub?.cancel();
     _incomingSub?.cancel();
     _outgoingSub?.cancel();
+    _roomInvitationsSub?.cancel();
     _globalTypingSub?.cancel();
     _messagesSub?.cancel();
     _activeTypingSub?.cancel();
@@ -660,6 +689,7 @@ class ChatRepository extends ChangeNotifier {
     _friends = [];
     _incomingRequests = [];
     _outgoingRequests = [];
+    _roomInvitations = [];
     _messages.clear();
     // Unlike [closeRoom], which keeps these so re-entry paints instantly, this
     // is a sign-out: they are the previous account's room state.
@@ -777,6 +807,180 @@ class ChatRepository extends ChangeNotifier {
     final id = _userId;
     if (id == null) return;
     await api.leaveRoom(roomId: roomId, userId: id);
+  }
+
+  // ── Group administration ────────────────────────────────────────────────
+  //
+  // Thin pass-throughs: the repository holds the signed-in id so no screen has
+  // to, and that is the whole of its job here. There is no local cache of any
+  // of this on purpose — a stale copy of "am I still an admin" is worse than a
+  // spinner, because it draws controls that then refuse.
+
+  Future<RoomPermissions?> roomPermissions(String roomId) async {
+    final id = _userId;
+    if (id == null) return null;
+    return api.roomPermissions(roomId: roomId, userId: id);
+  }
+
+  Future<void> setRoomAdmin({
+    required String roomId,
+    required String targetUserId,
+    required bool makeAdmin,
+  }) async {
+    final id = _userId;
+    if (id == null) return;
+    await api.setRoomAdmin(
+      roomId: roomId,
+      userId: id,
+      targetUserId: targetUserId,
+      makeAdmin: makeAdmin,
+    );
+  }
+
+  Future<void> transferRoomOwnership({
+    required String roomId,
+    required String targetUserId,
+  }) async {
+    final id = _userId;
+    if (id == null) return;
+    await api.transferRoomOwnership(
+      roomId: roomId,
+      userId: id,
+      targetUserId: targetUserId,
+    );
+  }
+
+  Future<void> removeRoomMember({
+    required String roomId,
+    required String targetUserId,
+  }) async {
+    final id = _userId;
+    if (id == null) return;
+    await api.removeRoomMember(
+      roomId: roomId,
+      userId: id,
+      targetUserId: targetUserId,
+    );
+  }
+
+  Future<void> setRoomPolicy({
+    required String roomId,
+    bool? membersCanInvite,
+    RoomJoinPolicy? linkJoinPolicy,
+  }) async {
+    final id = _userId;
+    if (id == null) return;
+    await api.setRoomPolicy(
+      roomId: roomId,
+      userId: id,
+      membersCanInvite: membersCanInvite,
+      linkJoinPolicy: linkJoinPolicy,
+    );
+  }
+
+  Future<RoomInviteLink?> roomInviteLink(String roomId) async {
+    final id = _userId;
+    if (id == null) return null;
+    return api.getRoomInviteLink(roomId: roomId, userId: id);
+  }
+
+  Future<RoomInviteLink?> rotateRoomInviteLink(
+    String roomId, {
+    Duration? expiresIn,
+    int? maxUses,
+  }) async {
+    final id = _userId;
+    if (id == null) return null;
+    return api.rotateRoomInviteLink(
+      roomId: roomId,
+      userId: id,
+      expiresIn: expiresIn,
+      maxUses: maxUses,
+    );
+  }
+
+  Future<void> revokeRoomInviteLink(String roomId) async {
+    final id = _userId;
+    if (id == null) return;
+    await api.revokeRoomInviteLink(roomId: roomId, userId: id);
+  }
+
+  /// Signed-in id is OPTIONAL here, unlike everything else in this section: a
+  /// tapped invite link can land on a logged-out app, and the preview is what
+  /// tells that person what they are being invited to before they are asked to
+  /// sign in for it.
+  Future<InvitePreview> previewInvite(String code) =>
+      api.previewInvite(code: code, userId: _userId);
+
+  Future<({RedeemOutcome outcome, String roomId})?> redeemInvite(String code) async {
+    final id = _userId;
+    if (id == null) return null;
+    return api.redeemInvite(code: code, userId: id);
+  }
+
+  Future<List<RoomJoinRequest>> listJoinRequests(String roomId) async {
+    final id = _userId;
+    if (id == null) return const [];
+    return api.listJoinRequests(roomId: roomId, userId: id);
+  }
+
+  Future<void> decideJoinRequest({
+    required String requestId,
+    required bool approve,
+  }) async {
+    final id = _userId;
+    if (id == null) return;
+    await api.decideJoinRequest(requestId: requestId, userId: id, approve: approve);
+  }
+
+  Future<List<ChatUser>> invitableFriends(String roomId) async {
+    final id = _userId;
+    if (id == null) return const [];
+    return api.invitableFriends(roomId: roomId, userId: id);
+  }
+
+  Future<void> inviteToRoom({
+    required String roomId,
+    required String inviteeId,
+  }) async {
+    final id = _userId;
+    if (id == null) return;
+    await api.inviteToRoom(roomId: roomId, userId: id, inviteeId: inviteeId);
+  }
+
+  Future<String?> respondToRoomInvitation({
+    required String invitationId,
+    required bool accept,
+  }) async {
+    final id = _userId;
+    if (id == null) return null;
+    return api.respondToRoomInvitation(
+      invitationId: invitationId,
+      userId: id,
+      accept: accept,
+    );
+  }
+
+  Future<void> cancelRoomInvitation(String invitationId) async {
+    final id = _userId;
+    if (id == null) return;
+    await api.cancelRoomInvitation(invitationId: invitationId, userId: id);
+  }
+
+  Future<List<RoomInvitation>> incomingRoomInvitations() async {
+    final id = _userId;
+    if (id == null) return const [];
+    return api.listIncomingRoomInvitations(id);
+  }
+
+  /// One-shot read of the invites a room has out. Named apart from the
+  /// [roomInvitations] getter above, which is the signed-in user's own INBOX —
+  /// the two point in opposite directions and sharing a name made that
+  /// impossible to see at a call site.
+  Future<List<PendingRoomInvite>> pendingRoomInvites(String roomId) async {
+    final id = _userId;
+    if (id == null) return const [];
+    return api.listRoomInvitations(roomId: roomId, userId: id);
   }
 
   Future<void> pinRoom(String roomId) async {
