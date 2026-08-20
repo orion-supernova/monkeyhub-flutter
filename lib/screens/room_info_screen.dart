@@ -89,9 +89,6 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   /// and must never freeze the form under the user's cursor.
   bool _working = false;
 
-  /// Pending text commit. See [_applyRoom].
-  Timer? _applyDebounce;
-
   /// Signature of the last values actually written, so an edit that lands back
   /// on what the server already has costs nothing.
   String _appliedSig = '';
@@ -159,23 +156,18 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   void initState() {
     super.initState();
     _hydrate();
-    // AFTER _hydrate, or seeding the controllers would look like typing and
-    // fire a write on open.
-    _name.addListener(_applyRoom);
-    _desc.addListener(_applyRoom);
-    // Not an apply — the password never auto-commits. This is only so the SET
-    // button appears the moment there is something to set.
+    // The name and description controllers are deliberately UNWATCHED. They
+    // used to drive a debounced write, which meant typing saved on its own —
+    // so changing a name and then tapping cancel wrote the new name first and
+    // reverted the field afterwards, leaving the room renamed. Text now
+    // commits through the tick and nowhere else.
+    //
+    // The password field IS watched, but only to enable its button; it never
+    // auto-commits either.
     _newPassword.addListener(_onPasswordTyped);
     _loadContentCounts();
     _loadAdminState();
     widget.repo.addListener(_onRepo);
-  }
-
-  @override
-  void deactivate() {
-    // Backing out with a debounce still pending must not lose the edit.
-    _flushPendingApply();
-    super.deactivate();
   }
 
   /// The three administration subscriptions, opened together and torn down
@@ -341,8 +333,10 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     // Seeded so the first keystroke is measured against what the server has,
     // not against an empty string — otherwise opening the screen and touching
     // nothing would still write on the first debounce.
+    // Trimmed to match how [_pushRoom] builds it, or a description stored with
+    // stray whitespace would never compare equal and every toggle would write.
     _appliedSig =
-        '${r.name}|${r.description ?? ''}|${r.isPrivate}|${r.isEphemeral ? r.messageLifetime : null}';
+        '${r.name.trim()}|${(r.description ?? '').trim()}|${r.isPrivate}|${r.isEphemeral ? r.messageLifetime : null}';
     _loaded = true;
     _loadMembers();
   }
@@ -392,9 +386,6 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
 
   @override
   void dispose() {
-    _applyDebounce?.cancel();
-    _name.removeListener(_applyRoom);
-    _desc.removeListener(_applyRoom);
     _newPassword.removeListener(_onPasswordTyped);
     _membersSub?.cancel();
     _permsSub?.cancel();
@@ -405,55 +396,46 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     super.dispose();
   }
 
-  /// Push the room's fields to the server. There is no Save button.
+  /// Push the room's settings. There is no Save button.
   ///
-  /// Every control on this screen applies on its own: the visibility segments
-  /// and the disappearing-message chips commit on tap, the name and
-  /// description commit shortly after typing stops. A form whose changes only
-  /// exist until you find and press a button is a form people lose work in —
-  /// and this one's button had drifted below the member list, which is how
-  /// that gets noticed.
+  /// Two kinds of control feed this, and they commit differently on purpose:
   ///
-  /// [immediate] for the discrete controls, where the tap IS the decision and
-  /// waiting would make the toggle feel unresponsive. Text debounces, because
-  /// committing per keystroke would fire a rename per character — each one a
-  /// uniqueness check against every other room, and each one a write that
-  /// re-fires every subscription watching this room.
-  void _applyRoom({bool immediate = false}) {
-    _applyDebounce?.cancel();
-    if (immediate) {
-      unawaited(_pushRoom());
-      return;
-    }
-    _applyDebounce = Timer(const Duration(milliseconds: 600), () {
-      unawaited(_pushRoom());
-    });
-  }
-
-  /// The write itself. Never called directly — go through [_applyRoom].
-  Future<void> _pushRoom() async {
+  ///   discrete   the visibility segments and the disappearing-message chips
+  ///              call straight in on tap. The tap IS the decision and there is
+  ///              nothing to get wrong, so waiting would only make them feel
+  ///              unresponsive.
+  ///   text       the name and description commit ONLY through their tick.
+  ///              They used to auto-save on a debounce, which made cancel a
+  ///              lie: the write had already gone by the time you pressed it.
+  ///
+  /// Values come from the ROOM, overridden by whichever field is being
+  /// changed. Reading the controllers for everything would let an edit to one
+  /// field silently rewrite another with a stale value — the controllers are
+  /// seeded once, so a rename by another admin would be undone by the next
+  /// description edit.
+  Future<void> _pushRoom({String? name, String? description}) async {
     final r = _room;
     final me = widget.repo.userId;
     if (r == null || me == null) return;
 
-    final name = _name.text.trim();
+    final nextName = (name ?? r.name).trim();
     // An empty name is not a state to save, it is a state to be told about.
     // The server refuses it too (ROOM_NAME_REQUIRED); catching it here means
     // the message appears while the field is still empty rather than after a
-    // round trip, and no write is attempted mid-edit.
-    if (name.isEmpty) {
+    // round trip, and no write is attempted.
+    if (nextName.isEmpty) {
       if (!mounted) return;
       setState(() => _error =
           AppLocalizations.of(context).roomInfoScreenNameRequiredError);
       return;
     }
 
-    final description = _desc.text.trim();
+    final nextDesc = (description ?? r.description ?? '').trim();
     final ttl = r.isEphemeral ? _ttl : null;
-    // Skip a write that would change nothing. Without this, focusing a field
-    // and leaving it alone still costs a mutation — and every mutation on this
-    // row wakes every subscription watching the room.
-    final sig = '$name|$description|$_isPrivate|$ttl';
+    // Skip a write that would change nothing — committing an edit that landed
+    // back on the original value, or tapping the segment that is already
+    // active. Every mutation on this row wakes every subscription watching it.
+    final sig = '$nextName|$nextDesc|$_isPrivate|$ttl';
     if (sig == _appliedSig) {
       if (_error != null && mounted) setState(() => _error = null);
       return;
@@ -464,8 +446,8 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       await widget.api.updateRoom(
         roomId: r.id,
         userId: me,
-        name: name,
-        description: description.isEmpty ? null : description,
+        name: nextName,
+        description: nextDesc.isEmpty ? null : nextDesc,
         isPrivate: _isPrivate,
         messageLifetime: ttl,
       );
@@ -588,19 +570,6 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     final has = _newPassword.text.isNotEmpty;
     if (has == _passwordHasText) return;
     setState(() => _passwordHasText = has);
-  }
-
-  /// Commit a pending debounce before this screen goes away.
-  ///
-  /// Without it, typing a name and immediately backing out loses the edit —
-  /// the timer dies with the state. This is the one place auto-apply is
-  /// strictly harder than a Save button, and it is the whole reason the button
-  /// felt safe to people who never lost anything to it.
-  void _flushPendingApply() {
-    if (_applyDebounce?.isActive ?? false) {
-      _applyDebounce?.cancel();
-      unawaited(_pushRoom());
-    }
   }
 
   /// Set the room password. The ONE control here that is not automatic.
@@ -943,7 +912,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                             placeholder:
                                 AppLocalizations.of(context).roomInfoScreenNameHint,
                             enabled: _perms.canEditRoom || !r.isGroupChat,
-                            onCommit: (_) => _applyRoom(immediate: true),
+                            onCommit: (v) => _pushRoom(name: v),
                           ),
                           const SizedBox(height: 14),
                         ],
@@ -963,7 +932,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                                 .roomInfoScreenDescriptionHint,
                             enabled: _perms.canEditRoom || !r.isGroupChat,
                             maxLines: 3,
-                            onCommit: (_) => _applyRoom(immediate: true),
+                            onCommit: (v) => _pushRoom(description: v),
                           ),
                         ],
                         if (caps.canEditSettings) ...[
@@ -976,7 +945,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                                 active: !_isPrivate,
                                 onTap: () {
                                   setState(() => _isPrivate = false);
-                                  _applyRoom(immediate: true);
+                                  unawaited(_pushRoom());
                                 },
                                 icon: theme.visibilityIcon(isPublic: true, size: 14),
                                 title: AppLocalizations.of(context).roomInfoScreenPublicTitle,
@@ -990,7 +959,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                                 active: _isPrivate,
                                 onTap: () {
                                   setState(() => _isPrivate = true);
-                                  _applyRoom(immediate: true);
+                                  unawaited(_pushRoom());
                                 },
                                 icon: theme.visibilityIcon(isPublic: false, size: 14),
                                 title: AppLocalizations.of(context).roomInfoScreenPrivateTitle,
@@ -1015,7 +984,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                                 GestureDetector(
                                   onTap: () {
                                     setState(() => _ttl = t);
-                                    _applyRoom(immediate: true);
+                                    unawaited(_pushRoom());
                                   },
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),

@@ -194,6 +194,22 @@ void main() {
       expect(find.text('Before'), findsOneWidget);
     });
 
+    testWidgets('typing alone never commits, however long you wait', (t) async {
+      // The bug this pins shipped: the SCREEN watched these controllers and
+      // wrote on a debounce, so changing a name and tapping cancel saved the
+      // new name and then put the old one back on screen. Text must commit
+      // through the tick and nothing else — no timer, no listener, no blur.
+      final c = TextEditingController();
+      var commits = 0;
+      await t.pumpWidget(row(c: c, value: 'Before', onCommit: (_) => commits++));
+      await t.tap(find.text('Before'));
+      await t.pumpAndSettle();
+
+      await t.enterText(find.byType(TextField), 'Typed but not confirmed');
+      await t.pump(const Duration(seconds: 3));
+      expect(commits, 0, reason: 'no debounce may write behind the tick');
+    });
+
     testWidgets('tapping in and straight back out writes nothing', (t) async {
       final c = TextEditingController();
       var commits = 0;
