@@ -840,15 +840,22 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                             ),
                           ],
                         ],
-                        // Above SHARED CONTENT and below the room's own
-                        // settings, because it is neither: everything higher
-                        // up changes the room for everyone in it, and this
-                        // changes only how the room reaches THIS person.
-                        if (caps.canMute) ...[
-                          const SizedBox(height: 28),
-                          FieldLabel(AppLocalizations.of(context).roomInfoScreenMuteLabel),
-                          const SizedBox(height: 6),
-                          _muteRow(theme, r),
+                        // SAVE sits directly under the fields it saves, which
+                        // is the whole block above — name, description,
+                        // visibility, disappearing messages AND the password.
+                        // It used to live below the member list, so renaming a
+                        // fifty-person group meant scrolling past the media
+                        // row, the invite controls and every member to reach
+                        // the button. No mainstream app puts a commit action
+                        // below unrelated content, and most do not put an
+                        // editable form on this screen at all — see the note
+                        // above `build`.
+                        if (_error != null) ...[
+                          Text(_error!, style: theme.body.copyWith(color: theme.danger)),
+                          const SizedBox(height: 14),
+                        ],
+                        if (canSaveAnything) ...[
+                          _saveButton(theme, busy),
                         ],
                         const SizedBox(height: 28),
                         FieldLabel(AppLocalizations.of(context).roomInfoScreenSharedContentLabel),
@@ -874,34 +881,38 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                         // "Members (1): you" is not information — and neither
                         // is "Members (2): you and a bot", or "you and the
                         // person this screen is already titled after".
-                        // Above the roster, because every row in it is a way
-                        // to CHANGE that roster — and below the room's own
-                        // settings, because none of them changes the room.
-                        if (r.isGroupChat &&
-                            (_perms.canInvite || _perms.canManageLink)) ...[
-                          const SizedBox(height: 28),
-                          FieldLabel(AppLocalizations.of(context).roomAdminSectionLabel),
-                          const SizedBox(height: 2),
-                          _groupAdmin(theme),
-                        ],
+                        //
+                        // The invite controls are the HEAD of this section, not
+                        // a section of their own further up. Every mainstream
+                        // group screen does it this way — WhatsApp, Signal and
+                        // Telegram all make "add" the first row of the roster —
+                        // and the version that had a separate GROUP block above
+                        // ALSO had an add row inside the list, so the same
+                        // action appeared twice on one screen.
                         if (caps.hasMembers) ...[
                           const SizedBox(height: 28),
                           FieldLabel(AppLocalizations.of(context).roomInfoScreenMembersLabel(_members.length)),
                           const SizedBox(height: 6),
+                          if (r.isGroupChat &&
+                              (_perms.canInvite || _perms.canManageLink)) ...[
+                            _groupAdmin(theme),
+                            const SizedBox(height: 6),
+                            Divider(height: 1, thickness: 1, color: theme.divider),
+                            const SizedBox(height: 6),
+                          ],
                           _membersList(theme, r),
                         ],
+                        // Last of the ordinary sections, above only the
+                        // destructive pair. It is one row, it is set once and
+                        // forgotten, and it is the only block here that changes
+                        // nothing for anybody but the reader.
+                        if (caps.canMute) ...[
+                          const SizedBox(height: 28),
+                          FieldLabel(AppLocalizations.of(context).roomInfoScreenMuteLabel),
+                          const SizedBox(height: 6),
+                          _muteRow(theme, r),
+                        ],
                         const SizedBox(height: 28),
-                        if (_error != null) ...[
-                          Text(_error!, style: theme.body.copyWith(color: theme.danger)),
-                          const SizedBox(height: 14),
-                        ],
-                        // Nothing above is editable for a DM, Saved Messages or
-                        // a system room (name, description and visibility are
-                        // all hidden for them), so there is nothing to save.
-                        if (canSaveAnything) ...[
-                          _saveButton(theme, busy),
-                          const SizedBox(height: 14),
-                        ],
                         // A DM has no "leave" that makes sense — it's just the
                         // two people, and leaving alone silently strands you
                         // (you'd stop being a member but the room lives on,
@@ -1220,12 +1231,6 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     final me = widget.repo.userId;
     return Column(
       children: [
-        // First row of the roster, above the people — where every mainstream
-        // chat app puts it, and where someone looking at "who is in here"
-        // already is when they think "and X should be". It ALSO lives in the
-        // GROUP block above; that is not a duplicate so much as the difference
-        // between managing the room and reading it.
-        if (_perms.canInvite) _addMembersRow(theme),
         for (final m in ordered) _memberRow(theme, r, m, me),
         // Outstanding invites, below the real roster and visibly apart from it.
         // These people are NOT members — they have been asked and have not
@@ -1239,55 +1244,6 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
           for (final inv in _pendingInvites) _pendingInviteRow(theme, inv),
         ],
       ],
-    );
-  }
-
-  Widget _addMembersRow(AppTheme theme) {
-    final l10n = AppLocalizations.of(context);
-    Future<void> open() async {
-      await showRoomInviteFriendsSheet(
-        context,
-        repo: widget.repo,
-        api: widget.api,
-        roomId: widget.roomId,
-      );
-      await _refreshAdminLists();
-    }
-    return FocusableTap(
-      onTap: open,
-      semanticLabel: l10n.roomAdminAddFriendsRow,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: open,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Row(
-            children: [
-              // Same 32px circle the avatars use, so the row sits on the
-              // roster's rhythm instead of looking like a button that wandered
-              // into a list.
-              Container(
-                width: 32,
-                height: 32,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: theme.accentSoft,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.add, size: 18, color: theme.accent),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  l10n.roomAdminAddFriendsRow,
-                  style: theme.body.copyWith(color: theme.accent),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -1629,7 +1585,6 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
             theme,
             icon: Icons.person_add_alt,
             label: l10n.roomAdminAddFriendsRow,
-            sub: l10n.roomAdminAddFriendsRowSub,
             onTap: () async {
               await showRoomInviteFriendsSheet(
                 context,
@@ -1645,7 +1600,6 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
             theme,
             icon: Icons.link,
             label: l10n.roomAdminInviteLinkRow,
-            sub: l10n.roomAdminInviteLinkRowSub,
             onTap: () => showRoomInviteSheet(
               context,
               repo: widget.repo,
@@ -1661,7 +1615,6 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
             theme,
             icon: Icons.how_to_reg_outlined,
             label: l10n.roomAdminJoinRequestsRow,
-            sub: l10n.roomAdminJoinRequestsRowSub(pendingRequests),
             badge: pendingRequests,
             onTap: () async {
               await showRoomJoinRequestsSheet(
@@ -1677,11 +1630,16 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     );
   }
 
+  /// One row at the head of the member list: add, invite link, join requests.
+  ///
+  /// Single line by design — these sit directly above the roster and read as
+  /// part of it. An earlier version carried an explanatory sub-line per row,
+  /// which was right when this was a section of its own and became six lines of
+  /// preamble once it moved into the list.
   Widget _adminRow(
     AppTheme theme, {
     required IconData icon,
     required String label,
-    required String sub,
     required VoidCallback onTap,
     int? badge,
   }) {
@@ -1693,19 +1651,29 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 11),
+          padding: const EdgeInsets.symmetric(vertical: 6),
           child: Row(
             children: [
-              Icon(icon, size: 20, color: theme.ink),
-              const SizedBox(width: 12),
+              // A 32px circle, not a bare glyph. These rows are now the head of
+              // the member list, sitting directly above avatars — the circle is
+              // what puts them on the roster's rhythm instead of looking like
+              // buttons that wandered into a list. Same treatment WhatsApp
+              // gives "Add participants".
+              Container(
+                width: 32,
+                height: 32,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: theme.accentSoft,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 17, color: theme.accent),
+              ),
+              const SizedBox(width: 10),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(label, style: theme.body),
-                    const SizedBox(height: 2),
-                    Text(sub, style: theme.monoTiny),
-                  ],
+                child: Text(
+                  label,
+                  style: theme.body.copyWith(color: theme.accent),
                 ),
               ),
               if (badge != null && badge > 0) ...[

@@ -33,8 +33,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageScreenTitle => 'language.';
 
   @override
-  String get languageScreenSubtitle =>
-      'choose the language for menus and messages from the app';
+  String get languageScreenSubtitle => 'choose the language for menus and messages from the app';
 
   @override
   String get languageOptionSystem => 'SYSTEM';
@@ -61,8 +60,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageValueTurkish => 'Türkçe';
 
   @override
-  String get roomScreenAskGrownUpFailedSnack =>
-      'couldn’t ask right now — try again';
+  String get roomScreenAskGrownUpFailedSnack => 'couldn’t ask right now — try again';
 
   @override
   String get roomScreenGateSendMessages => 'send messages here';
@@ -87,8 +85,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get roomScreenDeleteConfirmBody =>
-      'This removes them for everyone in this chat. It cannot be undone.';
+  String get roomScreenDeleteConfirmBody => 'This removes them for everyone in this chat. It cannot be undone.';
 
   @override
   String get roomScreenDeleteConfirmButton => 'DELETE FOR EVERYONE';
@@ -97,8 +94,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomScreenJumpFailedSnack => 'couldn’t jump to that message';
 
   @override
-  String get roomScreenViewOnceAlreadyViewed =>
-      'you’ve already opened this photo.';
+  String get roomScreenViewOnceAlreadyViewed => 'you’ve already opened this photo.';
 
   @override
   String get roomScreenViewOnceGone => 'this photo is no longer available.';
@@ -130,8 +126,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomScreenPinFailedSnack => 'couldn’t pin that';
 
   @override
-  String get roomScreenReportSentSnack =>
-      'report sent privately. they won’t be notified.';
+  String get roomScreenReportSentSnack => 'report sent privately. they won’t be notified.';
 
   @override
   String get roomScreenDeselectMessageSemantic => 'Deselect message';
@@ -191,8 +186,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomScreenSecretSpaceTitle => 'Secret Space';
 
   @override
-  String get roomScreenSecretSpaceBody =>
-      'Messages in this room are ephemeral. They are automatically removed based on the room’s security policy.';
+  String get roomScreenSecretSpaceBody => 'Messages in this room are ephemeral. They are automatically removed based on the room’s security policy.';
 
   @override
   String get roomScreenAutoDeleteTitle => 'Auto-Delete';
@@ -213,15 +207,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomScreenMorePrivacyTitle => 'Much More Privacy';
 
   @override
-  String get roomScreenMorePrivacySubtitle =>
-      'Enjoy extra security features on top of already existing privacy focus.';
+  String get roomScreenMorePrivacySubtitle => 'Enjoy extra security features on top of already existing privacy focus.';
 
   @override
   String get roomScreenNoMessagesTitle => 'No Messages';
 
   @override
-  String get roomScreenNoMessagesSubtitle =>
-      'Start the conversation by sending a message';
+  String get roomScreenNoMessagesSubtitle => 'Start the conversation by sending a message';
 
   @override
   String get roomScreenViewProfilePictureSemantic => 'view profile picture';
@@ -254,8 +246,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get messageBubbleViewOncePhotoLabel => 'Photo';
 
   @override
-  String get messageBubbleViewOnceSemanticLabel =>
-      'view once photo, tap to view';
+  String get messageBubbleViewOnceSemanticLabel => 'view once photo, tap to view';
 
   @override
   String get messageBubbleRetrySendingSemanticLabel => 'retry sending';
@@ -293,8 +284,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileScreenBlockAction => 'BLOCK';
 
   @override
-  String get profileScreenBlockedDmWiped =>
-      'blocked & DM wiped. they won’t be notified.';
+  String get profileScreenBlockedDmWiped => 'blocked & DM wiped. they won’t be notified.';
 
   @override
   String get profileScreenBlockedOnly => 'blocked. they won’t be notified.';
@@ -318,8 +308,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileScreenChangeNameTitle => 'change name?';
 
   @override
-  String get profileScreenChangeProfilePictureSemantic =>
-      'change profile picture';
+  String get profileScreenChangeProfilePictureSemantic => 'change profile picture';
 
   @override
   String get profileScreenChangeRecoveryPhrase => 'CHANGE RECOVERY PHRASE';
@@ -346,26 +335,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileScreenErrorGeneric => 'couldn’t complete that.';
 
   @override
-  String get profileScreenErrorNotAccepting =>
-      'they’re not accepting friend requests right now.';
+  String get profileScreenErrorNotAccepting => 'they’re not accepting friend requests right now.';
 
   @override
-  String get profileScreenErrorRequestAlreadyReceived =>
-      'they already sent you a request — check requests.';
+  String get profileScreenErrorRequestAlreadyReceived => 'they already sent you a request — check requests.';
 
   @override
   String get profileScreenErrorRequestAlreadySent => 'request already sent.';
 
   @override
-  String get profileScreenErrorUnblockFirst =>
-      'you blocked this user — unblock them first.';
+  String get profileScreenErrorUnblockFirst => 'you blocked this user — unblock them first.';
 
   @override
   String get profileScreenErrorUserNotFound => 'this isn’t possible right now.';
 
   @override
-  String get profileScreenNameNotSaved =>
-      'Couldn\'t save your name. Please try again.';
+  String get profileScreenNameNotSaved => 'Couldn\'t save your name. Please try again.';
 
   @override
   String get profileScreenFamilyAddChild => 'add a child';
@@ -388,12 +373,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileScreenFriendsChip => 'FRIENDS';
 
   @override
-  String get profileScreenGrownUpOnlyNote =>
-      'Only a grown-up can do this — it needs their code or password.';
+  String get profileScreenGrownUpOnlyNote => 'Only a grown-up can do this — it needs their code or password.';
 
   @override
-  String get profileScreenGuardiansCanSee =>
-      'They can see when you’re online and who you talk to.';
+  String get profileScreenGuardiansCanSee => 'They can see when you’re online and who you talk to.';
 
   @override
   String get profileScreenHandPhoneBack => 'HAND THIS PHONE BACK';
@@ -426,8 +409,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileScreenChangeUsernameTitle => 'change username?';
 
   @override
-  String get profileScreenChangeUsernameWarning =>
-      'You sign in with this, so the new one is what you\'ll type from now on. Your old username is freed for anyone else to take, and you can\'t change it again for 30 days. Older messages that tagged you keep the old name.';
+  String get profileScreenChangeUsernameWarning => 'You sign in with this, so the new one is what you\'ll type from now on. Your old username is freed for anyone else to take, and you can\'t change it again for 30 days. Older messages that tagged you keep the old name.';
 
   @override
   String get profileScreenUsernameHint => 'how friends find you';
@@ -452,8 +434,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get profileScreenUsernameNotSaved =>
-      'Couldn\'t change your username. Please try again.';
+  String get profileScreenUsernameNotSaved => 'Couldn\'t change your username. Please try again.';
 
   @override
   String get usernameStatusChecking => 'checking…';
@@ -474,12 +455,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get usernameStatusUnknown => 'couldn\'t check';
 
   @override
-  String get profileScreenNobodyLookingAfter =>
-      'nobody looking after this account yet';
+  String get profileScreenNobodyLookingAfter => 'nobody looking after this account yet';
 
   @override
-  String get profileScreenNotAcceptingRequestsAction =>
-      'NOT ACCEPTING REQUESTS';
+  String get profileScreenNotAcceptingRequestsAction => 'NOT ACCEPTING REQUESTS';
 
   @override
   String get profileScreenNotConnectedChip => 'NOT CONNECTED';
@@ -500,19 +479,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileScreenProfilePictureTitle => 'PROFILE PICTURE';
 
   @override
-  String get profileScreenRedactedFriend =>
-      'some fields are hidden by their settings.';
+  String get profileScreenRedactedFriend => 'some fields are hidden by their settings.';
 
   @override
-  String get profileScreenRedactedStranger =>
-      'limited view — they share more with friends.';
+  String get profileScreenRedactedStranger => 'limited view — they share more with friends.';
 
   @override
   String get profileScreenReportAction => 'REPORT';
 
   @override
-  String get profileScreenReportSent =>
-      'report sent privately. they won’t be notified.';
+  String get profileScreenReportSent => 'report sent privately. they won’t be notified.';
 
   @override
   String get profileScreenRequestPendingChip => 'REQUEST PENDING';
@@ -539,8 +515,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileScreenTakeSelfie => 'TAKE A SELFIE';
 
   @override
-  String get profileScreenTapAgainToConfirmDelete =>
-      'TAP AGAIN TO CONFIRM DELETE';
+  String get profileScreenTapAgainToConfirmDelete => 'TAP AGAIN TO CONFIRM DELETE';
 
   @override
   String get settingsScreenTermsOfService => 'TERMS OF SERVICE';
@@ -585,12 +560,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cameraEditorScreenCropSemanticLabel => 'crop';
 
   @override
-  String get cameraEditorScreenHeicUnsupportedMessage =>
-      'this browser can’t open HEIC photos';
+  String get cameraEditorScreenHeicUnsupportedMessage => 'this browser can’t open HEIC photos';
 
   @override
-  String get cameraEditorScreenImageLoadFailedMessage =>
-      'couldn’t open that image';
+  String get cameraEditorScreenImageLoadFailedMessage => 'couldn’t open that image';
 
   @override
   String get cameraEditorScreenCropDoneButton => 'DONE';
@@ -611,8 +584,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cameraEditorScreenSendButton => 'SEND';
 
   @override
-  String get cameraEditorScreenViewOnceNote =>
-      'disappears after it’s opened once';
+  String get cameraEditorScreenViewOnceNote => 'disappears after it’s opened once';
 
   @override
   String get cameraEditorScreenClearDrawingSemanticLabel => 'clear drawing';
@@ -661,22 +633,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get glassScreenSurfacesNote =>
-      'the composer, headers, call buttons — anything that sits over text rather than over scrolling content';
+  String get glassScreenSurfacesNote => 'the composer, headers, call buttons — anything that sits over text rather than over scrolling content';
 
   @override
   String get glassScreenMatchBottomBar => 'MATCH THE BOTTOM BAR';
 
   @override
-  String get glassScreenPresetEditedSubtitle =>
-      'edited — save it as a new look, or reset it';
+  String get glassScreenPresetEditedSubtitle => 'edited — save it as a new look, or reset it';
 
   @override
   String get glassScreenCustomPresetName => 'Custom';
 
   @override
-  String get glassScreenUnsavedSubtitle =>
-      'unsaved — give it a name to keep it';
+  String get glassScreenUnsavedSubtitle => 'unsaved — give it a name to keep it';
 
   @override
   String get glassScreenSaveDialogTitle => 'save this look as';
@@ -693,8 +662,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get glassScreenDeleteConfirmBody =>
-      'the look stays on screen — it just stops having a name.';
+  String get glassScreenDeleteConfirmBody => 'the look stays on screen — it just stops having a name.';
 
   @override
   String get glassScreenKeepButton => 'keep';
@@ -753,33 +721,28 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get glassScreenBackdropMsgDilan =>
-      'sent the roof photos — the tiles are all cracked';
+  String get glassScreenBackdropMsgDilan => 'sent the roof photos — the tiles are all cracked';
 
   @override
-  String get glassScreenBackdropMsgMert =>
-      'ok but who is actually bringing the speaker';
+  String get glassScreenBackdropMsgMert => 'ok but who is actually bringing the speaker';
 
   @override
   String get glassScreenBackdropGroupFamily => 'family';
 
   @override
-  String get glassScreenBackdropMsgFamily =>
-      'Anne: dinner at 8, do not be late again';
+  String get glassScreenBackdropMsgFamily => 'Anne: dinner at 8, do not be late again';
 
   @override
   String get glassScreenBackdropMsgZeynep => 'i am outside';
 
   @override
-  String get glassScreenBackdropMsgKerem =>
-      'that place on the corner does the good coffee';
+  String get glassScreenBackdropMsgKerem => 'that place on the corner does the good coffee';
 
   @override
   String get glassScreenBackdropGroupWork => 'work';
 
   @override
-  String get glassScreenBackdropMsgWork =>
-      'standup moved to 10:30 for the rest of the week';
+  String get glassScreenBackdropMsgWork => 'standup moved to 10:30 for the rest of the week';
 
   @override
   String get glassScreenBackdropMsgElif => 'no way. send it again i lost it';
@@ -788,8 +751,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get glassScreenBackdropMsgBaran => 'landed 👍';
 
   @override
-  String get glassScreenBackdropMsgAyse =>
-      'the cat has learned to open the balcony door';
+  String get glassScreenBackdropMsgAyse => 'the cat has learned to open the balcony door';
 
   @override
   String get glassScreenBackdropMsgCan => 'see you saturday then';
@@ -812,16 +774,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get replyIndicatorMessageRemoved => 'message removed';
 
   @override
-  String get threadOverlayMessageNotFound =>
-      'couldn’t find that message in this thread';
+  String get threadOverlayMessageNotFound => 'couldn’t find that message in this thread';
 
   @override
-  String get threadOverlayReplyTargetNotFound =>
-      'couldn’t find the thread to reply to';
+  String get threadOverlayReplyTargetNotFound => 'couldn’t find the thread to reply to';
 
   @override
-  String get threadOverlayStillSending =>
-      'still sending — try again in a second';
+  String get threadOverlayStillSending => 'still sending — try again in a second';
 
   @override
   String get threadOverlayCopiedToast => 'copied';
@@ -857,8 +816,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomInfoScreenLeaveConfirmTitle => 'leave room?';
 
   @override
-  String get roomInfoScreenLeaveConfirmBody =>
-      'you can rejoin if it stays open.';
+  String get roomInfoScreenLeaveConfirmBody => 'you can rejoin if it stays open.';
 
   @override
   String get roomInfoScreenLeaveConfirmButton => 'LEAVE';
@@ -867,15 +825,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomInfoScreenDeleteConfirmTitle => 'delete room?';
 
   @override
-  String get roomInfoScreenDeleteConfirmBody =>
-      'every message in here goes with it. this is permanent.';
+  String get roomInfoScreenDeleteConfirmBody => 'every message in here goes with it. this is permanent.';
 
   @override
   String get roomInfoScreenDeleteConfirmButton => 'DELETE';
 
   @override
-  String get roomInfoScreenEndConversationConfirmTitle =>
-      'end this conversation?';
+  String get roomInfoScreenEndConversationConfirmTitle => 'end this conversation?';
 
   @override
   String roomInfoScreenEndConversationConfirmBody(String peerName) {
@@ -892,8 +848,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomInfoScreenConfirmCancelButton => 'CANCEL';
 
   @override
-  String get roomInfoScreenErrorRoomExists =>
-      'a room with that name already exists';
+  String get roomInfoScreenErrorRoomExists => 'a room with that name already exists';
 
   @override
   String get roomInfoScreenErrorNotOwner => 'only the owner can do that';
@@ -962,8 +917,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomInfoScreenNoneBadge => 'NONE';
 
   @override
-  String get roomInfoScreenPasswordProtectedNote =>
-      'this room is protected. the existing passphrase isn’t shown for security — enter a new one to replace it.';
+  String get roomInfoScreenPasswordProtectedNote => 'this room is protected. the existing passphrase isn’t shown for security — enter a new one to replace it.';
 
   @override
   String get roomInfoScreenReplacePasswordHint => 'replace passphrase…';
@@ -1031,8 +985,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomInfoScreenNoneCount => 'none';
 
   @override
-  String get cameraScreenAccessDeniedMessage =>
-      'camera access is off.\nturn it on in Settings to take a photo.';
+  String get cameraScreenAccessDeniedMessage => 'camera access is off.\nturn it on in Settings to take a photo.';
 
   @override
   String get cameraScreenOpeningSystemCamera => 'opening the system camera…';
@@ -1092,16 +1045,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get childPolicyScreenAskToAddLabel => 'ASK TO ADD';
 
   @override
-  String get childPolicyScreenAskToAddOffDesc =>
-      'family only — no new requests';
+  String get childPolicyScreenAskToAddOffDesc => 'family only — no new requests';
 
   @override
-  String get childPolicyScreenAskToAddOnDesc =>
-      'they can ask you about new people';
+  String get childPolicyScreenAskToAddOnDesc => 'they can ask you about new people';
 
   @override
-  String get childPolicyScreenBothFinalNote =>
-      'Both of these are final. Stepping away instead is up in GROWN-UPS.';
+  String get childPolicyScreenBothFinalNote => 'Both of these are final. Stepping away instead is up in GROWN-UPS.';
 
   @override
   String get childPolicyScreenCallsLabel => 'CALLS';
@@ -1110,8 +1060,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get childPolicyScreenCallsOffDesc => 'messages only';
 
   @override
-  String get childPolicyScreenCallsOnDesc =>
-      'voice + video with people they’re allowed';
+  String get childPolicyScreenCallsOnDesc => 'voice + video with people they’re allowed';
 
   @override
   String get childPolicyScreenCancelLabel => 'CANCEL';
@@ -1120,8 +1069,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get childPolicyScreenCancelSemanticLabel => 'Cancel';
 
   @override
-  String get childPolicyScreenContactAddedRequestSent =>
-      'added — the request is on its way';
+  String get childPolicyScreenContactAddedRequestSent => 'added — the request is on its way';
 
   @override
   String get childPolicyScreenContactAddedToList => 'added to the allowed list';
@@ -1133,16 +1081,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get childPolicyScreenCreateRoomsOffDesc => 'they can’t start rooms';
 
   @override
-  String get childPolicyScreenCreateRoomsOnDesc =>
-      'they can start their own private rooms';
+  String get childPolicyScreenCreateRoomsOnDesc => 'they can start their own private rooms';
 
   @override
-  String get childPolicyScreenDeleteAccountBody =>
-      'Everything goes: their messages, photos, rooms, and friends. This cannot be undone, and the username is freed for anyone else.';
+  String get childPolicyScreenDeleteAccountBody => 'Everything goes: their messages, photos, rooms, and friends. This cannot be undone, and the username is freed for anyone else.';
 
   @override
-  String get childPolicyScreenDeleteAccountFailed =>
-      'couldn’t delete the account — try again';
+  String get childPolicyScreenDeleteAccountFailed => 'couldn’t delete the account — try again';
 
   @override
   String childPolicyScreenDeleteAccountHeadline(Object name) {
@@ -1150,8 +1095,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get childPolicyScreenDeleteDangerDetail =>
-      'Messages, photos, rooms and friends all go. Cannot be undone.';
+  String get childPolicyScreenDeleteDangerDetail => 'Messages, photos, rooms and friends all go. Cannot be undone.';
 
   @override
   String childPolicyScreenDeleteDangerLabel(Object name) {
@@ -1162,49 +1106,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get childPolicyScreenDeleteForeverCta => 'DELETE FOREVER';
 
   @override
-  String get childPolicyScreenErrorAddContactGeneric =>
-      'couldn’t add them — try again';
+  String get childPolicyScreenErrorAddContactGeneric => 'couldn’t add them — try again';
 
   @override
   String get childPolicyScreenErrorCannotAddSelf => 'that’s their own username';
 
   @override
-  String get childPolicyScreenErrorChildNotAllowed =>
-      'a child can’t be a grown-up';
+  String get childPolicyScreenErrorChildNotAllowed => 'a child can’t be a grown-up';
 
   @override
-  String get childPolicyScreenErrorGenericGuardian =>
-      'couldn’t do that — try again';
+  String get childPolicyScreenErrorGenericGuardian => 'couldn’t do that — try again';
 
   @override
-  String get childPolicyScreenErrorLastGuardian =>
-      'someone has to look after them — add another grown-up first';
+  String get childPolicyScreenErrorLastGuardian => 'someone has to look after them — add another grown-up first';
 
   @override
   String get childPolicyScreenErrorNotYours => 'that’s not yours to change';
 
   @override
-  String get childPolicyScreenErrorUserNotFound =>
-      'no account with that username';
+  String get childPolicyScreenErrorUserNotFound => 'no account with that username';
 
   @override
-  String get childPolicyScreenGraduateBlurb =>
-      'They become a normal account with this password, and every grown-up loses all visibility. There is no way back — you would have to be invited like anyone else.';
+  String get childPolicyScreenGraduateBlurb => 'They become a normal account with this password, and every grown-up loses all visibility. There is no way back — you would have to be invited like anyone else.';
 
   @override
   String get childPolicyScreenGraduateCta => 'GRADUATE';
 
   @override
-  String get childPolicyScreenGraduateDangerDetail =>
-      'They keep everything and get a password. You lose all visibility. Irreversible.';
+  String get childPolicyScreenGraduateDangerDetail => 'They keep everything and get a password. You lose all visibility. Irreversible.';
 
   @override
-  String get childPolicyScreenGraduateDangerLabel =>
-      'GRADUATE TO A FULL ACCOUNT';
+  String get childPolicyScreenGraduateDangerLabel => 'GRADUATE TO A FULL ACCOUNT';
 
   @override
-  String get childPolicyScreenGraduateFailed =>
-      'couldn’t graduate them — try again';
+  String get childPolicyScreenGraduateFailed => 'couldn’t graduate them — try again';
 
   @override
   String childPolicyScreenGraduateHeading(Object name) {
@@ -1215,16 +1150,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get childPolicyScreenGraduateHint => 'a password for them';
 
   @override
-  String get childPolicyScreenGrantsFooterNote =>
-      'Taking a room back also removes them from it. Taking a person back deletes their chat as well — for both of them.';
+  String get childPolicyScreenGrantsFooterNote => 'Taking a room back also removes them from it. Taking a person back deletes their chat as well — for both of them.';
 
   @override
-  String get childPolicyScreenGrownUpsDesc =>
-      'Everyone here can approve, change settings, and see everything. Any of them can act alone — nothing waits on the others.';
+  String get childPolicyScreenGrownUpsDesc => 'Everyone here can approve, change settings, and see everything. Any of them can act alone — nothing waits on the others.';
 
   @override
-  String get childPolicyScreenGuardianAdded =>
-      'added — they can look after them now';
+  String get childPolicyScreenGuardianAdded => 'added — they can look after them now';
 
   @override
   String childPolicyScreenGuardianRemoved(Object name) {
@@ -1249,19 +1181,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get childPolicyScreenMediaOffDesc => 'text only';
 
   @override
-  String get childPolicyScreenMediaOnDesc =>
-      'they can send pictures, video and voice notes';
+  String get childPolicyScreenMediaOnDesc => 'they can send pictures, video and voice notes';
 
   @override
   String get childPolicyScreenNoRoomsYet => 'no rooms yet';
 
   @override
-  String get childPolicyScreenPeopleAllowedDesc =>
-      'Anyone here can be added without asking you again — whichever of them starts it.';
+  String get childPolicyScreenPeopleAllowedDesc => 'Anyone here can be added without asking you again — whichever of them starts it.';
 
   @override
-  String get childPolicyScreenPublicRoomsBody =>
-      'Always off for kids. Discover — the list of rooms belonging to people you don’t know — is hidden completely and can’t be switched on. Rooms someone invites them to still work as normal.';
+  String get childPolicyScreenPublicRoomsBody => 'Always off for kids. Discover — the list of rooms belonging to people you don’t know — is hidden completely and can’t be switched on. Rooms someone invites them to still work as normal.';
 
   @override
   String get childPolicyScreenPublicRoomsLabel => 'PUBLIC ROOMS';
@@ -1300,8 +1229,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get childPolicyScreenSectionWhenDone => 'WHEN THEY’RE DONE';
 
   @override
-  String get childPolicyScreenSendNowOffDesc =>
-      'nothing happens until someone adds the other';
+  String get childPolicyScreenSendNowOffDesc => 'nothing happens until someone adds the other';
 
   @override
   String get childPolicyScreenSendNowOnDesc => 'they get asked straight away';
@@ -1329,8 +1257,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get childPolicyScreenStopSupervisingHeadline => 'STOP SUPERVISING?';
 
   @override
-  String get childPolicyScreenTakeBackFailed =>
-      'couldn’t take them back — try again';
+  String get childPolicyScreenTakeBackFailed => 'couldn’t take them back — try again';
 
   @override
   String get childPolicyScreenTakeBackLabel => 'TAKE BACK';
@@ -1373,8 +1300,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get roomContentScreenDeleteBody =>
-      'This removes them for everyone in this chat. It cannot be undone.';
+  String get roomContentScreenDeleteBody => 'This removes them for everyone in this chat. It cannot be undone.';
 
   @override
   String get roomContentScreenDeleteForEveryone => 'DELETE FOR EVERYONE';
@@ -1421,8 +1347,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomContentScreenEmptyLinks => 'no links yet';
 
   @override
-  String get roomContentScreenEmptySaved =>
-      'nothing saved yet. hold a message and choose SAVE.\n\nwhat you keep here is private to you — a pinned message is what the whole room sees.';
+  String get roomContentScreenEmptySaved => 'nothing saved yet. hold a message and choose SAVE.\n\nwhat you keep here is private to you — a pinned message is what the whole room sees.';
 
   @override
   String get roomContentScreenLoadFailed => 'couldn’t load that';
@@ -1463,8 +1388,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get composerEditCardTitle => 'EDIT MESSAGE';
 
   @override
-  String get spoilerRevealHint =>
-      'Spoiler — activate to reveal the hidden text';
+  String get spoilerRevealHint => 'Spoiler — activate to reveal the hidden text';
 
   @override
   String get formatToolbarFormatLabel => 'Format';
@@ -1500,8 +1424,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get linkInputSheetApplyLabel => 'APPLY LINK';
 
   @override
-  String get linkInputSheetApplySub =>
-      'The selected text will open this address when tapped';
+  String get linkInputSheetApplySub => 'The selected text will open this address when tapped';
 
   @override
   String get linkInputSheetRemoveLabel => 'REMOVE LINK';
@@ -1516,12 +1439,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get linkConfirmSheetCancelLabel => 'CANCEL';
 
   @override
-  String get roomScreenEditExpiredSnack =>
-      'Too late to edit — messages can only be edited for 15 minutes.';
+  String get roomScreenEditExpiredSnack => 'Too late to edit — messages can only be edited for 15 minutes.';
 
   @override
-  String get roomScreenEditFailedSnack =>
-      'Couldn\'t save the edit. Check your connection and try again.';
+  String get roomScreenEditFailedSnack => 'Couldn\'t save the edit. Check your connection and try again.';
 
   @override
   String get messageActionMenuForwardLabel => 'FORWARD';
@@ -1695,23 +1616,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get friendRequestDraftScreenWithdrawnSnackbar =>
-      'that request was withdrawn';
+  String get friendRequestDraftScreenWithdrawnSnackbar => 'that request was withdrawn';
 
   @override
   String get friendRequestDraftScreenDeclinedSnackbar => 'request declined';
 
   @override
-  String get friendRequestDraftScreenErrorBlocked =>
-      'you blocked this user — unblock first.';
+  String get friendRequestDraftScreenErrorBlocked => 'you blocked this user — unblock first.';
 
   @override
-  String get friendRequestDraftScreenErrorNotAccepting =>
-      'they\'re not accepting friend requests right now.';
+  String get friendRequestDraftScreenErrorNotAccepting => 'they\'re not accepting friend requests right now.';
 
   @override
-  String get friendRequestDraftScreenErrorSendFailed =>
-      'couldn\'t send. try again.';
+  String get friendRequestDraftScreenErrorSendFailed => 'couldn\'t send. try again.';
 
   @override
   String get friendRequestDraftScreenIncomingRequestLabel => 'INCOMING REQUEST';
@@ -1725,12 +1642,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get friendRequestDraftScreenIntroOutgoing =>
-      'send a few lines. they can approve or decline.';
+  String get friendRequestDraftScreenIntroOutgoing => 'send a few lines. they can approve or decline.';
 
   @override
-  String get friendRequestDraftScreenIntroFooter =>
-      'nothing here lives anywhere permanent until both sides agree.';
+  String get friendRequestDraftScreenIntroFooter => 'nothing here lives anywhere permanent until both sides agree.';
 
   @override
   String get friendRequestDraftScreenRoomTypeLabel => 'ROOM TYPE';
@@ -1760,19 +1675,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get friendRequestDraftScreenHintWhisperOptional =>
-      'whisper a first line · optional';
+  String get friendRequestDraftScreenHintWhisperOptional => 'whisper a first line · optional';
 
   @override
-  String get friendRequestDraftScreenHintFirstMessageOptional =>
-      'add a first message · optional';
+  String get friendRequestDraftScreenHintFirstMessageOptional => 'add a first message · optional';
 
   @override
   String get friendRequestDraftScreenHintWhisperFades => 'whisper · auto-fades';
 
   @override
-  String get friendRequestDraftScreenHintStartWith =>
-      'something to start with…';
+  String get friendRequestDraftScreenHintStartWith => 'something to start with…';
 
   @override
   String get friendRequestDraftScreenApproveButton => 'APPROVE & OPEN ROOM';
@@ -1814,8 +1726,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get discoverScreenFindPeopleSubtitleChild => 'type a whole username';
 
   @override
-  String get discoverScreenFindPeopleSubtitleAdult =>
-      'search by @username or name';
+  String get discoverScreenFindPeopleSubtitleAdult => 'search by @username or name';
 
   @override
   String get discoverScreenRequestsSectionLabel => 'REQUESTS';
@@ -1830,8 +1741,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get discoverScreenYourPeopleLabel => 'YOUR PEOPLE';
 
   @override
-  String get discoverScreenNoFriendsYetWithHint =>
-      'no one yet — find people above';
+  String get discoverScreenNoFriendsYetWithHint => 'no one yet — find people above';
 
   @override
   String get discoverScreenNoFriendsYet => 'no one yet';
@@ -1887,8 +1797,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get imageCropScreenCancelButton => 'CANCEL';
 
   @override
-  String get imageCropScreenHeicUnsupported =>
-      'this browser can\'t open HEIC photos';
+  String get imageCropScreenHeicUnsupported => 'this browser can\'t open HEIC photos';
 
   @override
   String get imageCropScreenLoadFailed => 'couldn\'t open that image';
@@ -1966,8 +1875,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginScreenSettingUpKidsPhone => 'set up a child account';
 
   @override
-  String get loginScreenLegalPrefix =>
-      'By opening an account you agree to the ';
+  String get loginScreenLegalPrefix => 'By opening an account you agree to the ';
 
   @override
   String get loginScreenLegalTermsLink => 'Terms';
@@ -2011,15 +1919,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchScreenHintRooms => 'search rooms…';
 
   @override
-  String get searchScreenPeoplePromptChild =>
-      'type a whole username to find someone new';
+  String get searchScreenPeoplePromptChild => 'type a whole username to find someone new';
 
   @override
   String get searchScreenPeoplePromptDefault => 'search by username or name';
 
   @override
-  String get searchScreenNoMatchChild =>
-      'no one matches — new people need their\nwhole username, spelled exactly';
+  String get searchScreenNoMatchChild => 'no one matches — new people need their\nwhole username, spelled exactly';
 
   @override
   String get searchScreenNoMatchDefault => 'no one matches';
@@ -2052,8 +1958,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileVisibilityScreenTitle => 'visibility preferences.';
 
   @override
-  String get profileVisibilityScreenSubtitle =>
-      'control what others see — and how they can reach you.';
+  String get profileVisibilityScreenSubtitle => 'control what others see — and how they can reach you.';
 
   @override
   String get profileVisibilityScreenSectionProfile => 'PROFILE';
@@ -2068,38 +1973,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileVisibilityScreenOnlineAwayLabel => 'ONLINE / AWAY';
 
   @override
-  String get profileVisibilityScreenOnlineAwayDesc =>
-      'whether you appear active right now';
+  String get profileVisibilityScreenOnlineAwayDesc => 'whether you appear active right now';
 
   @override
   String get profileVisibilityScreenLastSeenLabel => 'LAST SEEN';
 
   @override
-  String get profileVisibilityScreenLastSeenDesc =>
-      'the time you were last around';
+  String get profileVisibilityScreenLastSeenDesc => 'the time you were last around';
 
   @override
   String get profileVisibilityScreenSectionMessages => 'MESSAGES';
 
   @override
-  String get profileVisibilityScreenSendReadReceiptsLabel =>
-      'SEND READ RECEIPTS';
+  String get profileVisibilityScreenSendReadReceiptsLabel => 'SEND READ RECEIPTS';
 
   @override
-  String get profileVisibilityScreenSendReadReceiptsDesc =>
-      'when on, others can see that you\'ve read their messages';
+  String get profileVisibilityScreenSendReadReceiptsDesc => 'when on, others can see that you\'ve read their messages';
 
   @override
-  String get profileVisibilityScreenShowReadReceiptsLabel =>
-      'SHOW READ RECEIPTS';
+  String get profileVisibilityScreenShowReadReceiptsLabel => 'SHOW READ RECEIPTS';
 
   @override
-  String get profileVisibilityScreenShowReadReceiptsDesc =>
-      'see the \"SEEN\" mark on your own messages once they\'re read';
+  String get profileVisibilityScreenShowReadReceiptsDesc => 'see the \"SEEN\" mark on your own messages once they\'re read';
 
   @override
-  String get profileVisibilityScreenShowReadReceiptsHint =>
-      'only readers who turned on SEND READ RECEIPTS will contribute. others stay invisible.';
+  String get profileVisibilityScreenShowReadReceiptsHint => 'only readers who turned on SEND READ RECEIPTS will contribute. others stay invisible.';
 
   @override
   String get profileVisibilityScreenSectionPeople => 'PEOPLE';
@@ -2108,16 +2006,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileVisibilityScreenFriendRequestsLabel => 'FRIEND REQUESTS';
 
   @override
-  String get profileVisibilityScreenFriendRequestsDesc =>
-      'who can send you friend requests';
+  String get profileVisibilityScreenFriendRequestsDesc => 'who can send you friend requests';
 
   @override
-  String get profileVisibilityScreenSupervisedTitle =>
-      'YOUR GROWN-UPS SET THESE';
+  String get profileVisibilityScreenSupervisedTitle => 'YOUR GROWN-UPS SET THESE';
 
   @override
-  String get profileVisibilityScreenSupervisedBody =>
-      'You can see what everyone else sees here, but only a grown-up can change it. They can always see your picture, when you\'re online and when you were last around.';
+  String get profileVisibilityScreenSupervisedBody => 'You can see what everyone else sees here, but only a grown-up can change it. They can always see your picture, when you\'re online and when you were last around.';
 
   @override
   String get profileVisibilityScreenOptionPublic => 'PUBLIC';
@@ -2147,8 +2042,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get logoScreenAutoLabel => 'AUTO';
 
   @override
-  String get logoScreenAutoDescription =>
-      'follows your theme. mark changes with the palette.';
+  String get logoScreenAutoDescription => 'follows your theme. mark changes with the palette.';
 
   @override
   String get logoScreenManualLabel => 'MANUAL';
@@ -2160,8 +2054,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get logoScreenAlwaysDefaultLabel => 'ALWAYS DEFAULT';
 
   @override
-  String get logoScreenAlwaysDefaultDescription =>
-      'the MonkeyHub mark, regardless of theme.';
+  String get logoScreenAlwaysDefaultDescription => 'the MonkeyHub mark, regardless of theme.';
 
   @override
   String get logoScreenActiveBadge => 'ACTIVE';
@@ -2173,8 +2066,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get logoScreenThemesHeader => 'THEMES';
 
   @override
-  String get recoveryPhraseScreenCopiedSnackbar =>
-      'copied — paste it somewhere safe';
+  String get recoveryPhraseScreenCopiedSnackbar => 'copied — paste it somewhere safe';
 
   @override
   String get recoveryPhraseScreenConfirmHeroMuted => 'confirm\n';
@@ -2183,8 +2075,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recoveryPhraseScreenConfirmHeroInk => 'it’s you.';
 
   @override
-  String get recoveryPhraseScreenPasswordBody =>
-      'Your password, so nobody else can put a recovery phrase on your account.';
+  String get recoveryPhraseScreenPasswordBody => 'Your password, so nobody else can put a recovery phrase on your account.';
 
   @override
   String get recoveryPhraseScreenPasswordHint => 'password';
@@ -2205,15 +2096,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recoveryPhraseScreenSaveHeroInk => 'these words.';
 
   @override
-  String get recoveryPhraseScreenWordsBody =>
-      'These twelve words are the only way back into your account if you forget your password. We can’t show them to you again, and we can’t recover them for you.';
+  String get recoveryPhraseScreenWordsBody => 'These twelve words are the only way back into your account if you forget your password. We can’t show them to you again, and we can’t recover them for you.';
 
   @override
   String get recoveryPhraseScreenCopyButton => 'COPY';
 
   @override
-  String get recoveryPhraseScreenPaperHint =>
-      'If you can, write them on paper. Anything on this phone can be lost with the phone.';
+  String get recoveryPhraseScreenPaperHint => 'If you can, write them on paper. Anything on this phone can be lost with the phone.';
 
   @override
   String get recoveryPhraseScreenSavedButton => 'I SAVED THEM';
@@ -2222,8 +2111,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recoveryPhraseScreenBackLink => '← back';
 
   @override
-  String get recoveryPhraseScreenKeepPhraseLink =>
-      'not now — keep my current phrase';
+  String get recoveryPhraseScreenKeepPhraseLink => 'not now — keep my current phrase';
 
   @override
   String get homeScreenProfileSemanticLabel => 'Your profile';
@@ -2487,8 +2375,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get familyScreenEmptyStateTitle => 'no children yet';
 
   @override
-  String get familyScreenEmptyStateBody =>
-      'Add an account for your child, then pair it to their phone.';
+  String get familyScreenEmptyStateBody => 'Add an account for your child, then pair it to their phone.';
 
   @override
   String get reactionDetailsSheetTitle => 'REACTIONS';
@@ -2517,8 +2404,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomLayoutScreenTitle => 'chat list.';
 
   @override
-  String get roomLayoutScreenSubtitle =>
-      'how rooms stack, and how you filter them';
+  String get roomLayoutScreenSubtitle => 'how rooms stack, and how you filter them';
 
   @override
   String get roomLayoutScreenLayoutSectionLabel => 'LAYOUT';
@@ -2527,15 +2413,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomLayoutScreenRowLayoutLabel => 'ROW LAYOUT';
 
   @override
-  String get roomLayoutScreenRowLayoutDescription =>
-      'one column, full bleed. easy to read at a glance.';
+  String get roomLayoutScreenRowLayoutDescription => 'one column, full bleed. easy to read at a glance.';
 
   @override
   String get roomLayoutScreenGridLayoutLabel => 'GRID LAYOUT';
 
   @override
-  String get roomLayoutScreenGridLayoutDescription =>
-      'two columns, compact. more rooms in one look.';
+  String get roomLayoutScreenGridLayoutDescription => 'two columns, compact. more rooms in one look.';
 
   @override
   String get roomLayoutScreenFilterControlSectionLabel => 'FILTER CONTROL';
@@ -2544,15 +2428,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomLayoutScreenChipRowLabel => 'CHIP ROW';
 
   @override
-  String get roomLayoutScreenChipRowDescription =>
-      'always on show. one tap to any filter, one row of space.';
+  String get roomLayoutScreenChipRowDescription => 'always on show. one tap to any filter, one row of space.';
 
   @override
   String get roomLayoutScreenDrawerButtonLabel => 'DRAWER BUTTON';
 
   @override
-  String get roomLayoutScreenDrawerButtonDescription =>
-      'one button that opens. nothing in the way until you ask.';
+  String get roomLayoutScreenDrawerButtonDescription => 'one button that opens. nothing in the way until you ask.';
 
   @override
   String get roomLayoutScreenQuietRoomSectionLabel => 'QUIET ROOMS';
@@ -2561,15 +2443,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomLayoutScreenPlainCornerLabel => 'plain corner';
 
   @override
-  String get roomLayoutScreenPlainCornerDescription =>
-      'a room with nothing said yet stays bare';
+  String get roomLayoutScreenPlainCornerDescription => 'a room with nothing said yet stays bare';
 
   @override
   String get roomLayoutScreenMonogramLabel => 'the room\'s initial';
 
   @override
-  String get roomLayoutScreenMonogramDescription =>
-      'a big faded letter fills the empty corner';
+  String get roomLayoutScreenMonogramDescription => 'a big faded letter fills the empty corner';
 
   @override
   String get roomLayoutScreenActiveBadge => 'ACTIVE';
@@ -2598,15 +2478,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pinnedBannerClassicLabel => 'CLASSIC';
 
   @override
-  String get pinnedBannerClassicSubtitle =>
-      'divider-bordered header, flat composer.';
+  String get pinnedBannerClassicSubtitle => 'divider-bordered header, flat composer.';
 
   @override
   String get pinnedBannerCompactLabel => 'COMPACT';
 
   @override
-  String get pinnedBannerCompactSubtitle =>
-      'frosted pills floating over the conversation.';
+  String get pinnedBannerCompactSubtitle => 'frosted pills floating over the conversation.';
 
   @override
   String get pinnedBannerActiveBadge => 'ACTIVE';
@@ -2645,8 +2523,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get audioMessageHeroLinkLine2 => 'back.';
 
   @override
-  String get audioMessageCreateSubtitle =>
-      'Pick a username so your family and friends can find you.';
+  String get audioMessageCreateSubtitle => 'Pick a username so your family and friends can find you.';
 
   @override
   String audioMessageLinkSubtitle(Object provider) {
@@ -2677,8 +2554,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get audioMessageSwitchToLinkModeLink => 'Already have an account?';
 
   @override
-  String get audioMessageSwitchToCreateModeLink =>
-      'New here? Create an account';
+  String get audioMessageSwitchToCreateModeLink => 'New here? Create an account';
 
   @override
   String get approvalsScreenTitle => 'APPROVALS';
@@ -2693,8 +2569,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get approvalsScreenErrorNotGuardian => 'that\'s not yours to decide';
 
   @override
-  String get approvalsScreenErrorAlreadyHandled =>
-      'already handled somewhere else';
+  String get approvalsScreenErrorAlreadyHandled => 'already handled somewhere else';
 
   @override
   String get approvalsScreenErrorGeneric => 'couldn\'t save that — try again';
@@ -2724,8 +2599,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get approvalsScreenRoomFallback => 'a room';
 
   @override
-  String get approvalsScreenConsequenceContactOutgoing =>
-      'They\'ll get the request. They still choose whether to say yes.';
+  String get approvalsScreenConsequenceContactOutgoing => 'They\'ll get the request. They still choose whether to say yes.';
 
   @override
   String approvalsScreenConsequenceContactIncoming(Object child) {
@@ -2733,8 +2607,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get approvalsScreenConsequenceJoinRoom =>
-      'They\'ll be able to read and post there until you take it back.';
+  String get approvalsScreenConsequenceJoinRoom => 'They\'ll be able to read and post there until you take it back.';
 
   @override
   String get approvalsScreenNotYetButton => 'NOT YET';
@@ -2801,12 +2674,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get linkedAccountsScreenTitle => 'LINKED ACCOUNTS';
 
   @override
-  String get linkedAccountsScreenSubtitle =>
-      'Accounts you’ve attached to this one, so you can sign in without a password.';
+  String get linkedAccountsScreenSubtitle => 'Accounts you’ve attached to this one, so you can sign in without a password.';
 
   @override
-  String get linkedAccountsScreenEmptyState =>
-      'There’s nothing to link on this device.';
+  String get linkedAccountsScreenEmptyState => 'There’s nothing to link on this device.';
 
   @override
   String get linkedAccountsScreenStatusChecking => 'Checking…';
@@ -2869,30 +2740,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get linkedAccountsScreenCallSheetCallEveryoneTitle => 'Call everyone';
 
   @override
-  String get linkedAccountsScreenCallSheetCallEveryoneSubtitle =>
-      'Ring all members of this room';
+  String get linkedAccountsScreenCallSheetCallEveryoneSubtitle => 'Ring all members of this room';
 
   @override
   String get linkedAccountsScreenCallSheetChoosePeopleTitle => 'Choose people';
 
   @override
-  String get linkedAccountsScreenCallSheetChoosePeopleSubtitle =>
-      'Pick who to invite';
+  String get linkedAccountsScreenCallSheetChoosePeopleSubtitle => 'Pick who to invite';
 
   @override
-  String get linkedAccountsScreenCallSheetCallFullError =>
-      'That call is full (max 6 people)';
+  String get linkedAccountsScreenCallSheetCallFullError => 'That call is full (max 6 people)';
 
   @override
-  String get linkedAccountsScreenCallSheetStartFailedError =>
-      'Could not start the call';
+  String get linkedAccountsScreenCallSheetStartFailedError => 'Could not start the call';
 
   @override
   String get linkedAccountsScreenCallSheetInviteTitle => 'Invite to call';
 
   @override
-  String get linkedAccountsScreenCallSheetNoOtherMembers =>
-      'No other members here';
+  String get linkedAccountsScreenCallSheetNoOtherMembers => 'No other members here';
 
   @override
   String get linkedAccountsScreenCallSheetSelectPeople => 'Select people';
@@ -2912,8 +2778,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get childPairScreenGreetingLine2 => 'you.';
 
   @override
-  String get childPairScreenIntro =>
-      'Ask a grown-up to open MonkeyHub and tap “pair a device”. Then scan their code, or type the six numbers they read out.';
+  String get childPairScreenIntro => 'Ask a grown-up to open MonkeyHub and tap “pair a device”. Then scan their code, or type the six numbers they read out.';
 
   @override
   String get childPairScreenOrDivider => 'or';
@@ -2922,15 +2787,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get childPairScreenGenericError => 'Something went wrong. Try again.';
 
   @override
-  String get childPairScreenAccountGoneError =>
-      'That account isn’t there any more.';
+  String get childPairScreenAccountGoneError => 'That account isn’t there any more.';
 
   @override
   String get childPairScreenScanButtonLabel => 'SCAN THEIR CODE';
 
   @override
-  String get childPairScreenNoCameraMessage =>
-      'No camera here — type the six numbers instead.';
+  String get childPairScreenNoCameraMessage => 'No camera here — type the six numbers instead.';
 
   @override
   String get childPairScreenStopScanning => 'stop scanning';
@@ -2964,8 +2827,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get textFileViewerDownloadTooltip => 'Download';
 
   @override
-  String get textFileViewerTruncatedNotice =>
-      'Showing part of this file — download to see the rest.';
+  String get textFileViewerTruncatedNotice => 'Showing part of this file — download to see the rest.';
 
   @override
   String get fileMessageUploadFailedLabel => 'failed';
@@ -3048,8 +2910,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get destructiveSheetViewLabel => 'VIEW';
 
   @override
-  String get destructiveSheetPairingMintError =>
-      'Couldn’t make a code — try again.';
+  String get destructiveSheetPairingMintError => 'Couldn’t make a code — try again.';
 
   @override
   String get destructiveSheetPairingReleaseTitle => 'RELEASE';
@@ -3079,8 +2940,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get destructiveSheetPairingNewCodeButton => 'NEW CODE';
 
   @override
-  String get destructiveSheetPairingOneUseNote =>
-      'One use only. Making a new code cancels the old one.';
+  String get destructiveSheetPairingOneUseNote => 'One use only. Making a new code cancels the old one.';
 
   @override
   String get deepOceanThemeAttachButtonLabel => 'Attach';
@@ -3092,8 +2952,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deepOceanThemeSendButtonLabel => 'Send';
 
   @override
-  String get deepOceanThemeEphemeralHint =>
-      'whisper something the server will forget…';
+  String get deepOceanThemeEphemeralHint => 'whisper something the server will forget…';
 
   @override
   String get deepOceanThemeDefaultHint => 'say something…';
@@ -3129,11 +2988,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String typingIndicatorManyPeopleTyping(
-    Object extra,
-    Object name1,
-    Object name2,
-  ) {
+  String typingIndicatorManyPeopleTyping(Object extra, Object name1, Object name2) {
     return '$name1, $name2 +$extra are typing';
   }
 
@@ -3162,22 +3017,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get messageStampNavigationTitle => 'navigation.';
 
   @override
-  String get messageStampNavigationSubtitle =>
-      'how you move between chat, discover, feed, settings';
+  String get messageStampNavigationSubtitle => 'how you move between chat, discover, feed, settings';
 
   @override
   String get messageStampRadialOrbLabel => 'RADIAL ORB';
 
   @override
-  String get messageStampRadialOrbDescription =>
-      'hold + drag from the corner. a quiet idle, a gesture you grow into.';
+  String get messageStampRadialOrbDescription => 'hold + drag from the corner. a quiet idle, a gesture you grow into.';
 
   @override
   String get messageStampBottomPillLabel => 'BOTTOM PILL';
 
   @override
-  String get messageStampBottomPillDescription =>
-      'classic tap. always visible, no learning curve.';
+  String get messageStampBottomPillDescription => 'classic tap. always visible, no learning curve.';
 
   @override
   String get messageStampActiveLabel => 'ACTIVE';
@@ -3214,8 +3066,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get voiceRecorderScreenMicPermissionDeniedSnackbar =>
-      'microphone permission denied';
+  String get voiceRecorderScreenMicPermissionDeniedSnackbar => 'microphone permission denied';
 
   @override
   String get voiceRecorderScreenStatusRecording => 'RECORDING';
@@ -3256,8 +3107,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get releaseDeviceScreenAccountKeptNote =>
-      'Their account, messages and friends are all kept. They can be signed back in any time.';
+  String get releaseDeviceScreenAccountKeptNote => 'Their account, messages and friends are all kept. They can be signed back in any time.';
 
   @override
   String releaseDeviceScreenAskGrownUp(Object name) {
@@ -3268,8 +3118,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get releaseDeviceScreenOrDivider => 'or';
 
   @override
-  String get releaseDeviceScreenOnePhoneNote =>
-      'If there’s only this one phone, a grown-up can sign in here instead.';
+  String get releaseDeviceScreenOnePhoneNote => 'If there’s only this one phone, a grown-up can sign in here instead.';
 
   @override
   String get releaseDeviceScreenUsernameHint => 'a grown-up’s username';
@@ -3292,20 +3141,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get releaseDeviceScreenHeaderTitle => 'HAND THIS PHONE BACK';
 
   @override
-  String get releaseDeviceScreenErrorCodeExpired =>
-      'That code has run out. Ask for a new one.';
+  String get releaseDeviceScreenErrorCodeExpired => 'That code has run out. Ask for a new one.';
 
   @override
-  String get releaseDeviceScreenErrorCodeInvalid =>
-      'That code didn’t work. It may have been used already.';
+  String get releaseDeviceScreenErrorCodeInvalid => 'That code didn’t work. It may have been used already.';
 
   @override
-  String get releaseDeviceScreenErrorNotAGuardian =>
-      'That didn’t work. Check the username and password.';
+  String get releaseDeviceScreenErrorNotAGuardian => 'That didn’t work. Check the username and password.';
 
   @override
-  String get releaseDeviceScreenErrorGeneric =>
-      'Something went wrong. Try again.';
+  String get releaseDeviceScreenErrorGeneric => 'Something went wrong. Try again.';
 
   @override
   String get activeCallPillMoveHereSemanticLabel => 'Move call to this device';
@@ -3408,36 +3253,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get callButtonReplyStylePhantomEchoLabel => 'PHANTOM ECHO';
 
   @override
-  String get callButtonReplyStylePhantomEchoDescription =>
-      'a ghost-bubble of the parent floats above with a curved connector and the branch icon at the join point.';
+  String get callButtonReplyStylePhantomEchoDescription => 'a ghost-bubble of the parent floats above with a curved connector and the branch icon at the join point.';
 
   @override
   String get callButtonReplyStyleStickyNoteLabel => 'STICKY NOTE';
 
   @override
-  String get callButtonReplyStyleStickyNoteDescription =>
-      'a slightly rotated polaroid-style card clipped to the bubble corner.';
+  String get callButtonReplyStyleStickyNoteDescription => 'a slightly rotated polaroid-style card clipped to the bubble corner.';
 
   @override
   String get callButtonReplyStyleComicTailLabel => 'COMIC TAIL';
 
   @override
-  String get callButtonReplyStyleComicTailDescription =>
-      'a small parent mini-bubble with a comic-book triangle tail pointing down.';
+  String get callButtonReplyStyleComicTailDescription => 'a small parent mini-bubble with a comic-book triangle tail pointing down.';
 
   @override
   String get callButtonReplyStyleClassicLabel => 'CLASSIC';
 
   @override
-  String get callButtonReplyStyleClassicDescription =>
-      'accent-tinted quote pill with a tether bar and avatar — the familiar WhatsApp-style look.';
+  String get callButtonReplyStyleClassicDescription => 'accent-tinted quote pill with a tether bar and avatar — the familiar WhatsApp-style look.';
 
   @override
   String get callButtonReplyStyleActiveBadge => 'ACTIVE';
 
   @override
-  String get callButtonReplyPreviewSampleMessage =>
-      'hey did you see the new demo though?';
+  String get callButtonReplyPreviewSampleMessage => 'hey did you see the new demo though?';
 
   @override
   String get callButtonReplyPreviewSampleReply => 'yeah, that blur is sick.';
@@ -3446,16 +3286,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get childSetupScreenErrorPickUsername => 'Pick a username for them.';
 
   @override
-  String get childSetupScreenErrorUsernameTaken =>
-      'That username is already taken.';
+  String get childSetupScreenErrorUsernameTaken => 'That username is already taken.';
 
   @override
-  String get childSetupScreenErrorChildNotAllowed =>
-      'Only a grown-up account can add a child.';
+  String get childSetupScreenErrorChildNotAllowed => 'Only a grown-up account can add a child.';
 
   @override
-  String get childSetupScreenErrorGeneric =>
-      'Couldn’t create the account — try again.';
+  String get childSetupScreenErrorGeneric => 'Couldn’t create the account — try again.';
 
   @override
   String get childSetupScreenTitle => 'ADD A CHILD';
@@ -3479,20 +3316,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get childSetupScreenWhatTheyGetTitle => 'WHAT THEY GET';
 
   @override
-  String get childSetupScreenBulletTalkImmediately =>
-      'They can talk to you and their brothers and sisters right away.';
+  String get childSetupScreenBulletTalkImmediately => 'They can talk to you and their brothers and sisters right away.';
 
   @override
-  String get childSetupScreenBulletNeedsApproval =>
-      'Everyone else needs your OK first — both people they ask for, and people who ask for them.';
+  String get childSetupScreenBulletNeedsApproval => 'Everyone else needs your OK first — both people they ask for, and people who ask for them.';
 
   @override
-  String get childSetupScreenBulletPublicRoomsOff =>
-      'Public rooms are switched off until you turn them on.';
+  String get childSetupScreenBulletPublicRoomsOff => 'Public rooms are switched off until you turn them on.';
 
   @override
-  String get childSetupScreenBulletCantSignOut =>
-      'They can’t sign out, and you can always see how they’re doing.';
+  String get childSetupScreenBulletCantSignOut => 'They can’t sign out, and you can always see how they’re doing.';
 
   @override
   String get childSetupScreenCreateButton => 'CREATE + PAIR';
@@ -3528,29 +3361,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bubbleStyleScreenTailedLabel => 'TAILED';
 
   @override
-  String get bubbleStyleScreenTailedDescription =>
-      'a tail closes each run of messages; the rows above it tighten into one block.';
+  String get bubbleStyleScreenTailedDescription => 'a tail closes each run of messages; the rows above it tighten into one block.';
 
   @override
   String get bubbleStyleScreenSoftLabel => 'SOFT';
 
   @override
-  String get bubbleStyleScreenSoftDescription =>
-      'no tail — a run holds together through its tightened inner corners alone.';
+  String get bubbleStyleScreenSoftDescription => 'no tail — a run holds together through its tightened inner corners alone.';
 
   @override
   String get bubbleStyleScreenPillLabel => 'PILL';
 
   @override
-  String get bubbleStyleScreenPillDescription =>
-      'fully rounded capsules, identical on every row.';
+  String get bubbleStyleScreenPillDescription => 'fully rounded capsules, identical on every row.';
 
   @override
   String get bubbleStyleScreenSlabLabel => 'SLAB';
 
   @override
-  String get bubbleStyleScreenSlabDescription =>
-      'square shoulders — sharp, printed, deliberate.';
+  String get bubbleStyleScreenSlabDescription => 'square shoulders — sharp, printed, deliberate.';
 
   @override
   String get bubbleStyleScreenActiveBadge => 'ACTIVE';
@@ -3571,12 +3400,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bubbleStyleScreenMediaTilePhotoSemanticLabel => 'Photo';
 
   @override
-  String get incomingGroupCallScreenCallFullError =>
-      'That call is full (max 6 people)';
+  String get incomingGroupCallScreenCallFullError => 'That call is full (max 6 people)';
 
   @override
-  String get incomingGroupCallScreenJoinFailedError =>
-      'Could not join the call';
+  String get incomingGroupCallScreenJoinFailedError => 'Could not join the call';
 
   @override
   String get incomingGroupCallScreenDefaultRoomName => 'Group call';
@@ -3628,69 +3455,50 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get incomingGroupCallScreenRemoveContactSheetLastMessageJustNow =>
-      'last message just now';
+  String get incomingGroupCallScreenRemoveContactSheetLastMessageJustNow => 'last message just now';
 
   @override
-  String incomingGroupCallScreenRemoveContactSheetLastMessageHoursAgo(
-    Object hours,
-  ) {
+  String incomingGroupCallScreenRemoveContactSheetLastMessageHoursAgo(Object hours) {
     return 'last message ${hours}h ago';
   }
 
   @override
-  String get incomingGroupCallScreenRemoveContactSheetLastMessageYesterday =>
-      'last message yesterday';
+  String get incomingGroupCallScreenRemoveContactSheetLastMessageYesterday => 'last message yesterday';
 
   @override
-  String incomingGroupCallScreenRemoveContactSheetLastMessageDaysAgo(
-    Object days,
-  ) {
+  String incomingGroupCallScreenRemoveContactSheetLastMessageDaysAgo(Object days) {
     return 'last message $days days ago';
   }
 
   @override
-  String get incomingGroupCallScreenRemoveContactSheetLastMessageAWhileAgo =>
-      'last message a while ago';
+  String get incomingGroupCallScreenRemoveContactSheetLastMessageAWhileAgo => 'last message a while ago';
 
   @override
   String get incomingGroupCallScreenRemoveContactSheetTitleBadge => 'TAKE BACK';
 
   @override
-  String incomingGroupCallScreenRemoveContactSheetHeadline(
-    Object childName,
-    Object contactName,
-  ) {
+  String incomingGroupCallScreenRemoveContactSheetHeadline(Object childName, Object contactName) {
     return 'take $contactName away from $childName?';
   }
 
   @override
-  String get incomingGroupCallScreenRemoveContactSheetBodyWithChats =>
-      'they won’t be able to reach each other, and their conversation goes with it.';
+  String get incomingGroupCallScreenRemoveContactSheetBodyWithChats => 'they won’t be able to reach each other, and their conversation goes with it.';
 
   @override
-  String incomingGroupCallScreenRemoveContactSheetBodyWithoutChats(
-    Object contactName,
-  ) {
+  String incomingGroupCallScreenRemoveContactSheetBodyWithoutChats(Object contactName) {
     return 'they won’t be able to reach each other. $contactName won’t be told.';
   }
 
   @override
-  String incomingGroupCallScreenRemoveContactSheetDeletionSummary(
-    Object chats,
-    Object messages,
-  ) {
+  String incomingGroupCallScreenRemoveContactSheetDeletionSummary(Object chats, Object messages) {
     return '$chats · $messages will be deleted';
   }
 
   @override
-  String get incomingGroupCallScreenRemoveContactSheetDeletionDetail =>
-      'gone for both of them, including photos and voice notes. this can’t be undone.';
+  String get incomingGroupCallScreenRemoveContactSheetDeletionDetail => 'gone for both of them, including photos and voice notes. this can’t be undone.';
 
   @override
-  String incomingGroupCallScreenRemoveContactSheetSharedRoomsHeadline(
-    num count,
-  ) {
+  String incomingGroupCallScreenRemoveContactSheetSharedRoomsHeadline(num count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
@@ -3701,31 +3509,23 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get incomingGroupCallScreenRemoveContactSheetSharedRoomsNote =>
-      'these stay. take the room back from the ROOMS list below if you want them out of it.';
+  String get incomingGroupCallScreenRemoveContactSheetSharedRoomsNote => 'these stay. take the room back from the ROOMS list below if you want them out of it.';
 
   @override
-  String get incomingGroupCallScreenRemoveContactSheetChoiceTitleWithDelete =>
-      'TAKE BACK & DELETE';
+  String get incomingGroupCallScreenRemoveContactSheetChoiceTitleWithDelete => 'TAKE BACK & DELETE';
 
   @override
-  String incomingGroupCallScreenRemoveContactSheetChoiceSubWithChats(
-    Object contactName,
-    Object messages,
-  ) {
+  String incomingGroupCallScreenRemoveContactSheetChoiceSubWithChats(Object contactName, Object messages) {
     return 'removes $contactName and wipes $messages.';
   }
 
   @override
-  String incomingGroupCallScreenRemoveContactSheetChoiceSubWithoutChats(
-    Object contactName,
-  ) {
+  String incomingGroupCallScreenRemoveContactSheetChoiceSubWithoutChats(Object contactName) {
     return 'removes $contactName from the allowed list.';
   }
 
   @override
-  String get incomingGroupCallScreenRemoveContactSheetCancelSemanticLabel =>
-      'Cancel';
+  String get incomingGroupCallScreenRemoveContactSheetCancelSemanticLabel => 'Cancel';
 
   @override
   String get incomingGroupCallScreenRemoveContactSheetCancelButton => 'CANCEL';
@@ -3848,20 +3648,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get approvalGateDisabledBody =>
-      'A grown-up has switched this off for now.';
+  String get approvalGateDisabledBody => 'A grown-up has switched this off for now.';
 
   @override
-  String get approvalGateAlreadyAskedFooter =>
-      'They’ll get a message about it. Check back soon.';
+  String get approvalGateAlreadyAskedFooter => 'They’ll get a message about it. Check back soon.';
 
   @override
-  String get approvalGateWillNotifyFooter =>
-      'We’ll let them know. You’ll see it here when they answer.';
+  String get approvalGateWillNotifyFooter => 'We’ll let them know. You’ll see it here when they answer.';
 
   @override
-  String get approvalGateTalkToThemFooter =>
-      'You can talk to them about it if you think it should change.';
+  String get approvalGateTalkToThemFooter => 'You can talk to them about it if you think it should change.';
 
   @override
   String get approvalGateAskButton => 'ASK';
@@ -3882,15 +3678,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportSheetSubtitle => 'tell us what’s wrong.';
 
   @override
-  String get reportSheetPrivacyNote =>
-      'reports are private — the other person isn’t notified.';
+  String get reportSheetPrivacyNote => 'reports are private — the other person isn’t notified.';
 
   @override
   String get reportSheetReasonSpamLabel => 'SPAM';
 
   @override
-  String get reportSheetReasonSpamDescription =>
-      'unwanted ads or repeated messages';
+  String get reportSheetReasonSpamDescription => 'unwanted ads or repeated messages';
 
   @override
   String get reportSheetReasonHarassmentLabel => 'HARASSMENT';
@@ -3902,15 +3696,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportSheetReasonImpersonationLabel => 'IMPERSONATION';
 
   @override
-  String get reportSheetReasonImpersonationDescription =>
-      'pretending to be someone';
+  String get reportSheetReasonImpersonationDescription => 'pretending to be someone';
 
   @override
   String get reportSheetReasonInappropriateLabel => 'INAPPROPRIATE';
 
   @override
-  String get reportSheetReasonInappropriateDescription =>
-      'sexual, violent, or illegal content';
+  String get reportSheetReasonInappropriateDescription => 'sexual, violent, or illegal content';
 
   @override
   String get reportSheetReasonOtherLabel => 'OTHER';
@@ -3934,18 +3726,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportSheetUpdateAvailableTitle => 'UPDATE AVAILABLE';
 
   @override
-  String get reportSheetUpdateMandatoryBody =>
-      'This version is too old to keep working properly. Update to carry on.';
+  String get reportSheetUpdateMandatoryBody => 'This version is too old to keep working properly. Update to carry on.';
 
   @override
-  String get reportSheetUpdateAvailableBody =>
-      'A newer version of MonkeyHub is available.';
+  String get reportSheetUpdateAvailableBody => 'A newer version of MonkeyHub is available.';
 
   @override
-  String reportSheetUpdateVersionArrow(
-    Object currentVersion,
-    Object newVersion,
-  ) {
+  String reportSheetUpdateVersionArrow(Object currentVersion, Object newVersion) {
     return 'v$currentVersion → v$newVersion';
   }
 
@@ -3962,8 +3749,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportSheetUpdateActionOpensGooglePlay => 'opens Google Play';
 
   @override
-  String get reportSheetUpdateActionOpensDownloadPage =>
-      'opens the download page';
+  String get reportSheetUpdateActionOpensDownloadPage => 'opens the download page';
 
   @override
   String get reportSheetUpdateActionReloads => 'reloads with the new version';
@@ -4068,8 +3854,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get attachmentMenuConnectionRetrying => 'retrying…';
 
   @override
-  String get attachmentMenuConnectionCantReachServer =>
-      'can’t reach server · tap to retry';
+  String get attachmentMenuConnectionCantReachServer => 'can’t reach server · tap to retry';
 
   @override
   String get attachmentMenuConnectionReconnecting => 'reconnecting…';
@@ -4112,8 +3897,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get bulkActionBarJumpBackSemanticLabel =>
-      'Back to where you jumped from';
+  String get bulkActionBarJumpBackSemanticLabel => 'Back to where you jumped from';
 
   @override
   String bulkActionBarJumpBackSemanticLabelWithDepth(Object depth) {
@@ -4121,16 +3905,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get bulkActionBarBlockSheetNotNotifiedNote =>
-      'they won’t be notified.';
+  String get bulkActionBarBlockSheetNotNotifiedNote => 'they won’t be notified.';
 
   @override
-  String get bulkActionBarBlockSheetFriendWarning =>
-      'you’re currently friends — blocking removes the friendship, so to reconnect later you’d have to send a new friend request.';
+  String get bulkActionBarBlockSheetFriendWarning => 'you’re currently friends — blocking removes the friendship, so to reconnect later you’d have to send a new friend request.';
 
   @override
-  String get bulkActionBarBlockSheetStrangerWarning =>
-      'they’ll disappear from your search and can’t message you.';
+  String get bulkActionBarBlockSheetStrangerWarning => 'they’ll disappear from your search and can’t message you.';
 
   @override
   String get bulkActionBarBlockSheetHeaderLabel => 'BLOCK';
@@ -4152,26 +3933,22 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get bulkActionBarBlockSheetSharedRoomsNote =>
-      'these rooms stay untouched. you can leave any of them yourself from each room’s settings.';
+  String get bulkActionBarBlockSheetSharedRoomsNote => 'these rooms stay untouched. you can leave any of them yourself from each room’s settings.';
 
   @override
   String get bulkActionBarBlockChoiceTileTitle => 'BLOCK';
 
   @override
-  String get bulkActionBarBlockChoiceTileFriendSub =>
-      'remove friendship and block. existing chat history stays in your archive.';
+  String get bulkActionBarBlockChoiceTileFriendSub => 'remove friendship and block. existing chat history stays in your archive.';
 
   @override
-  String get bulkActionBarBlockChoiceTileStrangerSub =>
-      'they’re hidden from search and can’t reach you.';
+  String get bulkActionBarBlockChoiceTileStrangerSub => 'they’re hidden from search and can’t reach you.';
 
   @override
   String get bulkActionBarBlockDeleteDmTitle => 'BLOCK & DELETE DM';
 
   @override
-  String get bulkActionBarBlockDeleteDmSub =>
-      'also wipes your DM with them — every message, reaction, and media file is gone.';
+  String get bulkActionBarBlockDeleteDmSub => 'also wipes your DM with them — every message, reaction, and media file is gone.';
 
   @override
   String get bulkActionBarBlockSheetCancelSemanticLabel => 'Cancel';
@@ -4180,19 +3957,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bulkActionBarBlockSheetCancelLabel => 'CANCEL';
 
   @override
-  String get bulkActionBarFullScreenIntentDialogTitle =>
-      'Show calls on the lock screen';
+  String get bulkActionBarFullScreenIntentDialogTitle => 'Show calls on the lock screen';
 
   @override
-  String get bulkActionBarFullScreenIntentDialogBody =>
-      'To ring like a real phone call when your screen is off, MonkeyHub needs \"full-screen notifications\" turned on. The next screen takes you straight to the switch.';
+  String get bulkActionBarFullScreenIntentDialogBody => 'To ring like a real phone call when your screen is off, MonkeyHub needs \"full-screen notifications\" turned on. The next screen takes you straight to the switch.';
 
   @override
   String get bulkActionBarBatteryExemptionDialogTitle => 'Never miss a call';
 
   @override
-  String get bulkActionBarBatteryExemptionDialogBody =>
-      'Some phones pause apps in the background to save battery, which can silence incoming calls. Allow MonkeyHub to run unrestricted so calls always come through.';
+  String get bulkActionBarBatteryExemptionDialogBody => 'Some phones pause apps in the background to save battery, which can silence incoming calls. Allow MonkeyHub to run unrestricted so calls always come through.';
 
   @override
   String get bulkActionBarDialogNotNowButton => 'Not now';
@@ -4230,8 +4004,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get enterPublicRoomAskFailedMessage =>
-      'couldn\'t ask right now — try again';
+  String get enterPublicRoomAskFailedMessage => 'couldn\'t ask right now — try again';
 
   @override
   String get enterPublicRoomWrongPasswordMessage => 'wrong password';
@@ -4272,12 +4045,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get feedBoardActivityEmpty => 'quiet so far today';
 
   @override
-  String get feedBoardActivityNoFriends =>
-      'add a friend and their day shows up here';
+  String get feedBoardActivityNoFriends => 'add a friend and their day shows up here';
 
   @override
-  String get feedBoardLoadFailed =>
-      'couldn\'t load the board — try again in a moment';
+  String get feedBoardLoadFailed => 'couldn\'t load the board — try again in a moment';
 
   @override
   String get enterPublicRoomVisibilityPublicLabel => 'PUBLIC';
@@ -4312,8 +4083,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomBadgePublicTooltip => 'Anyone can find this room and join it';
 
   @override
-  String get roomBadgePrivateTooltip =>
-      'Invite only — it won\'t show up in Discover';
+  String get roomBadgePrivateTooltip => 'Invite only — it won\'t show up in Discover';
 
   @override
   String get roomBadgeLockedTooltip => 'You\'ll need the room password to join';
@@ -4339,20 +4109,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get countBadgeCaptureProtectionLabel => 'SCREEN CAPTURE PROTECTION';
 
   @override
-  String get countBadgeCaptureProtectionOnAndroidBody =>
-      'screenshots + screen recording show as black to the system.';
+  String get countBadgeCaptureProtectionOnAndroidBody => 'screenshots + screen recording show as black to the system.';
 
   @override
-  String get countBadgeCaptureProtectionOnIosBody =>
-      'screen recording + mirroring drops a privacy shield over the app.';
+  String get countBadgeCaptureProtectionOnIosBody => 'screen recording + mirroring drops a privacy shield over the app.';
 
   @override
-  String get countBadgeCaptureProtectionOffBody =>
-      'screenshots and recordings work normally outside ephemeral rooms.';
+  String get countBadgeCaptureProtectionOffBody => 'screenshots and recordings work normally outside ephemeral rooms.';
 
   @override
-  String get countBadgeCaptureProtectionForcedNote =>
-      'ephemeral (chamber of secrets) rooms always force this on regardless.';
+  String get countBadgeCaptureProtectionForcedNote => 'ephemeral (chamber of secrets) rooms always force this on regardless.';
 
   @override
   String get countBadgeShowPasswordTooltip => 'show password';
@@ -4364,23 +4130,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get countBadgeProtectedLabel => 'PROTECTED';
 
   @override
-  String get countBadgeCaptureShieldActiveBody =>
-      'screen recording or mirroring is active.';
+  String get countBadgeCaptureShieldActiveBody => 'screen recording or mirroring is active.';
 
   @override
-  String get countBadgeCaptureShieldReassurance =>
-      'the recording can\'t see your conversations.';
+  String get countBadgeCaptureShieldReassurance => 'the recording can\'t see your conversations.';
 
   @override
   String get linkOpenerCouldNotOpenLink => 'Could not open link';
 
   @override
-  String get linkOpenerRecoveryBannerSemanticLabel =>
-      'Set up a recovery phrase';
+  String get linkOpenerRecoveryBannerSemanticLabel => 'Set up a recovery phrase';
 
   @override
-  String get linkOpenerRecoveryBannerMessage =>
-      'no recovery phrase — you could not get back in.';
+  String get linkOpenerRecoveryBannerMessage => 'no recovery phrase — you could not get back in.';
 
   @override
   String get destinationsChatLabel => 'Chat';
@@ -4473,12 +4235,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsScreenTagline => 'look. feel. you.';
 
   @override
-  String get settingsScreenAccountHintChild =>
-      'profile · privacy · my grown-ups';
+  String get settingsScreenAccountHintChild => 'profile · privacy · my grown-ups';
 
   @override
-  String get settingsScreenAccountHintAdult =>
-      'profile · family · linked accounts · privacy';
+  String get settingsScreenAccountHintAdult => 'profile · family · linked accounts · privacy';
 
   @override
   String get settingsScreenSectionAppearance => 'APPEARANCE';
@@ -4496,16 +4256,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsScreenUpdateAvailableValue => 'UPDATE AVAILABLE';
 
   @override
-  String get settingsScreenUpdateUpToDateSnackbar =>
-      'You\'re on the latest version.';
+  String get settingsScreenUpdateUpToDateSnackbar => 'You\'re on the latest version.';
 
   @override
-  String get settingsScreenUpdateUnsupportedSnackbar =>
-      'Can\'t check for updates on this build.';
+  String get settingsScreenUpdateUnsupportedSnackbar => 'Can\'t check for updates on this build.';
 
   @override
-  String get settingsScreenUpdateErrorSnackbar =>
-      'Couldn\'t check for updates. Try again later.';
+  String get settingsScreenUpdateErrorSnackbar => 'Couldn\'t check for updates. Try again later.';
 
   @override
   String get settingsScreenSectionNotifications => 'NOTIFICATIONS';
@@ -4517,15 +4274,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportProblemRowValue => 'Send us the details';
 
   @override
-  String get reportProblemIntro =>
-      'Tell us what went wrong. Your app and device details are included automatically, along with a technical log of what the app was doing — that\'s what helps us find the cause.';
+  String get reportProblemIntro => 'Tell us what went wrong. Your app and device details are included automatically, along with a technical log of what the app was doing — that\'s what helps us find the cause.';
 
   @override
   String get reportProblemDescribeLabel => 'WHAT HAPPENED';
 
   @override
-  String get reportProblemDescribeHint =>
-      'The screen flickers, buttons don\'t respond…';
+  String get reportProblemDescribeHint => 'The screen flickers, buttons don\'t respond…';
 
   @override
   String get reportProblemScreenshotsLabel => 'SCREENSHOTS';
@@ -4549,19 +4304,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportProblemSent => 'Report sent — thank you!';
 
   @override
-  String get reportProblemSendFailed =>
-      'Couldn\'t send the report. Check your connection and try again.';
+  String get reportProblemSendFailed => 'Couldn\'t send the report. Check your connection and try again.';
 
   @override
-  String get reportProblemTooMany =>
-      'You\'ve sent a lot of reports just now. Please try again a bit later.';
+  String get reportProblemTooMany => 'You\'ve sent a lot of reports just now. Please try again a bit later.';
 
   @override
   String get reportProblemShakeTitle => 'Report a problem?';
 
   @override
-  String get reportProblemShakeBody =>
-      'You shook your phone. Open the report screen?';
+  String get reportProblemShakeBody => 'You shook your phone. Open the report screen?';
 
   @override
   String get reportProblemShakeOpen => 'Report';
@@ -4659,12 +4411,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsScreenShowLinkUrlsLabel => 'SHOW LINK URLS';
 
   @override
-  String get settingsScreenLinksUrlsOnBody =>
-      'raw URLs appear alongside the preview card';
+  String get settingsScreenLinksUrlsOnBody => 'raw URLs appear alongside the preview card';
 
   @override
-  String get settingsScreenLinksUrlsOffBody =>
-      'currently preview only — cleaner bubbles, tap to open';
+  String get settingsScreenLinksUrlsOffBody => 'currently preview only — cleaner bubbles, tap to open';
 
   @override
   String get settingsScreenSectionCalls => 'CALLS';
@@ -4685,31 +4435,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsScreenShowNetworkStatsLabel => 'SHOW CALL STATS';
 
   @override
-  String get settingsScreenShowNetworkStatsBody =>
-      'live resolution, bitrate, ping, and packet loss during calls';
+  String get settingsScreenShowNetworkStatsBody => 'live resolution, bitrate, ping, and packet loss during calls';
 
   @override
   String get videoQualityScreenTitle => 'Video quality';
 
   @override
-  String get videoQualityScreenSubtitle =>
-      'Choose a resolution ceiling for outgoing video';
+  String get videoQualityScreenSubtitle => 'Choose a resolution ceiling for outgoing video';
 
   @override
-  String get videoQualityScreenAutoSubtitle =>
-      'Adapts to your connection automatically';
+  String get videoQualityScreenAutoSubtitle => 'Adapts to your connection automatically';
 
   @override
-  String get videoQualityScreenHd1080Subtitle =>
-      'Full HD — sharper, uses more data';
+  String get videoQualityScreenHd1080Subtitle => 'Full HD — sharper, uses more data';
 
   @override
-  String get videoQualityScreenUhd4kSubtitle =>
-      'Ultra HD — best on a strong connection';
+  String get videoQualityScreenUhd4kSubtitle => 'Ultra HD — best on a strong connection';
 
   @override
-  String get videoQualityScreenFootnote =>
-      'Actual resolution depends on both devices\' cameras and network conditions.';
+  String get videoQualityScreenFootnote => 'Actual resolution depends on both devices\' cameras and network conditions.';
 
   @override
   String get callScreenControlOptions => 'More';
@@ -4736,19 +4480,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsScreenPushOnBody => 'pings for new messages + requests';
 
   @override
-  String get settingsScreenPushOffBody =>
-      'silent — you’ll only see things when you open the app';
+  String get settingsScreenPushOffBody => 'silent — you’ll only see things when you open the app';
 
   @override
   String get authErrorUsernameTaken => 'That username is already taken.';
 
   @override
-  String get authErrorUsernameReserved =>
-      'That username isn\'t available. Please pick a different one.';
+  String get authErrorUsernameReserved => 'That username isn\'t available. Please pick a different one.';
 
   @override
-  String get authErrorDisplayNameReserved =>
-      'That name isn\'t available. Please pick a different one.';
+  String get authErrorDisplayNameReserved => 'That name isn\'t available. Please pick a different one.';
 
   @override
   String get authErrorUserNotFound => 'No account with that username.';
@@ -4757,95 +4498,76 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authErrorWrongPassword => 'Wrong password.';
 
   @override
-  String get authErrorInvalidRecoveryKey =>
-      'That username and recovery phrase don’t match.';
+  String get authErrorInvalidRecoveryKey => 'That username and recovery phrase don’t match.';
 
   @override
-  String get authErrorTooManyAttempts =>
-      'Too many tries. Wait 15 minutes and try again.';
+  String get authErrorTooManyAttempts => 'Too many tries. Wait 15 minutes and try again.';
 
   @override
-  String get authErrorChildMustPair =>
-      'That’s a kid’s account — ask a grown-up for a pairing code.';
+  String get authErrorChildMustPair => 'That’s a kid’s account — ask a grown-up for a pairing code.';
 
   @override
-  String get authErrorPairingCodeExpired =>
-      'That code has run out. Ask for a new one.';
+  String get authErrorPairingCodeExpired => 'That code has run out. Ask for a new one.';
 
   @override
-  String get authErrorPairingCodeInvalid =>
-      'That code didn’t work. It may have been used already.';
+  String get authErrorPairingCodeInvalid => 'That code didn’t work. It may have been used already.';
 
   @override
-  String get authErrorUseSocialSignIn =>
-      'That account signs in with Apple or Google — use the buttons below.';
+  String get authErrorUseSocialSignIn => 'That account signs in with Apple or Google — use the buttons below.';
 
   @override
-  String get authErrorSocialTokenInvalid =>
-      'That sign-in didn’t go through. Please try again.';
+  String get authErrorSocialTokenInvalid => 'That sign-in didn’t go through. Please try again.';
 
   @override
-  String get authErrorSocialNonceMismatch =>
-      'That sign-in didn’t go through. Please try again.';
+  String get authErrorSocialNonceMismatch => 'That sign-in didn’t go through. Please try again.';
 
   @override
-  String get authErrorSocialMisconfig =>
-      'Sign-in isn’t set up yet on our side. Try again later.';
+  String get authErrorSocialMisconfig => 'Sign-in isn’t set up yet on our side. Try again later.';
 
   @override
-  String get authErrorSocialLinkedToOtherAccount =>
-      'That Apple or Google account is already linked to a different MonkeyHub account.';
+  String get authErrorSocialLinkedToOtherAccount => 'That Apple or Google account is already linked to a different MonkeyHub account.';
 
   @override
-  String get authErrorSocialAlreadyLinked =>
-      'That’s already linked to this account.';
+  String get authErrorSocialAlreadyLinked => 'That’s already linked to this account.';
 
   @override
   String get authErrorSocialNotLinked => 'That isn’t linked to this account.';
 
   @override
-  String get authErrorSocialLastCredential =>
-      'That’s the only way into this account. Set a password first.';
+  String get authErrorSocialLastCredential => 'That’s the only way into this account. Set a password first.';
 
   @override
-  String get authErrorUsernameInvalid =>
-      'Pick a username between 1 and 32 characters.';
+  String get authErrorUsernameInvalid => 'Pick a username between 1 and 32 characters.';
 
   @override
-  String get authErrorUsernameChangedRecently =>
-      'You\'ve changed your username recently. You can change it again 30 days after the last one.';
+  String get authErrorUsernameChangedRecently => 'You\'ve changed your username recently. You can change it again 30 days after the last one.';
 
   @override
-  String get authErrorInboxHandleLocked =>
-      'This account receives everyone\'s problem reports, so its username is fixed.';
+  String get authErrorInboxHandleLocked => 'This account receives everyone\'s problem reports, so its username is fixed.';
 
   @override
   String get glassKnobLabelFrost => 'FROST';
 
   @override
-  String get glassKnobHintFrost =>
-      'how much white sits on the glass. down for see-through';
+  String get glassKnobHintFrost => 'how much white sits on the glass. down for see-through';
 
   @override
   String get glassKnobLabelBlur => 'BLUR';
 
   @override
-  String get glassKnobHintBlur =>
-      'frosted at the top of the range, clear glass at the bottom';
+  String get glassKnobHintBlur => 'frosted at the top of the range, clear glass at the bottom';
 
   @override
   String get glassKnobLabelSaturation => 'COLOUR BLEED';
 
   @override
-  String get glassKnobHintSaturation =>
-      'how much colour survives the blur. past 2 it posterizes';
+  String get glassKnobHintSaturation => 'how much colour survives the blur. past 2 it posterizes';
 
   @override
   String get glassKnobLabelRimOpacity => 'RIM';
 
   @override
-  String get glassKnobHintRimOpacity =>
-      'the accent outline. zero for a borderless surface';
+  String get glassKnobHintRimOpacity => 'the accent outline. zero for a borderless surface';
 
   @override
   String get glassKnobLabelRimWidth => 'RIM WIDTH';
@@ -4857,8 +4579,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get glassKnobLabelShadowOpacity => 'SHADOW';
 
   @override
-  String get glassKnobHintShadowOpacity =>
-      'how far the surface floats above what is behind it';
+  String get glassKnobHintShadowOpacity => 'how far the surface floats above what is behind it';
 
   @override
   String get glassKnobLabelShadowBlur => 'SHADOW SPREAD';
@@ -4876,8 +4597,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get glassKnobLabelBarMargin => 'SIDE MARGIN';
 
   @override
-  String get glassKnobHintBarMargin =>
-      'gap between the bar and the edge of the screen';
+  String get glassKnobHintBarMargin => 'gap between the bar and the edge of the screen';
 
   @override
   String get glassKnobLabelBarBottom => 'BOTTOM GAP';
@@ -4889,8 +4609,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get glassKnobLabelShellPadH => 'END PADDING';
 
   @override
-  String get glassKnobHintShellPadH =>
-      'bar edge to the first pill. small, or the ends look marooned';
+  String get glassKnobHintShellPadH => 'bar edge to the first pill. small, or the ends look marooned';
 
   @override
   String get glassKnobLabelShellPadV => 'TOP PADDING';
@@ -4902,22 +4621,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get glassKnobLabelIndicatorInset => 'PILL INSET';
 
   @override
-  String get glassKnobHintIndicatorInset =>
-      'how far the selection pill sits inside its slot';
+  String get glassKnobHintIndicatorInset => 'how far the selection pill sits inside its slot';
 
   @override
   String get glassKnobLabelSegmentPadV => 'ROW PADDING';
 
   @override
-  String get glassKnobHintSegmentPadV =>
-      'air above and below the icon and its label';
+  String get glassKnobHintSegmentPadV => 'air above and below the icon and its label';
 
   @override
   String get glassKnobLabelIconLabelGap => 'ICON GAP';
 
   @override
-  String get glassKnobHintIconLabelGap =>
-      'space between an icon and the word under it';
+  String get glassKnobHintIconLabelGap => 'space between an icon and the word under it';
 
   @override
   String get glassKnobLabelIconSize => 'ICON SIZE';
@@ -5010,12 +4726,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get motionScreenSystemLabel => 'MATCH DEVICE';
 
   @override
-  String get motionScreenSystemSubtitleFull =>
-      'your device allows animation right now';
+  String get motionScreenSystemSubtitleFull => 'your device allows animation right now';
 
   @override
-  String get motionScreenSystemSubtitleCalm =>
-      'your device asks for reduced motion right now';
+  String get motionScreenSystemSubtitleCalm => 'your device asks for reduced motion right now';
 
   @override
   String get motionScreenFullLabel => 'FULL';
@@ -5027,8 +4741,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get motionScreenCalmLabel => 'CALM';
 
   @override
-  String get motionScreenCalmSubtitle =>
-      'decoration holds still — nothing else changes';
+  String get motionScreenCalmSubtitle => 'decoration holds still — nothing else changes';
 
   @override
   String get momentRailCaptureLabel => 'CAPTURE';
@@ -5093,12 +4806,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get momentComposerPost => 'POST';
 
   @override
-  String get momentComposerErrorDailyCap =>
-      'that\'s five of those today — save some for tomorrow';
+  String get momentComposerErrorDailyCap => 'that\'s five of those today — save some for tomorrow';
 
   @override
-  String get momentComposerErrorNotAllowed =>
-      'a guardian has turned photo sharing off';
+  String get momentComposerErrorNotAllowed => 'a guardian has turned photo sharing off';
 
   @override
   String get momentComposerErrorTooLong => 'that\'s a bit long — trim it down';
@@ -5220,22 +4931,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileVisibilityScreenFeedLabel => 'my highlights';
 
   @override
-  String get profileVisibilityScreenFeedDesc =>
-      'whether the photos and videos you post show up on friends\' boards for the day';
+  String get profileVisibilityScreenFeedDesc => 'whether the photos and videos you post show up on friends\' boards for the day';
 
   @override
   String get profileVisibilityScreenPuzzleLabel => 'my puzzle score';
 
   @override
-  String get profileVisibilityScreenPuzzleDesc =>
-      'whether friends see how you did on the daily puzzle';
+  String get profileVisibilityScreenPuzzleDesc => 'whether friends see how you did on the daily puzzle';
 
   @override
   String get profileVisibilityScreenPointsPastLabel => 'my past';
 
   @override
-  String get profileVisibilityScreenPointsPastDesc =>
-      'today is always shared with friends — this opens up everything before it';
+  String get profileVisibilityScreenPointsPastDesc => 'today is always shared with friends — this opens up everything before it';
 
   @override
   String get momentComposerVideo => 'video';
@@ -5283,20 +4991,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pointsExplainerTitle => 'the points game';
 
   @override
-  String get pointsExplainerIntro =>
-      'A running joke you keep score of. When something happens to you — good, bad or just strange — you log it and it goes on the board for the day.';
+  String get pointsExplainerIntro => 'A running joke you keep score of. When something happens to you — good, bad or just strange — you log it and it goes on the board for the day.';
 
   @override
-  String get pointsExplainerRuleHonour =>
-      'You award your own points. Nobody checks — that\'s the fun, and your friends will tell you if you\'re pushing it.';
+  String get pointsExplainerRuleHonour => 'You award your own points. Nobody checks — that\'s the fun, and your friends will tell you if you\'re pushing it.';
 
   @override
-  String get pointsExplainerRuleToday =>
-      'Points reset every day. The board shows today; your own history is yours to keep.';
+  String get pointsExplainerRuleToday => 'Points reset every day. The board shows today; your own history is yours to keep.';
 
   @override
-  String get pointsExplainerRuleCap =>
-      'Five of any one kind per day, so nobody can farm the board into nonsense.';
+  String get pointsExplainerRuleCap => 'Five of any one kind per day, so nobody can farm the board into nonsense.';
 
   @override
   String get pointsExplainerGotIt => 'GOT IT';
@@ -5308,12 +5012,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get momentTagJinxExample => 'washed the car, it rained at four';
 
   @override
-  String get momentTagLuckExample =>
-      'caught the train with two seconds to spare';
+  String get momentTagLuckExample => 'caught the train with two seconds to spare';
 
   @override
-  String get momentTagCalledItExample =>
-      'said the sequel would flop, it flopped';
+  String get momentTagCalledItExample => 'said the sequel would flop, it flopped';
 
   @override
   String get momentTagNpcExample => 'said ‘you too’ to the waiter';
@@ -5330,8 +5032,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileVisibilityScreenPointsLabel => 'my points';
 
   @override
-  String get profileVisibilityScreenPointsDesc =>
-      'whether the points you log show up on friends\' boards';
+  String get profileVisibilityScreenPointsDesc => 'whether the points you log show up on friends\' boards';
 
   @override
   String get momentComposerEditPhoto => 'edit crop';
@@ -5346,29 +5047,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get archiveScreenEmptyTitle => 'nothing kept yet';
 
   @override
-  String get archiveScreenEmptyBody =>
-      'moments leave your friends\' boards after a day, but they stay here for you.';
+  String get archiveScreenEmptyBody => 'moments leave your friends\' boards after a day, but they stay here for you.';
 
   @override
   String get archiveScreenEmptyFriendTitle => 'nothing here';
 
   @override
-  String get archiveScreenEmptyFriendBody =>
-      'they haven\'t posted anything you can see yet.';
+  String get archiveScreenEmptyFriendBody => 'they haven\'t posted anything you can see yet.';
 
   @override
   String get archiveScreenPrivateTitle => 'their past is private';
 
   @override
-  String get archiveScreenPrivateBody =>
-      'you can still see what they post today.';
+  String get archiveScreenPrivateBody => 'you can still see what they post today.';
 
   @override
   String get archiveScreenNotFriendTitle => 'not friends';
 
   @override
-  String get archiveScreenNotFriendBody =>
-      'you can only look back through a friend\'s days.';
+  String get archiveScreenNotFriendBody => 'you can only look back through a friend\'s days.';
 
   @override
   String get archiveScreenErrorTitle => 'couldn\'t load that';
@@ -5389,8 +5086,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gamesScreenTitle => 'the games.';
 
   @override
-  String get gamesScreenSubtitle =>
-      'four boards a day, the same four for everyone';
+  String get gamesScreenSubtitle => 'four boards a day, the same four for everyone';
 
   @override
   String gamesRemaining(num count) {
@@ -5414,8 +5110,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gameQueensName => 'queens';
 
   @override
-  String get gameQueensRule =>
-      'one crown per row, column and colour — never touching';
+  String get gameQueensRule => 'one crown per row, column and colour — never touching';
 
   @override
   String get gameTangoName => 'tango';
@@ -5489,8 +5184,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gameGiveUpTitle => 'show the answer?';
 
   @override
-  String get gameGiveUpBody =>
-      'today\'s board closes and it goes down as unsolved.';
+  String get gameGiveUpBody => 'today\'s board closes and it goes down as unsolved.';
 
   @override
   String get gameGiveUpCancel => 'KEEP TRYING';
@@ -5584,12 +5278,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gameInfoControlsLabel => 'CONTROLS';
 
   @override
-  String get gameInfoScoringTimed =>
-      'the clock runs while the board is on screen and stops when you pause or leave. finish fastest and you top today\'s list.';
+  String get gameInfoScoringTimed => 'the clock runs while the board is on screen and stops when you pause or leave. finish fastest and you top today\'s list.';
 
   @override
-  String get gameInfoScoringGuesses =>
-      'scored by how few guesses it takes, not by the clock.';
+  String get gameInfoScoringGuesses => 'scored by how few guesses it takes, not by the clock.';
 
   @override
   String get gameInfoSameForEveryone => 'everyone gets the same board today.';
@@ -5598,43 +5290,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gameInfoGotIt => 'GOT IT';
 
   @override
-  String get gameInfoQueensGoal =>
-      'place one crown in every row, column and colour.';
+  String get gameInfoQueensGoal => 'place one crown in every row, column and colour.';
 
   @override
-  String get gameInfoQueensRule1 =>
-      'eight crowns: one in each row, one in each column.';
+  String get gameInfoQueensRule1 => 'eight crowns: one in each row, one in each column.';
 
   @override
-  String get gameInfoQueensRule2 =>
-      'each colour block gets exactly one crown too.';
+  String get gameInfoQueensRule2 => 'each colour block gets exactly one crown too.';
 
   @override
-  String get gameInfoQueensRule3 =>
-      'no two crowns may touch — not even at a corner.';
+  String get gameInfoQueensRule3 => 'no two crowns may touch — not even at a corner.';
 
   @override
-  String get gameInfoQueensControls =>
-      'tap a square once for a cross to rule it out, again for a crown, again to clear it.';
+  String get gameInfoQueensControls => 'tap a square once for a cross to rule it out, again for a crown, again to clear it.';
 
   @override
   String get gameInfoTangoGoal => 'fill the grid with suns and moons.';
 
   @override
-  String get gameInfoTangoRule1 =>
-      'every row and column holds three suns and three moons.';
+  String get gameInfoTangoRule1 => 'every row and column holds three suns and three moons.';
 
   @override
-  String get gameInfoTangoRule2 =>
-      'never three of the same next to each other, across or down.';
+  String get gameInfoTangoRule2 => 'never three of the same next to each other, across or down.';
 
   @override
-  String get gameInfoTangoRule3 =>
-      '= between two squares means they match. × means they differ.';
+  String get gameInfoTangoRule3 => '= between two squares means they match. × means they differ.';
 
   @override
-  String get gameInfoTangoControls =>
-      'tap a square for a sun, again for a moon, again to clear. printed squares don\'t move.';
+  String get gameInfoTangoControls => 'tap a square for a sun, again for a moon, again to clear. printed squares don\'t move.';
 
   @override
   String get gameInfoZipGoal => 'draw one line that goes through every square.';
@@ -5649,8 +5332,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gameInfoZipRule3 => 'every square gets used exactly once.';
 
   @override
-  String get gameInfoZipControls =>
-      'drag your finger to draw. drag back over the line to rub it out.';
+  String get gameInfoZipControls => 'drag your finger to draw. drag back over the line to rub it out.';
 
   @override
   String get gameInfoSudokuGoal => 'fill the grid with the digits 1 to 6.';
@@ -5665,15 +5347,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gameInfoSudokuRule3 => 'and so does each 2x3 box.';
 
   @override
-  String get gameInfoSudokuControls =>
-      'tap a square, then a digit. tap the same digit again to clear it. notes writes small pencil marks instead.';
+  String get gameInfoSudokuControls => 'tap a square, then a digit. tap the same digit again to clear it. notes writes small pencil marks instead.';
 
   @override
   String get gameInfoCodeGoal => 'work out the hidden four-symbol code.';
 
   @override
-  String get gameInfoCodeRule1 =>
-      'six tries, and the code never repeats a symbol.';
+  String get gameInfoCodeRule1 => 'six tries, and the code never repeats a symbol.';
 
   @override
   String get gameInfoCodeRule2 => 'green means right symbol, right place.';
@@ -5682,8 +5362,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gameInfoCodeRule3 => 'yellow means right symbol, wrong place.';
 
   @override
-  String get gameInfoCodeControls =>
-      'tap symbols to build a guess, then send it. the board tells you how close you were.';
+  String get gameInfoCodeControls => 'tap symbols to build a guess, then send it. the board tells you how close you were.';
 
   @override
   String get savedMessagesTitle => 'Saved Messages';
@@ -5697,8 +5376,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pullRevealSearchHint => 'search chats…';
 
   @override
-  String get pullRevealCollapseSemanticLabel =>
-      'Hide search and archived chats';
+  String get pullRevealCollapseSemanticLabel => 'Hide search and archived chats';
 
   @override
   String archivedChatsFolderLabel(Object count) {
@@ -5744,22 +5422,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get messageActionMenuUnsaveLabel => 'UNSAVE';
 
   @override
-  String get roomScreenSaveLimitSnack =>
-      'too many saved here — unsave one first';
+  String get roomScreenSaveLimitSnack => 'too many saved here — unsave one first';
 
   @override
   String get roomScreenSaveFailedSnack => 'couldn’t save that';
 
   @override
-  String get threadOverlaySaveLimitToast =>
-      'too many saved here — unsave one first';
+  String get threadOverlaySaveLimitToast => 'too many saved here — unsave one first';
 
   @override
   String get threadOverlaySaveFailedToast => 'couldn’t save that';
 
   @override
-  String get roomInfoScreenSharedContentSavedNote =>
-      'only you can see the messages you save — a pinned message is the opposite: the whole room sees it.';
+  String get roomInfoScreenSharedContentSavedNote => 'only you can see the messages you save — a pinned message is the opposite: the whole room sees it.';
 
   @override
   String roomContentScreenSavedJumpSemantic(Object name) {
@@ -5787,8 +5462,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get muteSheetBadgesTitle => 'Unread counts';
 
   @override
-  String get muteSheetBadgesSub =>
-      'No number on the chat, nothing added to the app icon';
+  String get muteSheetBadgesSub => 'No number on the chat, nothing added to the app icon';
 
   @override
   String get muteSheetDurationLabel => 'FOR HOW LONG';
@@ -5815,16 +5489,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get muteSheetUnmuteButton => 'UNMUTE';
 
   @override
-  String get muteSummaryAll =>
-      'Nothing from this chat reaches you — no notifications, no unread count.';
+  String get muteSummaryAll => 'Nothing from this chat reaches you — no notifications, no unread count.';
 
   @override
-  String get muteSummaryNotificationsOnly =>
-      'No notifications. The unread count keeps climbing.';
+  String get muteSummaryNotificationsOnly => 'No notifications. The unread count keeps climbing.';
 
   @override
-  String get muteSummaryBadgesOnly =>
-      'No unread count. Notifications still come through.';
+  String get muteSummaryBadgesOnly => 'No unread count. Notifications still come through.';
 
   @override
   String get muteSummaryNothingPicked => 'Pick at least one thing to silence.';
@@ -5927,22 +5598,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get locationCouldNotStartLiveShare => 'Couldn’t start live sharing';
 
   @override
-  String get locationPermissionNeeded =>
-      'Location access is needed to share where you are';
+  String get locationPermissionNeeded => 'Location access is needed to share where you are';
 
   @override
   String get locationPermissionBlockedTitle => 'Location access is off';
 
   @override
-  String get locationPermissionBlockedBody =>
-      'MonkeyHub can’t ask again from here. Turn on location access for MonkeyHub in Settings.';
+  String get locationPermissionBlockedBody => 'MonkeyHub can’t ask again from here. Turn on location access for MonkeyHub in Settings.';
 
   @override
   String get locationServicesOffTitle => 'Location services are off';
 
   @override
-  String get locationServicesOffBody =>
-      'Location is switched off for this device. Turn it on in Settings to share where you are.';
+  String get locationServicesOffBody => 'Location is switched off for this device. Turn it on in Settings to share where you are.';
 
   @override
   String get locationOpenSettings => 'Open settings';
@@ -5951,15 +5619,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get locationBackgroundSheetTitle => 'If your phone restarts';
 
   @override
-  String get locationBackgroundSheetBody =>
-      'Your live share already keeps going when you leave MonkeyHub. Background access covers the rest: a restart, a force-quit, a phone that runs out of battery and comes back.';
+  String get locationBackgroundSheetBody => 'Your live share already keeps going when you leave MonkeyHub. Background access covers the rest: a restart, a force-quit, a phone that runs out of battery and comes back.';
 
   @override
   String get locationBackgroundSheetKeepRunning => 'Pick it back up';
 
   @override
-  String get locationBackgroundSheetKeepRunningDetail =>
-      'Your phone will ask you to allow this';
+  String get locationBackgroundSheetKeepRunningDetail => 'Your phone will ask you to allow this';
 
   @override
   String get locationBackgroundSheetAppOnly => 'Leave it stopped';
@@ -5971,15 +5637,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get locationServiceNotificationTitle => 'Sharing your live location';
 
   @override
-  String get locationServiceNotificationBody =>
-      'Tap to open the chat, or Stop to end it now';
+  String get locationServiceNotificationBody => 'Tap to open the chat, or Stop to end it now';
 
   @override
   String get childPolicyScreenLocationLabel => 'Location';
 
   @override
-  String get childPolicyScreenLocationOnDesc =>
-      'Can share where they are, including live for up to 8 hours';
+  String get childPolicyScreenLocationOnDesc => 'Can share where they are, including live for up to 8 hours';
 
   @override
   String get childPolicyScreenLocationOffDesc => 'Cannot share where they are';
@@ -5988,12 +5652,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomInfoScreenSavedMessagesLabel => 'SAVED MESSAGES';
 
   @override
-  String get roomInfoScreenSavedMessagesCaption =>
-      'only you can see these, and only from this room. your Saved Messages chat is separate.';
+  String get roomInfoScreenSavedMessagesCaption => 'only you can see these, and only from this room. your Saved Messages chat is separate.';
 
   @override
-  String get roomInfoScreenSavedMessagesEmpty =>
-      'nothing saved yet. hold a message and choose SAVE.';
+  String get roomInfoScreenSavedMessagesEmpty => 'nothing saved yet. hold a message and choose SAVE.';
 
   @override
   String roomInfoScreenSavedMessageJumpSemantic(Object name) {
@@ -6028,8 +5690,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get composerCaptureRecordingAnnouncement => 'Recording started';
 
   @override
-  String get composerCaptureLockedAnnouncement =>
-      'Recording locked. Hands free.';
+  String get composerCaptureLockedAnnouncement => 'Recording locked. Hands free.';
 
   @override
   String get composerCaptureCancelledAnnouncement => 'Recording discarded';
@@ -6043,12 +5704,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get composerCaptureHoldToRecordHint =>
-      'Hold to record, swipe to switch';
+  String get composerCaptureHoldToRecordHint => 'Hold to record, swipe to switch';
 
   @override
-  String get composerCaptureTapForCameraHint =>
-      'Tap for camera, swipe to switch';
+  String get composerCaptureTapForCameraHint => 'Tap for camera, swipe to switch';
 
   @override
   String get composerCaptureSlideToCancelHint => 'slide to cancel';
@@ -6080,33 +5739,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get composerCaptureMicPermissionTitle => 'Microphone needed';
 
   @override
-  String get composerCaptureMicPermissionBody =>
-      'MonkeyHub needs your microphone to record a voice message. Turn it on in Settings and try again.';
+  String get composerCaptureMicPermissionBody => 'MonkeyHub needs your microphone to record a voice message. Turn it on in Settings and try again.';
 
   @override
   String get composerCaptureCameraPermissionTitle => 'Camera needed';
 
   @override
-  String get composerCaptureCameraPermissionBody =>
-      'MonkeyHub needs your camera and microphone to record a video note. Turn them on in Settings and try again.';
+  String get composerCaptureCameraPermissionBody => 'MonkeyHub needs your camera and microphone to record a video note. Turn them on in Settings and try again.';
 
   @override
-  String get composerCaptureRestrictedBody =>
-      'Recording is turned off by a restriction on this device.';
+  String get composerCaptureRestrictedBody => 'Recording is turned off by a restriction on this device.';
 
   @override
   String get composerCaptureOpenSettingsLabel => 'Open Settings';
 
   @override
-  String get composerCaptureUnavailableSnack =>
-      'Recording isn\'t available on this device.';
+  String get composerCaptureUnavailableSnack => 'Recording isn\'t available on this device.';
 
   @override
   String get composerCaptureInterruptedSnack => 'Recording stopped.';
 
   @override
-  String get composerCaptureStorageSnack =>
-      'Couldn\'t save the recording. Check your free space.';
+  String get composerCaptureStorageSnack => 'Couldn\'t save the recording. Check your free space.';
 
   @override
   String get videoNoteMessagePlayLabel => 'play video note';
@@ -6273,16 +5927,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scheduledListRetry => 'Try again';
 
   @override
-  String get scheduleErrorOutOfRange =>
-      'Pick a time between two minutes and a year from now.';
+  String get scheduleErrorOutOfRange => 'Pick a time between two minutes and a year from now.';
 
   @override
-  String get scheduleErrorTooMany =>
-      'Too many messages waiting here. Send or delete some first.';
+  String get scheduleErrorTooMany => 'Too many messages waiting here. Send or delete some first.';
 
   @override
-  String get scheduleErrorNotInEphemeral =>
-      'Messages here fade on their own, so they can’t be scheduled.';
+  String get scheduleErrorNotInEphemeral => 'Messages here fade on their own, so they can’t be scheduled.';
 
   @override
   String get scheduleErrorNotMember => 'You’re not in this chat any more.';
@@ -6338,16 +5989,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scheduledListShowAsRow => 'How these show up';
 
   @override
-  String get scheduledIndicatorPillSub =>
-      'A bar above the message box. Tap it to see them.';
+  String get scheduledIndicatorPillSub => 'A bar above the message box. Tap it to see them.';
 
   @override
-  String get scheduledIndicatorBadgeSub =>
-      'A count on the send button. Nothing shows until you start typing.';
+  String get scheduledIndicatorBadgeSub => 'A count on the send button. Nothing shows until you start typing.';
 
   @override
-  String get scheduledIndicatorBothSub =>
-      'The bar, plus the count while you type.';
+  String get scheduledIndicatorBothSub => 'The bar, plus the count while you type.';
 
   @override
   String get scheduledBack => 'Back';
@@ -6362,8 +6010,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get serverOnboardingTitle => 'pick a server.';
 
   @override
-  String get serverOnboardingSubtitle =>
-      'this build didn\'t come with one — point it at yours';
+  String get serverOnboardingSubtitle => 'this build didn\'t come with one — point it at yours';
 
   @override
   String get serverStatusConnected => 'CONNECTED';
@@ -6408,19 +6055,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get serverProblemBadScheme => 'Start it with https:// or http://.';
 
   @override
-  String get serverProblemNoHost =>
-      'Add your server\'s address after https://.';
+  String get serverProblemNoHost => 'Add your server\'s address after https://.';
 
   @override
-  String get serverProblemCredentials =>
-      'Take the username and password out of the address.';
+  String get serverProblemCredentials => 'Take the username and password out of the address.';
 
   @override
   String get serverInsecureTitle => 'NOT ENCRYPTED';
 
   @override
-  String get serverInsecureBody =>
-      'Phones block plain http, so this address won\'t connect on iOS or Android. Use https, or reach your server through a tunnel.';
+  String get serverInsecureBody => 'Phones block plain http, so this address won\'t connect on iOS or Android. Use https, or reach your server through a tunnel.';
 
   @override
   String get serverTestCta => 'TEST CONNECTION';
@@ -6441,16 +6085,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get serverResultUnreachable => 'Nothing answered at that address.';
 
   @override
-  String get serverResultNotConvex =>
-      'Something answered, but it isn\'t a Convex server.';
+  String get serverResultNotConvex => 'Something answered, but it isn\'t a Convex server.';
 
   @override
-  String get serverResultNotThisApp =>
-      'That\'s a Convex server, but MonkeyHub isn\'t deployed on it.';
+  String get serverResultNotThisApp => 'That\'s a Convex server, but MonkeyHub isn\'t deployed on it.';
 
   @override
-  String get serverResultServerError =>
-      'The server answered, but with an error.';
+  String get serverResultServerError => 'The server answered, but with an error.';
 
   @override
   String get serverResultReady => 'Ready to connect.';
@@ -6474,8 +6115,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get serverAdvancedLabel => 'ADVANCED';
 
   @override
-  String get serverSiteUrlExplain =>
-      'Most servers answer everything on one address. Fill this in only if yours serves HTTP actions somewhere else.';
+  String get serverSiteUrlExplain => 'Most servers answer everything on one address. Fill this in only if yours serves HTTP actions somewhere else.';
 
   @override
   String get serverSiteUrlHint => 'Same as above';
@@ -6490,8 +6130,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get serverSwitchWarningTitle => 'SWITCHING SIGNS YOU OUT';
 
   @override
-  String get serverSwitchWarningBody =>
-      'Accounts and chats belong to one server. This device signs out, clears what it downloaded, and starts fresh. Nothing is deleted on either server.';
+  String get serverSwitchWarningBody => 'Accounts and chats belong to one server. This device signs out, clears what it downloaded, and starts fresh. Nothing is deleted on either server.';
 
   @override
   String get serverSwitchRolledBackTitle => 'COULDN\'T CONNECT';
@@ -6502,12 +6141,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get serverSwitchStrandedBody =>
-      'Neither server would connect. Check the address and try again.';
+  String get serverSwitchStrandedBody => 'Neither server would connect. Check the address and try again.';
 
   @override
-  String get serverSwitchRefusedBody =>
-      'This device is set up for a child and can\'t change servers.';
+  String get serverSwitchRefusedBody => 'This device is set up for a child and can\'t change servers.';
 
   @override
   String serverChipSemantics(String server) {
@@ -6530,8 +6167,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get serverBadgeHomeserver => 'Serving from homeserver';
 
   @override
-  String get serverBadgeHomeserverSemantics =>
-      'Serving from the homeserver. Tap for details.';
+  String get serverBadgeHomeserverSemantics => 'Serving from the homeserver. Tap for details.';
 
   @override
   String serverBadgeSelfHostedSemantics(String server) {
@@ -6542,38 +6178,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get serverRoleHomeserverTitle => 'Running on the homeserver';
 
   @override
-  String get serverRoleHomeserverBody =>
-      'The people who run MonkeyHub have moved traffic to their home server for a while. Everything works the same way — this is deliberate, not a fault.';
+  String get serverRoleHomeserverBody => 'The people who run MonkeyHub have moved traffic to their home server for a while. Everything works the same way — this is deliberate, not a fault.';
 
   @override
-  String get serverRoleHomeserverWarnData =>
-      'Anything you send while this is up may not be here after traffic moves back.';
+  String get serverRoleHomeserverWarnData => 'Anything you send while this is up may not be here after traffic moves back.';
 
   @override
-  String get serverRoleHomeserverWarnSpeed =>
-      'A home connection is slower than the usual one, so things may lag.';
+  String get serverRoleHomeserverWarnSpeed => 'A home connection is slower than the usual one, so things may lag.';
 
   @override
-  String get serverRoleHomeserverWarnAuto =>
-      'You do not need to do anything. The app moves back on its own.';
+  String get serverRoleHomeserverWarnAuto => 'You do not need to do anything. The app moves back on its own.';
 
   @override
   String get serverRoleSelfHostedTitle => 'Your own server';
 
   @override
-  String get serverRoleSelfHostedBody =>
-      'This device is pointed at a server you run. Change it under Settings › Advanced › Server.';
+  String get serverRoleSelfHostedBody => 'This device is pointed at a server you run. Change it under Settings › Advanced › Server.';
 
   @override
   String get serverValueHomeserver => 'Homeserver, for now';
 
   @override
-  String get serverChoiceCloudSubHomeserver =>
-      'Being served from the homeserver for a while.';
+  String get serverChoiceCloudSubHomeserver => 'Being served from the homeserver for a while.';
 
   @override
-  String get serverDirectiveChangedToast =>
-      'Your server changed. Reconnecting…';
+  String get serverDirectiveChangedToast => 'Your server changed. Reconnecting…';
 
   @override
   String get loginScreenSignInWithPhone => 'sign in with your phone';
@@ -6588,8 +6217,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deviceLoginScreenHeroInk => 'sign in';
 
   @override
-  String get deviceLoginScreenIntro =>
-      'Open MonkeyHub on your phone, tap Scan to Sign In from your profile, and point the camera here — or type the code below.';
+  String get deviceLoginScreenIntro => 'Open MonkeyHub on your phone, tap Scan to Sign In from your profile, and point the camera here — or type the code below.';
 
   @override
   String get deviceLoginScreenWaiting => 'waiting for approval…';
@@ -6601,8 +6229,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deviceLoginScreenDenied => 'sign-in request denied on your phone';
 
   @override
-  String get deviceLoginScreenGenericError =>
-      'something went wrong — try a new code';
+  String get deviceLoginScreenGenericError => 'something went wrong — try a new code';
 
   @override
   String get profileScreenScanToSignInLabel => 'SCAN TO SIGN IN';
@@ -6614,8 +6241,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deviceLoginScanScreenHeroInk => 'sign in';
 
   @override
-  String get deviceLoginScanScreenIntro =>
-      'Point your camera at the code shown on your computer, or type it in below.';
+  String get deviceLoginScanScreenIntro => 'Point your camera at the code shown on your computer, or type it in below.';
 
   @override
   String get deviceLoginScanScreenScanButtonLabel => 'SCAN CODE';
@@ -6638,22 +6264,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deviceLoginScanScreenSuccess => 'signed in on your other device';
 
   @override
-  String get deviceLoginScanScreenGenericError =>
-      'couldn’t approve — try again';
+  String get deviceLoginScanScreenGenericError => 'couldn’t approve — try again';
 
   @override
   String get authErrorDeviceLoginInvalid => 'That code isn’t right.';
 
   @override
-  String get authErrorDeviceLoginExpired =>
-      'That code has expired — get a new one on the other device.';
+  String get authErrorDeviceLoginExpired => 'That code has expired — get a new one on the other device.';
 
   @override
-  String get deviceLoginScanScreenDeniedConfirmation =>
-      'sign-in request denied';
-
-  @override
-  String get roomAdminSectionLabel => 'GROUP';
+  String get deviceLoginScanScreenDeniedConfirmation => 'sign-in request denied';
 
   @override
   String get roomAdminRoleOwner => 'OWNER';
@@ -6668,8 +6288,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomAdminActionPromote => 'Make admin';
 
   @override
-  String get roomAdminActionPromoteSub =>
-      'They can invite, remove members and edit the group';
+  String get roomAdminActionPromoteSub => 'They can invite, remove members and edit the group';
 
   @override
   String get roomAdminActionDemote => 'Remove admin';
@@ -6690,23 +6309,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomAdminAddFriendsRow => 'Add friends';
 
   @override
-  String get roomAdminAddFriendsRowSub =>
-      'They get an invite to accept or decline';
-
-  @override
   String get roomAdminInviteLinkRow => 'Invite link';
 
   @override
-  String get roomAdminInviteLinkRowSub =>
-      'Share a link or a code to let people in';
-
-  @override
   String get roomAdminJoinRequestsRow => 'Join requests';
-
-  @override
-  String roomAdminJoinRequestsRowSub(Object count) {
-    return '$count waiting for an answer';
-  }
 
   @override
   String roomAdminTransferConfirmHeadline(Object name) {
@@ -6714,8 +6320,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get roomAdminTransferConfirmBody =>
-      'They become the owner and can delete the group. You stay on as an admin, and only they can hand it back.';
+  String get roomAdminTransferConfirmBody => 'They become the owner and can delete the group. You stay on as an admin, and only they can hand it back.';
 
   @override
   String get roomAdminTransferConfirmCta => 'TRANSFER';
@@ -6726,8 +6331,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get roomAdminRemoveConfirmBody =>
-      'They lose access to the group and everything in it. They can be invited back, or come back through the invite link.';
+  String get roomAdminRemoveConfirmBody => 'They lose access to the group and everything in it. They can be invited back, or come back through the invite link.';
 
   @override
   String get roomAdminRemoveConfirmCta => 'REMOVE';
@@ -6745,23 +6349,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomAdminErrorNotOwner => 'Only the group\'s owner can do that.';
 
   @override
-  String get roomAdminErrorNotGroup =>
-      'There\'s nothing to manage in a direct chat.';
+  String get roomAdminErrorNotGroup => 'There\'s nothing to manage in a direct chat.';
 
   @override
-  String get roomAdminErrorOwnerImmutable =>
-      'The owner\'s role can only change by transferring the group.';
+  String get roomAdminErrorOwnerImmutable => 'The owner\'s role can only change by transferring the group.';
 
   @override
-  String get roomAdminErrorInvitesLocked =>
-      'Only admins can invite people to this group.';
+  String get roomAdminErrorInvitesLocked => 'Only admins can invite people to this group.';
 
   @override
   String get roomInviteSheetTitle => 'Invite link';
 
   @override
-  String get roomInviteSheetBlurb =>
-      'One link and one code, and they\'re the same thing. Make a new one and the old one stops working immediately.';
+  String get roomInviteSheetBlurb => 'One link and one code, and they\'re the same thing. Make a new one and the old one stops working immediately.';
 
   @override
   String get roomInviteNoLinkYet => 'This group has no invite link yet.';
@@ -6794,8 +6394,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomInviteRegenerateHeadline => 'Make a new link?';
 
   @override
-  String get roomInviteRegenerateBody =>
-      'The current link and code stop working straight away, everywhere they\'ve been shared. Anyone already in the group stays in.';
+  String get roomInviteRegenerateBody => 'The current link and code stop working straight away, everywhere they\'ve been shared. Anyone already in the group stays in.';
 
   @override
   String get roomInviteRegenerateConfirm => 'NEW LINK';
@@ -6804,8 +6403,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomInviteRevokeHeadline => 'Revoke this link?';
 
   @override
-  String get roomInviteRevokeBody =>
-      'Nobody new can join by link until you make another one. Anyone already in the group stays in.';
+  String get roomInviteRevokeBody => 'Nobody new can join by link until you make another one. Anyone already in the group stays in.';
 
   @override
   String get roomInviteRevokeConfirm => 'REVOKE';
@@ -6836,12 +6434,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get roomInviteLimitsApplyToNew =>
-      'These apply to the link you create.';
+  String get roomInviteLimitsApplyToNew => 'These apply to the link you create.';
 
   @override
-  String get roomInviteLimitsApplyOnRegenerate =>
-      'These apply to the next link. The one above keeps the limits it was made with.';
+  String get roomInviteLimitsApplyOnRegenerate => 'These apply to the next link. The one above keeps the limits it was made with.';
 
   @override
   String get roomInvitePermissionsLabel => 'PERMISSIONS';
@@ -6850,15 +6446,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomInviteMembersCanInviteLabel => 'Members can invite friends';
 
   @override
-  String get roomInviteMembersCanInviteSub =>
-      'Turn this off and only admins can bring people in';
+  String get roomInviteMembersCanInviteSub => 'Turn this off and only admins can bring people in';
 
   @override
   String get roomInviteApprovalLabel => 'Approve each join';
 
   @override
-  String get roomInviteApprovalSub =>
-      'People with the link ask first, and an admin says yes or no';
+  String get roomInviteApprovalSub => 'People with the link ask first, and an admin says yes or no';
 
   @override
   String roomInviteUsesCount(Object count) {
@@ -6879,8 +6473,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomInviteDeadExpired => 'This link has expired. Make a new one.';
 
   @override
-  String get roomInviteDeadExhausted =>
-      'This link has run out of uses. Make a new one.';
+  String get roomInviteDeadExhausted => 'This link has run out of uses. Make a new one.';
 
   @override
   String get roomInviteDeadRevoked => 'This link was revoked.';
@@ -6892,8 +6485,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomInviteFriendsTitle => 'Add friends';
 
   @override
-  String get roomInviteFriendsBlurb =>
-      'They\'ll get an invite and can accept or decline.';
+  String get roomInviteFriendsBlurb => 'They\'ll get an invite and can accept or decline.';
 
   @override
   String get roomInviteFriendsSearchHint => 'Search friends';
@@ -6905,8 +6497,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomInviteFriendsSent => 'Invited';
 
   @override
-  String get roomInviteFriendsEmpty =>
-      'Everyone you\'re friends with is already here or already invited.';
+  String get roomInviteFriendsEmpty => 'Everyone you\'re friends with is already here or already invited.';
 
   @override
   String get roomInviteFriendsNoMatch => 'No friends match that.';
@@ -6918,8 +6509,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomJoinRequestsTitle => 'Join requests';
 
   @override
-  String get roomJoinRequestsBlurb =>
-      'These people used the invite link. They can\'t see anything in the group until you say yes.';
+  String get roomJoinRequestsBlurb => 'These people used the invite link. They can\'t see anything in the group until you say yes.';
 
   @override
   String get roomJoinRequestsEmpty => 'Nobody\'s waiting.';
@@ -6953,8 +6543,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get discoverScreenJoinByCodeTitle => 'join with a code';
 
   @override
-  String get discoverScreenJoinByCodeSubtitle =>
-      'open a group someone shared with you';
+  String get discoverScreenJoinByCodeSubtitle => 'open a group someone shared with you';
 
   @override
   String get joinInviteTitle => 'Join a group';
@@ -6963,8 +6552,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get joinInviteBack => 'Back';
 
   @override
-  String get joinInviteCodeBlurb =>
-      'Enter the code someone shared with you. A full invite link works here too.';
+  String get joinInviteCodeBlurb => 'Enter the code someone shared with you. A full invite link works here too.';
 
   @override
   String get joinInviteCodeLabel => 'Invite code';
@@ -6979,8 +6567,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get joinInviteLookupButton => 'CONTINUE';
 
   @override
-  String get joinInviteLookupFailed =>
-      'Couldn\'t check that code. Check your connection and try again.';
+  String get joinInviteLookupFailed => 'Couldn\'t check that code. Check your connection and try again.';
 
   @override
   String joinInviteMemberCount(Object count) {
@@ -6994,12 +6581,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get joinInviteRequestButton => 'ASK TO JOIN';
 
   @override
-  String get joinInviteOpenNote =>
-      'You\'ll be able to see the group\'s messages once you join.';
+  String get joinInviteOpenNote => 'You\'ll be able to see the group\'s messages once you join.';
 
   @override
-  String get joinInviteApprovalNote =>
-      'An admin has to say yes before you can see anything in here.';
+  String get joinInviteApprovalNote => 'An admin has to say yes before you can see anything in here.';
 
   @override
   String get joinInviteOpenRoom => 'OPEN GROUP';
@@ -7008,8 +6593,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get joinInvitePendingHeadline => 'Waiting for an admin';
 
   @override
-  String get joinInvitePendingBody =>
-      'You\'ll get a notification as soon as somebody answers.';
+  String get joinInvitePendingBody => 'You\'ll get a notification as soon as somebody answers.';
 
   @override
   String get joinInviteBadLinkHeadline => 'This invite doesn\'t work';
@@ -7021,26 +6605,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get joinInviteExpiredHeadline => 'This invite has expired';
 
   @override
-  String get joinInviteExpiredBody =>
-      'Ask whoever invited you for a fresh link.';
+  String get joinInviteExpiredBody => 'Ask whoever invited you for a fresh link.';
 
   @override
   String get joinInviteExhaustedHeadline => 'This invite is used up';
 
   @override
-  String get joinInviteExhaustedBody =>
-      'It was set to work a limited number of times. Ask for a new one.';
+  String get joinInviteExhaustedBody => 'It was set to work a limited number of times. Ask for a new one.';
 
   @override
   String get joinInviteRevokedHeadline => 'This invite was replaced';
 
   @override
-  String get joinInviteRevokedBody =>
-      'An admin made a new link. Ask them for the current one.';
+  String get joinInviteRevokedBody => 'An admin made a new link. Ask them for the current one.';
 
   @override
-  String get joinInviteWrongServerHeadline =>
-      'This invite is for another server';
+  String get joinInviteWrongServerHeadline => 'This invite is for another server';
 
   @override
   String joinInviteWrongServerBody(Object host) {
@@ -7048,12 +6628,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get roomInviteErrorNotFound =>
-      'That invite code doesn\'t match anything.';
+  String get roomInviteErrorNotFound => 'That invite code doesn\'t match anything.';
 
   @override
-  String get roomInviteErrorRevoked =>
-      'That invite was replaced. Ask for the current link.';
+  String get roomInviteErrorRevoked => 'That invite was replaced. Ask for the current link.';
 
   @override
   String get roomInviteErrorExpired => 'That invite has expired.';
@@ -7074,41 +6652,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomInviteErrorInvitationGone => 'That invite is no longer there.';
 
   @override
-  String get roomInviteErrorRequestPending =>
-      'You\'ve already asked to join. An admin will answer.';
+  String get roomInviteErrorRequestPending => 'You\'ve already asked to join. An admin will answer.';
 
   @override
-  String get roomInviteErrorRequestGone =>
-      'Somebody already answered that request.';
+  String get roomInviteErrorRequestGone => 'Somebody already answered that request.';
 
   @override
-  String get roomInviteErrorRoomPrivate =>
-      'This group can only be joined with an invite.';
+  String get roomInviteErrorRoomPrivate => 'This group can only be joined with an invite.';
 
   @override
   String get roomInviteErrorInvalidLimits => 'Those limits aren\'t valid.';
 
   @override
-  String approvalsScreenHeadlineRoomInviteOutgoing(
-    Object child,
-    Object other,
-    Object room,
-  ) {
+  String approvalsScreenHeadlineRoomInviteOutgoing(Object child, Object other, Object room) {
     return '$child wants to invite $other to $room';
   }
 
   @override
-  String approvalsScreenHeadlineRoomInviteIncoming(
-    Object child,
-    Object other,
-    Object room,
-  ) {
+  String approvalsScreenHeadlineRoomInviteIncoming(Object child, Object other, Object room) {
     return '$other invited $child to $room';
   }
 
   @override
-  String get approvalsScreenConsequenceRoomInviteOutgoing =>
-      'The invite goes out, and the other person still decides.';
+  String get approvalsScreenConsequenceRoomInviteOutgoing => 'The invite goes out, and the other person still decides.';
 
   @override
   String approvalsScreenConsequenceRoomInviteIncoming(Object child) {
@@ -7116,8 +6682,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get roomAdminErrorCannotRemoveSelf =>
-      'You can\'t remove yourself. Leave the group instead.';
+  String get roomAdminErrorCannotRemoveSelf => 'You can\'t remove yourself. Leave the group instead.';
 
   @override
   String get roomAdminActionMessage => 'Message';

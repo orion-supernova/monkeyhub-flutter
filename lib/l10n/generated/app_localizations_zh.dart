@@ -334,8 +334,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileScreenErrorNotAccepting => '对方现在不接受好友请求。';
 
   @override
-  String get profileScreenErrorRequestAlreadyReceived =>
-      '对方已经给你发过请求了——去看看请求列表吧。';
+  String get profileScreenErrorRequestAlreadyReceived => '对方已经给你发过请求了——去看看请求列表吧。';
 
   @override
   String get profileScreenErrorRequestAlreadySent => '请求已经发送过了。';
@@ -400,8 +399,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileScreenChangeUsernameTitle => '更改用户名？';
 
   @override
-  String get profileScreenChangeUsernameWarning =>
-      '你用它登录，所以以后要输入新的用户名。旧的用户名会被释放，其他人可以使用，并且 30 天内不能再次更改。之前提到你的旧消息仍会显示旧的用户名。';
+  String get profileScreenChangeUsernameWarning => '你用它登录，所以以后要输入新的用户名。旧的用户名会被释放，其他人可以使用，并且 30 天内不能再次更改。之前提到你的旧消息仍会显示旧的用户名。';
 
   @override
   String get profileScreenUsernameHint => '朋友这样找到你';
@@ -909,8 +907,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get roomInfoScreenNoneBadge => '无';
 
   @override
-  String get roomInfoScreenPasswordProtectedNote =>
-      '此聊天室已设密码保护。出于安全原因,系统不会显示当前密码——输入新密码即可替换。';
+  String get roomInfoScreenPasswordProtectedNote => '此聊天室已设密码保护。出于安全原因,系统不会显示当前密码——输入新密码即可替换。';
 
   @override
   String get roomInfoScreenReplacePasswordHint => '替换密码…';
@@ -1077,8 +1074,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get childPolicyScreenCreateRoomsOnDesc => '他们可以创建自己的私密房间';
 
   @override
-  String get childPolicyScreenDeleteAccountBody =>
-      '一切都会消失：他们的消息、照片、房间和好友。此操作无法撤销，用户名也会被释放给其他人使用。';
+  String get childPolicyScreenDeleteAccountBody => '一切都会消失：他们的消息、照片、房间和好友。此操作无法撤销，用户名也会被释放给其他人使用。';
 
   @override
   String get childPolicyScreenDeleteAccountFailed => '无法删除账号——请重试';
@@ -1121,15 +1117,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get childPolicyScreenErrorUserNotFound => '找不到这个用户名对应的账号';
 
   @override
-  String get childPolicyScreenGraduateBlurb =>
-      '孩子会用这个密码变成普通账号,所有大人都将失去查看权限。此操作不可撤销——之后你就得像其他人一样,被邀请后才能重新加入。';
+  String get childPolicyScreenGraduateBlurb => '孩子会用这个密码变成普通账号,所有大人都将失去查看权限。此操作不可撤销——之后你就得像其他人一样,被邀请后才能重新加入。';
 
   @override
   String get childPolicyScreenGraduateCta => '毕业';
 
   @override
-  String get childPolicyScreenGraduateDangerDetail =>
-      '孩子保留一切,并获得一个密码。你将失去所有查看权限。不可撤销。';
+  String get childPolicyScreenGraduateDangerDetail => '孩子保留一切,并获得一个密码。你将失去所有查看权限。不可撤销。';
 
   @override
   String get childPolicyScreenGraduateDangerLabel => '毕业成为完整账号';
@@ -1146,12 +1140,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get childPolicyScreenGraduateHint => '给孩子的密码';
 
   @override
-  String get childPolicyScreenGrantsFooterNote =>
-      '撤回房间的同时,也会把孩子移出该房间。撤回联系人的同时,还会删除双方的聊天记录。';
+  String get childPolicyScreenGrantsFooterNote => '撤回房间的同时,也会把孩子移出该房间。撤回联系人的同时,还会删除双方的聊天记录。';
 
   @override
-  String get childPolicyScreenGrownUpsDesc =>
-      '这里的每一位都能批准请求、修改设置、查看所有内容。任何一位都可以单独操作——不用等其他人。';
+  String get childPolicyScreenGrownUpsDesc => '这里的每一位都能批准请求、修改设置、查看所有内容。任何一位都可以单独操作——不用等其他人。';
 
   @override
   String get childPolicyScreenGuardianAdded => '添加成功——现在可以照顾孩子了';
@@ -1185,12 +1177,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get childPolicyScreenNoRoomsYet => '暂无房间';
 
   @override
-  String get childPolicyScreenPeopleAllowedDesc =>
-      '这里的任何人都能直接添加,不需要再次征求你的同意——不管是谁先发起。';
+  String get childPolicyScreenPeopleAllowedDesc => '这里的任何人都能直接添加,不需要再次征求你的同意——不管是谁先发起。';
 
   @override
-  String get childPolicyScreenPublicRoomsBody =>
-      '对孩子始终关闭。发现——那些属于陌生人的房间列表——完全隐藏,且无法开启。别人邀请孩子加入的房间仍可正常使用。';
+  String get childPolicyScreenPublicRoomsBody => '对孩子始终关闭。发现——那些属于陌生人的房间列表——完全隐藏,且无法开启。别人邀请孩子加入的房间仍可正常使用。';
 
   @override
   String get childPolicyScreenPublicRoomsLabel => '公开房间';
@@ -1345,8 +1335,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get roomContentScreenEmptyLinks => '还没有链接';
 
   @override
-  String get roomContentScreenEmptySaved =>
-      '还没有保存任何内容。长按一条消息并选择保存。\n\n你在这里保存的内容只有你能看到；置顶的消息则是整个房间都能看到。';
+  String get roomContentScreenEmptySaved => '还没有保存任何内容。长按一条消息并选择保存。\n\n你在这里保存的内容只有你能看到；置顶的消息则是整个房间都能看到。';
 
   @override
   String get roomContentScreenLoadFailed => '没能加载';
@@ -1987,19 +1976,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileVisibilityScreenSendReadReceiptsLabel => '发送已读回执';
 
   @override
-  String get profileVisibilityScreenSendReadReceiptsDesc =>
-      '开启后，别人可以看到你已读了他们的消息';
+  String get profileVisibilityScreenSendReadReceiptsDesc => '开启后，别人可以看到你已读了他们的消息';
 
   @override
   String get profileVisibilityScreenShowReadReceiptsLabel => '显示已读回执';
 
   @override
-  String get profileVisibilityScreenShowReadReceiptsDesc =>
-      '对方读过后，在你自己的消息上看到“已读”标记';
+  String get profileVisibilityScreenShowReadReceiptsDesc => '对方读过后，在你自己的消息上看到“已读”标记';
 
   @override
-  String get profileVisibilityScreenShowReadReceiptsHint =>
-      '只有开启了“发送已读回执”的人才会计入已读状态，其他人则不会显示。';
+  String get profileVisibilityScreenShowReadReceiptsHint => '只有开启了“发送已读回执”的人才会计入已读状态，其他人则不会显示。';
 
   @override
   String get profileVisibilityScreenSectionPeople => '人员';
@@ -2014,8 +2000,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileVisibilityScreenSupervisedTitle => '这些由你的大人设置';
 
   @override
-  String get profileVisibilityScreenSupervisedBody =>
-      '你可以看到这里其他人能看到的内容，但只有大人才能修改。他们始终能看到你的头像、你是否在线，以及你上次在线的时间。';
+  String get profileVisibilityScreenSupervisedBody => '你可以看到这里其他人能看到的内容，但只有大人才能修改。他们始终能看到你的头像、你是否在线，以及你上次在线的时间。';
 
   @override
   String get profileVisibilityScreenOptionPublic => '公开';
@@ -2099,8 +2084,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get recoveryPhraseScreenSaveHeroInk => '这些词。';
 
   @override
-  String get recoveryPhraseScreenWordsBody =>
-      '这十二个词是你忘记密码后找回账户的唯一方式。我们无法再次显示给你，也无法帮你找回。';
+  String get recoveryPhraseScreenWordsBody => '这十二个词是你忘记密码后找回账户的唯一方式。我们无法再次显示给你，也无法帮你找回。';
 
   @override
   String get recoveryPhraseScreenCopyButton => '复制';
@@ -2598,8 +2582,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get approvalsScreenRoomFallback => '一个房间';
 
   @override
-  String get approvalsScreenConsequenceContactOutgoing =>
-      '对方会收到这条请求。是否同意,由对方决定。';
+  String get approvalsScreenConsequenceContactOutgoing => '对方会收到这条请求。是否同意,由对方决定。';
 
   @override
   String approvalsScreenConsequenceContactIncoming(Object child) {
@@ -2777,8 +2760,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get childPairScreenGreetingLine2 => '你。';
 
   @override
-  String get childPairScreenIntro =>
-      '请大人打开 MonkeyHub，然后点击“配对设备”。接着扫描对方的验证码，或者输入对方读给你听的6位数字。';
+  String get childPairScreenIntro => '请大人打开 MonkeyHub，然后点击“配对设备”。接着扫描对方的验证码，或者输入对方读给你听的6位数字。';
 
   @override
   String get childPairScreenOrDivider => '或';
@@ -2986,11 +2968,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String typingIndicatorManyPeopleTyping(
-    Object extra,
-    Object name1,
-    Object name2,
-  ) {
+  String typingIndicatorManyPeopleTyping(Object extra, Object name1, Object name2) {
     return '$name1、$name2 等$extra人正在输入';
   }
 
@@ -3025,8 +3003,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get messageStampRadialOrbLabel => '径向光球';
 
   @override
-  String get messageStampRadialOrbDescription =>
-      '长按 + 从角落拖动。平时安静待机,一个越用越顺手的手势。';
+  String get messageStampRadialOrbDescription => '长按 + 从角落拖动。平时安静待机,一个越用越顺手的手势。';
 
   @override
   String get messageStampBottomPillLabel => '底部胶囊';
@@ -3256,29 +3233,25 @@ class AppLocalizationsZh extends AppLocalizations {
   String get callButtonReplyStylePhantomEchoLabel => '幽灵残影';
 
   @override
-  String get callButtonReplyStylePhantomEchoDescription =>
-      '父消息的幽灵气泡漂浮在上方，通过一条弯曲的连线相连，交汇处带有分支图标。';
+  String get callButtonReplyStylePhantomEchoDescription => '父消息的幽灵气泡漂浮在上方，通过一条弯曲的连线相连，交汇处带有分支图标。';
 
   @override
   String get callButtonReplyStyleStickyNoteLabel => '便利贴';
 
   @override
-  String get callButtonReplyStyleStickyNoteDescription =>
-      '一张略微倾斜的拍立得风格卡片，夹在气泡角落。';
+  String get callButtonReplyStyleStickyNoteDescription => '一张略微倾斜的拍立得风格卡片，夹在气泡角落。';
 
   @override
   String get callButtonReplyStyleComicTailLabel => '漫画尾巴';
 
   @override
-  String get callButtonReplyStyleComicTailDescription =>
-      '一个小型父消息迷你气泡，带有指向下方的漫画风格三角尾巴。';
+  String get callButtonReplyStyleComicTailDescription => '一个小型父消息迷你气泡，带有指向下方的漫画风格三角尾巴。';
 
   @override
   String get callButtonReplyStyleClassicLabel => '经典';
 
   @override
-  String get callButtonReplyStyleClassicDescription =>
-      '带主题色的引用胶囊，配有连线条和头像——熟悉的 WhatsApp 风格。';
+  String get callButtonReplyStyleClassicDescription => '带主题色的引用胶囊，配有连线条和头像——熟悉的 WhatsApp 风格。';
 
   @override
   String get callButtonReplyStyleActiveBadge => '使用中';
@@ -3326,8 +3299,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get childSetupScreenBulletTalkImmediately => 'ta可以立刻和你还有ta的兄弟姐妹聊天。';
 
   @override
-  String get childSetupScreenBulletNeedsApproval =>
-      '其他人都需要先经过你同意——无论是ta主动添加的人，还是主动添加ta的人。';
+  String get childSetupScreenBulletNeedsApproval => '其他人都需要先经过你同意——无论是ta主动添加的人，还是主动添加ta的人。';
 
   @override
   String get childSetupScreenBulletPublicRoomsOff => '公开房间默认关闭，除非你手动开启。';
@@ -3369,8 +3341,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get bubbleStyleScreenTailedLabel => '尾状';
 
   @override
-  String get bubbleStyleScreenTailedDescription =>
-      '每组连续消息以尾巴收尾；上方的消息行会合并成一个整体。';
+  String get bubbleStyleScreenTailedDescription => '每组连续消息以尾巴收尾；上方的消息行会合并成一个整体。';
 
   @override
   String get bubbleStyleScreenSoftLabel => '柔和';
@@ -3462,69 +3433,50 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get incomingGroupCallScreenRemoveContactSheetLastMessageJustNow =>
-      '最后一条消息:刚刚';
+  String get incomingGroupCallScreenRemoveContactSheetLastMessageJustNow => '最后一条消息:刚刚';
 
   @override
-  String incomingGroupCallScreenRemoveContactSheetLastMessageHoursAgo(
-    Object hours,
-  ) {
+  String incomingGroupCallScreenRemoveContactSheetLastMessageHoursAgo(Object hours) {
     return '最后一条消息:$hours 小时前';
   }
 
   @override
-  String get incomingGroupCallScreenRemoveContactSheetLastMessageYesterday =>
-      '最后一条消息:昨天';
+  String get incomingGroupCallScreenRemoveContactSheetLastMessageYesterday => '最后一条消息:昨天';
 
   @override
-  String incomingGroupCallScreenRemoveContactSheetLastMessageDaysAgo(
-    Object days,
-  ) {
+  String incomingGroupCallScreenRemoveContactSheetLastMessageDaysAgo(Object days) {
     return '最后一条消息:$days 天前';
   }
 
   @override
-  String get incomingGroupCallScreenRemoveContactSheetLastMessageAWhileAgo =>
-      '最后一条消息:很久以前';
+  String get incomingGroupCallScreenRemoveContactSheetLastMessageAWhileAgo => '最后一条消息:很久以前';
 
   @override
   String get incomingGroupCallScreenRemoveContactSheetTitleBadge => '收回';
 
   @override
-  String incomingGroupCallScreenRemoveContactSheetHeadline(
-    Object childName,
-    Object contactName,
-  ) {
+  String incomingGroupCallScreenRemoveContactSheetHeadline(Object childName, Object contactName) {
     return '要把 $contactName 从 $childName 身边带走吗?';
   }
 
   @override
-  String get incomingGroupCallScreenRemoveContactSheetBodyWithChats =>
-      '他们以后没法再联系彼此了,聊天记录也会一起消失。';
+  String get incomingGroupCallScreenRemoveContactSheetBodyWithChats => '他们以后没法再联系彼此了,聊天记录也会一起消失。';
 
   @override
-  String incomingGroupCallScreenRemoveContactSheetBodyWithoutChats(
-    Object contactName,
-  ) {
+  String incomingGroupCallScreenRemoveContactSheetBodyWithoutChats(Object contactName) {
     return '他们以后没法再联系彼此了。$contactName 不会收到通知。';
   }
 
   @override
-  String incomingGroupCallScreenRemoveContactSheetDeletionSummary(
-    Object chats,
-    Object messages,
-  ) {
+  String incomingGroupCallScreenRemoveContactSheetDeletionSummary(Object chats, Object messages) {
     return '$chats · $messages 将被删除';
   }
 
   @override
-  String get incomingGroupCallScreenRemoveContactSheetDeletionDetail =>
-      '双方都会被清空,包括照片和语音消息,且无法恢复。';
+  String get incomingGroupCallScreenRemoveContactSheetDeletionDetail => '双方都会被清空,包括照片和语音消息,且无法恢复。';
 
   @override
-  String incomingGroupCallScreenRemoveContactSheetSharedRoomsHeadline(
-    num count,
-  ) {
+  String incomingGroupCallScreenRemoveContactSheetSharedRoomsHeadline(num count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
@@ -3534,31 +3486,23 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get incomingGroupCallScreenRemoveContactSheetSharedRoomsNote =>
-      '这些会保留下来。不想要的话,去下面的「房间」列表里移除就行。';
+  String get incomingGroupCallScreenRemoveContactSheetSharedRoomsNote => '这些会保留下来。不想要的话,去下面的「房间」列表里移除就行。';
 
   @override
-  String get incomingGroupCallScreenRemoveContactSheetChoiceTitleWithDelete =>
-      '移除并删除';
+  String get incomingGroupCallScreenRemoveContactSheetChoiceTitleWithDelete => '移除并删除';
 
   @override
-  String incomingGroupCallScreenRemoveContactSheetChoiceSubWithChats(
-    Object contactName,
-    Object messages,
-  ) {
+  String incomingGroupCallScreenRemoveContactSheetChoiceSubWithChats(Object contactName, Object messages) {
     return '移除 $contactName,并清空 $messages。';
   }
 
   @override
-  String incomingGroupCallScreenRemoveContactSheetChoiceSubWithoutChats(
-    Object contactName,
-  ) {
+  String incomingGroupCallScreenRemoveContactSheetChoiceSubWithoutChats(Object contactName) {
     return '将 $contactName 从允许列表中移除。';
   }
 
   @override
-  String get incomingGroupCallScreenRemoveContactSheetCancelSemanticLabel =>
-      '取消';
+  String get incomingGroupCallScreenRemoveContactSheetCancelSemanticLabel => '取消';
 
   @override
   String get incomingGroupCallScreenRemoveContactSheetCancelButton => '取消';
@@ -3763,10 +3707,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reportSheetUpdateAvailableBody => 'MonkeyHub 有新版本可用。';
 
   @override
-  String reportSheetUpdateVersionArrow(
-    Object currentVersion,
-    Object newVersion,
-  ) {
+  String reportSheetUpdateVersionArrow(Object currentVersion, Object newVersion) {
     return 'v$currentVersion → v$newVersion';
   }
 
@@ -3941,12 +3882,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get bulkActionBarBlockSheetNotNotifiedNote => '对方不会收到通知。';
 
   @override
-  String get bulkActionBarBlockSheetFriendWarning =>
-      '你们目前是好友——屏蔽会解除好友关系，以后想重新联系就得重新发送好友请求。';
+  String get bulkActionBarBlockSheetFriendWarning => '你们目前是好友——屏蔽会解除好友关系，以后想重新联系就得重新发送好友请求。';
 
   @override
-  String get bulkActionBarBlockSheetStrangerWarning =>
-      '对方会从你的搜索结果中消失，也无法再给你发消息。';
+  String get bulkActionBarBlockSheetStrangerWarning => '对方会从你的搜索结果中消失，也无法再给你发消息。';
 
   @override
   String get bulkActionBarBlockSheetHeaderLabel => '屏蔽';
@@ -3967,15 +3906,13 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get bulkActionBarBlockSheetSharedRoomsNote =>
-      '这些房间不受影响，你可以在各房间的设置中自行退出。';
+  String get bulkActionBarBlockSheetSharedRoomsNote => '这些房间不受影响，你可以在各房间的设置中自行退出。';
 
   @override
   String get bulkActionBarBlockChoiceTileTitle => '屏蔽';
 
   @override
-  String get bulkActionBarBlockChoiceTileFriendSub =>
-      '解除好友关系并屏蔽对方，已有的聊天记录仍会保留在你的存档中。';
+  String get bulkActionBarBlockChoiceTileFriendSub => '解除好友关系并屏蔽对方，已有的聊天记录仍会保留在你的存档中。';
 
   @override
   String get bulkActionBarBlockChoiceTileStrangerSub => '对方会从搜索中隐藏，也无法联系到你。';
@@ -3984,8 +3921,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get bulkActionBarBlockDeleteDmTitle => '屏蔽并删除私信';
 
   @override
-  String get bulkActionBarBlockDeleteDmSub =>
-      '同时清空你与对方的私信——所有消息、表情回应和媒体文件都会被删除。';
+  String get bulkActionBarBlockDeleteDmSub => '同时清空你与对方的私信——所有消息、表情回应和媒体文件都会被删除。';
 
   @override
   String get bulkActionBarBlockSheetCancelSemanticLabel => '取消';
@@ -3997,15 +3933,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get bulkActionBarFullScreenIntentDialogTitle => '在锁屏上显示来电';
 
   @override
-  String get bulkActionBarFullScreenIntentDialogBody =>
-      '为了在锁屏时也能像真实来电一样响铃，MonkeyHub 需要开启“全屏通知”权限。下一步会直接带你去打开这个开关。';
+  String get bulkActionBarFullScreenIntentDialogBody => '为了在锁屏时也能像真实来电一样响铃，MonkeyHub 需要开启“全屏通知”权限。下一步会直接带你去打开这个开关。';
 
   @override
   String get bulkActionBarBatteryExemptionDialogTitle => '不错过任何来电';
 
   @override
-  String get bulkActionBarBatteryExemptionDialogBody =>
-      '有些手机会为了省电而在后台暂停应用，这可能导致来电被静音。请允许 MonkeyHub 不受限制地运行，确保来电畅通无阻。';
+  String get bulkActionBarBatteryExemptionDialogBody => '有些手机会为了省电而在后台暂停应用，这可能导致来电被静音。请允许 MonkeyHub 不受限制地运行，确保来电畅通无阻。';
 
   @override
   String get bulkActionBarDialogNotNowButton => '暂不';
@@ -4313,8 +4247,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reportProblemRowValue => '把详情发给我们';
 
   @override
-  String get reportProblemIntro =>
-      '告诉我们出了什么问题。应用和设备信息会自动附上，还会附上一份记录应用当时运行情况的技术日志——正是这些帮助我们找到原因。';
+  String get reportProblemIntro => '告诉我们出了什么问题。应用和设备信息会自动附上，还会附上一份记录应用当时运行情况的技术日志——正是这些帮助我们找到原因。';
 
   @override
   String get reportProblemDescribeLabel => '发生了什么';
@@ -4565,8 +4498,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get authErrorSocialMisconfig => '登录功能尚未配置完成，请稍后再试。';
 
   @override
-  String get authErrorSocialLinkedToOtherAccount =>
-      '该 Apple 或 Google 账号已绑定到另一个 MonkeyHub 账号。';
+  String get authErrorSocialLinkedToOtherAccount => '该 Apple 或 Google 账号已绑定到另一个 MonkeyHub 账号。';
 
   @override
   String get authErrorSocialAlreadyLinked => '该账号已绑定到此账号。';
@@ -4581,8 +4513,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get authErrorUsernameInvalid => '用户名长度需在 1 到 32 个字符之间。';
 
   @override
-  String get authErrorUsernameChangedRecently =>
-      '你最近更改过用户名。距离上次更改 30 天后才能再次更改。';
+  String get authErrorUsernameChangedRecently => '你最近更改过用户名。距离上次更改 30 天后才能再次更改。';
 
   @override
   String get authErrorInboxHandleLocked => '此账号接收所有人的问题反馈，因此用户名固定。';
@@ -4984,8 +4915,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileVisibilityScreenPointsPastLabel => '我的过往';
 
   @override
-  String get profileVisibilityScreenPointsPastDesc =>
-      '今天始终与好友共享 — 此项开放的是今天之前的全部';
+  String get profileVisibilityScreenPointsPastDesc => '今天始终与好友共享 — 此项开放的是今天之前的全部';
 
   @override
   String get momentComposerVideo => '视频';
@@ -5033,8 +4963,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pointsExplainerTitle => '积分游戏';
 
   @override
-  String get pointsExplainerIntro =>
-      '一个记着分数的长期玩笑。当你遇到什么事 — 好的、坏的，或者只是离奇 — 就记下来，它会在当天出现在看板上。';
+  String get pointsExplainerIntro => '一个记着分数的长期玩笑。当你遇到什么事 — 好的、坏的，或者只是离奇 — 就记下来，它会在当天出现在看板上。';
 
   @override
   String get pointsExplainerRuleHonour => '分是你自己给的。没人核对 — 这正是乐趣所在，过头了朋友自然会说你。';
@@ -5477,8 +5406,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get threadOverlaySaveFailedToast => '无法保存这条消息';
 
   @override
-  String get roomInfoScreenSharedContentSavedNote =>
-      '你保存的消息只有你能看到；置顶的消息正相反，整个房间都能看到。';
+  String get roomInfoScreenSharedContentSavedNote => '你保存的消息只有你能看到；置顶的消息正相反，整个房间都能看到。';
 
   @override
   String roomContentScreenSavedJumpSemantic(Object name) {
@@ -5648,8 +5576,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get locationPermissionBlockedTitle => '位置权限已关闭';
 
   @override
-  String get locationPermissionBlockedBody =>
-      'MonkeyHub 无法在此再次请求。请在“设置”中为 MonkeyHub 开启位置权限。';
+  String get locationPermissionBlockedBody => 'MonkeyHub 无法在此再次请求。请在“设置”中为 MonkeyHub 开启位置权限。';
 
   @override
   String get locationServicesOffTitle => '定位服务已关闭';
@@ -5664,8 +5591,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get locationBackgroundSheetTitle => '如果手机重启';
 
   @override
-  String get locationBackgroundSheetBody =>
-      '离开 MonkeyHub 后，实时共享本来就会继续。后台权限负责其余情况：重启、强制退出，或者手机没电后重新开机。';
+  String get locationBackgroundSheetBody => '离开 MonkeyHub 后，实时共享本来就会继续。后台权限负责其余情况：重启、强制退出，或者手机没电后重新开机。';
 
   @override
   String get locationBackgroundSheetKeepRunning => '自动恢复共享';
@@ -5698,8 +5624,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get roomInfoScreenSavedMessagesLabel => '保存的消息';
 
   @override
-  String get roomInfoScreenSavedMessagesCaption =>
-      '只有你能看到，而且只来自这个房间。你的“保存的消息”聊天是单独的。';
+  String get roomInfoScreenSavedMessagesCaption => '只有你能看到，而且只来自这个房间。你的“保存的消息”聊天是单独的。';
 
   @override
   String get roomInfoScreenSavedMessagesEmpty => '还没有保存任何内容。长按消息并选择“保存”。';
@@ -5792,8 +5717,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get composerCaptureCameraPermissionTitle => '需要相机权限';
 
   @override
-  String get composerCaptureCameraPermissionBody =>
-      '录制视频留言需要使用相机和麦克风。请在“设置”中开启后重试。';
+  String get composerCaptureCameraPermissionBody => '录制视频留言需要使用相机和麦克风。请在“设置”中开启后重试。';
 
   @override
   String get composerCaptureRestrictedBody => '此设备上的限制已关闭录制功能。';
@@ -6108,8 +6032,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get serverInsecureTitle => '未加密';
 
   @override
-  String get serverInsecureBody =>
-      '手机会阻止明文 http，因此该地址在 iOS 和 Android 上无法连接。请使用 https，或通过隧道访问你的服务器。';
+  String get serverInsecureBody => '手机会阻止明文 http，因此该地址在 iOS 和 Android 上无法连接。请使用 https，或通过隧道访问你的服务器。';
 
   @override
   String get serverTestCta => '测试连接';
@@ -6160,8 +6083,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get serverAdvancedLabel => '高级';
 
   @override
-  String get serverSiteUrlExplain =>
-      '大多数服务器在同一个地址上处理所有请求。只有当你的服务器把 HTTP actions 放在别处时才需要填写。';
+  String get serverSiteUrlExplain => '大多数服务器在同一个地址上处理所有请求。只有当你的服务器把 HTTP actions 放在别处时才需要填写。';
 
   @override
   String get serverSiteUrlHint => '与上面相同';
@@ -6176,8 +6098,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get serverSwitchWarningTitle => '切换会退出登录';
 
   @override
-  String get serverSwitchWarningBody =>
-      '账号和聊天属于某一台服务器。本设备会退出登录、清除已下载的内容，并重新开始。两台服务器上的数据都不会被删除。';
+  String get serverSwitchWarningBody => '账号和聊天属于某一台服务器。本设备会退出登录、清除已下载的内容，并重新开始。两台服务器上的数据都不会被删除。';
 
   @override
   String get serverSwitchRolledBackTitle => '无法连接';
@@ -6225,8 +6146,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get serverRoleHomeserverTitle => '正在家庭服务器上运行';
 
   @override
-  String get serverRoleHomeserverBody =>
-      'MonkeyHub 的运营者暂时把流量切到了他们家里的服务器。一切照常运作 — 这是有意为之，不是故障。';
+  String get serverRoleHomeserverBody => 'MonkeyHub 的运营者暂时把流量切到了他们家里的服务器。一切照常运作 — 这是有意为之，不是故障。';
 
   @override
   String get serverRoleHomeserverWarnData => '在此期间发送的内容，在流量切回后可能不会保留。';
@@ -6265,8 +6185,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deviceLoginScreenHeroInk => 'sign in';
 
   @override
-  String get deviceLoginScreenIntro =>
-      'Open MonkeyHub on your phone, tap Scan to Sign In from your profile, and point the camera here — or type the code below.';
+  String get deviceLoginScreenIntro => 'Open MonkeyHub on your phone, tap Scan to Sign In from your profile, and point the camera here — or type the code below.';
 
   @override
   String get deviceLoginScreenWaiting => 'waiting for approval…';
@@ -6278,8 +6197,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deviceLoginScreenDenied => 'sign-in request denied on your phone';
 
   @override
-  String get deviceLoginScreenGenericError =>
-      'something went wrong — try a new code';
+  String get deviceLoginScreenGenericError => 'something went wrong — try a new code';
 
   @override
   String get profileScreenScanToSignInLabel => 'SCAN TO SIGN IN';
@@ -6291,8 +6209,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deviceLoginScanScreenHeroInk => 'sign in';
 
   @override
-  String get deviceLoginScanScreenIntro =>
-      'Point your camera at the code shown on your computer, or type it in below.';
+  String get deviceLoginScanScreenIntro => 'Point your camera at the code shown on your computer, or type it in below.';
 
   @override
   String get deviceLoginScanScreenScanButtonLabel => 'SCAN CODE';
@@ -6315,22 +6232,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deviceLoginScanScreenSuccess => 'signed in on your other device';
 
   @override
-  String get deviceLoginScanScreenGenericError =>
-      'couldn’t approve — try again';
+  String get deviceLoginScanScreenGenericError => 'couldn’t approve — try again';
 
   @override
   String get authErrorDeviceLoginInvalid => 'That code isn’t right.';
 
   @override
-  String get authErrorDeviceLoginExpired =>
-      'That code has expired — get a new one on the other device.';
+  String get authErrorDeviceLoginExpired => 'That code has expired — get a new one on the other device.';
 
   @override
-  String get deviceLoginScanScreenDeniedConfirmation =>
-      'sign-in request denied';
-
-  @override
-  String get roomAdminSectionLabel => '群组';
+  String get deviceLoginScanScreenDeniedConfirmation => 'sign-in request denied';
 
   @override
   String get roomAdminRoleOwner => '群主';
@@ -6366,21 +6277,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get roomAdminAddFriendsRow => '添加好友';
 
   @override
-  String get roomAdminAddFriendsRowSub => '他们会收到邀请，可以接受或拒绝';
-
-  @override
   String get roomAdminInviteLinkRow => '邀请链接';
 
   @override
-  String get roomAdminInviteLinkRowSub => '分享链接或口令码让人进群';
-
-  @override
   String get roomAdminJoinRequestsRow => '入群申请';
-
-  @override
-  String roomAdminJoinRequestsRowSub(Object count) {
-    return '$count 人等待答复';
-  }
 
   @override
   String roomAdminTransferConfirmHeadline(Object name) {
@@ -6388,8 +6288,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get roomAdminTransferConfirmBody =>
-      '对方将成为群主，可以解散群组。你会留任管理员，能不能拿回来只取决于对方。';
+  String get roomAdminTransferConfirmBody => '对方将成为群主，可以解散群组。你会留任管理员，能不能拿回来只取决于对方。';
 
   @override
   String get roomAdminTransferConfirmCta => '转让';
@@ -6400,8 +6299,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get roomAdminRemoveConfirmBody =>
-      '对方将失去群组及其中所有内容的访问权。你可以再次邀请，对方也可以通过邀请链接回来。';
+  String get roomAdminRemoveConfirmBody => '对方将失去群组及其中所有内容的访问权。你可以再次邀请，对方也可以通过邀请链接回来。';
 
   @override
   String get roomAdminRemoveConfirmCta => '移出';
@@ -6734,26 +6632,17 @@ class AppLocalizationsZh extends AppLocalizations {
   String get roomInviteErrorInvalidLimits => '这些限制不可用。';
 
   @override
-  String approvalsScreenHeadlineRoomInviteOutgoing(
-    Object child,
-    Object other,
-    Object room,
-  ) {
+  String approvalsScreenHeadlineRoomInviteOutgoing(Object child, Object other, Object room) {
     return '$child 想邀请 $other 加入 $room';
   }
 
   @override
-  String approvalsScreenHeadlineRoomInviteIncoming(
-    Object child,
-    Object other,
-    Object room,
-  ) {
+  String approvalsScreenHeadlineRoomInviteIncoming(Object child, Object other, Object room) {
     return '$other 邀请 $child 加入 $room';
   }
 
   @override
-  String get approvalsScreenConsequenceRoomInviteOutgoing =>
-      '邀请会发出去，是否加入仍由对方决定。';
+  String get approvalsScreenConsequenceRoomInviteOutgoing => '邀请会发出去，是否加入仍由对方决定。';
 
   @override
   String approvalsScreenConsequenceRoomInviteIncoming(Object child) {

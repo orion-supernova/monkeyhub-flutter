@@ -39,8 +39,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get languageOptionSystem => 'सिस्टम';
 
   @override
-  String get languageOptionSystemSub =>
-      'तुम्हारे डिवाइस की भाषा सेटिंग के अनुसार';
+  String get languageOptionSystemSub => 'तुम्हारे डिवाइस की भाषा सेटिंग के अनुसार';
 
   @override
   String get languageOptionEnglish => 'ENGLISH';
@@ -61,8 +60,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get languageValueTurkish => 'Türkçe';
 
   @override
-  String get roomScreenAskGrownUpFailedSnack =>
-      'अभी पूछ नहीं पाए — फिर से कोशिश करो';
+  String get roomScreenAskGrownUpFailedSnack => 'अभी पूछ नहीं पाए — फिर से कोशिश करो';
 
   @override
   String get roomScreenGateSendMessages => 'यहां मैसेज भेजना';
@@ -87,8 +85,7 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get roomScreenDeleteConfirmBody =>
-      'ये मैसेज इस चैट में सबके लिए हट जाएंगे। इसे वापस नहीं लिया जा सकता।';
+  String get roomScreenDeleteConfirmBody => 'ये मैसेज इस चैट में सबके लिए हट जाएंगे। इसे वापस नहीं लिया जा सकता।';
 
   @override
   String get roomScreenDeleteConfirmButton => 'सबके लिए डिलीट करें';
@@ -97,8 +94,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomScreenJumpFailedSnack => 'उस मैसेज तक नहीं पहुंच पाए';
 
   @override
-  String get roomScreenViewOnceAlreadyViewed =>
-      'यह फ़ोटो पहले ही खोली जा चुकी है।';
+  String get roomScreenViewOnceAlreadyViewed => 'यह फ़ोटो पहले ही खोली जा चुकी है।';
 
   @override
   String get roomScreenViewOnceGone => 'यह फ़ोटो अब उपलब्ध नहीं है।';
@@ -130,8 +126,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomScreenPinFailedSnack => 'उसे पिन नहीं किया जा सका';
 
   @override
-  String get roomScreenReportSentSnack =>
-      'रिपोर्ट गुप्त रूप से भेज दी गई। उन्हें सूचना नहीं मिलेगी।';
+  String get roomScreenReportSentSnack => 'रिपोर्ट गुप्त रूप से भेज दी गई। उन्हें सूचना नहीं मिलेगी।';
 
   @override
   String get roomScreenDeselectMessageSemantic => 'मैसेज का चयन हटाएं';
@@ -191,8 +186,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomScreenSecretSpaceTitle => 'सीक्रेट स्पेस';
 
   @override
-  String get roomScreenSecretSpaceBody =>
-      'इस रूम के मैसेज अस्थायी हैं। रूम की सुरक्षा नीति के अनुसार वे अपने आप हट जाते हैं।';
+  String get roomScreenSecretSpaceBody => 'इस रूम के मैसेज अस्थायी हैं। रूम की सुरक्षा नीति के अनुसार वे अपने आप हट जाते हैं।';
 
   @override
   String get roomScreenAutoDeleteTitle => 'ऑटो-डिलीट';
@@ -213,8 +207,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomScreenMorePrivacyTitle => 'बहुत ज़्यादा प्राइवेसी';
 
   @override
-  String get roomScreenMorePrivacySubtitle =>
-      'पहले से मौजूद प्राइवेसी फोकस के साथ-साथ अतिरिक्त सुरक्षा फीचर्स का मज़ा लें।';
+  String get roomScreenMorePrivacySubtitle => 'पहले से मौजूद प्राइवेसी फोकस के साथ-साथ अतिरिक्त सुरक्षा फीचर्स का मज़ा लें।';
 
   @override
   String get roomScreenNoMessagesTitle => 'कोई मैसेज नहीं';
@@ -253,15 +246,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get messageBubbleViewOncePhotoLabel => 'फोटो';
 
   @override
-  String get messageBubbleViewOnceSemanticLabel =>
-      'एक बार देखने वाली फोटो, देखने के लिए टैप करें';
+  String get messageBubbleViewOnceSemanticLabel => 'एक बार देखने वाली फोटो, देखने के लिए टैप करें';
 
   @override
   String get messageBubbleRetrySendingSemanticLabel => 'भेजना फिर से आज़माएं';
 
   @override
-  String get messageBubbleDiscardSemanticLabel =>
-      'भेजने में असफल अटैचमेंट हटाएं';
+  String get messageBubbleDiscardSemanticLabel => 'भेजने में असफल अटैचमेंट हटाएं';
 
   @override
   String get profileScreenAccountSection => 'अकाउंट';
@@ -293,12 +284,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get profileScreenBlockAction => 'ब्लॉक करें';
 
   @override
-  String get profileScreenBlockedDmWiped =>
-      'ब्लॉक कर दिया और डीएम मिटा दी गई। उन्हें पता नहीं चलेगा।';
+  String get profileScreenBlockedDmWiped => 'ब्लॉक कर दिया और डीएम मिटा दी गई। उन्हें पता नहीं चलेगा।';
 
   @override
-  String get profileScreenBlockedOnly =>
-      'ब्लॉक कर दिया। उन्हें पता नहीं चलेगा।';
+  String get profileScreenBlockedOnly => 'ब्लॉक कर दिया। उन्हें पता नहीं चलेगा।';
 
   @override
   String get profileScreenBlockedUsers => 'ब्लॉक किए गए यूज़र्स';
@@ -319,8 +308,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get profileScreenChangeNameTitle => 'नाम बदलें?';
 
   @override
-  String get profileScreenChangeProfilePictureSemantic =>
-      'प्रोफ़ाइल फ़ोटो बदलें';
+  String get profileScreenChangeProfilePictureSemantic => 'प्रोफ़ाइल फ़ोटो बदलें';
 
   @override
   String get profileScreenChangeRecoveryPhrase => 'रिकवरी फ़्रेज़ बदलें';
@@ -347,27 +335,22 @@ class AppLocalizationsHi extends AppLocalizations {
   String get profileScreenErrorGeneric => 'यह पूरा नहीं हो सका।';
 
   @override
-  String get profileScreenErrorNotAccepting =>
-      'वे अभी फ्रेंड रिक्वेस्ट स्वीकार नहीं कर रहे हैं।';
+  String get profileScreenErrorNotAccepting => 'वे अभी फ्रेंड रिक्वेस्ट स्वीकार नहीं कर रहे हैं।';
 
   @override
-  String get profileScreenErrorRequestAlreadyReceived =>
-      'उन्होंने तुम्हें पहले ही रिक्वेस्ट भेज दी है — रिक्वेस्ट्स देखो।';
+  String get profileScreenErrorRequestAlreadyReceived => 'उन्होंने तुम्हें पहले ही रिक्वेस्ट भेज दी है — रिक्वेस्ट्स देखो।';
 
   @override
-  String get profileScreenErrorRequestAlreadySent =>
-      'रिक्वेस्ट पहले ही भेजी जा चुकी है।';
+  String get profileScreenErrorRequestAlreadySent => 'रिक्वेस्ट पहले ही भेजी जा चुकी है।';
 
   @override
-  String get profileScreenErrorUnblockFirst =>
-      'तुमने इस यूज़र को ब्लॉक किया है — पहले उन्हें अनब्लॉक करो।';
+  String get profileScreenErrorUnblockFirst => 'तुमने इस यूज़र को ब्लॉक किया है — पहले उन्हें अनब्लॉक करो।';
 
   @override
   String get profileScreenErrorUserNotFound => 'यह अभी संभव नहीं है।';
 
   @override
-  String get profileScreenNameNotSaved =>
-      'आपका नाम सहेजा नहीं जा सका। दोबारा कोशिश करें।';
+  String get profileScreenNameNotSaved => 'आपका नाम सहेजा नहीं जा सका। दोबारा कोशिश करें।';
 
   @override
   String get profileScreenFamilyAddChild => 'बच्चा जोड़ें';
@@ -390,12 +373,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get profileScreenFriendsChip => 'दोस्त';
 
   @override
-  String get profileScreenGrownUpOnlyNote =>
-      'यह सिर्फ़ बड़े ही कर सकते हैं — इसके लिए उनका कोड या पासवर्ड ज़रूरी है।';
+  String get profileScreenGrownUpOnlyNote => 'यह सिर्फ़ बड़े ही कर सकते हैं — इसके लिए उनका कोड या पासवर्ड ज़रूरी है।';
 
   @override
-  String get profileScreenGuardiansCanSee =>
-      'वे देख सकते हैं कि तुम कब ऑनलाइन हो और किससे बात करते हो।';
+  String get profileScreenGuardiansCanSee => 'वे देख सकते हैं कि तुम कब ऑनलाइन हो और किससे बात करते हो।';
 
   @override
   String get profileScreenHandPhoneBack => 'यह फ़ोन वापस सौंपो';
@@ -428,8 +409,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get profileScreenChangeUsernameTitle => 'यूज़रनेम बदलें?';
 
   @override
-  String get profileScreenChangeUsernameWarning =>
-      'आप इसी से साइन इन करते हैं, इसलिए अब से नया वाला टाइप करेंगे। आपका पुराना यूज़रनेम किसी और के लेने के लिए खाली हो जाएगा, और आप इसे 30 दिन तक दोबारा नहीं बदल पाएंगे। जिन पुराने मैसेज में आपको टैग किया गया था, उनमें पुराना नाम ही रहेगा।';
+  String get profileScreenChangeUsernameWarning => 'आप इसी से साइन इन करते हैं, इसलिए अब से नया वाला टाइप करेंगे। आपका पुराना यूज़रनेम किसी और के लेने के लिए खाली हो जाएगा, और आप इसे 30 दिन तक दोबारा नहीं बदल पाएंगे। जिन पुराने मैसेज में आपको टैग किया गया था, उनमें पुराना नाम ही रहेगा।';
 
   @override
   String get profileScreenUsernameHint => 'आपके दोस्त आपको ऐसे ढूँढ़ेंगे';
@@ -440,15 +420,13 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get profileScreenUsernamePasswordTitle =>
-      'पुष्टि करें कि यह आप ही हैं';
+  String get profileScreenUsernamePasswordTitle => 'पुष्टि करें कि यह आप ही हैं';
 
   @override
   String get profileScreenUsernamePasswordAction => 'यूज़रनेम बदलें';
 
   @override
-  String get profileScreenUsernameProviderTitle =>
-      'अपने साइन-इन से पुष्टि करें';
+  String get profileScreenUsernameProviderTitle => 'अपने साइन-इन से पुष्टि करें';
 
   @override
   String profileScreenUsernameChanged(String username) {
@@ -456,8 +434,7 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get profileScreenUsernameNotSaved =>
-      'आपका यूज़रनेम नहीं बदला जा सका। कृपया दोबारा कोशिश करें।';
+  String get profileScreenUsernameNotSaved => 'आपका यूज़रनेम नहीं बदला जा सका। कृपया दोबारा कोशिश करें।';
 
   @override
   String get usernameStatusChecking => 'जाँच हो रही है…';
@@ -478,12 +455,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get usernameStatusUnknown => 'जाँच नहीं हो सकी';
 
   @override
-  String get profileScreenNobodyLookingAfter =>
-      'अभी कोई बड़ा इस अकाउंट का ध्यान नहीं रख रहा';
+  String get profileScreenNobodyLookingAfter => 'अभी कोई बड़ा इस अकाउंट का ध्यान नहीं रख रहा';
 
   @override
-  String get profileScreenNotAcceptingRequestsAction =>
-      'रिक्वेस्ट स्वीकार नहीं कर रहे';
+  String get profileScreenNotAcceptingRequestsAction => 'रिक्वेस्ट स्वीकार नहीं कर रहे';
 
   @override
   String get profileScreenNotConnectedChip => 'जुड़े नहीं';
@@ -504,19 +479,16 @@ class AppLocalizationsHi extends AppLocalizations {
   String get profileScreenProfilePictureTitle => 'प्रोफ़ाइल फ़ोटो';
 
   @override
-  String get profileScreenRedactedFriend =>
-      'उनकी सेटिंग्स के कारण कुछ जानकारी छिपी है।';
+  String get profileScreenRedactedFriend => 'उनकी सेटिंग्स के कारण कुछ जानकारी छिपी है।';
 
   @override
-  String get profileScreenRedactedStranger =>
-      'सीमित जानकारी — वे दोस्तों के साथ ज़्यादा शेयर करते हैं।';
+  String get profileScreenRedactedStranger => 'सीमित जानकारी — वे दोस्तों के साथ ज़्यादा शेयर करते हैं।';
 
   @override
   String get profileScreenReportAction => 'रिपोर्ट करो';
 
   @override
-  String get profileScreenReportSent =>
-      'रिपोर्ट प्राइवेट तौर पर भेज दी गई। उन्हें कोई सूचना नहीं मिलेगी।';
+  String get profileScreenReportSent => 'रिपोर्ट प्राइवेट तौर पर भेज दी गई। उन्हें कोई सूचना नहीं मिलेगी।';
 
   @override
   String get profileScreenRequestPendingChip => 'तुम्हारी रिक्वेस्ट पेंडिंग';
@@ -543,8 +515,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get profileScreenTakeSelfie => 'सेल्फी लो';
 
   @override
-  String get profileScreenTapAgainToConfirmDelete =>
-      'डिलीट पक्का करने के लिए फिर टैप करो';
+  String get profileScreenTapAgainToConfirmDelete => 'डिलीट पक्का करने के लिए फिर टैप करो';
 
   @override
   String get settingsScreenTermsOfService => 'सेवा की शर्तें';
@@ -589,8 +560,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get cameraEditorScreenCropSemanticLabel => 'क्रॉप करें';
 
   @override
-  String get cameraEditorScreenHeicUnsupportedMessage =>
-      'यह ब्राउज़र HEIC फ़ोटो नहीं खोल सकता';
+  String get cameraEditorScreenHeicUnsupportedMessage => 'यह ब्राउज़र HEIC फ़ोटो नहीं खोल सकता';
 
   @override
   String get cameraEditorScreenImageLoadFailedMessage => 'वह इमेज नहीं खुल पाई';
@@ -614,8 +584,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get cameraEditorScreenSendButton => 'भेजें';
 
   @override
-  String get cameraEditorScreenViewOnceNote =>
-      'एक बार खोलने के बाद गायब हो जाएगा';
+  String get cameraEditorScreenViewOnceNote => 'एक बार खोलने के बाद गायब हो जाएगा';
 
   @override
   String get cameraEditorScreenClearDrawingSemanticLabel => 'ड्रॉइंग साफ़ करें';
@@ -664,22 +633,19 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get glassScreenSurfacesNote =>
-      'कंपोज़र, हेडर, कॉल बटन — यानी वह सब कुछ जो स्क्रॉलिंग कंटेंट पर नहीं, बल्कि टेक्स्ट के ऊपर होता है';
+  String get glassScreenSurfacesNote => 'कंपोज़र, हेडर, कॉल बटन — यानी वह सब कुछ जो स्क्रॉलिंग कंटेंट पर नहीं, बल्कि टेक्स्ट के ऊपर होता है';
 
   @override
   String get glassScreenMatchBottomBar => 'बॉटम बार जैसा करें';
 
   @override
-  String get glassScreenPresetEditedSubtitle =>
-      'बदला गया — इसे नए लुक के रूप में सेव करें, या रीसेट करें';
+  String get glassScreenPresetEditedSubtitle => 'बदला गया — इसे नए लुक के रूप में सेव करें, या रीसेट करें';
 
   @override
   String get glassScreenCustomPresetName => 'कस्टम';
 
   @override
-  String get glassScreenUnsavedSubtitle =>
-      'सेव नहीं हुआ — रखने के लिए इसे नाम दो';
+  String get glassScreenUnsavedSubtitle => 'सेव नहीं हुआ — रखने के लिए इसे नाम दो';
 
   @override
   String get glassScreenSaveDialogTitle => 'इस लुक को नाम दो';
@@ -696,8 +662,7 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get glassScreenDeleteConfirmBody =>
-      'लुक स्क्रीन पर बना रहेगा — बस उसका नाम नहीं रहेगा।';
+  String get glassScreenDeleteConfirmBody => 'लुक स्क्रीन पर बना रहेगा — बस उसका नाम नहीं रहेगा।';
 
   @override
   String get glassScreenKeepButton => 'रखो';
@@ -756,19 +721,16 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get glassScreenBackdropMsgDilan =>
-      'छत की फ़ोटो भेजी — सारी टाइलें टूटी हुई हैं';
+  String get glassScreenBackdropMsgDilan => 'छत की फ़ोटो भेजी — सारी टाइलें टूटी हुई हैं';
 
   @override
-  String get glassScreenBackdropMsgMert =>
-      'ठीक है पर स्पीकर असल में कौन ला रहा है';
+  String get glassScreenBackdropMsgMert => 'ठीक है पर स्पीकर असल में कौन ला रहा है';
 
   @override
   String get glassScreenBackdropGroupFamily => 'परिवार';
 
   @override
-  String get glassScreenBackdropMsgFamily =>
-      'मम्मी: रात 8 बजे खाना है, फिर लेट मत होना';
+  String get glassScreenBackdropMsgFamily => 'मम्मी: रात 8 बजे खाना है, फिर लेट मत होना';
 
   @override
   String get glassScreenBackdropMsgZeynep => 'मैं बाहर हूँ';
@@ -780,19 +742,16 @@ class AppLocalizationsHi extends AppLocalizations {
   String get glassScreenBackdropGroupWork => 'ऑफ़िस';
 
   @override
-  String get glassScreenBackdropMsgWork =>
-      'स्टैंडअप अब हफ्ते के बाकी दिनों 10:30 बजे होगा';
+  String get glassScreenBackdropMsgWork => 'स्टैंडअप अब हफ्ते के बाकी दिनों 10:30 बजे होगा';
 
   @override
-  String get glassScreenBackdropMsgElif =>
-      'नहीं यार। दोबारा भेजो, मुझसे खो गया।';
+  String get glassScreenBackdropMsgElif => 'नहीं यार। दोबारा भेजो, मुझसे खो गया।';
 
   @override
   String get glassScreenBackdropMsgBaran => 'लैंड हो गया 👍';
 
   @override
-  String get glassScreenBackdropMsgAyse =>
-      'बिल्ली ने बालकनी का दरवाज़ा खोलना सीख लिया है';
+  String get glassScreenBackdropMsgAyse => 'बिल्ली ने बालकनी का दरवाज़ा खोलना सीख लिया है';
 
   @override
   String get glassScreenBackdropMsgCan => 'तो फिर शनिवार को मिलते हैं';
@@ -818,12 +777,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get threadOverlayMessageNotFound => 'इस थ्रेड में वह मैसेज नहीं मिला';
 
   @override
-  String get threadOverlayReplyTargetNotFound =>
-      'जवाब देने के लिए थ्रेड नहीं मिला';
+  String get threadOverlayReplyTargetNotFound => 'जवाब देने के लिए थ्रेड नहीं मिला';
 
   @override
-  String get threadOverlayStillSending =>
-      'अभी भेजा जा रहा है — थोड़ी देर में फिर कोशिश करें';
+  String get threadOverlayStillSending => 'अभी भेजा जा रहा है — थोड़ी देर में फिर कोशिश करें';
 
   @override
   String get threadOverlayCopiedToast => 'कॉपी हो गया';
@@ -835,8 +792,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get threadOverlayCoordinatesCopiedToast => 'निर्देशांक कॉपी किए गए';
 
   @override
-  String get threadOverlayPinLimitToast =>
-      'बहुत ज़्यादा पिन — पहले एक अनपिन करें';
+  String get threadOverlayPinLimitToast => 'बहुत ज़्यादा पिन — पहले एक अनपिन करें';
 
   @override
   String get threadOverlayPinFailedToast => 'उसे पिन नहीं कर सके';
@@ -860,8 +816,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomInfoScreenLeaveConfirmTitle => 'रूम छोड़ें?';
 
   @override
-  String get roomInfoScreenLeaveConfirmBody =>
-      'अगर यह खुला रहा, तो तुम दोबारा जुड़ सकते हो।';
+  String get roomInfoScreenLeaveConfirmBody => 'अगर यह खुला रहा, तो तुम दोबारा जुड़ सकते हो।';
 
   @override
   String get roomInfoScreenLeaveConfirmButton => 'छोड़ें';
@@ -870,15 +825,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomInfoScreenDeleteConfirmTitle => 'रूम डिलीट करें?';
 
   @override
-  String get roomInfoScreenDeleteConfirmBody =>
-      'यहाँ का हर मैसेज भी इसके साथ चला जाएगा। यह हमेशा के लिए है।';
+  String get roomInfoScreenDeleteConfirmBody => 'यहाँ का हर मैसेज भी इसके साथ चला जाएगा। यह हमेशा के लिए है।';
 
   @override
   String get roomInfoScreenDeleteConfirmButton => 'डिलीट करें';
 
   @override
-  String get roomInfoScreenEndConversationConfirmTitle =>
-      'यह बातचीत खत्म करें?';
+  String get roomInfoScreenEndConversationConfirmTitle => 'यह बातचीत खत्म करें?';
 
   @override
   String roomInfoScreenEndConversationConfirmBody(String peerName) {
@@ -901,8 +854,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomInfoScreenErrorNotOwner => 'यह सिर्फ़ ओनर ही कर सकता है';
 
   @override
-  String get roomInfoScreenErrorNotAuthorized =>
-      'तुम्हारे पास इसकी अनुमति नहीं है';
+  String get roomInfoScreenErrorNotAuthorized => 'तुम्हारे पास इसकी अनुमति नहीं है';
 
   @override
   String get roomInfoScreenErrorRoomNotFound => 'यह रूम अब मौजूद नहीं है';
@@ -965,8 +917,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomInfoScreenNoneBadge => 'कोई नहीं';
 
   @override
-  String get roomInfoScreenPasswordProtectedNote =>
-      'यह रूम सुरक्षित है। सुरक्षा कारणों से मौजूदा पासफ़्रेज़ नहीं दिखाया जाता — इसे बदलने के लिए नया डालें।';
+  String get roomInfoScreenPasswordProtectedNote => 'यह रूम सुरक्षित है। सुरक्षा कारणों से मौजूदा पासफ़्रेज़ नहीं दिखाया जाता — इसे बदलने के लिए नया डालें।';
 
   @override
   String get roomInfoScreenReplacePasswordHint => 'पासफ़्रेज़ बदलें…';
@@ -1010,8 +961,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomInfoScreenHeaderRoomSettings => 'रूम सेटिंग्स';
 
   @override
-  String get roomInfoScreenViewProfilePictureSemantic =>
-      'प्रोफ़ाइल तस्वीर देखें';
+  String get roomInfoScreenViewProfilePictureSemantic => 'प्रोफ़ाइल तस्वीर देखें';
 
   @override
   String get roomInfoScreenViewRoomPictureSemantic => 'रूम की तस्वीर देखें';
@@ -1035,8 +985,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomInfoScreenNoneCount => 'कोई नहीं';
 
   @override
-  String get cameraScreenAccessDeniedMessage =>
-      'कैमरा एक्सेस बंद है।\nफ़ोटो लेने के लिए सेटिंग्स में इसे ऑन करें।';
+  String get cameraScreenAccessDeniedMessage => 'कैमरा एक्सेस बंद है।\nफ़ोटो लेने के लिए सेटिंग्स में इसे ऑन करें।';
 
   @override
   String get cameraScreenOpeningSystemCamera => 'सिस्टम कैमरा खुल रहा है…';
@@ -1096,16 +1045,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get childPolicyScreenAskToAddLabel => 'जोड़ने के लिए पूछें';
 
   @override
-  String get childPolicyScreenAskToAddOffDesc =>
-      'सिर्फ़ परिवार — कोई नई रिक्वेस्ट नहीं';
+  String get childPolicyScreenAskToAddOffDesc => 'सिर्फ़ परिवार — कोई नई रिक्वेस्ट नहीं';
 
   @override
-  String get childPolicyScreenAskToAddOnDesc =>
-      'वे नए लोगों के बारे में तुमसे पूछ सकते हैं';
+  String get childPolicyScreenAskToAddOnDesc => 'वे नए लोगों के बारे में तुमसे पूछ सकते हैं';
 
   @override
-  String get childPolicyScreenBothFinalNote =>
-      'ये दोनों फ़ैसले पक्के हैं। इसके बजाय अलग होने का विकल्प ऊपर बड़े सेक्शन में मिलेगा।';
+  String get childPolicyScreenBothFinalNote => 'ये दोनों फ़ैसले पक्के हैं। इसके बजाय अलग होने का विकल्प ऊपर बड़े सेक्शन में मिलेगा।';
 
   @override
   String get childPolicyScreenCallsLabel => 'कॉल्स';
@@ -1114,8 +1060,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get childPolicyScreenCallsOffDesc => 'सिर्फ़ मैसेज';
 
   @override
-  String get childPolicyScreenCallsOnDesc =>
-      'अनुमति वाले लोगों के साथ वॉइस + वीडियो कॉल';
+  String get childPolicyScreenCallsOnDesc => 'अनुमति वाले लोगों के साथ वॉइस + वीडियो कॉल';
 
   @override
   String get childPolicyScreenCancelLabel => 'रद्द करें';
@@ -1124,12 +1069,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get childPolicyScreenCancelSemanticLabel => 'रद्द करें';
 
   @override
-  String get childPolicyScreenContactAddedRequestSent =>
-      'जोड़ दिया — रिक्वेस्ट रास्ते में है';
+  String get childPolicyScreenContactAddedRequestSent => 'जोड़ दिया — रिक्वेस्ट रास्ते में है';
 
   @override
-  String get childPolicyScreenContactAddedToList =>
-      'अनुमति वाली लिस्ट में जोड़ दिया';
+  String get childPolicyScreenContactAddedToList => 'अनुमति वाली लिस्ट में जोड़ दिया';
 
   @override
   String get childPolicyScreenCreateRoomsLabel => 'रूम बनाएं';
@@ -1138,16 +1081,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get childPolicyScreenCreateRoomsOffDesc => 'वे रूम शुरू नहीं कर सकते';
 
   @override
-  String get childPolicyScreenCreateRoomsOnDesc =>
-      'वे अपने प्राइवेट रूम शुरू कर सकते हैं';
+  String get childPolicyScreenCreateRoomsOnDesc => 'वे अपने प्राइवेट रूम शुरू कर सकते हैं';
 
   @override
-  String get childPolicyScreenDeleteAccountBody =>
-      'सब कुछ मिट जाएगा: उनके मैसेज, फ़ोटो, रूम और दोस्त। इसे पलटा नहीं जा सकता, और यूज़रनेम किसी और के लिए खुला हो जाएगा।';
+  String get childPolicyScreenDeleteAccountBody => 'सब कुछ मिट जाएगा: उनके मैसेज, फ़ोटो, रूम और दोस्त। इसे पलटा नहीं जा सकता, और यूज़रनेम किसी और के लिए खुला हो जाएगा।';
 
   @override
-  String get childPolicyScreenDeleteAccountFailed =>
-      'अकाउंट डिलीट नहीं हो पाया — फिर से कोशिश करो';
+  String get childPolicyScreenDeleteAccountFailed => 'अकाउंट डिलीट नहीं हो पाया — फिर से कोशिश करो';
 
   @override
   String childPolicyScreenDeleteAccountHeadline(Object name) {
@@ -1155,8 +1095,7 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get childPolicyScreenDeleteDangerDetail =>
-      'मैसेज, फ़ोटो, रूम और दोस्त — सब मिट जाएंगे। इसे पलटा नहीं जा सकता।';
+  String get childPolicyScreenDeleteDangerDetail => 'मैसेज, फ़ोटो, रूम और दोस्त — सब मिट जाएंगे। इसे पलटा नहीं जा सकता।';
 
   @override
   String childPolicyScreenDeleteDangerLabel(Object name) {
@@ -1167,51 +1106,40 @@ class AppLocalizationsHi extends AppLocalizations {
   String get childPolicyScreenDeleteForeverCta => 'हमेशा के लिए डिलीट करें';
 
   @override
-  String get childPolicyScreenErrorAddContactGeneric =>
-      'उन्हें जोड़ा नहीं जा सका — फिर से कोशिश करो';
+  String get childPolicyScreenErrorAddContactGeneric => 'उन्हें जोड़ा नहीं जा सका — फिर से कोशिश करो';
 
   @override
-  String get childPolicyScreenErrorCannotAddSelf =>
-      'यह तो उनका अपना यूज़रनेम है';
+  String get childPolicyScreenErrorCannotAddSelf => 'यह तो उनका अपना यूज़रनेम है';
 
   @override
-  String get childPolicyScreenErrorChildNotAllowed =>
-      'कोई बच्चा बड़ा नहीं हो सकता';
+  String get childPolicyScreenErrorChildNotAllowed => 'कोई बच्चा बड़ा नहीं हो सकता';
 
   @override
-  String get childPolicyScreenErrorGenericGuardian =>
-      'यह नहीं हो सका — फिर से कोशिश करें';
+  String get childPolicyScreenErrorGenericGuardian => 'यह नहीं हो सका — फिर से कोशिश करें';
 
   @override
-  String get childPolicyScreenErrorLastGuardian =>
-      'किसी को तो उनकी देखभाल करनी होगी — पहले एक और बड़ा जोड़ें';
+  String get childPolicyScreenErrorLastGuardian => 'किसी को तो उनकी देखभाल करनी होगी — पहले एक और बड़ा जोड़ें';
 
   @override
-  String get childPolicyScreenErrorNotYours =>
-      'इसे बदलने का अधिकार तुम्हें नहीं है';
+  String get childPolicyScreenErrorNotYours => 'इसे बदलने का अधिकार तुम्हें नहीं है';
 
   @override
-  String get childPolicyScreenErrorUserNotFound =>
-      'इस यूज़रनेम से कोई अकाउंट नहीं मिला';
+  String get childPolicyScreenErrorUserNotFound => 'इस यूज़रनेम से कोई अकाउंट नहीं मिला';
 
   @override
-  String get childPolicyScreenGraduateBlurb =>
-      'इस पासवर्ड के साथ वे एक सामान्य अकाउंट बन जाएंगे, और हर बड़े की उन पर नज़र पूरी तरह खत्म हो जाएगी। इसे वापस नहीं किया जा सकता — फिर तुम्हें भी बाकी सबकी तरह आमंत्रित किया जाना होगा।';
+  String get childPolicyScreenGraduateBlurb => 'इस पासवर्ड के साथ वे एक सामान्य अकाउंट बन जाएंगे, और हर बड़े की उन पर नज़र पूरी तरह खत्म हो जाएगी। इसे वापस नहीं किया जा सकता — फिर तुम्हें भी बाकी सबकी तरह आमंत्रित किया जाना होगा।';
 
   @override
   String get childPolicyScreenGraduateCta => 'ग्रेजुएट करें';
 
   @override
-  String get childPolicyScreenGraduateDangerDetail =>
-      'उनका सब कुछ वैसा ही रहेगा और उन्हें एक पासवर्ड मिल जाएगा। तुम्हारी उन पर नज़र पूरी तरह खत्म हो जाएगी। यह वापस नहीं हो सकता।';
+  String get childPolicyScreenGraduateDangerDetail => 'उनका सब कुछ वैसा ही रहेगा और उन्हें एक पासवर्ड मिल जाएगा। तुम्हारी उन पर नज़र पूरी तरह खत्म हो जाएगी। यह वापस नहीं हो सकता।';
 
   @override
-  String get childPolicyScreenGraduateDangerLabel =>
-      'पूर्ण अकाउंट में ग्रेजुएट करें';
+  String get childPolicyScreenGraduateDangerLabel => 'पूर्ण अकाउंट में ग्रेजुएट करें';
 
   @override
-  String get childPolicyScreenGraduateFailed =>
-      'उन्हें ग्रेजुएट नहीं किया जा सका — फिर से कोशिश करें';
+  String get childPolicyScreenGraduateFailed => 'उन्हें ग्रेजुएट नहीं किया जा सका — फिर से कोशिश करें';
 
   @override
   String childPolicyScreenGraduateHeading(Object name) {
@@ -1222,16 +1150,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get childPolicyScreenGraduateHint => 'उनके लिए एक पासवर्ड';
 
   @override
-  String get childPolicyScreenGrantsFooterNote =>
-      'कोई रूम वापस लेने पर वे उससे भी हट जाते हैं। कोई व्यक्ति वापस लेने पर उनकी चैट भी डिलीट हो जाती है — दोनों के लिए।';
+  String get childPolicyScreenGrantsFooterNote => 'कोई रूम वापस लेने पर वे उससे भी हट जाते हैं। कोई व्यक्ति वापस लेने पर उनकी चैट भी डिलीट हो जाती है — दोनों के लिए।';
 
   @override
-  String get childPolicyScreenGrownUpsDesc =>
-      'यहाँ मौजूद हर कोई अप्रूव कर सकता है, सेटिंग्स बदल सकता है, और सब कुछ देख सकता है। इनमें से कोई भी अकेले फैसला ले सकता है — किसी को दूसरों का इंतज़ार नहीं करना पड़ता।';
+  String get childPolicyScreenGrownUpsDesc => 'यहाँ मौजूद हर कोई अप्रूव कर सकता है, सेटिंग्स बदल सकता है, और सब कुछ देख सकता है। इनमें से कोई भी अकेले फैसला ले सकता है — किसी को दूसरों का इंतज़ार नहीं करना पड़ता।';
 
   @override
-  String get childPolicyScreenGuardianAdded =>
-      'जोड़ दिया गया — अब वे उनकी देखभाल कर सकते हैं';
+  String get childPolicyScreenGuardianAdded => 'जोड़ दिया गया — अब वे उनकी देखभाल कर सकते हैं';
 
   @override
   String childPolicyScreenGuardianRemoved(Object name) {
@@ -1256,19 +1181,16 @@ class AppLocalizationsHi extends AppLocalizations {
   String get childPolicyScreenMediaOffDesc => 'सिर्फ़ टेक्स्ट';
 
   @override
-  String get childPolicyScreenMediaOnDesc =>
-      'वे तस्वीरें, वीडियो और वॉइस नोट भेज सकते हैं';
+  String get childPolicyScreenMediaOnDesc => 'वे तस्वीरें, वीडियो और वॉइस नोट भेज सकते हैं';
 
   @override
   String get childPolicyScreenNoRoomsYet => 'अभी कोई रूम नहीं';
 
   @override
-  String get childPolicyScreenPeopleAllowedDesc =>
-      'इनमें से किसी को भी दोबारा तुमसे पूछे बिना जोड़ा जा सकता है — चाहे शुरुआत उनमें से कोई भी करे।';
+  String get childPolicyScreenPeopleAllowedDesc => 'इनमें से किसी को भी दोबारा तुमसे पूछे बिना जोड़ा जा सकता है — चाहे शुरुआत उनमें से कोई भी करे।';
 
   @override
-  String get childPolicyScreenPublicRoomsBody =>
-      'बच्चों के लिए यह हमेशा बंद रहता है। डिस्कवर — यानी अनजान लोगों के रूम्स की लिस्ट — पूरी तरह छिपा दी जाती है और इसे कभी चालू नहीं किया जा सकता। किसी ने उन्हें जिस रूम में आमंत्रित किया हो, वह पहले जैसा ही काम करता है।';
+  String get childPolicyScreenPublicRoomsBody => 'बच्चों के लिए यह हमेशा बंद रहता है। डिस्कवर — यानी अनजान लोगों के रूम्स की लिस्ट — पूरी तरह छिपा दी जाती है और इसे कभी चालू नहीं किया जा सकता। किसी ने उन्हें जिस रूम में आमंत्रित किया हो, वह पहले जैसा ही काम करता है।';
 
   @override
   String get childPolicyScreenPublicRoomsLabel => 'पब्लिक रूम्स';
@@ -1307,8 +1229,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get childPolicyScreenSectionWhenDone => 'जब बात खत्म हो';
 
   @override
-  String get childPolicyScreenSendNowOffDesc =>
-      'जब तक कोई एक-दूसरे को न जोड़े, तब तक कुछ नहीं होता';
+  String get childPolicyScreenSendNowOffDesc => 'जब तक कोई एक-दूसरे को न जोड़े, तब तक कुछ नहीं होता';
 
   @override
   String get childPolicyScreenSendNowOnDesc => 'उनसे तुरंत पूछा जाएगा';
@@ -1336,8 +1257,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get childPolicyScreenStopSupervisingHeadline => 'निगरानी बंद करें?';
 
   @override
-  String get childPolicyScreenTakeBackFailed =>
-      'वापस नहीं ले पाए — फिर कोशिश करो';
+  String get childPolicyScreenTakeBackFailed => 'वापस नहीं ले पाए — फिर कोशिश करो';
 
   @override
   String get childPolicyScreenTakeBackLabel => 'वापस लें';
@@ -1380,8 +1300,7 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get roomContentScreenDeleteBody =>
-      'यह उन्हें इस चैट के सभी लोगों के लिए हटा देगा। इसे वापस नहीं लिया जा सकता।';
+  String get roomContentScreenDeleteBody => 'यह उन्हें इस चैट के सभी लोगों के लिए हटा देगा। इसे वापस नहीं लिया जा सकता।';
 
   @override
   String get roomContentScreenDeleteForEveryone => 'सभी के लिए डिलीट करें';
@@ -1429,8 +1348,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomContentScreenEmptyLinks => 'अभी तक कोई लिंक नहीं';
 
   @override
-  String get roomContentScreenEmptySaved =>
-      'अभी तक कुछ सेव नहीं किया. किसी मैसेज को दबाकर रखें और सेव करें चुनें.\n\nयहाँ आप जो रखते हैं वह सिर्फ़ आपके लिए है — पिन किया गया मैसेज पूरा रूम देखता है.';
+  String get roomContentScreenEmptySaved => 'अभी तक कुछ सेव नहीं किया. किसी मैसेज को दबाकर रखें और सेव करें चुनें.\n\nयहाँ आप जो रखते हैं वह सिर्फ़ आपके लिए है — पिन किया गया मैसेज पूरा रूम देखता है.';
 
   @override
   String get roomContentScreenLoadFailed => 'वह लोड नहीं हो पाया';
@@ -1471,8 +1389,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get composerEditCardTitle => 'मैसेज एडिट करें';
 
   @override
-  String get spoilerRevealHint =>
-      'स्पॉइलर — छिपा टेक्स्ट दिखाने के लिए सक्रिय करें';
+  String get spoilerRevealHint => 'स्पॉइलर — छिपा टेक्स्ट दिखाने के लिए सक्रिय करें';
 
   @override
   String get formatToolbarFormatLabel => 'फ़ॉर्मैट करें';
@@ -1508,8 +1425,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get linkInputSheetApplyLabel => 'लिंक लागू करें';
 
   @override
-  String get linkInputSheetApplySub =>
-      'टैप करने पर चुना गया टेक्स्ट यह पता खोलेगा';
+  String get linkInputSheetApplySub => 'टैप करने पर चुना गया टेक्स्ट यह पता खोलेगा';
 
   @override
   String get linkInputSheetRemoveLabel => 'लिंक हटाएं';
@@ -1524,12 +1440,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get linkConfirmSheetCancelLabel => 'रद्द करें';
 
   @override
-  String get roomScreenEditExpiredSnack =>
-      'एडिट करने में देर हो गई — मैसेज सिर्फ़ 15 मिनट तक ही एडिट किए जा सकते हैं।';
+  String get roomScreenEditExpiredSnack => 'एडिट करने में देर हो गई — मैसेज सिर्फ़ 15 मिनट तक ही एडिट किए जा सकते हैं।';
 
   @override
-  String get roomScreenEditFailedSnack =>
-      'एडिट सेव नहीं हो सका। अपना कनेक्शन जाँचकर दोबारा कोशिश करें।';
+  String get roomScreenEditFailedSnack => 'एडिट सेव नहीं हो सका। अपना कनेक्शन जाँचकर दोबारा कोशिश करें।';
 
   @override
   String get messageActionMenuForwardLabel => 'फ़ॉरवर्ड करें';
@@ -1568,8 +1482,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get themeScreenTitle => 'थीम.';
 
   @override
-  String get themeScreenTapToApplyHint =>
-      'लागू करने के लिए टैप करें · पूरे प्रीव्यू के लिए ⛶';
+  String get themeScreenTapToApplyHint => 'लागू करने के लिए टैप करें · पूरे प्रीव्यू के लिए ⛶';
 
   @override
   String get themeScreenFamilyBasicName => 'बेसिक';
@@ -1704,28 +1617,22 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get friendRequestDraftScreenWithdrawnSnackbar =>
-      'वो रिक्वेस्ट वापस ले ली गई।';
+  String get friendRequestDraftScreenWithdrawnSnackbar => 'वो रिक्वेस्ट वापस ले ली गई।';
 
   @override
-  String get friendRequestDraftScreenDeclinedSnackbar =>
-      'रिक्वेस्ट अस्वीकार कर दी गई';
+  String get friendRequestDraftScreenDeclinedSnackbar => 'रिक्वेस्ट अस्वीकार कर दी गई';
 
   @override
-  String get friendRequestDraftScreenErrorBlocked =>
-      'तुमने इस यूज़र को ब्लॉक किया है — पहले अनब्लॉक करो.';
+  String get friendRequestDraftScreenErrorBlocked => 'तुमने इस यूज़र को ब्लॉक किया है — पहले अनब्लॉक करो.';
 
   @override
-  String get friendRequestDraftScreenErrorNotAccepting =>
-      'वो अभी फ्रेंड रिक्वेस्ट स्वीकार नहीं कर रहे हैं.';
+  String get friendRequestDraftScreenErrorNotAccepting => 'वो अभी फ्रेंड रिक्वेस्ट स्वीकार नहीं कर रहे हैं.';
 
   @override
-  String get friendRequestDraftScreenErrorSendFailed =>
-      'भेजा नहीं जा सका। फिर से कोशिश करो.';
+  String get friendRequestDraftScreenErrorSendFailed => 'भेजा नहीं जा सका। फिर से कोशिश करो.';
 
   @override
-  String get friendRequestDraftScreenIncomingRequestLabel =>
-      'आने वाली रिक्वेस्ट';
+  String get friendRequestDraftScreenIncomingRequestLabel => 'आने वाली रिक्वेस्ट';
 
   @override
   String get friendRequestDraftScreenNewRequestLabel => 'जाने वाली रिक्वेस्ट';
@@ -1736,12 +1643,10 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get friendRequestDraftScreenIntroOutgoing =>
-      'कुछ लाइनें भेजो। वो स्वीकार या अस्वीकार कर सकते हैं.';
+  String get friendRequestDraftScreenIntroOutgoing => 'कुछ लाइनें भेजो। वो स्वीकार या अस्वीकार कर सकते हैं.';
 
   @override
-  String get friendRequestDraftScreenIntroFooter =>
-      'जब तक दोनों की सहमति न हो, यहां कुछ भी हमेशा के लिए नहीं रहता।';
+  String get friendRequestDraftScreenIntroFooter => 'जब तक दोनों की सहमति न हो, यहां कुछ भी हमेशा के लिए नहीं रहता।';
 
   @override
   String get friendRequestDraftScreenRoomTypeLabel => 'रूम टाइप';
@@ -1771,30 +1676,25 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get friendRequestDraftScreenHintWhisperOptional =>
-      'पहली लाइन फुसफुसाओ · वैकल्पिक';
+  String get friendRequestDraftScreenHintWhisperOptional => 'पहली लाइन फुसफुसाओ · वैकल्पिक';
 
   @override
-  String get friendRequestDraftScreenHintFirstMessageOptional =>
-      'पहला मैसेज जोड़ो · वैकल्पिक';
+  String get friendRequestDraftScreenHintFirstMessageOptional => 'पहला मैसेज जोड़ो · वैकल्पिक';
 
   @override
-  String get friendRequestDraftScreenHintWhisperFades =>
-      'फुसफुसाहट · अपने आप मिट जाती है';
+  String get friendRequestDraftScreenHintWhisperFades => 'फुसफुसाहट · अपने आप मिट जाती है';
 
   @override
   String get friendRequestDraftScreenHintStartWith => 'शुरुआत के लिए कुछ लिखो…';
 
   @override
-  String get friendRequestDraftScreenApproveButton =>
-      'अनुरोध स्वीकारो और रूम खोलो';
+  String get friendRequestDraftScreenApproveButton => 'अनुरोध स्वीकारो और रूम खोलो';
 
   @override
   String get friendRequestDraftScreenDeclineButton => 'अनुरोध ठुकराओ';
 
   @override
-  String get friendRequestDraftScreenCancelRequestButton =>
-      'भेजा हुआ अनुरोध रद्द करो';
+  String get friendRequestDraftScreenCancelRequestButton => 'भेजा हुआ अनुरोध रद्द करो';
 
   @override
   String get friendRequestDraftScreenAskGrownUpButton => 'किसी बड़े से पूछो';
@@ -1827,8 +1727,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get discoverScreenFindPeopleSubtitleChild => 'पूरा यूज़रनेम लिखो';
 
   @override
-  String get discoverScreenFindPeopleSubtitleAdult =>
-      '@यूज़रनेम या नाम से खोजो';
+  String get discoverScreenFindPeopleSubtitleAdult => '@यूज़रनेम या नाम से खोजो';
 
   @override
   String get discoverScreenRequestsSectionLabel => 'अनुरोध';
@@ -1843,8 +1742,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get discoverScreenYourPeopleLabel => 'तुम्हारे लोग';
 
   @override
-  String get discoverScreenNoFriendsYetWithHint =>
-      'अभी कोई नहीं — ऊपर लोग खोजो';
+  String get discoverScreenNoFriendsYetWithHint => 'अभी कोई नहीं — ऊपर लोग खोजो';
 
   @override
   String get discoverScreenNoFriendsYet => 'अभी कोई नहीं';
@@ -1900,19 +1798,16 @@ class AppLocalizationsHi extends AppLocalizations {
   String get imageCropScreenCancelButton => 'रद्द करें';
 
   @override
-  String get imageCropScreenHeicUnsupported =>
-      'यह ब्राउज़र HEIC फ़ोटो नहीं खोल सकता';
+  String get imageCropScreenHeicUnsupported => 'यह ब्राउज़र HEIC फ़ोटो नहीं खोल सकता';
 
   @override
   String get imageCropScreenLoadFailed => 'वह फ़ोटो नहीं खुल पाई';
 
   @override
-  String get imageCropScreenHintCircle =>
-      'खिसकाने के लिए खींचें, ज़ूम करने के लिए पिंच करें';
+  String get imageCropScreenHintCircle => 'खिसकाने के लिए खींचें, ज़ूम करने के लिए पिंच करें';
 
   @override
-  String get imageCropScreenHintRect =>
-      'फ़्रेम करने के लिए खींचें और पिंच करें';
+  String get imageCropScreenHintRect => 'फ़्रेम करने के लिए खींचें और पिंच करें';
 
   @override
   String get loginScreenSignInHeroMuted => 'फिर से\n';
@@ -1966,8 +1861,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get loginScreenNameOptionalHint => 'नाम (वैकल्पिक)';
 
   @override
-  String get loginScreenRecoveryPhraseHint =>
-      'तुम्हारा 12-शब्दों वाला रिकवरी फ़्रेज़';
+  String get loginScreenRecoveryPhraseHint => 'तुम्हारा 12-शब्दों वाला रिकवरी फ़्रेज़';
 
   @override
   String get loginScreenNewPasswordHint => 'नया पासवर्ड';
@@ -2026,15 +1920,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get searchScreenHintRooms => 'रूम खोजो…';
 
   @override
-  String get searchScreenPeoplePromptChild =>
-      'किसी नए को खोजने के लिए पूरा यूज़रनेम टाइप करो';
+  String get searchScreenPeoplePromptChild => 'किसी नए को खोजने के लिए पूरा यूज़रनेम टाइप करो';
 
   @override
   String get searchScreenPeoplePromptDefault => 'यूज़रनेम या नाम से खोजो';
 
   @override
-  String get searchScreenNoMatchChild =>
-      'कोई मेल नहीं खाता — नए लोगों के लिए उनका\nपूरा यूज़रनेम बिल्कुल सही लिखना होगा';
+  String get searchScreenNoMatchChild => 'कोई मेल नहीं खाता — नए लोगों के लिए उनका\nपूरा यूज़रनेम बिल्कुल सही लिखना होगा';
 
   @override
   String get searchScreenNoMatchDefault => 'कोई मेल नहीं खाता';
@@ -2067,8 +1959,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get profileVisibilityScreenTitle => 'दृश्यता प्राथमिकताएं.';
 
   @override
-  String get profileVisibilityScreenSubtitle =>
-      'तय करो दूसरे क्या देखें — और तुम तक कैसे पहुंचें.';
+  String get profileVisibilityScreenSubtitle => 'तय करो दूसरे क्या देखें — और तुम तक कैसे पहुंचें.';
 
   @override
   String get profileVisibilityScreenSectionProfile => 'प्रोफ़ाइल';
@@ -2083,8 +1974,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get profileVisibilityScreenOnlineAwayLabel => 'ऑनलाइन / दूर';
 
   @override
-  String get profileVisibilityScreenOnlineAwayDesc =>
-      'क्या तुम अभी एक्टिव दिखते हो';
+  String get profileVisibilityScreenOnlineAwayDesc => 'क्या तुम अभी एक्टिव दिखते हो';
 
   @override
   String get profileVisibilityScreenLastSeenLabel => 'लास्ट सीन';
@@ -2099,20 +1989,16 @@ class AppLocalizationsHi extends AppLocalizations {
   String get profileVisibilityScreenSendReadReceiptsLabel => 'रीड रिसीट्स भेजो';
 
   @override
-  String get profileVisibilityScreenSendReadReceiptsDesc =>
-      'ऑन होने पर, दूसरे देख सकते हैं कि तुमने उनके मैसेज पढ़ लिए हैं';
+  String get profileVisibilityScreenSendReadReceiptsDesc => 'ऑन होने पर, दूसरे देख सकते हैं कि तुमने उनके मैसेज पढ़ लिए हैं';
 
   @override
-  String get profileVisibilityScreenShowReadReceiptsLabel =>
-      'रीड रिसीट्स दिखाओ';
+  String get profileVisibilityScreenShowReadReceiptsLabel => 'रीड रिसीट्स दिखाओ';
 
   @override
-  String get profileVisibilityScreenShowReadReceiptsDesc =>
-      'तुम्हारे मैसेज पढ़े जाने पर उन पर \'सीन\' का निशान देखो';
+  String get profileVisibilityScreenShowReadReceiptsDesc => 'तुम्हारे मैसेज पढ़े जाने पर उन पर \'सीन\' का निशान देखो';
 
   @override
-  String get profileVisibilityScreenShowReadReceiptsHint =>
-      'सिर्फ़ वे लोग गिने जाएंगे जिन्होंने \'रीड रिसीट भेजें\' चालू किया हो। बाकी लोग नज़र नहीं आएंगे।';
+  String get profileVisibilityScreenShowReadReceiptsHint => 'सिर्फ़ वे लोग गिने जाएंगे जिन्होंने \'रीड रिसीट भेजें\' चालू किया हो। बाकी लोग नज़र नहीं आएंगे।';
 
   @override
   String get profileVisibilityScreenSectionPeople => 'लोग';
@@ -2121,16 +2007,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get profileVisibilityScreenFriendRequestsLabel => 'फ्रेंड रिक्वेस्ट';
 
   @override
-  String get profileVisibilityScreenFriendRequestsDesc =>
-      'तुम्हें कौन फ्रेंड रिक्वेस्ट भेज सकता है';
+  String get profileVisibilityScreenFriendRequestsDesc => 'तुम्हें कौन फ्रेंड रिक्वेस्ट भेज सकता है';
 
   @override
-  String get profileVisibilityScreenSupervisedTitle =>
-      'ये तुम्हारे बड़ों ने सेट किए हैं';
+  String get profileVisibilityScreenSupervisedTitle => 'ये तुम्हारे बड़ों ने सेट किए हैं';
 
   @override
-  String get profileVisibilityScreenSupervisedBody =>
-      'यहाँ तुम वही देख सकते हो जो बाकी सब देखते हैं, पर इसे सिर्फ़ कोई बड़ा ही बदल सकता है। वे हमेशा तुम्हारी फ़ोटो, तुम्हारा ऑनलाइन स्टेटस और आख़िरी बार तुम कब थे — देख सकते हैं।';
+  String get profileVisibilityScreenSupervisedBody => 'यहाँ तुम वही देख सकते हो जो बाकी सब देखते हैं, पर इसे सिर्फ़ कोई बड़ा ही बदल सकता है। वे हमेशा तुम्हारी फ़ोटो, तुम्हारा ऑनलाइन स्टेटस और आख़िरी बार तुम कब थे — देख सकते हैं।';
 
   @override
   String get profileVisibilityScreenOptionPublic => 'पब्लिक';
@@ -2160,22 +2043,19 @@ class AppLocalizationsHi extends AppLocalizations {
   String get logoScreenAutoLabel => 'ऑटो';
 
   @override
-  String get logoScreenAutoDescription =>
-      'तुम्हारी थीम के हिसाब से चलता है. पैलेट बदलने पर निशान भी बदलता है.';
+  String get logoScreenAutoDescription => 'तुम्हारी थीम के हिसाब से चलता है. पैलेट बदलने पर निशान भी बदलता है.';
 
   @override
   String get logoScreenManualLabel => 'मैनुअल';
 
   @override
-  String get logoScreenManualDescription =>
-      'कोई भी निशान चुनो, अपनी थीम बनाए रखो.';
+  String get logoScreenManualDescription => 'कोई भी निशान चुनो, अपनी थीम बनाए रखो.';
 
   @override
   String get logoScreenAlwaysDefaultLabel => 'हमेशा डिफ़ॉल्ट';
 
   @override
-  String get logoScreenAlwaysDefaultDescription =>
-      'थीम कुछ भी हो, हमेशा MonkeyHub का निशान.';
+  String get logoScreenAlwaysDefaultDescription => 'थीम कुछ भी हो, हमेशा MonkeyHub का निशान.';
 
   @override
   String get logoScreenActiveBadge => 'एक्टिव';
@@ -2187,8 +2067,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get logoScreenThemesHeader => 'थीम्स';
 
   @override
-  String get recoveryPhraseScreenCopiedSnackbar =>
-      'कॉपी हो गया — इसे कहीं सुरक्षित जगह पेस्ट करो';
+  String get recoveryPhraseScreenCopiedSnackbar => 'कॉपी हो गया — इसे कहीं सुरक्षित जगह पेस्ट करो';
 
   @override
   String get recoveryPhraseScreenConfirmHeroMuted => 'पुष्टि करो\n';
@@ -2197,8 +2076,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get recoveryPhraseScreenConfirmHeroInk => 'कि यह तुम हो.';
 
   @override
-  String get recoveryPhraseScreenPasswordBody =>
-      'तुम्हारा पासवर्ड, ताकि कोई और तुम्हारे अकाउंट पर रिकवरी फ्रेज़ न डाल सके.';
+  String get recoveryPhraseScreenPasswordBody => 'तुम्हारा पासवर्ड, ताकि कोई और तुम्हारे अकाउंट पर रिकवरी फ्रेज़ न डाल सके.';
 
   @override
   String get recoveryPhraseScreenPasswordHint => 'पासवर्ड';
@@ -2219,15 +2097,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get recoveryPhraseScreenSaveHeroInk => 'ये शब्द.';
 
   @override
-  String get recoveryPhraseScreenWordsBody =>
-      'अगर तुम अपना पासवर्ड भूल जाओ, तो ये बारह शब्द ही तुम्हारे अकाउंट में वापस जाने का इकलौता रास्ता हैं. हम इन्हें दोबारा नहीं दिखा सकते, और न ही इन्हें तुम्हारे लिए वापस ला सकते हैं.';
+  String get recoveryPhraseScreenWordsBody => 'अगर तुम अपना पासवर्ड भूल जाओ, तो ये बारह शब्द ही तुम्हारे अकाउंट में वापस जाने का इकलौता रास्ता हैं. हम इन्हें दोबारा नहीं दिखा सकते, और न ही इन्हें तुम्हारे लिए वापस ला सकते हैं.';
 
   @override
   String get recoveryPhraseScreenCopyButton => 'कॉपी करो';
 
   @override
-  String get recoveryPhraseScreenPaperHint =>
-      'अगर हो सके, तो इन्हें कागज़ पर लिख लो। फ़ोन में जो कुछ भी है, वह फ़ोन के साथ खो सकता है।';
+  String get recoveryPhraseScreenPaperHint => 'अगर हो सके, तो इन्हें कागज़ पर लिख लो। फ़ोन में जो कुछ भी है, वह फ़ोन के साथ खो सकता है।';
 
   @override
   String get recoveryPhraseScreenSavedButton => 'मैंने सेव कर लिए';
@@ -2236,8 +2112,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get recoveryPhraseScreenBackLink => '← वापस';
 
   @override
-  String get recoveryPhraseScreenKeepPhraseLink =>
-      'अभी नहीं — मौजूदा फ़्रेज़ ही रखो';
+  String get recoveryPhraseScreenKeepPhraseLink => 'अभी नहीं — मौजूदा फ़्रेज़ ही रखो';
 
   @override
   String get homeScreenProfileSemanticLabel => 'तुम्हारी प्रोफ़ाइल';
@@ -2501,8 +2376,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get familyScreenEmptyStateTitle => 'अभी तक कोई बच्चा नहीं';
 
   @override
-  String get familyScreenEmptyStateBody =>
-      'अपने बच्चे के लिए एक अकाउंट बनाएं, फिर उसे उसके फ़ोन से पेयर करें।';
+  String get familyScreenEmptyStateBody => 'अपने बच्चे के लिए एक अकाउंट बनाएं, फिर उसे उसके फ़ोन से पेयर करें।';
 
   @override
   String get reactionDetailsSheetTitle => 'रिएक्शन';
@@ -2531,8 +2405,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomLayoutScreenTitle => 'चैट लिस्ट।';
 
   @override
-  String get roomLayoutScreenSubtitle =>
-      'चैट्स कैसे स्टैक होते हैं और तुम उन्हें कैसे फ़िल्टर करते हो';
+  String get roomLayoutScreenSubtitle => 'चैट्स कैसे स्टैक होते हैं और तुम उन्हें कैसे फ़िल्टर करते हो';
 
   @override
   String get roomLayoutScreenLayoutSectionLabel => 'लेआउट';
@@ -2541,15 +2414,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomLayoutScreenRowLayoutLabel => 'रो लेआउट';
 
   @override
-  String get roomLayoutScreenRowLayoutDescription =>
-      'एक कॉलम, पूरी चौड़ाई में। एक नज़र में पढ़ना आसान।';
+  String get roomLayoutScreenRowLayoutDescription => 'एक कॉलम, पूरी चौड़ाई में। एक नज़र में पढ़ना आसान।';
 
   @override
   String get roomLayoutScreenGridLayoutLabel => 'ग्रिड लेआउट';
 
   @override
-  String get roomLayoutScreenGridLayoutDescription =>
-      'दो कॉलम, कॉम्पैक्ट। एक नज़र में ज़्यादा चैट्स।';
+  String get roomLayoutScreenGridLayoutDescription => 'दो कॉलम, कॉम्पैक्ट। एक नज़र में ज़्यादा चैट्स।';
 
   @override
   String get roomLayoutScreenFilterControlSectionLabel => 'फ़िल्टर कंट्रोल';
@@ -2558,15 +2429,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomLayoutScreenChipRowLabel => 'चिप रो';
 
   @override
-  String get roomLayoutScreenChipRowDescription =>
-      'हमेशा दिखते हैं। किसी भी फ़िल्टर तक बस एक टैप, सिर्फ़ एक रो जितनी जगह।';
+  String get roomLayoutScreenChipRowDescription => 'हमेशा दिखते हैं। किसी भी फ़िल्टर तक बस एक टैप, सिर्फ़ एक रो जितनी जगह।';
 
   @override
   String get roomLayoutScreenDrawerButtonLabel => 'ड्रॉअर बटन';
 
   @override
-  String get roomLayoutScreenDrawerButtonDescription =>
-      'एक बटन जो खुलता है। जब तक तुम न खोलो, रास्ते में कुछ नहीं।';
+  String get roomLayoutScreenDrawerButtonDescription => 'एक बटन जो खुलता है। जब तक तुम न खोलो, रास्ते में कुछ नहीं।';
 
   @override
   String get roomLayoutScreenQuietRoomSectionLabel => 'शांत रूम';
@@ -2575,22 +2444,19 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomLayoutScreenPlainCornerLabel => 'खाली कोना';
 
   @override
-  String get roomLayoutScreenPlainCornerDescription =>
-      'जिस रूम में कुछ कहा नहीं गया, वो सादा रहता है';
+  String get roomLayoutScreenPlainCornerDescription => 'जिस रूम में कुछ कहा नहीं गया, वो सादा रहता है';
 
   @override
   String get roomLayoutScreenMonogramLabel => 'रूम का पहला अक्षर';
 
   @override
-  String get roomLayoutScreenMonogramDescription =>
-      'एक बड़ा धुंधला अक्षर खाली कोने को भर देता है';
+  String get roomLayoutScreenMonogramDescription => 'एक बड़ा धुंधला अक्षर खाली कोने को भर देता है';
 
   @override
   String get roomLayoutScreenActiveBadge => 'चयनित';
 
   @override
-  String get pinnedBannerJumpToPinnedSemanticLabel =>
-      'पिन किए गए मैसेज पर जाएं';
+  String get pinnedBannerJumpToPinnedSemanticLabel => 'पिन किए गए मैसेज पर जाएं';
 
   @override
   String get pinnedBannerAllPinnedSemanticLabel => 'सभी पिन किए गए मैसेज';
@@ -2613,15 +2479,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get pinnedBannerClassicLabel => 'क्लासिक';
 
   @override
-  String get pinnedBannerClassicSubtitle =>
-      'डिवाइडर-बॉर्डर वाला हेडर, फ्लैट कंपोज़र।';
+  String get pinnedBannerClassicSubtitle => 'डिवाइडर-बॉर्डर वाला हेडर, फ्लैट कंपोज़र।';
 
   @override
   String get pinnedBannerCompactLabel => 'कॉम्पैक्ट';
 
   @override
-  String get pinnedBannerCompactSubtitle =>
-      'बातचीत के ऊपर तैरते धुंधले कैप्सूल।';
+  String get pinnedBannerCompactSubtitle => 'बातचीत के ऊपर तैरते धुंधले कैप्सूल।';
 
   @override
   String get pinnedBannerActiveBadge => 'चयनित';
@@ -2660,8 +2524,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get audioMessageHeroLinkLine2 => 'स्वागत है।';
 
   @override
-  String get audioMessageCreateSubtitle =>
-      'ऐसा यूज़रनेम चुनो ताकि तुम्हारे परिवार और दोस्त तुम्हें ढूंढ सकें।';
+  String get audioMessageCreateSubtitle => 'ऐसा यूज़रनेम चुनो ताकि तुम्हारे परिवार और दोस्त तुम्हें ढूंढ सकें।';
 
   @override
   String audioMessageLinkSubtitle(Object provider) {
@@ -2689,8 +2552,7 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get audioMessageSwitchToLinkModeLink =>
-      'तुम्हारे पास पहले से अकाउंट है?';
+  String get audioMessageSwitchToLinkModeLink => 'तुम्हारे पास पहले से अकाउंट है?';
 
   @override
   String get audioMessageSwitchToCreateModeLink => 'यहाँ नए हो? अकाउंट बनाओ';
@@ -2708,8 +2570,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get approvalsScreenErrorNotGuardian => 'ये फैसला तुम्हारा नहीं है';
 
   @override
-  String get approvalsScreenErrorAlreadyHandled =>
-      'यह पहले ही कहीं और तय हो चुका है';
+  String get approvalsScreenErrorAlreadyHandled => 'यह पहले ही कहीं और तय हो चुका है';
 
   @override
   String get approvalsScreenErrorGeneric => 'सेव नहीं हो पाया — फिर कोशिश करो';
@@ -2739,8 +2600,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get approvalsScreenRoomFallback => 'एक रूम';
 
   @override
-  String get approvalsScreenConsequenceContactOutgoing =>
-      'उन्हें रिक्वेस्ट भेजी जाएगी। हां कहना है या नहीं, ये फैसला उन्हीं का है।';
+  String get approvalsScreenConsequenceContactOutgoing => 'उन्हें रिक्वेस्ट भेजी जाएगी। हां कहना है या नहीं, ये फैसला उन्हीं का है।';
 
   @override
   String approvalsScreenConsequenceContactIncoming(Object child) {
@@ -2748,8 +2608,7 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get approvalsScreenConsequenceJoinRoom =>
-      'जब तक तुम इसे वापस नहीं लेते, वो वहां पढ़ और पोस्ट कर सकता है।';
+  String get approvalsScreenConsequenceJoinRoom => 'जब तक तुम इसे वापस नहीं लेते, वो वहां पढ़ और पोस्ट कर सकता है।';
 
   @override
   String get approvalsScreenNotYetButton => 'अभी नहीं';
@@ -2816,12 +2675,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get linkedAccountsScreenTitle => 'लिंक किए गए खाते';
 
   @override
-  String get linkedAccountsScreenSubtitle =>
-      'वे खाते जो तुमने इस खाते से लिंक किए हैं, ताकि तुम बिना पासवर्ड के साइन इन कर सको।';
+  String get linkedAccountsScreenSubtitle => 'वे खाते जो तुमने इस खाते से लिंक किए हैं, ताकि तुम बिना पासवर्ड के साइन इन कर सको।';
 
   @override
-  String get linkedAccountsScreenEmptyState =>
-      'इस डिवाइस पर लिंक करने के लिए कुछ नहीं है।';
+  String get linkedAccountsScreenEmptyState => 'इस डिवाइस पर लिंक करने के लिए कुछ नहीं है।';
 
   @override
   String get linkedAccountsScreenStatusChecking => 'जांच हो रही है…';
@@ -2884,30 +2741,25 @@ class AppLocalizationsHi extends AppLocalizations {
   String get linkedAccountsScreenCallSheetCallEveryoneTitle => 'सबको कॉल करो';
 
   @override
-  String get linkedAccountsScreenCallSheetCallEveryoneSubtitle =>
-      'इस रूम के सभी सदस्यों को रिंग करो';
+  String get linkedAccountsScreenCallSheetCallEveryoneSubtitle => 'इस रूम के सभी सदस्यों को रिंग करो';
 
   @override
   String get linkedAccountsScreenCallSheetChoosePeopleTitle => 'लोग चुनो';
 
   @override
-  String get linkedAccountsScreenCallSheetChoosePeopleSubtitle =>
-      'किसे बुलाना है, चुनो';
+  String get linkedAccountsScreenCallSheetChoosePeopleSubtitle => 'किसे बुलाना है, चुनो';
 
   @override
-  String get linkedAccountsScreenCallSheetCallFullError =>
-      'यह कॉल फुल है (ज़्यादा से ज़्यादा 6 लोग)';
+  String get linkedAccountsScreenCallSheetCallFullError => 'यह कॉल फुल है (ज़्यादा से ज़्यादा 6 लोग)';
 
   @override
-  String get linkedAccountsScreenCallSheetStartFailedError =>
-      'कॉल शुरू नहीं हो सकी';
+  String get linkedAccountsScreenCallSheetStartFailedError => 'कॉल शुरू नहीं हो सकी';
 
   @override
   String get linkedAccountsScreenCallSheetInviteTitle => 'कॉल में इनवाइट करो';
 
   @override
-  String get linkedAccountsScreenCallSheetNoOtherMembers =>
-      'यहाँ कोई और सदस्य नहीं है';
+  String get linkedAccountsScreenCallSheetNoOtherMembers => 'यहाँ कोई और सदस्य नहीं है';
 
   @override
   String get linkedAccountsScreenCallSheetSelectPeople => 'लोगों को चुनो';
@@ -2927,15 +2779,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get childPairScreenGreetingLine2 => 'तुम।';
 
   @override
-  String get childPairScreenIntro =>
-      'किसी बड़े से MonkeyHub खोलने और “डिवाइस पेयर करें” पर टैप करने के लिए कहो। फिर उनका कोड स्कैन करो, या वे जो छह अंक बताएं, उन्हें टाइप करो।';
+  String get childPairScreenIntro => 'किसी बड़े से MonkeyHub खोलने और “डिवाइस पेयर करें” पर टैप करने के लिए कहो। फिर उनका कोड स्कैन करो, या वे जो छह अंक बताएं, उन्हें टाइप करो।';
 
   @override
   String get childPairScreenOrDivider => 'या';
 
   @override
-  String get childPairScreenGenericError =>
-      'कुछ गड़बड़ हो गई। फिर से कोशिश करो।';
+  String get childPairScreenGenericError => 'कुछ गड़बड़ हो गई। फिर से कोशिश करो।';
 
   @override
   String get childPairScreenAccountGoneError => 'वह अकाउंट अब मौजूद नहीं है।';
@@ -2944,8 +2794,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get childPairScreenScanButtonLabel => 'उनका कोड स्कैन करो';
 
   @override
-  String get childPairScreenNoCameraMessage =>
-      'यहाँ कैमरा नहीं है — इसके बजाय छह अंक टाइप करो।';
+  String get childPairScreenNoCameraMessage => 'यहाँ कैमरा नहीं है — इसके बजाय छह अंक टाइप करो।';
 
   @override
   String get childPairScreenStopScanning => 'स्कैनिंग रोको';
@@ -2979,8 +2828,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get textFileViewerDownloadTooltip => 'डाउनलोड';
 
   @override
-  String get textFileViewerTruncatedNotice =>
-      'इस फ़ाइल का कुछ हिस्सा दिखाया जा रहा है — बाकी देखने के लिए डाउनलोड करें।';
+  String get textFileViewerTruncatedNotice => 'इस फ़ाइल का कुछ हिस्सा दिखाया जा रहा है — बाकी देखने के लिए डाउनलोड करें।';
 
   @override
   String get fileMessageUploadFailedLabel => 'असफल';
@@ -3063,8 +2911,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get destructiveSheetViewLabel => 'देखें';
 
   @override
-  String get destructiveSheetPairingMintError =>
-      'कोड नहीं बन पाया — फिर से कोशिश करो।';
+  String get destructiveSheetPairingMintError => 'कोड नहीं बन पाया — फिर से कोशिश करो।';
 
   @override
   String get destructiveSheetPairingReleaseTitle => 'रिलीज़';
@@ -3094,8 +2941,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get destructiveSheetPairingNewCodeButton => 'नया कोड';
 
   @override
-  String get destructiveSheetPairingOneUseNote =>
-      'सिर्फ़ एक बार इस्तेमाल के लिए। नया कोड बनाने पर पुराना कोड रद्द हो जाएगा।';
+  String get destructiveSheetPairingOneUseNote => 'सिर्फ़ एक बार इस्तेमाल के लिए। नया कोड बनाने पर पुराना कोड रद्द हो जाएगा।';
 
   @override
   String get deepOceanThemeAttachButtonLabel => 'अटैच करें';
@@ -3107,8 +2953,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get deepOceanThemeSendButtonLabel => 'भेजें';
 
   @override
-  String get deepOceanThemeEphemeralHint =>
-      'कुछ फुसफुसाओ जिसे सर्वर भूल जाएगा…';
+  String get deepOceanThemeEphemeralHint => 'कुछ फुसफुसाओ जिसे सर्वर भूल जाएगा…';
 
   @override
   String get deepOceanThemeDefaultHint => 'कुछ कहो…';
@@ -3144,11 +2989,7 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String typingIndicatorManyPeopleTyping(
-    Object extra,
-    Object name1,
-    Object name2,
-  ) {
+  String typingIndicatorManyPeopleTyping(Object extra, Object name1, Object name2) {
     return '$name1, $name2 +$extra टाइप कर रहे हैं';
   }
 
@@ -3177,22 +3018,19 @@ class AppLocalizationsHi extends AppLocalizations {
   String get messageStampNavigationTitle => 'नेविगेशन.';
 
   @override
-  String get messageStampNavigationSubtitle =>
-      'तुम चैट, डिस्कवर, फ़ीड और सेटिंग्स के बीच कैसे स्विच करते हो';
+  String get messageStampNavigationSubtitle => 'तुम चैट, डिस्कवर, फ़ीड और सेटिंग्स के बीच कैसे स्विच करते हो';
 
   @override
   String get messageStampRadialOrbLabel => 'रेडियल गोला';
 
   @override
-  String get messageStampRadialOrbDescription =>
-      'कोने पर दबाकर रखो + खींचो। इस्तेमाल में न होने पर शांत, एक इशारा जो धीरे-धीरे अपना लगने लगे।';
+  String get messageStampRadialOrbDescription => 'कोने पर दबाकर रखो + खींचो। इस्तेमाल में न होने पर शांत, एक इशारा जो धीरे-धीरे अपना लगने लगे।';
 
   @override
   String get messageStampBottomPillLabel => 'निचला कैप्सूल';
 
   @override
-  String get messageStampBottomPillDescription =>
-      'क्लासिक टैप। हमेशा दिखता है, सीखने की कोई ज़रूरत नहीं।';
+  String get messageStampBottomPillDescription => 'क्लासिक टैप। हमेशा दिखता है, सीखने की कोई ज़रूरत नहीं।';
 
   @override
   String get messageStampActiveLabel => 'सक्रिय';
@@ -3229,8 +3067,7 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get voiceRecorderScreenMicPermissionDeniedSnackbar =>
-      'माइक्रोफ़ोन की अनुमति नहीं मिली';
+  String get voiceRecorderScreenMicPermissionDeniedSnackbar => 'माइक्रोफ़ोन की अनुमति नहीं मिली';
 
   @override
   String get voiceRecorderScreenStatusRecording => 'रिकॉर्डिंग';
@@ -3257,8 +3094,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get cyberpunkThemeMentionPickerEveryoneTitle => 'सभी';
 
   @override
-  String get cyberpunkThemeMentionPickerNotifiesAllBadge =>
-      'सभी को सूचित करेगा';
+  String get cyberpunkThemeMentionPickerNotifiesAllBadge => 'सभी को सूचित करेगा';
 
   @override
   String get cyberpunkThemeMentionPickerOwnerBadge => 'मालिक';
@@ -3272,8 +3108,7 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get releaseDeviceScreenAccountKeptNote =>
-      'उनका अकाउंट, मैसेज और दोस्त सब कुछ सुरक्षित रहता है। उन्हें कभी भी दोबारा साइन इन किया जा सकता है।';
+  String get releaseDeviceScreenAccountKeptNote => 'उनका अकाउंट, मैसेज और दोस्त सब कुछ सुरक्षित रहता है। उन्हें कभी भी दोबारा साइन इन किया जा सकता है।';
 
   @override
   String releaseDeviceScreenAskGrownUp(Object name) {
@@ -3284,8 +3119,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get releaseDeviceScreenOrDivider => 'या';
 
   @override
-  String get releaseDeviceScreenOnePhoneNote =>
-      'अगर सिर्फ़ यही एक फ़ोन है, तो कोई बड़ा यहीं साइन इन कर सकता है।';
+  String get releaseDeviceScreenOnePhoneNote => 'अगर सिर्फ़ यही एक फ़ोन है, तो कोई बड़ा यहीं साइन इन कर सकता है।';
 
   @override
   String get releaseDeviceScreenUsernameHint => 'किसी बड़े का यूज़रनेम';
@@ -3308,24 +3142,19 @@ class AppLocalizationsHi extends AppLocalizations {
   String get releaseDeviceScreenHeaderTitle => 'यह फ़ोन वापस दे दो';
 
   @override
-  String get releaseDeviceScreenErrorCodeExpired =>
-      'वह कोड ख़त्म हो चुका है। नया कोड माँगो।';
+  String get releaseDeviceScreenErrorCodeExpired => 'वह कोड ख़त्म हो चुका है। नया कोड माँगो।';
 
   @override
-  String get releaseDeviceScreenErrorCodeInvalid =>
-      'वह कोड काम नहीं आया। हो सकता है वह पहले ही इस्तेमाल हो चुका हो।';
+  String get releaseDeviceScreenErrorCodeInvalid => 'वह कोड काम नहीं आया। हो सकता है वह पहले ही इस्तेमाल हो चुका हो।';
 
   @override
-  String get releaseDeviceScreenErrorNotAGuardian =>
-      'वह काम नहीं हुआ। यूज़रनेम और पासवर्ड जांच लो।';
+  String get releaseDeviceScreenErrorNotAGuardian => 'वह काम नहीं हुआ। यूज़रनेम और पासवर्ड जांच लो।';
 
   @override
-  String get releaseDeviceScreenErrorGeneric =>
-      'कुछ गड़बड़ हो गई। फिर से कोशिश करो।';
+  String get releaseDeviceScreenErrorGeneric => 'कुछ गड़बड़ हो गई। फिर से कोशिश करो।';
 
   @override
-  String get activeCallPillMoveHereSemanticLabel =>
-      'कॉल को इस डिवाइस पर ले जाना';
+  String get activeCallPillMoveHereSemanticLabel => 'कॉल को इस डिवाइस पर ले जाना';
 
   @override
   String activeCallPillCallWith(Object name) {
@@ -3419,36 +3248,31 @@ class AppLocalizationsHi extends AppLocalizations {
   String get callButtonReplyStyleTitle => 'रिप्लाई स्टाइल.';
 
   @override
-  String get callButtonReplyStyleSubtitle =>
-      'रिप्लाई अपने मूल मैसेज को कैसे दिखाता है';
+  String get callButtonReplyStyleSubtitle => 'रिप्लाई अपने मूल मैसेज को कैसे दिखाता है';
 
   @override
   String get callButtonReplyStylePhantomEchoLabel => 'फीकी गूंज';
 
   @override
-  String get callButtonReplyStylePhantomEchoDescription =>
-      'पैरेंट का फीका बबल ऊपर तैरता है, घुमावदार कनेक्टर और जोड़ बिंदु पर ब्रांच आइकन के साथ।';
+  String get callButtonReplyStylePhantomEchoDescription => 'पैरेंट का फीका बबल ऊपर तैरता है, घुमावदार कनेक्टर और जोड़ बिंदु पर ब्रांच आइकन के साथ।';
 
   @override
   String get callButtonReplyStyleStickyNoteLabel => 'स्टिकी नोट';
 
   @override
-  String get callButtonReplyStyleStickyNoteDescription =>
-      'एक थोड़ा घुमाया हुआ पोलेरॉइड-स्टाइल कार्ड, बबल के कोने पर क्लिप किया हुआ।';
+  String get callButtonReplyStyleStickyNoteDescription => 'एक थोड़ा घुमाया हुआ पोलेरॉइड-स्टाइल कार्ड, बबल के कोने पर क्लिप किया हुआ।';
 
   @override
   String get callButtonReplyStyleComicTailLabel => 'कॉमिक नोक';
 
   @override
-  String get callButtonReplyStyleComicTailDescription =>
-      'पैरेंट का एक छोटा बबल, जिसमें नीचे की ओर इशारा करती कॉमिक-बुक त्रिकोणी नोक है।';
+  String get callButtonReplyStyleComicTailDescription => 'पैरेंट का एक छोटा बबल, जिसमें नीचे की ओर इशारा करती कॉमिक-बुक त्रिकोणी नोक है।';
 
   @override
   String get callButtonReplyStyleClassicLabel => 'क्लासिक';
 
   @override
-  String get callButtonReplyStyleClassicDescription =>
-      'एक्सेंट-रंगी कोट कैप्सूल, डोरी बार और अवतार के साथ — वही जाना-पहचाना व्हाट्सएप-स्टाइल लुक।';
+  String get callButtonReplyStyleClassicDescription => 'एक्सेंट-रंगी कोट कैप्सूल, डोरी बार और अवतार के साथ — वही जाना-पहचाना व्हाट्सएप-स्टाइल लुक।';
 
   @override
   String get callButtonReplyStyleActiveBadge => 'सक्रिय';
@@ -3463,16 +3287,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get childSetupScreenErrorPickUsername => 'उनके लिए यूज़रनेम चुनो।';
 
   @override
-  String get childSetupScreenErrorUsernameTaken =>
-      'यह यूज़रनेम पहले से लिया जा चुका है।';
+  String get childSetupScreenErrorUsernameTaken => 'यह यूज़रनेम पहले से लिया जा चुका है।';
 
   @override
-  String get childSetupScreenErrorChildNotAllowed =>
-      'सिर्फ बड़ों का अकाउंट ही बच्चा जोड़ सकता है।';
+  String get childSetupScreenErrorChildNotAllowed => 'सिर्फ बड़ों का अकाउंट ही बच्चा जोड़ सकता है।';
 
   @override
-  String get childSetupScreenErrorGeneric =>
-      'अकाउंट नहीं बन सका — फिर से कोशिश करो।';
+  String get childSetupScreenErrorGeneric => 'अकाउंट नहीं बन सका — फिर से कोशिश करो।';
 
   @override
   String get childSetupScreenTitle => 'बच्चा जोड़ो';
@@ -3496,20 +3317,16 @@ class AppLocalizationsHi extends AppLocalizations {
   String get childSetupScreenWhatTheyGetTitle => 'उन्हें क्या मिलता है';
 
   @override
-  String get childSetupScreenBulletTalkImmediately =>
-      'वो अभी से तुमसे और अपने भाई-बहनों से बात कर सकते हैं।';
+  String get childSetupScreenBulletTalkImmediately => 'वो अभी से तुमसे और अपने भाई-बहनों से बात कर सकते हैं।';
 
   @override
-  String get childSetupScreenBulletNeedsApproval =>
-      'बाकी सबके लिए पहले तुम्हारी मंज़ूरी ज़रूरी है — चाहे वो किसी को जोड़ने की रिक्वेस्ट भेजें, या कोई उन्हें जोड़ने की रिक्वेस्ट भेजे।';
+  String get childSetupScreenBulletNeedsApproval => 'बाकी सबके लिए पहले तुम्हारी मंज़ूरी ज़रूरी है — चाहे वो किसी को जोड़ने की रिक्वेस्ट भेजें, या कोई उन्हें जोड़ने की रिक्वेस्ट भेजे।';
 
   @override
-  String get childSetupScreenBulletPublicRoomsOff =>
-      'पब्लिक रूम्स तब तक बंद रहते हैं जब तक तुम उन्हें ऑन नहीं करते।';
+  String get childSetupScreenBulletPublicRoomsOff => 'पब्लिक रूम्स तब तक बंद रहते हैं जब तक तुम उन्हें ऑन नहीं करते।';
 
   @override
-  String get childSetupScreenBulletCantSignOut =>
-      'वो साइन आउट नहीं कर सकते, और तुम हमेशा देख सकते हो कि वो कैसे कर रहे हैं।';
+  String get childSetupScreenBulletCantSignOut => 'वो साइन आउट नहीं कर सकते, और तुम हमेशा देख सकते हो कि वो कैसे कर रहे हैं।';
 
   @override
   String get childSetupScreenCreateButton => 'बनाओ + पेयर करो';
@@ -3539,36 +3356,31 @@ class AppLocalizationsHi extends AppLocalizations {
   String get bubbleStyleScreenTitle => 'बबल स्टाइल.';
 
   @override
-  String get bubbleStyleScreenSubtitle =>
-      'वो शक्ल जिसमें तुम्हारे शब्द पहुंचते हैं';
+  String get bubbleStyleScreenSubtitle => 'वो शक्ल जिसमें तुम्हारे शब्द पहुंचते हैं';
 
   @override
   String get bubbleStyleScreenTailedLabel => 'नोकदार';
 
   @override
-  String get bubbleStyleScreenTailedDescription =>
-      'नोक हर मैसेज-समूह को बंद करती है; उसके ऊपर की पंक्तियां एक ब्लॉक में सिमट जाती हैं।';
+  String get bubbleStyleScreenTailedDescription => 'नोक हर मैसेज-समूह को बंद करती है; उसके ऊपर की पंक्तियां एक ब्लॉक में सिमट जाती हैं।';
 
   @override
   String get bubbleStyleScreenSoftLabel => 'मुलायम';
 
   @override
-  String get bubbleStyleScreenSoftDescription =>
-      'कोई नोक नहीं — सिलसिला बस अपने कसे हुए भीतरी कोनों से जुड़ा रहता है।';
+  String get bubbleStyleScreenSoftDescription => 'कोई नोक नहीं — सिलसिला बस अपने कसे हुए भीतरी कोनों से जुड़ा रहता है।';
 
   @override
   String get bubbleStyleScreenPillLabel => 'कैप्सूल';
 
   @override
-  String get bubbleStyleScreenPillDescription =>
-      'पूरी तरह गोल कैप्सूल — हर पंक्ति में एक जैसे।';
+  String get bubbleStyleScreenPillDescription => 'पूरी तरह गोल कैप्सूल — हर पंक्ति में एक जैसे।';
 
   @override
   String get bubbleStyleScreenSlabLabel => 'स्लैब';
 
   @override
-  String get bubbleStyleScreenSlabDescription =>
-      'चौकोर कोने — तीखे, छपे जैसे, सोच-समझकर बनाए गए।';
+  String get bubbleStyleScreenSlabDescription => 'चौकोर कोने — तीखे, छपे जैसे, सोच-समझकर बनाए गए।';
 
   @override
   String get bubbleStyleScreenActiveBadge => 'सक्रिय';
@@ -3589,12 +3401,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get bubbleStyleScreenMediaTilePhotoSemanticLabel => 'फ़ोटो';
 
   @override
-  String get incomingGroupCallScreenCallFullError =>
-      'यह कॉल पहले से फुल है (ज़्यादा से ज़्यादा 6 लोग)';
+  String get incomingGroupCallScreenCallFullError => 'यह कॉल पहले से फुल है (ज़्यादा से ज़्यादा 6 लोग)';
 
   @override
-  String get incomingGroupCallScreenJoinFailedError =>
-      'इस कॉल में शामिल नहीं हो पाए';
+  String get incomingGroupCallScreenJoinFailedError => 'इस कॉल में शामिल नहीं हो पाए';
 
   @override
   String get incomingGroupCallScreenDefaultRoomName => 'ग्रुप कॉल';
@@ -3646,69 +3456,50 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get incomingGroupCallScreenRemoveContactSheetLastMessageJustNow =>
-      'आख़िरी मैसेज अभी-अभी';
+  String get incomingGroupCallScreenRemoveContactSheetLastMessageJustNow => 'आख़िरी मैसेज अभी-अभी';
 
   @override
-  String incomingGroupCallScreenRemoveContactSheetLastMessageHoursAgo(
-    Object hours,
-  ) {
+  String incomingGroupCallScreenRemoveContactSheetLastMessageHoursAgo(Object hours) {
     return 'आख़िरी मैसेज $hours घंटे पहले';
   }
 
   @override
-  String get incomingGroupCallScreenRemoveContactSheetLastMessageYesterday =>
-      'आख़िरी मैसेज कल';
+  String get incomingGroupCallScreenRemoveContactSheetLastMessageYesterday => 'आख़िरी मैसेज कल';
 
   @override
-  String incomingGroupCallScreenRemoveContactSheetLastMessageDaysAgo(
-    Object days,
-  ) {
+  String incomingGroupCallScreenRemoveContactSheetLastMessageDaysAgo(Object days) {
     return 'आख़िरी मैसेज $days दिन पहले';
   }
 
   @override
-  String get incomingGroupCallScreenRemoveContactSheetLastMessageAWhileAgo =>
-      'आख़िरी मैसेज काफ़ी पहले';
+  String get incomingGroupCallScreenRemoveContactSheetLastMessageAWhileAgo => 'आख़िरी मैसेज काफ़ी पहले';
 
   @override
   String get incomingGroupCallScreenRemoveContactSheetTitleBadge => 'वापस लें';
 
   @override
-  String incomingGroupCallScreenRemoveContactSheetHeadline(
-    Object childName,
-    Object contactName,
-  ) {
+  String incomingGroupCallScreenRemoveContactSheetHeadline(Object childName, Object contactName) {
     return '$contactName को $childName से हटाना है?';
   }
 
   @override
-  String get incomingGroupCallScreenRemoveContactSheetBodyWithChats =>
-      'वे एक-दूसरे से संपर्क नहीं कर पाएँगे, और उनकी बातचीत भी साथ में मिट जाएगी।';
+  String get incomingGroupCallScreenRemoveContactSheetBodyWithChats => 'वे एक-दूसरे से संपर्क नहीं कर पाएँगे, और उनकी बातचीत भी साथ में मिट जाएगी।';
 
   @override
-  String incomingGroupCallScreenRemoveContactSheetBodyWithoutChats(
-    Object contactName,
-  ) {
+  String incomingGroupCallScreenRemoveContactSheetBodyWithoutChats(Object contactName) {
     return 'वे एक-दूसरे से संपर्क नहीं कर पाएँगे। $contactName को इसका पता नहीं चलेगा।';
   }
 
   @override
-  String incomingGroupCallScreenRemoveContactSheetDeletionSummary(
-    Object chats,
-    Object messages,
-  ) {
+  String incomingGroupCallScreenRemoveContactSheetDeletionSummary(Object chats, Object messages) {
     return '$chats · $messages डिलीट हो जाएँगे';
   }
 
   @override
-  String get incomingGroupCallScreenRemoveContactSheetDeletionDetail =>
-      'दोनों की तरफ़ से हमेशा के लिए मिट जाएगा — फ़ोटो और वॉइस नोट्स समेत। इसे वापस नहीं लाया जा सकता।';
+  String get incomingGroupCallScreenRemoveContactSheetDeletionDetail => 'दोनों की तरफ़ से हमेशा के लिए मिट जाएगा — फ़ोटो और वॉइस नोट्स समेत। इसे वापस नहीं लाया जा सकता।';
 
   @override
-  String incomingGroupCallScreenRemoveContactSheetSharedRoomsHeadline(
-    num count,
-  ) {
+  String incomingGroupCallScreenRemoveContactSheetSharedRoomsHeadline(num count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
@@ -3719,39 +3510,29 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get incomingGroupCallScreenRemoveContactSheetSharedRoomsNote =>
-      'ये बने रहेंगे। अगर इन्हें निकालना है तो नीचे रूम्स लिस्ट से रूम वापस ले लो।';
+  String get incomingGroupCallScreenRemoveContactSheetSharedRoomsNote => 'ये बने रहेंगे। अगर इन्हें निकालना है तो नीचे रूम्स लिस्ट से रूम वापस ले लो।';
 
   @override
-  String get incomingGroupCallScreenRemoveContactSheetChoiceTitleWithDelete =>
-      'वापस लो और डिलीट करो';
+  String get incomingGroupCallScreenRemoveContactSheetChoiceTitleWithDelete => 'वापस लो और डिलीट करो';
 
   @override
-  String incomingGroupCallScreenRemoveContactSheetChoiceSubWithChats(
-    Object contactName,
-    Object messages,
-  ) {
+  String incomingGroupCallScreenRemoveContactSheetChoiceSubWithChats(Object contactName, Object messages) {
     return '$contactName को हटा देता है और $messages मिटा देता है।';
   }
 
   @override
-  String incomingGroupCallScreenRemoveContactSheetChoiceSubWithoutChats(
-    Object contactName,
-  ) {
+  String incomingGroupCallScreenRemoveContactSheetChoiceSubWithoutChats(Object contactName) {
     return '$contactName को अनुमति सूची से हटा देता है।';
   }
 
   @override
-  String get incomingGroupCallScreenRemoveContactSheetCancelSemanticLabel =>
-      'रद्द करो';
+  String get incomingGroupCallScreenRemoveContactSheetCancelSemanticLabel => 'रद्द करो';
 
   @override
-  String get incomingGroupCallScreenRemoveContactSheetCancelButton =>
-      'रद्द करो';
+  String get incomingGroupCallScreenRemoveContactSheetCancelButton => 'रद्द करो';
 
   @override
-  String get groupCallBannerCallFullError =>
-      'वह कॉल फुल है (ज़्यादा से ज़्यादा 6 लोग)';
+  String get groupCallBannerCallFullError => 'वह कॉल फुल है (ज़्यादा से ज़्यादा 6 लोग)';
 
   @override
   String get groupCallBannerJoinFailedError => 'कॉल जॉइन नहीं हो सकी';
@@ -3868,20 +3649,16 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get approvalGateDisabledBody =>
-      'किसी बड़े ने फ़िलहाल इसे बंद कर रखा है।';
+  String get approvalGateDisabledBody => 'किसी बड़े ने फ़िलहाल इसे बंद कर रखा है।';
 
   @override
-  String get approvalGateAlreadyAskedFooter =>
-      'उन्हें इसके बारे में मैसेज मिल जाएगा। थोड़ी देर बाद फिर देखो।';
+  String get approvalGateAlreadyAskedFooter => 'उन्हें इसके बारे में मैसेज मिल जाएगा। थोड़ी देर बाद फिर देखो।';
 
   @override
-  String get approvalGateWillNotifyFooter =>
-      'हम उन्हें बता देंगे। जवाब मिलते ही तुम्हें यहाँ दिख जाएगा।';
+  String get approvalGateWillNotifyFooter => 'हम उन्हें बता देंगे। जवाब मिलते ही तुम्हें यहाँ दिख जाएगा।';
 
   @override
-  String get approvalGateTalkToThemFooter =>
-      'अगर तुम्हें लगता है कि इसे बदलना चाहिए, तो तुम उनसे इस बारे में बात कर सकते हो।';
+  String get approvalGateTalkToThemFooter => 'अगर तुम्हें लगता है कि इसे बदलना चाहिए, तो तुम उनसे इस बारे में बात कर सकते हो।';
 
   @override
   String get approvalGateAskButton => 'पूछो';
@@ -3902,36 +3679,31 @@ class AppLocalizationsHi extends AppLocalizations {
   String get reportSheetSubtitle => 'हमें बताओ, क्या गड़बड़ है।';
 
   @override
-  String get reportSheetPrivacyNote =>
-      'रिपोर्ट निजी होती है — दूसरे व्यक्ति को पता नहीं चलता।';
+  String get reportSheetPrivacyNote => 'रिपोर्ट निजी होती है — दूसरे व्यक्ति को पता नहीं चलता।';
 
   @override
   String get reportSheetReasonSpamLabel => 'स्पैम';
 
   @override
-  String get reportSheetReasonSpamDescription =>
-      'अनचाहे विज्ञापन या बार-बार भेजे गए मैसेज';
+  String get reportSheetReasonSpamDescription => 'अनचाहे विज्ञापन या बार-बार भेजे गए मैसेज';
 
   @override
   String get reportSheetReasonHarassmentLabel => 'उत्पीड़न';
 
   @override
-  String get reportSheetReasonHarassmentDescription =>
-      'निशाना बनाना या तंग करना';
+  String get reportSheetReasonHarassmentDescription => 'निशाना बनाना या तंग करना';
 
   @override
   String get reportSheetReasonImpersonationLabel => 'नकली पहचान';
 
   @override
-  String get reportSheetReasonImpersonationDescription =>
-      'किसी और होने का दिखावा करना';
+  String get reportSheetReasonImpersonationDescription => 'किसी और होने का दिखावा करना';
 
   @override
   String get reportSheetReasonInappropriateLabel => 'अनुचित';
 
   @override
-  String get reportSheetReasonInappropriateDescription =>
-      'यौन, हिंसक, या अवैध कंटेंट';
+  String get reportSheetReasonInappropriateDescription => 'यौन, हिंसक, या अवैध कंटेंट';
 
   @override
   String get reportSheetReasonOtherLabel => 'अन्य';
@@ -3955,18 +3727,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get reportSheetUpdateAvailableTitle => 'अपडेट उपलब्ध';
 
   @override
-  String get reportSheetUpdateMandatoryBody =>
-      'यह वर्ज़न अब ठीक से काम करने के लिए बहुत पुराना हो चुका है। आगे बढ़ने के लिए अपडेट करो।';
+  String get reportSheetUpdateMandatoryBody => 'यह वर्ज़न अब ठीक से काम करने के लिए बहुत पुराना हो चुका है। आगे बढ़ने के लिए अपडेट करो।';
 
   @override
-  String get reportSheetUpdateAvailableBody =>
-      'MonkeyHub का एक नया वर्ज़न उपलब्ध है।';
+  String get reportSheetUpdateAvailableBody => 'MonkeyHub का एक नया वर्ज़न उपलब्ध है।';
 
   @override
-  String reportSheetUpdateVersionArrow(
-    Object currentVersion,
-    Object newVersion,
-  ) {
+  String reportSheetUpdateVersionArrow(Object currentVersion, Object newVersion) {
     return 'v$currentVersion → v$newVersion';
   }
 
@@ -4064,8 +3831,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomCardBlockedScreenTitle => 'ब्लॉक्ड';
 
   @override
-  String get roomCardBlockedEmptyState =>
-      'तुमने अभी तक किसी को ब्लॉक नहीं किया है।';
+  String get roomCardBlockedEmptyState => 'तुमने अभी तक किसी को ब्लॉक नहीं किया है।';
 
   @override
   String get roomCardUnblockButton => 'अनब्लॉक करें';
@@ -4089,8 +3855,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get attachmentMenuConnectionRetrying => 'फिर कोशिश हो रही है…';
 
   @override
-  String get attachmentMenuConnectionCantReachServer =>
-      'सर्वर से कनेक्ट नहीं हो पा रहा · फिर कोशिश के लिए टैप करें';
+  String get attachmentMenuConnectionCantReachServer => 'सर्वर से कनेक्ट नहीं हो पा रहा · फिर कोशिश के लिए टैप करें';
 
   @override
   String get attachmentMenuConnectionReconnecting => 'फिर से कनेक्ट हो रहा है…';
@@ -4133,8 +3898,7 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get bulkActionBarJumpBackSemanticLabel =>
-      'जहाँ से आए थे, वहीं वापस जाएं';
+  String get bulkActionBarJumpBackSemanticLabel => 'जहाँ से आए थे, वहीं वापस जाएं';
 
   @override
   String bulkActionBarJumpBackSemanticLabelWithDepth(Object depth) {
@@ -4145,12 +3909,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get bulkActionBarBlockSheetNotNotifiedNote => 'उन्हें पता नहीं चलेगा।';
 
   @override
-  String get bulkActionBarBlockSheetFriendWarning =>
-      'अभी तुम दोनों दोस्त हो — ब्लॉक करने पर दोस्ती खत्म हो जाएगी, तो बाद में दोबारा जुड़ने के लिए नई फ्रेंड रिक्वेस्ट भेजनी होगी।';
+  String get bulkActionBarBlockSheetFriendWarning => 'अभी तुम दोनों दोस्त हो — ब्लॉक करने पर दोस्ती खत्म हो जाएगी, तो बाद में दोबारा जुड़ने के लिए नई फ्रेंड रिक्वेस्ट भेजनी होगी।';
 
   @override
-  String get bulkActionBarBlockSheetStrangerWarning =>
-      'वो तुम्हारी सर्च में नहीं दिखेंगे और तुम्हें मैसेज नहीं कर पाएंगे।';
+  String get bulkActionBarBlockSheetStrangerWarning => 'वो तुम्हारी सर्च में नहीं दिखेंगे और तुम्हें मैसेज नहीं कर पाएंगे।';
 
   @override
   String get bulkActionBarBlockSheetHeaderLabel => 'ब्लॉक';
@@ -4172,26 +3934,22 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get bulkActionBarBlockSheetSharedRoomsNote =>
-      'ये रूम वैसे ही बने रहेंगे। चाहो तो इनमें से किसी भी रूम को उसकी सेटिंग्स से खुद छोड़ सकते हो।';
+  String get bulkActionBarBlockSheetSharedRoomsNote => 'ये रूम वैसे ही बने रहेंगे। चाहो तो इनमें से किसी भी रूम को उसकी सेटिंग्स से खुद छोड़ सकते हो।';
 
   @override
   String get bulkActionBarBlockChoiceTileTitle => 'ब्लॉक करें';
 
   @override
-  String get bulkActionBarBlockChoiceTileFriendSub =>
-      'दोस्ती हटेगी और ब्लॉक होगा। मौजूदा चैट हिस्ट्री तुम्हारे आर्काइव में रहेगी।';
+  String get bulkActionBarBlockChoiceTileFriendSub => 'दोस्ती हटेगी और ब्लॉक होगा। मौजूदा चैट हिस्ट्री तुम्हारे आर्काइव में रहेगी।';
 
   @override
-  String get bulkActionBarBlockChoiceTileStrangerSub =>
-      'वो सर्च में नहीं दिखेंगे और तुम तक नहीं पहुंच पाएंगे।';
+  String get bulkActionBarBlockChoiceTileStrangerSub => 'वो सर्च में नहीं दिखेंगे और तुम तक नहीं पहुंच पाएंगे।';
 
   @override
   String get bulkActionBarBlockDeleteDmTitle => 'ब्लॉक करें और डीएम डिलीट करें';
 
   @override
-  String get bulkActionBarBlockDeleteDmSub =>
-      'तुम्हारी उनके साथ की डीएम भी मिट जाएगी — हर मैसेज, रिएक्शन और मीडिया फाइल हमेशा के लिए गायब हो जाएगी।';
+  String get bulkActionBarBlockDeleteDmSub => 'तुम्हारी उनके साथ की डीएम भी मिट जाएगी — हर मैसेज, रिएक्शन और मीडिया फाइल हमेशा के लिए गायब हो जाएगी।';
 
   @override
   String get bulkActionBarBlockSheetCancelSemanticLabel => 'रद्द करें';
@@ -4200,20 +3958,16 @@ class AppLocalizationsHi extends AppLocalizations {
   String get bulkActionBarBlockSheetCancelLabel => 'रद्द करें';
 
   @override
-  String get bulkActionBarFullScreenIntentDialogTitle =>
-      'आने वाली कॉल्स लॉक स्क्रीन पर दिखें';
+  String get bulkActionBarFullScreenIntentDialogTitle => 'आने वाली कॉल्स लॉक स्क्रीन पर दिखें';
 
   @override
-  String get bulkActionBarFullScreenIntentDialogBody =>
-      'स्क्रीन बंद होने पर असली फोन कॉल की तरह बजने के लिए, MonkeyHub को \"फुल-स्क्रीन नोटिफिकेशन\" ऑन करना होगा। अगली स्क्रीन तुम्हें सीधे उस स्विच पर ले जाएगी।';
+  String get bulkActionBarFullScreenIntentDialogBody => 'स्क्रीन बंद होने पर असली फोन कॉल की तरह बजने के लिए, MonkeyHub को \"फुल-स्क्रीन नोटिफिकेशन\" ऑन करना होगा। अगली स्क्रीन तुम्हें सीधे उस स्विच पर ले जाएगी।';
 
   @override
-  String get bulkActionBarBatteryExemptionDialogTitle =>
-      'कभी कोई कॉल मिस मत करो';
+  String get bulkActionBarBatteryExemptionDialogTitle => 'कभी कोई कॉल मिस मत करो';
 
   @override
-  String get bulkActionBarBatteryExemptionDialogBody =>
-      'बैटरी बचाने के लिए कुछ फोन बैकग्राउंड में ऐप्स को रोक देते हैं, जिससे आने वाली कॉल्स की आवाज़ बंद हो सकती है। MonkeyHub को बिना रोक-टोक चलने दो ताकि कॉल्स हमेशा आएं।';
+  String get bulkActionBarBatteryExemptionDialogBody => 'बैटरी बचाने के लिए कुछ फोन बैकग्राउंड में ऐप्स को रोक देते हैं, जिससे आने वाली कॉल्स की आवाज़ बंद हो सकती है। MonkeyHub को बिना रोक-टोक चलने दो ताकि कॉल्स हमेशा आएं।';
 
   @override
   String get bulkActionBarDialogNotNowButton => 'अभी नहीं';
@@ -4231,8 +3985,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get reactionBubblePickerTitle => 'रिएक्ट करें';
 
   @override
-  String get reactionBubbleNoRecentsPlaceholder =>
-      'अभी तक कोई रीसेंट इमोजी नहीं';
+  String get reactionBubbleNoRecentsPlaceholder => 'अभी तक कोई रीसेंट इमोजी नहीं';
 
   @override
   String get reactionBubbleSearchHint => 'इमोजी खोजो';
@@ -4252,15 +4005,13 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get enterPublicRoomAskFailedMessage =>
-      'अभी रिक्वेस्ट नहीं भेज पाए — फिर से कोशिश करो';
+  String get enterPublicRoomAskFailedMessage => 'अभी रिक्वेस्ट नहीं भेज पाए — फिर से कोशिश करो';
 
   @override
   String get enterPublicRoomWrongPasswordMessage => 'गलत पासवर्ड';
 
   @override
-  String get enterPublicRoomJoinFailedMessage =>
-      'जॉइन नहीं हो सका — दोबारा कोशिश करें';
+  String get enterPublicRoomJoinFailedMessage => 'जॉइन नहीं हो सका — दोबारा कोशिश करें';
 
   @override
   String get feedBoardTitle => 'आज';
@@ -4295,12 +4046,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get feedBoardActivityEmpty => 'आज अभी तक शांति है';
 
   @override
-  String get feedBoardActivityNoFriends =>
-      'दोस्त जोड़ें और उनका दिन यहाँ दिखेगा';
+  String get feedBoardActivityNoFriends => 'दोस्त जोड़ें और उनका दिन यहाँ दिखेगा';
 
   @override
-  String get feedBoardLoadFailed =>
-      'बोर्ड लोड नहीं हो सका — थोड़ी देर में फिर कोशिश करें';
+  String get feedBoardLoadFailed => 'बोर्ड लोड नहीं हो सका — थोड़ी देर में फिर कोशिश करें';
 
   @override
   String get enterPublicRoomVisibilityPublicLabel => 'पब्लिक';
@@ -4332,12 +4081,10 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get roomBadgePublicTooltip =>
-      'कोई भी इस रूम को ढूंढकर जॉइन कर सकता है';
+  String get roomBadgePublicTooltip => 'कोई भी इस रूम को ढूंढकर जॉइन कर सकता है';
 
   @override
-  String get roomBadgePrivateTooltip =>
-      'सिर्फ़ न्योते से — यह खोजो में नहीं दिखता';
+  String get roomBadgePrivateTooltip => 'सिर्फ़ न्योते से — यह खोजो में नहीं दिखता';
 
   @override
   String get roomBadgeLockedTooltip => 'जॉइन करने के लिए रूम का पासवर्ड चाहिए';
@@ -4363,20 +4110,16 @@ class AppLocalizationsHi extends AppLocalizations {
   String get countBadgeCaptureProtectionLabel => 'स्क्रीन कैप्चर सुरक्षा';
 
   @override
-  String get countBadgeCaptureProtectionOnAndroidBody =>
-      'सिस्टम को स्क्रीनशॉट + स्क्रीन रिकॉर्डिंग में सब कुछ काला दिखता है।';
+  String get countBadgeCaptureProtectionOnAndroidBody => 'सिस्टम को स्क्रीनशॉट + स्क्रीन रिकॉर्डिंग में सब कुछ काला दिखता है।';
 
   @override
-  String get countBadgeCaptureProtectionOnIosBody =>
-      'स्क्रीन रिकॉर्डिंग + मिररिंग करने पर ऐप पर एक प्राइवेसी शील्ड आ जाती है।';
+  String get countBadgeCaptureProtectionOnIosBody => 'स्क्रीन रिकॉर्डिंग + मिररिंग करने पर ऐप पर एक प्राइवेसी शील्ड आ जाती है।';
 
   @override
-  String get countBadgeCaptureProtectionOffBody =>
-      'अस्थायी रूम्स के बाहर स्क्रीनशॉट और रिकॉर्डिंग सामान्य रूप से काम करती हैं।';
+  String get countBadgeCaptureProtectionOffBody => 'अस्थायी रूम्स के बाहर स्क्रीनशॉट और रिकॉर्डिंग सामान्य रूप से काम करती हैं।';
 
   @override
-  String get countBadgeCaptureProtectionForcedNote =>
-      'अस्थायी (चैंबर ऑफ़ सीक्रेट्स) रूम्स में यह हमेशा जबरन ऑन रहता है।';
+  String get countBadgeCaptureProtectionForcedNote => 'अस्थायी (चैंबर ऑफ़ सीक्रेट्स) रूम्स में यह हमेशा जबरन ऑन रहता है।';
 
   @override
   String get countBadgeShowPasswordTooltip => 'पासवर्ड दिखाएं';
@@ -4388,12 +4131,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get countBadgeProtectedLabel => 'सुरक्षित';
 
   @override
-  String get countBadgeCaptureShieldActiveBody =>
-      'स्क्रीन रिकॉर्डिंग या मिररिंग चालू है।';
+  String get countBadgeCaptureShieldActiveBody => 'स्क्रीन रिकॉर्डिंग या मिररिंग चालू है।';
 
   @override
-  String get countBadgeCaptureShieldReassurance =>
-      'रिकॉर्डिंग में तुम्हारी बातचीत नहीं दिखती।';
+  String get countBadgeCaptureShieldReassurance => 'रिकॉर्डिंग में तुम्हारी बातचीत नहीं दिखती।';
 
   @override
   String get linkOpenerCouldNotOpenLink => 'लिंक नहीं खुल सका';
@@ -4402,8 +4143,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get linkOpenerRecoveryBannerSemanticLabel => 'रिकवरी फ़्रेज़ सेट करें';
 
   @override
-  String get linkOpenerRecoveryBannerMessage =>
-      'कोई रिकवरी फ़्रेज़ नहीं — तुम वापस अंदर नहीं आ पाओगे।';
+  String get linkOpenerRecoveryBannerMessage => 'कोई रिकवरी फ़्रेज़ नहीं — तुम वापस अंदर नहीं आ पाओगे।';
 
   @override
   String get destinationsChatLabel => 'चैट';
@@ -4496,12 +4236,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get settingsScreenTagline => 'रूप. एहसास. तुम.';
 
   @override
-  String get settingsScreenAccountHintChild =>
-      'प्रोफ़ाइल · प्राइवेसी · मेरे बड़े';
+  String get settingsScreenAccountHintChild => 'प्रोफ़ाइल · प्राइवेसी · मेरे बड़े';
 
   @override
-  String get settingsScreenAccountHintAdult =>
-      'प्रोफ़ाइल · परिवार · लिंक्ड अकाउंट्स · प्राइवेसी';
+  String get settingsScreenAccountHintAdult => 'प्रोफ़ाइल · परिवार · लिंक्ड अकाउंट्स · प्राइवेसी';
 
   @override
   String get settingsScreenSectionAppearance => 'दिखावट';
@@ -4522,12 +4260,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get settingsScreenUpdateUpToDateSnackbar => 'आप नवीनतम वर्शन पर हैं।';
 
   @override
-  String get settingsScreenUpdateUnsupportedSnackbar =>
-      'इस बिल्ड पर अपडेट नहीं जाँचे जा सकते।';
+  String get settingsScreenUpdateUnsupportedSnackbar => 'इस बिल्ड पर अपडेट नहीं जाँचे जा सकते।';
 
   @override
-  String get settingsScreenUpdateErrorSnackbar =>
-      'अपडेट जाँचे नहीं जा सके। बाद में फिर से कोशिश करें।';
+  String get settingsScreenUpdateErrorSnackbar => 'अपडेट जाँचे नहीं जा सके। बाद में फिर से कोशिश करें।';
 
   @override
   String get settingsScreenSectionNotifications => 'नोटिफिकेशन';
@@ -4539,15 +4275,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get reportProblemRowValue => 'हमें विवरण भेजें';
 
   @override
-  String get reportProblemIntro =>
-      'बताइए क्या गड़बड़ हुई। आपके ऐप और डिवाइस की जानकारी अपने आप जुड़ जाती है, साथ में एक तकनीकी लॉग भी जिसमें ऐप उस समय क्या कर रहा था — इसी से कारण ढूँढ़ने में मदद मिलती है।';
+  String get reportProblemIntro => 'बताइए क्या गड़बड़ हुई। आपके ऐप और डिवाइस की जानकारी अपने आप जुड़ जाती है, साथ में एक तकनीकी लॉग भी जिसमें ऐप उस समय क्या कर रहा था — इसी से कारण ढूँढ़ने में मदद मिलती है।';
 
   @override
   String get reportProblemDescribeLabel => 'क्या हुआ';
 
   @override
-  String get reportProblemDescribeHint =>
-      'स्क्रीन झिलमिलाती है, बटन काम नहीं करते…';
+  String get reportProblemDescribeHint => 'स्क्रीन झिलमिलाती है, बटन काम नहीं करते…';
 
   @override
   String get reportProblemScreenshotsLabel => 'स्क्रीनशॉट';
@@ -4571,19 +4305,16 @@ class AppLocalizationsHi extends AppLocalizations {
   String get reportProblemSent => 'रिपोर्ट भेज दी गई — धन्यवाद!';
 
   @override
-  String get reportProblemSendFailed =>
-      'रिपोर्ट नहीं भेजी जा सकी। अपना कनेक्शन जाँचकर दोबारा कोशिश करें।';
+  String get reportProblemSendFailed => 'रिपोर्ट नहीं भेजी जा सकी। अपना कनेक्शन जाँचकर दोबारा कोशिश करें।';
 
   @override
-  String get reportProblemTooMany =>
-      'आपने थोड़ी ही देर में बहुत सारी रिपोर्ट भेज दी हैं। कुछ देर बाद कोशिश करें।';
+  String get reportProblemTooMany => 'आपने थोड़ी ही देर में बहुत सारी रिपोर्ट भेज दी हैं। कुछ देर बाद कोशिश करें।';
 
   @override
   String get reportProblemShakeTitle => 'समस्या की रिपोर्ट करें?';
 
   @override
-  String get reportProblemShakeBody =>
-      'आपने फ़ोन हिलाया। रिपोर्ट स्क्रीन खोलें?';
+  String get reportProblemShakeBody => 'आपने फ़ोन हिलाया। रिपोर्ट स्क्रीन खोलें?';
 
   @override
   String get reportProblemShakeOpen => 'रिपोर्ट करें';
@@ -4681,12 +4412,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get settingsScreenShowLinkUrlsLabel => 'लिंक यूआरएल दिखाएं';
 
   @override
-  String get settingsScreenLinksUrlsOnBody =>
-      'प्रीव्यू कार्ड के साथ मूल यूआरएल भी दिखते हैं';
+  String get settingsScreenLinksUrlsOnBody => 'प्रीव्यू कार्ड के साथ मूल यूआरएल भी दिखते हैं';
 
   @override
-  String get settingsScreenLinksUrlsOffBody =>
-      'फिलहाल सिर्फ़ प्रीव्यू — साफ़-सुथरे बबल, खोलने के लिए टैप करें';
+  String get settingsScreenLinksUrlsOffBody => 'फिलहाल सिर्फ़ प्रीव्यू — साफ़-सुथरे बबल, खोलने के लिए टैप करें';
 
   @override
   String get settingsScreenSectionCalls => 'कॉल';
@@ -4707,31 +4436,25 @@ class AppLocalizationsHi extends AppLocalizations {
   String get settingsScreenShowNetworkStatsLabel => 'कॉल आँकड़े दिखाएं';
 
   @override
-  String get settingsScreenShowNetworkStatsBody =>
-      'कॉल के दौरान लाइव रिज़ॉल्यूशन, बिटरेट, पिंग और पैकेट लॉस दिखाता है';
+  String get settingsScreenShowNetworkStatsBody => 'कॉल के दौरान लाइव रिज़ॉल्यूशन, बिटरेट, पिंग और पैकेट लॉस दिखाता है';
 
   @override
   String get videoQualityScreenTitle => 'वीडियो क्वालिटी';
 
   @override
-  String get videoQualityScreenSubtitle =>
-      'आउटगोइंग वीडियो के लिए एक रिज़ॉल्यूशन सीमा चुनें';
+  String get videoQualityScreenSubtitle => 'आउटगोइंग वीडियो के लिए एक रिज़ॉल्यूशन सीमा चुनें';
 
   @override
-  String get videoQualityScreenAutoSubtitle =>
-      'आपके कनेक्शन के हिसाब से अपने आप एडजस्ट हो जाता है';
+  String get videoQualityScreenAutoSubtitle => 'आपके कनेक्शन के हिसाब से अपने आप एडजस्ट हो जाता है';
 
   @override
-  String get videoQualityScreenHd1080Subtitle =>
-      'फुल एचडी — ज़्यादा शार्प, ज़्यादा डेटा इस्तेमाल करता है';
+  String get videoQualityScreenHd1080Subtitle => 'फुल एचडी — ज़्यादा शार्प, ज़्यादा डेटा इस्तेमाल करता है';
 
   @override
-  String get videoQualityScreenUhd4kSubtitle =>
-      'अल्ट्रा एचडी — मज़बूत कनेक्शन पर सबसे अच्छा';
+  String get videoQualityScreenUhd4kSubtitle => 'अल्ट्रा एचडी — मज़बूत कनेक्शन पर सबसे अच्छा';
 
   @override
-  String get videoQualityScreenFootnote =>
-      'असली रिज़ॉल्यूशन दोनों डिवाइस के कैमरे और नेटवर्क की स्थिति पर निर्भर करता है।';
+  String get videoQualityScreenFootnote => 'असली रिज़ॉल्यूशन दोनों डिवाइस के कैमरे और नेटवर्क की स्थिति पर निर्भर करता है।';
 
   @override
   String get callScreenControlOptions => 'अधिक';
@@ -4758,19 +4481,16 @@ class AppLocalizationsHi extends AppLocalizations {
   String get settingsScreenPushOnBody => 'नए मैसेज और रिक्वेस्ट के लिए पिंग';
 
   @override
-  String get settingsScreenPushOffBody =>
-      'साइलेंट — ऐप खोलने पर ही चीज़ें दिखेंगी';
+  String get settingsScreenPushOffBody => 'साइलेंट — ऐप खोलने पर ही चीज़ें दिखेंगी';
 
   @override
   String get authErrorUsernameTaken => 'यह यूज़रनेम पहले से मौजूद है।';
 
   @override
-  String get authErrorUsernameReserved =>
-      'यह उपयोगकर्ता नाम उपलब्ध नहीं है। कोई दूसरा चुनें।';
+  String get authErrorUsernameReserved => 'यह उपयोगकर्ता नाम उपलब्ध नहीं है। कोई दूसरा चुनें।';
 
   @override
-  String get authErrorDisplayNameReserved =>
-      'यह नाम उपलब्ध नहीं है। कोई दूसरा चुनें।';
+  String get authErrorDisplayNameReserved => 'यह नाम उपलब्ध नहीं है। कोई दूसरा चुनें।';
 
   @override
   String get authErrorUserNotFound => 'इस यूज़रनेम से कोई अकाउंट नहीं मिला।';
@@ -4779,44 +4499,34 @@ class AppLocalizationsHi extends AppLocalizations {
   String get authErrorWrongPassword => 'गलत पासवर्ड।';
 
   @override
-  String get authErrorInvalidRecoveryKey =>
-      'यह यूज़रनेम और रिकवरी फ्रेज़ मेल नहीं खाते।';
+  String get authErrorInvalidRecoveryKey => 'यह यूज़रनेम और रिकवरी फ्रेज़ मेल नहीं खाते।';
 
   @override
-  String get authErrorTooManyAttempts =>
-      'बहुत ज़्यादा कोशिशें हो गईं। 15 मिनट रुककर फिर कोशिश करें।';
+  String get authErrorTooManyAttempts => 'बहुत ज़्यादा कोशिशें हो गईं। 15 मिनट रुककर फिर कोशिश करें।';
 
   @override
-  String get authErrorChildMustPair =>
-      'यह किसी बच्चे का अकाउंट है — पेयरिंग कोड के लिए किसी बड़े से मांगें।';
+  String get authErrorChildMustPair => 'यह किसी बच्चे का अकाउंट है — पेयरिंग कोड के लिए किसी बड़े से मांगें।';
 
   @override
-  String get authErrorPairingCodeExpired =>
-      'यह कोड ख़त्म हो चुका है। नया कोड मांगें।';
+  String get authErrorPairingCodeExpired => 'यह कोड ख़त्म हो चुका है। नया कोड मांगें।';
 
   @override
-  String get authErrorPairingCodeInvalid =>
-      'यह कोड काम नहीं आया। हो सकता है यह पहले ही इस्तेमाल हो चुका हो।';
+  String get authErrorPairingCodeInvalid => 'यह कोड काम नहीं आया। हो सकता है यह पहले ही इस्तेमाल हो चुका हो।';
 
   @override
-  String get authErrorUseSocialSignIn =>
-      'यह अकाउंट Apple या Google से साइन इन करता है — नीचे दिए बटन इस्तेमाल करें।';
+  String get authErrorUseSocialSignIn => 'यह अकाउंट Apple या Google से साइन इन करता है — नीचे दिए बटन इस्तेमाल करें।';
 
   @override
-  String get authErrorSocialTokenInvalid =>
-      'यह साइन-इन पूरा नहीं हो पाया। कृपया फिर कोशिश करें।';
+  String get authErrorSocialTokenInvalid => 'यह साइन-इन पूरा नहीं हो पाया। कृपया फिर कोशिश करें।';
 
   @override
-  String get authErrorSocialNonceMismatch =>
-      'यह साइन-इन नहीं हो पाया। कृपया फिर से कोशिश करो।';
+  String get authErrorSocialNonceMismatch => 'यह साइन-इन नहीं हो पाया। कृपया फिर से कोशिश करो।';
 
   @override
-  String get authErrorSocialMisconfig =>
-      'साइन-इन अभी हमारी तरफ़ से सेट नहीं है। थोड़ी देर बाद कोशिश करो।';
+  String get authErrorSocialMisconfig => 'साइन-इन अभी हमारी तरफ़ से सेट नहीं है। थोड़ी देर बाद कोशिश करो।';
 
   @override
-  String get authErrorSocialLinkedToOtherAccount =>
-      'वह Apple या Google अकाउंट पहले से किसी दूसरे MonkeyHub अकाउंट से लिंक है।';
+  String get authErrorSocialLinkedToOtherAccount => 'वह Apple या Google अकाउंट पहले से किसी दूसरे MonkeyHub अकाउंट से लिंक है।';
 
   @override
   String get authErrorSocialAlreadyLinked => 'वह पहले से इस अकाउंट से लिंक है।';
@@ -4825,48 +4535,40 @@ class AppLocalizationsHi extends AppLocalizations {
   String get authErrorSocialNotLinked => 'वह इस अकाउंट से लिंक नहीं है।';
 
   @override
-  String get authErrorSocialLastCredential =>
-      'इस अकाउंट में जाने का यही इकलौता रास्ता है। पहले एक पासवर्ड सेट करो।';
+  String get authErrorSocialLastCredential => 'इस अकाउंट में जाने का यही इकलौता रास्ता है। पहले एक पासवर्ड सेट करो।';
 
   @override
-  String get authErrorUsernameInvalid =>
-      '1 से 32 अक्षरों के बीच यूज़रनेम चुनो।';
+  String get authErrorUsernameInvalid => '1 से 32 अक्षरों के बीच यूज़रनेम चुनो।';
 
   @override
-  String get authErrorUsernameChangedRecently =>
-      'आपने हाल ही में अपना यूज़रनेम बदला है। पिछली बार के 30 दिन बाद आप इसे दोबारा बदल सकते हैं।';
+  String get authErrorUsernameChangedRecently => 'आपने हाल ही में अपना यूज़रनेम बदला है। पिछली बार के 30 दिन बाद आप इसे दोबारा बदल सकते हैं।';
 
   @override
-  String get authErrorInboxHandleLocked =>
-      'यह अकाउंट सभी की समस्या रिपोर्ट पाता है, इसलिए इसका यूज़रनेम तय है।';
+  String get authErrorInboxHandleLocked => 'यह अकाउंट सभी की समस्या रिपोर्ट पाता है, इसलिए इसका यूज़रनेम तय है।';
 
   @override
   String get glassKnobLabelFrost => 'धुंधला';
 
   @override
-  String get glassKnobHintFrost =>
-      'काँच पर कितनी सफ़ेदी है, कम करने पर आर-पार दिखता है';
+  String get glassKnobHintFrost => 'काँच पर कितनी सफ़ेदी है, कम करने पर आर-पार दिखता है';
 
   @override
   String get glassKnobLabelBlur => 'ब्लर';
 
   @override
-  String get glassKnobHintBlur =>
-      'ऊपर की तरफ़ धुंधला काँच, नीचे की तरफ़ साफ़ काँच';
+  String get glassKnobHintBlur => 'ऊपर की तरफ़ धुंधला काँच, नीचे की तरफ़ साफ़ काँच';
 
   @override
   String get glassKnobLabelSaturation => 'रंग फैलाव';
 
   @override
-  String get glassKnobHintSaturation =>
-      'ब्लर के बाद कितना रंग बचता है। 2 से ज़्यादा पर पोस्टराइज़ हो जाता है';
+  String get glassKnobHintSaturation => 'ब्लर के बाद कितना रंग बचता है। 2 से ज़्यादा पर पोस्टराइज़ हो जाता है';
 
   @override
   String get glassKnobLabelRimOpacity => 'किनारा';
 
   @override
-  String get glassKnobHintRimOpacity =>
-      'किनारे की हाइलाइट रेखा। शून्य पर बॉर्डर-रहित सतह';
+  String get glassKnobHintRimOpacity => 'किनारे की हाइलाइट रेखा। शून्य पर बॉर्डर-रहित सतह';
 
   @override
   String get glassKnobLabelRimWidth => 'किनारे की चौड़ाई';
@@ -4878,8 +4580,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get glassKnobLabelShadowOpacity => 'छाया';
 
   @override
-  String get glassKnobHintShadowOpacity =>
-      'सतह पीछे की चीज़ से कितनी ऊपर उठी हुई दिखती है';
+  String get glassKnobHintShadowOpacity => 'सतह पीछे की चीज़ से कितनी ऊपर उठी हुई दिखती है';
 
   @override
   String get glassKnobLabelShadowBlur => 'छाया फैलाव';
@@ -4897,8 +4598,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get glassKnobLabelBarMargin => 'साइड मार्जिन';
 
   @override
-  String get glassKnobHintBarMargin =>
-      'बार और स्क्रीन के किनारे के बीच की दूरी';
+  String get glassKnobHintBarMargin => 'बार और स्क्रीन के किनारे के बीच की दूरी';
 
   @override
   String get glassKnobLabelBarBottom => 'निचली दूरी';
@@ -4910,36 +4610,31 @@ class AppLocalizationsHi extends AppLocalizations {
   String get glassKnobLabelShellPadH => 'एंड पैडिंग';
 
   @override
-  String get glassKnobHintShellPadH =>
-      'बार के किनारे से पहले कैप्सूल तक की दूरी। कम रखने पर सिरे अलग-थलग से लगते हैं';
+  String get glassKnobHintShellPadH => 'बार के किनारे से पहले कैप्सूल तक की दूरी। कम रखने पर सिरे अलग-थलग से लगते हैं';
 
   @override
   String get glassKnobLabelShellPadV => 'टॉप पैडिंग';
 
   @override
-  String get glassKnobHintShellPadV =>
-      'बार के किनारे से कैप्सूल के ऊपरी हिस्से तक की दूरी';
+  String get glassKnobHintShellPadV => 'बार के किनारे से कैप्सूल के ऊपरी हिस्से तक की दूरी';
 
   @override
   String get glassKnobLabelIndicatorInset => 'कैप्सूल इनसेट';
 
   @override
-  String get glassKnobHintIndicatorInset =>
-      'चुना हुआ कैप्सूल अपने स्लॉट के अंदर कितनी दूर बैठता है';
+  String get glassKnobHintIndicatorInset => 'चुना हुआ कैप्सूल अपने स्लॉट के अंदर कितनी दूर बैठता है';
 
   @override
   String get glassKnobLabelSegmentPadV => 'पंक्ति पैडिंग';
 
   @override
-  String get glassKnobHintSegmentPadV =>
-      'आइकॉन और उसके लेबल के ऊपर-नीचे कितनी खाली जगह है';
+  String get glassKnobHintSegmentPadV => 'आइकॉन और उसके लेबल के ऊपर-नीचे कितनी खाली जगह है';
 
   @override
   String get glassKnobLabelIconLabelGap => 'आइकन दूरी';
 
   @override
-  String get glassKnobHintIconLabelGap =>
-      'आइकन और उसके नीचे लिखे शब्द के बीच की दूरी';
+  String get glassKnobHintIconLabelGap => 'आइकन और उसके नीचे लिखे शब्द के बीच की दूरी';
 
   @override
   String get glassKnobLabelIconSize => 'आइकन साइज़';
@@ -5032,12 +4727,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get motionScreenSystemLabel => 'डिवाइस जैसा';
 
   @override
-  String get motionScreenSystemSubtitleFull =>
-      'आपका डिवाइस अभी एनिमेशन की अनुमति देता है';
+  String get motionScreenSystemSubtitleFull => 'आपका डिवाइस अभी एनिमेशन की अनुमति देता है';
 
   @override
-  String get motionScreenSystemSubtitleCalm =>
-      'आपका डिवाइस अभी कम मोशन माँगता है';
+  String get motionScreenSystemSubtitleCalm => 'आपका डिवाइस अभी कम मोशन माँगता है';
 
   @override
   String get motionScreenFullLabel => 'पूरा';
@@ -5049,8 +4742,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get motionScreenCalmLabel => 'शांत';
 
   @override
-  String get motionScreenCalmSubtitle =>
-      'सजावट रुक जाती है — और कुछ नहीं बदलता';
+  String get motionScreenCalmSubtitle => 'सजावट रुक जाती है — और कुछ नहीं बदलता';
 
   @override
   String get momentRailCaptureLabel => 'कैप्चर';
@@ -5118,8 +4810,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get momentComposerErrorDailyCap => 'आज पाँच हो गए — कल के लिए भी रखिए';
 
   @override
-  String get momentComposerErrorNotAllowed =>
-      'अभिभावक ने फ़ोटो साझा करना बंद कर रखा है';
+  String get momentComposerErrorNotAllowed => 'अभिभावक ने फ़ोटो साझा करना बंद कर रखा है';
 
   @override
   String get momentComposerErrorTooLong => 'थोड़ा लंबा है — छोटा कीजिए';
@@ -5128,8 +4819,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get momentComposerErrorEmpty => 'एक फ़ोटो या कुछ शब्द जोड़िए';
 
   @override
-  String get momentComposerErrorGeneric =>
-      'पोस्ट नहीं हो सका — फिर कोशिश कीजिए';
+  String get momentComposerErrorGeneric => 'पोस्ट नहीं हो सका — फिर कोशिश कीजिए';
 
   @override
   String get momentViewerDelete => 'हटाएँ';
@@ -5242,29 +4932,25 @@ class AppLocalizationsHi extends AppLocalizations {
   String get profileVisibilityScreenFeedLabel => 'मेरे ख़ास पल';
 
   @override
-  String get profileVisibilityScreenFeedDesc =>
-      'आपकी साझा की गई फ़ोटो और वीडियो उस दिन दोस्तों के बोर्ड पर दिखें या नहीं';
+  String get profileVisibilityScreenFeedDesc => 'आपकी साझा की गई फ़ोटो और वीडियो उस दिन दोस्तों के बोर्ड पर दिखें या नहीं';
 
   @override
   String get profileVisibilityScreenPuzzleLabel => 'मेरा पहेली स्कोर';
 
   @override
-  String get profileVisibilityScreenPuzzleDesc =>
-      'दोस्त देख सकें कि रोज़ की पहेली में आपने कैसा किया';
+  String get profileVisibilityScreenPuzzleDesc => 'दोस्त देख सकें कि रोज़ की पहेली में आपने कैसा किया';
 
   @override
   String get profileVisibilityScreenPointsPastLabel => 'मेरा अतीत';
 
   @override
-  String get profileVisibilityScreenPointsPastDesc =>
-      'आज हमेशा दोस्तों के साथ साझा होता है — यह उससे पहले का सब कुछ खोलता है';
+  String get profileVisibilityScreenPointsPastDesc => 'आज हमेशा दोस्तों के साथ साझा होता है — यह उससे पहले का सब कुछ खोलता है';
 
   @override
   String get momentComposerVideo => 'वीडियो';
 
   @override
-  String get momentComposerErrorTooBig =>
-      'यह वीडियो बहुत बड़ा है — अधिकतम 20 MB';
+  String get momentComposerErrorTooBig => 'यह वीडियो बहुत बड़ा है — अधिकतम 20 MB';
 
   @override
   String get momentActivityPostedHighlightSelf => 'आपने एक पल साझा किया';
@@ -5306,27 +4992,22 @@ class AppLocalizationsHi extends AppLocalizations {
   String get pointsExplainerTitle => 'अंकों का खेल';
 
   @override
-  String get pointsExplainerIntro =>
-      'एक चलता हुआ मज़ाक, जिसका हिसाब रखा जाता है। जब आपके साथ कुछ होता है — अच्छा, बुरा या बस अजीब — आप उसे दर्ज करते हैं और वह उस दिन बोर्ड पर रहता है।';
+  String get pointsExplainerIntro => 'एक चलता हुआ मज़ाक, जिसका हिसाब रखा जाता है। जब आपके साथ कुछ होता है — अच्छा, बुरा या बस अजीब — आप उसे दर्ज करते हैं और वह उस दिन बोर्ड पर रहता है।';
 
   @override
-  String get pointsExplainerRuleHonour =>
-      'अंक आप ख़ुद देते हैं। कोई जाँच नहीं करता — मज़ा यही है, और हद से बढ़े तो दोस्त बता ही देंगे।';
+  String get pointsExplainerRuleHonour => 'अंक आप ख़ुद देते हैं। कोई जाँच नहीं करता — मज़ा यही है, और हद से बढ़े तो दोस्त बता ही देंगे।';
 
   @override
-  String get pointsExplainerRuleToday =>
-      'अंक हर दिन शून्य हो जाते हैं। बोर्ड आज दिखाता है; आपका अपना इतिहास आपके पास रहता है।';
+  String get pointsExplainerRuleToday => 'अंक हर दिन शून्य हो जाते हैं। बोर्ड आज दिखाता है; आपका अपना इतिहास आपके पास रहता है।';
 
   @override
-  String get pointsExplainerRuleCap =>
-      'एक ही तरह के दिन में पाँच, ताकि कोई बोर्ड को बेमानी न बना दे।';
+  String get pointsExplainerRuleCap => 'एक ही तरह के दिन में पाँच, ताकि कोई बोर्ड को बेमानी न बना दे।';
 
   @override
   String get pointsExplainerGotIt => 'समझ गया';
 
   @override
-  String get momentTagFateExample =>
-      'दूसरे देश में अपने दंत-चिकित्सक से टकरा गया';
+  String get momentTagFateExample => 'दूसरे देश में अपने दंत-चिकित्सक से टकरा गया';
 
   @override
   String get momentTagJinxExample => 'गाड़ी धोई, चार बजे बारिश हो गई';
@@ -5352,8 +5033,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get profileVisibilityScreenPointsLabel => 'मेरे अंक';
 
   @override
-  String get profileVisibilityScreenPointsDesc =>
-      'आपके दर्ज किए अंक दोस्तों के बोर्ड पर दिखें या नहीं';
+  String get profileVisibilityScreenPointsDesc => 'आपके दर्ज किए अंक दोस्तों के बोर्ड पर दिखें या नहीं';
 
   @override
   String get momentComposerEditPhoto => 'क्रॉप बदलें';
@@ -5368,15 +5048,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get archiveScreenEmptyTitle => 'अभी कुछ सहेजा नहीं';
 
   @override
-  String get archiveScreenEmptyBody =>
-      'पल एक दिन बाद दोस्तों के बोर्ड से चले जाते हैं, पर यहाँ आपके लिए बने रहते हैं।';
+  String get archiveScreenEmptyBody => 'पल एक दिन बाद दोस्तों के बोर्ड से चले जाते हैं, पर यहाँ आपके लिए बने रहते हैं।';
 
   @override
   String get archiveScreenEmptyFriendTitle => 'यहाँ कुछ नहीं';
 
   @override
-  String get archiveScreenEmptyFriendBody =>
-      'अभी ऐसा कुछ साझा नहीं किया जो आप देख सकें।';
+  String get archiveScreenEmptyFriendBody => 'अभी ऐसा कुछ साझा नहीं किया जो आप देख सकें।';
 
   @override
   String get archiveScreenPrivateTitle => 'इनका अतीत निजी है';
@@ -5388,8 +5066,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get archiveScreenNotFriendTitle => 'आप दोस्त नहीं हैं';
 
   @override
-  String get archiveScreenNotFriendBody =>
-      'आप केवल किसी दोस्त के दिन पीछे देख सकते हैं।';
+  String get archiveScreenNotFriendBody => 'आप केवल किसी दोस्त के दिन पीछे देख सकते हैं।';
 
   @override
   String get archiveScreenErrorTitle => 'लोड नहीं हो सका';
@@ -5434,8 +5111,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get gameQueensName => 'क्वीन्स';
 
   @override
-  String get gameQueensRule =>
-      'हर पंक्ति, स्तंभ और रंग में एक ताज — कभी छूते नहीं';
+  String get gameQueensRule => 'हर पंक्ति, स्तंभ और रंग में एक ताज — कभी छूते नहीं';
 
   @override
   String get gameTangoName => 'टैंगो';
@@ -5603,12 +5279,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get gameInfoControlsLabel => 'नियंत्रण';
 
   @override
-  String get gameInfoScoringTimed =>
-      'जब तक बोर्ड स्क्रीन पर है घड़ी चलती है; रोकने या बाहर जाने पर रुक जाती है। सबसे तेज़ आज की सूची में सबसे ऊपर।';
+  String get gameInfoScoringTimed => 'जब तक बोर्ड स्क्रीन पर है घड़ी चलती है; रोकने या बाहर जाने पर रुक जाती है। सबसे तेज़ आज की सूची में सबसे ऊपर।';
 
   @override
-  String get gameInfoScoringGuesses =>
-      'स्कोर कम अनुमानों से बनता है, घड़ी से नहीं।';
+  String get gameInfoScoringGuesses => 'स्कोर कम अनुमानों से बनता है, घड़ी से नहीं।';
 
   @override
   String get gameInfoSameForEveryone => 'आज सबको एक ही बोर्ड मिलता है।';
@@ -5620,38 +5294,31 @@ class AppLocalizationsHi extends AppLocalizations {
   String get gameInfoQueensGoal => 'हर पंक्ति, स्तंभ और रंग में एक ताज रखें।';
 
   @override
-  String get gameInfoQueensRule1 =>
-      'आठ ताज: हर पंक्ति में एक, हर स्तंभ में एक।';
+  String get gameInfoQueensRule1 => 'आठ ताज: हर पंक्ति में एक, हर स्तंभ में एक।';
 
   @override
   String get gameInfoQueensRule2 => 'हर रंग-खंड में भी ठीक एक ताज होता है।';
 
   @override
-  String get gameInfoQueensRule3 =>
-      'कोई दो ताज नहीं छू सकते — कोने से भी नहीं।';
+  String get gameInfoQueensRule3 => 'कोई दो ताज नहीं छू सकते — कोने से भी नहीं।';
 
   @override
-  String get gameInfoQueensControls =>
-      'किसी खाने पर एक बार टैप करें तो क्रॉस, दोबारा टैप करें तो ताज, फिर से टैप करें तो खाली।';
+  String get gameInfoQueensControls => 'किसी खाने पर एक बार टैप करें तो क्रॉस, दोबारा टैप करें तो ताज, फिर से टैप करें तो खाली।';
 
   @override
   String get gameInfoTangoGoal => 'ग्रिड को सूरज और चाँद से भरें।';
 
   @override
-  String get gameInfoTangoRule1 =>
-      'हर पंक्ति और स्तंभ में तीन सूरज और तीन चाँद होते हैं।';
+  String get gameInfoTangoRule1 => 'हर पंक्ति और स्तंभ में तीन सूरज और तीन चाँद होते हैं।';
 
   @override
-  String get gameInfoTangoRule2 =>
-      'कभी भी तीन एक जैसे साथ-साथ नहीं, न आड़े न खड़े।';
+  String get gameInfoTangoRule2 => 'कभी भी तीन एक जैसे साथ-साथ नहीं, न आड़े न खड़े।';
 
   @override
-  String get gameInfoTangoRule3 =>
-      'दो खानों के बीच = का मतलब वे एक जैसे हैं, × का मतलब अलग हैं।';
+  String get gameInfoTangoRule3 => 'दो खानों के बीच = का मतलब वे एक जैसे हैं, × का मतलब अलग हैं।';
 
   @override
-  String get gameInfoTangoControls =>
-      'खाने पर टैप करें तो सूरज, दोबारा चाँद, फिर खाली। छपे हुए खाने नहीं बदलते।';
+  String get gameInfoTangoControls => 'खाने पर टैप करें तो सूरज, दोबारा चाँद, फिर खाली। छपे हुए खाने नहीं बदलते।';
 
   @override
   String get gameInfoZipGoal => 'एक ऐसी रेखा खींचें जो हर खाने से गुज़रे।';
@@ -5666,8 +5333,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get gameInfoZipRule3 => 'हर खाना ठीक एक बार इस्तेमाल होता है।';
 
   @override
-  String get gameInfoZipControls =>
-      'उँगली घसीटकर खींचें। रेखा पर वापस घसीटें तो मिट जाएगी।';
+  String get gameInfoZipControls => 'उँगली घसीटकर खींचें। रेखा पर वापस घसीटें तो मिट जाएगी।';
 
   @override
   String get gameInfoSudokuGoal => 'ग्रिड को 1 से 6 अंकों से भरें।';
@@ -5682,15 +5348,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get gameInfoSudokuRule3 => 'और हर 2x3 बॉक्स में भी।';
 
   @override
-  String get gameInfoSudokuControls =>
-      'खाने पर टैप करें, फिर अंक पर। वही अंक दोबारा टैप करें तो मिट जाएगा। नोट्स मोड में छोटे पेंसिल निशान लगते हैं।';
+  String get gameInfoSudokuControls => 'खाने पर टैप करें, फिर अंक पर। वही अंक दोबारा टैप करें तो मिट जाएगा। नोट्स मोड में छोटे पेंसिल निशान लगते हैं।';
 
   @override
   String get gameInfoCodeGoal => 'चार-चिह्न वाले छिपे कोड का पता लगाएँ।';
 
   @override
-  String get gameInfoCodeRule1 =>
-      'छह कोशिशें, और कोड में कोई चिह्न दोहराया नहीं जाता।';
+  String get gameInfoCodeRule1 => 'छह कोशिशें, और कोड में कोई चिह्न दोहराया नहीं जाता।';
 
   @override
   String get gameInfoCodeRule2 => 'हरा मतलब सही चिह्न, सही जगह।';
@@ -5699,8 +5363,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get gameInfoCodeRule3 => 'पीला मतलब सही चिह्न, गलत जगह।';
 
   @override
-  String get gameInfoCodeControls =>
-      'अनुमान बनाने के लिए चिह्नों पर टैप करें, फिर भेजें। बोर्ड बताएगा कि आप कितने करीब थे।';
+  String get gameInfoCodeControls => 'अनुमान बनाने के लिए चिह्नों पर टैप करें, फिर भेजें। बोर्ड बताएगा कि आप कितने करीब थे।';
 
   @override
   String get savedMessagesTitle => 'सेव किए गए मैसेज';
@@ -5714,8 +5377,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get pullRevealSearchHint => 'चैट खोजो…';
 
   @override
-  String get pullRevealCollapseSemanticLabel =>
-      'सर्च और आर्काइव की गई चैट छिपाएं';
+  String get pullRevealCollapseSemanticLabel => 'सर्च और आर्काइव की गई चैट छिपाएं';
 
   @override
   String archivedChatsFolderLabel(Object count) {
@@ -5761,22 +5423,19 @@ class AppLocalizationsHi extends AppLocalizations {
   String get messageActionMenuUnsaveLabel => 'सेव हटाएँ';
 
   @override
-  String get roomScreenSaveLimitSnack =>
-      'यहाँ बहुत सारे सेव हैं — पहले एक हटाओ';
+  String get roomScreenSaveLimitSnack => 'यहाँ बहुत सारे सेव हैं — पहले एक हटाओ';
 
   @override
   String get roomScreenSaveFailedSnack => 'उसे सेव नहीं किया जा सका';
 
   @override
-  String get threadOverlaySaveLimitToast =>
-      'यहाँ बहुत सारे सेव हैं — पहले एक हटाओ';
+  String get threadOverlaySaveLimitToast => 'यहाँ बहुत सारे सेव हैं — पहले एक हटाओ';
 
   @override
   String get threadOverlaySaveFailedToast => 'उसे सेव नहीं किया जा सका';
 
   @override
-  String get roomInfoScreenSharedContentSavedNote =>
-      'आपके सेव किए मैसेज सिर्फ़ आपको दिखते हैं — पिन किया गया मैसेज इसका उल्टा है: उसे पूरा रूम देखता है.';
+  String get roomInfoScreenSharedContentSavedNote => 'आपके सेव किए मैसेज सिर्फ़ आपको दिखते हैं — पिन किया गया मैसेज इसका उल्टा है: उसे पूरा रूम देखता है.';
 
   @override
   String roomContentScreenSavedJumpSemantic(Object name) {
@@ -5804,8 +5463,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get muteSheetBadgesTitle => 'बिना पढ़े संदेशों की गिनती';
 
   @override
-  String get muteSheetBadgesSub =>
-      'चैट पर कोई संख्या नहीं, ऐप आइकॉन में कुछ नहीं जुड़ेगा';
+  String get muteSheetBadgesSub => 'चैट पर कोई संख्या नहीं, ऐप आइकॉन में कुछ नहीं जुड़ेगा';
 
   @override
   String get muteSheetDurationLabel => 'कितनी देर के लिए';
@@ -5832,20 +5490,16 @@ class AppLocalizationsHi extends AppLocalizations {
   String get muteSheetUnmuteButton => 'अनम्यूट करें';
 
   @override
-  String get muteSummaryAll =>
-      'इस चैट से आप तक कुछ नहीं पहुँचेगा — न सूचनाएँ, न बिना पढ़े संदेशों की गिनती।';
+  String get muteSummaryAll => 'इस चैट से आप तक कुछ नहीं पहुँचेगा — न सूचनाएँ, न बिना पढ़े संदेशों की गिनती।';
 
   @override
-  String get muteSummaryNotificationsOnly =>
-      'कोई सूचना नहीं। बिना पढ़े संदेशों की गिनती बढ़ती रहेगी।';
+  String get muteSummaryNotificationsOnly => 'कोई सूचना नहीं। बिना पढ़े संदेशों की गिनती बढ़ती रहेगी।';
 
   @override
-  String get muteSummaryBadgesOnly =>
-      'बिना पढ़े संदेशों की गिनती नहीं। सूचनाएँ आती रहेंगी।';
+  String get muteSummaryBadgesOnly => 'बिना पढ़े संदेशों की गिनती नहीं। सूचनाएँ आती रहेंगी।';
 
   @override
-  String get muteSummaryNothingPicked =>
-      'शांत करने के लिए कम से कम एक चीज़ चुनें।';
+  String get muteSummaryNothingPicked => 'शांत करने के लिए कम से कम एक चीज़ चुनें।';
 
   @override
   String muteUntilSentence(String when) {
@@ -5942,26 +5596,22 @@ class AppLocalizationsHi extends AppLocalizations {
   String get locationCouldNotGetFix => 'आपका स्थान नहीं मिल सका';
 
   @override
-  String get locationCouldNotStartLiveShare =>
-      'लाइव साझा करना शुरू नहीं हो सका';
+  String get locationCouldNotStartLiveShare => 'लाइव साझा करना शुरू नहीं हो सका';
 
   @override
-  String get locationPermissionNeeded =>
-      'आप कहाँ हैं यह साझा करने के लिए स्थान की अनुमति चाहिए';
+  String get locationPermissionNeeded => 'आप कहाँ हैं यह साझा करने के लिए स्थान की अनुमति चाहिए';
 
   @override
   String get locationPermissionBlockedTitle => 'स्थान की अनुमति बंद है';
 
   @override
-  String get locationPermissionBlockedBody =>
-      'MonkeyHub यहाँ से दोबारा नहीं पूछ सकता। सेटिंग्स में MonkeyHub के लिए स्थान की अनुमति चालू करें।';
+  String get locationPermissionBlockedBody => 'MonkeyHub यहाँ से दोबारा नहीं पूछ सकता। सेटिंग्स में MonkeyHub के लिए स्थान की अनुमति चालू करें।';
 
   @override
   String get locationServicesOffTitle => 'स्थान सेवाएँ बंद हैं';
 
   @override
-  String get locationServicesOffBody =>
-      'इस डिवाइस पर स्थान बंद है। आप कहाँ हैं यह साझा करने के लिए सेटिंग्स में इसे चालू करें।';
+  String get locationServicesOffBody => 'इस डिवाइस पर स्थान बंद है। आप कहाँ हैं यह साझा करने के लिए सेटिंग्स में इसे चालू करें।';
 
   @override
   String get locationOpenSettings => 'सेटिंग्स खोलें';
@@ -5970,15 +5620,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get locationBackgroundSheetTitle => 'अगर आपका फ़ोन रीस्टार्ट हो जाए';
 
   @override
-  String get locationBackgroundSheetBody =>
-      'MonkeyHub से बाहर निकलने पर भी आपकी लाइव शेयरिंग चलती रहती है। बैकग्राउंड एक्सेस बाकी सब संभालता है: रीस्टार्ट, ऐप का ज़बरदस्ती बंद होना, या बैटरी खत्म होकर फ़ोन का वापस आना।';
+  String get locationBackgroundSheetBody => 'MonkeyHub से बाहर निकलने पर भी आपकी लाइव शेयरिंग चलती रहती है। बैकग्राउंड एक्सेस बाकी सब संभालता है: रीस्टार्ट, ऐप का ज़बरदस्ती बंद होना, या बैटरी खत्म होकर फ़ोन का वापस आना।';
 
   @override
   String get locationBackgroundSheetKeepRunning => 'अपने आप फिर शुरू करें';
 
   @override
-  String get locationBackgroundSheetKeepRunningDetail =>
-      'आपका फ़ोन इसकी अनुमति मांगेगा';
+  String get locationBackgroundSheetKeepRunningDetail => 'आपका फ़ोन इसकी अनुमति मांगेगा';
 
   @override
   String get locationBackgroundSheetAppOnly => 'बंद ही रहने दें';
@@ -5987,19 +5635,16 @@ class AppLocalizationsHi extends AppLocalizations {
   String get locationBackgroundSheetAppOnlyDetail => 'और कुछ अनुमति नहीं देनी';
 
   @override
-  String get locationServiceNotificationTitle =>
-      'आपकी लाइव लोकेशन शेयर हो रही है';
+  String get locationServiceNotificationTitle => 'आपकी लाइव लोकेशन शेयर हो रही है';
 
   @override
-  String get locationServiceNotificationBody =>
-      'चैट खोलने के लिए टैप करें, या अभी बंद करने के लिए रोकें दबाएँ';
+  String get locationServiceNotificationBody => 'चैट खोलने के लिए टैप करें, या अभी बंद करने के लिए रोकें दबाएँ';
 
   @override
   String get childPolicyScreenLocationLabel => 'स्थान';
 
   @override
-  String get childPolicyScreenLocationOnDesc =>
-      'अपना स्थान साझा कर सकते हैं, 8 घंटे तक लाइव भी';
+  String get childPolicyScreenLocationOnDesc => 'अपना स्थान साझा कर सकते हैं, 8 घंटे तक लाइव भी';
 
   @override
   String get childPolicyScreenLocationOffDesc => 'अपना स्थान साझा नहीं कर सकते';
@@ -6008,12 +5653,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomInfoScreenSavedMessagesLabel => 'सेव किए गए मैसेज';
 
   @override
-  String get roomInfoScreenSavedMessagesCaption =>
-      'इन्हें सिर्फ तुम देख सकते हो, और सिर्फ इसी रूम से। तुम्हारी सेव किए गए मैसेज चैट अलग है।';
+  String get roomInfoScreenSavedMessagesCaption => 'इन्हें सिर्फ तुम देख सकते हो, और सिर्फ इसी रूम से। तुम्हारी सेव किए गए मैसेज चैट अलग है।';
 
   @override
-  String get roomInfoScreenSavedMessagesEmpty =>
-      'अभी कुछ सेव नहीं हुआ। किसी मैसेज को दबाए रखो और सेव करें चुनो।';
+  String get roomInfoScreenSavedMessagesEmpty => 'अभी कुछ सेव नहीं हुआ। किसी मैसेज को दबाए रखो और सेव करें चुनो।';
 
   @override
   String roomInfoScreenSavedMessageJumpSemantic(Object name) {
@@ -6048,8 +5691,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get composerCaptureRecordingAnnouncement => 'रिकॉर्डिंग शुरू';
 
   @override
-  String get composerCaptureLockedAnnouncement =>
-      'रिकॉर्डिंग लॉक हो गई। हाथ मुक्त।';
+  String get composerCaptureLockedAnnouncement => 'रिकॉर्डिंग लॉक हो गई। हाथ मुक्त।';
 
   @override
   String get composerCaptureCancelledAnnouncement => 'रिकॉर्डिंग हटा दी गई';
@@ -6063,12 +5705,10 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get composerCaptureHoldToRecordHint =>
-      'रिकॉर्ड करने के लिए दबाकर रखें, बदलने के लिए स्वाइप करें';
+  String get composerCaptureHoldToRecordHint => 'रिकॉर्ड करने के लिए दबाकर रखें, बदलने के लिए स्वाइप करें';
 
   @override
-  String get composerCaptureTapForCameraHint =>
-      'कैमरा के लिए टैप करें, बदलने के लिए स्वाइप करें';
+  String get composerCaptureTapForCameraHint => 'कैमरा के लिए टैप करें, बदलने के लिए स्वाइप करें';
 
   @override
   String get composerCaptureSlideToCancelHint => 'रद्द करने के लिए स्लाइड करें';
@@ -6094,40 +5734,34 @@ class AppLocalizationsHi extends AppLocalizations {
   String get composerCaptureSendLabel => 'रिकॉर्डिंग भेजें';
 
   @override
-  String get composerCaptureLockLabel =>
-      'रिकॉर्डिंग लॉक करने के लिए ऊपर स्लाइड करें';
+  String get composerCaptureLockLabel => 'रिकॉर्डिंग लॉक करने के लिए ऊपर स्लाइड करें';
 
   @override
   String get composerCaptureMicPermissionTitle => 'माइक्रोफ़ोन चाहिए';
 
   @override
-  String get composerCaptureMicPermissionBody =>
-      'वॉइस मैसेज रिकॉर्ड करने के लिए MonkeyHub को आपके माइक्रोफ़ोन की ज़रूरत है। इसे सेटिंग्स में चालू करें और दोबारा कोशिश करें।';
+  String get composerCaptureMicPermissionBody => 'वॉइस मैसेज रिकॉर्ड करने के लिए MonkeyHub को आपके माइक्रोफ़ोन की ज़रूरत है। इसे सेटिंग्स में चालू करें और दोबारा कोशिश करें।';
 
   @override
   String get composerCaptureCameraPermissionTitle => 'कैमरा चाहिए';
 
   @override
-  String get composerCaptureCameraPermissionBody =>
-      'वीडियो नोट रिकॉर्ड करने के लिए MonkeyHub को आपके कैमरे और माइक्रोफ़ोन की ज़रूरत है। इन्हें सेटिंग्स में चालू करें और दोबारा कोशिश करें।';
+  String get composerCaptureCameraPermissionBody => 'वीडियो नोट रिकॉर्ड करने के लिए MonkeyHub को आपके कैमरे और माइक्रोफ़ोन की ज़रूरत है। इन्हें सेटिंग्स में चालू करें और दोबारा कोशिश करें।';
 
   @override
-  String get composerCaptureRestrictedBody =>
-      'इस डिवाइस पर लगी पाबंदी के कारण रिकॉर्डिंग बंद है।';
+  String get composerCaptureRestrictedBody => 'इस डिवाइस पर लगी पाबंदी के कारण रिकॉर्डिंग बंद है।';
 
   @override
   String get composerCaptureOpenSettingsLabel => 'सेटिंग्स खोलें';
 
   @override
-  String get composerCaptureUnavailableSnack =>
-      'इस डिवाइस पर रिकॉर्डिंग उपलब्ध नहीं है।';
+  String get composerCaptureUnavailableSnack => 'इस डिवाइस पर रिकॉर्डिंग उपलब्ध नहीं है।';
 
   @override
   String get composerCaptureInterruptedSnack => 'रिकॉर्डिंग रुक गई।';
 
   @override
-  String get composerCaptureStorageSnack =>
-      'रिकॉर्डिंग सेव नहीं हो सकी। खाली जगह जाँचें।';
+  String get composerCaptureStorageSnack => 'रिकॉर्डिंग सेव नहीं हो सकी। खाली जगह जाँचें।';
 
   @override
   String get videoNoteMessagePlayLabel => 'वीडियो नोट चलाएँ';
@@ -6254,8 +5888,7 @@ class AppLocalizationsHi extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other:
-          '$count संदेश भेजे जाने का इंतज़ार कर रहे हैं। देखने के लिए टैप करें।',
+      other: '$count संदेश भेजे जाने का इंतज़ार कर रहे हैं। देखने के लिए टैप करें।',
       one: '1 संदेश भेजे जाने का इंतज़ार कर रहा है। देखने के लिए टैप करें।',
     );
     return '$_temp0';
@@ -6268,8 +5901,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get scheduledListTitle => 'शेड्यूल किए गए';
 
   @override
-  String get scheduledListSubtitle =>
-      'भेजे जाने तक इन्हें सिर्फ़ आप देख सकते हैं।';
+  String get scheduledListSubtitle => 'भेजे जाने तक इन्हें सिर्फ़ आप देख सकते हैं।';
 
   @override
   String get scheduledListEmpty => 'यहाँ भेजे जाने के इंतज़ार में कुछ नहीं है।';
@@ -6296,16 +5928,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get scheduledListRetry => 'फिर कोशिश करें';
 
   @override
-  String get scheduleErrorOutOfRange =>
-      'अभी से दो मिनट और एक साल के बीच का कोई समय चुनें।';
+  String get scheduleErrorOutOfRange => 'अभी से दो मिनट और एक साल के बीच का कोई समय चुनें।';
 
   @override
-  String get scheduleErrorTooMany =>
-      'यहाँ बहुत सारे संदेश इंतज़ार में हैं। पहले कुछ भेजें या हटाएँ।';
+  String get scheduleErrorTooMany => 'यहाँ बहुत सारे संदेश इंतज़ार में हैं। पहले कुछ भेजें या हटाएँ।';
 
   @override
-  String get scheduleErrorNotInEphemeral =>
-      'यहाँ के संदेश अपने आप मिट जाते हैं, इसलिए इन्हें शेड्यूल नहीं किया जा सकता।';
+  String get scheduleErrorNotInEphemeral => 'यहाँ के संदेश अपने आप मिट जाते हैं, इसलिए इन्हें शेड्यूल नहीं किया जा सकता।';
 
   @override
   String get scheduleErrorNotMember => 'आप अब इस चैट में नहीं हैं।';
@@ -6361,12 +5990,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get scheduledListShowAsRow => 'ये कैसे दिखें';
 
   @override
-  String get scheduledIndicatorPillSub =>
-      'लिखने के बॉक्स के ऊपर एक पट्टी। देखने के लिए टैप करें।';
+  String get scheduledIndicatorPillSub => 'लिखने के बॉक्स के ऊपर एक पट्टी। देखने के लिए टैप करें।';
 
   @override
-  String get scheduledIndicatorBadgeSub =>
-      'भेजें बटन पर एक संख्या। जब तक आप लिखना शुरू न करें, कुछ नहीं दिखता।';
+  String get scheduledIndicatorBadgeSub => 'भेजें बटन पर एक संख्या। जब तक आप लिखना शुरू न करें, कुछ नहीं दिखता।';
 
   @override
   String get scheduledIndicatorBothSub => 'पट्टी, और लिखते समय संख्या भी।';
@@ -6384,8 +6011,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get serverOnboardingTitle => 'सर्वर चुनें.';
 
   @override
-  String get serverOnboardingSubtitle =>
-      'यह बिल्ड बिना सर्वर के आया है — इसे अपने सर्वर पर लगाएँ';
+  String get serverOnboardingSubtitle => 'यह बिल्ड बिना सर्वर के आया है — इसे अपने सर्वर पर लगाएँ';
 
   @override
   String get serverStatusConnected => 'जुड़ा है';
@@ -6433,15 +6059,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get serverProblemNoHost => 'https:// के बाद अपने सर्वर का पता जोड़ें।';
 
   @override
-  String get serverProblemCredentials =>
-      'पते में से उपयोगकर्ता नाम और पासवर्ड हटाएँ।';
+  String get serverProblemCredentials => 'पते में से उपयोगकर्ता नाम और पासवर्ड हटाएँ।';
 
   @override
   String get serverInsecureTitle => 'एन्क्रिप्टेड नहीं';
 
   @override
-  String get serverInsecureBody =>
-      'फ़ोन सादा http रोकते हैं, इसलिए यह पता iOS या Android पर नहीं जुड़ेगा। https इस्तेमाल करें, या टनल के ज़रिए अपने सर्वर तक पहुँचें।';
+  String get serverInsecureBody => 'फ़ोन सादा http रोकते हैं, इसलिए यह पता iOS या Android पर नहीं जुड़ेगा। https इस्तेमाल करें, या टनल के ज़रिए अपने सर्वर तक पहुँचें।';
 
   @override
   String get serverTestCta => 'कनेक्शन जाँचें';
@@ -6462,12 +6086,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get serverResultUnreachable => 'उस पते पर किसी ने जवाब नहीं दिया।';
 
   @override
-  String get serverResultNotConvex =>
-      'कुछ ने जवाब दिया, पर वह Convex सर्वर नहीं है।';
+  String get serverResultNotConvex => 'कुछ ने जवाब दिया, पर वह Convex सर्वर नहीं है।';
 
   @override
-  String get serverResultNotThisApp =>
-      'यह Convex सर्वर है, पर उस पर MonkeyHub तैनात नहीं है।';
+  String get serverResultNotThisApp => 'यह Convex सर्वर है, पर उस पर MonkeyHub तैनात नहीं है।';
 
   @override
   String get serverResultServerError => 'सर्वर ने जवाब दिया, पर त्रुटि के साथ।';
@@ -6494,8 +6116,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get serverAdvancedLabel => 'उन्नत';
 
   @override
-  String get serverSiteUrlExplain =>
-      'ज़्यादातर सर्वर सब कुछ एक ही पते पर देते हैं। यह तभी भरें जब आपका सर्वर HTTP actions कहीं और देता हो।';
+  String get serverSiteUrlExplain => 'ज़्यादातर सर्वर सब कुछ एक ही पते पर देते हैं। यह तभी भरें जब आपका सर्वर HTTP actions कहीं और देता हो।';
 
   @override
   String get serverSiteUrlHint => 'ऊपर जैसा ही';
@@ -6510,8 +6131,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get serverSwitchWarningTitle => 'बदलने पर साइन आउट हो जाएगा';
 
   @override
-  String get serverSwitchWarningBody =>
-      'खाते और चैट एक ही सर्वर के होते हैं। यह डिवाइस साइन आउट होगा, डाउनलोड किया हुआ मिटाएगा, और नए सिरे से शुरू करेगा। किसी भी सर्वर पर कुछ भी मिटाया नहीं जाता।';
+  String get serverSwitchWarningBody => 'खाते और चैट एक ही सर्वर के होते हैं। यह डिवाइस साइन आउट होगा, डाउनलोड किया हुआ मिटाएगा, और नए सिरे से शुरू करेगा। किसी भी सर्वर पर कुछ भी मिटाया नहीं जाता।';
 
   @override
   String get serverSwitchRolledBackTitle => 'जुड़ नहीं सके';
@@ -6522,12 +6142,10 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get serverSwitchStrandedBody =>
-      'कोई भी सर्वर नहीं जुड़ा। पता जाँचें और फिर कोशिश करें।';
+  String get serverSwitchStrandedBody => 'कोई भी सर्वर नहीं जुड़ा। पता जाँचें और फिर कोशिश करें।';
 
   @override
-  String get serverSwitchRefusedBody =>
-      'यह डिवाइस किसी बच्चे के लिए सेट है और सर्वर नहीं बदल सकता।';
+  String get serverSwitchRefusedBody => 'यह डिवाइस किसी बच्चे के लिए सेट है और सर्वर नहीं बदल सकता।';
 
   @override
   String serverChipSemantics(String server) {
@@ -6550,8 +6168,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get serverBadgeHomeserver => 'होमसर्वर से चल रहा है';
 
   @override
-  String get serverBadgeHomeserverSemantics =>
-      'होमसर्वर से चल रहा है। जानकारी के लिए टैप करें।';
+  String get serverBadgeHomeserverSemantics => 'होमसर्वर से चल रहा है। जानकारी के लिए टैप करें।';
 
   @override
   String serverBadgeSelfHostedSemantics(String server) {
@@ -6562,38 +6179,31 @@ class AppLocalizationsHi extends AppLocalizations {
   String get serverRoleHomeserverTitle => 'होमसर्वर पर चल रहा है';
 
   @override
-  String get serverRoleHomeserverBody =>
-      'MonkeyHub चलाने वाले लोगों ने कुछ समय के लिए ट्रैफ़िक अपने घर के सर्वर पर भेजा है। सब कुछ पहले जैसा ही काम करता है — यह जानबूझकर किया गया है, कोई गड़बड़ी नहीं।';
+  String get serverRoleHomeserverBody => 'MonkeyHub चलाने वाले लोगों ने कुछ समय के लिए ट्रैफ़िक अपने घर के सर्वर पर भेजा है। सब कुछ पहले जैसा ही काम करता है — यह जानबूझकर किया गया है, कोई गड़बड़ी नहीं।';
 
   @override
-  String get serverRoleHomeserverWarnData =>
-      'जब तक यह चालू है, आप जो भेजते हैं वह ट्रैफ़िक वापस जाने के बाद शायद यहाँ न रहे।';
+  String get serverRoleHomeserverWarnData => 'जब तक यह चालू है, आप जो भेजते हैं वह ट्रैफ़िक वापस जाने के बाद शायद यहाँ न रहे।';
 
   @override
-  String get serverRoleHomeserverWarnSpeed =>
-      'घर का कनेक्शन सामान्य से धीमा होता है, इसलिए चीज़ें अटक सकती हैं।';
+  String get serverRoleHomeserverWarnSpeed => 'घर का कनेक्शन सामान्य से धीमा होता है, इसलिए चीज़ें अटक सकती हैं।';
 
   @override
-  String get serverRoleHomeserverWarnAuto =>
-      'आपको कुछ करने की ज़रूरत नहीं। ऐप अपने आप वापस चला जाएगा।';
+  String get serverRoleHomeserverWarnAuto => 'आपको कुछ करने की ज़रूरत नहीं। ऐप अपने आप वापस चला जाएगा।';
 
   @override
   String get serverRoleSelfHostedTitle => 'आपका अपना सर्वर';
 
   @override
-  String get serverRoleSelfHostedBody =>
-      'यह डिवाइस आपके अपने सर्वर पर लगा है। इसे सेटिंग्स › उन्नत › सर्वर में बदलें।';
+  String get serverRoleSelfHostedBody => 'यह डिवाइस आपके अपने सर्वर पर लगा है। इसे सेटिंग्स › उन्नत › सर्वर में बदलें।';
 
   @override
   String get serverValueHomeserver => 'फ़िलहाल होमसर्वर';
 
   @override
-  String get serverChoiceCloudSubHomeserver =>
-      'कुछ समय के लिए होमसर्वर से दिया जा रहा है।';
+  String get serverChoiceCloudSubHomeserver => 'कुछ समय के लिए होमसर्वर से दिया जा रहा है।';
 
   @override
-  String get serverDirectiveChangedToast =>
-      'आपका सर्वर बदल गया। फिर से जुड़ा जा रहा है…';
+  String get serverDirectiveChangedToast => 'आपका सर्वर बदल गया। फिर से जुड़ा जा रहा है…';
 
   @override
   String get loginScreenSignInWithPhone => 'sign in with your phone';
@@ -6608,8 +6218,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get deviceLoginScreenHeroInk => 'sign in';
 
   @override
-  String get deviceLoginScreenIntro =>
-      'Open MonkeyHub on your phone, tap Scan to Sign In from your profile, and point the camera here — or type the code below.';
+  String get deviceLoginScreenIntro => 'Open MonkeyHub on your phone, tap Scan to Sign In from your profile, and point the camera here — or type the code below.';
 
   @override
   String get deviceLoginScreenWaiting => 'waiting for approval…';
@@ -6621,8 +6230,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get deviceLoginScreenDenied => 'sign-in request denied on your phone';
 
   @override
-  String get deviceLoginScreenGenericError =>
-      'something went wrong — try a new code';
+  String get deviceLoginScreenGenericError => 'something went wrong — try a new code';
 
   @override
   String get profileScreenScanToSignInLabel => 'SCAN TO SIGN IN';
@@ -6634,8 +6242,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get deviceLoginScanScreenHeroInk => 'sign in';
 
   @override
-  String get deviceLoginScanScreenIntro =>
-      'Point your camera at the code shown on your computer, or type it in below.';
+  String get deviceLoginScanScreenIntro => 'Point your camera at the code shown on your computer, or type it in below.';
 
   @override
   String get deviceLoginScanScreenScanButtonLabel => 'SCAN CODE';
@@ -6658,22 +6265,16 @@ class AppLocalizationsHi extends AppLocalizations {
   String get deviceLoginScanScreenSuccess => 'signed in on your other device';
 
   @override
-  String get deviceLoginScanScreenGenericError =>
-      'couldn’t approve — try again';
+  String get deviceLoginScanScreenGenericError => 'couldn’t approve — try again';
 
   @override
   String get authErrorDeviceLoginInvalid => 'That code isn’t right.';
 
   @override
-  String get authErrorDeviceLoginExpired =>
-      'That code has expired — get a new one on the other device.';
+  String get authErrorDeviceLoginExpired => 'That code has expired — get a new one on the other device.';
 
   @override
-  String get deviceLoginScanScreenDeniedConfirmation =>
-      'sign-in request denied';
-
-  @override
-  String get roomAdminSectionLabel => 'ग्रुप';
+  String get deviceLoginScanScreenDeniedConfirmation => 'sign-in request denied';
 
   @override
   String get roomAdminRoleOwner => 'मालिक';
@@ -6688,15 +6289,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomAdminActionPromote => 'एडमिन बनाएँ';
 
   @override
-  String get roomAdminActionPromoteSub =>
-      'वे न्योता भेज सकेंगे, सदस्य हटा सकेंगे और ग्रुप बदल सकेंगे';
+  String get roomAdminActionPromoteSub => 'वे न्योता भेज सकेंगे, सदस्य हटा सकेंगे और ग्रुप बदल सकेंगे';
 
   @override
   String get roomAdminActionDemote => 'एडमिन हटाएँ';
 
   @override
-  String get roomAdminActionDemoteSub =>
-      'वे सदस्य के तौर पर ग्रुप में बने रहेंगे';
+  String get roomAdminActionDemoteSub => 'वे सदस्य के तौर पर ग्रुप में बने रहेंगे';
 
   @override
   String get roomAdminActionTransfer => 'मालिकाना हक सौंपें';
@@ -6711,23 +6310,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomAdminAddFriendsRow => 'दोस्त जोड़ें';
 
   @override
-  String get roomAdminAddFriendsRowSub =>
-      'उन्हें न्योता मिलेगा, जिसे वे मान या ठुकरा सकते हैं';
-
-  @override
   String get roomAdminInviteLinkRow => 'न्योते का लिंक';
 
   @override
-  String get roomAdminInviteLinkRowSub =>
-      'लोगों को अंदर लाने के लिए लिंक या कोड साझा करें';
-
-  @override
   String get roomAdminJoinRequestsRow => 'जुड़ने की गुज़ारिशें';
-
-  @override
-  String roomAdminJoinRequestsRowSub(Object count) {
-    return '$count जवाब का इंतज़ार कर रहे हैं';
-  }
 
   @override
   String roomAdminTransferConfirmHeadline(Object name) {
@@ -6735,8 +6321,7 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get roomAdminTransferConfirmBody =>
-      'वे मालिक बन जाएँगे और ग्रुप मिटा सकेंगे। आप एडमिन बने रहेंगे, और वापस देना सिर्फ़ उन्हीं के हाथ में होगा।';
+  String get roomAdminTransferConfirmBody => 'वे मालिक बन जाएँगे और ग्रुप मिटा सकेंगे। आप एडमिन बने रहेंगे, और वापस देना सिर्फ़ उन्हीं के हाथ में होगा।';
 
   @override
   String get roomAdminTransferConfirmCta => 'सौंपें';
@@ -6747,8 +6332,7 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get roomAdminRemoveConfirmBody =>
-      'उनकी ग्रुप और उसमें मौजूद हर चीज़ तक पहुँच खत्म हो जाएगी। उन्हें दोबारा न्योता दिया जा सकता है, या वे न्योते के लिंक से वापस आ सकते हैं।';
+  String get roomAdminRemoveConfirmBody => 'उनकी ग्रुप और उसमें मौजूद हर चीज़ तक पहुँच खत्म हो जाएगी। उन्हें दोबारा न्योता दिया जा सकता है, या वे न्योते के लिंक से वापस आ सकते हैं।';
 
   @override
   String get roomAdminRemoveConfirmCta => 'हटाएँ';
@@ -6766,27 +6350,22 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomAdminErrorNotOwner => 'यह सिर्फ़ ग्रुप का मालिक कर सकता है।';
 
   @override
-  String get roomAdminErrorNotGroup =>
-      'आमने-सामने की चैट में संभालने को कुछ नहीं होता।';
+  String get roomAdminErrorNotGroup => 'आमने-सामने की चैट में संभालने को कुछ नहीं होता।';
 
   @override
-  String get roomAdminErrorOwnerImmutable =>
-      'मालिक की भूमिका सिर्फ़ ग्रुप सौंपने से बदलती है।';
+  String get roomAdminErrorOwnerImmutable => 'मालिक की भूमिका सिर्फ़ ग्रुप सौंपने से बदलती है।';
 
   @override
-  String get roomAdminErrorInvitesLocked =>
-      'इस ग्रुप में सिर्फ़ एडमिन ही न्योता भेज सकते हैं।';
+  String get roomAdminErrorInvitesLocked => 'इस ग्रुप में सिर्फ़ एडमिन ही न्योता भेज सकते हैं।';
 
   @override
   String get roomInviteSheetTitle => 'न्योते का लिंक';
 
   @override
-  String get roomInviteSheetBlurb =>
-      'एक लिंक और एक कोड, और दोनों एक ही चीज़ हैं। नया बनाते ही पुराना काम करना बंद कर देता है।';
+  String get roomInviteSheetBlurb => 'एक लिंक और एक कोड, और दोनों एक ही चीज़ हैं। नया बनाते ही पुराना काम करना बंद कर देता है।';
 
   @override
-  String get roomInviteNoLinkYet =>
-      'इस ग्रुप का अभी कोई न्योते का लिंक नहीं है।';
+  String get roomInviteNoLinkYet => 'इस ग्रुप का अभी कोई न्योते का लिंक नहीं है।';
 
   @override
   String get roomInviteCreateButton => 'लिंक बनाएँ';
@@ -6816,8 +6395,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomInviteRegenerateHeadline => 'नया लिंक बनाएँ?';
 
   @override
-  String get roomInviteRegenerateBody =>
-      'मौजूदा लिंक और कोड जहाँ-जहाँ साझा हुए हैं, वहाँ तुरंत काम करना बंद कर देंगे। जो पहले से ग्रुप में हैं वे बने रहेंगे।';
+  String get roomInviteRegenerateBody => 'मौजूदा लिंक और कोड जहाँ-जहाँ साझा हुए हैं, वहाँ तुरंत काम करना बंद कर देंगे। जो पहले से ग्रुप में हैं वे बने रहेंगे।';
 
   @override
   String get roomInviteRegenerateConfirm => 'नया लिंक';
@@ -6826,8 +6404,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomInviteRevokeHeadline => 'यह लिंक रद्द करें?';
 
   @override
-  String get roomInviteRevokeBody =>
-      'जब तक आप दूसरा नहीं बनाते, लिंक से कोई नया नहीं जुड़ सकेगा। जो पहले से ग्रुप में हैं वे बने रहेंगे।';
+  String get roomInviteRevokeBody => 'जब तक आप दूसरा नहीं बनाते, लिंक से कोई नया नहीं जुड़ सकेगा। जो पहले से ग्रुप में हैं वे बने रहेंगे।';
 
   @override
   String get roomInviteRevokeConfirm => 'रद्द करें';
@@ -6858,30 +6435,25 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get roomInviteLimitsApplyToNew =>
-      'ये उस लिंक पर लागू होंगी जो आप बनाएँगे।';
+  String get roomInviteLimitsApplyToNew => 'ये उस लिंक पर लागू होंगी जो आप बनाएँगे।';
 
   @override
-  String get roomInviteLimitsApplyOnRegenerate =>
-      'ये अगले लिंक पर लागू होंगी। ऊपर वाला उन्हीं सीमाओं पर रहेगा जिनके साथ वह बना था।';
+  String get roomInviteLimitsApplyOnRegenerate => 'ये अगले लिंक पर लागू होंगी। ऊपर वाला उन्हीं सीमाओं पर रहेगा जिनके साथ वह बना था।';
 
   @override
   String get roomInvitePermissionsLabel => 'अनुमतियाँ';
 
   @override
-  String get roomInviteMembersCanInviteLabel =>
-      'सदस्य दोस्तों को न्योता दे सकते हैं';
+  String get roomInviteMembersCanInviteLabel => 'सदस्य दोस्तों को न्योता दे सकते हैं';
 
   @override
-  String get roomInviteMembersCanInviteSub =>
-      'बंद करने पर सिर्फ़ एडमिन ही लोगों को ला सकेंगे';
+  String get roomInviteMembersCanInviteSub => 'बंद करने पर सिर्फ़ एडमिन ही लोगों को ला सकेंगे';
 
   @override
   String get roomInviteApprovalLabel => 'हर जुड़ने को मंज़ूरी दें';
 
   @override
-  String get roomInviteApprovalSub =>
-      'लिंक वाले पहले पूछते हैं, और एडमिन हाँ या ना कहता है';
+  String get roomInviteApprovalSub => 'लिंक वाले पहले पूछते हैं, और एडमिन हाँ या ना कहता है';
 
   @override
   String roomInviteUsesCount(Object count) {
@@ -6902,8 +6474,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomInviteDeadExpired => 'इस लिंक की मियाद खत्म हो गई। नया बनाएँ।';
 
   @override
-  String get roomInviteDeadExhausted =>
-      'इस लिंक के इस्तेमाल खत्म हो गए। नया बनाएँ।';
+  String get roomInviteDeadExhausted => 'इस लिंक के इस्तेमाल खत्म हो गए। नया बनाएँ।';
 
   @override
   String get roomInviteDeadRevoked => 'यह लिंक रद्द कर दिया गया था।';
@@ -6915,8 +6486,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomInviteFriendsTitle => 'दोस्त जोड़ें';
 
   @override
-  String get roomInviteFriendsBlurb =>
-      'उन्हें न्योता मिलेगा और वे मान या ठुकरा सकते हैं।';
+  String get roomInviteFriendsBlurb => 'उन्हें न्योता मिलेगा और वे मान या ठुकरा सकते हैं।';
 
   @override
   String get roomInviteFriendsSearchHint => 'दोस्तों में खोजें';
@@ -6928,8 +6498,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomInviteFriendsSent => 'न्योता भेजा';
 
   @override
-  String get roomInviteFriendsEmpty =>
-      'आपके सारे दोस्त या तो यहीं हैं या उन्हें न्योता जा चुका है।';
+  String get roomInviteFriendsEmpty => 'आपके सारे दोस्त या तो यहीं हैं या उन्हें न्योता जा चुका है।';
 
   @override
   String get roomInviteFriendsNoMatch => 'इससे मिलता कोई दोस्त नहीं।';
@@ -6941,8 +6510,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomJoinRequestsTitle => 'जुड़ने की गुज़ारिशें';
 
   @override
-  String get roomJoinRequestsBlurb =>
-      'इन लोगों ने न्योते का लिंक इस्तेमाल किया है। जब तक आप हाँ नहीं कहते, इन्हें ग्रुप का कुछ नहीं दिखता।';
+  String get roomJoinRequestsBlurb => 'इन लोगों ने न्योते का लिंक इस्तेमाल किया है। जब तक आप हाँ नहीं कहते, इन्हें ग्रुप का कुछ नहीं दिखता।';
 
   @override
   String get roomJoinRequestsEmpty => 'कोई इंतज़ार में नहीं है।';
@@ -6976,8 +6544,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get discoverScreenJoinByCodeTitle => 'कोड से जुड़ें';
 
   @override
-  String get discoverScreenJoinByCodeSubtitle =>
-      'किसी ने जो ग्रुप साझा किया है उसे खोलें';
+  String get discoverScreenJoinByCodeSubtitle => 'किसी ने जो ग्रुप साझा किया है उसे खोलें';
 
   @override
   String get joinInviteTitle => 'ग्रुप से जुड़ें';
@@ -6986,8 +6553,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get joinInviteBack => 'पीछे';
 
   @override
-  String get joinInviteCodeBlurb =>
-      'जो कोड आपके साथ साझा किया गया है वह डालें। पूरा न्योते का लिंक भी यहाँ चलता है।';
+  String get joinInviteCodeBlurb => 'जो कोड आपके साथ साझा किया गया है वह डालें। पूरा न्योते का लिंक भी यहाँ चलता है।';
 
   @override
   String get joinInviteCodeLabel => 'न्योते का कोड';
@@ -7002,8 +6568,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get joinInviteLookupButton => 'आगे बढ़ें';
 
   @override
-  String get joinInviteLookupFailed =>
-      'कोड जाँचा नहीं जा सका। कनेक्शन देखकर दोबारा कोशिश करें।';
+  String get joinInviteLookupFailed => 'कोड जाँचा नहीं जा सका। कनेक्शन देखकर दोबारा कोशिश करें।';
 
   @override
   String joinInviteMemberCount(Object count) {
@@ -7020,8 +6585,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get joinInviteOpenNote => 'जुड़ते ही आप ग्रुप के संदेश देख पाएँगे।';
 
   @override
-  String get joinInviteApprovalNote =>
-      'यहाँ कुछ भी देखने से पहले किसी एडमिन का हाँ कहना ज़रूरी है।';
+  String get joinInviteApprovalNote => 'यहाँ कुछ भी देखने से पहले किसी एडमिन का हाँ कहना ज़रूरी है।';
 
   @override
   String get joinInviteOpenRoom => 'ग्रुप खोलें';
@@ -7030,8 +6594,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get joinInvitePendingHeadline => 'एडमिन का इंतज़ार';
 
   @override
-  String get joinInvitePendingBody =>
-      'जैसे ही कोई जवाब देगा, आपको सूचना मिल जाएगी।';
+  String get joinInvitePendingBody => 'जैसे ही कोई जवाब देगा, आपको सूचना मिल जाएगी।';
 
   @override
   String get joinInviteBadLinkHeadline => 'यह न्योता काम नहीं करता';
@@ -7043,22 +6606,19 @@ class AppLocalizationsHi extends AppLocalizations {
   String get joinInviteExpiredHeadline => 'इस न्योते की मियाद खत्म हो गई';
 
   @override
-  String get joinInviteExpiredBody =>
-      'जिसने न्योता दिया था, उससे नया लिंक माँगें।';
+  String get joinInviteExpiredBody => 'जिसने न्योता दिया था, उससे नया लिंक माँगें।';
 
   @override
   String get joinInviteExhaustedHeadline => 'यह न्योता खप चुका है';
 
   @override
-  String get joinInviteExhaustedBody =>
-      'इसे गिनी-चुनी बार चलने के लिए बनाया गया था। नया माँगें।';
+  String get joinInviteExhaustedBody => 'इसे गिनी-चुनी बार चलने के लिए बनाया गया था। नया माँगें।';
 
   @override
   String get joinInviteRevokedHeadline => 'इस न्योते की जगह नया आ गया';
 
   @override
-  String get joinInviteRevokedBody =>
-      'एडमिन ने नया लिंक बनाया है। उनसे मौजूदा लिंक माँगें।';
+  String get joinInviteRevokedBody => 'एडमिन ने नया लिंक बनाया है। उनसे मौजूदा लिंक माँगें।';
 
   @override
   String get joinInviteWrongServerHeadline => 'यह न्योता किसी और सर्वर का है';
@@ -7072,8 +6632,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomInviteErrorNotFound => 'उस न्योते के कोड से कुछ नहीं मिलता।';
 
   @override
-  String get roomInviteErrorRevoked =>
-      'उस न्योते की जगह नया आ गया। मौजूदा लिंक माँगें।';
+  String get roomInviteErrorRevoked => 'उस न्योते की जगह नया आ गया। मौजूदा लिंक माँगें।';
 
   @override
   String get roomInviteErrorExpired => 'उस न्योते की मियाद खत्म हो गई।';
@@ -7085,8 +6644,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomInviteErrorAlreadyMember => 'वे पहले से इस ग्रुप में हैं।';
 
   @override
-  String get roomInviteErrorAlreadyInvited =>
-      'उन्हें पहले ही न्योता भेजा जा चुका है।';
+  String get roomInviteErrorAlreadyInvited => 'उन्हें पहले ही न्योता भेजा जा चुका है।';
 
   @override
   String get roomInviteErrorSelf => 'आप पहले से इस ग्रुप में हैं।';
@@ -7095,41 +6653,29 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomInviteErrorInvitationGone => 'वह न्योता अब नहीं है।';
 
   @override
-  String get roomInviteErrorRequestPending =>
-      'आप पहले ही जुड़ने को कह चुके हैं। एडमिन जवाब देगा।';
+  String get roomInviteErrorRequestPending => 'आप पहले ही जुड़ने को कह चुके हैं। एडमिन जवाब देगा।';
 
   @override
-  String get roomInviteErrorRequestGone =>
-      'उस गुज़ारिश का जवाब कोई पहले ही दे चुका है।';
+  String get roomInviteErrorRequestGone => 'उस गुज़ारिश का जवाब कोई पहले ही दे चुका है।';
 
   @override
-  String get roomInviteErrorRoomPrivate =>
-      'इस ग्रुप में सिर्फ़ न्योते से जुड़ा जा सकता है।';
+  String get roomInviteErrorRoomPrivate => 'इस ग्रुप में सिर्फ़ न्योते से जुड़ा जा सकता है।';
 
   @override
   String get roomInviteErrorInvalidLimits => 'ये सीमाएँ मान्य नहीं हैं।';
 
   @override
-  String approvalsScreenHeadlineRoomInviteOutgoing(
-    Object child,
-    Object other,
-    Object room,
-  ) {
+  String approvalsScreenHeadlineRoomInviteOutgoing(Object child, Object other, Object room) {
     return '$child $other को $room में बुलाना चाहता है';
   }
 
   @override
-  String approvalsScreenHeadlineRoomInviteIncoming(
-    Object child,
-    Object other,
-    Object room,
-  ) {
+  String approvalsScreenHeadlineRoomInviteIncoming(Object child, Object other, Object room) {
     return '$other ने $child को $room में बुलाया है';
   }
 
   @override
-  String get approvalsScreenConsequenceRoomInviteOutgoing =>
-      'न्योता चला जाएगा, और फ़ैसला फिर भी सामने वाले का होगा।';
+  String get approvalsScreenConsequenceRoomInviteOutgoing => 'न्योता चला जाएगा, और फ़ैसला फिर भी सामने वाले का होगा।';
 
   @override
   String approvalsScreenConsequenceRoomInviteIncoming(Object child) {
@@ -7137,8 +6683,7 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get roomAdminErrorCannotRemoveSelf =>
-      'आप खुद को नहीं हटा सकते। इसके बजाय ग्रुप छोड़ दें।';
+  String get roomAdminErrorCannotRemoveSelf => 'आप खुद को नहीं हटा सकते। इसके बजाय ग्रुप छोड़ दें।';
 
   @override
   String get roomAdminActionMessage => 'संदेश भेजें';

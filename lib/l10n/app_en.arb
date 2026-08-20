@@ -7684,10 +7684,6 @@
   "@deviceLoginScanScreenDeniedConfirmation": {
     "description": "Confirmation message on the phone's device-login scan screen after DENY succeeds — deliberately not the same 'on your phone' wording the desktop side shows, since that phrase would read oddly on the phone that just did the denying."
   },
-  "roomAdminSectionLabel": "GROUP",
-  "@roomAdminSectionLabel": {
-    "description": "All-caps section label above the group-management rows (invite link, add friends, join requests) in room info."
-  },
   "roomAdminRoleOwner": "OWNER",
   "@roomAdminRoleOwner": {
     "description": "Badge on the one member who owns the group. Same word as the existing owner badge, reused in the member-action sheet."
@@ -7732,25 +7728,13 @@
   "@roomAdminAddFriendsRow": {
     "description": "Room-info row that opens the friend picker for inviting people to the group."
   },
-  "roomAdminAddFriendsRowSub": "They get an invite to accept or decline",
-  "@roomAdminAddFriendsRowSub": {
-    "description": "Sub-line under 'Add friends' — an invite is a request, never a silent addition."
-  },
   "roomAdminInviteLinkRow": "Invite link",
   "@roomAdminInviteLinkRow": {
     "description": "Admin-only room-info row that opens the invite-link sheet."
   },
-  "roomAdminInviteLinkRowSub": "Share a link or a code to let people in",
-  "@roomAdminInviteLinkRowSub": {
-    "description": "Sub-line under 'Invite link'."
-  },
   "roomAdminJoinRequestsRow": "Join requests",
   "@roomAdminJoinRequestsRow": {
     "description": "Admin-only room-info row that opens the queue of people asking to join."
-  },
-  "roomAdminJoinRequestsRowSub": "{count} waiting for an answer",
-  "@roomAdminJoinRequestsRowSub": {
-    "description": "Sub-line under 'Join requests'. {count} is the number of pending requests."
   },
   "roomAdminTransferConfirmHeadline": "Hand the group to {name}?",
   "@roomAdminTransferConfirmHeadline": {
