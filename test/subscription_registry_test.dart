@@ -18,6 +18,11 @@ class FakeTransport {
 
   int _next = 0;
 
+  /// The delivery callbacks of every bind, so a test can push a result — or a
+  /// failure — through the same path the transport would.
+  final List<void Function(dynamic)> dataSinks = [];
+  final List<void Function(Object)?> errorSinks = [];
+
   Future<Object> bind(
     String name,
     Map<String, dynamic> args,
@@ -25,6 +30,8 @@ class FakeTransport {
     void Function(Object)? onError,
   ) async {
     binds.add(name);
+    dataSinks.add(onData);
+    errorSinks.add(onError);
     final g = gate;
     if (g != null) {
       gate = null;
@@ -43,6 +50,14 @@ class FakeTransport {
 
 SubscriptionRegistry _registryFor(FakeTransport t) =>
     SubscriptionRegistry(bind: t.bind, cancel: t.cancel);
+
+/// Zero backoff, so the heal tests below cost no wall-clock.
+SubscriptionRegistry _healingRegistryFor(FakeTransport t) =>
+    SubscriptionRegistry(
+      bind: t.bind,
+      cancel: t.cancel,
+      healDelay: Duration.zero,
+    );
 
 void main() {
   group('SubscriptionRegistry', () {
@@ -227,6 +242,98 @@ void main() {
       await r.rebindAll(1);
 
       expect(t.binds, ['friends']);
+    });
+  });
+
+  group('healing a subscription whose query errored', () {
+    test('re-binds, and cancels the handle that went bad', () async {
+      final t = FakeTransport();
+      final r = _healingRegistryFor(t);
+      await r.add('groupCalls:pendingInviteForUser', const {}, onData: (_) {});
+      t.binds.clear();
+
+      t.errorSinks.last!('Function execution timed out (maximum duration: 1s)');
+      await pumpEventQueue();
+
+      expect(t.binds, ['groupCalls:pendingInviteForUser']);
+      // Cancelled, unlike a post-rebuild rebind: this handle's peer is alive,
+      // and leaving it bound would double-deliver into the same callbacks.
+      expect(t.cancels, ['h0']);
+    });
+
+    test('the caller still hears the error', () async {
+      final t = FakeTransport();
+      final r = _healingRegistryFor(t);
+      final seen = <Object>[];
+      await r.add('rooms', const {}, onData: (_) {}, onError: seen.add);
+
+      t.errorSinks.last!('boom');
+      await pumpEventQueue();
+
+      expect(seen, ['boom']);
+    });
+
+    test('gives up after three attempts rather than hammering', () async {
+      final t = FakeTransport();
+      final r = _healingRegistryFor(t);
+      await r.add('rooms', const {}, onData: (_) {});
+      t.binds.clear();
+
+      // A deterministic failure: every re-bind errors again the moment it lands.
+      for (var i = 0; i < 6; i++) {
+        t.errorSinks.last!('always throws');
+        await pumpEventQueue();
+      }
+
+      expect(t.binds.length, 3);
+    });
+
+    test('a good delivery restores the budget', () async {
+      final t = FakeTransport();
+      final r = _healingRegistryFor(t);
+      await r.add('rooms', const {}, onData: (_) {});
+      t.binds.clear();
+
+      for (var i = 0; i < 3; i++) {
+        t.errorSinks.last!('down');
+        await pumpEventQueue();
+      }
+      expect(t.binds.length, 3, reason: 'budget spent');
+
+      // Recovered — and an outage an hour ago must not count against the next.
+      t.dataSinks.last(const {'ok': true});
+      t.errorSinks.last!('down again');
+      await pumpEventQueue();
+
+      expect(t.binds.length, 4);
+    });
+
+    test('a burst of errors schedules ONE re-bind', () async {
+      final t = FakeTransport();
+      final r = _healingRegistryFor(t);
+      await r.add('rooms', const {}, onData: (_) {});
+      t.binds.clear();
+
+      final sink = t.errorSinks.last!;
+      for (var i = 0; i < 5; i++) {
+        sink('same cached failure redelivered');
+      }
+      await pumpEventQueue();
+
+      expect(t.binds.length, 1);
+    });
+
+    test('cancelling before the heal fires stops it', () async {
+      final t = FakeTransport();
+      final r = _healingRegistryFor(t);
+      final sub = await r.add('rooms', const {}, onData: (_) {});
+      t.binds.clear();
+
+      t.errorSinks.last!('boom');
+      sub.cancel();
+      await pumpEventQueue();
+
+      expect(t.binds, isEmpty);
     });
   });
 }

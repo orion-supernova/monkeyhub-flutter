@@ -406,15 +406,43 @@ export const roster = query({
 // Freshest ring-worthy invite for this user (active call, invited status,
 // within the ring window). Drives the in-app incoming group-call UI on app
 // open / while foregrounded.
+/**
+ * How many invite rows this query will look at, newest first.
+ *
+ * Hardening, not a bug fix — worth being clear about, because the timeout that
+ * sent me here turned out to be something else (see the class doc on
+ * SubscriptionRegistry). This used to `.collect()` every matching row, and that
+ * read is the only genuinely unbounded thing in this query: `invited` becomes
+ * something else only when the user ACTS on it — join, decline, leave — so an
+ * invite that is simply ignored stays `invited` until gcTerminalGroupCalls
+ * deletes its call a day later. That GC is what keeps the table small today,
+ * which means an unbounded read here is one broken GC away from mattering, on a
+ * query whose budget is one second.
+ *
+ * 16 newest is plenty: the loop below wants the most recent invite still inside
+ * INVITE_RING_WINDOW_MS, and nobody is invited to sixteen group calls within one
+ * ring window. Anything older is discarded by the loop anyway, so reading it was
+ * always pure cost.
+ */
+const INVITE_SCAN_LIMIT = 16;
+
 export const pendingInviteForUser = query({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
+    // Newest first, and only a handful. Both halves matter: `take` without
+    // `order("desc")` would return the OLDEST rows, which are exactly the
+    // expired ones the loop throws away — a bounded query that never finds
+    // anything.
+    //
+    // Both index fields are equality-matched, so within the range the residual
+    // order is by creation, which is the order `invitedAt` is written in.
     const invites = await ctx.db
       .query("groupCallParticipants")
       .withIndex("by_user_status", (q) =>
         q.eq("userId", userId).eq("status", "invited"),
       )
-      .collect();
+      .order("desc")
+      .take(INVITE_SCAN_LIMIT);
     const now = Date.now();
     // Typed, so `best.call.startedBy` is an `Id<"users">` and the `db.get`
     // below resolves to a user rather than the union of every table — which is

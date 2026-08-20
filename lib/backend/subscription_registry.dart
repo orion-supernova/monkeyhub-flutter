@@ -44,13 +44,44 @@ typedef SubCanceller = void Function(Object handle);
 ///    the old transport or the new one.
 ///  * **A cancel that lands mid-rebind wins.** The fresh handle is cancelled and
 ///    the entry dropped, rather than leaving a live subscription nobody holds.
+///
+/// ───────── the third way a subscription dies ─────────
+///
+/// [rebindAll] covers a rebuilt transport and [rebindFailed] covers a bind that
+/// threw. Both are about the BIND. A third case slipped between them for a long
+/// time: the bind succeeds, and then the query itself fails on the server —
+///
+///     GroupCallService invite error: ConvexError([Request ID: 4a3a41061ea800b9]
+///     Server Error / Function execution timed out (maximum duration: 1s))
+///
+/// ...which on a small self-hosted box a cold module load can do all by itself.
+/// The give-away in that report was that all THIRTY-SIX logged copies carried
+/// the same request id. That is not thirty-six failures; it is one failed
+/// result, cached against the query's read set and re-delivered on every later
+/// transition. Nothing re-executes it, so the subscription is finished: the
+/// handle is live, the registry considers the entry healthy, and the callback
+/// never fires with data again. For the group-call ring that means the device
+/// stops ringing for the rest of the session, which is exactly the
+/// silent-behind-a-healthy-UI shape the class doc opens by describing.
+///
+/// So a delivered error re-binds the entry, [_maxHeals] times, backing off.
+/// Central rather than per-call-site for the same reason as everything else
+/// here: fifteen subscriptions get it without anyone remembering to ask.
 class SubscriptionRegistry {
-  SubscriptionRegistry({required SubBinder bind, required SubCanceller cancel})
-      : _bind = bind,
-        _cancel = cancel;
+  SubscriptionRegistry({
+    required SubBinder bind,
+    required SubCanceller cancel,
+    Duration healDelay = const Duration(seconds: 1),
+  })  : _bind = bind,
+        _cancel = cancel,
+        _healDelay = healDelay;
 
   final SubBinder _bind;
   final SubCanceller _cancel;
+
+  /// Base backoff before re-binding a subscription whose QUERY errored. Each
+  /// further attempt doubles it. Injectable so tests do not sleep.
+  final Duration _healDelay;
 
   final Set<RegisteredSub> _live = {};
 
@@ -139,6 +170,7 @@ class SubscriptionRegistry {
   void abandonAll() {
     for (final e in _live) {
       e._cancelled = true;
+      e._stopHealing();
       e._handle = null;
     }
     _live.clear();
@@ -166,6 +198,24 @@ class RegisteredSub {
   /// The current transport handle, or null if the last bind failed.
   Object? _handle;
 
+  /// Error deliveries since the last good one. Any successful delivery resets
+  /// it, so a subscription that recovers gets its full budget back rather than
+  /// carrying a grudge from an outage an hour ago.
+  int _errorStreak = 0;
+
+  /// The pending heal, if one is scheduled. Also the re-entry guard: a burst of
+  /// error deliveries schedules ONE rebind, not one per delivery.
+  Timer? _healTimer;
+
+  /// How many delivered errors will be healed before the entry gives up.
+  ///
+  /// Bounded, because the error may be DETERMINISTIC — a function that throws
+  /// for these args will throw again however many times it is re-run. Three
+  /// attempts costs three extra executions and stops; unbounded retry would
+  /// hammer the backend forever over a bad argument, which is a worse failure
+  /// than the silent one it is trying to fix.
+  static const _maxHeals = 3;
+
   /// Which registry generation [_handle] belongs to. -1 until the first bind
   /// completes, so a generation bump during that first bind still re-binds.
   int _gen = -1;
@@ -176,7 +226,12 @@ class RegisteredSub {
     if (_cancelled) return;
     Object handle;
     try {
-      handle = await _registry._bind(_name, _args, _onData, _onError);
+      handle = await _registry._bind(
+        _name,
+        _args,
+        _onDelivered,
+        _onDeliveredError,
+      );
     } catch (e) {
       // Leave [_gen] behind so the next rebind retries this entry. Reported
       // through the caller's own error path rather than thrown: one failed
@@ -194,11 +249,54 @@ class RegisteredSub {
     _gen = generation;
   }
 
+  /// A good delivery. Clears the error budget, then hands over untouched.
+  void _onDelivered(dynamic data) {
+    _errorStreak = 0;
+    _onData(data);
+  }
+
+  /// An error delivery. The caller still hears about it exactly as before —
+  /// healing is added ALONGSIDE their handler, never in place of it, because
+  /// several call sites use the error to drive their own UI.
+  void _onDeliveredError(Object error) {
+    _onError?.call(error);
+    _scheduleHeal();
+  }
+
+  void _scheduleHeal() {
+    if (_cancelled || _healTimer != null || _errorStreak >= _maxHeals) return;
+    _errorStreak++;
+    _healTimer = Timer(_registry._healDelay * (1 << (_errorStreak - 1)), () {
+      _healTimer = null;
+      if (_cancelled) return;
+      // Cancel first: unlike a rebind after a transport rebuild, this handle's
+      // peer is very much alive, and binding a second one would leave two
+      // subscriptions feeding the same callbacks forever. This is the one place
+      // in this class the "a rebind never cancels" rule does not apply, and the
+      // reason it does not is that the rule is about handles whose transport is
+      // already gone.
+      final old = _handle;
+      _handle = null;
+      if (old != null) _registry._cancel(old);
+      // Failure here leaves [_handle] null, which is precisely what
+      // [rebindFailed] looks for — the two healers hand off cleanly.
+      unawaited(_bindOnce(_registry._generation));
+    });
+  }
+
+  /// Stop any pending heal. Called from both teardown paths, so a timer can
+  /// never fire into a disposed registry.
+  void _stopHealing() {
+    _healTimer?.cancel();
+    _healTimer = null;
+  }
+
   /// Deregister and cancel. Idempotent, and safe to call on a subscription
   /// whose transport was rebuilt out from under it.
   void cancel() {
     if (_cancelled) return;
     _cancelled = true;
+    _stopHealing();
     _registry._forget(this);
     final h = _handle;
     _handle = null;
