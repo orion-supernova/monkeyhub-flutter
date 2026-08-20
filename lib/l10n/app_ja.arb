@@ -2019,5 +2019,10 @@
   "roomInfoScreenEditSave": "保存",
   "roomInfoScreenEditCancel": "キャンセル",
   "roomInviteRotatedToast": "新しいリンクを作成しました。以前のリンクはもう使えません。",
-  "roomInviteRevokedToast": "招待リンクを無効にしました。"
+  "roomInviteRevokedToast": "招待リンクを無効にしました。",
+  "newChatMenuTitle": "新しいチャット",
+  "newChatMenuCreateTitle": "ルームを作成",
+  "newChatMenuCreateSub": "グループを作って人を招待します",
+  "newChatMenuJoinTitle": "コードで参加",
+  "newChatMenuJoinSub": "共有されたグループを開きます"
 }

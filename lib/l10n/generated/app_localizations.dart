@@ -12270,6 +12270,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Invite link revoked.'**
   String get roomInviteRevokedToast;
+
+  /// Title of the sheet behind the chat list's + button.
+  ///
+  /// In en, this message translates to:
+  /// **'New chat'**
+  String get newChatMenuTitle;
+
+  /// Row in the + menu that opens the create-room sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a room'**
+  String get newChatMenuCreateTitle;
+
+  /// Sub-line under 'Create a room'.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a group and invite people'**
+  String get newChatMenuCreateSub;
+
+  /// Row in the + menu that opens the invite-code screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Join with a code'**
+  String get newChatMenuJoinTitle;
+
+  /// Sub-line under 'Join with a code'.
+  ///
+  /// In en, this message translates to:
+  /// **'Open a group someone shared with you'**
+  String get newChatMenuJoinSub;
 }
 
 class _AppLocalizationsDelegate

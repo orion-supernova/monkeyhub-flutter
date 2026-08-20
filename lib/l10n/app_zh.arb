@@ -2019,5 +2019,10 @@
   "roomInfoScreenEditSave": "保存",
   "roomInfoScreenEditCancel": "取消",
   "roomInviteRotatedToast": "已生成新链接，旧链接已失效。",
-  "roomInviteRevokedToast": "邀请链接已作废。"
+  "roomInviteRevokedToast": "邀请链接已作废。",
+  "newChatMenuTitle": "新聊天",
+  "newChatMenuCreateTitle": "创建房间",
+  "newChatMenuCreateSub": "创建群组并邀请他人",
+  "newChatMenuJoinTitle": "用口令码加入",
+  "newChatMenuJoinSub": "打开别人分享给你的群组"
 }

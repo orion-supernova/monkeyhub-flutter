@@ -2019,5 +2019,10 @@
   "roomInfoScreenEditSave": "Enregistrer",
   "roomInfoScreenEditCancel": "Annuler",
   "roomInviteRotatedToast": "Nouveau lien créé. L'ancien ne fonctionne plus.",
-  "roomInviteRevokedToast": "Lien d'invitation révoqué."
+  "roomInviteRevokedToast": "Lien d'invitation révoqué.",
+  "newChatMenuTitle": "Nouvelle discussion",
+  "newChatMenuCreateTitle": "Créer un salon",
+  "newChatMenuCreateSub": "Lance un groupe et invite du monde",
+  "newChatMenuJoinTitle": "Rejoindre avec un code",
+  "newChatMenuJoinSub": "Ouvre un groupe que quelqu'un t'a partagé"
 }

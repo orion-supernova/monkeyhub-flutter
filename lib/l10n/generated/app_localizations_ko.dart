@@ -6881,4 +6881,19 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get roomInviteRevokedToast => '초대 링크를 폐기했어요.';
+
+  @override
+  String get newChatMenuTitle => '새 대화';
+
+  @override
+  String get newChatMenuCreateTitle => '방 만들기';
+
+  @override
+  String get newChatMenuCreateSub => '그룹을 만들고 사람을 초대해요';
+
+  @override
+  String get newChatMenuJoinTitle => '코드로 참여';
+
+  @override
+  String get newChatMenuJoinSub => '누군가 공유한 그룹을 열어요';
 }

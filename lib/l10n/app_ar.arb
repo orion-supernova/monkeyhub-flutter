@@ -2019,5 +2019,10 @@
   "roomInfoScreenEditSave": "حفظ",
   "roomInfoScreenEditCancel": "إلغاء",
   "roomInviteRotatedToast": "تم إنشاء رابط جديد. الرابط السابق لم يعد يعمل.",
-  "roomInviteRevokedToast": "تم إبطال رابط الدعوة."
+  "roomInviteRevokedToast": "تم إبطال رابط الدعوة.",
+  "newChatMenuTitle": "محادثة جديدة",
+  "newChatMenuCreateTitle": "إنشاء غرفة",
+  "newChatMenuCreateSub": "ابدأ مجموعة وادعُ الناس",
+  "newChatMenuJoinTitle": "الانضمام برمز",
+  "newChatMenuJoinSub": "افتح مجموعة شاركها أحدهم معك"
 }

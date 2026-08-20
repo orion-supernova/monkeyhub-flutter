@@ -7166,4 +7166,19 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get roomInviteRevokedToast => 'Inbjudningslänken spärrad.';
+
+  @override
+  String get newChatMenuTitle => 'Ny chatt';
+
+  @override
+  String get newChatMenuCreateTitle => 'Skapa ett rum';
+
+  @override
+  String get newChatMenuCreateSub => 'Starta en grupp och bjud in folk';
+
+  @override
+  String get newChatMenuJoinTitle => 'Gå med via kod';
+
+  @override
+  String get newChatMenuJoinSub => 'Öppna en grupp som någon delat med dig';
 }

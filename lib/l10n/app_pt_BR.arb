@@ -2019,5 +2019,10 @@
   "roomInfoScreenEditSave": "Salvar",
   "roomInfoScreenEditCancel": "Cancelar",
   "roomInviteRotatedToast": "Novo link criado. O anterior não funciona mais.",
-  "roomInviteRevokedToast": "Link de convite revogado."
+  "roomInviteRevokedToast": "Link de convite revogado.",
+  "newChatMenuTitle": "Nova conversa",
+  "newChatMenuCreateTitle": "Criar uma sala",
+  "newChatMenuCreateSub": "Comece um grupo e convide pessoas",
+  "newChatMenuJoinTitle": "Entrar com um código",
+  "newChatMenuJoinSub": "Abra um grupo que alguém compartilhou com você"
 }

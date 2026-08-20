@@ -2019,5 +2019,10 @@
   "roomInfoScreenEditSave": "Spara",
   "roomInfoScreenEditCancel": "Avbryt",
   "roomInviteRotatedToast": "Ny länk skapad. Den gamla fungerar inte längre.",
-  "roomInviteRevokedToast": "Inbjudningslänken spärrad."
+  "roomInviteRevokedToast": "Inbjudningslänken spärrad.",
+  "newChatMenuTitle": "Ny chatt",
+  "newChatMenuCreateTitle": "Skapa ett rum",
+  "newChatMenuCreateSub": "Starta en grupp och bjud in folk",
+  "newChatMenuJoinTitle": "Gå med via kod",
+  "newChatMenuJoinSub": "Öppna en grupp som någon delat med dig"
 }

@@ -30,7 +30,9 @@ import '../widgets/user_avatar.dart';
 import 'navigation/destinations.dart';
 import 'navigation/open_room.dart';
 import 'navigation/tab_reselect.dart';
+import '../widgets/new_chat_menu.dart';
 import 'create_room_sheet.dart';
+import 'join_by_invite_screen.dart';
 import 'profile_screen.dart';
 
 /// The page margin every element on this screen lines up with.
@@ -238,12 +240,56 @@ class _HomeScreenState extends State<HomeScreen>
     SettingsStore.instance.setRoomFilter(RoomFilter.empty);
   }
 
-  void _openCreate() {
-    HapticFeedback.lightImpact();
+  /// The `+`. Offers both ways a new chat starts, rather than assuming one.
+  ///
+  /// It opened the create-room sheet directly, which left "join with a code"
+  /// living only in Discover — a tab away, under a row most people never
+  /// scroll to. Somebody handed a code does not go looking under "discover";
+  /// they go to the button new chats come from.
+  Future<void> _openNewChat() async {
+    final canCreate = widget.family.canCreateRooms;
+    // Matches the rest of the child model rather than inventing a new rule:
+    // Discover — the app's other way into a room you are not in — is hidden
+    // from children outright, so this door is too. Redeeming a code still
+    // needs a guardian's yes server-side either way (`roomInvites.redeem`).
+    final canJoin = !widget.family.isChild;
+    if (!canCreate && !canJoin) return;
+
+    // One option is not a menu. Skip straight to it.
+    if (canCreate && !canJoin) {
+      _showCreateRoom();
+      return;
+    }
+    if (canJoin && !canCreate) {
+      _showJoinByCode();
+      return;
+    }
+
+    final choice = await showNewChatMenu(
+      context,
+      canCreateRoom: canCreate,
+      canJoinByCode: canJoin,
+    );
+    if (!mounted || choice == null) return;
+    switch (choice) {
+      case NewChatChoice.createRoom:
+        _showCreateRoom();
+      case NewChatChoice.joinWithCode:
+        _showJoinByCode();
+    }
+  }
+
+  void _showCreateRoom() {
     showAdaptiveSheet(
       context,
       builder: (_) => CreateRoomSheet(repo: widget.repo, api: widget.api),
     );
+  }
+
+  void _showJoinByCode() {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => JoinByInviteScreen(repo: widget.repo, api: widget.api),
+    ));
   }
 
   @override
@@ -313,8 +359,9 @@ class _HomeScreenState extends State<HomeScreen>
                   // No longer conditional on which tab you're looking at — the
                   // create affordance used to appear and vanish as you moved
                   // between Rooms and Friends, which made it feel unreliable.
-                  onCreateTap: widget.family.canCreateRooms
-                      ? _openCreate
+                  onCreateTap: (widget.family.canCreateRooms ||
+                          !widget.family.isChild)
+                      ? _openNewChat
                       : null,
                   filterButton: chipsStyle
                       ? null

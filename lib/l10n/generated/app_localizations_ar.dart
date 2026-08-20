@@ -7211,4 +7211,19 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get roomInviteRevokedToast => 'تم إبطال رابط الدعوة.';
+
+  @override
+  String get newChatMenuTitle => 'محادثة جديدة';
+
+  @override
+  String get newChatMenuCreateTitle => 'إنشاء غرفة';
+
+  @override
+  String get newChatMenuCreateSub => 'ابدأ مجموعة وادعُ الناس';
+
+  @override
+  String get newChatMenuJoinTitle => 'الانضمام برمز';
+
+  @override
+  String get newChatMenuJoinSub => 'افتح مجموعة شاركها أحدهم معك';
 }

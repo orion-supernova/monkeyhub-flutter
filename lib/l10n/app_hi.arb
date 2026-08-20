@@ -2019,5 +2019,10 @@
   "roomInfoScreenEditSave": "सहेजें",
   "roomInfoScreenEditCancel": "रद्द करें",
   "roomInviteRotatedToast": "नया लिंक बन गया। पुराना अब काम नहीं करता।",
-  "roomInviteRevokedToast": "न्योते का लिंक रद्द कर दिया गया।"
+  "roomInviteRevokedToast": "न्योते का लिंक रद्द कर दिया गया।",
+  "newChatMenuTitle": "नई चैट",
+  "newChatMenuCreateTitle": "रूम बनाएँ",
+  "newChatMenuCreateSub": "ग्रुप शुरू करें और लोगों को बुलाएँ",
+  "newChatMenuJoinTitle": "कोड से जुड़ें",
+  "newChatMenuJoinSub": "किसी ने जो ग्रुप साझा किया है उसे खोलें"
 }

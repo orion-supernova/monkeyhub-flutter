@@ -7117,4 +7117,19 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get roomInviteRevokedToast => 'Davet bağlantısı iptal edildi.';
+
+  @override
+  String get newChatMenuTitle => 'Yeni sohbet';
+
+  @override
+  String get newChatMenuCreateTitle => 'Oda oluştur';
+
+  @override
+  String get newChatMenuCreateSub => 'Bir grup başlat ve insanları davet et';
+
+  @override
+  String get newChatMenuJoinTitle => 'Kodla katıl';
+
+  @override
+  String get newChatMenuJoinSub => 'Birinin seninle paylaştığı grubu aç';
 }

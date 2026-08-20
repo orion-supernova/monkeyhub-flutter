@@ -6861,4 +6861,19 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get roomInviteRevokedToast => '招待リンクを無効にしました。';
+
+  @override
+  String get newChatMenuTitle => '新しいチャット';
+
+  @override
+  String get newChatMenuCreateTitle => 'ルームを作成';
+
+  @override
+  String get newChatMenuCreateSub => 'グループを作って人を招待します';
+
+  @override
+  String get newChatMenuJoinTitle => 'コードで参加';
+
+  @override
+  String get newChatMenuJoinSub => '共有されたグループを開きます';
 }

@@ -6778,4 +6778,19 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get roomInviteRevokedToast => '邀请链接已作废。';
+
+  @override
+  String get newChatMenuTitle => '新聊天';
+
+  @override
+  String get newChatMenuCreateTitle => '创建房间';
+
+  @override
+  String get newChatMenuCreateSub => '创建群组并邀请他人';
+
+  @override
+  String get newChatMenuJoinTitle => '用口令码加入';
+
+  @override
+  String get newChatMenuJoinSub => '打开别人分享给你的群组';
 }

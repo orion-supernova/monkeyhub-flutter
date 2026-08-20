@@ -2019,5 +2019,10 @@
   "roomInfoScreenEditSave": "Kaydet",
   "roomInfoScreenEditCancel": "Vazgeç",
   "roomInviteRotatedToast": "Yeni bağlantı oluşturuldu. Eskisi artık çalışmıyor.",
-  "roomInviteRevokedToast": "Davet bağlantısı iptal edildi."
+  "roomInviteRevokedToast": "Davet bağlantısı iptal edildi.",
+  "newChatMenuTitle": "Yeni sohbet",
+  "newChatMenuCreateTitle": "Oda oluştur",
+  "newChatMenuCreateSub": "Bir grup başlat ve insanları davet et",
+  "newChatMenuJoinTitle": "Kodla katıl",
+  "newChatMenuJoinSub": "Birinin seninle paylaştığı grubu aç"
 }

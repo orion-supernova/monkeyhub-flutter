@@ -7225,6 +7225,21 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get roomInviteRevokedToast => 'Link de convite revogado.';
+
+  @override
+  String get newChatMenuTitle => 'Nova conversa';
+
+  @override
+  String get newChatMenuCreateTitle => 'Criar uma sala';
+
+  @override
+  String get newChatMenuCreateSub => 'Começa um grupo e convida pessoas';
+
+  @override
+  String get newChatMenuJoinTitle => 'Entrar com um código';
+
+  @override
+  String get newChatMenuJoinSub => 'Abre um grupo que alguém partilhou contigo';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -14444,4 +14459,20 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get roomInviteRevokedToast => 'Link de convite revogado.';
+
+  @override
+  String get newChatMenuTitle => 'Nova conversa';
+
+  @override
+  String get newChatMenuCreateTitle => 'Criar uma sala';
+
+  @override
+  String get newChatMenuCreateSub => 'Comece um grupo e convide pessoas';
+
+  @override
+  String get newChatMenuJoinTitle => 'Entrar com um código';
+
+  @override
+  String get newChatMenuJoinSub =>
+      'Abra um grupo que alguém compartilhou com você';
 }

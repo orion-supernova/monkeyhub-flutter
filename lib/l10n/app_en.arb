@@ -8231,5 +8231,25 @@
   "roomInviteRevokedToast": "Invite link revoked.",
   "@roomInviteRevokedToast": {
     "description": "Toast after revoking the invite link without issuing a replacement."
+  },
+  "newChatMenuTitle": "New chat",
+  "@newChatMenuTitle": {
+    "description": "Title of the sheet behind the chat list's + button."
+  },
+  "newChatMenuCreateTitle": "Create a room",
+  "@newChatMenuCreateTitle": {
+    "description": "Row in the + menu that opens the create-room sheet."
+  },
+  "newChatMenuCreateSub": "Start a group and invite people",
+  "@newChatMenuCreateSub": {
+    "description": "Sub-line under 'Create a room'."
+  },
+  "newChatMenuJoinTitle": "Join with a code",
+  "@newChatMenuJoinTitle": {
+    "description": "Row in the + menu that opens the invite-code screen."
+  },
+  "newChatMenuJoinSub": "Open a group someone shared with you",
+  "@newChatMenuJoinSub": {
+    "description": "Sub-line under 'Join with a code'."
   }
 }

@@ -7154,4 +7154,19 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get roomInviteRevokedToast => 'न्योते का लिंक रद्द कर दिया गया।';
+
+  @override
+  String get newChatMenuTitle => 'नई चैट';
+
+  @override
+  String get newChatMenuCreateTitle => 'रूम बनाएँ';
+
+  @override
+  String get newChatMenuCreateSub => 'ग्रुप शुरू करें और लोगों को बुलाएँ';
+
+  @override
+  String get newChatMenuJoinTitle => 'कोड से जुड़ें';
+
+  @override
+  String get newChatMenuJoinSub => 'किसी ने जो ग्रुप साझा किया है उसे खोलें';
 }

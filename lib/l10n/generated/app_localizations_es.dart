@@ -7217,4 +7217,19 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get roomInviteRevokedToast => 'Enlace de invitación revocado.';
+
+  @override
+  String get newChatMenuTitle => 'Nuevo chat';
+
+  @override
+  String get newChatMenuCreateTitle => 'Crear una sala';
+
+  @override
+  String get newChatMenuCreateSub => 'Empieza un grupo e invita a gente';
+
+  @override
+  String get newChatMenuJoinTitle => 'Unirse con un código';
+
+  @override
+  String get newChatMenuJoinSub => 'Abre un grupo que alguien te ha compartido';
 }

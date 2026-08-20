@@ -2019,5 +2019,10 @@
   "roomInfoScreenEditSave": "저장",
   "roomInfoScreenEditCancel": "취소",
   "roomInviteRotatedToast": "새 링크를 만들었어요. 이전 링크는 이제 안 통해요.",
-  "roomInviteRevokedToast": "초대 링크를 폐기했어요."
+  "roomInviteRevokedToast": "초대 링크를 폐기했어요.",
+  "newChatMenuTitle": "새 대화",
+  "newChatMenuCreateTitle": "방 만들기",
+  "newChatMenuCreateSub": "그룹을 만들고 사람을 초대해요",
+  "newChatMenuJoinTitle": "코드로 참여",
+  "newChatMenuJoinSub": "누군가 공유한 그룹을 열어요"
 }
