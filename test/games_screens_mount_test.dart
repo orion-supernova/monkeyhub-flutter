@@ -6,11 +6,9 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/backend/convex_client.dart';
 import 'package:monkeyhub/backend/feed_api.dart';
-import 'package:monkeyhub/backend/games_api.dart';
 import 'package:monkeyhub/data/feed_store.dart';
 import 'package:monkeyhub/data/games_store.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
-import 'package:monkeyhub/models/daily_game.dart';
 import 'package:monkeyhub/screens/games/games_hub_screen.dart';
 import 'package:monkeyhub/screens/games/queens_screen.dart';
 import 'package:monkeyhub/screens/games/sudoku_screen.dart';
@@ -18,6 +16,8 @@ import 'package:monkeyhub/screens/games/tango_screen.dart';
 import 'package:monkeyhub/screens/games/zip_screen.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+
+import 'fakes/fake_games_api.dart';
 
 /// Every games screen, mounted for real underneath something already listening
 /// to [GamesStore].
@@ -42,7 +42,7 @@ void main() {
   };
 
   setUp(() {
-    GamesStore.instance.api = _StubGamesApi(payload);
+    GamesStore.instance.api = FakeGamesApi(payload);
     GamesStore.instance.clear();
   });
 
@@ -144,78 +144,4 @@ class _StoreListenerState extends State<_StoreListener> {
 
   @override
   Widget build(BuildContext context) => widget.child;
-}
-
-/// Answers every call instantly with today's real boards and nobody's times.
-///
-/// Holds the wire payload rather than the decoded boards: the store reads the
-/// raw one so it has something to put on disk, and a stub that only knew how to
-/// answer the decoded call would pass while the cached path went untested.
-class _StubGamesApi implements GamesApi {
-  _StubGamesApi(this.payload);
-
-  final Map<String, dynamic> payload;
-
-  @override
-  Future<DailyBoards> daily({required String dayKey}) async =>
-      DailyBoards.fromJson(payload);
-
-  @override
-  Future<dynamic> dailyRaw({required String dayKey}) async => payload;
-
-  @override
-  Future<GameStandings> standings({
-    required String userId,
-    required String dayKey,
-  }) async => const GameStandings();
-
-  @override
-  Future<GameSession> start({
-    required String userId,
-    required String dayKey,
-    required DailyGame game,
-  }) async => GameSession(
-    startedAt: DateTime.fromMillisecondsSinceEpoch(0),
-    progress: const [],
-    elapsedMs: 0,
-    hintsUsed: 0,
-    mistakes: 0,
-    finished: false,
-  );
-
-  @override
-  Future<void> saveProgress({
-    required String userId,
-    required String dayKey,
-    required DailyGame game,
-    required List<int> progress,
-    required int elapsedMs,
-    int mistakes = 0,
-  }) async {}
-
-  @override
-  Future<GameHint> hint({
-    required String userId,
-    required String dayKey,
-    required DailyGame game,
-    required List<int> board,
-  }) async => const GameHint(index: -1, value: 0);
-
-  @override
-  Future<GameOutcome> submit({
-    required String userId,
-    required String dayKey,
-    required DailyGame game,
-    required List<int> solution,
-    required int elapsedMs,
-    int hintsUsed = 0,
-    int mistakes = 0,
-  }) async => const GameOutcome(solved: true, durationMs: 1000, replay: false);
-
-  @override
-  Future<List<int>> reveal({
-    required String userId,
-    required String dayKey,
-    required DailyGame game,
-  }) async => const [];
 }

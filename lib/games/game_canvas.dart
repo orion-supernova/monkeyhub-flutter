@@ -16,6 +16,7 @@ library;
 
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 
 import '../theme/app_theme.dart';
@@ -53,14 +54,23 @@ class GameGrid {
 
   /// The cell under [point], or null if it is outside the board.
   ///
-  /// Clamped rather than rounded: a finger a hair past the last column is
-  /// obviously aiming at the last column, and returning null there makes the
-  /// edge of every board feel dead.
-  int? hit(Offset point) {
+  /// [slack] widens the board by that many pixels on every side and folds
+  /// whatever lands in the margin back onto the edge cell beside it — a finger
+  /// that has slid a hair past the last column is obviously still aiming at
+  /// the last column, and going dead there makes the edge of a board feel
+  /// broken mid-stroke. Zero, the default, is the strict reading a tap wants:
+  /// the gesture surface is wider than the square it paints, and a tap in the
+  /// gutter beside the board is a tap on nothing.
+  int? hit(Offset point, {double slack = 0}) {
     if (cell <= 0) return null;
-    final col = ((point.dx - inset) / cell).floor();
-    final row = ((point.dy - inset) / cell).floor();
-    if (col < 0 || row < 0 || col >= n || row >= n) return null;
+    final x = point.dx - inset;
+    final y = point.dy - inset;
+    final span = cell * n;
+    if (x < -slack || y < -slack || x >= span + slack || y >= span + slack) {
+      return null;
+    }
+    final col = (x / cell).floor().clamp(0, n - 1);
+    final row = (y / cell).floor().clamp(0, n - 1);
     return row * n + col;
   }
 }
@@ -73,7 +83,7 @@ class GameGrid {
 /// to be sure a board never lights the square above the one being touched. It
 /// also makes Zip possible at all: a drag that crosses thirty cells is one
 /// gesture, and per-cell detectors would each claim their own slice of it.
-class GameBoardSurface extends StatelessWidget {
+class GameBoardSurface extends StatefulWidget {
   const GameBoardSurface({
     super.key,
     required this.painter,
@@ -82,6 +92,7 @@ class GameBoardSurface extends StatelessWidget {
     this.onDragStart,
     this.onDragTo,
     this.onDragEnd,
+    this.claimsDrag = true,
   });
 
   final CustomPainter painter;
@@ -100,39 +111,177 @@ class GameBoardSurface extends StatelessWidget {
 
   final VoidCallback? onDragEnd;
 
+  /// Whether a drag that starts on the board belongs to the board — see
+  /// [_BoardPanGestureRecognizer]. False hands drags straight back to the
+  /// scroll view, which is what a finished or paused board wants: there is
+  /// nothing left to draw, and a square of dead scroll in the middle of the
+  /// page is worse than nothing.
+  ///
+  /// Ignored when [onDragTo] is null; a tap-only board never enters the arena
+  /// against the page in the first place.
+  final bool claimsDrag;
+
+  @override
+  State<GameBoardSurface> createState() => _GameBoardSurfaceState();
+}
+
+class _GameBoardSurfaceState extends State<GameBoardSurface> {
+  /// Where the finger was at the last sample and which cell that sample landed
+  /// in — between them, the two things needed to fill in the cells a fast drag
+  /// skated over. Both null between gestures.
+  Offset? _previous;
+  int? _entered;
+
+  void _startDrag(GameGrid grid, Offset at) {
+    _previous = null;
+    _entered = null;
+    widget.onDragStart?.call();
+    _extend(grid, at);
+  }
+
+  void _endDrag() {
+    _previous = null;
+    _entered = null;
+    widget.onDragEnd?.call();
+  }
+
+  /// Walks the board from the previous sample to [at], handing every cell the
+  /// line crosses to [GameBoardSurface.onDragTo] in order.
+  ///
+  /// A pointer reports where it *is*, not where it has *been*, and at the speed
+  /// a finger actually moves the gap between two reports is several cells wide.
+  /// A board that only looked at the endpoints would ask Zip to jump three
+  /// squares at once — which the rules refuse, so the line stops following the
+  /// finger and the drag reads as broken. Sampling the segment at a third of a
+  /// cell is fine enough that no cell is stepped over.
+  void _extend(GameGrid grid, Offset at) {
+    final slack = grid.cell;
+    if (grid.hit(at, slack: slack) == null) {
+      // The finger has wandered clear of the board. Drop the trail rather than
+      // drawing the shortcut it would cut coming back in on the far side.
+      _previous = null;
+      return;
+    }
+    final from = _previous ?? at;
+    _previous = at;
+    final steps = ((at - from).distance / (grid.cell / 3)).ceil().clamp(1, 120);
+    for (var i = 1; i <= steps; i++) {
+      _enter(grid, Offset.lerp(from, at, i / steps)!, slack);
+    }
+  }
+
+  void _enter(GameGrid grid, Offset point, double slack) {
+    final cell = grid.hit(point, slack: slack);
+    if (cell == null || cell == _entered) return;
+    final previous = _entered;
+    _entered = cell;
+    if (previous != null) {
+      // Two samples either side of a lattice corner land on cells that touch
+      // only at that corner, and a line Zip will accept never moves
+      // diagonally. Offer both ways round the corner: they are diagonal to
+      // *each other*, so at most one of them can be taken, and the board is
+      // then adjacent to whichever was.
+      final dRow = cell ~/ grid.n - previous ~/ grid.n;
+      final dCol = cell % grid.n - previous % grid.n;
+      if (dRow.abs() == 1 && dCol.abs() == 1) {
+        widget.onDragTo!(previous + dCol);
+        widget.onDragTo!(previous + dRow * grid.n);
+      }
+    }
+    widget.onDragTo!(cell);
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (n == 0) return const SizedBox.shrink();
+    if (widget.n == 0) return const SizedBox.shrink();
     return LayoutBuilder(
       builder: (context, constraints) {
         final side = constraints.biggest.shortestSide;
-        final grid = GameGrid(side: side, n: n);
-        void drag(Offset at) {
-          final cell = grid.hit(at);
-          if (cell != null) onDragTo?.call(cell);
-        }
+        final grid = GameGrid(side: side, n: widget.n);
+        final draggable = widget.onDragTo != null && widget.claimsDrag;
 
-        return GestureDetector(
+        return RawGestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTapUp: onTapCell == null
-              ? null
-              : (details) {
-                  final cell = grid.hit(details.localPosition);
-                  if (cell != null) onTapCell!(cell);
-                },
-          onPanStart: onDragTo == null
-              ? null
-              : (d) {
-                  onDragStart?.call();
-                  drag(d.localPosition);
-                },
-          onPanUpdate: onDragTo == null ? null : (d) => drag(d.localPosition),
-          onPanEnd: onDragEnd == null ? null : (_) => onDragEnd!(),
-          child: CustomPaint(painter: painter, size: Size.square(side)),
+          gestures: <Type, GestureRecognizerFactory>{
+            if (widget.onTapCell != null)
+              TapGestureRecognizer:
+                  GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
+                    () => TapGestureRecognizer(debugOwner: this),
+                    (recognizer) => recognizer.onTapUp = (details) {
+                      final cell = grid.hit(details.localPosition);
+                      if (cell != null) widget.onTapCell!(cell);
+                    },
+                  ),
+            if (draggable)
+              _BoardPanGestureRecognizer:
+                  GestureRecognizerFactoryWithHandlers<
+                    _BoardPanGestureRecognizer
+                  >(
+                    () => _BoardPanGestureRecognizer(debugOwner: this),
+                    (recognizer) {
+                      recognizer
+                        // The first cell is the one under the finger when it
+                        // landed, not the one it had drifted to by the pixel
+                        // the arena was settled in.
+                        ..dragStartBehavior = DragStartBehavior.down
+                        ..onStart = (d) {
+                          _startDrag(grid, d.localPosition);
+                        }
+                        ..onUpdate = (d) {
+                          _extend(grid, d.localPosition);
+                        }
+                        ..onEnd = (_) {
+                          _endDrag();
+                        }
+                        ..onCancel = _endDrag;
+                    },
+                  ),
+          },
+          child: CustomPaint(painter: widget.painter, size: Size.square(side)),
         );
       },
     );
   }
+}
+
+/// A pan that claims the gesture on the first pixel of movement.
+///
+/// The board sits inside the game screen's scroll view, and the stock
+/// [PanGestureRecognizer] only claims a drag once it has travelled [kPanSlop] —
+/// twice the [kTouchSlop] at which the enclosing [Scrollable] claims a vertical
+/// one. Left at those numbers the arithmetic is fatal for Zip: a stroke drawn
+/// *downward* never starts at all, because the page wins it at 18 pixels and
+/// scrolls instead, and a stroke drawn sideways only starts once the finger has
+/// crossed most of a cell. "The board is hard to draw on" is that subtraction,
+/// not the game.
+///
+/// So on the one board that is drawn rather than tapped, a drag that begins on
+/// the board belongs to the board. The page keeps every other inch of itself —
+/// header, tools, standings — to scroll by, and a board with nothing left to
+/// draw hands drags back entirely (see [GameBoardSurface.claimsDrag]).
+///
+/// Trackpads are the exception: a two-finger scroll over the board is somebody
+/// reading the page, never somebody drawing on it, so those keep the stock slop
+/// and lose the arena to the scroll view as before.
+class _BoardPanGestureRecognizer extends PanGestureRecognizer {
+  _BoardPanGestureRecognizer({super.debugOwner});
+
+  @override
+  bool hasSufficientGlobalDistanceToAccept(
+    PointerDeviceKind pointerDeviceKind,
+    double? deviceTouchSlop,
+  ) {
+    if (pointerDeviceKind == PointerDeviceKind.trackpad) {
+      return super.hasSufficientGlobalDistanceToAccept(
+        pointerDeviceKind,
+        deviceTouchSlop,
+      );
+    }
+    return true;
+  }
+
+  @override
+  String get debugDescription => 'board pan';
 }
 
 /// Colours for Queens' colour regions.

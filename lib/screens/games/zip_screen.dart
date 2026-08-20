@@ -197,6 +197,12 @@ class _ZipScreenState extends State<ZipScreen> with TickerProviderStateMixin {
           onDragStart: _dragStart,
           onDragTo: _dragTo,
           onDragEnd: _dragEnd,
+          // While there is a line to draw, a drag that starts on the board is
+          // the board's — the page it scrolls inside would otherwise win every
+          // downward stroke before the line had moved a square. Once the board
+          // is finished or paused there is nothing to draw, so it goes back to
+          // scrolling like the rest of the screen.
+          claimsDrag: _play.ready && !_play.finished && !_play.paused,
           // A tap is a one-square drag. Without it the very first square of a
           // board can only be claimed by a swipe, which is not how anyone
           // starts a puzzle.
