@@ -168,6 +168,22 @@ InviteLink? parseInviteLink(String raw) {
     return null;
   }
 
+  // Scheme-less, but with a path: this is what the PLATFORM hands us.
+  //
+  // `WidgetsBindingObserver.didPushRouteInformation` reports a location, not
+  // the original URL — `monkeyhub://join/ABC` arrives as `/ABC` and
+  // `https://…/j/ABC` as `/j/ABC`. Falling through to [_bareCode] turned the
+  // second into the literal code `JABC`, because stripping the separators from
+  // `/j/ABC` leaves the marker glued to the front.
+  final segments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
+  if (segments.length >= 2) {
+    final marker = segments[0].toLowerCase();
+    if (marker == 'join' || marker == kInvitePathSegment) {
+      return InviteLink(code: _normalizeCode(segments[1]), serverUrl: server);
+    }
+    return null;
+  }
+
   return _bareCode(trimmed);
 }
 

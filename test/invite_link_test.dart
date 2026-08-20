@@ -99,6 +99,34 @@ void main() {
     });
   });
 
+  group('parseInviteLink — what the PLATFORM delivers', () {
+    // `didPushRouteInformation` reports a LOCATION, not the original URL. The
+    // scheme and host are already gone by the time Flutter hands it over, so
+    // these two shapes are what actually arrive on a real device — and both
+    // crashed or mis-parsed before they were handled.
+    test('the https form arrives as a bare /j/<code> path', () {
+      expect(parseInviteLink('/j/MUZU4KUP7V')?.code, 'MUZU4KUP7V');
+    });
+
+    test('the custom scheme arrives with its host already stripped', () {
+      // `monkeyhub://join/CODE` reaches Flutter as `/CODE`.
+      expect(parseInviteLink('/MUZU4KUP7V')?.code, 'MUZU4KUP7V');
+    });
+
+    test('a /join/<code> path works too', () {
+      expect(parseInviteLink('/join/MUZU4KUP7V')?.code, 'MUZU4KUP7V');
+    });
+
+    test('does NOT glue the marker onto the code', () {
+      // The regression: stripping separators from `/j/ABC` yields `JABC`.
+      expect(parseInviteLink('/j/MUZU4KUP7V')?.code, isNot(contains('JM')));
+    });
+
+    test('refuses an unrelated path rather than inventing a code', () {
+      expect(parseInviteLink('/settings/theme'), isNull);
+    });
+  });
+
   group('kExampleInviteCode', () {
     // The rule: an example code must be impossible to mint. The server draws
     // from Crockford base32 (no I, L, O, U) and folds I/L to 1 and O to 0, so

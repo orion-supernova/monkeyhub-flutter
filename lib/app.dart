@@ -240,6 +240,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   /// has to survive the whole account-creation detour to be worth anything.
   InviteLink? _pendingInvite;
 
+  /// Last invite acted on, for the two-deliveries dedupe in [_openInvite].
+  String? _lastInviteCode;
+  DateTime? _lastInviteAt;
+
   // Last presence status successfully handed to the server, so a lifecycle
   // sequence that resolves to the same value twice doesn't write twice. Null
   // means "unknown" — on sign-out, or after a failed write — and always sends.
@@ -598,6 +602,22 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   /// there is nothing to select — the join screen is a full-screen gate on
   /// desktop too, and it hands off to the pane itself once the join lands.
   void _openInvite(InviteLink invite) {
+    // One tap, two deliveries: the binding observer above and the `app_links`
+    // stream both report a warm link. Without this the second one pops the
+    // join screen the first one pushed and pushes an identical replacement —
+    // visible as a flicker, and a wasted preview query.
+    //
+    // Time-boxed rather than remembering forever: pasting the same code again
+    // a minute later is a real thing to do and must still work.
+    final now = DateTime.now();
+    if (invite.code == _lastInviteCode &&
+        _lastInviteAt != null &&
+        now.difference(_lastInviteAt!) < const Duration(seconds: 3)) {
+      return;
+    }
+    _lastInviteCode = invite.code;
+    _lastInviteAt = now;
+
     if (_auth.session == null || rootNavigatorKey.currentState == null) {
       _pendingInvite = invite;
       return;
@@ -618,6 +638,36 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         ),
       ),
     );
+  }
+
+  /// Claim inbound URLs before `WidgetsApp` tries to route them.
+  ///
+  /// **This is a crash fix, not an optimisation.** `_WidgetsAppState` also
+  /// observes route information, and with a Navigator-1.0 app (`home:`, no
+  /// router) its response is `pushNamed(location)` — which for a tapped invite
+  /// means `pushNamed('/j/Q294FR4R07')`, a route no generator produces:
+  ///
+  ///   Could not find a generator for route RouteSettings("/j/…")
+  ///
+  /// `WidgetsBinding` walks its observers in registration order and STOPS at
+  /// the first that returns true. This state registers itself in `initState`,
+  /// which runs before `MaterialApp` is ever built, so returning true here
+  /// means `WidgetsApp` never sees the URL.
+  ///
+  /// Returning FALSE for anything that is not an invite is deliberate: this is
+  /// not a router, and swallowing unknown routes would hide a real
+  /// misconfiguration behind silence.
+  ///
+  /// `app_links` still exists and is still the only thing that catches a COLD
+  /// start, where the URL is waiting in `getInitialLink()` before any observer
+  /// is listening. Warm links now arrive through both, which is why
+  /// [_openInvite] ignores a repeat of the same code.
+  @override
+  Future<bool> didPushRouteInformation(RouteInformation routeInformation) async {
+    final invite = parseInviteLink(routeInformation.uri.toString());
+    if (invite == null) return false;
+    _openInvite(invite);
+    return true;
   }
 
   void _consumePendingInvite() {
