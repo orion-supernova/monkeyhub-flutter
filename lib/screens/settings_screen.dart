@@ -101,7 +101,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   @override
   void initState() {
     super.initState();
-    ScrollMemory.restore('settings', _scroll);
+    ScrollMemory.attach('settings', _scroll);
     SettingsStore.instance.addListener(_onSettings);
     widget.family.addListener(_onSettings);
     widget.auth.addListener(_onAuth);
@@ -115,7 +115,6 @@ class _SettingsScreenState extends State<SettingsScreen>
 
   @override
   void dispose() {
-    ScrollMemory.save('settings', _scroll);
     SettingsStore.instance.removeListener(_onSettings);
     widget.family.removeListener(_onSettings);
     widget.auth.removeListener(_onAuth);

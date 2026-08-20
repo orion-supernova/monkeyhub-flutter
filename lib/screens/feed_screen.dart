@@ -87,7 +87,7 @@ class _FeedScreenState extends State<FeedScreen>
   @override
   void initState() {
     super.initState();
-    ScrollMemory.restore('feed', _scroll);
+    ScrollMemory.attach('feed', _scroll);
     // Idempotent — arms the day-rollover timer if some earlier mount hasn't.
     FeedStore.instance.start();
     FeedStore.instance.addListener(_onChange);
@@ -104,7 +104,6 @@ class _FeedScreenState extends State<FeedScreen>
 
   @override
   void dispose() {
-    ScrollMemory.save('feed', _scroll);
     FeedStore.instance.removeListener(_onChange);
     GamesStore.instance.removeListener(_onChange);
     widget.repo.removeListener(_onChange);

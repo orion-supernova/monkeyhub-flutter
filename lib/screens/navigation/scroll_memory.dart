@@ -52,13 +52,30 @@ class ScrollMemory {
   static ScrollController controller() =>
       ScrollController(keepScrollOffset: false);
 
-  /// Call from `dispose`, while the scroller still has clients.
-  static void save(String key, ScrollController c) {
-    if (!c.hasClients) return;
-    _offsets[key] = c.position.pixels;
+  /// Wire a section's scroller up: restores the last offset, and keeps
+  /// recording the current one from here on.
+  ///
+  /// Call from `initState`.
+  ///
+  /// **Recording continuously, not saving in `dispose`.** The first version
+  /// saved on dispose and lost the position every single time, because by then
+  /// the controller has no clients: `SectionSwitcher` removes the outgoing
+  /// section from the tree to cross-fade it, and `hasClients` goes false at
+  /// removal — well before `State.dispose` runs. The save read nothing, wrote
+  /// nothing, and reported nothing.
+  ///
+  /// A listener sidesteps the whole question of when teardown happens: the
+  /// offset on record is always the last one the user actually scrolled to.
+  /// The cost is a map write per scroll notification, which is a rounding
+  /// error next to the layout those notifications accompany.
+  static void attach(String key, ScrollController c) {
+    restore(key, c);
+    c.addListener(() {
+      if (c.hasClients) _offsets[key] = c.position.pixels;
+    });
   }
 
-  /// Call from `initState`. Applies after the first layout, so there is a real
+  /// Applies the remembered offset after the first layout, so there is a real
   /// extent to clamp against.
   static void restore(String key, ScrollController c) {
     final saved = _offsets[key];

@@ -106,7 +106,7 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void initState() {
     super.initState();
-    ScrollMemory.restore('chat', _scroll);
+    ScrollMemory.attach('chat', _scroll);
     widget.repo.addListener(_onChange);
     widget.family.addListener(_onChange);
     // The filter and its style both live in SettingsStore. HomeShell also
@@ -128,7 +128,6 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   void dispose() {
-    ScrollMemory.save('chat', _scroll);
     widget.repo.removeListener(_onChange);
     widget.family.removeListener(_onChange);
     SettingsStore.instance.removeListener(_onChange);

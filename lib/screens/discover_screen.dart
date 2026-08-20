@@ -168,7 +168,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   @override
   void initState() {
     super.initState();
-    ScrollMemory.restore('discover', _scroll);
+    ScrollMemory.attach('discover', _scroll);
     widget.repo.addListener(_onChange);
     widget.family.addListener(_onChange);
     _wasUnlocked = _roomsUnlocked;
@@ -183,7 +183,6 @@ class _DiscoverScreenState extends State<DiscoverScreen>
 
   @override
   void dispose() {
-    ScrollMemory.save('discover', _scroll);
     widget.repo.removeListener(_onChange);
     widget.family.removeListener(_onChange);
     _scroll.dispose();
