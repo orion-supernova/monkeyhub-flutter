@@ -294,7 +294,17 @@ class RoleChip extends StatelessWidget {
   }
 }
 
-class _ActionRow extends StatelessWidget {
+/// One tappable row, with a press state.
+///
+/// Stateful purely for that. A row that does not visibly react between
+/// finger-down and the sheet closing reads as dead — it is the single cheapest
+/// thing that separates a native-feeling list from a web page, and its absence
+/// is most of what "looks too Android" means on a surface like this.
+///
+/// A tinted fill rather than the [AnimatedScale] the action menu's icon pills
+/// use: those are discrete circular targets that can grow without disturbing
+/// anything, where a full-width row scaling up would nudge its neighbours.
+class _ActionRow extends StatefulWidget {
   const _ActionRow({
     required this.icon,
     required this.label,
@@ -310,8 +320,20 @@ class _ActionRow extends StatelessWidget {
   final bool danger;
 
   @override
+  State<_ActionRow> createState() => _ActionRowState();
+}
+
+class _ActionRowState extends State<_ActionRow> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final icon = widget.icon;
+    final label = widget.label;
+    final sub = widget.sub;
+    final danger = widget.danger;
+    final onTap = widget.onTap;
     final tint = danger ? theme.danger : theme.ink;
     return FocusableTap(
       onTap: onTap,
@@ -320,8 +342,21 @@ class _ActionRow extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapCancel: () => setState(() => _pressed = false),
+        onTapUp: (_) => setState(() => _pressed = false),
+        child: AnimatedContainer(
+          duration: theme.motionFast,
+          decoration: BoxDecoration(
+            color: _pressed
+                ? tint.withValues(alpha: danger ? 0.14 : 0.10)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(theme.radiusMd),
+          ),
+          // Negative horizontal margin so the highlight bleeds slightly past
+          // the text column and reads as a row, not a chip around the label.
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          margin: const EdgeInsets.symmetric(horizontal: -8),
           child: Row(
             children: [
               Icon(icon, size: 21, color: tint),
@@ -335,7 +370,7 @@ class _ActionRow extends StatelessWidget {
                     if (sub != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
-                        child: Text(sub!, style: theme.monoTiny),
+                        child: Text(sub, style: theme.monoTiny),
                       ),
                   ],
                 ),
