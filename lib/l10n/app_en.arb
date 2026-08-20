@@ -8024,9 +8024,9 @@
   "@joinInviteCodeLabel": {
     "description": "Label on the code field."
   },
-  "joinInviteCodeHint": "K7M2-XQ94-RB",
+  "joinInviteCodeHint": "Paste the link, or type the code",
   "@joinInviteCodeHint": {
-    "description": "Placeholder in the code field, showing the grouped shape of a real code."
+    "description": "Placeholder in the invite-code field. Deliberately NOT an example code: a fake code that looks real eventually IS somebody's real code. Says what to do instead."
   },
   "joinInviteCodeInvalid": "That doesn't look like an invite code.",
   "@joinInviteCodeInvalid": {

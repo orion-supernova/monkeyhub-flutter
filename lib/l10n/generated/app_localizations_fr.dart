@@ -7070,7 +7070,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get joinInviteCodeLabel => 'Code d\'invitation';
 
   @override
-  String get joinInviteCodeHint => 'K7M2-XQ94-RB';
+  String get joinInviteCodeHint => 'Colle le lien ou tape le code';
 
   @override
   String get joinInviteCodeInvalid =>

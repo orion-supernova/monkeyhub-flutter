@@ -6980,7 +6980,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get joinInviteCodeLabel => 'Inbjudningskod';
 
   @override
-  String get joinInviteCodeHint => 'K7M2-XQ94-RB';
+  String get joinInviteCodeHint => 'Klistra in länken eller skriv koden';
 
   @override
   String get joinInviteCodeInvalid =>

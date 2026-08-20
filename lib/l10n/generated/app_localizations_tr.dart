@@ -6929,7 +6929,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get joinInviteCodeLabel => 'Davet kodu';
 
   @override
-  String get joinInviteCodeHint => 'K7M2-XQ94-RB';
+  String get joinInviteCodeHint => 'Bağlantıyı yapıştır ya da kodu yaz';
 
   @override
   String get joinInviteCodeInvalid => 'Bu bir davet koduna benzemiyor.';

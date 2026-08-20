@@ -6968,7 +6968,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get joinInviteCodeLabel => 'न्योते का कोड';
 
   @override
-  String get joinInviteCodeHint => 'K7M2-XQ94-RB';
+  String get joinInviteCodeHint => 'लिंक चिपकाएँ या कोड लिखें';
 
   @override
   String get joinInviteCodeInvalid => 'यह न्योते का कोड नहीं लगता।';

@@ -99,6 +99,31 @@ void main() {
     });
   });
 
+  group('kExampleInviteCode', () {
+    // The rule: an example code must be impossible to mint. The server draws
+    // from Crockford base32 (no I, L, O, U) and folds I/L to 1 and O to 0, so
+    // U is the one letter that is neither produced nor produced-by-typo.
+    //
+    // Without this, a placeholder that merely LOOKS like a code eventually is
+    // somebody's code, and every screenshot of it is a working key to a
+    // private room.
+    test('contains a U, so it can never be a minted code', () {
+      expect(kExampleInviteCode.contains('U'), isTrue);
+    });
+
+    test('survives normalization still containing the U', () {
+      // Folding must not quietly turn the example into a valid code. I/L/O are
+      // rewritten; U is not, which is the whole reason it is the safe letter.
+      final normalized = parseInviteLink(kExampleInviteCode)!.code;
+      expect(normalized.contains('U'), isTrue);
+    });
+
+    test('is the right length to read as a real one', () {
+      // It still has to look like a code to be useful as an example.
+      expect(kExampleInviteCode.length, 10);
+    });
+  });
+
   group('inviteUrl', () {
     test('builds the canonical shared form', () {
       expect(inviteUrl('K7M2XQ94RB'), '$kInviteSiteUrl/j/K7M2XQ94RB');

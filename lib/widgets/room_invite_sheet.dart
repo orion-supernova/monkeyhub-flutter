@@ -12,6 +12,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/room_admin.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
+import 'app_toast.dart';
 import 'sheet_surface.dart';
 import 'destructive_sheet.dart';
 import 'sheet_buttons.dart';
@@ -208,14 +209,15 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
   void _reportError(Object e) {
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(humanizeAuthError(
-          e,
-          l10n,
-          fallback: l10n.roomAdminGenericError,
-          overrides: roomAdminErrorMessages(l10n),
-        )),
+    // Same overlay as the confirmations, for the same reason — a snackbar
+    // raised from inside this sheet is invisible behind it.
+    showAppToast(
+      context,
+      humanizeAuthError(
+        e,
+        l10n,
+        fallback: l10n.roomAdminGenericError,
+        overrides: roomAdminErrorMessages(l10n),
       ),
     );
   }
@@ -244,20 +246,13 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
     await SharePlus.instance.share(ShareParams(uri: Uri.parse(url)));
   }
 
-  /// One toast, replacing whatever is on screen.
+  /// One toast, over the sheet rather than behind it.
   ///
-  /// `removeCurrentSnackBar` first: tapping copy-link then copy-code queues two
-  /// and the second waits out the first, so the message on screen is describing
-  /// the tap before last.
-  void _toast(String message) {
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.removeCurrentSnackBar();
-    messenger.showSnackBar(SnackBar(
-      content: Text(message),
-      duration: const Duration(seconds: 2),
-      behavior: SnackBarBehavior.floating,
-    ));
-  }
+  /// This was `ScaffoldMessenger.showSnackBar`, which is why no confirmation
+  /// ever appeared: a snackbar belongs to a Scaffold and a bottom sheet is a
+  /// route stacked above one, so it was being shown correctly and rendered
+  /// underneath. See [showAppToast].
+  void _toast(String message) => showAppToast(context, message);
 
   @override
   Widget build(BuildContext context) {
@@ -298,7 +293,29 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
                 onCopyCode: () => _copy(link.code, l10n.roomInviteCodeCopied),
                 onShare: () => _share(_url),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
+              // Directly under the card, not at the far end of the sheet.
+              // These two ACT ON the link above them — a revoke button parked
+              // below the limits and the permission switches reads as a
+              // footer, and on a phone it sat below the fold entirely, which
+              // is why it was reported missing.
+              Row(children: [
+                Expanded(
+                  child: SheetSecondaryButton(
+                    label: l10n.roomInviteRevokeButton,
+                    color: theme.danger,
+                    onTap: _busy ? () {} : _revoke,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: SheetPrimaryButton(
+                    label: l10n.roomInviteRegenerateButton,
+                    onTap: _busy ? null : () => _rotate(hasExisting: true),
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 22),
             ],
             if (!_loading) ...[
               _SectionLabel(l10n.roomInviteLimitsLabel),
@@ -343,19 +360,6 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
                   policy: v ? RoomJoinPolicy.approval : RoomJoinPolicy.open,
                 ),
               ),
-              const SizedBox(height: 22),
-              if (link != null) ...[
-                SheetPrimaryButton(
-                  label: l10n.roomInviteRegenerateButton,
-                  onTap: _busy ? null : () => _rotate(hasExisting: true),
-                ),
-                const SizedBox(height: 10),
-                SheetSecondaryButton(
-                  label: l10n.roomInviteRevokeButton,
-                  color: theme.danger,
-                  onTap: _busy ? () {} : _revoke,
-                ),
-              ],
             ],
           ],
       ),

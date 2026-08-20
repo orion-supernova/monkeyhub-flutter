@@ -656,7 +656,13 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
-        children: [theme.backgroundLayer(context), SafeArea(child: body)],
+        children: [
+          theme.backgroundLayer(context),
+          // See home_screen: the default bottom inset leaves a dead strip of
+          // background under the scroller. `sectionBottomPadding` clears the
+          // pill and the indicator instead.
+          SafeArea(bottom: false, child: body),
+        ],
       ),
     );
   }

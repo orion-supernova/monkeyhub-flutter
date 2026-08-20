@@ -11951,10 +11951,10 @@ abstract class AppLocalizations {
   /// **'Invite code'**
   String get joinInviteCodeLabel;
 
-  /// Placeholder in the code field, showing the grouped shape of a real code.
+  /// Placeholder in the invite-code field. Deliberately NOT an example code: a fake code that looks real eventually IS somebody's real code. Says what to do instead.
   ///
   /// In en, this message translates to:
-  /// **'K7M2-XQ94-RB'**
+  /// **'Paste the link, or type the code'**
   String get joinInviteCodeHint;
 
   /// Shown when what was typed cannot be read as a code or a link at all.

@@ -7039,7 +7039,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get joinInviteCodeLabel => 'Código de convite';
 
   @override
-  String get joinInviteCodeHint => 'K7M2-XQ94-RB';
+  String get joinInviteCodeHint => 'Cola o link ou escreve o código';
 
   @override
   String get joinInviteCodeInvalid => 'Isso não parece um código de convite.';
@@ -14272,7 +14272,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get joinInviteCodeLabel => 'Código de convite';
 
   @override
-  String get joinInviteCodeHint => 'K7M2-XQ94-RB';
+  String get joinInviteCodeHint => 'Cole o link ou digite o código';
 
   @override
   String get joinInviteCodeInvalid => 'Isso não parece um código de convite.';

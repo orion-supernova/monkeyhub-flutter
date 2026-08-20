@@ -6945,7 +6945,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get joinInviteCodeLabel => 'Invite code';
 
   @override
-  String get joinInviteCodeHint => 'K7M2-XQ94-RB';
+  String get joinInviteCodeHint => 'Paste the link, or type the code';
 
   @override
   String get joinInviteCodeInvalid => 'That doesn\'t look like an invite code.';

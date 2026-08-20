@@ -7,7 +7,7 @@ import '../backend/server_store.dart';
 /// path patterns decide whether the tap reaches the app at all. A change here
 /// is a change to all four, and DEEP_LINKS.md is the checklist.
 ///
-///     https://monkeyhub.walhallaa.com/j/K7M2XQ94RB
+///     https://monkeyhub.walhallaa.com/j/MUZU4KUP7V
 ///
 /// A universal link (iOS/macOS) and an App Link (Android), which is the whole
 /// point: with the app installed the tap opens the room; without it, the same
@@ -36,6 +36,25 @@ const String kInvitePathSegment = 'j';
 /// The private-scheme fallback. Registered on every platform; only ever used
 /// when an App Link failed to verify.
 const String kInviteScheme = 'monkeyhub';
+
+/// A code that is GUARANTEED never to be a real one. Use this, and only this,
+/// anywhere an example code is shown or written down.
+///
+/// The server mints from Crockford base32 — no I, L, O or U — and
+/// `roomInvites.normalizeCode` folds I and L to `1` and O to `0` so a typo
+/// still resolves. **U is the one excluded letter that is neither minted nor
+/// folded**, so any string containing one cannot match a live invite, now or
+/// after a rotation.
+///
+/// That matters because an example is a lottery ticket otherwise: a
+/// placeholder that looks like a code eventually IS somebody's code, and a
+/// screenshot or a doc becomes a working key to a private room. 50 bits makes
+/// that unlikely, not impossible — and "unlikely" is the wrong standard for a
+/// string we choose ourselves and print forever.
+///
+/// Keep the U if you change it.
+const String kExampleInviteCode = 'MUZU4KUP7V';
+
 
 /// Query parameter naming the backend an invite belongs to.
 ///

@@ -7,7 +7,7 @@ There is exactly one deep link in this app today: the room invite. Everything
 below is about that URL.
 
 ```
-https://monkeyhub.walhallaa.com/j/K7M2XQ94RB
+https://monkeyhub.walhallaa.com/j/MUZU4KUP7V
                                 └┬┘ └───┬──┘
                                  │      └── the invite code, `roomInvites.ts`
                                  └───────── the only path the app claims
@@ -26,6 +26,20 @@ all four must agree; changing the path there is a change to all of them:
 `test/invite_link_test.dart` pins the Dart half, including everything the parser
 must *refuse* — the landing page, `/downloads/`, `/web/`. That narrowness is
 deliberate: an app that claimed `/` would swallow its own download page.
+
+> ### Example codes must contain a `U`
+>
+> Every code written down here or shown in the UI comes from
+> `kExampleInviteCode` in `lib/invites/invite_link.dart`, and it contains a `U`
+> on purpose. The server mints from Crockford base32 — no I, L, O or U — and
+> `normalizeCode` folds I/L to `1` and O to `0` so a typo still resolves. **U is
+> the one excluded letter that is neither minted nor produced by folding**, so a
+> string containing one can never match a live invite.
+>
+> A placeholder that merely *looks* like a code eventually **is** somebody's
+> code, and every screenshot of it becomes a working key to a private room. 50
+> bits makes that unlikely, not impossible — the wrong standard for a string we
+> choose ourselves and print forever. A test enforces it.
 
 ---
 
@@ -133,19 +147,19 @@ verification failed, and for hand-testing.
 
 ```sh
 # iOS simulator — the shared form (works only if the AASA is live)
-xcrun simctl openurl booted "https://monkeyhub.walhallaa.com/j/K7M2XQ94RB"
+xcrun simctl openurl booted "https://monkeyhub.walhallaa.com/j/MUZU4KUP7V"
 # …and the fallback, which needs no association at all
-xcrun simctl openurl booted "monkeyhub://join/K7M2XQ94RB"
+xcrun simctl openurl booted "monkeyhub://join/MUZU4KUP7V"
 
 # Android
 adb shell am start -a android.intent.action.VIEW \
-  -d "https://monkeyhub.walhallaa.com/j/K7M2XQ94RB"
+  -d "https://monkeyhub.walhallaa.com/j/MUZU4KUP7V"
 adb shell pm get-app-links com.walhallaa.chattest20241220
 
 # The served files, after ./deploy.sh --site
 curl -sI https://monkeyhub.walhallaa.com/.well-known/apple-app-site-association | grep -i content-type
 curl -s  https://monkeyhub.walhallaa.com/.well-known/assetlinks.json | jq .
-curl -s  https://monkeyhub.walhallaa.com/j/K7M2XQ94RB | head -20
+curl -s  https://monkeyhub.walhallaa.com/j/MUZU4KUP7V | head -20
 ```
 
 `content-type: application/json` on the first one is the check that matters.
@@ -157,9 +171,12 @@ curl -s  https://monkeyhub.walhallaa.com/j/K7M2XQ94RB | head -20
 `hosting/static/`, which is copied wholesale.
 
 `./deploy.sh --infra` installs `hosting/caddy-monkeyhub.conf`, which owns the
-`/j/*` rewrite and the `.well-known` Content-Type. **Run it once after this
-change**; without it `/j/<code>` 404s and the AASA is served with the wrong
-Content-Type.
+`/j/*` rewrite and the `.well-known` Content-Type. Without it `/j/<code>` 404s
+with a zero-byte body — a blank white page — and the AASA is served with **no**
+Content-Type at all, which iOS rejects silently so no link ever opens the app.
+Both symptoms look like application bugs and are neither.
+
+Already run once, on 2026-08-20. Run it again after any edit to that conf.
 
 > `.well-known` is a dotfile directory. `deploy.sh` copies the static tree with
 > `cp -R hosting/static/. …` — the trailing `/.` is what includes it. A `*`

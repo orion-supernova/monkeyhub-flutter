@@ -6707,7 +6707,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get joinInviteCodeLabel => '초대 코드';
 
   @override
-  String get joinInviteCodeHint => 'K7M2-XQ94-RB';
+  String get joinInviteCodeHint => '링크를 붙여넣거나 코드를 입력하세요';
 
   @override
   String get joinInviteCodeInvalid => '초대 코드 같지 않아요.';

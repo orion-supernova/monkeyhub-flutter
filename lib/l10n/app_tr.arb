@@ -1968,7 +1968,7 @@
   "joinInviteBack": "Geri",
   "joinInviteCodeBlurb": "Birinin seninle paylaştığı kodu gir. Davet bağlantısının tamamı da burada çalışır.",
   "joinInviteCodeLabel": "Davet kodu",
-  "joinInviteCodeHint": "K7M2-XQ94-RB",
+  "joinInviteCodeHint": "Bağlantıyı yapıştır ya da kodu yaz",
   "joinInviteCodeInvalid": "Bu bir davet koduna benzemiyor.",
   "joinInviteLookupButton": "DEVAM",
   "joinInviteLookupFailed": "Kod kontrol edilemedi. Bağlantını kontrol edip tekrar dene.",

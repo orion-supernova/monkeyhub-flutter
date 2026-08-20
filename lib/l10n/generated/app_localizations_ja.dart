@@ -6687,7 +6687,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get joinInviteCodeLabel => '招待コード';
 
   @override
-  String get joinInviteCodeHint => 'K7M2-XQ94-RB';
+  String get joinInviteCodeHint => 'リンクを貼るか、コードを入力';
 
   @override
   String get joinInviteCodeInvalid => '招待コードではないようです。';

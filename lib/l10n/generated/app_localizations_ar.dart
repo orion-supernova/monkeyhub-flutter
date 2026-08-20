@@ -7029,7 +7029,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get joinInviteCodeLabel => 'رمز الدعوة';
 
   @override
-  String get joinInviteCodeHint => 'K7M2-XQ94-RB';
+  String get joinInviteCodeHint => 'الصق الرابط أو اكتب الرمز';
 
   @override
   String get joinInviteCodeInvalid => 'لا يبدو هذا رمز دعوة.';

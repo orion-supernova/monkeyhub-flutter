@@ -1968,7 +1968,7 @@
   "joinInviteBack": "Voltar",
   "joinInviteCodeBlurb": "Escreve o código que partilharam contigo. Um link de convite completo também serve.",
   "joinInviteCodeLabel": "Código de convite",
-  "joinInviteCodeHint": "K7M2-XQ94-RB",
+  "joinInviteCodeHint": "Cola o link ou escreve o código",
   "joinInviteCodeInvalid": "Isso não parece um código de convite.",
   "joinInviteLookupButton": "CONTINUAR",
   "joinInviteLookupFailed": "Não foi possível verificar o código. Vê a tua ligação e tenta outra vez.",

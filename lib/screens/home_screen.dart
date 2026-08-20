@@ -332,6 +332,18 @@ class _HomeScreenState extends State<HomeScreen>
         children: [
           theme.backgroundLayer(context),
           SafeArea(
+            // `bottom: false` so the scroller reaches the screen edge.
+            //
+            // The default insets the WHOLE column by the home-indicator inset,
+            // which ends the list ~34pt short of the bottom and leaves a strip
+            // of bare background under it that nothing can scroll into — read
+            // on device as a solid bar. Edge-to-edge is already on
+            // (`SystemUiMode.edgeToEdge`, transparent nav bar), so content is
+            // meant to run under the indicator and be cleared by padding
+            // instead: `sectionBottomPadding` reserves for the floating pill
+            // AND the indicator, which is what `kFloatingNavClearance` is
+            // measured against.
+            bottom: false,
             child: Column(
               children: [
                 _Header(

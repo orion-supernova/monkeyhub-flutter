@@ -301,6 +301,10 @@ class _SettingsScreenState extends State<SettingsScreen>
       children: [
         theme.backgroundLayer(context),
         SafeArea(
+          // See home_screen: the bottom inset leaves a dead strip of background
+          // under the scroller. The list's own bottom padding clears the
+          // floating pill and the home indicator.
+          bottom: false,
           // On a tablet-width standalone window (before the two-pane shell
           // kicks in at WindowClass.expanded) this keeps rows from
           // stretching edge to edge; a no-op in the desktop shell's fixed

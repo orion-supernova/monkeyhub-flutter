@@ -1968,7 +1968,7 @@
   "joinInviteBack": "Tillbaka",
   "joinInviteCodeBlurb": "Skriv in koden någon delat med dig. En hel inbjudningslänk funkar också.",
   "joinInviteCodeLabel": "Inbjudningskod",
-  "joinInviteCodeHint": "K7M2-XQ94-RB",
+  "joinInviteCodeHint": "Klistra in länken eller skriv koden",
   "joinInviteCodeInvalid": "Det där ser inte ut som en inbjudningskod.",
   "joinInviteLookupButton": "FORTSÄTT",
   "joinInviteLookupFailed": "Kunde inte kolla koden. Kolla din uppkoppling och försök igen.",

@@ -7028,7 +7028,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get joinInviteCodeLabel => 'Código de invitación';
 
   @override
-  String get joinInviteCodeHint => 'K7M2-XQ94-RB';
+  String get joinInviteCodeHint => 'Pega el enlace o escribe el código';
 
   @override
   String get joinInviteCodeInvalid => 'Eso no parece un código de invitación.';

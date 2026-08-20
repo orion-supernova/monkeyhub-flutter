@@ -1968,7 +1968,7 @@
   "joinInviteBack": "رجوع",
   "joinInviteCodeBlurb": "أدخِل الرمز الذي شاركه أحدهم معك. ورابط الدعوة كاملًا يعمل هنا أيضًا.",
   "joinInviteCodeLabel": "رمز الدعوة",
-  "joinInviteCodeHint": "K7M2-XQ94-RB",
+  "joinInviteCodeHint": "الصق الرابط أو اكتب الرمز",
   "joinInviteCodeInvalid": "لا يبدو هذا رمز دعوة.",
   "joinInviteLookupButton": "متابعة",
   "joinInviteLookupFailed": "تعذّر التحقق من الرمز. تأكد من اتصالك وحاول مرة أخرى.",

@@ -6605,7 +6605,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get joinInviteCodeLabel => '邀请口令码';
 
   @override
-  String get joinInviteCodeHint => 'K7M2-XQ94-RB';
+  String get joinInviteCodeHint => '粘贴链接或输入口令码';
 
   @override
   String get joinInviteCodeInvalid => '这看起来不像邀请口令码。';

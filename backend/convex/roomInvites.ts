@@ -1,8 +1,8 @@
 /**
  * The room's join link, and the join requests it can produce.
  *
- * ONE token per room, rendered two ways. `https://<site>/j/K7M2XQ94RB` and
- * typing `K7M2-XQ94-RB` into the join box are the same act on the same secret
+ * ONE token per room, rendered two ways. `https://<site>/j/MUZU4KUP7V` and
+ * typing `MUZU-4KUP-7V` into the join box are the same act on the same secret
  * — there is no separate "invite code" concept to keep in sync, no second
  * thing to revoke, and no way for the two to disagree about who is allowed in.
  *
@@ -102,7 +102,7 @@ export function normalizeCode(raw: string): string {
     .replace(/O/g, "0");
 }
 
-/** The grouped form the UI shows and a person reads aloud: `K7M2-XQ94-RB`. */
+/** The grouped form the UI shows and a person reads aloud: `MUZU-4KUP-7V`. */
 export function formatCode(code: string): string {
   return (code.match(/.{1,4}/g) ?? [code]).join("-");
 }

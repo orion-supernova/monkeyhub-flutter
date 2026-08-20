@@ -60,12 +60,15 @@ class SheetSurface extends StatelessWidget {
         borderRadius:
             BorderRadius.vertical(top: Radius.circular(theme.radiusLg)),
       ),
-      padding: padding.copyWith(
-        // Home indicator, plus the keyboard when one is up. `isScrollControlled`
-        // sheets are not moved by the IME on their own, so a sheet with a field
-        // in it hides that field behind the keyboard without this.
-        bottom: padding.bottom + media.padding.bottom + media.viewInsets.bottom,
-      ),
+      // NO bottom inset on the panel itself — it runs to the screen edge.
+      //
+      // Adding the home-indicator inset here padded the SURFACE, which lifted
+      // the whole sheet off the bottom of the screen and left a band of
+      // scrim under it. A bottom sheet is supposed to be attached; the
+      // indicator is cleared by padding the CONTENT instead, below, so the
+      // panel touches the edge and the last row still sits above the
+      // indicator.
+      padding: padding.copyWith(bottom: 0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -89,6 +92,16 @@ class SheetSurface extends StatelessWidget {
               // content actually overflows.
               physics: const AlwaysScrollableScrollPhysics(
                 parent: BouncingScrollPhysics(),
+              ),
+              // The breathing room lives HERE, inside the scroller: the
+              // panel's own padding, the home indicator, and the keyboard when
+              // one is up. `isScrollControlled` sheets are not moved by the
+              // IME on their own, so without the last term a field scrolls
+              // under the keyboard with no way to reach it.
+              padding: EdgeInsets.only(
+                bottom: padding.bottom +
+                    media.padding.bottom +
+                    media.viewInsets.bottom,
               ),
               child: child,
             ),

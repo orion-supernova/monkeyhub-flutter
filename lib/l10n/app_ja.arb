@@ -1968,7 +1968,7 @@
   "joinInviteBack": "戻る",
   "joinInviteCodeBlurb": "共有されたコードを入力してください。招待リンクをそのまま貼っても使えます。",
   "joinInviteCodeLabel": "招待コード",
-  "joinInviteCodeHint": "K7M2-XQ94-RB",
+  "joinInviteCodeHint": "リンクを貼るか、コードを入力",
   "joinInviteCodeInvalid": "招待コードではないようです。",
   "joinInviteLookupButton": "次へ",
   "joinInviteLookupFailed": "コードを確認できませんでした。通信状況を確かめてもう一度お試しください。",

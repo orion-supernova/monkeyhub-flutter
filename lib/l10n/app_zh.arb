@@ -1968,7 +1968,7 @@
   "joinInviteBack": "返回",
   "joinInviteCodeBlurb": "输入别人分享给你的口令码。直接粘贴整条邀请链接也可以。",
   "joinInviteCodeLabel": "邀请口令码",
-  "joinInviteCodeHint": "K7M2-XQ94-RB",
+  "joinInviteCodeHint": "粘贴链接或输入口令码",
   "joinInviteCodeInvalid": "这看起来不像邀请口令码。",
   "joinInviteLookupButton": "继续",
   "joinInviteLookupFailed": "无法核对这个口令码。检查网络后再试一次。",

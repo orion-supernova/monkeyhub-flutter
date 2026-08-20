@@ -454,7 +454,9 @@ class _FeedScreenState extends State<FeedScreen>
         // as light moving over Risograph's halftone and Cyberpunk's scanlines,
         // not as a replacement for them.
         Positioned.fill(child: FeedDepthField(scroll: _scroll)),
-        SafeArea(child: body),
+        // See home_screen: bottom inset here leaves a dead strip under the
+        // scroller; `sectionBottomPadding` does the clearing.
+        SafeArea(bottom: false, child: body),
       ],
     );
   }
