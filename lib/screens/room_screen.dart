@@ -2406,7 +2406,12 @@ class _RoomScreenState extends State<RoomScreen>
         (indicator.showsPill && scheduled.isNotEmpty ? kScheduledPillHeight : 0.0);
     final listPadding = EdgeInsets.fromLTRB(
       20,
-      topSafe + topChromeH + 12,
+      // The +12 is breathing room under the HEADER, and only under the header.
+      // With a pinned banner present it became a gap between the strip and the
+      // first message, which reads as the two belonging to different surfaces —
+      // the strip is chrome for the transcript, not a separate panel floating
+      // above it. The banner's own 44pt already separates them.
+      topSafe + topChromeH + (pins.isEmpty ? 12.0 : 0.0),
       20,
       bottomChromeH + 16 + bottomSafe,
     );

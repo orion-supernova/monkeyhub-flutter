@@ -248,7 +248,12 @@ const kBarBottom = GlassKnob(
   hint: 'how high the bar floats off the bottom',
   min: 0,
   max: 40,
-  standard: 12,
+  // On top of the home-indicator inset, not instead of it — the bar's own
+  // `SafeArea(top: false)` already lifts it clear. 12 on top of that put it
+  // ~46pt off the bottom edge, which reads as high now that the sections
+  // behind it run all the way down (they used to stop at the safe area and
+  // hide how much space was under the bar).
+  standard: 6,
   decimals: 0,
 );
 

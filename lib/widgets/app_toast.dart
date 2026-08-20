@@ -92,7 +92,21 @@ class _ToastState extends State<_Toast> with SingleTickerProviderStateMixin {
       top: top + 10,
       left: 16,
       right: 16,
-      child: IgnorePointer(
+      // Material + DefaultTextStyle, or every glyph in here gets Flutter's
+      // yellow double underline.
+      //
+      // An OverlayEntry is parented to the Overlay, NOT to the MaterialApp's
+      // subtree, so there is no Material and no inherited text style above it.
+      // Flutter's response to unstyled text is that debug decoration, which
+      // ships to users as a bug that looks like a rendering fault.
+      //
+      // `transparency` rather than a real Material: this widget paints its own
+      // surface below, and a second one would double the shadow.
+      child: Material(
+        type: MaterialType.transparency,
+        child: DefaultTextStyle(
+          style: theme.body,
+          child: IgnorePointer(
         child: FadeTransition(
           opacity: _ctrl,
           child: SlideTransition(
@@ -138,6 +152,8 @@ class _ToastState extends State<_Toast> with SingleTickerProviderStateMixin {
                 ),
               ),
             ),
+          ),
+        ),
           ),
         ),
       ),
