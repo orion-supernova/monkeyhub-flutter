@@ -71,7 +71,8 @@ import 'app_localizations_zh.dart';
 /// be consistent with the languages listed in the AppLocalizations.supportedLocales
 /// property.
 abstract class AppLocalizations {
-  AppLocalizations(String locale) : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+  AppLocalizations(String locale)
+    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -79,7 +80,8 @@ abstract class AppLocalizations {
     return Localizations.of<AppLocalizations>(context, AppLocalizations)!;
   }
 
-  static const LocalizationsDelegate<AppLocalizations> delegate = _AppLocalizationsDelegate();
+  static const LocalizationsDelegate<AppLocalizations> delegate =
+      _AppLocalizationsDelegate();
 
   /// A list of this localizations delegate along with the default localizations
   /// delegates.
@@ -91,12 +93,13 @@ abstract class AppLocalizations {
   /// Additional delegates can be added by appending to this list in
   /// MaterialApp. This list does not have to be used at all if a custom list
   /// of delegates is preferred or required.
-  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates = <LocalizationsDelegate<dynamic>>[
-    delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-  ];
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
+      <LocalizationsDelegate<dynamic>>[
+        delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
@@ -111,7 +114,7 @@ abstract class AppLocalizations {
     Locale('pt', 'BR'),
     Locale('sv'),
     Locale('tr'),
-    Locale('zh')
+    Locale('zh'),
   ];
 
   /// Brand wordmark on the splash screen while the app boots. Proper noun — keep identical across locales, do not translate.
@@ -5452,7 +5455,11 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'{name1}, {name2} +{extra} are typing'**
-  String typingIndicatorManyPeopleTyping(Object extra, Object name1, Object name2);
+  String typingIndicatorManyPeopleTyping(
+    Object extra,
+    Object name1,
+    Object name2,
+  );
 
   /// Fallback shown in place of the caller's name on the incoming-call screen when the peer's display name is unknown.
   ///
@@ -6292,7 +6299,9 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'last message {hours}h ago'**
-  String incomingGroupCallScreenRemoveContactSheetLastMessageHoursAgo(Object hours);
+  String incomingGroupCallScreenRemoveContactSheetLastMessageHoursAgo(
+    Object hours,
+  );
 
   /// Recency caption in the remove-contact sheet when the last message was sent exactly one day ago.
   ///
@@ -6304,7 +6313,9 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'last message {days} days ago'**
-  String incomingGroupCallScreenRemoveContactSheetLastMessageDaysAgo(Object days);
+  String incomingGroupCallScreenRemoveContactSheetLastMessageDaysAgo(
+    Object days,
+  );
 
   /// Recency caption in the remove-contact sheet when the last shared message is 30+ days old.
   ///
@@ -6322,7 +6333,10 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'take {contactName} away from {childName}?'**
-  String incomingGroupCallScreenRemoveContactSheetHeadline(Object childName, Object contactName);
+  String incomingGroupCallScreenRemoveContactSheetHeadline(
+    Object childName,
+    Object contactName,
+  );
 
   /// Explanatory body text in the remove-contact sheet, shown when the pair has shared chats that will be deleted.
   ///
@@ -6334,13 +6348,18 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'they won’t be able to reach each other. {contactName} won’t be told.'**
-  String incomingGroupCallScreenRemoveContactSheetBodyWithoutChats(Object contactName);
+  String incomingGroupCallScreenRemoveContactSheetBodyWithoutChats(
+    Object contactName,
+  );
 
   /// Bold summary line inside the destructive-warning box in the remove-contact sheet. {chats} and {messages} are the already-localized chat-count / message-count phrases (from incomingGroupCallScreenRemoveContactSheetChatsCount / MessagesCount), not raw numbers. 'chats' sorts before 'messages' alphabetically so no parameter-order gotcha here — call order matches text order.
   ///
   /// In en, this message translates to:
   /// **'{chats} · {messages} will be deleted'**
-  String incomingGroupCallScreenRemoveContactSheetDeletionSummary(Object chats, Object messages);
+  String incomingGroupCallScreenRemoveContactSheetDeletionSummary(
+    Object chats,
+    Object messages,
+  );
 
   /// Fine-print detail line under the deletion summary in the remove-contact sheet's destructive-warning box.
   ///
@@ -6352,7 +6371,9 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'{count, plural, one{they also share {count} room} other{they also share {count} rooms}}'**
-  String incomingGroupCallScreenRemoveContactSheetSharedRoomsHeadline(num count);
+  String incomingGroupCallScreenRemoveContactSheetSharedRoomsHeadline(
+    num count,
+  );
 
   /// Note under the shared-rooms panel explaining that shared group rooms survive this action; 'ROOMS'/'ODALAR' refers to the app's Rooms list/tab label elsewhere in the UI.
   ///
@@ -6370,13 +6391,18 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'removes {contactName} and wipes {messages}.'**
-  String incomingGroupCallScreenRemoveContactSheetChoiceSubWithChats(Object contactName, Object messages);
+  String incomingGroupCallScreenRemoveContactSheetChoiceSubWithChats(
+    Object contactName,
+    Object messages,
+  );
 
   /// Subtitle under the destructive confirm button when there is no chat history to wipe; {contactName} is the contact being removed.
   ///
   /// In en, this message translates to:
   /// **'removes {contactName} from the allowed list.'**
-  String incomingGroupCallScreenRemoveContactSheetChoiceSubWithoutChats(Object contactName);
+  String incomingGroupCallScreenRemoveContactSheetChoiceSubWithoutChats(
+    Object contactName,
+  );
 
   /// Screen-reader semantic label for the cancel control at the bottom of the remove-contact sheet.
   ///
@@ -6748,7 +6774,10 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'v{currentVersion} → v{newVersion}'**
-  String reportSheetUpdateVersionArrow(Object currentVersion, Object newVersion);
+  String reportSheetUpdateVersionArrow(
+    Object currentVersion,
+    Object newVersion,
+  );
 
   /// All-caps primary button label in the update sheet.
   ///
@@ -12148,13 +12177,21 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'{child} wants to invite {other} to {room}'**
-  String approvalsScreenHeadlineRoomInviteOutgoing(Object child, Object other, Object room);
+  String approvalsScreenHeadlineRoomInviteOutgoing(
+    Object child,
+    Object other,
+    Object room,
+  );
 
   /// Guardian queue card: somebody wants to pull the guardian's child into a group chat. {other} and {child} are display names, {room} is the group's name.
   ///
   /// In en, this message translates to:
   /// **'{other} invited {child} to {room}'**
-  String approvalsScreenHeadlineRoomInviteIncoming(Object child, Object other, Object room);
+  String approvalsScreenHeadlineRoomInviteIncoming(
+    Object child,
+    Object other,
+    Object room,
+  );
 
   /// Explanatory line under an outgoing group-invite queue card: approving does not put anyone in the group.
   ///
@@ -12199,7 +12236,8 @@ abstract class AppLocalizations {
   String get roomAdminYouSuffix;
 }
 
-class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
+class _AppLocalizationsDelegate
+    extends LocalizationsDelegate<AppLocalizations> {
   const _AppLocalizationsDelegate();
 
   @override
@@ -12208,43 +12246,67 @@ class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> 
   }
 
   @override
-  bool isSupported(Locale locale) => <String>['ar', 'en', 'es', 'fr', 'hi', 'ja', 'ko', 'pt', 'sv', 'tr', 'zh'].contains(locale.languageCode);
+  bool isSupported(Locale locale) => <String>[
+    'ar',
+    'en',
+    'es',
+    'fr',
+    'hi',
+    'ja',
+    'ko',
+    'pt',
+    'sv',
+    'tr',
+    'zh',
+  ].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
-
   // Lookup logic when language+country codes are specified.
   switch (locale.languageCode) {
-    case 'pt': {
-  switch (locale.countryCode) {
-    case 'BR': return AppLocalizationsPtBr();
-   }
-  break;
-   }
+    case 'pt':
+      {
+        switch (locale.countryCode) {
+          case 'BR':
+            return AppLocalizationsPtBr();
+        }
+        break;
+      }
   }
 
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
-    case 'ar': return AppLocalizationsAr();
-    case 'en': return AppLocalizationsEn();
-    case 'es': return AppLocalizationsEs();
-    case 'fr': return AppLocalizationsFr();
-    case 'hi': return AppLocalizationsHi();
-    case 'ja': return AppLocalizationsJa();
-    case 'ko': return AppLocalizationsKo();
-    case 'pt': return AppLocalizationsPt();
-    case 'sv': return AppLocalizationsSv();
-    case 'tr': return AppLocalizationsTr();
-    case 'zh': return AppLocalizationsZh();
+    case 'ar':
+      return AppLocalizationsAr();
+    case 'en':
+      return AppLocalizationsEn();
+    case 'es':
+      return AppLocalizationsEs();
+    case 'fr':
+      return AppLocalizationsFr();
+    case 'hi':
+      return AppLocalizationsHi();
+    case 'ja':
+      return AppLocalizationsJa();
+    case 'ko':
+      return AppLocalizationsKo();
+    case 'pt':
+      return AppLocalizationsPt();
+    case 'sv':
+      return AppLocalizationsSv();
+    case 'tr':
+      return AppLocalizationsTr();
+    case 'zh':
+      return AppLocalizationsZh();
   }
 
   throw FlutterError(
     'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
     'an issue with the localizations generation tool. Please file an issue '
     'on GitHub with a reproducible sample app and the gen-l10n configuration '
-    'that was used.'
+    'that was used.',
   );
 }
