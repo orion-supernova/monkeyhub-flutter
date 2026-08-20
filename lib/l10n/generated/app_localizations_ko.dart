@@ -6875,4 +6875,10 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get roomInfoScreenEditCancel => '취소';
+
+  @override
+  String get roomInviteRotatedToast => '새 링크를 만들었어요. 이전 링크는 이제 안 통해요.';
+
+  @override
+  String get roomInviteRevokedToast => '초대 링크를 폐기했어요.';
 }

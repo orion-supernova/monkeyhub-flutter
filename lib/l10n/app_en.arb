@@ -8223,5 +8223,13 @@
   "roomInfoScreenEditCancel": "Cancel",
   "@roomInfoScreenEditCancel": {
     "description": "Accessibility label for the cross that discards an inline name or description edit."
+  },
+  "roomInviteRotatedToast": "New link created. The old one no longer works.",
+  "@roomInviteRotatedToast": {
+    "description": "Toast after regenerating the invite link, stating the consequence — the previous link is dead everywhere it was shared."
+  },
+  "roomInviteRevokedToast": "Invite link revoked.",
+  "@roomInviteRevokedToast": {
+    "description": "Toast after revoking the invite link without issuing a replacement."
   }
 }

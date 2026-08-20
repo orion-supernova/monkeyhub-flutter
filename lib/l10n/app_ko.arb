@@ -2017,5 +2017,7 @@
   "roomInfoScreenPasswordUnsetState": "비밀번호 없음",
   "roomInfoScreenPasswordCancel": "취소",
   "roomInfoScreenEditSave": "저장",
-  "roomInfoScreenEditCancel": "취소"
+  "roomInfoScreenEditCancel": "취소",
+  "roomInviteRotatedToast": "새 링크를 만들었어요. 이전 링크는 이제 안 통해요.",
+  "roomInviteRevokedToast": "초대 링크를 폐기했어요."
 }

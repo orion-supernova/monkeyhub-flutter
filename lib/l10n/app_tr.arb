@@ -2017,5 +2017,7 @@
   "roomInfoScreenPasswordUnsetState": "Şifre yok",
   "roomInfoScreenPasswordCancel": "Vazgeç",
   "roomInfoScreenEditSave": "Kaydet",
-  "roomInfoScreenEditCancel": "Vazgeç"
+  "roomInfoScreenEditCancel": "Vazgeç",
+  "roomInviteRotatedToast": "Yeni bağlantı oluşturuldu. Eskisi artık çalışmıyor.",
+  "roomInviteRevokedToast": "Davet bağlantısı iptal edildi."
 }

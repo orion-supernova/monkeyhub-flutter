@@ -37,6 +37,12 @@ Future<void> showRoomInviteSheet(
 }) {
   return showAdaptiveSheet<void>(
     context,
+    // Bounded by the top safe area. `ModalBottomSheetRoute` strips the top
+    // inset from everything inside it, so a `SafeArea` in the content is a
+    // silent no-op — this flag is the only hook that applies it, from the
+    // route, where the padding still exists. Without it a tall sheet runs
+    // under the notch.
+    useSafeArea: true,
     builder: (_) => _RoomInviteSheet(
       repo: repo,
       roomId: roomId,
@@ -131,11 +137,15 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
         expiresIn: _pendingExpiry,
         maxUses: _pendingMaxUses,
       );
+      await HapticFeedback.mediumImpact();
       if (!mounted) return;
       setState(() {
         _link = link;
         _busy = false;
       });
+      // Worth saying out loud: the old link just stopped working everywhere it
+      // had been shared, and nothing else on screen announces that.
+      _toast(AppLocalizations.of(context).roomInviteRotatedToast);
     } catch (e) {
       if (!mounted) return;
       setState(() => _busy = false);
@@ -155,11 +165,13 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
     setState(() => _busy = true);
     try {
       await widget.repo.revokeRoomInviteLink(widget.roomId);
+      await HapticFeedback.mediumImpact();
       if (!mounted) return;
       setState(() {
         _link = null;
         _busy = false;
       });
+      _toast(AppLocalizations.of(context).roomInviteRevokedToast);
     } catch (e) {
       if (!mounted) return;
       setState(() => _busy = false);
@@ -208,10 +220,43 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
     );
   }
 
+  /// Copy, buzz, say so.
+  ///
+  /// All three, because a copy is otherwise completely silent: the clipboard
+  /// changes somewhere the user cannot see and the button looks identical
+  /// afterwards. The buzz confirms the tap registered and the toast confirms
+  /// WHICH thing was copied — the link and the code sit two taps apart and are
+  /// easy to mix up.
   Future<void> _copy(String value, String toast) async {
     await Clipboard.setData(ClipboardData(text: value));
+    await HapticFeedback.selectionClick();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(toast)));
+    _toast(toast);
+  }
+
+  /// Hand the link to the system share sheet.
+  ///
+  /// No toast on the way out — the share sheet IS the feedback, and a toast
+  /// would land underneath it. Just the buzz, so the tap is acknowledged
+  /// before the OS takes a beat to open its sheet.
+  Future<void> _share(String url) async {
+    await HapticFeedback.selectionClick();
+    await SharePlus.instance.share(ShareParams(uri: Uri.parse(url)));
+  }
+
+  /// One toast, replacing whatever is on screen.
+  ///
+  /// `removeCurrentSnackBar` first: tapping copy-link then copy-code queues two
+  /// and the second waits out the first, so the message on screen is describing
+  /// the tap before last.
+  void _toast(String message) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.removeCurrentSnackBar();
+    messenger.showSnackBar(SnackBar(
+      content: Text(message),
+      duration: const Duration(seconds: 2),
+      behavior: SnackBarBehavior.floating,
+    ));
   }
 
   @override
@@ -251,7 +296,7 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
                 url: _url,
                 onCopyLink: () => _copy(_url, l10n.roomInviteLinkCopied),
                 onCopyCode: () => _copy(link.code, l10n.roomInviteCodeCopied),
-                onShare: () => SharePlus.instance.share(ShareParams(uri: Uri.parse(_url))),
+                onShare: () => _share(_url),
               ),
               const SizedBox(height: 16),
             ],

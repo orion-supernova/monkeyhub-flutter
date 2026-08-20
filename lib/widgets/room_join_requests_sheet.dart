@@ -32,6 +32,12 @@ Future<bool> showRoomJoinRequestsSheet(
 }) async {
   final changed = await showAdaptiveSheet<bool>(
     context,
+    // Bounded by the top safe area. `ModalBottomSheetRoute` strips the top
+    // inset from everything inside it, so a `SafeArea` in the content is a
+    // silent no-op — this flag is the only hook that applies it, from the
+    // route, where the padding still exists. Without it a tall sheet runs
+    // under the notch.
+    useSafeArea: true,
     builder: (_) => _JoinRequestsSheet(repo: repo, api: api, roomId: roomId),
   );
   return changed ?? false;
@@ -161,23 +167,17 @@ class _JoinRequestsSheetState extends State<_JoinRequestsSheet> {
                   ),
                 )
               else
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 380),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: _requests.length,
-                    itemBuilder: (_, i) {
-                      final r = _requests[i];
-                      return _RequestRow(
-                        request: r,
-                        api: widget.api,
-                        busy: _deciding.contains(r.requestId),
-                        onApprove: () => _decide(r, true),
-                        onReject: () => _decide(r, false),
-                      );
-                    },
+                // Plain rows — see the note in the friend picker about not
+                // nesting a scroller inside the sheet's own.
+                for (final r in _requests)
+                  _RequestRow(
+                    key: ValueKey(r.requestId),
+                    request: r,
+                    api: widget.api,
+                    busy: _deciding.contains(r.requestId),
+                    onApprove: () => _decide(r, true),
+                    onReject: () => _decide(r, false),
                   ),
-                ),
             ],
         ),
       ),
@@ -187,6 +187,7 @@ class _JoinRequestsSheetState extends State<_JoinRequestsSheet> {
 
 class _RequestRow extends StatelessWidget {
   const _RequestRow({
+    super.key,
     required this.request,
     required this.api,
     required this.busy,

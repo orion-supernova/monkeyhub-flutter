@@ -7159,4 +7159,11 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get roomInfoScreenEditCancel => 'Avbryt';
+
+  @override
+  String get roomInviteRotatedToast =>
+      'Ny länk skapad. Den gamla fungerar inte längre.';
+
+  @override
+  String get roomInviteRevokedToast => 'Inbjudningslänken spärrad.';
 }

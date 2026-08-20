@@ -2017,5 +2017,7 @@
   "roomInfoScreenPasswordUnsetState": "بدون كلمة مرور",
   "roomInfoScreenPasswordCancel": "إلغاء",
   "roomInfoScreenEditSave": "حفظ",
-  "roomInfoScreenEditCancel": "إلغاء"
+  "roomInfoScreenEditCancel": "إلغاء",
+  "roomInviteRotatedToast": "تم إنشاء رابط جديد. الرابط السابق لم يعد يعمل.",
+  "roomInviteRevokedToast": "تم إبطال رابط الدعوة."
 }

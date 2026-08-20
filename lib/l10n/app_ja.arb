@@ -2017,5 +2017,7 @@
   "roomInfoScreenPasswordUnsetState": "パスワードなし",
   "roomInfoScreenPasswordCancel": "キャンセル",
   "roomInfoScreenEditSave": "保存",
-  "roomInfoScreenEditCancel": "キャンセル"
+  "roomInfoScreenEditCancel": "キャンセル",
+  "roomInviteRotatedToast": "新しいリンクを作成しました。以前のリンクはもう使えません。",
+  "roomInviteRevokedToast": "招待リンクを無効にしました。"
 }

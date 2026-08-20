@@ -6772,4 +6772,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get roomInfoScreenEditCancel => '取消';
+
+  @override
+  String get roomInviteRotatedToast => '已生成新链接，旧链接已失效。';
+
+  @override
+  String get roomInviteRevokedToast => '邀请链接已作废。';
 }

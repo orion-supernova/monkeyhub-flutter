@@ -12258,6 +12258,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel'**
   String get roomInfoScreenEditCancel;
+
+  /// Toast after regenerating the invite link, stating the consequence — the previous link is dead everywhere it was shared.
+  ///
+  /// In en, this message translates to:
+  /// **'New link created. The old one no longer works.'**
+  String get roomInviteRotatedToast;
+
+  /// Toast after revoking the invite link without issuing a replacement.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite link revoked.'**
+  String get roomInviteRevokedToast;
 }
 
 class _AppLocalizationsDelegate

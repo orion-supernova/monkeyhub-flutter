@@ -2017,5 +2017,7 @@
   "roomInfoScreenPasswordUnsetState": "कोई पासवर्ड नहीं",
   "roomInfoScreenPasswordCancel": "रद्द करें",
   "roomInfoScreenEditSave": "सहेजें",
-  "roomInfoScreenEditCancel": "रद्द करें"
+  "roomInfoScreenEditCancel": "रद्द करें",
+  "roomInviteRotatedToast": "नया लिंक बन गया। पुराना अब काम नहीं करता।",
+  "roomInviteRevokedToast": "न्योते का लिंक रद्द कर दिया गया।"
 }

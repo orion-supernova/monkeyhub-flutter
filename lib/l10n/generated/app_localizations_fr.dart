@@ -7256,4 +7256,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get roomInfoScreenEditCancel => 'Annuler';
+
+  @override
+  String get roomInviteRotatedToast =>
+      'Nouveau lien créé. L\'ancien ne fonctionne plus.';
+
+  @override
+  String get roomInviteRevokedToast => 'Lien d\'invitation révoqué.';
 }

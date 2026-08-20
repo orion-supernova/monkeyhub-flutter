@@ -35,6 +35,12 @@ Future<bool> showRoomInviteFriendsSheet(
 }) async {
   final sent = await showAdaptiveSheet<bool>(
     context,
+    // Bounded by the top safe area. `ModalBottomSheetRoute` strips the top
+    // inset from everything inside it, so a `SafeArea` in the content is a
+    // silent no-op — this flag is the only hook that applies it, from the
+    // route, where the padding still exists. Without it a tall sheet runs
+    // under the notch.
+    useSafeArea: true,
     builder: (_) => _InviteFriendsSheet(repo: repo, api: api, roomId: roomId),
   );
   return sent ?? false;
@@ -205,23 +211,19 @@ class _InviteFriendsSheetState extends State<_InviteFriendsSheet> {
                 ),
               )
             else
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 360),
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: visible.length,
-                  itemBuilder: (_, i) {
-                    final u = visible[i];
-                    return _FriendRow(
-                      user: u,
-                      api: widget.api,
-                      sending: _sending.contains(u.id),
-                      sent: _sent.contains(u.id),
-                      onInvite: () => _invite(u),
-                    );
-                  },
+              // A plain Column, not a capped ListView. [SheetSurface] scrolls
+              // the whole sheet now, and a scroller inside a scroller means
+              // whichever one the finger happens to be over wins — the list
+              // moving while the sheet stays put, or the reverse.
+              for (final u in visible)
+                _FriendRow(
+                  key: ValueKey(u.id),
+                  user: u,
+                  api: widget.api,
+                  sending: _sending.contains(u.id),
+                  sent: _sent.contains(u.id),
+                  onInvite: () => _invite(u),
                 ),
-              ),
           ],
       ),
     );
@@ -230,6 +232,7 @@ class _InviteFriendsSheetState extends State<_InviteFriendsSheet> {
 
 class _FriendRow extends StatelessWidget {
   const _FriendRow({
+    super.key,
     required this.user,
     required this.api,
     required this.sending,

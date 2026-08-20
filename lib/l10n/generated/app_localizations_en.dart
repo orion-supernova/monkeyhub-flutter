@@ -7126,4 +7126,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get roomInfoScreenEditCancel => 'Cancel';
+
+  @override
+  String get roomInviteRotatedToast =>
+      'New link created. The old one no longer works.';
+
+  @override
+  String get roomInviteRevokedToast => 'Invite link revoked.';
 }

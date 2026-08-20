@@ -2017,5 +2017,7 @@
   "roomInfoScreenPasswordUnsetState": "Inget lösenord",
   "roomInfoScreenPasswordCancel": "Avbryt",
   "roomInfoScreenEditSave": "Spara",
-  "roomInfoScreenEditCancel": "Avbryt"
+  "roomInfoScreenEditCancel": "Avbryt",
+  "roomInviteRotatedToast": "Ny länk skapad. Den gamla fungerar inte längre.",
+  "roomInviteRevokedToast": "Inbjudningslänken spärrad."
 }

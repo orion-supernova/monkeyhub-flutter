@@ -7110,4 +7110,11 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get roomInfoScreenEditCancel => 'Vazgeç';
+
+  @override
+  String get roomInviteRotatedToast =>
+      'Yeni bağlantı oluşturuldu. Eskisi artık çalışmıyor.';
+
+  @override
+  String get roomInviteRevokedToast => 'Davet bağlantısı iptal edildi.';
 }

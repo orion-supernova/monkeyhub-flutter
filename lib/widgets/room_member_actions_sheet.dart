@@ -62,6 +62,12 @@ Future<RoomMemberAction?> showRoomMemberActions(
   HapticFeedback.selectionClick();
   return showAdaptiveSheet<RoomMemberAction>(
     context,
+    // Bounded by the top safe area. `ModalBottomSheetRoute` strips the top
+    // inset from everything inside it, so a `SafeArea` in the content is a
+    // silent no-op — this flag is the only hook that applies it, from the
+    // route, where the padding still exists. Without it a tall sheet runs
+    // under the notch.
+    useSafeArea: true,
     builder: (_) => _MemberActionsSheet(
       member: member,
       memberRole: memberRole,

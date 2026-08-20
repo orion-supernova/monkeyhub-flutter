@@ -2017,5 +2017,7 @@
   "roomInfoScreenPasswordUnsetState": "未设密码",
   "roomInfoScreenPasswordCancel": "取消",
   "roomInfoScreenEditSave": "保存",
-  "roomInfoScreenEditCancel": "取消"
+  "roomInfoScreenEditCancel": "取消",
+  "roomInviteRotatedToast": "已生成新链接，旧链接已失效。",
+  "roomInviteRevokedToast": "邀请链接已作废。"
 }

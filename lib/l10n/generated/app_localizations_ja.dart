@@ -6855,4 +6855,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get roomInfoScreenEditCancel => 'キャンセル';
+
+  @override
+  String get roomInviteRotatedToast => '新しいリンクを作成しました。以前のリンクはもう使えません。';
+
+  @override
+  String get roomInviteRevokedToast => '招待リンクを無効にしました。';
 }

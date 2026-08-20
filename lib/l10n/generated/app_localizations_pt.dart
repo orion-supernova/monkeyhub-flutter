@@ -7218,6 +7218,13 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get roomInfoScreenEditCancel => 'Cancelar';
+
+  @override
+  String get roomInviteRotatedToast =>
+      'Novo link criado. O anterior já não funciona.';
+
+  @override
+  String get roomInviteRevokedToast => 'Link de convite revogado.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -14430,4 +14437,11 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get roomInfoScreenEditCancel => 'Cancelar';
+
+  @override
+  String get roomInviteRotatedToast =>
+      'Novo link criado. O anterior não funciona mais.';
+
+  @override
+  String get roomInviteRevokedToast => 'Link de convite revogado.';
 }

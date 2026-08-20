@@ -873,9 +873,22 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     // and then snatch them away. Reading the room means the conservative answer
     // is the one on screen first, and an admin gets the fields back a moment
     // later rather than a member losing them.
-    if (r.isGroupChat && !_perms.canEditRoom) {
-      caps = caps.copyWith(canEditSettings: false, hasDescription: false);
-    }
+    // NOTE: the name and description rows are NOT clamped here any more.
+    //
+    // They used to be, and it made the top of this screen jump: permissions
+    // arrive a round trip after the first frame, so the screen painted without
+    // them, then grew two rows the moment `myPermissions` landed. Fast enough
+    // to read as a glitch rather than as loading.
+    //
+    // They no longer need clamping. Since [EditableInfoRow] renders a VALUE and
+    // only becomes a field when tapped, a member who cannot edit should still
+    // see the room's name and description — that is the content of the screen.
+    // Whether they can change it is `enabled:`, which flipping later costs a
+    // pencil glyph rather than two rows of layout.
+    //
+    // The genuine CONTROLS below — visibility, disappearing messages, password
+    // — are still permission-gated, because they have no read-only meaning.
+    // Their arrival is eased rather than popped; see the AnimatedSize there.
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -935,7 +948,21 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                             onCommit: (v) => _pushRoom(description: v),
                           ),
                         ],
-                        if (caps.canEditSettings) ...[
+                        // Eased, not popped. These appear one round trip after
+                        // the screen does, and a hard insert of three controls
+                        // under the description is the jump this screen was
+                        // reported for. AnimatedSize turns the same arrival
+                        // into a short grow, which reads as loading.
+                        AnimatedSize(
+                          duration: theme.motionMed,
+                          curve: Curves.easeOutCubic,
+                          alignment: Alignment.topCenter,
+                          child: !(_perms.canEditRoom && caps.canEditSettings)
+                              ? const SizedBox(width: double.infinity)
+                              : Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
                           const SizedBox(height: 22),
                           FieldLabel(AppLocalizations.of(context).roomInfoScreenVisibilityLabel),
                           Row(children: [
@@ -967,7 +994,9 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                               ),
                             ),
                           ]),
-                        ],
+                                ],
+                              ),
+                        ),
                         if (r.isEphemeral) ...[
                           const SizedBox(height: 22),
                           Row(children: [

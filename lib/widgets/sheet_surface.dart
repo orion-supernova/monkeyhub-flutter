@@ -53,6 +53,7 @@ class SheetSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final media = MediaQuery.of(context);
     return Container(
       decoration: BoxDecoration(
         color: theme.surface,
@@ -60,12 +61,39 @@ class SheetSurface extends StatelessWidget {
             BorderRadius.vertical(top: Radius.circular(theme.radiusLg)),
       ),
       padding: padding.copyWith(
-        bottom: padding.bottom + MediaQuery.of(context).padding.bottom,
+        // Home indicator, plus the keyboard when one is up. `isScrollControlled`
+        // sheets are not moved by the IME on their own, so a sheet with a field
+        // in it hides that field behind the keyboard without this.
+        bottom: padding.bottom + media.padding.bottom + media.viewInsets.bottom,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [const SheetGrabber(), child],
+        children: [
+          // The grabber stays put; only the content below it scrolls. A handle
+          // that scrolls away is a handle you cannot reach to drag the sheet
+          // shut.
+          const SheetGrabber(),
+          // Flexible, not Expanded: the sheet still shrink-wraps short content
+          // (a four-row member menu should not become full height), and only
+          // starts scrolling once it would otherwise run off the screen.
+          //
+          // The invite sheet is the one that forced this — QR, code, two rows
+          // of limit chips, two switches and three buttons overflowed on a
+          // phone, and because nothing scrolled the regenerate and revoke
+          // actions at the bottom were simply unreachable.
+          Flexible(
+            child: SingleChildScrollView(
+              // Bounces at both ends like every other scroller in the app,
+              // instead of the platform default that only bounces when the
+              // content actually overflows.
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              child: child,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -2017,5 +2017,7 @@
   "roomInfoScreenPasswordUnsetState": "Aucun mot de passe",
   "roomInfoScreenPasswordCancel": "Annuler",
   "roomInfoScreenEditSave": "Enregistrer",
-  "roomInfoScreenEditCancel": "Annuler"
+  "roomInfoScreenEditCancel": "Annuler",
+  "roomInviteRotatedToast": "Nouveau lien créé. L'ancien ne fonctionne plus.",
+  "roomInviteRevokedToast": "Lien d'invitation révoqué."
 }
