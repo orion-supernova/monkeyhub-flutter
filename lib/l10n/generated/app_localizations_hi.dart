@@ -851,9 +851,6 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomInfoScreenNameRequiredError => 'नाम ज़रूरी है';
 
   @override
-  String get roomInfoScreenSavedSnackbar => 'सेव हो गया';
-
-  @override
   String get roomInfoScreenPasswordClearedSnackbar => 'पासवर्ड हटा दिया गया';
 
   @override
@@ -1023,13 +1020,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomInfoScreenAddRoomPictureSemantic => 'रूम की तस्वीर जोड़ें';
 
   @override
-  String get roomInfoScreenLoadingMembers => 'सदस्य लोड हो रहे हैं…';
-
-  @override
   String get roomInfoScreenOwnerBadge => 'मालिक';
-
-  @override
-  String get roomInfoScreenSaveButton => 'सेव करें';
 
   @override
   String get roomInfoScreenNoneCount => 'कोई नहीं';
@@ -7135,4 +7126,25 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get roomAdminYouSuffix => 'आप';
+
+  @override
+  String get roomInfoScreenSetPasswordButton => 'सेट करें';
+
+  @override
+  String get roomInfoScreenPasswordSetSnackbar => 'पासवर्ड सेट हो गया।';
+
+  @override
+  String get roomInfoScreenPasswordSetState => 'पासवर्ड चालू';
+
+  @override
+  String get roomInfoScreenPasswordUnsetState => 'कोई पासवर्ड नहीं';
+
+  @override
+  String get roomInfoScreenPasswordCancel => 'रद्द करें';
+
+  @override
+  String get roomInfoScreenEditSave => 'सहेजें';
+
+  @override
+  String get roomInfoScreenEditCancel => 'रद्द करें';
 }

@@ -980,10 +980,6 @@
   "@roomInfoScreenNameRequiredError": {
     "description": "Inline error under the room-info form when the room name field is left empty on save, and the same message shown for the server-side ROOM_NAME_REQUIRED error."
   },
-  "roomInfoScreenSavedSnackbar": "saved",
-  "@roomInfoScreenSavedSnackbar": {
-    "description": "Snackbar shown after successfully saving room-info changes."
-  },
   "roomInfoScreenPasswordClearedSnackbar": "password cleared",
   "@roomInfoScreenPasswordClearedSnackbar": {
     "description": "Snackbar shown after removing a room's password."
@@ -1194,17 +1190,9 @@
   "@roomInfoScreenAddRoomPictureSemantic": {
     "description": "Screen-reader semantic label on the camera badge button when the room has no picture yet."
   },
-  "roomInfoScreenLoadingMembers": "loading members…",
-  "@roomInfoScreenLoadingMembers": {
-    "description": "Placeholder text shown in the members list while the member subscription hasn't returned data yet."
-  },
   "roomInfoScreenOwnerBadge": "OWNER",
   "@roomInfoScreenOwnerBadge": {
     "description": "All-caps small badge shown next to the room creator's name in the member list."
-  },
-  "roomInfoScreenSaveButton": "SAVE",
-  "@roomInfoScreenSaveButton": {
-    "description": "All-caps primary button label to save changes to the room."
   },
   "roomInfoScreenNoneCount": "none",
   "@roomInfoScreenNoneCount": {
@@ -8207,5 +8195,33 @@
   "roomAdminYouSuffix": "you",
   "@roomAdminYouSuffix": {
     "description": "Small label after your own name in the member list and the member sheet, marking which row is yours."
+  },
+  "roomInfoScreenSetPasswordButton": "SET",
+  "@roomInfoScreenSetPasswordButton": {
+    "description": "Button that applies a typed room password. The one explicit commit left on the room info screen."
+  },
+  "roomInfoScreenPasswordSetSnackbar": "Password set.",
+  "@roomInfoScreenPasswordSetSnackbar": {
+    "description": "Toast confirming a new room password was applied."
+  },
+  "roomInfoScreenPasswordSetState": "Password on",
+  "@roomInfoScreenPasswordSetState": {
+    "description": "Collapsed password row, when the room has one. Tapping opens the field."
+  },
+  "roomInfoScreenPasswordUnsetState": "No password",
+  "@roomInfoScreenPasswordUnsetState": {
+    "description": "Collapsed password row, when the room has none."
+  },
+  "roomInfoScreenPasswordCancel": "Cancel",
+  "@roomInfoScreenPasswordCancel": {
+    "description": "Closes the expanded password block, discarding anything typed."
+  },
+  "roomInfoScreenEditSave": "Save",
+  "@roomInfoScreenEditSave": {
+    "description": "Accessibility label for the tick that commits an inline name or description edit."
+  },
+  "roomInfoScreenEditCancel": "Cancel",
+  "@roomInfoScreenEditCancel": {
+    "description": "Accessibility label for the cross that discards an inline name or description edit."
   }
 }

@@ -242,7 +242,6 @@
   "threadOverlayReportedToast": "신고됨",
   "threadOverlayUnavailable": "스레드를 사용할 수 없어요",
   "roomInfoScreenNameRequiredError": "이름을 입력해 주세요",
-  "roomInfoScreenSavedSnackbar": "저장됨",
   "roomInfoScreenPasswordClearedSnackbar": "비밀번호 삭제됨",
   "roomInfoScreenLeaveConfirmTitle": "방을 나가시겠어요?",
   "roomInfoScreenLeaveConfirmBody": "방이 계속 열려 있으면 다시 참여할 수 있어요.",
@@ -294,9 +293,7 @@
   "roomInfoScreenViewRoomPictureSemantic": "방 사진 보기",
   "roomInfoScreenChangeRoomPictureSemantic": "방 사진 변경",
   "roomInfoScreenAddRoomPictureSemantic": "방 사진 추가",
-  "roomInfoScreenLoadingMembers": "멤버 불러오는 중…",
   "roomInfoScreenOwnerBadge": "방장",
-  "roomInfoScreenSaveButton": "저장",
   "roomInfoScreenNoneCount": "없음",
   "cameraScreenAccessDeniedMessage": "카메라 접근 권한이 꺼져 있어요.\n사진을 찍으려면 설정에서 켜주세요.",
   "cameraScreenOpeningSystemCamera": "시스템 카메라를 여는 중…",
@@ -2013,5 +2010,12 @@
   "roomAdminActionMessage": "메시지",
   "roomAdminActionVoiceCall": "음성 통화",
   "roomAdminActionVideoCall": "영상 통화",
-  "roomAdminYouSuffix": "나"
+  "roomAdminYouSuffix": "나",
+  "roomInfoScreenSetPasswordButton": "설정",
+  "roomInfoScreenPasswordSetSnackbar": "비밀번호를 설정했어요.",
+  "roomInfoScreenPasswordSetState": "비밀번호 있음",
+  "roomInfoScreenPasswordUnsetState": "비밀번호 없음",
+  "roomInfoScreenPasswordCancel": "취소",
+  "roomInfoScreenEditSave": "저장",
+  "roomInfoScreenEditCancel": "취소"
 }

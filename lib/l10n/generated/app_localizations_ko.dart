@@ -813,9 +813,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get roomInfoScreenNameRequiredError => '이름을 입력해 주세요';
 
   @override
-  String get roomInfoScreenSavedSnackbar => '저장됨';
-
-  @override
   String get roomInfoScreenPasswordClearedSnackbar => '비밀번호 삭제됨';
 
   @override
@@ -981,13 +978,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get roomInfoScreenAddRoomPictureSemantic => '방 사진 추가';
 
   @override
-  String get roomInfoScreenLoadingMembers => '멤버 불러오는 중…';
-
-  @override
   String get roomInfoScreenOwnerBadge => '방장';
-
-  @override
-  String get roomInfoScreenSaveButton => '저장';
 
   @override
   String get roomInfoScreenNoneCount => '없음';
@@ -6863,4 +6854,25 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get roomAdminYouSuffix => '나';
+
+  @override
+  String get roomInfoScreenSetPasswordButton => '설정';
+
+  @override
+  String get roomInfoScreenPasswordSetSnackbar => '비밀번호를 설정했어요.';
+
+  @override
+  String get roomInfoScreenPasswordSetState => '비밀번호 있음';
+
+  @override
+  String get roomInfoScreenPasswordUnsetState => '비밀번호 없음';
+
+  @override
+  String get roomInfoScreenPasswordCancel => '취소';
+
+  @override
+  String get roomInfoScreenEditSave => '저장';
+
+  @override
+  String get roomInfoScreenEditCancel => '취소';
 }

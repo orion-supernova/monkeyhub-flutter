@@ -242,7 +242,6 @@
   "threadOverlayReportedToast": "रिपोर्ट किया गया",
   "threadOverlayUnavailable": "थ्रेड उपलब्ध नहीं है",
   "roomInfoScreenNameRequiredError": "नाम ज़रूरी है",
-  "roomInfoScreenSavedSnackbar": "सेव हो गया",
   "roomInfoScreenPasswordClearedSnackbar": "पासवर्ड हटा दिया गया",
   "roomInfoScreenLeaveConfirmTitle": "रूम छोड़ें?",
   "roomInfoScreenLeaveConfirmBody": "अगर यह खुला रहा, तो तुम दोबारा जुड़ सकते हो।",
@@ -294,9 +293,7 @@
   "roomInfoScreenViewRoomPictureSemantic": "रूम की तस्वीर देखें",
   "roomInfoScreenChangeRoomPictureSemantic": "रूम की तस्वीर बदलें",
   "roomInfoScreenAddRoomPictureSemantic": "रूम की तस्वीर जोड़ें",
-  "roomInfoScreenLoadingMembers": "सदस्य लोड हो रहे हैं…",
   "roomInfoScreenOwnerBadge": "मालिक",
-  "roomInfoScreenSaveButton": "सेव करें",
   "roomInfoScreenNoneCount": "कोई नहीं",
   "cameraScreenAccessDeniedMessage": "कैमरा एक्सेस बंद है।\nफ़ोटो लेने के लिए सेटिंग्स में इसे ऑन करें।",
   "cameraScreenOpeningSystemCamera": "सिस्टम कैमरा खुल रहा है…",
@@ -2013,5 +2010,12 @@
   "roomAdminActionMessage": "संदेश भेजें",
   "roomAdminActionVoiceCall": "वॉइस कॉल",
   "roomAdminActionVideoCall": "वीडियो कॉल",
-  "roomAdminYouSuffix": "आप"
+  "roomAdminYouSuffix": "आप",
+  "roomInfoScreenSetPasswordButton": "सेट करें",
+  "roomInfoScreenPasswordSetSnackbar": "पासवर्ड सेट हो गया।",
+  "roomInfoScreenPasswordSetState": "पासवर्ड चालू",
+  "roomInfoScreenPasswordUnsetState": "कोई पासवर्ड नहीं",
+  "roomInfoScreenPasswordCancel": "रद्द करें",
+  "roomInfoScreenEditSave": "सहेजें",
+  "roomInfoScreenEditCancel": "रद्द करें"
 }

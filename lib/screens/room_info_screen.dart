@@ -23,6 +23,7 @@ import '../models/room_content_item.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
+import '../widgets/editable_info_row.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/mute_room_sheet.dart';
 import '../widgets/password_field.dart';
@@ -30,6 +31,7 @@ import '../widgets/photo_chrome.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/room_invite_friends_sheet.dart';
 import '../widgets/room_invite_sheet.dart';
+import '../widgets/skeleton_rows.dart';
 import '../widgets/room_join_requests_sheet.dart';
 import '../widgets/room_member_actions_sheet.dart';
 import '../widgets/steady_hero.dart';
@@ -72,11 +74,30 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   bool _isPrivate = true;
   Duration? _ttl;
   bool _loaded = false;
-  bool _saving = false;
-  /// Narrower than [_saving], which is also true while the form is being saved
-  /// and drives the spinner inside the SAVE button. This one says specifically
-  /// "a new picture is on its way", so the spinner can go where the user is
-  /// looking — on the avatar itself.
+
+  /// Whether the password field currently holds anything, tracked so the SET
+  /// button can enable without rebuilding on every keystroke.
+  bool _passwordHasText = false;
+
+  /// Whether the password block is expanded. Collapsed by default — see the
+  /// note at its call site.
+  bool _passwordOpen = false;
+
+  /// A blocking write is in flight — a password change or an avatar upload.
+  /// Latches the avatar tap and the destructive buttons so a second tap cannot
+  /// race the first. Field edits do NOT set this: they apply in the background
+  /// and must never freeze the form under the user's cursor.
+  bool _working = false;
+
+  /// Pending text commit. See [_applyRoom].
+  Timer? _applyDebounce;
+
+  /// Signature of the last values actually written, so an edit that lands back
+  /// on what the server already has costs nothing.
+  String _appliedSig = '';
+  /// Says specifically "a new picture is on its way", so the spinner can go
+  /// where the user is looking — on the avatar itself. The rest of this screen
+  /// applies silently; an upload is the one edit slow enough to need saying.
   bool _changingAvatar = false;
   bool _leaving = false;
   bool _deleting = false;
@@ -138,9 +159,23 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   void initState() {
     super.initState();
     _hydrate();
+    // AFTER _hydrate, or seeding the controllers would look like typing and
+    // fire a write on open.
+    _name.addListener(_applyRoom);
+    _desc.addListener(_applyRoom);
+    // Not an apply — the password never auto-commits. This is only so the SET
+    // button appears the moment there is something to set.
+    _newPassword.addListener(_onPasswordTyped);
     _loadContentCounts();
     _loadAdminState();
     widget.repo.addListener(_onRepo);
+  }
+
+  @override
+  void deactivate() {
+    // Backing out with a debounce still pending must not lose the edit.
+    _flushPendingApply();
+    super.deactivate();
   }
 
   /// The three administration subscriptions, opened together and torn down
@@ -303,6 +338,11 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     _desc.text = r.description ?? '';
     _isPrivate = r.isPrivate;
     _ttl = r.messageLifetime;
+    // Seeded so the first keystroke is measured against what the server has,
+    // not against an empty string — otherwise opening the screen and touching
+    // nothing would still write on the first debounce.
+    _appliedSig =
+        '${r.name}|${r.description ?? ''}|${r.isPrivate}|${r.isEphemeral ? r.messageLifetime : null}';
     _loaded = true;
     _loadMembers();
   }
@@ -352,6 +392,10 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
 
   @override
   void dispose() {
+    _applyDebounce?.cancel();
+    _name.removeListener(_applyRoom);
+    _desc.removeListener(_applyRoom);
+    _newPassword.removeListener(_onPasswordTyped);
     _membersSub?.cancel();
     _permsSub?.cancel();
     widget.repo.removeListener(_onRepo);
@@ -361,47 +405,234 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     super.dispose();
   }
 
-  Future<void> _save() async {
+  /// Push the room's fields to the server. There is no Save button.
+  ///
+  /// Every control on this screen applies on its own: the visibility segments
+  /// and the disappearing-message chips commit on tap, the name and
+  /// description commit shortly after typing stops. A form whose changes only
+  /// exist until you find and press a button is a form people lose work in —
+  /// and this one's button had drifted below the member list, which is how
+  /// that gets noticed.
+  ///
+  /// [immediate] for the discrete controls, where the tap IS the decision and
+  /// waiting would make the toggle feel unresponsive. Text debounces, because
+  /// committing per keystroke would fire a rename per character — each one a
+  /// uniqueness check against every other room, and each one a write that
+  /// re-fires every subscription watching this room.
+  void _applyRoom({bool immediate = false}) {
+    _applyDebounce?.cancel();
+    if (immediate) {
+      unawaited(_pushRoom());
+      return;
+    }
+    _applyDebounce = Timer(const Duration(milliseconds: 600), () {
+      unawaited(_pushRoom());
+    });
+  }
+
+  /// The write itself. Never called directly — go through [_applyRoom].
+  Future<void> _pushRoom() async {
     final r = _room;
     final me = widget.repo.userId;
     if (r == null || me == null) return;
-    final n = _name.text.trim();
-    if (n.isEmpty) {
-      setState(() => _error = AppLocalizations.of(context).roomInfoScreenNameRequiredError);
+
+    final name = _name.text.trim();
+    // An empty name is not a state to save, it is a state to be told about.
+    // The server refuses it too (ROOM_NAME_REQUIRED); catching it here means
+    // the message appears while the field is still empty rather than after a
+    // round trip, and no write is attempted mid-edit.
+    if (name.isEmpty) {
+      if (!mounted) return;
+      setState(() => _error =
+          AppLocalizations.of(context).roomInfoScreenNameRequiredError);
       return;
     }
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
+
+    final description = _desc.text.trim();
+    final ttl = r.isEphemeral ? _ttl : null;
+    // Skip a write that would change nothing. Without this, focusing a field
+    // and leaving it alone still costs a mutation — and every mutation on this
+    // row wakes every subscription watching the room.
+    final sig = '$name|$description|$_isPrivate|$ttl';
+    if (sig == _appliedSig) {
+      if (_error != null && mounted) setState(() => _error = null);
+      return;
+    }
+
+    if (mounted) setState(() => _error = null);
     try {
       await widget.api.updateRoom(
         roomId: r.id,
         userId: me,
-        name: n,
-        description: _desc.text.trim().isEmpty ? null : _desc.text.trim(),
+        name: name,
+        description: description.isEmpty ? null : description,
         isPrivate: _isPrivate,
-        messageLifetime: r.isEphemeral ? _ttl : null,
+        messageLifetime: ttl,
       );
-      if (_isOwner && _newPassword.text.isNotEmpty) {
-        await widget.api.updateRoomPassword(
-          roomId: r.id,
-          userId: me,
-          password: _newPassword.text,
-        );
-        _newPassword.clear();
-      }
+      _appliedSig = sig;
+    } catch (e) {
       if (!mounted) return;
-      setState(() => _saving = false);
+      // The local value stays as typed rather than snapping back. A rename
+      // refused because the name is taken should leave the name on screen to
+      // be edited, not silently revert and leave the reader wondering what
+      // they did.
+      setState(() => _error = _humanize(context, e));
+    }
+  }
+
+  /// The collapsed password row: what the room's state is, and a way in.
+  Widget _passwordSummary(AppTheme theme, ChatRoom r, bool busy) {
+    final l10n = AppLocalizations.of(context);
+    void open() => setState(() => _passwordOpen = true);
+    return FocusableTap(
+      onTap: busy ? null : open,
+      semanticLabel: l10n.roomInfoScreenPasswordLabel,
+      radius: theme.radiusMd,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: busy ? null : open,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.roomInfoScreenPasswordLabel,
+                  style: theme.label.copyWith(color: theme.inkMuted)),
+              const SizedBox(height: 6),
+              Row(children: [
+                Icon(
+                  r.hasPassword ? Icons.lock_outline : Icons.lock_open_outlined,
+                  size: 15,
+                  color: r.hasPassword ? theme.accent : theme.inkMuted,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    r.hasPassword
+                        ? l10n.roomInfoScreenPasswordSetState
+                        : l10n.roomInfoScreenPasswordUnsetState,
+                    style: r.hasPassword
+                        ? theme.body
+                        : theme.body.copyWith(color: theme.inkMuted),
+                  ),
+                ),
+                Icon(Icons.edit_outlined, size: 15, color: theme.inkMuted),
+              ]),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// One of the password block's two buttons. Shared so set and remove cannot
+  /// end up different heights next to each other.
+  Widget _pwAction(
+    AppTheme theme, {
+    required String label,
+    required Color color,
+    required bool filled,
+    required VoidCallback? onTap,
+  }) {
+    final enabled = onTap != null;
+    return FocusableTap(
+      onTap: onTap,
+      enabled: enabled,
+      semanticLabel: label,
+      radius: theme.radiusMd,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: filled
+                ? (enabled ? color : theme.accentSoft)
+                : Colors.transparent,
+            border: filled
+                ? null
+                : Border.all(color: color.withValues(alpha: 0.55), width: 1),
+            borderRadius: BorderRadius.circular(theme.radiusMd),
+          ),
+          child: Text(
+            label,
+            style: theme.monoTiny.copyWith(
+              color: filled
+                  ? (enabled ? theme.accentInk : theme.inkMuted)
+                  : color,
+              letterSpacing: 1.4,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Close the password block, discarding anything typed. Discarding is the
+  /// right default for the one field here that does not auto-apply: a password
+  /// half-typed and abandoned should leave no trace.
+  void _closePassword() {
+    _newPassword.clear();
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _passwordOpen = false;
+      _passwordHasText = false;
+    });
+  }
+
+  /// Rebuild so the SET button appears or disappears with the field's content.
+  /// Only when emptiness actually flips — a rebuild per keystroke is what this
+  /// screen has spent the last day getting rid of.
+  void _onPasswordTyped() {
+    final has = _newPassword.text.isNotEmpty;
+    if (has == _passwordHasText) return;
+    setState(() => _passwordHasText = has);
+  }
+
+  /// Commit a pending debounce before this screen goes away.
+  ///
+  /// Without it, typing a name and immediately backing out loses the edit —
+  /// the timer dies with the state. This is the one place auto-apply is
+  /// strictly harder than a Save button, and it is the whole reason the button
+  /// felt safe to people who never lost anything to it.
+  void _flushPendingApply() {
+    if (_applyDebounce?.isActive ?? false) {
+      _applyDebounce?.cancel();
+      unawaited(_pushRoom());
+    }
+  }
+
+  /// Set the room password. The ONE control here that is not automatic.
+  ///
+  /// A password committed on a debounce is a password set to whatever was
+  /// typed at the moment the user paused — a half-entered secret, locked in,
+  /// with the real one never applied. Explicit for the same reason the remove
+  /// action beside it is.
+  Future<void> _applyPassword() async {
+    final r = _room;
+    final me = widget.repo.userId;
+    if (r == null || me == null) return;
+    final pw = _newPassword.text;
+    if (pw.isEmpty) return;
+    setState(() => _error = null);
+    try {
+      await widget.api.updateRoomPassword(roomId: r.id, userId: me, password: pw);
+      if (!mounted) return;
+      _newPassword.clear();
+      FocusScope.of(context).unfocus();
+      setState(() {
+        _passwordOpen = false;
+        _passwordHasText = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).roomInfoScreenSavedSnackbar)),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).roomInfoScreenPasswordSetSnackbar),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _saving = false;
-        _error = _humanize(context, e);
-      });
+      setState(() => _error = _humanize(context, e));
     }
   }
 
@@ -410,20 +641,20 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     final me = widget.repo.userId;
     if (r == null || me == null) return;
     setState(() {
-      _saving = true;
+      _working = true;
       _error = null;
     });
     try {
       await widget.api.updateRoomPassword(roomId: r.id, userId: me);
       if (!mounted) return;
-      setState(() => _saving = false);
+      setState(() => _working = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context).roomInfoScreenPasswordClearedSnackbar)),
       );
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _saving = false;
+        _working = false;
         _error = _humanize(context, e);
       });
     }
@@ -435,17 +666,15 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   /// returns. The old order was defended as "cancelling here needs no state reset
   /// at all", which was true and beside the point: `pickerImageQuality` forces
   /// the plugin to decode and re-encode the chosen asset, which for a large photo
-  /// is seconds of work happening after its sheet has dismissed, and the only
-  /// spinner `_saving` drives lives inside the SAVE button at the far end of the
-  /// form. So the whole pick-and-crop happened with nothing on this screen
-  /// moving. Paying for the extra resets on the two cancel paths is the cheaper
-  /// half of that trade.
+  /// is seconds of work happening after its sheet has dismissed. So the whole
+  /// pick-and-crop happened with nothing on this screen moving. Paying for the
+  /// extra resets on the two cancel paths is the cheaper half of that trade.
   Future<void> _changeAvatar() async {
     final r = _room;
     final me = widget.repo.userId;
     if (r == null || me == null) return;
     setState(() {
-      _saving = true;
+      _working = true;
       _changingAvatar = true;
       _error = null;
     });
@@ -482,7 +711,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       // reset out three times and still missed the cancels.
       if (mounted) {
         setState(() {
-          _saving = false;
+          _working = false;
           _changingAvatar = false;
         });
       }
@@ -645,7 +874,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       );
     }
     if (!_loaded) _hydrate();
-    final busy = _saving || _leaving || _deleting;
+    final busy = _working || _leaving || _deleting;
 
     // A DM has no name/visibility/password of its own — it's just the two
     // people. Resolve the other person so we show their name and avatar
@@ -678,14 +907,6 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     if (r.isGroupChat && !_perms.canEditRoom) {
       caps = caps.copyWith(canEditSettings: false, hasDescription: false);
     }
-    // The save button's own condition: is there a single editable field above
-    // it. Kept as its own expression rather than collapsed to
-    // [RoomCapabilities.canEditSettings] — the two say different things, and
-    // the room that made them different (a DM, editable description only) has
-    // since had its description taken away. The next room with one editable
-    // field and no settings will find this already correct.
-    final canSaveAnything = caps.canEditSettings || caps.hasDescription;
-
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -706,22 +927,43 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                         const SizedBox(height: 26),
                         // Name/visibility don't apply to a 1:1 DM — the room is
                         // just the two people — nor to a room the app owns.
+                        // Text, not a text field, until tapped. See
+                        // [EditableInfoRow] — a screen made of empty input
+                        // boxes reads as a form to fill in rather than a room
+                        // to look at, and five of them pushed the roster and
+                        // the media row off the first screenful.
                         if (caps.canEditSettings) ...[
-                          LabeledField(
+                          EditableInfoRow(
                             label: AppLocalizations.of(context).roomInfoScreenNameLabel,
+                            value: r.name,
+                            saveLabel: AppLocalizations.of(context).roomInfoScreenEditSave,
+                            cancelLabel:
+                                AppLocalizations.of(context).roomInfoScreenEditCancel,
                             controller: _name,
-                            hint: AppLocalizations.of(context).roomInfoScreenNameHint,
+                            placeholder:
+                                AppLocalizations.of(context).roomInfoScreenNameHint,
+                            enabled: _perms.canEditRoom || !r.isGroupChat,
+                            onCommit: (_) => _applyRoom(immediate: true),
                           ),
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 14),
                         ],
                         // Nothing to describe about a chat with only yourself
                         // in it, one the app writes to you, or one with exactly
                         // one other person — see [RoomCapabilities.hasDescription].
                         if (caps.hasDescription) ...[
-                          LabeledField(
-                            label: AppLocalizations.of(context).roomInfoScreenDescriptionLabel,
+                          EditableInfoRow(
+                            label: AppLocalizations.of(context)
+                                .roomInfoScreenDescriptionLabel,
+                            value: r.description ?? '',
+                            saveLabel: AppLocalizations.of(context).roomInfoScreenEditSave,
+                            cancelLabel:
+                                AppLocalizations.of(context).roomInfoScreenEditCancel,
                             controller: _desc,
-                            hint: AppLocalizations.of(context).roomInfoScreenDescriptionHint,
+                            placeholder: AppLocalizations.of(context)
+                                .roomInfoScreenDescriptionHint,
+                            enabled: _perms.canEditRoom || !r.isGroupChat,
+                            maxLines: 3,
+                            onCommit: (_) => _applyRoom(immediate: true),
                           ),
                         ],
                         if (caps.canEditSettings) ...[
@@ -732,7 +974,10 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                               child: _seg(
                                 theme,
                                 active: !_isPrivate,
-                                onTap: () => setState(() => _isPrivate = false),
+                                onTap: () {
+                                  setState(() => _isPrivate = false);
+                                  _applyRoom(immediate: true);
+                                },
                                 icon: theme.visibilityIcon(isPublic: true, size: 14),
                                 title: AppLocalizations.of(context).roomInfoScreenPublicTitle,
                                 sub: AppLocalizations.of(context).roomInfoScreenPublicSub,
@@ -743,7 +988,10 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                               child: _seg(
                                 theme,
                                 active: _isPrivate,
-                                onTap: () => setState(() => _isPrivate = true),
+                                onTap: () {
+                                  setState(() => _isPrivate = true);
+                                  _applyRoom(immediate: true);
+                                },
                                 icon: theme.visibilityIcon(isPublic: false, size: 14),
                                 title: AppLocalizations.of(context).roomInfoScreenPrivateTitle,
                                 sub: AppLocalizations.of(context).roomInfoScreenPrivateSub,
@@ -765,7 +1013,10 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                             children: [
                               for (final t in _ttlOptions)
                                 GestureDetector(
-                                  onTap: () => setState(() => _ttl = t),
+                                  onTap: () {
+                                    setState(() => _ttl = t);
+                                    _applyRoom(immediate: true);
+                                  },
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
                                     decoration: theme.chipDecoration(filled: _ttl == t),
@@ -780,82 +1031,96 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                             ],
                           ),
                         ],
+                        // Password, collapsed to a status line until tapped —
+                        // the same disclosure the name and description use, and
+                        // for a stronger reason: an always-visible password box
+                        // on a screen you open to read the member list is an
+                        // invitation to type a secret nobody asked for.
+                        //
+                        // Reveals the field AND its two actions together, so
+                        // set and remove live in one place instead of one being
+                        // permanently on screen.
                         if (_perms.canEditRoom && caps.canEditSettings) ...[
-                          const SizedBox(height: 22),
-                          Row(children: [
-                            FieldLabel(AppLocalizations.of(context).roomInfoScreenPasswordLabel),
-                            const Spacer(),
-                            if (r.hasPassword)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: theme.accent.withValues(alpha: 0.12),
-                                  border: Border.all(color: theme.accent, width: 1),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.lock_outline, size: 10, color: theme.accent),
-                                    const SizedBox(width: 5),
-                                    Text(AppLocalizations.of(context).roomInfoScreenLockedBadge, style: theme.monoTiny.copyWith(color: theme.accent)),
-                                  ],
-                                ),
-                              )
-                            else
-                              Text(AppLocalizations.of(context).roomInfoScreenNoneBadge, style: theme.monoTiny.copyWith(color: theme.inkMuted)),
-                          ]),
-                          if (r.hasPassword) ...[
+                          const SizedBox(height: 18),
+                          if (!_passwordOpen)
+                            _passwordSummary(theme, r, busy)
+                          else ...[
+                            FieldLabel(AppLocalizations.of(context)
+                                .roomInfoScreenPasswordLabel),
                             const SizedBox(height: 6),
-                            Text(
-                              AppLocalizations.of(context).roomInfoScreenPasswordProtectedNote,
-                              style: theme.bodySoft.copyWith(fontSize: 12),
+                            PasswordField(
+                              controller: _newPassword,
+                              hint: r.hasPassword
+                                  ? AppLocalizations.of(context)
+                                      .roomInfoScreenReplacePasswordHint
+                                  : AppLocalizations.of(context)
+                                      .roomInfoScreenSetPasswordHint,
+                              onSubmitted: (_) => _applyPassword(),
                             ),
                             const SizedBox(height: 10),
-                          ],
-                          PasswordField(
-                            controller: _newPassword,
-                            hint: r.hasPassword
-                                ? AppLocalizations.of(context).roomInfoScreenReplacePasswordHint
-                                : AppLocalizations.of(context).roomInfoScreenSetPasswordHint,
-                          ),
-                          if (r.hasPassword) ...[
-                            const SizedBox(height: 10),
+                            Row(children: [
+                              if (r.hasPassword)
+                                Expanded(
+                                  child: _pwAction(
+                                    theme,
+                                    label: AppLocalizations.of(context)
+                                        .roomInfoScreenRemovePasswordButton,
+                                    color: theme.danger,
+                                    filled: false,
+                                    onTap: busy ? null : _clearPassword,
+                                  ),
+                                ),
+                              if (r.hasPassword) const SizedBox(width: 10),
+                              Expanded(
+                                child: _pwAction(
+                                  theme,
+                                  label: AppLocalizations.of(context)
+                                      .roomInfoScreenSetPasswordButton,
+                                  color: theme.accent,
+                                  filled: true,
+                                  // Dead until there is something to set —
+                                  // the one commit on this screen, so it must
+                                  // never fire on an empty field.
+                                  onTap: (busy || !_passwordHasText)
+                                      ? null
+                                      : _applyPassword,
+                                ),
+                              ),
+                            ]),
+                            const SizedBox(height: 8),
                             Align(
                               alignment: Alignment.centerRight,
-                              child: GestureDetector(
-                                onTap: busy ? null : _clearPassword,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: theme.danger.withValues(alpha: 0.55), width: 1),
-                                    borderRadius: BorderRadius.circular(theme.radiusMd),
-                                  ),
-                                  child: Text(
-                                    AppLocalizations.of(context).roomInfoScreenRemovePasswordButton,
-                                    style: theme.monoTiny.copyWith(color: theme.danger, letterSpacing: 1.4),
+                              child: FocusableTap(
+                                onTap: _closePassword,
+                                semanticLabel: AppLocalizations.of(context)
+                                    .roomInfoScreenPasswordCancel,
+                                radius: theme.radiusSm,
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: _closePassword,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 4),
+                                    child: Text(
+                                      AppLocalizations.of(context)
+                                          .roomInfoScreenPasswordCancel,
+                                      style: theme.monoTiny,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
                           ],
                         ],
-                        // SAVE sits directly under the fields it saves, which
-                        // is the whole block above — name, description,
-                        // visibility, disappearing messages AND the password.
-                        // It used to live below the member list, so renaming a
-                        // fifty-person group meant scrolling past the media
-                        // row, the invite controls and every member to reach
-                        // the button. No mainstream app puts a commit action
-                        // below unrelated content, and most do not put an
-                        // editable form on this screen at all — see the note
-                        // above `build`.
+                        // No SAVE button: every control above applies itself.
+                        // This slot is where a refused change speaks — a name
+                        // already taken, a write that failed offline. It is
+                        // deliberately the LAST thing in the settings block, so
+                        // it appears under whatever was being edited rather
+                        // than pushing the form around.
                         if (_error != null) ...[
+                          const SizedBox(height: 16),
                           Text(_error!, style: theme.body.copyWith(color: theme.danger)),
-                          const SizedBox(height: 14),
-                        ],
-                        if (canSaveAnything) ...[
-                          _saveButton(theme, busy),
                         ],
                         const SizedBox(height: 28),
                         FieldLabel(AppLocalizations.of(context).roomInfoScreenSharedContentLabel),
@@ -1187,13 +1452,13 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
               right: 0,
               bottom: 0,
               child: FocusableTap(
-                onTap: _saving ? null : _changeAvatar,
+                onTap: _working ? null : _changeAvatar,
                 shape: FocusRingShape.circle,
                 semanticLabel: hasAvatar
                     ? AppLocalizations.of(context).roomInfoScreenChangeRoomPictureSemantic
                     : AppLocalizations.of(context).roomInfoScreenAddRoomPictureSemantic,
                 child: GestureDetector(
-                  onTap: _saving ? null : _changeAvatar,
+                  onTap: _working ? null : _changeAvatar,
                   behavior: HitTestBehavior.opaque,
                   child: Container(
                     padding: const EdgeInsets.all(6),
@@ -1215,7 +1480,16 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
 
   Widget _membersList(AppTheme theme, ChatRoom r) {
     if (_members.isEmpty) {
-      return Text(AppLocalizations.of(context).roomInfoScreenLoadingMembers, style: theme.bodySoft);
+      // A skeleton, not "Loading members…". The string was one line where the
+      // answer is many, so the section collapsed and then jumped to full
+      // height the moment the roster landed — and on a slow connection it read
+      // as an empty group rather than a pending one.
+      //
+      // Sized to the room's own member count where we have it: `memberCount`
+      // is denormalized on the room row and arrives with the chat list, long
+      // before the roster query resolves. So the placeholder is usually the
+      // exact height of the answer and nothing moves at all when it lands.
+      return SkeletonRows(count: r.memberCount.clamp(1, 8));
     }
     // Ranked, then alphabetical. Sorting on the ROLE rather than on
     // `rooms.createdBy` is what makes a promoted admin actually rise up the
@@ -1694,30 +1968,6 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _saveButton(AppTheme theme, bool busy) {
-    return GestureDetector(
-      onTap: busy ? null : _save,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: busy ? theme.accentSoft : theme.accent,
-          borderRadius: BorderRadius.circular(theme.radiusMd),
-        ),
-        child: _saving
-            ? SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2, color: theme.accentInk),
-              )
-            : Text(
-                AppLocalizations.of(context).roomInfoScreenSaveButton,
-                style: theme.label.copyWith(color: theme.accentInk, letterSpacing: 2.2),
-              ),
       ),
     );
   }

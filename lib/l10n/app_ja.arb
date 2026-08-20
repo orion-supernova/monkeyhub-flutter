@@ -242,7 +242,6 @@
   "threadOverlayReportedToast": "報告しました",
   "threadOverlayUnavailable": "スレッドは利用できません",
   "roomInfoScreenNameRequiredError": "名前を入力してください",
-  "roomInfoScreenSavedSnackbar": "保存しました",
   "roomInfoScreenPasswordClearedSnackbar": "パスワードを削除しました",
   "roomInfoScreenLeaveConfirmTitle": "ルームを退出しますか?",
   "roomInfoScreenLeaveConfirmBody": "ルームがオープンなままなら、また参加できます。",
@@ -294,9 +293,7 @@
   "roomInfoScreenViewRoomPictureSemantic": "ルームの写真を表示",
   "roomInfoScreenChangeRoomPictureSemantic": "ルームの写真を変更",
   "roomInfoScreenAddRoomPictureSemantic": "ルームの写真を追加",
-  "roomInfoScreenLoadingMembers": "メンバーを読み込み中…",
   "roomInfoScreenOwnerBadge": "オーナー",
-  "roomInfoScreenSaveButton": "保存",
   "roomInfoScreenNoneCount": "なし",
   "cameraScreenAccessDeniedMessage": "カメラへのアクセスがオフになっています。\n写真を撮るには設定でオンにしてください。",
   "cameraScreenOpeningSystemCamera": "システムカメラを起動中…",
@@ -2013,5 +2010,12 @@
   "roomAdminActionMessage": "メッセージ",
   "roomAdminActionVoiceCall": "音声通話",
   "roomAdminActionVideoCall": "ビデオ通話",
-  "roomAdminYouSuffix": "自分"
+  "roomAdminYouSuffix": "自分",
+  "roomInfoScreenSetPasswordButton": "設定",
+  "roomInfoScreenPasswordSetSnackbar": "パスワードを設定しました。",
+  "roomInfoScreenPasswordSetState": "パスワードあり",
+  "roomInfoScreenPasswordUnsetState": "パスワードなし",
+  "roomInfoScreenPasswordCancel": "キャンセル",
+  "roomInfoScreenEditSave": "保存",
+  "roomInfoScreenEditCancel": "キャンセル"
 }

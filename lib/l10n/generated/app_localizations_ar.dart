@@ -865,9 +865,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get roomInfoScreenNameRequiredError => 'الاسم مطلوب';
 
   @override
-  String get roomInfoScreenSavedSnackbar => 'تم الحفظ';
-
-  @override
   String get roomInfoScreenPasswordClearedSnackbar => 'تم مسح كلمة المرور';
 
   @override
@@ -1035,13 +1032,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get roomInfoScreenAddRoomPictureSemantic => 'إضافة صورة الغرفة';
 
   @override
-  String get roomInfoScreenLoadingMembers => 'جارٍ تحميل الأعضاء…';
-
-  @override
   String get roomInfoScreenOwnerBadge => 'المالك';
-
-  @override
-  String get roomInfoScreenSaveButton => 'حفظ';
 
   @override
   String get roomInfoScreenNoneCount => 'لا يوجد';
@@ -7192,4 +7183,25 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get roomAdminYouSuffix => 'أنت';
+
+  @override
+  String get roomInfoScreenSetPasswordButton => 'تعيين';
+
+  @override
+  String get roomInfoScreenPasswordSetSnackbar => 'تم تعيين كلمة المرور.';
+
+  @override
+  String get roomInfoScreenPasswordSetState => 'كلمة المرور مفعّلة';
+
+  @override
+  String get roomInfoScreenPasswordUnsetState => 'بدون كلمة مرور';
+
+  @override
+  String get roomInfoScreenPasswordCancel => 'إلغاء';
+
+  @override
+  String get roomInfoScreenEditSave => 'حفظ';
+
+  @override
+  String get roomInfoScreenEditCancel => 'إلغاء';
 }

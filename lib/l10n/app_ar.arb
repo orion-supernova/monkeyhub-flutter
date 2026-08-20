@@ -242,7 +242,6 @@
   "threadOverlayReportedToast": "تم الإبلاغ",
   "threadOverlayUnavailable": "السلسلة غير متاحة",
   "roomInfoScreenNameRequiredError": "الاسم مطلوب",
-  "roomInfoScreenSavedSnackbar": "تم الحفظ",
   "roomInfoScreenPasswordClearedSnackbar": "تم مسح كلمة المرور",
   "roomInfoScreenLeaveConfirmTitle": "مغادرة الغرفة؟",
   "roomInfoScreenLeaveConfirmBody": "يمكنك الانضمام مجدداً إذا بقيت مفتوحة.",
@@ -294,9 +293,7 @@
   "roomInfoScreenViewRoomPictureSemantic": "عرض صورة الغرفة",
   "roomInfoScreenChangeRoomPictureSemantic": "تغيير صورة الغرفة",
   "roomInfoScreenAddRoomPictureSemantic": "إضافة صورة الغرفة",
-  "roomInfoScreenLoadingMembers": "جارٍ تحميل الأعضاء…",
   "roomInfoScreenOwnerBadge": "المالك",
-  "roomInfoScreenSaveButton": "حفظ",
   "roomInfoScreenNoneCount": "لا يوجد",
   "cameraScreenAccessDeniedMessage": "الوصول إلى الكاميرا متوقف.\nفعّله من الإعدادات لالتقاط صورة.",
   "cameraScreenOpeningSystemCamera": "جارٍ فتح كاميرا النظام…",
@@ -2013,5 +2010,12 @@
   "roomAdminActionMessage": "مراسلة",
   "roomAdminActionVoiceCall": "مكالمة صوتية",
   "roomAdminActionVideoCall": "مكالمة فيديو",
-  "roomAdminYouSuffix": "أنت"
+  "roomAdminYouSuffix": "أنت",
+  "roomInfoScreenSetPasswordButton": "تعيين",
+  "roomInfoScreenPasswordSetSnackbar": "تم تعيين كلمة المرور.",
+  "roomInfoScreenPasswordSetState": "كلمة المرور مفعّلة",
+  "roomInfoScreenPasswordUnsetState": "بدون كلمة مرور",
+  "roomInfoScreenPasswordCancel": "إلغاء",
+  "roomInfoScreenEditSave": "حفظ",
+  "roomInfoScreenEditCancel": "إلغاء"
 }

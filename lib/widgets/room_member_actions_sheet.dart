@@ -353,10 +353,12 @@ class _ActionRowState extends State<_ActionRow> {
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(theme.radiusMd),
           ),
-          // Negative horizontal margin so the highlight bleeds slightly past
-          // the text column and reads as a row, not a chip around the label.
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-          margin: const EdgeInsets.symmetric(horizontal: -8),
+          // No negative margin. `AnimatedContainer` asserts
+          // `margin.isNonNegative`, and the first cut used one to bleed the
+          // highlight past the text column — which threw on every row of the
+          // sheet the moment it opened. The highlight spanning the row's
+          // natural width reads the same and is legal.
+          padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
             children: [
               Icon(icon, size: 21, color: tint),

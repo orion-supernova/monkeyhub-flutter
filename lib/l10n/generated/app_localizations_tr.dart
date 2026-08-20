@@ -842,9 +842,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String get roomInfoScreenNameRequiredError => 'isim gerekli';
 
   @override
-  String get roomInfoScreenSavedSnackbar => 'kaydedildi';
-
-  @override
   String get roomInfoScreenPasswordClearedSnackbar => 'şifre kaldırıldı';
 
   @override
@@ -1015,13 +1012,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get roomInfoScreenAddRoomPictureSemantic => 'oda fotoğrafı ekle';
 
   @override
-  String get roomInfoScreenLoadingMembers => 'üyeler yükleniyor…';
-
-  @override
   String get roomInfoScreenOwnerBadge => 'SAHİP';
-
-  @override
-  String get roomInfoScreenSaveButton => 'KAYDET';
 
   @override
   String get roomInfoScreenNoneCount => 'yok';
@@ -7098,4 +7089,25 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get roomAdminYouSuffix => 'sen';
+
+  @override
+  String get roomInfoScreenSetPasswordButton => 'AYARLA';
+
+  @override
+  String get roomInfoScreenPasswordSetSnackbar => 'Şifre ayarlandı.';
+
+  @override
+  String get roomInfoScreenPasswordSetState => 'Şifre açık';
+
+  @override
+  String get roomInfoScreenPasswordUnsetState => 'Şifre yok';
+
+  @override
+  String get roomInfoScreenPasswordCancel => 'Vazgeç';
+
+  @override
+  String get roomInfoScreenEditSave => 'Kaydet';
+
+  @override
+  String get roomInfoScreenEditCancel => 'Vazgeç';
 }

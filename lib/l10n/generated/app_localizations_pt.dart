@@ -864,9 +864,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get roomInfoScreenNameRequiredError => 'o nome é obrigatório';
 
   @override
-  String get roomInfoScreenSavedSnackbar => 'guardado';
-
-  @override
   String get roomInfoScreenPasswordClearedSnackbar => 'palavra-passe removida';
 
   @override
@@ -1035,13 +1032,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get roomInfoScreenAddRoomPictureSemantic => 'adicionar foto da sala';
 
   @override
-  String get roomInfoScreenLoadingMembers => 'a carregar membros…';
-
-  @override
   String get roomInfoScreenOwnerBadge => 'DONO';
-
-  @override
-  String get roomInfoScreenSaveButton => 'GUARDAR';
 
   @override
   String get roomInfoScreenNoneCount => 'nenhum';
@@ -7206,6 +7197,27 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get roomAdminYouSuffix => 'tu';
+
+  @override
+  String get roomInfoScreenSetPasswordButton => 'DEFINIR';
+
+  @override
+  String get roomInfoScreenPasswordSetSnackbar => 'Palavra-passe definida.';
+
+  @override
+  String get roomInfoScreenPasswordSetState => 'Com palavra-passe';
+
+  @override
+  String get roomInfoScreenPasswordUnsetState => 'Sem palavra-passe';
+
+  @override
+  String get roomInfoScreenPasswordCancel => 'Cancelar';
+
+  @override
+  String get roomInfoScreenEditSave => 'Guardar';
+
+  @override
+  String get roomInfoScreenEditCancel => 'Cancelar';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -8064,9 +8076,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get roomInfoScreenNameRequiredError => 'nome é obrigatório';
 
   @override
-  String get roomInfoScreenSavedSnackbar => 'salvo';
-
-  @override
   String get roomInfoScreenPasswordClearedSnackbar => 'senha removida';
 
   @override
@@ -8235,13 +8244,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get roomInfoScreenAddRoomPictureSemantic => 'adicionar foto da sala';
 
   @override
-  String get roomInfoScreenLoadingMembers => 'carregando membros…';
-
-  @override
   String get roomInfoScreenOwnerBadge => 'DONO';
-
-  @override
-  String get roomInfoScreenSaveButton => 'SALVAR';
 
   @override
   String get roomInfoScreenNoneCount => 'nenhum';
@@ -14406,4 +14409,25 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get roomAdminYouSuffix => 'você';
+
+  @override
+  String get roomInfoScreenSetPasswordButton => 'DEFINIR';
+
+  @override
+  String get roomInfoScreenPasswordSetSnackbar => 'Senha definida.';
+
+  @override
+  String get roomInfoScreenPasswordSetState => 'Com senha';
+
+  @override
+  String get roomInfoScreenPasswordUnsetState => 'Sem senha';
+
+  @override
+  String get roomInfoScreenPasswordCancel => 'Cancelar';
+
+  @override
+  String get roomInfoScreenEditSave => 'Salvar';
+
+  @override
+  String get roomInfoScreenEditCancel => 'Cancelar';
 }

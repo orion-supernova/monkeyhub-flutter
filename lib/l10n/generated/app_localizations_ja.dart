@@ -813,9 +813,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get roomInfoScreenNameRequiredError => '名前を入力してください';
 
   @override
-  String get roomInfoScreenSavedSnackbar => '保存しました';
-
-  @override
   String get roomInfoScreenPasswordClearedSnackbar => 'パスワードを削除しました';
 
   @override
@@ -980,13 +977,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get roomInfoScreenAddRoomPictureSemantic => 'ルームの写真を追加';
 
   @override
-  String get roomInfoScreenLoadingMembers => 'メンバーを読み込み中…';
-
-  @override
   String get roomInfoScreenOwnerBadge => 'オーナー';
-
-  @override
-  String get roomInfoScreenSaveButton => '保存';
 
   @override
   String get roomInfoScreenNoneCount => 'なし';
@@ -6843,4 +6834,25 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get roomAdminYouSuffix => '自分';
+
+  @override
+  String get roomInfoScreenSetPasswordButton => '設定';
+
+  @override
+  String get roomInfoScreenPasswordSetSnackbar => 'パスワードを設定しました。';
+
+  @override
+  String get roomInfoScreenPasswordSetState => 'パスワードあり';
+
+  @override
+  String get roomInfoScreenPasswordUnsetState => 'パスワードなし';
+
+  @override
+  String get roomInfoScreenPasswordCancel => 'キャンセル';
+
+  @override
+  String get roomInfoScreenEditSave => '保存';
+
+  @override
+  String get roomInfoScreenEditCancel => 'キャンセル';
 }

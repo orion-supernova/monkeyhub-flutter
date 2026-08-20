@@ -252,7 +252,6 @@
   "threadOverlayReportedToast": "rapporterat",
   "threadOverlayUnavailable": "tråden är otillgänglig",
   "roomInfoScreenNameRequiredError": "namn krävs",
-  "roomInfoScreenSavedSnackbar": "sparat",
   "roomInfoScreenPasswordClearedSnackbar": "lösenord borttaget",
   "roomInfoScreenLeaveConfirmTitle": "lämna rummet?",
   "roomInfoScreenLeaveConfirmBody": "du kan gå med igen om det förblir öppet.",
@@ -304,9 +303,7 @@
   "roomInfoScreenViewRoomPictureSemantic": "visa rumsbild",
   "roomInfoScreenChangeRoomPictureSemantic": "ändra rumsbild",
   "roomInfoScreenAddRoomPictureSemantic": "lägg till rumsbild",
-  "roomInfoScreenLoadingMembers": "laddar medlemmar…",
   "roomInfoScreenOwnerBadge": "ÄGARE",
-  "roomInfoScreenSaveButton": "SPARA",
   "roomInfoScreenNoneCount": "inga",
   "cameraScreenAccessDeniedMessage": "kameraåtkomst är avstängd.\nslå på den i Inställningar för att ta ett foto.",
   "cameraScreenOpeningSystemCamera": "öppnar systemkameran…",
@@ -2013,5 +2010,12 @@
   "roomAdminActionMessage": "Skicka meddelande",
   "roomAdminActionVoiceCall": "Röstsamtal",
   "roomAdminActionVideoCall": "Videosamtal",
-  "roomAdminYouSuffix": "du"
+  "roomAdminYouSuffix": "du",
+  "roomInfoScreenSetPasswordButton": "SPARA",
+  "roomInfoScreenPasswordSetSnackbar": "Lösenord sparat.",
+  "roomInfoScreenPasswordSetState": "Lösenord på",
+  "roomInfoScreenPasswordUnsetState": "Inget lösenord",
+  "roomInfoScreenPasswordCancel": "Avbryt",
+  "roomInfoScreenEditSave": "Spara",
+  "roomInfoScreenEditCancel": "Avbryt"
 }

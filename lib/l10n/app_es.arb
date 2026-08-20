@@ -252,7 +252,6 @@
   "threadOverlayReportedToast": "reportado",
   "threadOverlayUnavailable": "hilo no disponible",
   "roomInfoScreenNameRequiredError": "el nombre es obligatorio",
-  "roomInfoScreenSavedSnackbar": "guardado",
   "roomInfoScreenPasswordClearedSnackbar": "contraseña eliminada",
   "roomInfoScreenLeaveConfirmTitle": "¿salir de la sala?",
   "roomInfoScreenLeaveConfirmBody": "puedes volver a unirte si sigue abierta.",
@@ -304,9 +303,7 @@
   "roomInfoScreenViewRoomPictureSemantic": "ver foto de la sala",
   "roomInfoScreenChangeRoomPictureSemantic": "cambiar foto de la sala",
   "roomInfoScreenAddRoomPictureSemantic": "añadir foto de la sala",
-  "roomInfoScreenLoadingMembers": "cargando miembros…",
   "roomInfoScreenOwnerBadge": "PROPIETARIO",
-  "roomInfoScreenSaveButton": "GUARDAR",
   "roomInfoScreenNoneCount": "ninguno",
   "cameraScreenAccessDeniedMessage": "el acceso a la cámara está desactivado.\nactívalo en Ajustes para tomar una foto.",
   "cameraScreenOpeningSystemCamera": "abriendo la cámara del sistema…",
@@ -2013,5 +2010,12 @@
   "roomAdminActionMessage": "Enviar mensaje",
   "roomAdminActionVoiceCall": "Llamada de voz",
   "roomAdminActionVideoCall": "Videollamada",
-  "roomAdminYouSuffix": "tú"
+  "roomAdminYouSuffix": "tú",
+  "roomInfoScreenSetPasswordButton": "PONER",
+  "roomInfoScreenPasswordSetSnackbar": "Contraseña establecida.",
+  "roomInfoScreenPasswordSetState": "Con contraseña",
+  "roomInfoScreenPasswordUnsetState": "Sin contraseña",
+  "roomInfoScreenPasswordCancel": "Cancelar",
+  "roomInfoScreenEditSave": "Guardar",
+  "roomInfoScreenEditCancel": "Cancelar"
 }

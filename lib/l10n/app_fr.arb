@@ -252,7 +252,6 @@
   "threadOverlayReportedToast": "signalé",
   "threadOverlayUnavailable": "fil indisponible",
   "roomInfoScreenNameRequiredError": "le nom est requis",
-  "roomInfoScreenSavedSnackbar": "enregistré",
   "roomInfoScreenPasswordClearedSnackbar": "mot de passe supprimé",
   "roomInfoScreenLeaveConfirmTitle": "quitter le salon ?",
   "roomInfoScreenLeaveConfirmBody": "tu pourras le rejoindre s'il reste ouvert.",
@@ -304,9 +303,7 @@
   "roomInfoScreenViewRoomPictureSemantic": "voir la photo du salon",
   "roomInfoScreenChangeRoomPictureSemantic": "changer la photo du salon",
   "roomInfoScreenAddRoomPictureSemantic": "ajouter une photo au salon",
-  "roomInfoScreenLoadingMembers": "chargement des membres…",
   "roomInfoScreenOwnerBadge": "PROPRIÉTAIRE",
-  "roomInfoScreenSaveButton": "ENREGISTRER",
   "roomInfoScreenNoneCount": "aucun",
   "cameraScreenAccessDeniedMessage": "l'accès à la caméra est désactivé.\nactive-le dans Réglages pour prendre une photo.",
   "cameraScreenOpeningSystemCamera": "ouverture de l'appareil photo du système…",
@@ -2013,5 +2010,12 @@
   "roomAdminActionMessage": "Envoyer un message",
   "roomAdminActionVoiceCall": "Appel audio",
   "roomAdminActionVideoCall": "Appel vidéo",
-  "roomAdminYouSuffix": "toi"
+  "roomAdminYouSuffix": "toi",
+  "roomInfoScreenSetPasswordButton": "DÉFINIR",
+  "roomInfoScreenPasswordSetSnackbar": "Mot de passe défini.",
+  "roomInfoScreenPasswordSetState": "Mot de passe actif",
+  "roomInfoScreenPasswordUnsetState": "Aucun mot de passe",
+  "roomInfoScreenPasswordCancel": "Annuler",
+  "roomInfoScreenEditSave": "Enregistrer",
+  "roomInfoScreenEditCancel": "Annuler"
 }

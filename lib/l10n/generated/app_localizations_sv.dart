@@ -853,9 +853,6 @@ class AppLocalizationsSv extends AppLocalizations {
   String get roomInfoScreenNameRequiredError => 'namn krävs';
 
   @override
-  String get roomInfoScreenSavedSnackbar => 'sparat';
-
-  @override
   String get roomInfoScreenPasswordClearedSnackbar => 'lösenord borttaget';
 
   @override
@@ -1025,13 +1022,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get roomInfoScreenAddRoomPictureSemantic => 'lägg till rumsbild';
 
   @override
-  String get roomInfoScreenLoadingMembers => 'laddar medlemmar…';
-
-  @override
   String get roomInfoScreenOwnerBadge => 'ÄGARE';
-
-  @override
-  String get roomInfoScreenSaveButton => 'SPARA';
 
   @override
   String get roomInfoScreenNoneCount => 'inga';
@@ -7147,4 +7138,25 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get roomAdminYouSuffix => 'du';
+
+  @override
+  String get roomInfoScreenSetPasswordButton => 'SPARA';
+
+  @override
+  String get roomInfoScreenPasswordSetSnackbar => 'Lösenord sparat.';
+
+  @override
+  String get roomInfoScreenPasswordSetState => 'Lösenord på';
+
+  @override
+  String get roomInfoScreenPasswordUnsetState => 'Inget lösenord';
+
+  @override
+  String get roomInfoScreenPasswordCancel => 'Avbryt';
+
+  @override
+  String get roomInfoScreenEditSave => 'Spara';
+
+  @override
+  String get roomInfoScreenEditCancel => 'Avbryt';
 }

@@ -1569,12 +1569,6 @@ abstract class AppLocalizations {
   /// **'name is required'**
   String get roomInfoScreenNameRequiredError;
 
-  /// Snackbar shown after successfully saving room-info changes.
-  ///
-  /// In en, this message translates to:
-  /// **'saved'**
-  String get roomInfoScreenSavedSnackbar;
-
   /// Snackbar shown after removing a room's password.
   ///
   /// In en, this message translates to:
@@ -1881,23 +1875,11 @@ abstract class AppLocalizations {
   /// **'add room picture'**
   String get roomInfoScreenAddRoomPictureSemantic;
 
-  /// Placeholder text shown in the members list while the member subscription hasn't returned data yet.
-  ///
-  /// In en, this message translates to:
-  /// **'loading members…'**
-  String get roomInfoScreenLoadingMembers;
-
   /// All-caps small badge shown next to the room creator's name in the member list.
   ///
   /// In en, this message translates to:
   /// **'OWNER'**
   String get roomInfoScreenOwnerBadge;
-
-  /// All-caps primary button label to save changes to the room.
-  ///
-  /// In en, this message translates to:
-  /// **'SAVE'**
-  String get roomInfoScreenSaveButton;
 
   /// Lowercase label shown instead of a zero count on a shared-content row (media/files/voice/links) when it is confirmed empty.
   ///
@@ -12234,6 +12216,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'you'**
   String get roomAdminYouSuffix;
+
+  /// Button that applies a typed room password. The one explicit commit left on the room info screen.
+  ///
+  /// In en, this message translates to:
+  /// **'SET'**
+  String get roomInfoScreenSetPasswordButton;
+
+  /// Toast confirming a new room password was applied.
+  ///
+  /// In en, this message translates to:
+  /// **'Password set.'**
+  String get roomInfoScreenPasswordSetSnackbar;
+
+  /// Collapsed password row, when the room has one. Tapping opens the field.
+  ///
+  /// In en, this message translates to:
+  /// **'Password on'**
+  String get roomInfoScreenPasswordSetState;
+
+  /// Collapsed password row, when the room has none.
+  ///
+  /// In en, this message translates to:
+  /// **'No password'**
+  String get roomInfoScreenPasswordUnsetState;
+
+  /// Closes the expanded password block, discarding anything typed.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get roomInfoScreenPasswordCancel;
+
+  /// Accessibility label for the tick that commits an inline name or description edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get roomInfoScreenEditSave;
+
+  /// Accessibility label for the cross that discards an inline name or description edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get roomInfoScreenEditCancel;
 }
 
 class _AppLocalizationsDelegate

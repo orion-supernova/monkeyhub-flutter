@@ -242,7 +242,6 @@
   "threadOverlayReportedToast": "已举报",
   "threadOverlayUnavailable": "话题串不可用",
   "roomInfoScreenNameRequiredError": "名称不能为空",
-  "roomInfoScreenSavedSnackbar": "已保存",
   "roomInfoScreenPasswordClearedSnackbar": "密码已清除",
   "roomInfoScreenLeaveConfirmTitle": "离开房间？",
   "roomInfoScreenLeaveConfirmBody": "如果房间还开着，你可以重新加入。",
@@ -294,9 +293,7 @@
   "roomInfoScreenViewRoomPictureSemantic": "查看聊天室头像",
   "roomInfoScreenChangeRoomPictureSemantic": "更改聊天室头像",
   "roomInfoScreenAddRoomPictureSemantic": "添加聊天室头像",
-  "roomInfoScreenLoadingMembers": "正在加载成员…",
   "roomInfoScreenOwnerBadge": "房主",
-  "roomInfoScreenSaveButton": "保存",
   "roomInfoScreenNoneCount": "无",
   "cameraScreenAccessDeniedMessage": "相机权限未开启。\n请前往「设置」开启后再拍照。",
   "cameraScreenOpeningSystemCamera": "正在打开系统相机…",
@@ -2013,5 +2010,12 @@
   "roomAdminActionMessage": "发消息",
   "roomAdminActionVoiceCall": "语音通话",
   "roomAdminActionVideoCall": "视频通话",
-  "roomAdminYouSuffix": "你"
+  "roomAdminYouSuffix": "你",
+  "roomInfoScreenSetPasswordButton": "设置",
+  "roomInfoScreenPasswordSetSnackbar": "密码已设置。",
+  "roomInfoScreenPasswordSetState": "已设密码",
+  "roomInfoScreenPasswordUnsetState": "未设密码",
+  "roomInfoScreenPasswordCancel": "取消",
+  "roomInfoScreenEditSave": "保存",
+  "roomInfoScreenEditCancel": "取消"
 }

@@ -848,9 +848,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomInfoScreenNameRequiredError => 'name is required';
 
   @override
-  String get roomInfoScreenSavedSnackbar => 'saved';
-
-  @override
   String get roomInfoScreenPasswordClearedSnackbar => 'password cleared';
 
   @override
@@ -1019,13 +1016,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomInfoScreenAddRoomPictureSemantic => 'add room picture';
 
   @override
-  String get roomInfoScreenLoadingMembers => 'loading members…';
-
-  @override
   String get roomInfoScreenOwnerBadge => 'OWNER';
-
-  @override
-  String get roomInfoScreenSaveButton => 'SAVE';
 
   @override
   String get roomInfoScreenNoneCount => 'none';
@@ -7114,4 +7105,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get roomAdminYouSuffix => 'you';
+
+  @override
+  String get roomInfoScreenSetPasswordButton => 'SET';
+
+  @override
+  String get roomInfoScreenPasswordSetSnackbar => 'Password set.';
+
+  @override
+  String get roomInfoScreenPasswordSetState => 'Password on';
+
+  @override
+  String get roomInfoScreenPasswordUnsetState => 'No password';
+
+  @override
+  String get roomInfoScreenPasswordCancel => 'Cancel';
+
+  @override
+  String get roomInfoScreenEditSave => 'Save';
+
+  @override
+  String get roomInfoScreenEditCancel => 'Cancel';
 }

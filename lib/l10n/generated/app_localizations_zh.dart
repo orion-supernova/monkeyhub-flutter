@@ -799,9 +799,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get roomInfoScreenNameRequiredError => '名称不能为空';
 
   @override
-  String get roomInfoScreenSavedSnackbar => '已保存';
-
-  @override
   String get roomInfoScreenPasswordClearedSnackbar => '密码已清除';
 
   @override
@@ -966,13 +963,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get roomInfoScreenAddRoomPictureSemantic => '添加聊天室头像';
 
   @override
-  String get roomInfoScreenLoadingMembers => '正在加载成员…';
-
-  @override
   String get roomInfoScreenOwnerBadge => '房主';
-
-  @override
-  String get roomInfoScreenSaveButton => '保存';
 
   @override
   String get roomInfoScreenNoneCount => '无';
@@ -6760,4 +6751,25 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get roomAdminYouSuffix => '你';
+
+  @override
+  String get roomInfoScreenSetPasswordButton => '设置';
+
+  @override
+  String get roomInfoScreenPasswordSetSnackbar => '密码已设置。';
+
+  @override
+  String get roomInfoScreenPasswordSetState => '已设密码';
+
+  @override
+  String get roomInfoScreenPasswordUnsetState => '未设密码';
+
+  @override
+  String get roomInfoScreenPasswordCancel => '取消';
+
+  @override
+  String get roomInfoScreenEditSave => '保存';
+
+  @override
+  String get roomInfoScreenEditCancel => '取消';
 }

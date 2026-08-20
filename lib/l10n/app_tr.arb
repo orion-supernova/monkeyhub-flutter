@@ -242,7 +242,6 @@
   "threadOverlayReportedToast": "bildirildi",
   "threadOverlayUnavailable": "konu kullanılamıyor",
   "roomInfoScreenNameRequiredError": "isim gerekli",
-  "roomInfoScreenSavedSnackbar": "kaydedildi",
   "roomInfoScreenPasswordClearedSnackbar": "şifre kaldırıldı",
   "roomInfoScreenLeaveConfirmTitle": "odadan ayrıl?",
   "roomInfoScreenLeaveConfirmBody": "açık kalırsa tekrar katılabilirsin.",
@@ -294,9 +293,7 @@
   "roomInfoScreenViewRoomPictureSemantic": "oda fotoğrafını görüntüle",
   "roomInfoScreenChangeRoomPictureSemantic": "oda fotoğrafını değiştir",
   "roomInfoScreenAddRoomPictureSemantic": "oda fotoğrafı ekle",
-  "roomInfoScreenLoadingMembers": "üyeler yükleniyor…",
   "roomInfoScreenOwnerBadge": "SAHİP",
-  "roomInfoScreenSaveButton": "KAYDET",
   "roomInfoScreenNoneCount": "yok",
   "cameraScreenAccessDeniedMessage": "kamera erişimi kapalı.\nfotoğraf çekmek için Ayarlar’dan izin vermen gerekiyor.",
   "cameraScreenOpeningSystemCamera": "sistem kamerası açılıyor…",
@@ -2013,5 +2010,12 @@
   "roomAdminActionMessage": "Mesaj gönder",
   "roomAdminActionVoiceCall": "Sesli ara",
   "roomAdminActionVideoCall": "Görüntülü ara",
-  "roomAdminYouSuffix": "sen"
+  "roomAdminYouSuffix": "sen",
+  "roomInfoScreenSetPasswordButton": "AYARLA",
+  "roomInfoScreenPasswordSetSnackbar": "Şifre ayarlandı.",
+  "roomInfoScreenPasswordSetState": "Şifre açık",
+  "roomInfoScreenPasswordUnsetState": "Şifre yok",
+  "roomInfoScreenPasswordCancel": "Vazgeç",
+  "roomInfoScreenEditSave": "Kaydet",
+  "roomInfoScreenEditCancel": "Vazgeç"
 }
