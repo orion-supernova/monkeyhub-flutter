@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import '../composer/capture_machine.dart';
 import '../composer/capture_permissions.dart';
 import '../composer/capture_recorder.dart';
+import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../screens/room_items.dart' show formatClockDuration;
@@ -127,11 +128,32 @@ class ComposerCapture {
 /// the way every messenger does it, which is also what keeps the drag gesture
 /// from ever having to share an arena with the text field.
 class ComposerCaptureHost extends StatefulWidget {
-  const ComposerCaptureHost({super.key, required this.capture, required this.style, required this.builder});
+  const ComposerCaptureHost({
+    super.key,
+    required this.capture,
+    required this.style,
+    required this.builder,
+    this.openHintRoomId,
+  });
 
   final ComposerCapture? capture;
   final ComposerCaptureStyle style;
   final Widget Function(BuildContext context, Widget? modeButton) builder;
+
+  /// The room this composer belongs to, or null to never play the
+  /// mode-switch hint (bump + tooltip) on mount.
+  ///
+  /// Non-null only for the room's own composer — the thread overlay builds
+  /// this same widget for its own mode button and passes null: a thread is
+  /// opened far more often than any one chatroom, and firing there too
+  /// turned "teach the gesture once per room" into "play a bounce every time
+  /// someone opens a thread," which is a bug, not a feature.
+  ///
+  /// Gated per room, via [SettingsStore.shouldShowComposerModeHint] keyed on
+  /// this id — a room already taught the user nothing the second time it is
+  /// opened, but a room they have never opened plays it fresh regardless of
+  /// what they've already learned elsewhere.
+  final String? openHintRoomId;
 
   @override
   State<ComposerCaptureHost> createState() => _ComposerCaptureHostState();
@@ -242,11 +264,18 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     // firing the instant the composer mounts plays the bump underneath a
     // still-sliding screen, where nobody is looking at it yet.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || widget.capture == null) return;
+      final roomId = widget.openHintRoomId;
+      if (!mounted ||
+          widget.capture == null ||
+          roomId == null ||
+          !SettingsStore.instance.shouldShowComposerModeHint(roomId)) {
+        return;
+      }
       _entranceTimer = Timer(const Duration(milliseconds: 400), () {
         if (!mounted) return;
         _entranceBumpController.forward(from: 0.0);
         _triggerTooltip();
+        unawaited(SettingsStore.instance.markComposerModeHintShown(roomId));
       });
     });
   }

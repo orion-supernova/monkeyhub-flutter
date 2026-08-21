@@ -43,6 +43,7 @@ class SettingsStore extends ChangeNotifier {
   // would silently inherit a "yes, already asked" from an install that was
   // asked by the old flow. Pick new keys if a prompt ever comes back.
   static const _kRecoveryPromptDismissed = 'mh.recoveryPromptDismissedFor';
+  static const _kComposerModeHintSeenRoomIds = 'mh.composerModeHintSeenRoomIds';
   static const _kFilterStyle = 'mh.filterStyle';
   static const _kRoomFilter = 'mh.roomFilter';
   static const _kGlassProfile = 'mh.glass.profile';
@@ -82,6 +83,7 @@ class SettingsStore extends ChangeNotifier {
   bool _showNetworkStats = false;
   VideoQualityTier _videoQualityTier = VideoQualityTier.auto;
   String? _recoveryPromptDismissedFor;
+  Set<String> _composerModeHintSeenRoomIds = {};
   FilterStyle _filterStyle = FilterStyle.chips;
   RoomFilter _roomFilter = RoomFilter.empty;
   GlassProfile _glass = _presetById(kDefaultGlassPresetId).profile;
@@ -150,6 +152,14 @@ class SettingsStore extends ChangeNotifier {
   /// and the user would be re-prompted on every single sign-in. SettingsStore
   /// is never cleared. That difference is the whole reason for the split.
   String? get recoveryPromptDismissedFor => _recoveryPromptDismissedFor;
+
+  /// Whether room [roomId]'s composer should still play its mode-switch hint
+  /// (bump + tooltip) the next time it opens.
+  ///
+  /// Per room, not global: a room already teaches nothing the second time it
+  /// is opened, but a room the user has never opened before has taught them
+  /// nothing yet either, hint or no hint elsewhere.
+  bool shouldShowComposerModeHint(String roomId) => !_composerModeHintSeenRoomIds.contains(roomId);
 
   /// How much decorative motion the app renders.
   ///
@@ -293,6 +303,9 @@ class SettingsStore extends ChangeNotifier {
       );
       _recoveryPromptDismissedFor = await _storage.read(
         key: _kRecoveryPromptDismissed,
+      );
+      _composerModeHintSeenRoomIds = _decodeStringSet(
+        await _storage.read(key: _kComposerModeHintSeenRoomIds),
       );
       final fs = await _storage.read(key: _kFilterStyle);
       // First-launch default is chips; honour an explicit 'drawer' selection.
@@ -521,6 +534,27 @@ class SettingsStore extends ChangeNotifier {
     if (_recoveryPromptDismissedFor == userId) return;
     _recoveryPromptDismissedFor = userId;
     await _storage.write(key: _kRecoveryPromptDismissed, value: userId);
+  }
+
+  /// Records that [roomId]'s composer just played the mode-switch hint, so
+  /// [shouldShowComposerModeHint] stays false for that room from now on.
+  Future<void> markComposerModeHintShown(String roomId) async {
+    if (!_composerModeHintSeenRoomIds.add(roomId)) return;
+    await _storage.write(
+      key: _kComposerModeHintSeenRoomIds,
+      value: jsonEncode(_composerModeHintSeenRoomIds.toList()),
+    );
+  }
+
+  static Set<String> _decodeStringSet(String? raw) {
+    if (raw == null || raw.isEmpty) return {};
+    try {
+      final list = jsonDecode(raw);
+      if (list is! List) return {};
+      return {for (final entry in list) if (entry is String) entry};
+    } catch (_) {
+      return {};
+    }
   }
 
   Future<void> setManualLogoThemeId(String id) async {

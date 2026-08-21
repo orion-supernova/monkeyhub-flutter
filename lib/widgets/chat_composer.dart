@@ -412,6 +412,7 @@ class ChatComposerClassic extends StatelessWidget {
     this.capture,
     this.onSchedule,
     this.scheduledCount = 0,
+    this.captureOpenHintRoomId,
   });
 
   final TextEditingController controller;
@@ -465,6 +466,14 @@ class ChatComposerClassic extends StatelessWidget {
   /// the send button. Zero hides it.
   final int scheduledCount;
 
+  /// The room this composer belongs to, or null to never play the mode
+  /// button's open hint (bump + tooltip) — see
+  /// [ComposerCaptureHost.openHintRoomId].
+  ///
+  /// Null by default like every other opt-in here: the room screen passes
+  /// its room's id, the thread overlay does not.
+  final String? captureOpenHintRoomId;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -475,6 +484,7 @@ class ChatComposerClassic extends StatelessWidget {
       ),
       child: ComposerCaptureHost(
         capture: capture,
+        openHintRoomId: captureOpenHintRoomId,
         style: ComposerCaptureStyle.classic,
         builder: (context, modeButton) => Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -625,6 +635,7 @@ class ChatComposerLiquid extends StatelessWidget {
     this.capture,
     this.onSchedule,
     this.scheduledCount = 0,
+    this.captureOpenHintRoomId,
   });
 
   final TextEditingController controller;
@@ -661,6 +672,9 @@ class ChatComposerLiquid extends StatelessWidget {
   /// See [ChatComposerClassic.scheduledCount].
   final int scheduledCount;
 
+  /// See [ChatComposerClassic.captureOpenHintRoomId].
+  final String? captureOpenHintRoomId;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -673,6 +687,7 @@ class ChatComposerLiquid extends StatelessWidget {
       padding: pad,
       child: ComposerCaptureHost(
         capture: capture,
+        openHintRoomId: captureOpenHintRoomId,
         style: ComposerCaptureStyle.liquid,
         builder: (context, modeButton) => Row(
         crossAxisAlignment: CrossAxisAlignment.end,
