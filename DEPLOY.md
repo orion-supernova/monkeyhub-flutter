@@ -7,6 +7,7 @@ in a terminal to get the interactive picker:
 Select what to deploy  (↑/↓ move · space toggle · enter go)
   ❯ ◉ Convex backend
     ◉ iOS  → App Store Connect
+    ◯ macOS → App Store Connect (TestFlight)
     ◯ Android → Google Play (internal track)
 ```
 
@@ -98,6 +99,7 @@ flag and nothing else.
 | Flag | Effect |
 |---|---|
 | `--ios` | iOS → App Store Connect |
+| `--macos` | macOS → App Store Connect. **Not** included in `--all` yet — run it explicitly until the App Store Connect side is proven out (see [macOS](#macos) below) |
 | `--android` | AAB → Google Play internal track (`--android=play` still works; `--android=apk` now errors out) |
 | `--web` | Flutter web build → https://monkeyhub.walhallaa.com/web/ |
 | `--site` | Landing + downloads pages only. No build, no Convex — seconds |
@@ -139,7 +141,9 @@ upload succeeds**, so a failed build never advertises a version nobody can get.
 | `android-apk` | deploy.sh, after each **Play** upload — it is a migration notice now, not a release. See [Retired: the APK](#retired-the-apk) | `--dart-define` baked into the retired APKs |
 | `android-play` | deploy.sh, after the fastlane upload | `--dart-define`, and Play-vs-sideload at runtime |
 | `web` | deploy.sh, after the web rsync | `--dart-define` |
-| `macos-dmg` / `macos-testflight` / `macos-appstore` | **manual** (no macOS build in deploy.sh yet) | `--dart-define` only — see caveat below |
+| `macos-testflight` | deploy.sh, after the ASC upload | `--dart-define` — see caveat below |
+| `macos-appstore` | **manual** — an ASC upload isn't a release, same as `ios-appstore` | `--dart-define` only |
+| `macos-dmg` | **manual** (no self-hosted DMG build in deploy.sh yet) | `--dart-define` only |
 | `windows` / `linux` | **manual** (not built yet) | `--dart-define` only |
 
 The iOS build deliberately carries **no** `MH_CHANNEL` define: one binary serves
@@ -147,11 +151,14 @@ both TestFlight and the App Store, so a stamped channel would be wrong for half
 its users. iOS resolves its own channel from its receipt instead. Android and web
 get the define because each artifact really does belong to one channel.
 
-**macOS caveat:** macOS reports no installer info at all, so DMG / TestFlight /
-Mac App Store can only be told apart by the define — and as on iOS, one ASC
-binary serves both TestFlight and the Mac App Store. When macOS ships, a DMG
-build gets `--dart-define=MH_CHANNEL=macos-dmg`; an ASC build has to pick one of
-the two ASC channels (or grow a receipt probe like iOS's).
+**macOS caveat:** macOS reports no installer info at all (`installerStore` is
+always null), so DMG / TestFlight / Mac App Store can only be told apart by the
+define — unlike iOS there's no receipt to probe at runtime. `./deploy.sh --macos`
+always stamps `--dart-define=MH_CHANNEL=macos-testflight`, because an ASC upload
+is a TestFlight build until someone submits it for review, same as
+`ios-testflight`. `macos-appstore` is published by hand once a build is actually
+approved for sale — see [Manual commands](#manual-commands). A future
+self-hosted DMG build would stamp `macos-dmg` instead.
 
 ### Manual commands
 
@@ -425,3 +432,26 @@ it blocking afterwards.
 Unchanged: ASC API key in `~/.appstoreconnect/private_keys/`, IDs in
 `.env.local` (`APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`).
 Optional extension setup: see `NOTIFICATION_SETUP.md`.
+
+## macOS
+
+`./deploy.sh --macos` builds, archives, and uploads to App Store Connect —
+same shape as iOS, same ASC API key, no separate setup on the `.env.local`
+side. `DEVELOPMENT_TEAM` is now set on the macOS Runner target (it was blank
+before this shipped; same team as iOS, `37TC2VKVJ6`, since it's one Apple
+Developer account).
+
+**No new app record needed** — macOS's bundle ID
+(`com.walhallaa.chatTest-20241220`, set in `macos/Runner/Configs/AppInfo.xcconfig`)
+is identical to iOS's, so a macOS build lands on the *same* App Store Connect
+app that already has iOS TestFlight testers on it, not a separate one.
+
+The one thing only Apple's side can confirm before the first run: that app's
+page in App Store Connect has to have **macOS added as a platform** on it
+(an iOS-only app doesn't have macOS "on" by default — it's a per-app platform
+list, not a per-bundle-ID one). Apple sometimes auto-adds it on the first
+build for a new platform, sometimes it wants a manual add first via the app's
+page. If it's missing, the archive/export steps still succeed — it's the
+`xcrun altool --upload-app` step that will reject it, and the fix is that ASC
+click, not a new app. Not part of `--all` yet; ship it with an explicit
+`--macos` until that first upload is confirmed working end to end.

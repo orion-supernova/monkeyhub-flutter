@@ -8,6 +8,10 @@
 # Pipelines:
 #   Convex   → npx convex deploy (from backend/)
 #   iOS      → flutter build ios → xcodebuild archive/export → App Store Connect
+#   macOS    → --macos: flutter build macos → xcodebuild archive/export →
+#                       App Store Connect. Same ASC API key as iOS. Not part
+#                       of --all yet — run it explicitly until the App Store
+#                       Connect side is proven out; see DEPLOY.md.
 #   Android  → flutter build appbundle → Google Play internal track
 #              (needs a verified Play account; see DEPLOY.md)
 #   Web      → --web: flutter build web → rsync to the Oracle VM, served by
@@ -72,6 +76,7 @@ DL_MANIFEST="$VM_DL_DIR/artifacts.json"
 SKIP_VERSION_BUMP=false
 RUN_CONVEX=""      # ""=undecided (menu/default), true/false once resolved
 DEPLOY_IOS=""
+DEPLOY_MACOS=false # --macos: App Store Connect. NOT in --all yet.
 DEPLOY_ANDROID=""
 DEPLOY_WEB=false   # --web: flutter build web → VM. Also included by --all.
 DEPLOY_SITE=false  # --site: landing + downloads pages. No build. Also by --all.
@@ -91,6 +96,8 @@ No platform flags + no TTY     → legacy default: Convex + iOS.
 
 Platform flags (any of these skips the picker):
   --ios                 Ship iOS to App Store Connect.
+  --macos               Ship macOS to App Store Connect. Not included in
+                        --all yet — see DEPLOY.md.
   --android             Ship Android: AAB to the Google Play internal track.
   --web                 Build Flutter web and publish it at $WEB_URL.
   --site                Landing + downloads pages only. No build — seconds.
@@ -119,6 +126,7 @@ while [[ $# -gt 0 ]]; do
         --no-upload)         RUN_UPLOAD=false ;;
         --no-git)            RUN_GIT=false ;;
         --ios)               DEPLOY_IOS=true;  PLATFORM_ARGS=true ;;
+        --macos)             DEPLOY_MACOS=true; PLATFORM_ARGS=true ;;
         --android)           DEPLOY_ANDROID=true; PLATFORM_ARGS=true ;;
         # Kept so the old muscle memory and any saved command still work —
         # Play is now the only Android target, so this says what it always did.
@@ -135,7 +143,8 @@ while [[ $# -gt 0 ]]; do
         --all)               DEPLOY_IOS=true; DEPLOY_ANDROID=true; DEPLOY_WEB=true
                              DEPLOY_SITE=true; PLATFORM_ARGS=true ;;
         # Zeroes web and site too, so "backend only" holds even after --all.
-        --convex-only)       RUN_CONVEX=true; DEPLOY_IOS=false; DEPLOY_ANDROID=false
+        --convex-only)       RUN_CONVEX=true; DEPLOY_IOS=false; DEPLOY_MACOS=false
+                             DEPLOY_ANDROID=false
                              DEPLOY_WEB=false; DEPLOY_SITE=false
                              SKIP_VERSION_BUMP=true; PLATFORM_ARGS=true ;;
         --rollback-web)      ACTION="rollback-web" ;;
@@ -247,16 +256,19 @@ esac
 # platform flags and we actually have a TTY to talk to.
 pick_platforms() {
     local labels=("Convex backend" "iOS  → App Store Connect"
+                  "macOS → App Store Connect"
                   "Android → Google Play (internal track)"
                   "Web  → $WEB_URL" "Site → $SITE_URL  (pages only, no build)")
     # Menu starts on Convex + iOS only. Unlike --all (which ships everything),
-    # the picker leaves the rest unticked so a bare Enter stays cheap.
-    local selected=(1 1 0 0 0)
-    # Honor explicit --no-convex / --web / --site even in interactive mode.
+    # the picker leaves the rest unticked so a bare Enter stays cheap. macOS
+    # defaults off too — it's a new, unproven pipeline (see --macos in -h).
+    local selected=(1 1 0 0 0 0)
+    # Honor explicit --no-convex / --macos / --web / --site even in interactive mode.
     [ "$RUN_CONVEX" = false ] && selected[0]=0
-    [ "$DEPLOY_WEB" = true ] && selected[3]=1
-    [ "$DEPLOY_SITE" = true ] && selected[4]=1
-    local cursor=0 count=5 key rest i marker arrow
+    [ "$DEPLOY_MACOS" = true ] && selected[2]=1
+    [ "$DEPLOY_WEB" = true ] && selected[4]=1
+    [ "$DEPLOY_SITE" = true ] && selected[5]=1
+    local cursor=0 count=6 key rest i marker arrow
 
     exec 3</dev/tty
     tput civis 2>/dev/null || true
@@ -288,12 +300,13 @@ pick_platforms() {
 
     RUN_CONVEX=$([ "${selected[0]}" = 1 ] && echo true || echo false)
     DEPLOY_IOS=$([ "${selected[1]}" = 1 ] && echo true || echo false)
-    DEPLOY_ANDROID=$([ "${selected[2]}" = 1 ] && echo true || echo false)
-    DEPLOY_WEB=$([ "${selected[3]}" = 1 ] && echo true || echo false)
-    DEPLOY_SITE=$([ "${selected[4]}" = 1 ] && echo true || echo false)
+    DEPLOY_MACOS=$([ "${selected[2]}" = 1 ] && echo true || echo false)
+    DEPLOY_ANDROID=$([ "${selected[3]}" = 1 ] && echo true || echo false)
+    DEPLOY_WEB=$([ "${selected[4]}" = 1 ] && echo true || echo false)
+    DEPLOY_SITE=$([ "${selected[5]}" = 1 ] && echo true || echo false)
 
-    if [ "$RUN_CONVEX" = false ] && [ "$DEPLOY_IOS" = false ] && [ "$DEPLOY_ANDROID" = false ] \
-       && [ "$DEPLOY_WEB" = false ] && [ "$DEPLOY_SITE" = false ]; then
+    if [ "$RUN_CONVEX" = false ] && [ "$DEPLOY_IOS" = false ] && [ "$DEPLOY_MACOS" = false ] \
+       && [ "$DEPLOY_ANDROID" = false ] && [ "$DEPLOY_WEB" = false ] && [ "$DEPLOY_SITE" = false ]; then
         echo "Nothing selected — exiting."
         exit 0
     fi
@@ -319,7 +332,7 @@ fi
 [ -z "$DEPLOY_IOS" ] && DEPLOY_IOS=false
 [ -z "$DEPLOY_ANDROID" ] && DEPLOY_ANDROID=false
 # Version bump only makes sense when an app ships.
-if [ "$DEPLOY_IOS" = false ] && [ "$DEPLOY_ANDROID" = false ]; then
+if [ "$DEPLOY_IOS" = false ] && [ "$DEPLOY_ANDROID" = false ] && [ "$DEPLOY_MACOS" = false ]; then
     SKIP_VERSION_BUMP=true
 fi
 
@@ -339,6 +352,7 @@ echo "🐵 MonkeyHub deploy"
 echo "  • Convex deploy:    $([ "$RUN_CONVEX" = true ] && echo yes || echo no)"
 echo "  • Version bump:     $([ "$SKIP_VERSION_BUMP" = false ] && echo yes || echo no)"
 echo "  • iOS build:        $([ "$DEPLOY_IOS" = true ] && echo yes || echo no)"
+echo "  • macOS build:      $([ "$DEPLOY_MACOS" = true ] && echo yes || echo no)"
 echo "  • Android build:    $([ "$DEPLOY_ANDROID" = true ] && echo "yes (AAB → Play)" || echo no)"
 echo "  • Web build:        $([ "$DEPLOY_WEB" = true ] && echo yes || echo no)"
 echo "  • Landing/downloads:$([ "$DEPLOY_SITE" = true ] && echo " yes" || echo " no")"
@@ -470,18 +484,76 @@ ensure_export_options() {
 PLIST
 }
 
+# Same idea as ensure_export_options, for the macOS archive. method=app-store
+# exports a signed .pkg — the format ASC accepts for both TestFlight and Mac
+# App Store review, same as one .ipa serves both on iOS.
+ensure_macos_export_options() {
+    local plist="macos/ExportOptions.plist"
+    if [ -f "$plist" ]; then
+        return 0
+    fi
+    echo "  • Generating $plist (first run)"
+    cat > "$plist" <<'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>app-store</string>
+    <key>signingStyle</key>
+    <string>automatic</string>
+    <key>uploadSymbols</key>
+    <true/>
+    <key>destination</key>
+    <string>export</string>
+</dict>
+</plist>
+PLIST
+}
+
+# CocoaPods install with three escalating attempts (see the iOS build section
+# below for why each level exists). Shared by iOS and macOS — both ship a
+# Podfile and hit the same failure modes. $1 = platform dir (ios|macos).
+pod_install_with_retries() {
+    local dir="$1"
+    local log_base="/tmp/monkeyhub_pod_${dir}"
+    local status=0
+    _pod_install_attempt() {
+        local log="$1"; shift
+        (cd "$dir" && pod install "$@") >"$log" 2>&1
+    }
+    if ! _pod_install_attempt "${log_base}_install.log"; then
+        echo "  ⚠️  pod install failed, retrying with --repo-update..."
+        if ! _pod_install_attempt "${log_base}_repo_update.log" --repo-update; then
+            echo "  ⚠️  still failing — discarding $dir/Podfile.lock and re-resolving..."
+            rm -f "$dir/Podfile.lock"
+            _pod_install_attempt "${log_base}_retry.log" --repo-update || status=1
+        fi
+    fi
+    if [ $status -ne 0 ]; then
+        echo "❌ CocoaPods install failed ($dir). Logs:"
+        echo "   ${log_base}_install.log"
+        echo "   ${log_base}_repo_update.log"
+        echo "   ${log_base}_retry.log"
+        echo "   $dir/Podfile.lock was removed — 'cd $dir && pod install' to rebuild it."
+        return 1
+    fi
+    echo "  ✅ Pods installed ($dir)"
+}
+
 # ----- environment validation -----
 validate_environment() {
     echo "🔐 Validating environment..."
 
-    if [ "$DEPLOY_IOS" = true ] && [[ "$OSTYPE" != "darwin"* ]]; then
-        echo "❌ The iOS pipeline needs macOS (xcodebuild). Deselect iOS or run on a Mac."
+    if { [ "$DEPLOY_IOS" = true ] || [ "$DEPLOY_MACOS" = true ]; } && [[ "$OSTYPE" != "darwin"* ]]; then
+        echo "❌ The iOS/macOS pipelines need macOS (xcodebuild). Deselect them or run on a Mac."
         exit 1
     fi
 
     # Runtime app config — bundled into the app. Builds silently miss
     # CONVEX_URL / VAPID_PUBLIC_KEY if this is absent.
-    if { [ "$DEPLOY_IOS" = true ] || [ "$DEPLOY_ANDROID" = true ]; } && [ ! -f "env.local" ]; then
+    if { [ "$DEPLOY_IOS" = true ] || [ "$DEPLOY_MACOS" = true ] || [ "$DEPLOY_ANDROID" = true ]; } \
+       && [ ! -f "env.local" ]; then
         echo "❌ Missing env.local at project root (runtime app secrets)."
         echo "   Copy env.example to env.local and fill in values."
         exit 1
@@ -518,7 +590,7 @@ validate_environment() {
         fi
     fi
 
-    if [ "$DEPLOY_IOS" = true ]; then
+    if [ "$DEPLOY_IOS" = true ] || [ "$DEPLOY_MACOS" = true ]; then
         if [ ! -f ".env.local" ]; then
             echo "❌ Missing .env.local at project root (deploy secrets)."
             echo "   Create it with:"
@@ -529,7 +601,9 @@ validate_environment() {
             exit 1
         fi
         # ASC creds are needed for BOTH archive/export (xcodebuild auth) AND
-        # the upload step, so validate even with --no-upload.
+        # the upload step, so validate even with --no-upload. iOS and macOS
+        # share the same key — one Apple Developer team, one App Store
+        # Connect account.
         check_key APP_STORE_CONNECT_KEY_ID
         check_key APP_STORE_CONNECT_ISSUER_ID
 
@@ -542,7 +616,8 @@ validate_environment() {
             echo "   and place it there, or set APP_STORE_CONNECT_KEY_DIR in .env.local."
             exit 1
         fi
-        ensure_export_options
+        [ "$DEPLOY_IOS" = true ] && ensure_export_options
+        [ "$DEPLOY_MACOS" = true ] && ensure_macos_export_options
     fi
 
     if [ "$DEPLOY_ANDROID" = true ]; then
@@ -916,8 +991,8 @@ deploy_site() {
 }
 
 # Nothing app-side selected → done after Convex.
-if [ "$DEPLOY_IOS" = false ] && [ "$DEPLOY_ANDROID" = false ] && [ "$DEPLOY_WEB" = false ] \
-   && [ "$DEPLOY_SITE" = false ]; then
+if [ "$DEPLOY_IOS" = false ] && [ "$DEPLOY_MACOS" = false ] && [ "$DEPLOY_ANDROID" = false ] \
+   && [ "$DEPLOY_WEB" = false ] && [ "$DEPLOY_SITE" = false ]; then
     echo ""
     echo "✨ Backend-only deploy complete"
     exit 0
@@ -926,7 +1001,8 @@ fi
 # ----- Flutter prep -----
 # Skipped for a pages-only run: `--site` ships HTML, and a clean + pub get would
 # turn a five-second deploy into a two-minute one for nothing.
-if [ "$DEPLOY_IOS" = true ] || [ "$DEPLOY_ANDROID" = true ] || [ "$DEPLOY_WEB" = true ]; then
+if [ "$DEPLOY_IOS" = true ] || [ "$DEPLOY_MACOS" = true ] || [ "$DEPLOY_ANDROID" = true ] \
+   || [ "$DEPLOY_WEB" = true ]; then
     run_with_spinner "Flutter clean" flutter clean
     run_with_spinner "Flutter pub get" flutter pub get
 fi
@@ -983,32 +1059,7 @@ if [ "$DEPLOY_IOS" = true ]; then
     #                         that; the stale pin itself has to go. Safe because
     #                         every version this project deliberately controls is
     #                         pinned in the Podfile, not the lock.
-    # NOTE: keep the status check OUTSIDE the subshell. `exit 1` inside `( … )`
-    # only leaves the subshell, which is how a failed install used to be followed
-    # by "✅ Pods installed" and a doomed flutter build.
-    pod_install_attempt() {
-        local log="$1"
-        shift
-        (cd ios && pod install "$@") >"$log" 2>&1
-    }
-    POD_STATUS=0
-    if ! pod_install_attempt /tmp/monkeyhub_pod_install.log; then
-        echo "  ⚠️  pod install failed, retrying with --repo-update..."
-        if ! pod_install_attempt /tmp/monkeyhub_pod_repo_update.log --repo-update; then
-            echo "  ⚠️  still failing — discarding ios/Podfile.lock and re-resolving..."
-            rm -f ios/Podfile.lock
-            pod_install_attempt /tmp/monkeyhub_pod_install_retry.log --repo-update || POD_STATUS=1
-        fi
-    fi
-    if [ $POD_STATUS -ne 0 ]; then
-        echo "❌ CocoaPods install failed. Logs:"
-        echo "   /tmp/monkeyhub_pod_install.log"
-        echo "   /tmp/monkeyhub_pod_repo_update.log"
-        echo "   /tmp/monkeyhub_pod_install_retry.log"
-        echo "   ios/Podfile.lock was removed — 'cd ios && pod install' to rebuild it."
-        exit 1
-    fi
-    echo "  ✅ Pods installed"
+    pod_install_with_retries ios || exit 1
 
     # Refreshes Generated.xcconfig with the current pubspec version. Runtime
     # keys ride along via the bundled env.local asset — no --dart-define needed.
@@ -1075,6 +1126,75 @@ if [ "$DEPLOY_IOS" = true ]; then
 
     IOS_END_TIME=$(date +%s)
     IOS_BUILD_TIME=$((IOS_END_TIME - IOS_START_TIME))
+fi
+
+# ----- macOS build -----
+# Same shape as iOS: archive via xcodebuild, export a signed artifact, upload
+# with altool. Export produces a .pkg (method=app-store) instead of a .ipa.
+#
+# One difference from iOS under the hood: macOS can't tell its channel apart
+# at runtime the way iOS reads its receipt (package_info_plus always reports a
+# null installerStore here — see lib/update/release_channel.dart), so the
+# build carries the channel as a --dart-define instead. Otherwise this is the
+# same story as iOS: an ASC upload isn't a released App Store version, so
+# publish_release always announces the TestFlight-side channel here too.
+MACOS_BUILD_TIME=0
+if [ "$DEPLOY_MACOS" = true ]; then
+    MACOS_START_TIME=$(date +%s)
+    echo "🖥️  Starting macOS build..."
+
+    echo "  • CocoaPods install"
+    pod_install_with_retries macos || exit 1
+
+    run_with_spinner "Building Flutter for macOS (release)" \
+        flutter build macos --release --dart-define=MH_CHANNEL=macos-testflight
+
+    run_with_spinner "Creating Xcode archive" \
+        xcodebuild -workspace macos/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -archivePath build/Runner-macOS.xcarchive \
+            archive \
+            -destination 'generic/platform=macOS' \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$P8_FILE_PATH" \
+            -authenticationKeyID "$APP_STORE_CONNECT_KEY_ID" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
+
+    run_with_spinner "Exporting installer package" \
+        env PATH="/usr/bin:$PATH" xcodebuild -exportArchive \
+            -archivePath build/Runner-macOS.xcarchive \
+            -exportPath build/macos-export \
+            -exportOptionsPlist macos/ExportOptions.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$P8_FILE_PATH" \
+            -authenticationKeyID "$APP_STORE_CONNECT_KEY_ID" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
+
+    PKG_PATH="$(find build/macos-export -maxdepth 1 -type f -name '*.pkg' | head -n 1)"
+    if [ -z "$PKG_PATH" ] || [ ! -f "$PKG_PATH" ]; then
+        echo "❌ No .pkg found in build/macos-export/ after export"
+        ls -la build/macos-export/ || true
+        exit 1
+    fi
+    echo "  ✅ Package at $PKG_PATH"
+
+    if [ "$RUN_UPLOAD" = true ]; then
+        run_with_spinner "Uploading to App Store Connect" \
+            xcrun altool --upload-app \
+                --type macos \
+                --file "$PKG_PATH" \
+                --apiKey "$APP_STORE_CONNECT_KEY_ID" \
+                --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" \
+                --apiKeyPath "$P8_FILE_PATH"
+
+        publish_release macos-testflight
+    else
+        echo "⏭️  Skipping App Store Connect upload (--no-upload)"
+    fi
+
+    MACOS_END_TIME=$(date +%s)
+    MACOS_BUILD_TIME=$((MACOS_END_TIME - MACOS_START_TIME))
 fi
 
 # ----- Android build -----
@@ -1287,6 +1407,10 @@ if [ "$DEPLOY_IOS" = true ]; then
     [ "$RUN_UPLOAD" = true ]  && echo "  🍎 iOS:            App Store Connect (TestFlight shows the build in a few minutes)"
     [ "$RUN_UPLOAD" = false ] && echo "  🍎 iOS IPA:        $IPA_PATH"
 fi
+if [ "$DEPLOY_MACOS" = true ]; then
+    [ "$RUN_UPLOAD" = true ]  && echo "  🖥️  macOS:          App Store Connect (TestFlight shows the build in a few minutes)"
+    [ "$RUN_UPLOAD" = false ] && echo "  🖥️  macOS package:  $PKG_PATH"
+fi
 if [ "$DEPLOY_ANDROID" = true ]; then
     echo "  🤖 Android AAB:    $AAB_PATH"
     [ "$RUN_UPLOAD" = true ] && echo "     → Play internal track; sideloaders pointed at $HOSTING_URL/"
@@ -1304,6 +1428,7 @@ fi
 echo ""
 echo "⏱️  Timing:"
 [ "$DEPLOY_IOS" = true ]     && echo "  🍎 iOS build:      ${IOS_BUILD_TIME}s"
+[ "$DEPLOY_MACOS" = true ]   && echo "  🖥️  macOS build:    ${MACOS_BUILD_TIME}s"
 [ "$DEPLOY_ANDROID" = true ] && echo "  🤖 Android build:  ${ANDROID_BUILD_TIME}s"
 [ "$DEPLOY_WEB" = true ]     && echo "  🌐 Web build:      ${WEB_BUILD_TIME}s"
 echo "  📊 Total:          ${TOTAL_TIME}s"
