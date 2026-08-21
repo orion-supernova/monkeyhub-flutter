@@ -37,6 +37,7 @@ import 'diagnostics/metrics_watch.dart';
 import 'diagnostics/route_tracker.dart';
 import 'family/family_service.dart';
 import 'env.dart';
+import 'keyboard/desktop_tab_traversal.dart';
 import 'auth/recovery_gate.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'invites/deep_link_service.dart';
@@ -1382,90 +1383,96 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
                       ? Brightness.dark
                       : Brightness.light,
                 ),
-                child: Listener(
-                  // Observe (never consume) the first pointer-down to unlock
-                  // audio + request notification permission within a user gesture.
-                  onPointerDown: _alertsPrimed ? null : (_) => _primeAlerts(),
-                  child: _WindowClassProvider(
-                    child: Stack(
-                      children: [
-                        // The self-host bar is the one piece of app-wide chrome
-                        // that participates in LAYOUT rather than floating over
-                        // it: everything else shifts down by its height. Three
-                        // overlay shapes were tried first and each collided with
-                        // something — the status glyphs, a route's close button,
-                        // the dynamic island. A bar collides with nothing
-                        // because it overlaps nothing.
-                        //
-                        // `removeTop` is the other half of that bargain. The bar
-                        // has already covered the status-bar inset, so leaving
-                        // `padding.top` in place below it would have every
-                        // SafeArea in the app inset a second time. The condition
-                        // is [SelfHostBar.consumesTopInset] on both sides
-                        // precisely so the two cannot disagree.
-                        Column(
-                          children: [
-                            const SelfHostBar(),
-                            Expanded(
-                              child: MediaQuery.removePadding(
-                                context: context,
-                                removeTop: serverBar,
-                                child: Stack(
-                                  children: [
-                                    ?child,
-                                    // One top slot, stacked vertically. These used to be two
-                                    // separate Positioned(top: 0) layers that overlapped
-                                    // whenever both were showing — which would have buried the
-                                    // connection banner's retry target under the call pill.
-                                    // Both children collapse to zero height when hidden.
-                                    if (_bootstrapped && _bootError == null)
-                                      Positioned(
-                                        top: 0,
-                                        left: 0,
-                                        right: 0,
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            ConnectionBanner(health: _health),
-                                            // Global "Move call here" pill — shows when an
-                                            // active call exists on another of my devices.
-                                            // Tap to handoff.
-                                            ActiveCallPill(
-                                              service: _callService,
-                                            ),
-                                          ],
+                // Above the navigator so every route inherits it, and inside
+                // `builder` so it outranks WidgetsApp's own Tab binding — which
+                // on macOS leaks the key to AppKit and types a tab character
+                // into the field focus just landed on. See the widget's doc.
+                child: DesktopTabTraversal(
+                  child: Listener(
+                    // Observe (never consume) the first pointer-down to unlock
+                    // audio + request notification permission within a user gesture.
+                    onPointerDown: _alertsPrimed ? null : (_) => _primeAlerts(),
+                    child: _WindowClassProvider(
+                      child: Stack(
+                        children: [
+                          // The self-host bar is the one piece of app-wide chrome
+                          // that participates in LAYOUT rather than floating over
+                          // it: everything else shifts down by its height. Three
+                          // overlay shapes were tried first and each collided with
+                          // something — the status glyphs, a route's close button,
+                          // the dynamic island. A bar collides with nothing
+                          // because it overlaps nothing.
+                          //
+                          // `removeTop` is the other half of that bargain. The bar
+                          // has already covered the status-bar inset, so leaving
+                          // `padding.top` in place below it would have every
+                          // SafeArea in the app inset a second time. The condition
+                          // is [SelfHostBar.consumesTopInset] on both sides
+                          // precisely so the two cannot disagree.
+                          Column(
+                            children: [
+                              const SelfHostBar(),
+                              Expanded(
+                                child: MediaQuery.removePadding(
+                                  context: context,
+                                  removeTop: serverBar,
+                                  child: Stack(
+                                    children: [
+                                      ?child,
+                                      // One top slot, stacked vertically. These used to be two
+                                      // separate Positioned(top: 0) layers that overlapped
+                                      // whenever both were showing — which would have buried the
+                                      // connection banner's retry target under the call pill.
+                                      // Both children collapse to zero height when hidden.
+                                      if (_bootstrapped && _bootError == null)
+                                        Positioned(
+                                          top: 0,
+                                          left: 0,
+                                          right: 0,
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              ConnectionBanner(health: _health),
+                                              // Global "Move call here" pill — shows when an
+                                              // active call exists on another of my devices.
+                                              // Tap to handoff.
+                                              ActiveCallPill(
+                                                service: _callService,
+                                              ),
+                                            ],
+                                          ),
                                         ),
+                                      // Pushes call screens onto the root navigator the moment
+                                      // the call service transitions to a non-idle state.
+                                      // Invisible.
+                                      _CallOverlay(
+                                        service: _callService,
+                                        api: _api,
                                       ),
-                                    // Pushes call screens onto the root navigator the moment
-                                    // the call service transitions to a non-idle state.
-                                    // Invisible.
-                                    _CallOverlay(
-                                      service: _callService,
-                                      api: _api,
-                                    ),
-                                    // Same job for group calls: pushes GroupCallScreen /
-                                    // the group invite ringer. Invisible.
-                                    _GroupCallOverlay(
-                                      service: _groupCallService,
-                                      api: _api,
-                                    ),
-                                    // Listens for a deliberate shake and OFFERS the report
-                                    // screen. Invisible; mounted here only so the sensor
-                                    // subscription's lifetime matches the app's. Gated on
-                                    // bootstrap so a shake during the splash cannot open a
-                                    // form over a half-built tree.
-                                    if (_bootstrapped && _bootError == null)
-                                      ShakeToReport(auth: _auth, api: _api),
-                                  ],
+                                      // Same job for group calls: pushes GroupCallScreen /
+                                      // the group invite ringer. Invisible.
+                                      _GroupCallOverlay(
+                                        service: _groupCallService,
+                                        api: _api,
+                                      ),
+                                      // Listens for a deliberate shake and OFFERS the report
+                                      // screen. Invisible; mounted here only so the sensor
+                                      // subscription's lifetime matches the app's. Gated on
+                                      // bootstrap so a shake during the splash cannot open a
+                                      // form over a half-built tree.
+                                      if (_bootstrapped && _bootError == null)
+                                        ShakeToReport(auth: _auth, api: _api),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                        // Above EVERYTHING, the server bar included, so a screen
-                        // recording cannot capture any of it.
-                        const CaptureShield(),
-                      ],
+                            ],
+                          ),
+                          // Above EVERYTHING, the server bar included, so a screen
+                          // recording cannot capture any of it.
+                          const CaptureShield(),
+                        ],
+                      ),
                     ),
                   ),
                 ),
