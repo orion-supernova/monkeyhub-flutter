@@ -19,6 +19,7 @@ import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../data/username_availability_controller.dart';
+import '../widgets/device_login_panel.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/password_field.dart';
 import '../widgets/self_host_badge.dart' show shortHost;
@@ -29,6 +30,22 @@ import 'device_login_screen.dart';
 import 'recovery_phrase_screen.dart';
 import 'server_screen.dart';
 import 'social_username_screen.dart';
+
+/// Minimum window width at which the phone sign-in panel sits beside the
+/// password form (see `LoginScreen._formColumn`/`build`) instead of behind
+/// the footer link that pushes the full-screen `DeviceLoginScreen`. Set with
+/// headroom above the fixed layout it enables (`ContentWidth.auth` +
+/// `_phonePanelGap` + `_phonePanelWidth` = 828), so the row never ends up
+/// flush against the window edge.
+const double _phonePanelBreakpoint = 840;
+
+/// Fixed width of the phone sign-in panel in the side-by-side layout — wide
+/// enough for the 200px QR (plus its card padding) and the six-digit code
+/// row, no wider.
+const double _phonePanelWidth = 320;
+
+/// Gap between the password form and the phone panel.
+const double _phonePanelGap = 48;
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, required this.auth});
@@ -343,66 +360,109 @@ class _LoginScreenState extends State<LoginScreen> {
         children: [
           theme.backgroundLayer(context),
           SafeArea(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: ContentWidth.auth),
-                child: Column(
-                  children: [
-                    // Form fills the space above the footer and stays
-                    // vertically centred in it until it grows tall enough to
-                    // need scrolling (sign-up expanded, or keyboard open).
-                    Expanded(
-                      child: LayoutBuilder(
-                        builder: (context, constraints) => SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(28, 36, 28, 12),
-                          child: ConstrainedBox(
-                            // Never negative: the keyboard can shrink the
-                            // viewport below the padding we subtract.
-                            constraints: BoxConstraints(
-                              minHeight: math.max(
-                                0,
-                                constraints.maxHeight - 48,
-                              ),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                _Hero(mode: _mode),
-                                const SizedBox(height: 28),
-                                ..._fields(),
-                                if (_error != null) ...[
-                                  const SizedBox(height: 14),
-                                  _ErrorBanner(_error!),
-                                ],
-                                const SizedBox(height: 20),
-                                _SubmitButton(
-                                  busy: _busy,
-                                  label: _mode.cta(context),
-                                  onTap: _submit,
-                                ),
-                                // Not on `reset`: a recovery phrase resets a
-                                // password, and these accounts may not have one.
-                                if (_mode != _AuthMode.reset)
-                                  SocialSignInButtons(
-                                    onProvider: _socialSignIn,
-                                    busyProvider: _socialBusy,
-                                    enabled: !_busy,
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
+            child: LayoutBuilder(
+              builder: (context, outer) {
+                // Desktop/web only, and sign-in only — scanning a QR needs a
+                // phone on the other end, and sign-up/reset have no use for
+                // it. Below the breakpoint the row would either overflow or
+                // squeeze the form uncomfortably narrow, so `_footer` offers
+                // the link to the full-screen fallback instead.
+                final showPhonePanel = isWebOrDesktop &&
+                    _mode == _AuthMode.signIn &&
+                    outer.maxWidth >= _phonePanelBreakpoint;
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: showPhonePanel
+                          ? ContentWidth.auth + _phonePanelGap + _phonePanelWidth
+                          : ContentWidth.auth,
+                      maxHeight: outer.maxHeight,
                     ),
-                    _footer(),
+                    child: showPhonePanel
+                        ? Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                child: _formColumn(showPhoneLink: false),
+                              ),
+                              const SizedBox(width: _phonePanelGap),
+                              SizedBox(
+                                width: _phonePanelWidth,
+                                child: Center(
+                                  child: SingleChildScrollView(
+                                    padding: const EdgeInsets.symmetric(vertical: 36),
+                                    child: DeviceLoginPanel(auth: widget.auth),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : _formColumn(showPhoneLink: true),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The password form plus its pinned footer. Shared by the single-column
+  /// layout and the left side of the desktop side-by-side layout — see
+  /// `build`.
+  Widget _formColumn({required bool showPhoneLink}) {
+    return Column(
+      children: [
+        // Form fills the space above the footer and stays vertically
+        // centred in it until it grows tall enough to need scrolling
+        // (sign-up expanded, or keyboard open).
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(28, 36, 28, 12),
+              child: ConstrainedBox(
+                // Never negative: the keyboard can shrink the
+                // viewport below the padding we subtract.
+                constraints: BoxConstraints(
+                  minHeight: math.max(
+                    0,
+                    constraints.maxHeight - 48,
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _Hero(mode: _mode),
+                    const SizedBox(height: 28),
+                    ..._fields(),
+                    if (_error != null) ...[
+                      const SizedBox(height: 14),
+                      _ErrorBanner(_error!),
+                    ],
+                    const SizedBox(height: 20),
+                    _SubmitButton(
+                      busy: _busy,
+                      label: _mode.cta(context),
+                      onTap: _submit,
+                    ),
+                    // Not on `reset`: a recovery phrase resets a
+                    // password, and these accounts may not have one.
+                    if (_mode != _AuthMode.reset)
+                      SocialSignInButtons(
+                        onProvider: _socialSignIn,
+                        busyProvider: _socialBusy,
+                        enabled: !_busy,
+                      ),
                   ],
                 ),
               ),
             ),
           ),
-        ],
-      ),
+        ),
+        _footer(showPhoneLink: showPhoneLink),
+      ],
     );
   }
 
@@ -497,7 +557,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   /// Mode-switching links, pinned to the bottom of the screen in every mode.
-  Widget _footer() {
+  ///
+  /// [showPhoneLink] is false when the phone panel is already visible beside
+  /// the form (see `build`) — the link would just be a second way to reach
+  /// something already on screen.
+  Widget _footer({required bool showPhoneLink}) {
     final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(28, 12, 28, 20),
@@ -530,8 +594,9 @@ class _LoginScreenState extends State<LoginScreen> {
               // Desktop/web only — scanning a QR needs a phone on the other
               // end, so this is offered ALONGSIDE the password form rather
               // than replacing it: not every self-hosted deployment's users
-              // will have a paired phone to scan with.
-              if (isWebOrDesktop) ...[
+              // will have a paired phone to scan with. Suppressed when the
+              // panel itself is already showing beside the form (`build`).
+              if (isWebOrDesktop && showPhoneLink) ...[
                 const SizedBox(height: 10),
                 _TextLink(
                   label: l10n.loginScreenSignInWithPhone,
