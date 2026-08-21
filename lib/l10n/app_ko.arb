@@ -1883,7 +1883,7 @@
   "authErrorDeviceLoginInvalid": "That code isn’t right.",
   "authErrorDeviceLoginExpired": "That code has expired — get a new one on the other device.",
   "deviceLoginScanScreenDeniedConfirmation": "sign-in request denied",
-  "roomAdminRoleOwner": "소유자",
+  "roomInfoScreenOwnerBadgeNote": "이름 옆의 작은 메달은 이 방을 만든 사람을 나타냅니다.",
   "roomAdminRoleAdmin": "관리자",
   "roomAdminActionViewProfile": "프로필 보기",
   "roomAdminActionPromote": "관리자로 지정",

@@ -5871,6 +5871,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'toi seul vois les messages que tu enregistres ; un message épinglé, c’est l’inverse : toute la salle le voit.';
 
   @override
+  String get roomInfoScreenOwnerBadgeNote =>
+      'la petite médaille à côté d’un nom indique qui a créé cette salle.';
+
+  @override
   String roomContentScreenSavedJumpSemantic(Object name) {
     return 'Aller au message enregistré de $name';
   }
@@ -6774,9 +6778,6 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get deviceLoginScanScreenDeniedConfirmation =>
       'sign-in request denied';
-
-  @override
-  String get roomAdminRoleOwner => 'PROPRIÉTAIRE';
 
   @override
   String get roomAdminRoleAdmin => 'ADMIN';

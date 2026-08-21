@@ -1883,7 +1883,7 @@
   "authErrorDeviceLoginInvalid": "That code isn’t right.",
   "authErrorDeviceLoginExpired": "That code has expired — get a new one on the other device.",
   "deviceLoginScanScreenDeniedConfirmation": "sign-in request denied",
-  "roomAdminRoleOwner": "群主",
+  "roomInfoScreenOwnerBadgeNote": "名字旁边的小奖章表示这个房间是谁创建的。",
   "roomAdminRoleAdmin": "管理员",
   "roomAdminActionViewProfile": "查看资料",
   "roomAdminActionPromote": "设为管理员",

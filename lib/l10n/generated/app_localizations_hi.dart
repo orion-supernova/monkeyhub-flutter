@@ -5781,6 +5781,10 @@ class AppLocalizationsHi extends AppLocalizations {
       'आपके सेव किए मैसेज सिर्फ़ आपको दिखते हैं — पिन किया गया मैसेज इसका उल्टा है: उसे पूरा रूम देखता है.';
 
   @override
+  String get roomInfoScreenOwnerBadgeNote =>
+      'नाम के बगल में मौजूद छोटा मेडल दिखाता है कि यह रूम किसने बनाया.';
+
+  @override
   String roomContentScreenSavedJumpSemantic(Object name) {
     return '$name के सेव किए गए मैसेज पर जाना';
   }
@@ -6673,9 +6677,6 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get deviceLoginScanScreenDeniedConfirmation =>
       'sign-in request denied';
-
-  @override
-  String get roomAdminRoleOwner => 'मालिक';
 
   @override
   String get roomAdminRoleAdmin => 'एडमिन';

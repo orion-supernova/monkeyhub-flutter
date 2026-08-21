@@ -9917,6 +9917,12 @@ abstract class AppLocalizations {
   /// **'only you can see the messages you save — a pinned message is the opposite: the whole room sees it.'**
   String get roomInfoScreenSharedContentSavedNote;
 
+  /// Caption under the member roster in room info, shown only when the roster includes the room's owner. Explains the medal icon RoleChip adds to that one member's ADMIN badge (see room_member_actions_sheet.dart) — the badge itself no longer spells out the word 'owner' in any language, so this sentence is the only place that fact is stated.
+  ///
+  /// In en, this message translates to:
+  /// **'the small medal next to a name marks whoever created this room.'**
+  String get roomInfoScreenOwnerBadgeNote;
+
   /// Accessibility semanticLabel on a row in the SAVED tab of the shared-content browser; tapping closes the browser and scrolls the chat transcript to that message. {name} is the sender's display name.
   ///
   /// In en, this message translates to:
@@ -11440,12 +11446,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'sign-in request denied'**
   String get deviceLoginScanScreenDeniedConfirmation;
-
-  /// Badge on the one member who owns the group. Same word as the existing owner badge, reused in the member-action sheet.
-  ///
-  /// In en, this message translates to:
-  /// **'OWNER'**
-  String get roomAdminRoleOwner;
 
   /// Badge on a member promoted to admin.
   ///

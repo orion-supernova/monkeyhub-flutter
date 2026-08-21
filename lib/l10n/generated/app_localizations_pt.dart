@@ -5845,6 +5845,10 @@ class AppLocalizationsPt extends AppLocalizations {
       'só tu vês as mensagens que guardas — uma mensagem fixada é o oposto: toda a sala a vê.';
 
   @override
+  String get roomInfoScreenOwnerBadgeNote =>
+      'a pequena medalha ao lado de um nome indica quem criou esta sala.';
+
+  @override
   String roomContentScreenSavedJumpSemantic(Object name) {
     return 'Ir para a mensagem guardada de $name';
   }
@@ -6746,9 +6750,6 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get deviceLoginScanScreenDeniedConfirmation =>
       'sign-in request denied';
-
-  @override
-  String get roomAdminRoleOwner => 'DONO';
 
   @override
   String get roomAdminRoleAdmin => 'ADMIN';
@@ -13090,6 +13091,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'só você vê as mensagens que salva — uma mensagem fixada é o oposto: a sala inteira vê.';
 
   @override
+  String get roomInfoScreenOwnerBadgeNote =>
+      'a pequena medalha ao lado de um nome indica quem criou esta sala.';
+
+  @override
   String roomContentScreenSavedJumpSemantic(Object name) {
     return 'Ir para a mensagem salva de $name';
   }
@@ -13990,9 +13995,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get deviceLoginScanScreenDeniedConfirmation =>
       'sign-in request denied';
-
-  @override
-  String get roomAdminRoleOwner => 'DONO';
 
   @override
   String get roomAdminRoleAdmin => 'ADMIN';

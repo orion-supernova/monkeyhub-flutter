@@ -1883,7 +1883,7 @@
   "authErrorDeviceLoginInvalid": "That code isn’t right.",
   "authErrorDeviceLoginExpired": "That code has expired — get a new one on the other device.",
   "deviceLoginScanScreenDeniedConfirmation": "sign-in request denied",
-  "roomAdminRoleOwner": "ÄGARE",
+  "roomInfoScreenOwnerBadgeNote": "den lilla medaljen bredvid ett namn visar vem som skapade det här rummet.",
   "roomAdminRoleAdmin": "ADMIN",
   "roomAdminActionViewProfile": "Visa profil",
   "roomAdminActionPromote": "Gör till admin",

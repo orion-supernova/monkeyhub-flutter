@@ -5569,6 +5569,9 @@ class AppLocalizationsKo extends AppLocalizations {
       '저장한 메시지는 나만 볼 수 있습니다. 고정한 메시지는 반대로 방 전체가 봅니다.';
 
   @override
+  String get roomInfoScreenOwnerBadgeNote => '이름 옆의 작은 메달은 이 방을 만든 사람을 나타냅니다.';
+
+  @override
   String roomContentScreenSavedJumpSemantic(Object name) {
     return '$name님의 저장한 메시지로 이동';
   }
@@ -6425,9 +6428,6 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get deviceLoginScanScreenDeniedConfirmation =>
       'sign-in request denied';
-
-  @override
-  String get roomAdminRoleOwner => '소유자';
 
   @override
   String get roomAdminRoleAdmin => '관리자';

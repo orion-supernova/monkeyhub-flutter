@@ -5481,6 +5481,9 @@ class AppLocalizationsZh extends AppLocalizations {
       '你保存的消息只有你能看到；置顶的消息正相反，整个房间都能看到。';
 
   @override
+  String get roomInfoScreenOwnerBadgeNote => '名字旁边的小奖章表示这个房间是谁创建的。';
+
+  @override
   String roomContentScreenSavedJumpSemantic(Object name) {
     return '跳转到$name保存的消息';
   }
@@ -6328,9 +6331,6 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get deviceLoginScanScreenDeniedConfirmation =>
       'sign-in request denied';
-
-  @override
-  String get roomAdminRoleOwner => '群主';
 
   @override
   String get roomAdminRoleAdmin => '管理员';

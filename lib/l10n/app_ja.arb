@@ -1883,7 +1883,7 @@
   "authErrorDeviceLoginInvalid": "That code isn’t right.",
   "authErrorDeviceLoginExpired": "That code has expired — get a new one on the other device.",
   "deviceLoginScanScreenDeniedConfirmation": "sign-in request denied",
-  "roomAdminRoleOwner": "オーナー",
+  "roomInfoScreenOwnerBadgeNote": "名前の横にある小さいメダルは、このルームを作成した人を示します。",
   "roomAdminRoleAdmin": "管理者",
   "roomAdminActionViewProfile": "プロフィールを見る",
   "roomAdminActionPromote": "管理者にする",

@@ -1515,6 +1515,17 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
           const SizedBox(height: 4),
           for (final inv in _pendingInvites) _pendingInviteRow(theme, inv),
         ],
+        // Explains the medal on [RoleChip] once for the whole roster, the same
+        // way the SAVED row gets one caption instead of every pin re-arguing
+        // the point. Gated on an owner actually being in `ordered` rather than
+        // on room type, so it can never appear pointing at a badge nobody sees.
+        if (ordered.any((m) => RoomRoleWire.parse(m.role) == RoomRole.owner)) ...[
+          const SizedBox(height: 8),
+          Text(
+            AppLocalizations.of(context).roomInfoScreenOwnerBadgeNote,
+            style: theme.bodySoft.copyWith(fontSize: 12),
+          ),
+        ],
       ],
     );
   }

@@ -1883,7 +1883,7 @@
   "authErrorDeviceLoginInvalid": "That code isn’t right.",
   "authErrorDeviceLoginExpired": "That code has expired — get a new one on the other device.",
   "deviceLoginScanScreenDeniedConfirmation": "sign-in request denied",
-  "roomAdminRoleOwner": "المالك",
+  "roomInfoScreenOwnerBadgeNote": "الميدالية الصغيرة بجانب الاسم تدل على من أنشأ هذه الغرفة.",
   "roomAdminRoleAdmin": "مشرف",
   "roomAdminActionViewProfile": "عرض الملف الشخصي",
   "roomAdminActionPromote": "تعيينه مشرفًا",

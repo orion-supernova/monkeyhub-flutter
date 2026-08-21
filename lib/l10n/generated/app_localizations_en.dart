@@ -5764,6 +5764,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'only you can see the messages you save — a pinned message is the opposite: the whole room sees it.';
 
   @override
+  String get roomInfoScreenOwnerBadgeNote =>
+      'the small medal next to a name marks whoever created this room.';
+
+  @override
   String roomContentScreenSavedJumpSemantic(Object name) {
     return 'Jump to saved message from $name';
   }
@@ -6653,9 +6657,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get deviceLoginScanScreenDeniedConfirmation =>
       'sign-in request denied';
-
-  @override
-  String get roomAdminRoleOwner => 'OWNER';
 
   @override
   String get roomAdminRoleAdmin => 'ADMIN';

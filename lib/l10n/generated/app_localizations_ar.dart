@@ -5844,6 +5844,10 @@ class AppLocalizationsAr extends AppLocalizations {
       'أنت وحدك من يرى الرسائل التي تحفظها — والرسالة المثبّتة عكس ذلك تمامًا: تراها الغرفة كلها.';
 
   @override
+  String get roomInfoScreenOwnerBadgeNote =>
+      'الميدالية الصغيرة بجانب الاسم تدل على من أنشأ هذه الغرفة.';
+
+  @override
   String roomContentScreenSavedJumpSemantic(Object name) {
     return 'الانتقال إلى الرسالة المحفوظة من $name';
   }
@@ -6743,9 +6747,6 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get deviceLoginScanScreenDeniedConfirmation =>
       'sign-in request denied';
-
-  @override
-  String get roomAdminRoleOwner => 'المالك';
 
   @override
   String get roomAdminRoleAdmin => 'مشرف';

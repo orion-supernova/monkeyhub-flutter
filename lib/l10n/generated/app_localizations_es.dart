@@ -5835,6 +5835,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'solo tú ves los mensajes que guardas; un mensaje fijado es lo contrario: lo ve toda la sala.';
 
   @override
+  String get roomInfoScreenOwnerBadgeNote =>
+      'la pequeña medalla junto a un nombre indica quién creó esta sala.';
+
+  @override
   String roomContentScreenSavedJumpSemantic(Object name) {
     return 'Ir al mensaje guardado de $name';
   }
@@ -6733,9 +6737,6 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get deviceLoginScanScreenDeniedConfirmation =>
       'sign-in request denied';
-
-  @override
-  String get roomAdminRoleOwner => 'PROPIETARIO';
 
   @override
   String get roomAdminRoleAdmin => 'ADMIN';

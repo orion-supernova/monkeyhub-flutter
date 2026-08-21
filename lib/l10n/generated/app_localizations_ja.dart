@@ -5551,6 +5551,9 @@ class AppLocalizationsJa extends AppLocalizations {
       '保存したメッセージが見えるのはあなただけです。ピン留めしたメッセージはその逆で、ルーム全員に見えます。';
 
   @override
+  String get roomInfoScreenOwnerBadgeNote => '名前の横にある小さいメダルは、このルームを作成した人を示します。';
+
+  @override
   String roomContentScreenSavedJumpSemantic(Object name) {
     return '$nameの保存したメッセージにジャンプ';
   }
@@ -6405,9 +6408,6 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get deviceLoginScanScreenDeniedConfirmation =>
       'sign-in request denied';
-
-  @override
-  String get roomAdminRoleOwner => 'オーナー';
 
   @override
   String get roomAdminRoleAdmin => '管理者';

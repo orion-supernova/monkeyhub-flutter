@@ -281,6 +281,7 @@ class RoleChip extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final isOwner = role == RoomRole.owner;
+    final color = isOwner ? theme.accentInk : theme.inkSoft;
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: dense ? 6 : 8,
@@ -289,12 +290,26 @@ class RoleChip extends StatelessWidget {
       // Filled for the owner, outlined for an admin. One room has exactly one
       // owner and can have many admins, so the rarer fact gets the louder
       // treatment and a roster of admins does not turn into a wall of colour.
+      //
+      // Both read "ADMIN" — an owner is one, plus this badge. A separate word
+      // ("OWNER") read as property law once translated (SAHİP, PROPRIÉTAIRE,
+      // DONO); the medal — the same icon `roomAdminActionTransfer` uses — is
+      // what actually says "started this room now", and the footer under the
+      // roster spells that out once instead of leaning on the word.
       decoration: theme.chipDecoration(filled: isOwner),
-      child: Text(
-        isOwner ? l10n.roomAdminRoleOwner : l10n.roomAdminRoleAdmin,
-        style: theme.monoTiny.copyWith(
-          color: isOwner ? theme.accentInk : theme.inkSoft,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isOwner) ...[
+            Icon(
+              Icons.workspace_premium_outlined,
+              size: dense ? 11 : 12,
+              color: color,
+            ),
+            const SizedBox(width: 3),
+          ],
+          Text(l10n.roomAdminRoleAdmin, style: theme.monoTiny.copyWith(color: color)),
+        ],
       ),
     );
   }

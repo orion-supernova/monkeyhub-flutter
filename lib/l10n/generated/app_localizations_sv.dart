@@ -5797,6 +5797,10 @@ class AppLocalizationsSv extends AppLocalizations {
       'bara du ser meddelandena du sparar — ett fäst meddelande är tvärtom: hela rummet ser det.';
 
   @override
+  String get roomInfoScreenOwnerBadgeNote =>
+      'den lilla medaljen bredvid ett namn visar vem som skapade det här rummet.';
+
+  @override
   String roomContentScreenSavedJumpSemantic(Object name) {
     return 'Hoppa till sparat meddelande från $name';
   }
@@ -6689,9 +6693,6 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get deviceLoginScanScreenDeniedConfirmation =>
       'sign-in request denied';
-
-  @override
-  String get roomAdminRoleOwner => 'ÄGARE';
 
   @override
   String get roomAdminRoleAdmin => 'ADMIN';

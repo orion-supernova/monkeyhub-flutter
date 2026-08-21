@@ -5748,6 +5748,10 @@ class AppLocalizationsTr extends AppLocalizations {
       'kaydettiğin mesajları yalnızca sen görürsün — sabitlenen bir mesaj ise tam tersi: onu odadaki herkes görür.';
 
   @override
+  String get roomInfoScreenOwnerBadgeNote =>
+      'bir ismin yanındaki küçük madalya, bu odayı kimin oluşturduğunu gösterir.';
+
+  @override
   String roomContentScreenSavedJumpSemantic(Object name) {
     return '$name tarafından gönderilen kaydedilen mesaja git';
   }
@@ -6637,9 +6641,6 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get deviceLoginScanScreenDeniedConfirmation =>
       'sign-in request denied';
-
-  @override
-  String get roomAdminRoleOwner => 'SAHİP';
 
   @override
   String get roomAdminRoleAdmin => 'YÖNETİCİ';

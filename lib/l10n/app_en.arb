@@ -6534,6 +6534,10 @@
   "@roomInfoScreenSharedContentSavedNote": {
     "description": "Caption under the SHARED CONTENT group in room info, explaining the SAVED row that sits in it. The contrast with pinning is the whole point of the sentence — saved is per-reader, pinned is room state — so keep both halves."
   },
+  "roomInfoScreenOwnerBadgeNote": "the small medal next to a name marks whoever created this room.",
+  "@roomInfoScreenOwnerBadgeNote": {
+    "description": "Caption under the member roster in room info, shown only when the roster includes the room's owner. Explains the medal icon RoleChip adds to that one member's ADMIN badge (see room_member_actions_sheet.dart) — the badge itself no longer spells out the word 'owner' in any language, so this sentence is the only place that fact is stated."
+  },
   "roomContentScreenSavedJumpSemantic": "Jump to saved message from {name}",
   "@roomContentScreenSavedJumpSemantic": {
     "description": "Accessibility semanticLabel on a row in the SAVED tab of the shared-content browser; tapping closes the browser and scrolls the chat transcript to that message. {name} is the sender's display name."
@@ -7683,10 +7687,6 @@
   "deviceLoginScanScreenDeniedConfirmation": "sign-in request denied",
   "@deviceLoginScanScreenDeniedConfirmation": {
     "description": "Confirmation message on the phone's device-login scan screen after DENY succeeds — deliberately not the same 'on your phone' wording the desktop side shows, since that phrase would read oddly on the phone that just did the denying."
-  },
-  "roomAdminRoleOwner": "OWNER",
-  "@roomAdminRoleOwner": {
-    "description": "Badge on the one member who owns the group. Same word as the existing owner badge, reused in the member-action sheet."
   },
   "roomAdminRoleAdmin": "ADMIN",
   "@roomAdminRoleAdmin": {
