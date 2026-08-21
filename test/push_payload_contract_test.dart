@@ -22,7 +22,10 @@ void main() {
       'chattest20241220/ChatNotifications.kt';
   const androidRoute = 'android/app/src/main/kotlin/com/walhallaa/'
       'chattest20241220/CallFcmService.kt';
+  const androidActivity = 'android/app/src/main/kotlin/com/walhallaa/'
+      'chattest20241220/MainActivity.kt';
   const web = 'web/mh-push-sw.js';
+  const nudge = 'backend/convex/dailyNudge.ts';
 
   final cache = <String, String>{};
   String source(String path) => cache.putIfAbsent(path, () {
@@ -86,9 +89,16 @@ void main() {
   });
 
   group('kind values', () {
-    // The five kinds sendAlert accepts. A sixth would need a home on every
-    // platform, and a renamed one would fall through to the default branch.
-    const kinds = ['message', 'approval', 'call_invite', 'group_call_invite'];
+    // The kinds the senders in push.ts emit. A new one would need a home on
+    // every platform, and a renamed one would fall through to the default
+    // branch — silently, on a device nobody is holding.
+    const kinds = [
+      'message',
+      'approval',
+      'call_invite',
+      'group_call_invite',
+      'daily_games',
+    ];
     for (final kind in kinds) {
       test('"$kind" is dispatched on Android', () {
         expect(source(androidRoute).contains('"$kind"'), isTrue);
@@ -105,6 +115,40 @@ void main() {
     test('"approval" routes to the requests screen on iOS', () {
       expect(source(ios).contains('onOpenRequests'), isTrue);
       expect(source(ios).contains('"approval"'), isTrue);
+    });
+
+    test('"daily_games" routes to the games shelf on both phone platforms', () {
+      // The nudge carries no roomId, so on both platforms it falls past the
+      // room branch and has to be recognised by kind. Miss either half and the
+      // tap merely raises the app — which looks like the notification working,
+      // right up until somebody says "it doesn't open the games".
+      expect(source(ios).contains('"daily_games"'), isTrue);
+      expect(source(ios).contains('onOpenGames'), isTrue);
+      expect(source(androidActivity).contains('"daily_games"'), isTrue);
+      expect(source(androidActivity).contains('onOpenGames'), isTrue);
+    });
+
+    test('"daily_games" gets its own Android channel', () {
+      // A daily broadcast rendered on the messages channel cannot be silenced
+      // from system settings without silencing messages too — which is the
+      // whole promise the in-app switch makes, broken on the one platform
+      // where the OS offers the finer control.
+      final src = source(androidRender);
+      expect(src.contains('CH_GAMES'), isTrue);
+      expect(src.contains('mh_games'), isTrue);
+    });
+
+    test('the daily nudge is not sent to the web', () {
+      // Not an oversight: a browser only receives a push while its service
+      // worker is alive, so the audience would be whoever left a tab open. The
+      // audience filter is the record of that decision — if it ever accepts a
+      // web subscription again, mh-push-sw.js needs a `daily_games` branch in
+      // `notificationclick` before this test is deleted.
+      final src = source(nudge);
+      expect(src.contains('webEndpoint'), isFalse,
+          reason: 'dailyNudge must not select web subscriptions');
+      expect(source(web).contains('daily_games'), isFalse,
+          reason: 'the service worker has no daily_games branch to reach');
     });
   });
 

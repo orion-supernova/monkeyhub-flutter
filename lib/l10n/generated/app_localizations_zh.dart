@@ -4514,6 +4514,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsScreenPushOffBody => '静音——只有打开App才能看到';
 
   @override
+  String get settingsScreenGameRemindersLabel => '每日游戏提醒';
+
+  @override
+  String get settingsScreenGameRemindersOnBody => '中午提醒一次，只在你还没玩的时候';
+
+  @override
+  String get settingsScreenGameRemindersOffBody => '不提醒——游戏随时都在';
+
+  @override
   String get authErrorUsernameTaken => '该用户名已被占用。';
 
   @override

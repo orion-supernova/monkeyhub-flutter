@@ -4765,6 +4765,17 @@ class AppLocalizationsSv extends AppLocalizations {
       'tyst — du ser bara saker när du öppnar appen';
 
   @override
+  String get settingsScreenGameRemindersLabel => 'DAGLIG SPELPÅMINNELSE';
+
+  @override
+  String get settingsScreenGameRemindersOnBody =>
+      'en påminnelse vid lunch, bara om du inte spelat';
+
+  @override
+  String get settingsScreenGameRemindersOffBody =>
+      'ingen påminnelse — spelen finns kvar när du tittar';
+
+  @override
   String get authErrorUsernameTaken => 'Det användarnamnet är redan taget.';
 
   @override

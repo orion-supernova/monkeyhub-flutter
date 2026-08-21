@@ -26,6 +26,9 @@ type DevicePatch = Partial<
     | "webP256dh"
     | "webAuth"
     | "pushEnabled"
+    | "gameRemindersEnabled"
+    | "locale"
+    | "tzOffsetMinutes"
   >
 >;
 
@@ -244,6 +247,83 @@ export const setPushEnabled = mutation({
     // client re-asserts the toggle then.
     if (!row) return;
     await ctx.db.patch(row._id, { pushEnabled: enabled });
+  },
+});
+
+/**
+ * This device's language and time zone, as its running app resolves them.
+ *
+ * Its own entry point rather than an argument bolted onto the five token
+ * setters, because it is re-run on a completely different schedule from any of
+ * them: a token changes when the OS mints a new one, whereas these two change
+ * when the user picks a language, boards a plane, or the zone shifts for DST.
+ * Wiring them into `setApnsToken` would mean a person who never rotates a
+ * token never updates a time zone.
+ *
+ * Both arguments are optional and only what is passed is written, so one can
+ * move without disturbing the other — changing app language must not silently
+ * re-stamp a stale offset, and vice versa. The client sends both together
+ * anyway (it reads both fresh, and only calls when either differs), which
+ * makes that belt-and-braces rather than load-bearing.
+ *
+ * Creates the row if this device has none yet, exactly like every other
+ * registration path here: a desktop that never uploads a token still wants a
+ * language on file for the day the nudge reaches it over some other transport.
+ */
+export const setDeviceContext = mutation({
+  args: {
+    userId: v.id("users"),
+    deviceId: v.string(),
+    platform: v.string(),
+    deviceName: v.optional(v.string()),
+    /** BCP-47-ish, as Flutter resolved it: "en", "tr", "pt-BR". */
+    locale: v.optional(v.string()),
+    /** Minutes ahead of UTC: +180 Istanbul, -480 California. */
+    tzOffsetMinutes: v.optional(v.number()),
+  },
+  handler: async (
+    ctx,
+    { userId, deviceId, platform, deviceName, locale, tzOffsetMinutes },
+  ) => {
+    const patch: DevicePatch = {};
+    if (locale !== undefined) patch.locale = locale;
+    if (tzOffsetMinutes !== undefined) {
+      // Snapped to the quarter hour the audience query probes on. Every real
+      // zone already is one (Kathmandu +345, Chatham +765); a device whose
+      // clock reports something else is broken, and rounding it is the
+      // difference between that device being nudged an odd number of minutes
+      // late and never being nudged at all.
+      patch.tzOffsetMinutes = Math.round(tzOffsetMinutes / 15) * 15;
+    }
+    await upsertDevice(ctx, userId, deviceId, platform, deviceName, patch);
+  },
+});
+
+/**
+ * Per-device opt-out for the daily games nudge, and nothing else.
+ *
+ * Deliberately not folded into `setPushEnabled`: that switch is "reach this
+ * device at all", and a person who wants the once-a-day reminder to stop
+ * almost never means "and also stop telling me about messages".
+ */
+export const setGameReminders = mutation({
+  args: {
+    userId: v.id("users"),
+    deviceId: v.string(),
+    enabled: v.boolean(),
+  },
+  handler: async (ctx, { userId, deviceId, enabled }) => {
+    const row = await ctx.db
+      .query("userDevices")
+      .withIndex("by_user_device", (q) =>
+        q.eq("userId", userId).eq("deviceId", deviceId),
+      )
+      .first();
+    // Same as `setPushEnabled` above: no row means this device has not
+    // registered yet, and nothing is lost — app.dart re-asserts the stored
+    // preference immediately after the next login creates one.
+    if (!row) return;
+    await ctx.db.patch(row._id, { gameRemindersEnabled: enabled });
   },
 });
 

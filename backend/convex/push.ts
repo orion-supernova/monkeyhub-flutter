@@ -39,7 +39,8 @@ export type AlertKind =
   | "approval"
   | "call_invite"
   | "group_call_invite"
-  | "dismiss";
+  | "dismiss"
+  | "daily_games";
 
 export type AlertSpec = {
   kind: AlertKind;
@@ -81,6 +82,12 @@ const KIND_TTL_SECONDS: Record<AlertKind, number> = {
   call_invite: 45,
   group_call_invite: 60,
   dismiss: 3600,
+  // Three hours, and short on purpose. This one is sent because it is
+  // lunchtime where the person is standing; a phone that was off all afternoon
+  // should get nothing when it wakes rather than a reminder about a moment
+  // that has passed. Unlike a chat message, nothing is lost by dropping it —
+  // there is another one tomorrow.
+  daily_games: 10800,
 };
 
 // APNs and FCM both cap a payload at 4096 bytes and Web Push has less than
@@ -175,7 +182,11 @@ export function buildFcmMessage(
 ): Record<string, unknown> {
   const data: Record<string, string> = {
     ...spec.data,
-    badge: String(spec.badge),
+    // Omitted for the daily nudge, which is not an unread item and has no
+    // count of its own to report. iOS already skips it (see `buildApnsBody`);
+    // sending a number here would make the two platforms disagree about what
+    // a nudge means, for a key neither of them renders on one.
+    ...(spec.kind === "daily_games" ? {} : { badge: String(spec.badge) }),
   };
   if (spec.title) data.title = clamp(spec.title, TITLE_MAX);
   if (spec.body) data.body = clamp(spec.body, BODY_MAX);
@@ -199,7 +210,7 @@ export function buildFcmMessage(
 export function buildWebPushPayload(spec: AlertSpec): Record<string, string> {
   const out: Record<string, string> = {
     ...spec.data,
-    badge: String(spec.badge),
+    ...(spec.kind === "daily_games" ? {} : { badge: String(spec.badge) }),
   };
   if (spec.title) out.title = clamp(spec.title, TITLE_MAX);
   if (spec.body) out.body = clamp(spec.body, BODY_MAX);
@@ -218,6 +229,13 @@ type AlertDevice = {
   apnsEnv?: ApnsEnv;
   fcmToken?: string;
   web?: WebPushSubscription;
+  /**
+   * The language this device's app is running in — see the `locale` column on
+   * `userDevices`. Read only by senders that compose their own copy
+   * (`dailyNudge.ts`); a chat notification's text is a person's message and is
+   * not ours to translate.
+   */
+  locale?: string;
 };
 
 type AlertTarget = {
@@ -277,6 +295,7 @@ export const _loadAlertTargets = internalQuery({
           apnsEnv: r.apnsEnv,
           fcmToken: r.fcmToken,
           web,
+          locale: r.locale,
         });
       }
       const { total } = await badgeTotalFor(ctx, userId);
@@ -372,6 +391,50 @@ export const sendAlert = internalAction({
           t.devices.map((d) => alertToDevice(ctx, t.userId, d, spec)),
         );
       }),
+    );
+    return null;
+  },
+});
+
+/**
+ * The same fan-out, addressed to DEVICES rather than to people.
+ *
+ * `sendAlert` above composes one payload per recipient and copies it to every
+ * screen they own, which is right for a chat message: the text is the sender's
+ * and it reads the same everywhere. The daily nudge is the opposite case —
+ * every word of it is ours, and the language it should be written in is a
+ * property of the handset, not of the account (see `userDevices.locale`). A
+ * shared family phone in Turkish and its owner's laptop in English are both
+ * correct at once.
+ *
+ * So the caller resolves copy per device and hands the finished specs over.
+ * Everything below the composition step — transport selection, the three error
+ * classes, dead-credential clearing, the single retry — is `alertToDevice`,
+ * unchanged and shared, which is the whole reason this lives here rather than
+ * growing a second sender inside dailyNudge.ts.
+ *
+ * There is no room, so there is no mute to resolve and no read cursor to race:
+ * the caller's own audience query is the entire gate. `pushEnabled` is the one
+ * exception, and it is applied there too — a device that has opted out of push
+ * must not be reachable from any sender in this file.
+ */
+export const sendAlertToDevices = internalAction({
+  args: {
+    /** `{ userId, device, spec }` triples — see `AlertDevice`/`AlertSpec`. */
+    targets: v.array(v.any()),
+  },
+  returns: v.null(),
+  handler: async (ctx, { targets }) => {
+    if (targets.length === 0) return null;
+    await Promise.allSettled(
+      targets.map((t: any) =>
+        alertToDevice(
+          ctx,
+          t.userId as Id<"users">,
+          t.device as AlertDevice,
+          t.spec as AlertSpec,
+        ),
+      ),
     );
     return null;
   },

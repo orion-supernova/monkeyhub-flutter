@@ -36,7 +36,21 @@ class PushManager {
   bool _initialized = false;
   void Function(String roomId)? _onOpenRoom;
   VoidCallback? _onOpenRequests;
+  VoidCallback? _onOpenGames;
   String? Function()? _activeRoomIdProvider;
+
+  /// The language the app SETTLED on, reported by app.dart's `MaterialApp`
+  /// builder — which is the only place the answer exists, since neither the
+  /// device language nor the user's override is it on its own.
+  ///
+  /// Held rather than read on demand because nothing outside a `BuildContext`
+  /// can ask Flutter what it resolved.
+  String? _appLocale;
+
+  /// What [syncDeviceContext] last successfully wrote, so a resume that
+  /// changed nothing costs no round trip. Null until the first upload.
+  String? _syncedLocale;
+  int? _syncedTzOffset;
 
   // iOS PushKit channel — installed in ios/Runner/AppDelegate.swift. Dart
   // calls `getToken` after login; the channel also pushes `onTokenUpdated`
@@ -84,6 +98,13 @@ class PushManager {
   /// and left the user wherever they were.
   void setOnOpenRequests(VoidCallback handler) {
     _onOpenRequests = handler;
+  }
+
+  /// Where a daily-games nudge tap should land: the Feed, with the games shelf
+  /// open. Same shape as [setOnOpenRequests] — the push carries no room, so
+  /// without this a tap merely raises the app.
+  void setOnOpenGames(VoidCallback handler) {
+    _onOpenGames = handler;
   }
 
   /// Bind a new room-open handler (call after the navigator is mounted).
@@ -210,6 +231,9 @@ class PushManager {
       case 'onOpenRequests':
         _onOpenRequests?.call();
         return null;
+      case 'onOpenGames':
+        _onOpenGames?.call();
+        return null;
     }
     return null;
   }
@@ -256,6 +280,9 @@ class PushManager {
       // tab still gets banners.
       await _registerWebPush();
     }
+    // Every platform, push-capable or not: a desktop registers a device row
+    // above and wants its language and zone on that row too.
+    await syncDeviceContext(force: true);
   }
 
   /// Subscribe this browser to Web Push and hand the backend what it needs to
@@ -515,6 +542,12 @@ class PushManager {
       }
     }
     _userId = null;
+    // Forget what was uploaded, not what was resolved: the language is still
+    // whatever this app is running in, but the row it was written to is gone,
+    // so the next account must write its own rather than being deduped against
+    // the previous one's.
+    _syncedLocale = null;
+    _syncedTzOffset = null;
     await setActiveRoom(null);
   }
 
@@ -543,6 +576,98 @@ class PushManager {
       );
     } catch (e) {
       debugPrint('PushManager: setPushEnabled($enabled) failed: $e');
+    }
+  }
+
+  /// The daily-games reminder switch, per device.
+  ///
+  /// Its own upload rather than a flag on [optIn]/[optOut] because it means
+  /// something narrower: stop the once-a-day nudge, keep everything else.
+  Future<void> setGameReminders(bool enabled) async {
+    final userId = _userId;
+    final api = _api;
+    final deviceId = _deviceId;
+    if (userId == null || api == null || deviceId == null) return;
+    try {
+      await api.setGameReminders(
+        userId: userId,
+        deviceId: deviceId,
+        enabled: enabled,
+      );
+    } catch (e) {
+      debugPrint('PushManager: setGameReminders($enabled) failed: $e');
+    }
+  }
+
+  /// Record the language the app resolved, and upload it if it moved.
+  ///
+  /// Called from app.dart's `MaterialApp` builder, which reruns on every
+  /// language change — an in-app override from the language screen AND a system
+  /// language the user changed in Settings, since either one rebuilds it. That
+  /// is why this is a push from the widget tree rather than a read out of
+  /// [SettingsStore]: the stored override is null for most people, and the
+  /// device language may not be one the app ships at all.
+  void noteAppLocale(String tag) {
+    if (_appLocale == tag) return;
+    _appLocale = tag;
+    unawaited(syncDeviceContext());
+  }
+
+  /// Upload this device's language and UTC offset, if either has changed.
+  ///
+  /// The backend writes the daily nudge itself, so both are its inputs: the
+  /// language decides what the notification says, the offset decides when noon
+  /// is here (see backend/convex/dailyNudge.ts).
+  ///
+  /// Called on login, on every resume, when the day rolls over, and whenever
+  /// the resolved language changes — deliberately more often than necessary,
+  /// because the two facts move for unrelated reasons and each has a failure
+  /// mode the other cannot cover. A language change without a resume is
+  /// ordinary. A time-zone change without a language change is a flight, and
+  /// the resume as the phone comes off airplane mode is exactly when we learn
+  /// about it. Daylight saving is the same shape, twice a year.
+  ///
+  /// Cheap enough to call that freely because it compares against what it last
+  /// wrote and returns without a round trip when nothing moved — which is the
+  /// overwhelmingly common case.
+  ///
+  /// The two values are always read fresh and sent together, so neither can
+  /// carry the other's staleness: changing language never re-stamps an old
+  /// offset, and landing in a new zone never rewrites the language.
+  Future<void> syncDeviceContext({bool force = false}) async {
+    final userId = _userId;
+    final api = _api;
+    if (userId == null || api == null) return;
+    var deviceId = _deviceId;
+    if (deviceId == null) {
+      // Same repair as [refreshTokens]: a locked-phone keychain read at cold
+      // start can leave this null for the process lifetime otherwise.
+      try {
+        deviceId = _deviceId = await DeviceIdentity.ensure();
+        _deviceName ??= await DeviceIdentity.displayName();
+      } catch (e) {
+        debugPrint('PushManager.syncDeviceContext: no device id: $e');
+        return;
+      }
+    }
+    final locale = _appLocale;
+    final tz = DateTime.now().timeZoneOffset.inMinutes;
+    if (!force && locale == _syncedLocale && tz == _syncedTzOffset) return;
+    try {
+      await api.setDeviceContext(
+        userId: userId,
+        deviceId: deviceId,
+        platform: DeviceIdentity.platformTag(),
+        deviceName: _deviceName,
+        locale: locale,
+        tzOffsetMinutes: tz,
+      );
+      _syncedLocale = locale;
+      _syncedTzOffset = tz;
+    } catch (e) {
+      // Left unrecorded on failure, so the next resume retries rather than
+      // believing a value the server never received.
+      debugPrint('PushManager: setDeviceContext failed: $e');
     }
   }
 

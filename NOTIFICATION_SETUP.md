@@ -15,6 +15,7 @@ remains below needs console access and can't be done from the repo.
 |---|---|---|---|---|
 | Alert push (`backend/convex/push.ts`) | Chat, approvals, call banners, silent dismiss | APNs on topic `<bundle>` → `AppDelegate.swift` | FCM data-only → `CallFcmService.kt` → `ChatNotifications.kt` | Web Push (RFC 8291) → `web/mh-push-sw.js` |
 | Ring push (`backend/convex/voipPush.ts`) | Call invite / taken | APNs VoIP on topic `<bundle>.voip` → CallKit | FCM data-only → full-screen call UI | — |
+| Daily games nudge (`backend/convex/dailyNudge.ts`) | The once-a-day "you haven't played today" reminder | APNs on topic `<bundle>` | FCM data-only, channel `mh_games` | — (deliberately) |
 | Convex realtime subscription | In-app ringing while the app is open | ✓ | ✓ | ✓ |
 
 Two things are worth internalising:
@@ -31,6 +32,60 @@ Two things are worth internalising:
   forfeiting collapse, group summaries, per-room dismissal and active-room
   suppression. The cost is that a *force-stopped* app receives nothing until
   next launch — already true of the call path.
+
+## The daily games nudge
+
+The only push here that no user action produced, which is why it is the only one
+with rules of its own. Nothing needs configuring — it rides the APNs key and FCM
+service account that are already set up — but four things are worth knowing
+before changing it.
+
+**It is sent at local noon, from one quarter-hourly cron.** `dailyNudge.run`
+ticks every 15 minutes and asks whose wall clock reads 12:00 right now, answered
+by an equality probe on `userDevices.by_tz_offset`. Istanbul is nudged at
+Istanbul's lunchtime and California at California's. Quarter-hourly and not
+hourly because India (+5:30), Nepal (+5:45) and Chatham (+12:45) have noons an
+hourly tick would never land on. Most of the 96 daily ticks match no populated
+zone and cost one index probe returning nothing.
+
+**The offset comes from the device and is refreshed aggressively.**
+`userDevices.tzOffsetMinutes` and `.locale` are written by
+`voipTokens:setDeviceContext`, which the client calls on login, on every resume,
+when the local day rolls over, and whenever the resolved app language changes —
+see `PushManager.syncDeviceContext`. It compares against what it last uploaded,
+so the common case costs no round trip. Travel is picked up on the resume as the
+phone comes off airplane mode. **Known gap:** daylight saving moves at ~03:00
+local, so a phone nobody opens between the change and noon is nudged an hour off
+for that one day. Closing it properly means storing an IANA zone name, which
+Dart cannot report without a plugin.
+
+**Nobody is nudged twice, and nobody who already played is nudged at all.**
+`dailyNudge.claimNudges` reads the day's five results (the code puzzle and four
+boards) and stamps `users.lastNudgedDayKey` in the same mutation. A finished set
+is skipped; a retry, an overlapping deploy, or a person with devices in two time
+zones finds the day already claimed. The same check picks between the two lines
+of copy, both of which are true of whoever reads them.
+
+**Web is excluded on purpose; desktop cannot be reached.** A browser only
+receives a push while its service worker is alive, so the web audience is
+whoever left a tab open. macOS/Windows/Linux have no notification surface in this
+app at all — they hold a `userDevices` row with no credential and fail the
+audience test on their own, though they do report language and time zone, so
+they would join with no backend change the day a local notifier exists.
+`push_payload_contract_test.dart` pins both facts.
+
+Copy lives in `NUDGE_COPY` in `dailyNudge.ts`, one row per shipped language,
+mirroring `lib/l10n/app_*.arb`. `test/daily_nudge_copy_test.dart` fails if a
+thirteenth language ships without one — nothing else would notice.
+
+Off switches: the per-device `userDevices.gameRemindersEnabled` (Settings ▸
+Notifications ▸ DAILY GAME REMINDER), the Android `mh_games` channel, and
+`pushEnabled`, which silences everything. The first two exist because the only
+way to stop a daily broadcast should not cost you your messages.
+
+Ops: `npx convex run dailyNudge:audienceReport` — devices per time zone and per
+language, plus how many are reachable at all. A zone reading zero usually means
+a fleet on a build that has never uploaded an offset, not an empty zone.
 
 ## 1. Apple: APNs key and the Time Sensitive capability
 
@@ -169,6 +224,12 @@ must display something — which is why the backend never sends the silent
 13. `npx convex run push:coverageReport` → how much of the active user base is
     actually reachable. `iosVoipOnly` counts devices still on a build that
     predates direct push.
+14. Daily nudge: set the device clock to a zone whose noon is minutes away,
+    reopen the app (that is what uploads the offset), and confirm
+    `npx convex run dailyNudge:audienceReport` counts it under the right zone.
+    At noon the banner must arrive in the app's language, and tapping it must
+    land on the Feed with the games shelf open — not merely raise the app.
+    Play everything, and the next day's nudge must not arrive at all.
 
 ## Notes
 
@@ -179,7 +240,7 @@ must display something — which is why the backend never sends the silent
   review; calling apps are the canonical accepted use case, but be ready to
   justify it in the review notes.
 - Android notification channels are new ids (`mh_messages`, `mh_requests`,
-  `mh_call_banner`). A channel's importance is immutable once created, so a user
+  `mh_call_banner`, `mh_games`). A channel's importance is immutable once created, so a user
   who had specifically muted the old vendor's channel will hear these until they
   mute them too. No API can inherit that setting.
 - A delivered notification cannot be recalled on any platform, by any API. The

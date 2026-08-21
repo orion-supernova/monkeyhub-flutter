@@ -76,6 +76,8 @@ Widget _tree({required bool withClearer}) => Column(
 );
 
 void main() {
+  group('daily games one-shot', _dailyGamesOneShot);
+
   setUp(() {
     _watcherBuilds = 0;
     UiSelectionStore.instance.selectRoom(null);
@@ -125,5 +127,46 @@ void main() {
     // A tap handler's call site: no frame in flight, so nothing waits.
     UiSelectionStore.instance.selectRoom('b');
     expect(notified, isTrue);
+  });
+}
+
+/// The daily-games one-shot, which has two consumers and needs both.
+///
+/// [FeedScreen] reads it from a post-frame callback on mount (the cold-start
+/// case: the tap lands before any widget exists) AND from a store listener (the
+/// case that is easy to miss — a nudge tapped by somebody already looking at the
+/// Feed, where steering the shell to a section it is already showing remounts
+/// nothing and the post-frame callback never fires again).
+void _dailyGamesOneShot() {
+  test('requesting the games view notifies, so a mounted Feed hears it', () {
+    var notified = 0;
+    void listener() => notified++;
+    UiSelectionStore.instance.addListener(listener);
+    addTearDown(() => UiSelectionStore.instance.removeListener(listener));
+    addTearDown(UiSelectionStore.instance.consumeGamesView);
+
+    UiSelectionStore.instance.requestGamesView();
+
+    expect(notified, 1,
+        reason: 'a Feed already on screen only learns about this by listening');
+    expect(UiSelectionStore.instance.gamesViewPending, isTrue);
+  });
+
+  test('consuming the games view clears it, and clears it exactly once', () {
+    UiSelectionStore.instance.requestGamesView();
+
+    expect(UiSelectionStore.instance.consumeGamesView(), isTrue);
+    // Both consumers run on the same frame when a cold-start tap resolves —
+    // the post-frame callback and the listener. Only one may open the hub.
+    expect(UiSelectionStore.instance.consumeGamesView(), isFalse);
+    expect(UiSelectionStore.instance.gamesViewPending, isFalse);
+  });
+
+  test('an unconsumed request survives until something can act on it', () {
+    // The cold-start case: the tap is handled long before a navigator exists,
+    // and the request has to still be there when the Feed finally mounts.
+    UiSelectionStore.instance.requestGamesView();
+    expect(UiSelectionStore.instance.gamesViewPending, isTrue);
+    expect(UiSelectionStore.instance.consumeGamesView(), isTrue);
   });
 }

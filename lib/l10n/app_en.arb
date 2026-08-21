@@ -5350,6 +5350,18 @@
   "@settingsScreenPushOffBody": {
     "description": "Caption under PUSH NOTIFICATIONS when the toggle is off."
   },
+  "settingsScreenGameRemindersLabel": "DAILY GAME REMINDER",
+  "@settingsScreenGameRemindersLabel": {
+    "description": "All-caps label for the switch controlling the once-a-day reminder to play the daily games. Sits directly under PUSH NOTIFICATIONS and is hidden entirely while that one is off."
+  },
+  "settingsScreenGameRemindersOnBody": "one nudge at lunchtime, only if you haven’t played",
+  "@settingsScreenGameRemindersOnBody": {
+    "description": "Caption under DAILY GAME REMINDER when the switch is on. States both facts that make the reminder tolerable: it arrives once, around local midday, and only when there is something left unplayed."
+  },
+  "settingsScreenGameRemindersOffBody": "no reminder — the games are still there when you look",
+  "@settingsScreenGameRemindersOffBody": {
+    "description": "Caption under DAILY GAME REMINDER when the switch is off. Reassures that turning it off costs nothing but the reminder — message and call notifications are governed by the switch above."
+  },
   "authErrorUsernameTaken": "That username is already taken.",
   "@authErrorUsernameTaken": {
     "description": "Shown on signup when USERNAME_TAKEN comes back from the backend."

@@ -4794,6 +4794,17 @@ class AppLocalizationsPt extends AppLocalizations {
       'silencioso — só vês tudo quando abres a app';
 
   @override
+  String get settingsScreenGameRemindersLabel => 'LEMBRETE DIÁRIO DOS JOGOS';
+
+  @override
+  String get settingsScreenGameRemindersOnBody =>
+      'um toque à hora de almoço, só se ainda não jogaste';
+
+  @override
+  String get settingsScreenGameRemindersOffBody =>
+      'sem lembrete — os jogos continuam lá quando fores ver';
+
+  @override
   String get authErrorUsernameTaken =>
       'Esse nome de utilizador já está em uso.';
 
@@ -12028,6 +12039,17 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get settingsScreenPushOffBody =>
       'silencioso — você só vê as coisas quando abre o app';
+
+  @override
+  String get settingsScreenGameRemindersLabel => 'LEMBRETE DIÁRIO DOS JOGOS';
+
+  @override
+  String get settingsScreenGameRemindersOnBody =>
+      'um toque na hora do almoço, só se você ainda não jogou';
+
+  @override
+  String get settingsScreenGameRemindersOffBody =>
+      'sem lembrete — os jogos continuam lá quando você for ver';
 
   @override
   String get authErrorUsernameTaken => 'Esse nome de usuário já está em uso.';

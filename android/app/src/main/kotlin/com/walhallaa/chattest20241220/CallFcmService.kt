@@ -21,10 +21,10 @@ import java.util.UUID
 /// onMessageReceived entirely while backgrounded, which costs tag collapse,
 /// group summaries, per-room dismissal and active-room suppression.
 ///
-/// Five kinds, two families:
+/// Six kinds, two families:
 ///   kind=invite/taken            ringing — flutter_callkit_incoming
 ///                                (voipPush.ts, mirrors iOS PushKit)
-///   kind=message/approval/…      banners — ChatNotifications
+///   kind=message/approval/daily_games/…  banners — ChatNotifications
 ///                                (push.ts, mirrors iOS UNNotification)
 ///
 /// The one cost of data-only is that a FORCE-stopped app receives nothing
@@ -67,7 +67,8 @@ class CallFcmService : FirebaseMessagingService() {
         when (data["kind"]) {
             "invite" -> handleInvite(data)
             "taken" -> handleTaken(data)
-            "message", "approval", "call_invite", "group_call_invite" ->
+            "message", "approval", "call_invite", "group_call_invite",
+            "daily_games" ->
                 ChatNotifications.show(this, data)
             "dismiss" -> ChatNotifications.dismiss(this, data)
             else -> Log.d(TAG, "ignoring message kind=${data["kind"]}")

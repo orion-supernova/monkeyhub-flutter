@@ -335,6 +335,15 @@ class FeedStore extends ChangeNotifier {
     super.dispose();
   }
 
+  /// Called after the local day has actually turned over.
+  ///
+  /// Installed by app.dart, and kept as a hook rather than a direct call
+  /// because this is the data layer: what needs to know that midnight passed
+  /// (currently the push registry, which re-reads this device's UTC offset —
+  /// a daylight-saving shift happens at 3am and would otherwise go unnoticed
+  /// until the next resume) is not this file's business to name.
+  VoidCallback? onDayRollover;
+
   void _syncDay() {
     final now = clock();
     _dayKey = dayKeyOf(now);
@@ -356,6 +365,7 @@ class FeedStore extends ChangeNotifier {
       // timer a hair before midnight). Without it the board would flash a
       // rebuild for no reason and, worse, re-run the day's intro.
       if (_dayKey == previous) return;
+      onDayRollover?.call();
       notifyListeners();
       // The board query is scoped to a dayKey ARGUMENT, so the live
       // subscription keeps serving yesterday until it is re-issued. Anyone who

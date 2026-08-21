@@ -452,6 +452,45 @@ class ChatApi {
     });
   }
 
+  /// The daily-games reminder toggle, per device. Suppresses only the
+  /// once-a-day nudge — messages, approvals and calls are untouched, which is
+  /// the entire reason it is a second switch and not a mode of the first.
+  Future<void> setGameReminders({
+    required String userId,
+    required String deviceId,
+    required bool enabled,
+  }) async {
+    await _cv.mutation('voipTokens:setGameReminders', {
+      'userId': userId,
+      'deviceId': deviceId,
+      'enabled': enabled,
+    });
+  }
+
+  /// This device's language and time zone, as the running app resolved them.
+  ///
+  /// The backend composes the daily nudge itself, so it needs both: the
+  /// language to write it in, and the offset that says when noon is here. Sent
+  /// together and re-sent whenever either moves — see
+  /// [PushManager.syncDeviceContext].
+  Future<void> setDeviceContext({
+    required String userId,
+    required String deviceId,
+    required String platform,
+    String? deviceName,
+    String? locale,
+    int? tzOffsetMinutes,
+  }) async {
+    await _cv.mutation('voipTokens:setDeviceContext', {
+      'userId': userId,
+      'deviceId': deviceId,
+      'platform': platform,
+      'deviceName': ?deviceName,
+      'locale': ?locale,
+      'tzOffsetMinutes': ?tzOffsetMinutes,
+    });
+  }
+
   /// Persist the FCM (Android) token. Carries both the high-priority data
   /// pushes that wake a killed app into the native ringer and the ordinary
   /// notifications rendered by ChatNotifications.

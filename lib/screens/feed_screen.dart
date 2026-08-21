@@ -7,6 +7,7 @@ import '../data/chat_repository.dart';
 import '../data/feed_store.dart';
 import '../data/games_store.dart';
 import '../data/settings_store.dart';
+import '../data/ui_selection_store.dart';
 import 'navigation/scroll_memory.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
@@ -100,12 +101,40 @@ class _FeedScreenState extends State<FeedScreen>
     // The empty state turns on the friend count, so the board has to rebuild
     // when a friend request is accepted while it is on screen.
     widget.repo.addListener(_onChange);
+    // A daily-games nudge tapped before this screen existed is still waiting in
+    // the store — including on a cold start, where the tap lands long before
+    // any widget mounts.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _consumePendingGames());
+    // …and the same request arriving while this screen is ALREADY on it. The
+    // post-frame callback above only fires on mount, and steering the shell to
+    // a section it is already showing remounts nothing — so a nudge tapped by
+    // somebody who happened to be looking at the Feed would have set the
+    // one-shot and then had nobody left to consume it.
+    UiSelectionStore.instance.addListener(_consumePendingGames);
+  }
+
+  /// Whether the games hub is already up, so a second request does not stack a
+  /// second copy of it on top of the first.
+  bool _gamesHubOpen = false;
+
+  /// Opens the games hub for a tapped daily nudge.
+  ///
+  /// Pushed from HERE rather than from app.dart's push handler so the route
+  /// lands on whichever navigator this Feed belongs to — the root one on a
+  /// phone, and the section's own on a wide window, where a root push would
+  /// cover the shell it was just told to show.
+  void _consumePendingGames() {
+    if (!mounted) return;
+    if (!UiSelectionStore.instance.consumeGamesView()) return;
+    if (_gamesHubOpen) return;
+    _openGamesHub();
   }
 
   @override
   void dispose() {
     FeedStore.instance.removeListener(_onChange);
     GamesStore.instance.removeListener(_onChange);
+    UiSelectionStore.instance.removeListener(_consumePendingGames);
     widget.repo.removeListener(_onChange);
     _scroll.dispose();
     super.dispose();
@@ -182,15 +211,20 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
-  void _openGamesHub() {
+  Future<void> _openGamesHub() async {
     final userId = widget.repo.userId;
     if (userId == null) return;
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) =>
-            GamesHubScreen(feedApi: widget.feedApi, userId: userId),
-      ),
-    );
+    _gamesHubOpen = true;
+    try {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) =>
+              GamesHubScreen(feedApi: widget.feedApi, userId: userId),
+        ),
+      );
+    } finally {
+      _gamesHubOpen = false;
+    }
   }
 
   void _openGame(DailyGame game) {

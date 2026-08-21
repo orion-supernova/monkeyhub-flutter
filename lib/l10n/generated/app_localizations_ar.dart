@@ -4824,6 +4824,17 @@ class AppLocalizationsAr extends AppLocalizations {
       'صامت — لن ترى شيئًا إلا عند فتح التطبيق';
 
   @override
+  String get settingsScreenGameRemindersLabel => 'تذكير الألعاب اليومي';
+
+  @override
+  String get settingsScreenGameRemindersOnBody =>
+      'تنبيه واحد وقت الظهيرة، فقط إن لم تلعب بعد';
+
+  @override
+  String get settingsScreenGameRemindersOffBody =>
+      'بلا تذكير — الألعاب في مكانها متى فتحت التطبيق';
+
+  @override
   String get authErrorUsernameTaken => 'اسم المستخدم هذا مُستخدَم بالفعل.';
 
   @override

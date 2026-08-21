@@ -8141,6 +8141,24 @@ abstract class AppLocalizations {
   /// **'silent — you’ll only see things when you open the app'**
   String get settingsScreenPushOffBody;
 
+  /// All-caps label for the switch controlling the once-a-day reminder to play the daily games. Sits directly under PUSH NOTIFICATIONS and is hidden entirely while that one is off.
+  ///
+  /// In en, this message translates to:
+  /// **'DAILY GAME REMINDER'**
+  String get settingsScreenGameRemindersLabel;
+
+  /// Caption under DAILY GAME REMINDER when the switch is on. States both facts that make the reminder tolerable: it arrives once, around local midday, and only when there is something left unplayed.
+  ///
+  /// In en, this message translates to:
+  /// **'one nudge at lunchtime, only if you haven’t played'**
+  String get settingsScreenGameRemindersOnBody;
+
+  /// Caption under DAILY GAME REMINDER when the switch is off. Reassures that turning it off costs nothing but the reminder — message and call notifications are governed by the switch above.
+  ///
+  /// In en, this message translates to:
+  /// **'no reminder — the games are still there when you look'**
+  String get settingsScreenGameRemindersOffBody;
+
   /// Shown on signup when USERNAME_TAKEN comes back from the backend.
   ///
   /// In en, this message translates to:

@@ -21,6 +21,17 @@ export default defineSchema({
     // handle can change at all. Not indexed: it is looked up by `_id`, never
     // ranged over.
     usernameChangedAt: v.optional(v.number()),
+    // The local day key ("2026-08-21") this account was last sent the daily
+    // "you haven't played today" nudge for.
+    //
+    // This IS the once-a-day guarantee, and it is a claim rather than a log:
+    // `dailyNudge.claimNudges` reads and writes it in one mutation, so a
+    // second cron tick — a retry, a deploy that overlapped one, or simply a
+    // person carrying two devices in two time zones whose local noons both
+    // come round — finds the day already claimed and sends nothing. Absent on
+    // every account that has not been nudged since this shipped, which reads
+    // correctly as "not today".
+    lastNudgedDayKey: v.optional(v.string()),
     // `deviceTokens` used to sit here: raw APNs tokens from before the
     // per-device `userDevices` registry existed. Stripped from every row by
     // `migrations.stripDeviceTokens` and removed 2026-08-08. Convex rejects a
@@ -151,11 +162,38 @@ export default defineSchema({
     // preference — silencing chat should never silence the phone — so
     // voipPush deliberately ignores it.
     pushEnabled: v.optional(v.boolean()),
+    // Per-device opt-out for the once-a-day "you haven't played today" nudge,
+    // and ONLY that. Separate from `pushEnabled` above on purpose: the whole
+    // point of a daily broadcast having a switch is that turning it off must
+    // not also cost you your messages. `undefined` means enabled, so every row
+    // predating the field keeps working. See dailyNudge.ts.
+    gameRemindersEnabled: v.optional(v.boolean()),
     // Human-readable label shown in the "Move call here" pill. Captured
     // from `UIDevice.current.name` / `Host.current().localizedName` /
     // `Settings.Global.DEVICE_NAME` etc. at login. Optional — clients
     // fall back to a friendly platform name when missing.
     deviceName: v.optional(v.string()),
+    // The language this device's app SETTLED on — not the device language and
+    // not the user's override, but the one Flutter resolved from both against
+    // `AppLocalizations.supportedLocales`. A BCP-47-ish tag: "tr", "pt-BR".
+    //
+    // Per device rather than per user because it is a property of the running
+    // app, not of the person: a shared family handset in Turkish and its
+    // owner's laptop in English are both correct at once, and the notification
+    // each receives should read in the language its own screen is already in.
+    // Written by `setDeviceContext`, which the client re-runs whenever the
+    // resolved locale changes.
+    locale: v.optional(v.string()),
+    // Minutes this device's wall clock is ahead of UTC — `+180` in Istanbul,
+    // `-480` in California. Every real zone is a multiple of 15 (Kathmandu is
+    // +345, Chatham +765), which is why the nudge cron ticks quarter-hourly.
+    //
+    // A raw offset rather than an IANA zone name because that is what Dart can
+    // report without a plugin, and it is re-uploaded on every resume — so
+    // travel and DST are both picked up the next time the app is opened, and
+    // a device that has not been opened in weeks has a stale `lastSeenAt` that
+    // already excludes it from the audience.
+    tzOffsetMinutes: v.optional(v.number()),
     lastSeenAt: v.number(),
     createdAt: v.number(),
   })
@@ -172,7 +210,13 @@ export default defineSchema({
     .index("by_web_endpoint", ["webEndpoint"])
     // Bounds `push.coverageReport` to devices that have been seen recently,
     // so "can we actually reach our users" stays a cheap question to ask.
-    .index("by_last_seen", ["lastSeenAt"]),
+    .index("by_last_seen", ["lastSeenAt"])
+    // "Whose clock reads noon right now?" — the whole audience query for the
+    // daily nudge, in one equality probe plus a range on the second column.
+    // Without the `lastSeenAt` suffix this would hand back every device that
+    // ever registered in that zone and filter them in code, which is the shape
+    // that turns one cron tick into a full-table scan.
+    .index("by_tz_offset", ["tzOffsetMinutes", "lastSeenAt"]),
 
   friendships: defineTable({
     userId: v.id("users"),

@@ -4717,6 +4717,17 @@ class AppLocalizationsTr extends AppLocalizations {
       'sessiz — her şeyi ancak uygulamayı açınca görürsün';
 
   @override
+  String get settingsScreenGameRemindersLabel => 'GÜNLÜK OYUN HATIRLATMASI';
+
+  @override
+  String get settingsScreenGameRemindersOnBody =>
+      'öğlen tek bir dürtme, yalnızca oynamadıysan';
+
+  @override
+  String get settingsScreenGameRemindersOffBody =>
+      'hatırlatma yok — oyunlar baktığında yine orada';
+
+  @override
   String get authErrorUsernameTaken => 'Bu kullanıcı adı zaten alınmış.';
 
   @override

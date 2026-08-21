@@ -231,4 +231,23 @@ crons.interval(
   {},
 );
 
+// The once-a-day "you haven't played today" nudge — the only push this backend
+// sends that nobody's action produced. Quarter-hourly, and that is not a
+// frequency: it is a resolution. Each tick asks whose wall clock reads 12:00
+// right now and nudges only them, so one job delivers at local noon worldwide.
+// Fifteen minutes because India (+5:30), Nepal (+5:45) and Chatham (+12:45)
+// have noons an hourly job would never land on.
+//
+// Cheap despite the rate, which this file's header demands justifying: a tick
+// is one equality probe on `by_tz_offset` per candidate zone, and the great
+// majority of the 96 daily ticks match a zone nobody lives in and return
+// nothing. Only the handful that hit a populated offset do any work at all.
+// See dailyNudge.ts.
+crons.interval(
+  "dailyNudge.run",
+  { minutes: 15 },
+  internal.dailyNudge.run,
+  {},
+);
+
 export default crons;

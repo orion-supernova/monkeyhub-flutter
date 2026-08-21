@@ -38,6 +38,7 @@ object ChatNotifications {
     const val CH_MESSAGES = "mh_messages"
     const val CH_REQUESTS = "mh_requests"
     const val CH_CALLS = "mh_call_banner"
+    const val CH_GAMES = "mh_games"
 
     /// Every notification shares one id and is distinguished by TAG instead.
     /// (tag, id) is the identity NotificationManager uses, so a tag of
@@ -80,6 +81,20 @@ object ChatNotifications {
                 "Requests & approvals",
                 NotificationManager.IMPORTANCE_DEFAULT,
             ).apply { description = "Friend requests and things waiting on your OK" }
+        )
+        nm.createNotificationChannel(
+            NotificationChannel(
+                CH_GAMES,
+                "Daily games",
+                // DEFAULT, not HIGH. This is the one notification nobody's
+                // action produced, and it arrives every day — it belongs in the
+                // shade, not over whatever the person was doing. The separate
+                // channel matters more than the importance does: it is what
+                // lets somebody silence the daily reminder from the system
+                // settings without silencing their messages, which is the same
+                // promise the in-app switch makes.
+                NotificationManager.IMPORTANCE_DEFAULT,
+            ).apply { description = "A reminder to play today's puzzle and boards" }
         )
         nm.createNotificationChannel(
             NotificationChannel(
@@ -154,6 +169,7 @@ object ChatNotifications {
         val channel = when (kind) {
             "approval" -> CH_REQUESTS
             "call_invite", "group_call_invite" -> CH_CALLS
+            "daily_games" -> CH_GAMES
             else -> CH_MESSAGES
         }
         val tag = data["collapseId"]?.takeIf { it.isNotEmpty() }
@@ -170,10 +186,19 @@ object ChatNotifications {
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setAutoCancel(true)
             .setContentIntent(pi)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(
+                if (channel == CH_GAMES) NotificationCompat.PRIORITY_DEFAULT
+                else NotificationCompat.PRIORITY_HIGH
+            )
             .setCategory(
-                if (channel == CH_CALLS) NotificationCompat.CATEGORY_CALL
-                else NotificationCompat.CATEGORY_MESSAGE
+                when (channel) {
+                    CH_CALLS -> NotificationCompat.CATEGORY_CALL
+                    // Not CATEGORY_MESSAGE: nobody sent this, and miscategorising
+                    // it puts a daily broadcast in the same bucket Do Not Disturb
+                    // rules and conversation surfaces treat as people talking.
+                    CH_GAMES -> NotificationCompat.CATEGORY_REMINDER
+                    else -> NotificationCompat.CATEGORY_MESSAGE
+                }
             )
         if (roomId.isNotEmpty()) builder.setGroup(roomId)
         // Sender's face, WhatsApp/Telegram-style. Most launchers/OEM skins

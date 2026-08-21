@@ -4589,6 +4589,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsScreenPushOffBody => '알림 없이 조용해요 — 앱을 열어야 확인할 수 있어요';
 
   @override
+  String get settingsScreenGameRemindersLabel => '매일 게임 알림';
+
+  @override
+  String get settingsScreenGameRemindersOnBody => '점심 무렵에 한 번, 아직 안 했을 때만';
+
+  @override
+  String get settingsScreenGameRemindersOffBody => '알림 없음 — 게임은 열어보면 그대로 있어요';
+
+  @override
   String get authErrorUsernameTaken => '이미 사용 중인 사용자 이름이에요.';
 
   @override

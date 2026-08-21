@@ -25,6 +25,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kNav = 'mh.nav';
   static const _kSection = 'mh.section';
   static const _kPushEnabled = 'mh.pushEnabled';
+  static const _kGameReminders = 'mh.gameReminders';
   static const _kCaptureProtection = 'mh.captureProtection';
   static const _kChatStyle = 'mh.chatStyle';
   static const _kReplyStyle = 'mh.replyStyle';
@@ -64,6 +65,12 @@ class SettingsStore extends ChangeNotifier {
   NavStyle _navStyle = NavStyle.pill;
   HomeSection _section = HomeSection.chat;
   bool _pushEnabled = true;
+  // The once-a-day "you haven't played today" nudge, on by default — a daily
+  // game nobody is reminded about is a daily game nobody plays. Mirrored on
+  // this device's backend row (userDevices.gameRemindersEnabled), which is
+  // where the sender actually reads it; this copy exists so the switch renders
+  // instantly and correctly with no round trip, exactly like [_pushEnabled].
+  bool _gameReminders = true;
   bool _captureProtection = false;
   ChatStyle _chatStyle = ChatStyle.compact;
   ReplyStyle _replyStyle = ReplyStyle.phantomEcho;
@@ -97,6 +104,7 @@ class SettingsStore extends ChangeNotifier {
   NavStyle get navStyle => _navStyle;
   HomeSection get section => _section;
   bool get pushEnabled => _pushEnabled;
+  bool get gameReminders => _gameReminders;
   bool get captureProtection => _captureProtection;
   ChatStyle get chatStyle => _chatStyle;
   ReplyStyle get replyStyle => _replyStyle;
@@ -226,6 +234,8 @@ class SettingsStore extends ChangeNotifier {
       _section = HomeSection.parse(sec);
       final push = await _storage.read(key: _kPushEnabled);
       _pushEnabled = push != 'false'; // default true
+      final nudge = await _storage.read(key: _kGameReminders);
+      _gameReminders = nudge != 'false'; // default true
       final cap = await _storage.read(key: _kCaptureProtection);
       _captureProtection = cap == 'true'; // default false
       final cs = await _storage.read(key: _kChatStyle);
@@ -419,6 +429,13 @@ class SettingsStore extends ChangeNotifier {
     _pushEnabled = v;
     notifyListeners();
     await _storage.write(key: _kPushEnabled, value: v ? 'true' : 'false');
+  }
+
+  Future<void> setGameReminders(bool v) async {
+    if (_gameReminders == v) return;
+    _gameReminders = v;
+    notifyListeners();
+    await _storage.write(key: _kGameReminders, value: v ? 'true' : 'false');
   }
 
   Future<void> setCaptureProtection(bool v) async {

@@ -250,6 +250,14 @@ import flutter_callkit_incoming
       completionHandler()
       return
     }
+    // The once-a-day games nudge. Carries no roomId by construction, so it
+    // reaches here rather than the branch above, and lands on the Feed with
+    // today's games open. See backend/convex/dailyNudge.ts.
+    if (info["kind"] as? String) == "daily_games" {
+      invokeNotifOrQueue("onOpenGames", args: [:])
+      completionHandler()
+      return
+    }
     super.userNotificationCenter(
       center,
       didReceive: response,

@@ -394,6 +394,13 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     _family.addListener(_syncAccountType);
     PushManager.instance.setOnOpenRoom(_openRoomFromPush);
     PushManager.instance.setOnOpenRequests(_openRequestsFromPush);
+    PushManager.instance.setOnOpenGames(_openGamesFromPush);
+    // Midnight passed with the app open. Daylight saving moves at 3am, when
+    // nobody resumes anything, so without this a phone left on a nightstand
+    // would keep reporting yesterday's offset until it was next picked up —
+    // and be nudged an hour off in the meantime.
+    FeedStore.instance.onDayRollover =
+        () => unawaited(PushManager.instance.syncDeviceContext());
     PushManager.instance.attachApi(_api);
     PushManager.instance.setActiveRoomIdProvider(() => _repo.activeRoomId);
     // Web message-banner clicks open the room, same as a push tap.
@@ -545,6 +552,19 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   void _openRequestsFromPush() {
     UiSelectionStore.instance.requestRequestsView();
     SettingsStore.instance.setSection(HomeSection.discover, persist: false);
+    final nav = rootNavigatorKey.currentState;
+    if (nav == null) return;
+    nav.popUntil((r) => r.isFirst);
+  }
+
+  /// A tapped daily-games nudge: the Feed, with today's games open on top of
+  /// it. Same three moves as the requests tap above, and for the same reasons —
+  /// the section is steered without persisting (a notification is not a
+  /// preference), and whatever was pushed over the shell is popped first so the
+  /// tab the user is being sent to is actually the thing they see.
+  void _openGamesFromPush() {
+    UiSelectionStore.instance.requestGamesView();
+    SettingsStore.instance.setSection(HomeSection.feed, persist: false);
     final nav = rootNavigatorKey.currentState;
     if (nav == null) return;
     nav.popUntil((r) => r.isFirst);
@@ -839,6 +859,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         }
         BadgeManager.instance.sync();
         PushManager.instance.refreshTokens();
+        // A resume is when travel and daylight saving become visible to us —
+        // the phone comes off airplane mode in a new zone and this is the first
+        // code that runs. No-ops when nothing moved. See [syncDeviceContext].
+        unawaited(PushManager.instance.syncDeviceContext());
         _family.refresh();
         // Catches a handset that was in a pocket when the deployment moved.
         // Its own floor on top of this block's 30s debounce — see
@@ -1122,6 +1146,14 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
             if (!SettingsStore.instance.pushEnabled) {
               await PushManager.instance.optOut();
             }
+            // Same story for the daily games reminder, one field down on the
+            // same row: a device row is created fresh on every login and starts
+            // with the field absent, which the sender reads as "enabled". A
+            // person who switched the nudge off and then signed in again would
+            // otherwise start getting it back.
+            if (!SettingsStore.instance.gameReminders) {
+              await PushManager.instance.setGameReminders(false);
+            }
           } catch (e, st) {
             DiagLog.error('push login failed', e, stack: st);
           }
@@ -1285,9 +1317,19 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
               // resolved answer exists — recorded for the diagnostics header
               // and the problem report, both of which are context-free.
               // Idempotent, and rerun on every language change.
-              DeviceReport.appLocaleTag = Localizations.localeOf(
+              final resolvedLocale = Localizations.localeOf(
                 context,
               ).toLanguageTag();
+              DeviceReport.appLocaleTag = resolvedLocale;
+              // The same answer, for a different consumer: the backend composes
+              // the daily games nudge and has to know which language to write
+              // it in. Reported from here because this builder reruns on every
+              // language change from EITHER source — the in-app override and a
+              // system language changed in the OS settings — and because the
+              // resolved value is the only correct one: an override is null for
+              // most people, and a device language may be one this app does not
+              // ship. No-ops unless it actually moved.
+              PushManager.instance.noteAppLocale(resolvedLocale);
 
               // _WindowClassProvider hosts the single app-wide LayoutBuilder
               // ABOVE the root navigator, so every route — the shell and any

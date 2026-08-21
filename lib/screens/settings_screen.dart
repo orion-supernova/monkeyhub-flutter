@@ -474,6 +474,11 @@ class _SettingsScreenState extends State<SettingsScreen>
                 _SectionHeader(label: l10n.settingsScreenSectionNotifications),
                 const SizedBox(height: 12),
                 _PushToggle(),
+                // Nested under the switch above rather than beside it, and only
+                // while that one is on: a reminder toggle offered to somebody
+                // who has turned notifications off entirely is a control with
+                // nothing to control.
+                _GameRemindersToggle(),
                 // Android's two call-delivery settings. Renders nothing at all
                 // when there is nothing to fix — see _CallDeliveryRows.
                 const _CallDeliveryRows(),
@@ -986,6 +991,94 @@ class _PushToggleState extends State<_PushToggle> {
                   activeThumbColor: theme.accent,
                 ),
               ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// The once-a-day "you haven't played today" reminder, on or off.
+///
+/// A second switch rather than a mode of the one above, because the two mean
+/// genuinely different things: that one is "reach this device at all", and
+/// somebody who wants the daily nudge to stop almost never also means "and stop
+/// telling me when a friend messages me". A daily broadcast whose only off
+/// button costs you your messages is a daily broadcast people answer by
+/// disabling notifications for the whole app.
+///
+/// Per device, like [_PushToggle] and for the same reason — the preference is
+/// stored on this device's `userDevices` row, so a phone and a laptop can
+/// disagree, and the sender reads it there.
+class _GameRemindersToggle extends StatefulWidget {
+  @override
+  State<_GameRemindersToggle> createState() => _GameRemindersToggleState();
+}
+
+class _GameRemindersToggleState extends State<_GameRemindersToggle> {
+  Future<void> _toggle(bool v) async {
+    await SettingsStore.instance.setGameReminders(v);
+    await PushManager.instance.setGameReminders(v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return AnimatedBuilder(
+      animation: SettingsStore.instance,
+      builder: (context, _) {
+        // Notifications off means there is nothing here to decide.
+        if (!SettingsStore.instance.pushEnabled) {
+          return const SizedBox.shrink();
+        }
+        final l10n = AppLocalizations.of(context);
+        final on = SettingsStore.instance.gameReminders;
+        return Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: GestureDetector(
+            onTap: () => _toggle(!on),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+              decoration: BoxDecoration(
+                color: theme.surface,
+                border: Border.all(color: theme.divider),
+                borderRadius: BorderRadius.circular(theme.radiusMd),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.grid_view_outlined,
+                    size: 16,
+                    color: on ? theme.accent : theme.inkMuted,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.settingsScreenGameRemindersLabel,
+                          style: theme.label,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          on
+                              ? l10n.settingsScreenGameRemindersOnBody
+                              : l10n.settingsScreenGameRemindersOffBody,
+                          style: theme.bodySoft,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Switch.adaptive(
+                    value: on,
+                    onChanged: _toggle,
+                    activeThumbColor: theme.accent,
+                  ),
+                ],
+              ),
             ),
           ),
         );

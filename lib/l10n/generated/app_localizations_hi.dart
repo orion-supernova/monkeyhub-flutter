@@ -4753,6 +4753,17 @@ class AppLocalizationsHi extends AppLocalizations {
       'साइलेंट — ऐप खोलने पर ही चीज़ें दिखेंगी';
 
   @override
+  String get settingsScreenGameRemindersLabel => 'रोज़ का गेम रिमाइंडर';
+
+  @override
+  String get settingsScreenGameRemindersOnBody =>
+      'दोपहर में एक बार, सिर्फ़ तब जब आपने खेला न हो';
+
+  @override
+  String get settingsScreenGameRemindersOffBody =>
+      'कोई रिमाइंडर नहीं — खेल तब भी वहीं मिलेंगे';
+
+  @override
   String get authErrorUsernameTaken => 'यह यूज़रनेम पहले से मौजूद है।';
 
   @override

@@ -4821,6 +4821,17 @@ class AppLocalizationsFr extends AppLocalizations {
       'silencieux — tu ne verras les choses qu\'en ouvrant l\'appli';
 
   @override
+  String get settingsScreenGameRemindersLabel => 'RAPPEL QUOTIDIEN DES JEUX';
+
+  @override
+  String get settingsScreenGameRemindersOnBody =>
+      'un rappel à midi, seulement si tu n’as pas joué';
+
+  @override
+  String get settingsScreenGameRemindersOffBody =>
+      'aucun rappel — les jeux sont là quand tu passes';
+
+  @override
   String get authErrorUsernameTaken => 'Ce nom d\'utilisateur est déjà pris.';
 
   @override

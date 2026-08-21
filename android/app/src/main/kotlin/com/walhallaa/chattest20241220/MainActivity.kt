@@ -435,6 +435,9 @@ class MainActivity : FlutterActivity() {
         val event: Map<String, Any?> = when {
             roomId.isNotEmpty() -> mapOf("method" to "onOpenRoom", "roomId" to roomId)
             kind == "approval" -> mapOf("method" to "onOpenRequests")
+            // The daily games nudge: the Feed, with today's games open. It
+            // carries no roomId, which is why it falls past the first branch.
+            kind == "daily_games" -> mapOf("method" to "onOpenGames")
             else -> return
         }
         val method = event["method"] as String

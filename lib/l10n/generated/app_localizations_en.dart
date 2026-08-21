@@ -4731,6 +4731,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'silent — you’ll only see things when you open the app';
 
   @override
+  String get settingsScreenGameRemindersLabel => 'DAILY GAME REMINDER';
+
+  @override
+  String get settingsScreenGameRemindersOnBody =>
+      'one nudge at lunchtime, only if you haven’t played';
+
+  @override
+  String get settingsScreenGameRemindersOffBody =>
+      'no reminder — the games are still there when you look';
+
+  @override
   String get authErrorUsernameTaken => 'That username is already taken.';
 
   @override

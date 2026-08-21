@@ -171,7 +171,29 @@ class _GamesHubScreenState extends State<GamesHubScreen> {
                           final width =
                               (constraints.maxWidth - gap * (columns - 1)) /
                               columns;
+                          // The code puzzle leads, ahead of the four boards.
+                          //
+                          // It is the game this app had first and the one the
+                          // daily nudge names, so the tile a person lands on
+                          // after tapping that notification should be the first
+                          // thing under their thumb rather than the last. It is
+                          // also the order the Feed's own games strip already
+                          // used (see GamesStrip) — the shelf and the hub
+                          // disagreeing about which game comes first was the
+                          // inconsistency, and this settles it in the strip's
+                          // favour.
                           final tiles = <Widget>[
+                            CodePuzzleTile(
+                              key: const ValueKey('tile_code'),
+                              puzzle: FeedStore.instance.puzzle,
+                              width: width,
+                              onTap: () => _open(
+                                PuzzleScreen(
+                                  feedApi: widget.feedApi,
+                                  userId: widget.userId,
+                                ),
+                              ),
+                            ),
                             for (final game in DailyGame.values)
                               GameTile(
                                 key: ValueKey('tile_${game.wire}'),
@@ -185,17 +207,6 @@ class _GamesHubScreenState extends State<GamesHubScreen> {
                                 width: width,
                                 onTap: () => _openGame(game),
                               ),
-                            CodePuzzleTile(
-                              key: const ValueKey('tile_code'),
-                              puzzle: FeedStore.instance.puzzle,
-                              width: width,
-                              onTap: () => _open(
-                                PuzzleScreen(
-                                  feedApi: widget.feedApi,
-                                  userId: widget.userId,
-                                ),
-                              ),
-                            ),
                           ];
                           return Wrap(
                             spacing: gap,

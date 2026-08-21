@@ -4574,6 +4574,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsScreenPushOffBody => '通知なし — アプリを開いたときだけ確認できます';
 
   @override
+  String get settingsScreenGameRemindersLabel => '毎日のゲーム通知';
+
+  @override
+  String get settingsScreenGameRemindersOnBody => 'お昼に一度だけ、まだ遊んでいないときに';
+
+  @override
+  String get settingsScreenGameRemindersOffBody => '通知なし — ゲームはいつでもそこにあります';
+
+  @override
   String get authErrorUsernameTaken => 'そのユーザー名はすでに使われています。';
 
   @override

@@ -4785,6 +4785,18 @@ class AppLocalizationsEs extends AppLocalizations {
       'silencioso — solo verás las cosas cuando abras la app';
 
   @override
+  String get settingsScreenGameRemindersLabel =>
+      'RECORDATORIO DIARIO DE JUEGOS';
+
+  @override
+  String get settingsScreenGameRemindersOnBody =>
+      'un aviso al mediodía, solo si no has jugado';
+
+  @override
+  String get settingsScreenGameRemindersOffBody =>
+      'sin recordatorio — los juegos siguen ahí cuando entres';
+
+  @override
   String get authErrorUsernameTaken => 'Ese nombre de usuario ya está en uso.';
 
   @override
