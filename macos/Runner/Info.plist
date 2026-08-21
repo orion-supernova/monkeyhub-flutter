@@ -18,6 +18,10 @@
 	<string>MonkeyHub</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<!-- Required for Mac App Store upload (error 90242 without it) — Xcode only
+	     warns at archive time, ASC's server rejects the upload outright. -->
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.social-networking</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleVersion</key>

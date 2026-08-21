@@ -366,15 +366,28 @@ echo ""
 # build number that never shipped must not stay in pubspec.yaml: the next run
 # bumps from whatever it finds, so a failed deploy would silently burn a version
 # and leave the tree dirty. Set by the version-bump step and the git step below.
+#
+# SHIPPED_SOMETHING guards the case DEPLOY_COMPLETE alone used to miss: with
+# several platforms in one run (iOS, macOS, Android, web), an EARLIER one can
+# ship successfully and only a LATER one fails — e.g. iOS uploads and
+# announces 1.3.79, then macOS blows up. DEPLOY_COMPLETE is still false there
+# (the whole run didn't finish), but reverting pubspec.yaml to 1.3.78 would be
+# wrong: 1.3.79 is already live on TestFlight, so the *next* run must bump
+# past it, not re-mint and re-upload the same version. Once any platform's
+# publish_release call fires this run, the bump is no longer reversible.
 VERSION_BUMP_APPLIED=false
 PREVIOUS_VERSION=""
 DEPLOY_COMPLETE=false
+SHIPPED_SOMETHING=false
 function finish {
     local rc=$?
     tput cnorm 2>/dev/null || true
-    if [ $rc -ne 0 ] && [ "$VERSION_BUMP_APPLIED" = true ] && [ "$DEPLOY_COMPLETE" = false ]; then
+    if [ $rc -ne 0 ] && [ "$VERSION_BUMP_APPLIED" = true ] && [ "$DEPLOY_COMPLETE" = false ] \
+       && [ "$SHIPPED_SOMETHING" = false ]; then
         sed -i '' "s/^version: .*/version: $PREVIOUS_VERSION/" "$SCRIPT_DIR/pubspec.yaml"
         echo "  ↩︎  Reverted pubspec.yaml to $PREVIOUS_VERSION (deploy did not finish)"
+    elif [ $rc -ne 0 ] && [ "$VERSION_BUMP_APPLIED" = true ] && [ "$DEPLOY_COMPLETE" = false ]; then
+        echo "  ⚠️  Not reverting pubspec.yaml — at least one platform already shipped this version."
     fi
 }
 trap finish EXIT
@@ -1120,6 +1133,7 @@ if [ "$DEPLOY_IOS" = true ]; then
         # the ios-appstore row stays where it is until a build is actually
         # approved for sale — see DEPLOY.md for the one-liner that moves it.
         publish_release ios-testflight
+        SHIPPED_SOMETHING=true
     else
         echo "⏭️  Skipping App Store Connect upload (--no-upload)"
     fi
@@ -1138,6 +1152,17 @@ fi
 # build carries the channel as a --dart-define instead. Otherwise this is the
 # same story as iOS: an ASC upload isn't a released App Store version, so
 # publish_release always announces the TestFlight-side channel here too.
+#
+# --config-only instead of iOS's --no-codesign: macOS has no such flag, and a
+# real (non-config-only) `flutter build macos` tries to codesign locally with
+# whatever development identity is on this Mac — which fails outright the
+# first time a target's entitlements (app sandbox, associated domains, …)
+# haven't been provisioned yet ("has entitlements that require signing with a
+# development certificate"). --config-only only refreshes Generated.xcconfig
+# (pubspec version, the dart-defines) and skips the build+sign step entirely;
+# the actual build+sign happens in the xcodebuild archive below, which
+# resolves its own certificate via -allowProvisioningUpdates + the ASC key —
+# the same mechanism that already works for iOS.
 MACOS_BUILD_TIME=0
 if [ "$DEPLOY_MACOS" = true ]; then
     MACOS_START_TIME=$(date +%s)
@@ -1146,8 +1171,8 @@ if [ "$DEPLOY_MACOS" = true ]; then
     echo "  • CocoaPods install"
     pod_install_with_retries macos || exit 1
 
-    run_with_spinner "Building Flutter for macOS (release)" \
-        flutter build macos --release --dart-define=MH_CHANNEL=macos-testflight
+    run_with_spinner "Configuring Flutter for macOS (release)" \
+        flutter build macos --release --config-only --dart-define=MH_CHANNEL=macos-testflight
 
     run_with_spinner "Creating Xcode archive" \
         xcodebuild -workspace macos/Runner.xcworkspace \
@@ -1189,6 +1214,7 @@ if [ "$DEPLOY_MACOS" = true ]; then
                 --apiKeyPath "$P8_FILE_PATH"
 
         publish_release macos-testflight
+        SHIPPED_SOMETHING=true
     else
         echo "⏭️  Skipping App Store Connect upload (--no-upload)"
     fi
@@ -1230,6 +1256,7 @@ if [ "$DEPLOY_ANDROID" = true ]; then
         # run_with_spinner exits on failure, so reaching here means the
         # internal track has the build.
         publish_release android-play
+        SHIPPED_SOMETHING=true
 
         # …and tell the sideloaders, who are a separate audience with a separate
         # problem. Their APK stamped MH_CHANNEL=android-apk at build time, and
@@ -1343,6 +1370,7 @@ if [ "$DEPLOY_WEB" = true ]; then
             # long-lived session still needs telling. The prompt reloads rather
             # than navigating anywhere.
             publish_release web
+            SHIPPED_SOMETHING=true
         else
             echo "❌ Web upload to $VM_USER@$VM_HOST failed."
             echo "   The live build is untouched — the swap only happens after"

@@ -1,4 +1,6 @@
 PODS:
+  - app_links (6.4.1):
+    - FlutterMacOS
   - AppAuth (2.1.0):
     - AppAuth/Core (= 2.1.0)
     - AppAuth/ExternalUserAgent (= 2.1.0)
@@ -93,6 +95,7 @@ PODS:
   - WebRTC-SDK (144.7559.01)
 
 DEPENDENCIES:
+  - app_links (from `Flutter/ephemeral/.symlinks/plugins/app_links/macos`)
   - audio_session (from `Flutter/ephemeral/.symlinks/plugins/audio_session/macos`)
   - connectivity_plus (from `Flutter/ephemeral/.symlinks/plugins/connectivity_plus/macos`)
   - convex_flutter (from `Flutter/ephemeral/.symlinks/plugins/convex_flutter/macos`)
@@ -128,6 +131,8 @@ SPEC REPOS:
     - WebRTC-SDK
 
 EXTERNAL SOURCES:
+  app_links:
+    :path: Flutter/ephemeral/.symlinks/plugins/app_links/macos
   audio_session:
     :path: Flutter/ephemeral/.symlinks/plugins/audio_session/macos
   connectivity_plus:
@@ -172,6 +177,7 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/video_player_avfoundation/darwin
 
 SPEC CHECKSUMS:
+  app_links: 05a6ec2341985eb05e9f97dc63f5837c39895c3f
   AppAuth: ef4da5a3fc2e10b90c09a0a94a9baeaedc0341d5
   AppCheckCore: e215d35177a9cf469927863e69c13e220df32a8b
   audio_session: eaca2512cf2b39212d724f35d11f46180ad3a33e
@@ -181,7 +187,7 @@ SPEC CHECKSUMS:
   file_selector_macos: 9e9e068e90ebee155097d00e89ae91edb2374db7
   flutter_secure_storage_darwin: acdb3f316ed05a3e68f856e0353b133eec373a23
   flutter_webrtc: f1fb1a00c6080461bb2bc6caa5b93d07ddb68466
-  FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
+  FlutterMacOS: c232990155153907050900a2e175c7773903ba4e
   gal: baecd024ebfd13c441269ca7404792a7152fde89
   geolocator_apple: ab36aa0e8b7d7a2d7639b3b4e48308394e8cef5e
   google_sign_in_ios: 000870aa06da9b28d1d0bf7ef70ff0213059dd28
@@ -203,6 +209,6 @@ SPEC CHECKSUMS:
   video_player_avfoundation: 3453f792138786248960ca029747fcd9f318ef52
   WebRTC-SDK: ab9b5319e458c2bfebdc92b3600740da35d5630d
 
-PODFILE CHECKSUM: 346bfb2deb41d4a6ebd6f6799f92188bde2d246f
+PODFILE CHECKSUM: 1e95c36afbfd1cb6423ceca4de7a8e1b256fb6ac
 
 COCOAPODS: 1.16.2
