@@ -601,6 +601,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get cameraEditorScreenViewOnceOffSemanticLabel => '한 번 보기: 꺼짐';
 
   @override
+  String get cameraEditorScreenHdOnSemanticLabel => 'HD: 켬';
+
+  @override
+  String get cameraEditorScreenHdOffSemanticLabel => 'HD: 끔';
+
+  @override
+  String get cameraEditorScreenHdNote => '원본 해상도로 전송합니다';
+
+  @override
   String get cameraEditorScreenInkColorSemanticLabel => '펜 색상';
 
   @override

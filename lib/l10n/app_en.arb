@@ -720,6 +720,18 @@
   "@cameraEditorScreenViewOnceOffSemanticLabel": {
     "description": "Screen-reader label for the circled-1 view-once toggle when it is currently disabled."
   },
+  "cameraEditorScreenHdOnSemanticLabel": "HD: on",
+  "@cameraEditorScreenHdOnSemanticLabel": {
+    "description": "Screen-reader label for the HD toggle in the photo editor when it is on (the photo will be sent at source resolution)."
+  },
+  "cameraEditorScreenHdOffSemanticLabel": "HD: off",
+  "@cameraEditorScreenHdOffSemanticLabel": {
+    "description": "Screen-reader label for the HD toggle in the photo editor when it is off (the photo will be compressed before sending)."
+  },
+  "cameraEditorScreenHdNote": "sending at full resolution",
+  "@cameraEditorScreenHdNote": {
+    "description": "Small caption shown above the send bar explaining that HD is armed, so this photo goes out uncompressed."
+  },
   "cameraEditorScreenInkColorSemanticLabel": "ink colour",
   "@cameraEditorScreenInkColorSemanticLabel": {
     "description": "Screen-reader label for each color swatch in the pen tray's color picker."

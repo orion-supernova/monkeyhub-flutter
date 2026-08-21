@@ -631,6 +631,15 @@ class AppLocalizationsEs extends AppLocalizations {
       'ver una vez: desactivado';
 
   @override
+  String get cameraEditorScreenHdOnSemanticLabel => 'HD: activado';
+
+  @override
+  String get cameraEditorScreenHdOffSemanticLabel => 'HD: desactivado';
+
+  @override
+  String get cameraEditorScreenHdNote => 'se enviará en resolución completa';
+
+  @override
   String get cameraEditorScreenInkColorSemanticLabel => 'color de tinta';
 
   @override

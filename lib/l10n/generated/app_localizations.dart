@@ -1179,6 +1179,24 @@ abstract class AppLocalizations {
   /// **'view once: off'**
   String get cameraEditorScreenViewOnceOffSemanticLabel;
 
+  /// Screen-reader label for the HD toggle in the photo editor when it is on (the photo will be sent at source resolution).
+  ///
+  /// In en, this message translates to:
+  /// **'HD: on'**
+  String get cameraEditorScreenHdOnSemanticLabel;
+
+  /// Screen-reader label for the HD toggle in the photo editor when it is off (the photo will be compressed before sending).
+  ///
+  /// In en, this message translates to:
+  /// **'HD: off'**
+  String get cameraEditorScreenHdOffSemanticLabel;
+
+  /// Small caption shown above the send bar explaining that HD is armed, so this photo goes out uncompressed.
+  ///
+  /// In en, this message translates to:
+  /// **'sending at full resolution'**
+  String get cameraEditorScreenHdNote;
+
   /// Screen-reader label for each color swatch in the pen tray's color picker.
   ///
   /// In en, this message translates to:

@@ -620,6 +620,15 @@ class AppLocalizationsTr extends AppLocalizations {
       'tek seferlik görüntüleme: kapalı';
 
   @override
+  String get cameraEditorScreenHdOnSemanticLabel => 'HD: açık';
+
+  @override
+  String get cameraEditorScreenHdOffSemanticLabel => 'HD: kapalı';
+
+  @override
+  String get cameraEditorScreenHdNote => 'tam çözünürlükte gönderiliyor';
+
+  @override
   String get cameraEditorScreenInkColorSemanticLabel => 'mürekkep rengi';
 
   @override

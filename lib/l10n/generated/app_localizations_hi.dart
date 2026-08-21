@@ -627,6 +627,15 @@ class AppLocalizationsHi extends AppLocalizations {
   String get cameraEditorScreenViewOnceOffSemanticLabel => 'एक बार देखें: बंद';
 
   @override
+  String get cameraEditorScreenHdOnSemanticLabel => 'HD: चालू';
+
+  @override
+  String get cameraEditorScreenHdOffSemanticLabel => 'HD: बंद';
+
+  @override
+  String get cameraEditorScreenHdNote => 'पूर्ण रिज़ॉल्यूशन में भेजा जा रहा है';
+
+  @override
   String get cameraEditorScreenInkColorSemanticLabel => 'स्याही का रंग';
 
   @override

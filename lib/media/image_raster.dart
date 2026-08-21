@@ -46,6 +46,83 @@ class CroppedImage {
 /// metadata anyway.
 const int? pickerImageQuality = kIsWeb ? null : 88;
 
+// ------------------------------------------------------- outgoing photo size
+//
+// What a chat photo costs on the wire, and why it is capped by default.
+//
+// The editor used to export every photo at the source resolution and q90 —
+// deliberately, so "the file the user sends is the one they gave us". On a
+// 12 megapixel phone camera that is ~5 MB, and the arithmetic that makes it
+// the wrong default is the fan-out: one photo into a four-person room is one
+// 5 MB upload and *four* 5 MB downloads, because the recipients fetch the blob
+// independently and there is no CDN in front of Convex storage. A single
+// afternoon of chatting measured 10.8 MB uploaded against 51.2 MB served.
+//
+// So the default is a capped re-encode and HD is the opt-in, which is the
+// trade every mainstream messenger makes: the cap is invisible on a phone
+// screen, and the latency it buys back is not. [kSendPhotoMaxEdge] on the
+// longest side keeps portrait photos portrait — it is a bound on the longer
+// dimension, never a forced aspect.
+
+/// Longest edge, in pixels, of a chat photo sent at the default setting.
+///
+/// 1280 covers every phone screen at better than 1:1 (a 6.7" flagship is
+/// ~1290 logical points wide only in landscape) and lands a typical camera
+/// photo around 150 KB. Above this the extra pixels are only ever seen by
+/// someone pinch-zooming, which is what HD is for.
+const int kSendPhotoMaxEdge = 1280;
+
+/// JPEG quality for a chat photo sent at the default setting.
+const int kSendPhotoQuality = 75;
+
+/// JPEG quality for a photo sent as HD.
+///
+/// Matches what the editor has always exported, so turning HD on reproduces
+/// the old behaviour exactly: source resolution, q90, no cap.
+const int kSendPhotoHdQuality = 90;
+
+/// Re-encodes [source] as a JPEG bounded by [maxEdge] on its longest side.
+///
+/// Used for a photo going out UNEDITED — the editor's pass-through path, which
+/// otherwise hands back the picked bytes verbatim. An edited photo is capped
+/// during its own composite instead, where the crop and strokes are already
+/// being rasterized and a second decode would be waste.
+///
+/// Never upscales: [decodeImageBytes] declines to enlarge a small source, so a
+/// 600px image comes back at 600px, re-encoded but not stretched.
+///
+/// The opaque backdrop is not optional. [rasterToJpegBytes] reads PREMULTIPLIED
+/// rawRgba, which only equals straight RGBA where alpha is 255 — a PNG or WebP
+/// with real transparency would come back with its semi-transparent pixels
+/// darkened. JPEG has no alpha to preserve anyway, so flattening onto black is
+/// both correct and lossless here.
+Future<CroppedImage> compressForSend(
+  Uint8List source, {
+  int maxEdge = kSendPhotoMaxEdge,
+  int quality = kSendPhotoQuality,
+}) async {
+  final decoded = await decodeImageBytes(source, maxEdge: maxEdge);
+  final w = decoded.width;
+  final h = decoded.height;
+  final rect = ui.Rect.fromLTWH(0, 0, w.toDouble(), h.toDouble());
+
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder, rect);
+  canvas.drawRect(rect, ui.Paint()..color = const ui.Color(0xFF000000));
+  canvas.drawImage(
+    decoded,
+    ui.Offset.zero,
+    ui.Paint()..filterQuality = ui.FilterQuality.medium,
+  );
+  final picture = recorder.endRecording();
+  final raster = await picture.toImage(w, h);
+  picture.dispose();
+  decoded.dispose();
+
+  // Takes ownership of `raster` and disposes it.
+  return rasterToJpegBytes(raster, quality: quality);
+}
+
 /// The content type of [bytes], read from the header rather than a filename.
 ///
 /// This used to sniff the file extension, which does not exist on web — a

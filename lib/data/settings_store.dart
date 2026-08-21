@@ -35,6 +35,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kManualLogoThemeId = 'mh.manualLogoThemeId';
   static const _kShowLinkUrls = 'mh.showLinkUrls';
   static const _kShowNetworkStats = 'mh.showNetworkStats';
+  static const _kPhotoHd = 'mh.photoHd';
   static const _kVideoQualityTier = 'mh.videoQualityTier';
   // NOTE: 'mh.fullScreenIntentPrompted', 'mh.batteryOptPrompted' and
   // 'mh.micPermissionPrompted' were retired with the Android onboarding
@@ -80,6 +81,7 @@ class SettingsStore extends ChangeNotifier {
   LogoMode _logoMode = LogoMode.auto;
   String? _manualLogoThemeId;
   bool _showLinkUrls = false;
+  bool _photoHd = false;
   bool _showNetworkStats = false;
   VideoQualityTier _videoQualityTier = VideoQualityTier.auto;
   String? _recoveryPromptDismissedFor;
@@ -141,6 +143,21 @@ class SettingsStore extends ChangeNotifier {
   /// Even when on, only contributors whose `seen` visibility allows it will
   /// surface; see [profile_visibility_screen] for the inbound warning.
   bool get viewReadReceipts => _viewReadReceipts;
+
+  /// When `true`, an outgoing photo is sent at its source resolution and JPEG
+  /// q90 — what the editor exported unconditionally before this switch existed.
+  ///
+  /// Default `false`, and that default is the point. A phone camera photo is
+  /// ~5 MB at full size, and a chat room multiplies it: every member fetches
+  /// the blob separately from Convex storage with no CDN in front, so one
+  /// photo into a room of four is ~25 MB moved. Capped, the same photo is
+  /// ~150 KB. See `kSendPhotoMaxEdge` in media/image_raster.dart.
+  ///
+  /// Sticky rather than per-send: someone who turns HD on is usually sending a
+  /// screenshot of text or a photo they want kept, and asking them to re-arm it
+  /// on every picture would be the wrong kind of careful. The editor still
+  /// shows the state on every send, so it is never silently on.
+  bool get photoHd => _photoHd;
 
   /// The userId that declined the "set up a recovery phrase" prompt.
   ///
@@ -298,6 +315,8 @@ class SettingsStore extends ChangeNotifier {
       _showLinkUrls = slu == 'true'; // default false
       final sns = await _storage.read(key: _kShowNetworkStats);
       _showNetworkStats = sns == 'true'; // default false
+      final phd = await _storage.read(key: _kPhotoHd);
+      _photoHd = phd == 'true'; // default false — compressed
       _videoQualityTier = VideoQualityTierWire.parse(
         await _storage.read(key: _kVideoQualityTier),
       );
@@ -511,6 +530,13 @@ class SettingsStore extends ChangeNotifier {
     _showLinkUrls = v;
     notifyListeners();
     await _storage.write(key: _kShowLinkUrls, value: v ? 'true' : 'false');
+  }
+
+  Future<void> setPhotoHd(bool v) async {
+    if (_photoHd == v) return;
+    _photoHd = v;
+    notifyListeners();
+    await _storage.write(key: _kPhotoHd, value: v ? 'true' : 'false');
   }
 
   Future<void> setShowNetworkStats(bool v) async {

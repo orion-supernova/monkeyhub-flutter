@@ -324,12 +324,39 @@ export const listUserRooms = query({
       memberships.map(async (m) => {
         const room = await ctx.db.get(m.roomId);
         if (!room) return null;
-        // Include participant IDs for the iOS app
-        const members = await ctx.db
-          .query("roomMembers")
-          .withIndex("by_room_user", (q) => q.eq("roomId", m.roomId))
-          .collect();
-        const participantIds = members.map((mem) => mem.userId.toString());
+
+        // Participant ids, for DMs ONLY. The narrowing is a fan-out fix, not a
+        // payload saving.
+        //
+        // Collecting every member put each of their `roomMembers` rows into
+        // this subscription's read set, once per room the viewer is in. That
+        // row is patched by `markRoomRead` on every incoming message — so four
+        // people talking quickly re-ran this entire query, N rooms x (a room
+        // read + a member scan + an unread scan), for every member on every
+        // message. It was the top UserTimeout in the server logs by a wide
+        // margin, and the work was mostly for nobody: the client reads
+        // `participantIds` at exactly one place, `ChatRoom.otherParticipantId`,
+        // which its only caller guards behind `isDm` and which returns null for
+        // anything else. A group room's copy was built, shipped and dropped.
+        //
+        // Restricting the read to DMs leaves that one consumer exactly as
+        // correct while taking group rooms out of the invalidation path
+        // entirely. Older clients are safe: `ChatRoom.fromJson` already
+        // defaults the field to `const []`, which is what a group room now
+        // sends.
+        //
+        // A DM still collects, and still refires when its two members read —
+        // two rows, one peer, which is the cost of knowing who you are talking
+        // to. `startsWith("dm:")` is the same test the rest of the backend uses
+        // (roomAdmin.isGroupRoom, childGuard, roomCleanup).
+        const participantIds = room.name?.startsWith("dm:")
+          ? (
+              await ctx.db
+                .query("roomMembers")
+                .withIndex("by_room_user", (q) => q.eq("roomId", m.roomId))
+                .collect()
+            ).map((mem) => mem.userId.toString())
+          : [];
         const { passwordHash, ...rest } = room;
         // Surface the caller's own read cursor so the client can flag rooms
         // with messages newer than lastReadAt as unread (m is this user's

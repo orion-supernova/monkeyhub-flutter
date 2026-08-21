@@ -637,6 +637,15 @@ class AppLocalizationsPt extends AppLocalizations {
       'visualização única: desativada';
 
   @override
+  String get cameraEditorScreenHdOnSemanticLabel => 'HD: ativado';
+
+  @override
+  String get cameraEditorScreenHdOffSemanticLabel => 'HD: desativado';
+
+  @override
+  String get cameraEditorScreenHdNote => 'a enviar na resolução original';
+
+  @override
   String get cameraEditorScreenInkColorSemanticLabel => 'cor da tinta';
 
   @override
@@ -7904,6 +7913,15 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get cameraEditorScreenViewOnceOffSemanticLabel =>
       'ver uma vez: desativado';
+
+  @override
+  String get cameraEditorScreenHdOnSemanticLabel => 'HD: ativado';
+
+  @override
+  String get cameraEditorScreenHdOffSemanticLabel => 'HD: desativado';
+
+  @override
+  String get cameraEditorScreenHdNote => 'enviando na resolução original';
 
   @override
   String get cameraEditorScreenInkColorSemanticLabel => 'cor da tinta';

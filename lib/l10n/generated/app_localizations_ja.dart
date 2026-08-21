@@ -600,6 +600,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get cameraEditorScreenViewOnceOffSemanticLabel => '一度だけ表示：オフ';
 
   @override
+  String get cameraEditorScreenHdOnSemanticLabel => 'HD: オン';
+
+  @override
+  String get cameraEditorScreenHdOffSemanticLabel => 'HD: オフ';
+
+  @override
+  String get cameraEditorScreenHdNote => 'フル解像度で送信します';
+
+  @override
   String get cameraEditorScreenInkColorSemanticLabel => 'インクの色';
 
   @override

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -6,6 +7,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../media/editor_geometry.dart';
@@ -31,6 +33,9 @@ import 'review_route.dart';
 ///    coordinate space and the exporter reconstructing another.
 ///  * **An unedited photo is passed through untouched.** No crop, no strokes, no
 ///    rotation means the caller gets the original bytes — not a re-encode.
+///    The one exception is the size cap: an oversized photo is re-encoded down
+///    unless HD is armed, because a 5 MB original is a cost paid by every
+///    member of the room, not just the sender. See `kSendPhotoMaxEdge`.
 ///
 /// Pops an [EditorOutcome] on send or retake, `null` on discard.
 class CameraEditorScreen extends StatefulWidget {
@@ -241,6 +246,13 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
   /// edit — it is a decision about the *send*, not about the picture, so
   /// nothing in the editing model touches it.
   bool _viewOnce = false;
+  /// Send this photo at source resolution instead of the capped default.
+  ///
+  /// Seeded from the sticky preference and written back on toggle, so the
+  /// choice carries between photos — see `SettingsStore.photoHd` for why that
+  /// is the right stickiness. Held as local state as well so the switch feels
+  /// instant and a send already in flight cannot change under itself.
+  bool _hd = SettingsStore.instance.photoHd;
 
   /// Quarter-turns clockwise the user has applied. Replayed against the
   /// full-resolution decode at export; the display image is rotated eagerly so
@@ -581,20 +593,40 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
       try {
         final size = await imageBytesSize(widget.source);
         if (!mounted) return;
-        Navigator.of(context).pop(
-          EditorSend(
-            image: CroppedImage(
-              bytes: widget.source,
-              contentType: sniffImageContentType(widget.source),
-              width: size.width.round(),
-              height: size.height.round(),
+
+        // Genuinely untouched: already inside the cap, or the user asked for
+        // HD. Handing back the picked bytes costs nothing and loses nothing.
+        if (_hd ||
+            math.max(size.width, size.height) <= kSendPhotoMaxEdge) {
+          Navigator.of(context).pop(
+            EditorSend(
+              image: CroppedImage(
+                bytes: widget.source,
+                contentType: sniffImageContentType(widget.source),
+                width: size.width.round(),
+                height: size.height.round(),
+              ),
+              viewOnce: _viewOnce,
             ),
-            viewOnce: _viewOnce,
-          ),
+          );
+          return;
+        }
+
+        // Oversized and not HD. Spinner first: a 12 megapixel decode and JPEG
+        // re-encode is a second or two on an older handset, and this is the
+        // one pass-through case that does real work.
+        setState(() => _saving = true);
+        final shrunk = await compressForSend(widget.source);
+        if (!mounted) return;
+        Navigator.of(context).pop(
+          EditorSend(image: shrunk, viewOnce: _viewOnce),
         );
         return;
       } catch (e) {
-        debugPrint('[camera_editor] header read failed, re-encoding: $e');
+        // A header we cannot read, or a decode that failed, is not a reason to
+        // lose the send — fall through to the full export path below, which
+        // takes its dimensions from a real decode and applies the same cap.
+        debugPrint('[camera_editor] pass-through failed, re-encoding: $e');
       }
     }
 
@@ -620,8 +652,27 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
       final outH = math.max(1, cropPx.height.round());
       final dst = Rect.fromLTWH(0, 0, outW.toDouble(), outH.toDouble());
 
+      // The cap is applied to the RASTER, not to the drawing space. Everything
+      // below — the crop translate, the rotation, the stroke widths, which are
+      // a fraction of `rotated.width` — keeps working in full crop resolution
+      // and needs no knowledge that a cap exists; only the canvas transform and
+      // the output bitmap size do. Capping the source decode instead would be
+      // cheaper, but a tight crop out of a pre-shrunk image loses detail the
+      // user explicitly framed for.
+      final scale = _hd
+          ? 1.0
+          : math.min(1.0, kSendPhotoMaxEdge / math.max(outW, outH));
+      final rasterW = math.max(1, (outW * scale).round());
+      final rasterH = math.max(1, (outH * scale).round());
+
       final recorder = ui.PictureRecorder();
-      final canvas = Canvas(recorder, dst);
+      final canvas = Canvas(
+        recorder,
+        Rect.fromLTWH(0, 0, rasterW.toDouble(), rasterH.toDouble()),
+      );
+      // Before the save/restore pair below, so it survives the restore and
+      // still governs the strokes drawn after it.
+      if (scale != 1.0) canvas.scale(scale);
       // Opaque backdrop: rasterToJpegBytes reads PREMULTIPLIED rawRgba, which
       // only equals straight RGBA where alpha is 255.
       canvas.drawRect(dst, Paint()..color = const Color(0xFF000000));
@@ -658,10 +709,13 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
       }
 
       final picture = recorder.endRecording();
-      final raster = await picture.toImage(outW, outH);
+      final raster = await picture.toImage(rasterW, rasterH);
       picture.dispose();
 
-      final result = await rasterToJpegBytes(raster);
+      final result = await rasterToJpegBytes(
+        raster,
+        quality: _hd ? kSendPhotoHdQuality : kSendPhotoQuality,
+      );
       if (!mounted) return;
       Navigator.of(context).pop(EditorSend(image: result, viewOnce: _viewOnce));
     } catch (e) {
@@ -1123,6 +1177,10 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
         // and a note about sending would answer a question the user isn't
         // asking yet.
         if (_viewOnce) _viewOnceNote(theme),
+        // Only when HD is armed. The compressed default needs no caption —
+        // it is what every photo has always looked like to the recipient, and
+        // narrating it would turn a good default into a decision.
+        if (_hd && !_viewOnce) _hdNote(theme),
         if (_penArmed) _penTray(theme),
         Row(
           children: [
@@ -1154,7 +1212,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
               ),
               const SizedBox(width: 8),
             ],
-            if (widget.allowViewOnce)
+            if (widget.allowViewOnce) ...[
               _ViewOnceToggle(
                 active: _viewOnce,
                 accent: theme.accent,
@@ -1163,6 +1221,14 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
                     ? null
                     : () => setState(() => _viewOnce = !_viewOnce),
               ),
+              const SizedBox(width: 8),
+            ],
+            _HdToggle(
+              active: _hd,
+              accent: theme.accent,
+              accentInk: theme.accentInk,
+              onTap: _saving ? null : _toggleHd,
+            ),
             const Spacer(),
             PhotoGlassPill(
               label: _saving
@@ -1177,6 +1243,43 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
           ],
         ),
       ],
+    );
+  }
+
+  /// Flips HD and writes the choice back to the sticky preference.
+  ///
+  /// Not awaited: the write is a secure-storage round trip and the toggle must
+  /// feel instant. Local state is the source of truth for the send that
+  /// follows, so a slow or failed write costs the stickiness, never the photo.
+  void _toggleHd() {
+    setState(() => _hd = !_hd);
+    unawaited(SettingsStore.instance.setPhotoHd(_hd));
+  }
+
+  Widget _hdNote(AppTheme theme) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: PhotoGlassSurface(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(CupertinoIcons.sparkles, size: 12, color: theme.accent),
+              const SizedBox(width: 6),
+              Text(
+                AppLocalizations.of(context).cameraEditorScreenHdNote,
+                style: const TextStyle(
+                  color: PhotoChrome.inkDim,
+                  fontSize: 11.5,
+                  letterSpacing: 0.2,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -1347,6 +1450,69 @@ class _ViewOnceToggle extends StatelessWidget {
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                   height: 1,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The HD switch: send at source resolution instead of the capped default.
+///
+/// Deliberately built as a near-twin of [_ViewOnceToggle] — same 38pt circle,
+/// same glass surface, same accent fill when armed — because the two sit side
+/// by side and are the same KIND of control: a per-photo property of the send,
+/// not a tool that changes the picture.
+class _HdToggle extends StatelessWidget {
+  const _HdToggle({
+    required this.active,
+    required this.accent,
+    required this.accentInk,
+    required this.onTap,
+  });
+
+  final bool active;
+  final Color accent;
+  final Color accentInk;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    final fg = active
+        ? accentInk
+        : (enabled ? PhotoChrome.ink : PhotoChrome.inkDisabled);
+    final l10n = AppLocalizations.of(context);
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: active
+          ? l10n.cameraEditorScreenHdOnSemanticLabel
+          : l10n.cameraEditorScreenHdOffSemanticLabel,
+      shape: FocusRingShape.circle,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: PhotoGlassSurface(
+          shape: BoxShape.circle,
+          tint: active ? accent : null,
+          child: SizedBox(
+            width: 38,
+            height: 38,
+            child: Center(
+              child: Text(
+                'HD',
+                style: TextStyle(
+                  color: fg,
+                  // A shade smaller than the view-once "1": two glyphs in the
+                  // same 38pt circle need the room.
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  height: 1,
+                  letterSpacing: 0.2,
                   decoration: TextDecoration.none,
                 ),
               ),

@@ -588,6 +588,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cameraEditorScreenViewOnceOffSemanticLabel => '阅后即焚：已关闭';
 
   @override
+  String get cameraEditorScreenHdOnSemanticLabel => 'HD：开';
+
+  @override
+  String get cameraEditorScreenHdOffSemanticLabel => 'HD：关';
+
+  @override
+  String get cameraEditorScreenHdNote => '将以原始分辨率发送';
+
+  @override
   String get cameraEditorScreenInkColorSemanticLabel => '画笔颜色';
 
   @override

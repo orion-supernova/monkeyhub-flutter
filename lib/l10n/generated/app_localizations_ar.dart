@@ -642,6 +642,15 @@ class AppLocalizationsAr extends AppLocalizations {
       'المشاهدة لمرة واحدة: غير مفعّلة';
 
   @override
+  String get cameraEditorScreenHdOnSemanticLabel => 'HD: مفعّل';
+
+  @override
+  String get cameraEditorScreenHdOffSemanticLabel => 'HD: معطّل';
+
+  @override
+  String get cameraEditorScreenHdNote => 'سيتم الإرسال بالدقة الكاملة';
+
+  @override
   String get cameraEditorScreenInkColorSemanticLabel => 'لون الحبر';
 
   @override

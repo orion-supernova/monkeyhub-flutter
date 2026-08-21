@@ -626,6 +626,15 @@ class AppLocalizationsSv extends AppLocalizations {
   String get cameraEditorScreenViewOnceOffSemanticLabel => 'visa en gång: av';
 
   @override
+  String get cameraEditorScreenHdOnSemanticLabel => 'HD: på';
+
+  @override
+  String get cameraEditorScreenHdOffSemanticLabel => 'HD: av';
+
+  @override
+  String get cameraEditorScreenHdNote => 'skickas i full upplösning';
+
+  @override
   String get cameraEditorScreenInkColorSemanticLabel => 'bläckfärg';
 
   @override

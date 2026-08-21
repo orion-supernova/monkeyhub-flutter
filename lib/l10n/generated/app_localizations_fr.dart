@@ -642,6 +642,15 @@ class AppLocalizationsFr extends AppLocalizations {
       'vue unique : désactivée';
 
   @override
+  String get cameraEditorScreenHdOnSemanticLabel => 'HD : activé';
+
+  @override
+  String get cameraEditorScreenHdOffSemanticLabel => 'HD : désactivé';
+
+  @override
+  String get cameraEditorScreenHdNote => 'envoi en pleine résolution';
+
+  @override
   String get cameraEditorScreenInkColorSemanticLabel => 'couleur d’encre';
 
   @override

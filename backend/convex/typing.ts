@@ -5,6 +5,30 @@ import { lensFor } from "./visibility";
 const TYPING_TTL_MS = 8000; // safety net — clearTyping fires after 3s inactivity, heartbeat every 2s
 
 /**
+ * How stale a typing row must be before a heartbeat actually rewrites it.
+ *
+ * The client beats every 2s while a key is moving, and each beat used to patch
+ * the row unconditionally. That patch is not a cheap write: it re-fires
+ * `getTypingUsers` for everyone in the room AND `getTypingForUser` — a global,
+ * whole-session subscription that walks every room the viewer is in — for every
+ * member. Four people typing at once meant two writes a second, each fanning
+ * out across the room, on the machine already struggling to serve their
+ * messages. Typing indicators are the least important thing on the screen and
+ * they were among the loudest things on the wire.
+ *
+ * Skipping the write while the row is fresh makes most beats pure reads, at no
+ * cost to what anyone sees: the indicator is driven by `TYPING_TTL_MS`, so all
+ * that matters is that the row is rewritten comfortably before it ages out.
+ * At a 2s beat this halves the writes and leaves a 4s margin — even a client
+ * that misses a beat entirely refreshes at 6s, still inside the 8s window.
+ *
+ * Keep this comfortably below [TYPING_TTL_MS], for the same reason
+ * `PRESENCE_WRITE_INTERVAL_MS` sits below `PRESENCE_OFFLINE_MS`: cross them and
+ * a user who is actively typing starts flickering out of their own indicator.
+ */
+const TYPING_REFRESH_MS = 4000;
+
+/**
  * Shape both typing queries return per typist. Deliberately mirrors the keys
  * `ChatUser.fromJson` reads on the client, so the indicator can render a real
  * `UserAvatar` without a bespoke model.
@@ -42,6 +66,16 @@ export const setTyping = mutation({
       .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))
       .first();
 
+    const now = Date.now();
+
+    // Still fresh — the row already says "typing" and will keep saying it for
+    // seconds yet. Returning here skips the users read below as well as the
+    // write, so a suppressed beat costs one indexed lookup and nothing else.
+    if (existing && now - existing.updatedAt < TYPING_REFRESH_MS) return;
+
+    // Denormalized onto the row so neither typing query has to read the
+    // typist's `users` document — see `typistOf`. Read here, in a mutation,
+    // where a read creates no subscription.
     const user = await ctx.db.get(userId);
     const stamp = {
       userName: user?.name ?? user?.username ?? "",
@@ -50,12 +84,12 @@ export const setTyping = mutation({
     };
 
     if (existing) {
-      await ctx.db.patch(existing._id, { updatedAt: Date.now(), ...stamp });
+      await ctx.db.patch(existing._id, { updatedAt: now, ...stamp });
     } else {
       await ctx.db.insert("typingIndicators", {
         roomId,
         userId,
-        updatedAt: Date.now(),
+        updatedAt: now,
         ...stamp,
       });
     }

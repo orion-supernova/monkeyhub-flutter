@@ -2514,6 +2514,27 @@ export const markRoomRead = mutation({
       )
       .first();
     if (!membership) return; // not a member, silently no-op
+
+    // Nothing new to mark. The same guard `markRoomDelivered` carries, for the
+    // same reason and with more to gain: patching a `roomMembers` row re-fires
+    // `getReadState` for every member of the room and `listUserRooms` for this
+    // one, so a patch that moves the cursor past nothing is not free — it is a
+    // rebuild of several subscriptions that say exactly what they said before.
+    //
+    // This is the room-entry case, and it is the common one: opening a room
+    // you have already read used to cost the same fan-out as reading a fresh
+    // message in it, plus a scheduled `dismissAndSync`. Re-entering a quiet
+    // room now costs one indexed read.
+    //
+    // Skipping the dismiss along with the patch is correct rather than merely
+    // cheap: the cursor being at or past the newest message means an earlier
+    // `markRoomRead` already ran and already scheduled one. The reading device
+    // clears its own notifications locally either way (see `ChatRepository`),
+    // so nothing is left showing on the device in the user's hand.
+    const room = await ctx.db.get(roomId);
+    const newest = room?.lastMessageTime ?? 0;
+    if ((membership.lastReadAt ?? 0) >= newest) return;
+
     const now = Date.now();
     await ctx.db.patch(membership._id, {
       lastReadAt: now,
