@@ -138,9 +138,15 @@ class ComposerCaptureHost extends StatefulWidget {
 }
 
 class _ComposerCaptureHostState extends State<ComposerCaptureHost>
-    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   late ComposerCaptureMachine _machine = _buildMachine();
   late final AnimationController _modeBumpController;
+
+  /// Drives the same rubbery bump as [_modeBumpController], at half amplitude,
+  /// played once when the composer first mounts — so a chatroom that just
+  /// opened nudges the mode button rather than leaving a screen-reader-only
+  /// control to be discovered by accident.
+  late final AnimationController _entranceBumpController;
 
   CaptureRecorder? _recorder;
 
@@ -221,11 +227,20 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     super.initState();
 
     _modeBumpController = AnimationController(vsync: this, duration: const Duration(milliseconds: 440));
+    _entranceBumpController = AnimationController(vsync: this, duration: const Duration(milliseconds: 480));
 
     WidgetsBinding.instance.addObserver(this);
     // Orphans from a previous run, deleted before this one can add to them.
     unawaited(CaptureTempFiles.sweep());
     widget.capture?.controller?.addListener(_onExternalRequest);
+
+    // Post-frame, not here: `_triggerTooltip` calls `setState`, which cannot
+    // run while this element is still being mounted for the first time.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || widget.capture == null) return;
+      _entranceBumpController.forward(from: 0.0);
+      _triggerTooltip();
+    });
   }
 
   /// The attachment sheet (or anything else holding the controller) asked for a
@@ -279,6 +294,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     unawaited(recorder?.dispose());
     if (!identical(video, recorder)) unawaited(video?.dispose());
     _modeBumpController.dispose();
+    _entranceBumpController.dispose();
     _machine.dispose();
     super.dispose();
   }
@@ -915,7 +931,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
 
   Widget _modeMicroAnimation(Widget child) {
     return AnimatedBuilder(
-      animation: Listenable.merge([_modeBumpController, _machine]),
+      animation: Listenable.merge([_modeBumpController, _entranceBumpController, _machine]),
       child: child,
       builder: (context, child) {
         final t = _modeBumpController.value;
@@ -930,6 +946,16 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
 
         final dir = _machine.lastStepDirection.toDouble();
         final bumpSkew = dir * oscillation * 0.045;
+
+        // --- 1b. The same shape at half amplitude and no skew — a light,
+        // direction-less bubblegum pop played once when the composer opens. ---
+        final et = _entranceBumpController.value;
+        final eDecay = math.exp(-et * 5.5);
+        final eOscillation = eDecay * math.sin(et * math.pi * 3.5);
+        final eImpulse = math.sin(math.pow(et, 0.6) * math.pi);
+
+        final entranceScaleX = 1.0 + eImpulse * 0.08 * (1.0 - et) + eOscillation * 0.04;
+        final entranceScaleY = 1.0 - eImpulse * 0.07 * (1.0 - et) - eOscillation * 0.04;
 
         // --- 2. Live Gesture Deformation (Drag, Lock, Cancel) ---
         final dragRatio = (_machine.modeDrag / kModeSwitchStep).clamp(-1.0, 1.0);
@@ -947,8 +973,8 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
         final lockScaleX = 1.0 - lockProgress * 0.08;
 
         // --- 3. Combined Scale & Matrix Transformation ---
-        final totalScaleX = bumpScaleX * dragStretchX * cancelScaleX * lockScaleX;
-        final totalScaleY = bumpScaleY * dragStretchY * cancelScaleY * lockScaleY;
+        final totalScaleX = bumpScaleX * entranceScaleX * dragStretchX * cancelScaleX * lockScaleX;
+        final totalScaleY = bumpScaleY * entranceScaleY * dragStretchY * cancelScaleY * lockScaleY;
         final totalSkew = bumpSkew + dragSkew + cancelSkew;
 
         return Transform(
