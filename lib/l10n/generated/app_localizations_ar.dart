@@ -1860,13 +1860,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get discoverScreenSearchRoomsSubtitle => 'ابحث عن غرفة عامة بالاسم';
 
   @override
-  String get discoverScreenPublicRoomsLabel => 'الغرف العامة';
+  String get discoverScreenYourRoomsLabel => 'غرفك';
 
   @override
-  String get discoverScreenLoadingRooms => 'يبحث…';
-
-  @override
-  String get discoverScreenNoRoomsOpen => 'لا غرف مفتوحة الآن';
+  String get discoverScreenNoRoomsYet => 'لا غرف بعد';
 
   @override
   String get discoverScreenIncomingLabel => 'وارد';
@@ -3897,6 +3894,35 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String discoverListsNoMatches(Object query) {
     return 'لا أحد يطابق \"$query\"';
+  }
+
+  @override
+  String get discoverListsRoomsTitle => 'غرفك.';
+
+  @override
+  String discoverListsRoomsCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count غرفة',
+      many: '$count غرفة',
+      few: '$count غرف',
+      two: 'غرفتان',
+      one: 'غرفة واحدة',
+      zero: 'لا توجد غرف',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get discoverListsFilterRoomsHint => 'تصفية غرفك…';
+
+  @override
+  String get discoverListsNoRoomsYet => 'لا غرف بعد';
+
+  @override
+  String discoverListsNoRoomsMatch(Object query) {
+    return 'لا غرف تطابق \"$query\"';
   }
 
   @override

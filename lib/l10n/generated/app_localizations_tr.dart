@@ -1829,13 +1829,10 @@ class AppLocalizationsTr extends AppLocalizations {
       'herkese açık bir odayı adıyla bul';
 
   @override
-  String get discoverScreenPublicRoomsLabel => 'HERKESE AÇIK ODALAR';
+  String get discoverScreenYourRoomsLabel => 'ODALARIN';
 
   @override
-  String get discoverScreenLoadingRooms => 'aranıyor…';
-
-  @override
-  String get discoverScreenNoRoomsOpen => 'şu an açık oda yok';
+  String get discoverScreenNoRoomsYet => 'henüz oda yok';
 
   @override
   String get discoverScreenIncomingLabel => 'gelen';
@@ -3801,6 +3798,30 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String discoverListsNoMatches(Object query) {
     return '\"$query\" ile eşleşen kimse yok';
+  }
+
+  @override
+  String get discoverListsRoomsTitle => 'odaların.';
+
+  @override
+  String discoverListsRoomsCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count oda',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get discoverListsFilterRoomsHint => 'odalarını filtrele…';
+
+  @override
+  String get discoverListsNoRoomsYet => 'henüz oda yok';
+
+  @override
+  String discoverListsNoRoomsMatch(Object query) {
+    return '\"$query\" ile eşleşen oda yok';
   }
 
   @override

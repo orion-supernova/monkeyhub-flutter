@@ -2126,17 +2126,13 @@
   "@discoverScreenSearchRoomsSubtitle": {
     "description": "Subtitle under 'search rooms' explaining what the search does."
   },
-  "discoverScreenPublicRoomsLabel": "PUBLIC ROOMS",
-  "@discoverScreenPublicRoomsLabel": {
-    "description": "All-caps section header label above the public rooms preview list."
+  "discoverScreenYourRoomsLabel": "YOUR ROOMS",
+  "@discoverScreenYourRoomsLabel": {
+    "description": "All-caps section header label above the preview of group chats the viewer already belongs to."
   },
-  "discoverScreenLoadingRooms": "looking…",
-  "@discoverScreenLoadingRooms": {
-    "description": "Empty-state line shown while the public rooms list is still loading for the first time."
-  },
-  "discoverScreenNoRoomsOpen": "nothing open right now",
-  "@discoverScreenNoRoomsOpen": {
-    "description": "Empty-state line shown when the public rooms list finished loading and is empty."
+  "discoverScreenNoRoomsYet": "no rooms yet",
+  "@discoverScreenNoRoomsYet": {
+    "description": "Empty-state line shown when the viewer isn't a member of any group chat yet."
   },
   "discoverScreenIncomingLabel": "incoming",
   "@discoverScreenIncomingLabel": {
@@ -4289,6 +4285,26 @@
   "discoverListsNoMatches": "no one matches \"{query}\"",
   "@discoverListsNoMatches": {
     "description": "Empty-state line shown when the user's filter text on the people list matches no friends; {query} is the text they typed."
+  },
+  "discoverListsRoomsTitle": "your rooms.",
+  "@discoverListsRoomsTitle": {
+    "description": "Lowercase fragment-style heading at the top of the full rooms list screen (opened from Discover's \"see all\" row)."
+  },
+  "discoverListsRoomsCount": "{count, plural, one{{count} room} other{{count} rooms}}",
+  "@discoverListsRoomsCount": {
+    "description": "Caption under the rooms-list title showing how many group chats the user belongs to, e.g. \"12 rooms\"."
+  },
+  "discoverListsFilterRoomsHint": "filter your rooms…",
+  "@discoverListsFilterRoomsHint": {
+    "description": "Hint text in the search/filter TextField on the full rooms list screen."
+  },
+  "discoverListsNoRoomsYet": "no rooms yet",
+  "@discoverListsNoRoomsYet": {
+    "description": "Empty-state line shown on the rooms list when the user isn't a member of any group chat."
+  },
+  "discoverListsNoRoomsMatch": "no rooms match \"{query}\"",
+  "@discoverListsNoRoomsMatch": {
+    "description": "Empty-state line shown when the user's filter text on the rooms list matches no group chats; {query} is the text they typed."
   },
   "discoverListsVoiceCallLabel": "VOICE CALL",
   "@discoverListsVoiceCallLabel": {

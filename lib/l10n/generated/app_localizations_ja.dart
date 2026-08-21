@@ -1770,13 +1770,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get discoverScreenSearchRoomsSubtitle => '名前で公開ルームをさがす';
 
   @override
-  String get discoverScreenPublicRoomsLabel => '公開ルーム';
+  String get discoverScreenYourRoomsLabel => '参加ルーム';
 
   @override
-  String get discoverScreenLoadingRooms => 'さがし中…';
-
-  @override
-  String get discoverScreenNoRoomsOpen => '今は開いているルームなし';
+  String get discoverScreenNoRoomsYet => 'まだルームがない';
 
   @override
   String get discoverScreenIncomingLabel => '受信';
@@ -3692,6 +3689,30 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String discoverListsNoMatches(Object query) {
     return '「$query」に一致する人はいません';
+  }
+
+  @override
+  String get discoverListsRoomsTitle => 'あなたのルーム。';
+
+  @override
+  String discoverListsRoomsCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get discoverListsFilterRoomsHint => 'ルームを絞り込む…';
+
+  @override
+  String get discoverListsNoRoomsYet => 'まだルームがありません';
+
+  @override
+  String discoverListsNoRoomsMatch(Object query) {
+    return '「$query」に一致するルームはありません';
   }
 
   @override

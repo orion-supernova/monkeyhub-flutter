@@ -20,13 +20,11 @@ import '../widgets/search_field.dart';
 import 'discover_lists.dart';
 import 'navigation/destinations.dart';
 import 'join_by_invite_screen.dart';
-import 'navigation/enter_public_room.dart';
 import 'navigation/open_room.dart';
-import 'navigation/route_return.dart';
 import 'navigation/tab_reselect.dart';
 import 'search_screen.dart';
 
-/// How many friends and public rooms Discover shows before handing off to a
+/// How many friends and rooms Discover shows before handing off to a
 /// full-list screen.
 ///
 /// Both lists can run to dozens, and a page whose height depends on them means
@@ -72,7 +70,7 @@ class DiscoverScreen extends StatefulWidget {
 enum _RequestsTab { incoming, outgoing }
 
 class _DiscoverScreenState extends State<DiscoverScreen>
-    with TabReselectScroll<DiscoverScreen>, RefreshOnReturn<DiscoverScreen> {
+    with TabReselectScroll<DiscoverScreen> {
   // Not a plain ScrollController: this section's State is destroyed on
   // every tab switch, and the framework's own PageStorage restore is what
   // produced the settle-bounce on return. See [ScrollMemory].
@@ -83,53 +81,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   @override
   ScrollController get reselectScroll => _scroll;
 
-  /// Re-fetches the public list whenever a pushed route pops back to Discover.
-  ///
-  /// [_refresh] is a one-shot query, not a subscription, and it ran in
-  /// `initState` only. Tapping a room pushes on top of this screen without
-  /// disposing it, so everything the user did in there was invisible on the way
-  /// back: set a room to private and Discover kept listing it publicly until
-  /// the section was switched away and back, which is what made this look
-  /// intermittent rather than broken.
-  ///
-  /// A room's own membership and privacy still arrive live through
-  /// [ChatRepository]; it is the *public directory* that has no live query, by
-  /// the same budget argument that keeps the Feed board down to one.
-  @override
-  void onReturnToScreen() => _refresh();
-
-  /// The last public-room list Discover drew, and whose it was.
-  ///
-  /// Switching sections destroys this screen's [State] outright, so a return to
-  /// Discover used to start with an empty list and paint one quiet "looking for
-  /// rooms" line where five tiles had been — several hundred points shorter. The
-  /// [ListView] restores its saved scroll offset into that shorter page, the
-  /// offset is now past the end of it, and the scroll position glides back to
-  /// the new bottom: open Discover while scrolled down and it scrolls itself
-  /// upwards for no reason the user can see. Repainting the rooms we already had
-  /// keeps the page the height its offset was measured against; the refresh
-  /// still runs underneath and replaces them.
-  ///
-  /// Keyed by user because a public list is viewer-dependent — the backend
-  /// blanks it for a child who isn't allowed public rooms — and an app instance
-  /// can change hands without restarting.
-  static List<ChatRoom> _lastRooms = const [];
-  static String? _lastRoomsFor;
-
-  late List<ChatRoom> _rooms = _lastRoomsFor == widget.repo.userId
-      ? _lastRooms
-      : const [];
-  bool _loading = false;
-
   _RequestsTab _requestsTab = _RequestsTab.incoming;
-
-  /// Rooms this child has already asked about, so their tiles read
-  /// "waiting for a grown-up" instead of inviting a second request.
-  Set<String> _awaiting = {};
-
-  /// Last known value of [_roomsUnlocked], so a guardian unlocking public rooms
-  /// mid-session can trigger the fetch that `initState` skipped.
-  bool _wasUnlocked = false;
 
   /// Anchors the scroll a friend-request notification asks for.
   final _incomingKey = GlobalKey();
@@ -171,14 +123,12 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     ScrollMemory.attach('discover', _scroll);
     widget.repo.addListener(_onChange);
     widget.family.addListener(_onChange);
-    _wasUnlocked = _roomsUnlocked;
     // A friend-request notification tapped before this screen existed is still
     // waiting in the store — including on a cold start, where the tap lands
     // long before any widget mounts.
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _consumePendingRequests(),
     );
-    _refresh();
   }
 
   @override
@@ -190,15 +140,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   }
 
   void _onChange() {
-    if (!mounted) return;
-    // Rising edge: the fetch is skipped while locked, so without this an
-    // unlocked child would land on a fully-rendered rooms world reading
-    // "nothing open right now" — a lie, at the one moment they are most likely
-    // to look.
-    final unlocked = _roomsUnlocked;
-    if (unlocked && !_wasUnlocked && _rooms.isEmpty) _refresh();
-    _wasUnlocked = unlocked;
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   /// The requests lists live on this page now, so a notification tap scrolls to
@@ -218,43 +160,6 @@ class _DiscoverScreenState extends State<DiscoverScreen>
       curve: Curves.easeOutCubic,
       alignment: 0.1,
     );
-  }
-
-  Future<void> _refresh() async {
-    // Nothing to fetch while locked, and asking anyway would spend a round trip
-    // on a response the backend blanks by design.
-    if (!_roomsUnlocked) return;
-    setState(() => _loading = true);
-    try {
-      // Passing the viewer lets the backend blank this list for a child who
-      // isn't allowed public rooms — belt and braces with hiding the section.
-      final rs = await widget.api.listPublic(viewerUserId: widget.repo.userId);
-      _lastRooms = rs;
-      _lastRoomsFor = widget.repo.userId;
-      if (!mounted) return;
-      setState(() => _rooms = rs);
-      if (widget.family.isChild) await _refreshAwaiting();
-    } catch (_) {
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _refreshAwaiting() async {
-    final uid = widget.repo.userId;
-    if (uid == null) return;
-    try {
-      final pending = await widget.api.listMyApprovals(uid);
-      if (!mounted) return;
-      setState(
-        () => _awaiting = pending
-            .where((p) => p.roomId != null)
-            .map((p) => p.roomId!)
-            .toSet(),
-      );
-    } catch (_) {
-      /* tiles just won't show the pill */
-    }
   }
 
   /// Opens the search screen for [mode].
@@ -307,20 +212,10 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   void _push(Widget screen) =>
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
 
-  void _onTapRoom(ChatRoom room) {
-    enterPublicRoom(
-      context,
-      room: room,
-      repo: widget.repo,
-      api: widget.api,
-      family: widget.family,
-      alreadyAsked: _awaiting.contains(room.id),
-      onAsked: (id) {
-        if (mounted) setState(() => _awaiting = {..._awaiting, id});
-      },
-      onChildGateRefused: _refreshAwaiting,
-    );
-  }
+  // Every tile in the rooms world's own list is a room you're already in, so
+  // opening one is never the join flow — just walk in.
+  void _openMyRoom(ChatRoom room) =>
+      openRoom(context, roomId: room.id, repo: widget.repo, api: widget.api);
 
   @override
   Widget build(BuildContext context) {
@@ -329,6 +224,12 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     final incoming = widget.repo.incomingRequests;
     final outgoing = widget.repo.outgoingRequests;
     final groupInvites = widget.repo.roomInvitations;
+    // Group chats you're already in — DMs don't count here, the way a DM
+    // isn't a "friend request" either; they live in the chat list, not a
+    // world you go looking for people or rooms in.
+    final myRooms = widget.repo.activeRooms
+        .where((r) => r.isGroupChat)
+        .toList(growable: false);
 
     final showPeople = _peopleUnlocked;
     final showRooms = _roomsUnlocked;
@@ -359,7 +260,8 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     final twoColumns = context.isExpanded && showRooms;
 
     final peopleWorld = <Widget>[
-      if (showBands) _BandLabel(t.discoverScreenPeopleBandLabel, key: _peopleKey),
+      if (showBands)
+        _BandLabel(t.discoverScreenPeopleBandLabel, key: _peopleKey),
       if (showPeople) ...[
         _DoorRow(
           heroTag: searchFieldHeroTagFor(SearchMode.people),
@@ -472,9 +374,8 @@ class _DiscoverScreenState extends State<DiscoverScreen>
         if (friends.length > _previewCount)
           SeeAllRow(
             total: friends.length,
-            onTap: () => _push(
-              PeopleListScreen(repo: widget.repo, api: widget.api),
-            ),
+            onTap: () =>
+                _push(PeopleListScreen(repo: widget.repo, api: widget.api)),
           ),
       ],
     ];
@@ -515,52 +416,34 @@ class _DiscoverScreenState extends State<DiscoverScreen>
               icon: Icons.vpn_key_outlined,
               title: t.discoverScreenJoinByCodeTitle,
               subtitle: t.discoverScreenJoinByCodeSubtitle,
-              onTap: () => _push(
-                JoinByInviteScreen(repo: widget.repo, api: widget.api),
-              ),
+              onTap: () =>
+                  _push(JoinByInviteScreen(repo: widget.repo, api: widget.api)),
             ),
             const SizedBox(height: _betweenSections),
             DiscoverSectionHeader(
-              label: t.discoverScreenPublicRoomsLabel,
-              // Blank while the first fetch is in flight so a `0` only ever
-              // means "looked, found nothing".
-              count: _loading && _rooms.isEmpty ? '' : '${_rooms.length}',
+              label: t.discoverScreenYourRoomsLabel,
+              count: '${myRooms.length}',
             ),
-            const SizedBox(height: _withinSection),
-            if (_loading && _rooms.isEmpty)
-              DiscoverEmptyLine(t.discoverScreenLoadingRooms)
-            else if (_rooms.isEmpty)
-              DiscoverEmptyLine(t.discoverScreenNoRoomsOpen)
-            else
-              // Rebuilds on every repo change so a tile flips to JOINED the
-              // moment the rooms subscription delivers the new membership —
-              // including when the join happened elsewhere entirely (a push
-              // tap, another device).
-              ListenableBuilder(
-                listenable: widget.repo,
-                builder: (context, _) => Column(
-                  children: [
-                    for (final r in _rooms.take(_previewCount))
-                      PublicRoomTile(
-                        key: ValueKey(r.id),
-                        room: r,
-                        api: widget.api,
-                        awaiting: _awaiting.contains(r.id),
-                        joined: widget.repo.isJoined(r),
-                        onTap: () => _onTapRoom(r),
-                      ),
-                    if (_rooms.length > _previewCount)
-                      SeeAllRow(
-                        total: _rooms.length,
-                        // The search screen with an empty query IS the full
-                        // list, so there's no second full-rooms screen to
-                        // maintain.
-                        onTap: () =>
-                            _openSearch(SearchMode.rooms, fromDoor: false),
-                      ),
-                  ],
+            if (myRooms.isEmpty)
+              DiscoverEmptyLine(t.discoverScreenNoRoomsYet)
+            else ...[
+              const SizedBox(height: _withinSection),
+              for (final r in myRooms.take(_previewCount))
+                PublicRoomTile(
+                  key: ValueKey(r.id),
+                  room: r,
+                  api: widget.api,
+                  joined: true,
+                  onTap: () => _openMyRoom(r),
                 ),
-              ),
+              if (myRooms.length > _previewCount)
+                SeeAllRow(
+                  total: myRooms.length,
+                  onTap: () => _push(
+                    RoomsListScreen(repo: widget.repo, api: widget.api),
+                  ),
+                ),
+            ],
           ];
 
     final header = <Widget>[

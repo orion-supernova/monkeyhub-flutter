@@ -1864,13 +1864,10 @@ class AppLocalizationsPt extends AppLocalizations {
       'encontra uma sala pública pelo nome';
 
   @override
-  String get discoverScreenPublicRoomsLabel => 'SALAS PÚBLICAS';
+  String get discoverScreenYourRoomsLabel => 'AS TUAS SALAS';
 
   @override
-  String get discoverScreenLoadingRooms => 'a procurar…';
-
-  @override
-  String get discoverScreenNoRoomsOpen => 'nada aberto agora';
+  String get discoverScreenNoRoomsYet => 'ainda nenhuma sala';
 
   @override
   String get discoverScreenIncomingLabel => 'recebidos';
@@ -3868,6 +3865,31 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String discoverListsNoMatches(Object query) {
     return 'ninguém corresponde a \"$query\"';
+  }
+
+  @override
+  String get discoverListsRoomsTitle => 'as tuas salas.';
+
+  @override
+  String discoverListsRoomsCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count salas',
+      one: '$count sala',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get discoverListsFilterRoomsHint => 'filtra as tuas salas…';
+
+  @override
+  String get discoverListsNoRoomsYet => 'ainda nenhuma sala';
+
+  @override
+  String discoverListsNoRoomsMatch(Object query) {
+    return 'nenhuma sala corresponde a \"$query\"';
   }
 
   @override
@@ -9108,13 +9130,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'encontre uma sala pública pelo nome';
 
   @override
-  String get discoverScreenPublicRoomsLabel => 'SALAS PÚBLICAS';
+  String get discoverScreenYourRoomsLabel => 'SUAS SALAS';
 
   @override
-  String get discoverScreenLoadingRooms => 'procurando…';
-
-  @override
-  String get discoverScreenNoRoomsOpen => 'nada aberto no momento';
+  String get discoverScreenNoRoomsYet => 'nenhuma sala ainda';
 
   @override
   String get discoverScreenIncomingLabel => 'recebidos';
@@ -11112,6 +11131,31 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String discoverListsNoMatches(Object query) {
     return 'ninguém encontrado para \"$query\"';
+  }
+
+  @override
+  String get discoverListsRoomsTitle => 'suas salas.';
+
+  @override
+  String discoverListsRoomsCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count salas',
+      one: '$count sala',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get discoverListsFilterRoomsHint => 'filtrar suas salas…';
+
+  @override
+  String get discoverListsNoRoomsYet => 'nenhuma sala ainda';
+
+  @override
+  String discoverListsNoRoomsMatch(Object query) {
+    return 'nenhuma sala encontrada para \"$query\"';
   }
 
   @override

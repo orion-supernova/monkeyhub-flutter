@@ -1743,13 +1743,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get discoverScreenSearchRoomsSubtitle => '按名称搜索公开房间';
 
   @override
-  String get discoverScreenPublicRoomsLabel => '公开房间';
+  String get discoverScreenYourRoomsLabel => '我的房间';
 
   @override
-  String get discoverScreenLoadingRooms => '查找中…';
-
-  @override
-  String get discoverScreenNoRoomsOpen => '暂时没有开放的房间';
+  String get discoverScreenNoRoomsYet => '还没有房间';
 
   @override
   String get discoverScreenIncomingLabel => '收到';
@@ -3645,6 +3642,30 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String discoverListsNoMatches(Object query) {
     return '没有找到匹配「$query」的人';
+  }
+
+  @override
+  String get discoverListsRoomsTitle => '你的房间。';
+
+  @override
+  String discoverListsRoomsCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个房间',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get discoverListsFilterRoomsHint => '筛选你的房间…';
+
+  @override
+  String get discoverListsNoRoomsYet => '还没有房间';
+
+  @override
+  String discoverListsNoRoomsMatch(Object query) {
+    return '没有找到匹配「$query」的房间';
   }
 
   @override

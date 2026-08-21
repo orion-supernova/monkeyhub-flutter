@@ -1772,13 +1772,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get discoverScreenSearchRoomsSubtitle => '이름으로 공개 채팅방 찾기';
 
   @override
-  String get discoverScreenPublicRoomsLabel => '공개 채팅방';
+  String get discoverScreenYourRoomsLabel => '내 채팅방';
 
   @override
-  String get discoverScreenLoadingRooms => '찾는 중…';
-
-  @override
-  String get discoverScreenNoRoomsOpen => '지금은 열려 있는 방이 없어요';
+  String get discoverScreenNoRoomsYet => '아직 채팅방이 없어요';
 
   @override
   String get discoverScreenIncomingLabel => '수신';
@@ -3704,6 +3701,30 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String discoverListsNoMatches(Object query) {
     return '\"$query\"에 해당하는 사람이 없어요';
+  }
+
+  @override
+  String get discoverListsRoomsTitle => '내 채팅방.';
+
+  @override
+  String discoverListsRoomsCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count개',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get discoverListsFilterRoomsHint => '내 채팅방 검색…';
+
+  @override
+  String get discoverListsNoRoomsYet => '아직 채팅방이 없어요';
+
+  @override
+  String discoverListsNoRoomsMatch(Object query) {
+    return '\"$query\"에 해당하는 채팅방이 없어요';
   }
 
   @override

@@ -1862,13 +1862,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'busca una sala pública por nombre';
 
   @override
-  String get discoverScreenPublicRoomsLabel => 'SALAS PÚBLICAS';
+  String get discoverScreenYourRoomsLabel => 'TUS SALAS';
 
   @override
-  String get discoverScreenLoadingRooms => 'buscando…';
-
-  @override
-  String get discoverScreenNoRoomsOpen => 'nada abierto ahora mismo';
+  String get discoverScreenNoRoomsYet => 'ninguna sala todavía';
 
   @override
   String get discoverScreenIncomingLabel => 'entrantes';
@@ -3859,6 +3856,31 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String discoverListsNoMatches(Object query) {
     return 'nadie coincide con \"$query\"';
+  }
+
+  @override
+  String get discoverListsRoomsTitle => 'tus salas.';
+
+  @override
+  String discoverListsRoomsCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count salas',
+      one: '$count sala',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get discoverListsFilterRoomsHint => 'filtra tus salas…';
+
+  @override
+  String get discoverListsNoRoomsYet => 'ninguna sala todavía';
+
+  @override
+  String discoverListsNoRoomsMatch(Object query) {
+    return 'ninguna sala coincide con \"$query\"';
   }
 
   @override

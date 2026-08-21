@@ -1884,13 +1884,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'trouve un salon public par son nom';
 
   @override
-  String get discoverScreenPublicRoomsLabel => 'SALONS PUBLICS';
+  String get discoverScreenYourRoomsLabel => 'TES SALONS';
 
   @override
-  String get discoverScreenLoadingRooms => 'ça cherche…';
-
-  @override
-  String get discoverScreenNoRoomsOpen => 'rien d\'ouvert pour l\'instant';
+  String get discoverScreenNoRoomsYet => 'aucun salon pour l\'instant';
 
   @override
   String get discoverScreenIncomingLabel => 'reçues';
@@ -3891,6 +3888,31 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String discoverListsNoMatches(Object query) {
     return 'personne ne correspond à « $query »';
+  }
+
+  @override
+  String get discoverListsRoomsTitle => 'tes salons.';
+
+  @override
+  String discoverListsRoomsCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count salons',
+      one: '$count salon',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get discoverListsFilterRoomsHint => 'filtre tes salons…';
+
+  @override
+  String get discoverListsNoRoomsYet => 'aucun salon pour l\'instant';
+
+  @override
+  String discoverListsNoRoomsMatch(Object query) {
+    return 'aucun salon ne correspond à « $query »';
   }
 
   @override

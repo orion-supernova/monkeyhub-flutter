@@ -3279,23 +3279,17 @@ abstract class AppLocalizations {
   /// **'find a public room by name'**
   String get discoverScreenSearchRoomsSubtitle;
 
-  /// All-caps section header label above the public rooms preview list.
+  /// All-caps section header label above the preview of group chats the viewer already belongs to.
   ///
   /// In en, this message translates to:
-  /// **'PUBLIC ROOMS'**
-  String get discoverScreenPublicRoomsLabel;
+  /// **'YOUR ROOMS'**
+  String get discoverScreenYourRoomsLabel;
 
-  /// Empty-state line shown while the public rooms list is still loading for the first time.
+  /// Empty-state line shown when the viewer isn't a member of any group chat yet.
   ///
   /// In en, this message translates to:
-  /// **'looking…'**
-  String get discoverScreenLoadingRooms;
-
-  /// Empty-state line shown when the public rooms list finished loading and is empty.
-  ///
-  /// In en, this message translates to:
-  /// **'nothing open right now'**
-  String get discoverScreenNoRoomsOpen;
+  /// **'no rooms yet'**
+  String get discoverScreenNoRoomsYet;
 
   /// Lowercase label for the incoming-requests segment control tab, also spoken as part of its accessibility label ('incoming, {count}').
   ///
@@ -6547,6 +6541,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'no one matches \"{query}\"'**
   String discoverListsNoMatches(Object query);
+
+  /// Lowercase fragment-style heading at the top of the full rooms list screen (opened from Discover's "see all" row).
+  ///
+  /// In en, this message translates to:
+  /// **'your rooms.'**
+  String get discoverListsRoomsTitle;
+
+  /// Caption under the rooms-list title showing how many group chats the user belongs to, e.g. "12 rooms".
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} room} other{{count} rooms}}'**
+  String discoverListsRoomsCount(num count);
+
+  /// Hint text in the search/filter TextField on the full rooms list screen.
+  ///
+  /// In en, this message translates to:
+  /// **'filter your rooms…'**
+  String get discoverListsFilterRoomsHint;
+
+  /// Empty-state line shown on the rooms list when the user isn't a member of any group chat.
+  ///
+  /// In en, this message translates to:
+  /// **'no rooms yet'**
+  String get discoverListsNoRoomsYet;
+
+  /// Empty-state line shown when the user's filter text on the rooms list matches no group chats; {query} is the text they typed.
+  ///
+  /// In en, this message translates to:
+  /// **'no rooms match \"{query}\"'**
+  String discoverListsNoRoomsMatch(Object query);
 
   /// All-caps action row label in the call-kind picker popover (choose voice vs video call).
   ///

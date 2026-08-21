@@ -1847,13 +1847,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get discoverScreenSearchRoomsSubtitle => 'नाम से पब्लिक रूम खोजो';
 
   @override
-  String get discoverScreenPublicRoomsLabel => 'पब्लिक रूम';
+  String get discoverScreenYourRoomsLabel => 'तुम्हारे रूम';
 
   @override
-  String get discoverScreenLoadingRooms => 'ढूंढ रहे हैं…';
-
-  @override
-  String get discoverScreenNoRoomsOpen => 'अभी कुछ भी खुला नहीं';
+  String get discoverScreenNoRoomsYet => 'अभी कोई रूम नहीं';
 
   @override
   String get discoverScreenIncomingLabel => 'इनकमिंग';
@@ -3834,6 +3831,31 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String discoverListsNoMatches(Object query) {
     return '\"$query\" से कोई मेल नहीं खाता';
+  }
+
+  @override
+  String get discoverListsRoomsTitle => 'तुम्हारे रूम.';
+
+  @override
+  String discoverListsRoomsCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count रूम',
+      one: '$count रूम',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get discoverListsFilterRoomsHint => 'अपने रूम फ़िल्टर करो…';
+
+  @override
+  String get discoverListsNoRoomsYet => 'अभी तक कोई रूम नहीं';
+
+  @override
+  String discoverListsNoRoomsMatch(Object query) {
+    return '\"$query\" से कोई रूम मेल नहीं खाता';
   }
 
   @override

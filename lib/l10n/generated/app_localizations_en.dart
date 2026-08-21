@@ -1834,13 +1834,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get discoverScreenSearchRoomsSubtitle => 'find a public room by name';
 
   @override
-  String get discoverScreenPublicRoomsLabel => 'PUBLIC ROOMS';
+  String get discoverScreenYourRoomsLabel => 'YOUR ROOMS';
 
   @override
-  String get discoverScreenLoadingRooms => 'looking…';
-
-  @override
-  String get discoverScreenNoRoomsOpen => 'nothing open right now';
+  String get discoverScreenNoRoomsYet => 'no rooms yet';
 
   @override
   String get discoverScreenIncomingLabel => 'incoming';
@@ -3814,6 +3811,31 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String discoverListsNoMatches(Object query) {
     return 'no one matches \"$query\"';
+  }
+
+  @override
+  String get discoverListsRoomsTitle => 'your rooms.';
+
+  @override
+  String discoverListsRoomsCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count rooms',
+      one: '$count room',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get discoverListsFilterRoomsHint => 'filter your rooms…';
+
+  @override
+  String get discoverListsNoRoomsYet => 'no rooms yet';
+
+  @override
+  String discoverListsNoRoomsMatch(Object query) {
+    return 'no rooms match \"$query\"';
   }
 
   @override

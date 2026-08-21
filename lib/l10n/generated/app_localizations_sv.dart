@@ -1852,13 +1852,10 @@ class AppLocalizationsSv extends AppLocalizations {
       'hitta ett offentligt rum via namn';
 
   @override
-  String get discoverScreenPublicRoomsLabel => 'OFFENTLIGA RUM';
+  String get discoverScreenYourRoomsLabel => 'DINA RUM';
 
   @override
-  String get discoverScreenLoadingRooms => 'letar…';
-
-  @override
-  String get discoverScreenNoRoomsOpen => 'inget öppet just nu';
+  String get discoverScreenNoRoomsYet => 'inga rum än';
 
   @override
   String get discoverScreenIncomingLabel => 'inkommande';
@@ -3840,6 +3837,31 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String discoverListsNoMatches(Object query) {
     return 'ingen matchar \"$query\"';
+  }
+
+  @override
+  String get discoverListsRoomsTitle => 'dina rum.';
+
+  @override
+  String discoverListsRoomsCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count rum',
+      one: '$count rum',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get discoverListsFilterRoomsHint => 'filtrera dina rum…';
+
+  @override
+  String get discoverListsNoRoomsYet => 'inga rum än';
+
+  @override
+  String discoverListsNoRoomsMatch(Object query) {
+    return 'inga rum matchar \"$query\"';
   }
 
   @override
