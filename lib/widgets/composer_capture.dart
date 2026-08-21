@@ -162,6 +162,8 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   Timer? _tooltipTimer;
   bool _tooltipVisible = false;
 
+  Timer? _entranceTimer;
+
   void _triggerTooltip() {
     _tooltipTimer?.cancel();
     if (!mounted) return;
@@ -227,7 +229,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     super.initState();
 
     _modeBumpController = AnimationController(vsync: this, duration: const Duration(milliseconds: 440));
-    _entranceBumpController = AnimationController(vsync: this, duration: const Duration(milliseconds: 480));
+    _entranceBumpController = AnimationController(vsync: this, duration: const Duration(milliseconds: 640));
 
     WidgetsBinding.instance.addObserver(this);
     // Orphans from a previous run, deleted before this one can add to them.
@@ -235,11 +237,17 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     widget.capture?.controller?.addListener(_onExternalRequest);
 
     // Post-frame, not here: `_triggerTooltip` calls `setState`, which cannot
-    // run while this element is still being mounted for the first time.
+    // run while this element is still being mounted for the first time. The
+    // extra delay on top of that is for the room's own push transition —
+    // firing the instant the composer mounts plays the bump underneath a
+    // still-sliding screen, where nobody is looking at it yet.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || widget.capture == null) return;
-      _entranceBumpController.forward(from: 0.0);
-      _triggerTooltip();
+      _entranceTimer = Timer(const Duration(milliseconds: 400), () {
+        if (!mounted) return;
+        _entranceBumpController.forward(from: 0.0);
+        _triggerTooltip();
+      });
     });
   }
 
@@ -284,6 +292,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     widget.capture?.controller?.removeListener(_onExternalRequest);
     _ticker?.cancel();
     _tooltipTimer?.cancel();
+    _entranceTimer?.cancel();
     // Fire-and-forget, because dispose cannot await: both implementations stop
     // the device and delete their temp file, and neither needs this widget to
     // still exist to finish doing it.
@@ -947,15 +956,18 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
         final dir = _machine.lastStepDirection.toDouble();
         final bumpSkew = dir * oscillation * 0.045;
 
-        // --- 1b. The same shape at half amplitude and no skew — a light,
-        // direction-less bubblegum pop played once when the composer opens. ---
+        // --- 1b. The same squash/stretch shape as the mode-switch bump above,
+        // played once when the composer opens — sized up well past that one
+        // (0.16/0.14/0.08) since this fires alone, with nothing else on
+        // screen competing for attention, and is the user's one chance to
+        // notice the control exists at all. ---
         final et = _entranceBumpController.value;
-        final eDecay = math.exp(-et * 5.5);
-        final eOscillation = eDecay * math.sin(et * math.pi * 3.5);
+        final eDecay = math.exp(-et * 4.5);
+        final eOscillation = eDecay * math.sin(et * math.pi * 3.0);
         final eImpulse = math.sin(math.pow(et, 0.6) * math.pi);
 
-        final entranceScaleX = 1.0 + eImpulse * 0.08 * (1.0 - et) + eOscillation * 0.04;
-        final entranceScaleY = 1.0 - eImpulse * 0.07 * (1.0 - et) - eOscillation * 0.04;
+        final entranceScaleX = 1.0 + eImpulse * 0.46 * (1.0 - et * 0.4) + eOscillation * 0.20;
+        final entranceScaleY = 1.0 - eImpulse * 0.40 * (1.0 - et * 0.4) - eOscillation * 0.20;
 
         // --- 2. Live Gesture Deformation (Drag, Lock, Cancel) ---
         final dragRatio = (_machine.modeDrag / kModeSwitchStep).clamp(-1.0, 1.0);
