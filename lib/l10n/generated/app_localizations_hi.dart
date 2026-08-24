@@ -7212,4 +7212,37 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get newChatMenuJoinSub => 'किसी ने जो ग्रुप साझा किया है उसे खोलें';
+
+  @override
+  String get shareSheetTitle => 'किसे भेजना है';
+
+  @override
+  String get shareSheetSuggestedHeading => 'सुझाए गए';
+
+  @override
+  String shareSheetPreviewItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count अटैचमेंट',
+      one: '1 अटैचमेंट',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String shareSheetTooLargeDropped(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count फ़ाइलें $size की सीमा से बड़ी हैं, इसलिए छोड़ दी गईं',
+      one: '1 फ़ाइल $size की सीमा से बड़ी है, इसलिए छोड़ दी गई',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String shareSheetSendToSemantic(String title) {
+    return '$title को भेजो';
+  }
 }

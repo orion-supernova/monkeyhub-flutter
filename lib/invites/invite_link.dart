@@ -37,6 +37,21 @@ const String kInvitePathSegment = 'j';
 /// when an App Link failed to verify.
 const String kInviteScheme = 'monkeyhub';
 
+/// The first segment of the iOS Share Extension's wake-up URL,
+/// `monkeyhub://share/open` — which shares [kInviteScheme] because that scheme
+/// is already registered on every platform and a second one would be a second
+/// thing to keep in agreement.
+///
+/// It exists in THIS file because the invite parser is the only thing that
+/// would otherwise misread it. See [parseInviteLink]'s refusal at the top: the
+/// parser's last resort is "treat it as a typed code", and without an explicit
+/// refusal `monkeyhub://share/open` becomes the invite code `SHAREOPEN` and
+/// opens a join screen for a room that has never existed.
+///
+/// The extension carries the same string in `ios/Shared/ShareGroup.swift`;
+/// `share_link_test.dart` pins the two together.
+const String kSharePathSegment = 'share';
+
 /// A code that is GUARANTEED never to be a real one. Use this, and only this,
 /// anywhere an example code is shown or written down.
 ///
@@ -127,6 +142,17 @@ InviteLink? parseInviteLink(String raw) {
   final trimmed = raw.trim();
   if (trimmed.isEmpty) return null;
 
+  // The share-extension handoff, refused before anything else looks at it.
+  //
+  // Refused rather than merely unmatched, because "unmatched" is not a safe
+  // state in this function: every shape that falls past the branches below
+  // ends at [_bareCode], which strips the separators and calls what is left a
+  // code. `monkeyhub://share/open` would become `SHAREOPEN`, and the route
+  // form the engine reports it as (`/share/open`, or `/open` depending on the
+  // platform) would become `SHAREOPEN` or `OPEN`. All three open a join screen
+  // for a room that does not exist, from a URL the app sent itself.
+  if (_isShareHandoff(trimmed)) return null;
+
   final uri = Uri.tryParse(trimmed);
   if (uri == null || (!uri.hasScheme && uri.pathSegments.length <= 1)) {
     // No scheme and a single segment: someone typed or pasted a bare code.
@@ -185,6 +211,25 @@ InviteLink? parseInviteLink(String raw) {
   }
 
   return _bareCode(trimmed);
+}
+
+/// Whether [raw] is the share-extension handoff rather than an invite.
+///
+/// Matches on the first meaningful segment however the platform spelled the
+/// URL — `monkeyhub://share/open` puts `share` in the HOST, `/share/open` puts
+/// it in the path, and both have to be refused.
+///
+/// The cost is that the literal string `share` can no longer be typed into the
+/// join box as a bare code. Codes are ten Crockford characters, so that was
+/// never one.
+bool _isShareHandoff(String raw) {
+  final uri = Uri.tryParse(raw);
+  if (uri == null) return false;
+  final parts = [
+    if (uri.host.isNotEmpty) uri.host,
+    ...uri.pathSegments.where((s) => s.isNotEmpty),
+  ];
+  return parts.isNotEmpty && parts.first.toLowerCase() == kSharePathSegment;
 }
 
 /// A typed code, accepted with or without the dashes the UI shows it with.

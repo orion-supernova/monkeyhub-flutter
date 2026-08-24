@@ -145,7 +145,13 @@ object ChatNotifications {
         }.start()
     }
 
-    private fun fetchAvatar(url: String): Bitmap? {
+    /// Fetches an avatar, bounded and best-effort. Blocking, so it is only
+    /// ever called from a worker thread.
+    ///
+    /// Shared with [ShareShortcuts], which needs the same picture at the same
+    /// two-and-a-half-second patience for the same reason: a face that is slow
+    /// to load must never hold up the thing it decorates.
+    fun fetchAvatar(url: String): Bitmap? {
         val conn = URL(url).openConnection() as HttpURLConnection
         conn.connectTimeout = AVATAR_FETCH_TIMEOUT_MS
         conn.readTimeout = AVATAR_FETCH_TIMEOUT_MS

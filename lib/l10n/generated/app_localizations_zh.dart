@@ -6832,4 +6832,35 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get newChatMenuJoinSub => '打开别人分享给你的群组';
+
+  @override
+  String get shareSheetTitle => '分享到';
+
+  @override
+  String get shareSheetSuggestedHeading => '推荐';
+
+  @override
+  String shareSheetPreviewItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个附件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String shareSheetTooLargeDropped(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个文件超过 $size 上限，已略过',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String shareSheetSendToSemantic(String title) {
+    return '发送给 $title';
+  }
 }

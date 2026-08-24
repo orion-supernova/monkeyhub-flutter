@@ -7174,4 +7174,35 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get newChatMenuJoinSub => 'Birinin seninle paylaştığı grubu aç';
+
+  @override
+  String get shareSheetTitle => 'ŞUNA GÖNDER';
+
+  @override
+  String get shareSheetSuggestedHeading => 'ÖNERİLEN';
+
+  @override
+  String shareSheetPreviewItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ek',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String shareSheetTooLargeDropped(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dosya $size sınırını aştığı için alınmadı',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String shareSheetSendToSemantic(String title) {
+    return '$title kişisine gönder';
+  }
 }

@@ -49,4 +49,14 @@ post_install do |installer|
   # iOS's setAlternateIconName actually finds the icon file in the bundle.
   # Idempotent — safe on re-runs.
   load File.expand_path('../tool/setup_ios_alternate_icons.rb', __dir__)
+
+  # Create the ShareExtension target — the app's entry in the system share
+  # sheet. It is a second signed binary with its own bundle id, entitlements and
+  # Info.plist, generated here rather than committed as unreviewable pbxproj.
+  # Idempotent: a second run over a configured project saves nothing.
+  #
+  # It deliberately takes no pods and is NOT declared as a `target` block above:
+  # an extension that inherits the app's Pods xcconfig links the whole Flutter
+  # framework into a process that has no engine and no use for one.
+  load File.expand_path('../tool/setup_ios_share_extension.rb', __dir__)
 end

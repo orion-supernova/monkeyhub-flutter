@@ -2034,5 +2034,10 @@
   "newChatMenuCreateTitle": "Criar uma sala",
   "newChatMenuCreateSub": "Comece um grupo e convide pessoas",
   "newChatMenuJoinTitle": "Entrar com um código",
-  "newChatMenuJoinSub": "Abra um grupo que alguém compartilhou com você"
+  "newChatMenuJoinSub": "Abra um grupo que alguém compartilhou com você",
+  "shareSheetTitle": "COMPARTILHAR COM",
+  "shareSheetSuggestedHeading": "SUGERIDOS",
+  "shareSheetPreviewItems": "{count, plural, one{1 anexo} other{{count} anexos}}",
+  "shareSheetTooLargeDropped": "{count, plural, one{1 arquivo passa do limite de {size} e ficou de fora} other{{count} arquivos passam do limite de {size} e ficaram de fora}}",
+  "shareSheetSendToSemantic": "Enviar para {title}"
 }

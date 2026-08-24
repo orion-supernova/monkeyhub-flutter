@@ -405,6 +405,18 @@
 	     secrets — they ship inside every copy of the binary by design.
 	     Sign in with Apple needs nothing here: it is fully native and never
 	     leaves the app. -->
+	<!-- Declares that this app handles INSendMessageIntent, which is what lets
+	     it DONATE one. The donation is how a chat earns its place in the system
+	     share sheet's top row — see `donateSendMessage` in AppDelegate.swift and
+	     `IntentsSupported` in ios/ShareExtension/Info.plist.
+
+	     All three have to be present. None of them fails loudly: without any one
+	     of them the suggestions simply never appear, with no error and nothing
+	     in the log. -->
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>INSendMessageIntent</string>
+	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

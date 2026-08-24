@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>MonkeyHub</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>MonkeyHub</string>
+	<key>CFBundlePackageType</key>
+	<string>XPC!</string>
+	<!-- MUST track the host app exactly. App Store Connect rejects a build
+	     whose extension version differs from its container's, and the two are
+	     wired to the same Flutter build settings so they cannot drift. -->
+	<key>CFBundleShortVersionString</key>
+	<string>$(FLUTTER_BUILD_NAME)</string>
+	<key>CFBundleVersion</key>
+	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionAttributes</key>
+		<dict>
+			<!-- What puts MonkeyHub's chats in the share sheet's TOP ROW rather
+			     than leaving it as one more icon in the app row.
+
+			     iOS offers a suggestion only when THREE things line up, and two
+			     of them fail silently:
+			       1. this key, declaring the extension can receive one;
+			       2. an INSendMessageIntent the app has DONATED, carrying the
+			          room id as its conversationIdentifier (see
+			          `donateSendMessage` in AppDelegate.swift);
+			       3. NSUserActivityTypes in the host app's Info.plist listing
+			          INSendMessageIntent.
+			     Miss any one and the suggestions simply never appear. -->
+			<key>IntentsSupported</key>
+			<array>
+				<string>INSendMessageIntent</string>
+			</array>
+			<!-- What the app is offered FOR. Everything a chat can carry, with
+			     counts that match what the composer will actually send.
+
+			     Deliberately not NSExtensionActivationSupportsAttachmentsWithMaxCount,
+			     which would claim literally every share on the phone including
+			     ones this app has nothing to do with. -->
+			<key>NSExtensionActivationRule</key>
+			<dict>
+				<key>NSExtensionActivationSupportsImageWithMaxCount</key>
+				<integer>10</integer>
+				<key>NSExtensionActivationSupportsMovieWithMaxCount</key>
+				<integer>5</integer>
+				<key>NSExtensionActivationSupportsFileWithMaxCount</key>
+				<integer>10</integer>
+				<key>NSExtensionActivationSupportsWebURLWithMaxCount</key>
+				<integer>1</integer>
+				<key>NSExtensionActivationSupportsText</key>
+				<true/>
+			</dict>
+		</dict>
+		<!-- A principal class, not a storyboard: the extension has no interface
+		     at all. See ShareViewController's class doc for why the picker and
+		     the editor live in the app instead. -->
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.share-services</string>
+		<key>NSExtensionPrincipalClass</key>
+		<string>$(PRODUCT_MODULE_NAME).ShareViewController</string>
+	</dict>
+</dict>
+</plist>

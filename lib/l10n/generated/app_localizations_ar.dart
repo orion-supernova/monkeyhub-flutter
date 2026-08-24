@@ -7273,4 +7273,45 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get newChatMenuJoinSub => 'افتح مجموعة شاركها أحدهم معك';
+
+  @override
+  String get shareSheetTitle => 'مشاركة مع';
+
+  @override
+  String get shareSheetSuggestedHeading => 'مقترحون';
+
+  @override
+  String shareSheetPreviewItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count مرفق',
+      many: '$count مرفقًا',
+      few: '$count مرفقات',
+      two: 'مرفقان',
+      one: 'مرفق واحد',
+      zero: '$count مرفقات',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String shareSheetTooLargeDropped(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ملف يتجاوز حد $size ولم يُضَف',
+      many: '$count ملفًا يتجاوز حد $size ولم يُضَف',
+      few: '$count ملفات تتجاوز حد $size ولم تُضَف',
+      two: 'ملفان يتجاوزان حد $size ولم يُضافا',
+      one: 'ملف واحد يتجاوز حد $size ولم يُضَف',
+      zero: '$count ملفات تتجاوز حد $size ولم تُضَف',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String shareSheetSendToSemantic(String title) {
+    return 'إرسال إلى $title';
+  }
 }

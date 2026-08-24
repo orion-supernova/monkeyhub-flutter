@@ -45,6 +45,9 @@ import 'invites/invite_link.dart';
 import 'main.dart' show rootNavigatorKey;
 import 'screens/join_by_invite_screen.dart';
 import 'screens/navigation/route_return.dart' show appRoutes;
+import 'share/share_intake.dart';
+import 'share/share_targets.dart';
+import 'share/shared_payload.dart';
 import 'media/audio_file_cache.dart';
 import 'media/video_file_cache.dart';
 import 'media/file_url_cache.dart';
@@ -72,6 +75,7 @@ import 'widgets/app_brand_mark.dart';
 import 'widgets/capture_shield.dart';
 import 'widgets/connection_banner.dart';
 import 'widgets/self_host_badge.dart';
+import 'widgets/share_target_sheet.dart';
 import 'widgets/shake_to_report.dart';
 
 /// The presence status a lifecycle state implies, or null for "says nothing —
@@ -245,6 +249,20 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   String? _lastInviteCode;
   DateTime? _lastInviteAt;
 
+  /// True while the chat picker for an incoming share is on screen.
+  ///
+  /// The share sheet can deliver the same payload twice on iOS — the URL that
+  /// wakes us also arrives as a scene-activation option — and a second picker
+  /// stacked on the first is both wrong and un-dismissable. The payload itself
+  /// waits in [ShareIntake] rather than in a field here, because it has to
+  /// survive the picker AND the route push into the room, neither of which
+  /// this State is guaranteed to outlive across a server switch.
+  bool _shareInFlight = false;
+
+  /// Publishes the chat list to the OS as share-sheet suggestions. Created on
+  /// the first sign-in and disposed with this State.
+  ShareTargetsSync? _shareTargetsSync;
+
   // Last presence status successfully handed to the server, so a lifecycle
   // sequence that resolves to the same value twice doesn't write twice. Null
   // means "unknown" — on sign-out, or after a failed write — and always sends.
@@ -413,6 +431,13 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     // `_openInvite` decides whether the app is ready and stashes if not.
     DeepLinkService.instance.onInvite = _openInvite;
     unawaited(DeepLinkService.instance.start());
+    // The system share sheet. Same arrangement as the invite above — reported
+    // here, placed by `_openShare`, which stashes when the app isn't ready.
+    // `start` also drains whatever the platform queued before Dart existed,
+    // which on this path is the common case rather than the edge one: the
+    // share sheet is very often what launched the process.
+    ShareIntake.instance.onShare = _openShare;
+    unawaited(ShareIntake.instance.start());
     // Web only: a closing tab flips us offline immediately (best-effort; the
     // server staleness sweep is the backstop). No-op off web.
     WebPresence.registerOffline(() {
@@ -659,6 +684,122 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         ),
       ),
     );
+  }
+
+  // ─────────────────────────── the system share sheet ──────────────────────
+  //
+  // Two doors, and they are deliberately different lengths:
+  //
+  //   * A **suggestion** in the sheet's top row already named a chat, so the
+  //     share goes straight there. That is the whole point of donating them.
+  //   * The **app icon** names nothing, so the picker asks — and only then.
+  //
+  // Neither door sends anything by itself. The payload is staged in
+  // [ShareIntake] and the room's own screen delivers it, which is what keeps
+  // the composer, the editor, the room's capabilities and the size cap in one
+  // place instead of two.
+
+  /// A share arrived from the OS.
+  void _openShare(SharedPayload payload) {
+    // Held back in the same two states an invite is, for the same two reasons:
+    // a cold start has no navigator for one frame, and a signed-out install has
+    // to get through login first. `flushPending` replays from both places.
+    if (_auth.session == null || rootNavigatorKey.currentState == null) {
+      ShareIntake.instance.hold(payload);
+      return;
+    }
+    // A second share while the picker is still up. Held rather than dropped —
+    // the platform has already copied somebody's photo onto their disk, and
+    // silently forgetting it leaves the file behind AND loses the share. The
+    // picker's `finally` flushes it.
+    if (_shareInFlight) {
+      ShareIntake.instance.hold(payload);
+      return;
+    }
+
+    final target = payload.targetRoomId;
+    if (target != null && _repo.roomById(target) != null) {
+      _deliverShare(target, payload);
+      return;
+    }
+    // A suggestion whose room has since been left or deleted falls through to
+    // the picker rather than failing — the OS caches shortcuts for days and
+    // will happily offer one for a chat that is gone.
+    unawaited(_askShareTarget(payload));
+  }
+
+  Future<void> _askShareTarget(SharedPayload payload) async {
+    final nav = rootNavigatorKey.currentState;
+    if (nav == null) return;
+    _shareInFlight = true;
+    try {
+      // Land on the shell first. A share tapped while a room or a settings
+      // sub-screen was open would otherwise ask its question from under
+      // whatever was there, and answering it would push a room onto a stack
+      // nobody expects to come back to.
+      nav.popUntil((r) => r.isFirst);
+      final ctx = nav.context;
+      final choice = await showShareTargetSheet(
+        ctx,
+        repo: _repo,
+        api: _api,
+        payload: payload,
+      );
+      if (choice == null) {
+        // Dismissed. The staged copies are ours and nothing else will collect
+        // them — see `ShareIntake.disposeItems`.
+        ShareIntake.instance.disposeItems(payload.items);
+        return;
+      }
+      final String roomId;
+      switch (choice) {
+        case ShareToRoom(:final room):
+          roomId = room.id;
+        case ShareToFriend(:final friend):
+          // No DM yet. Opening one is a mutation, so it runs here rather than
+          // under the sheet — and a failure leaves the user on the chat list
+          // with their share intact rather than in a room that doesn't exist.
+          try {
+            roomId = await _repo.openDmWith(friend);
+          } catch (e) {
+            debugPrint('share: could not open DM with ${friend.id}: $e');
+            ShareIntake.instance.disposeItems(payload.items);
+            return;
+          }
+      }
+      if (!mounted) return;
+      _deliverShare(roomId, payload);
+    } finally {
+      _shareInFlight = false;
+      // Whatever arrived while this one was on screen, in order.
+      ShareIntake.instance.flushPending();
+    }
+  }
+
+  /// Stages [payload] for [roomId] and puts that room on screen.
+  ///
+  /// Routing is [_openRoomFromPush]'s, unchanged: it already knows that a
+  /// desktop pane wants a selection and a phone wants a push, and that both
+  /// want the nested routes popped first.
+  void _deliverShare(String roomId, SharedPayload payload) {
+    ShareIntake.instance.stageFor(roomId, payload.withTarget(roomId));
+    _openRoomFromPush(roomId);
+  }
+
+  /// The app's strings, from outside the widget tree.
+  ///
+  /// [ShareTargetsSync] publishes titles the OS renders in its own share
+  /// sheet, and those have to be in the user's language — but it runs off a
+  /// repository listener, not a build, so there is no `BuildContext` in hand.
+  /// `Localizations.of` is the nullable form on purpose: this is called during
+  /// sign-in, which can complete before the first frame, and an assert there
+  /// would crash the launch over a shortcut label. A null answer publishes an
+  /// empty title for the two fallbacks, which the row then renders from the
+  /// room's own name.
+  AppLocalizations? _loc() {
+    final ctx = rootNavigatorKey.currentContext;
+    if (ctx == null) return null;
+    return Localizations.of<AppLocalizations>(ctx, AppLocalizations);
   }
 
   /// Claim inbound URLs before `WidgetsApp` tries to route them.
@@ -987,6 +1128,8 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     // r=40 AND r=41 for `listFriends`, and so on down the group.
     _consumePendingPushRoom();
     _consumePendingInvite();
+    // Same replay for a share the platform handed over during boot.
+    ShareIntake.instance.flushPending();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       UpdateChecker.instance.ensure();
       // Keeps the Settings badge honest after launch: an app that is never
@@ -1192,6 +1335,20 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         // flush that matters most: on a fresh install the link arrives long
         // before there is an account to join with.
         _consumePendingInvite();
+        // And the share that sent someone through it. A share sheet can raise
+        // a signed-out install exactly like an invite link can.
+        ShareIntake.instance.flushPending();
+        // Suggestions describe THIS account's chats, so they are published on
+        // sign-in and dropped on sign-out — never carried between accounts on
+        // a shared handset.
+        _shareTargetsSync ??= ShareTargetsSync(
+          repo: _repo,
+          theme: () => _themeController.theme,
+          savedMessagesTitle: () => _loc()?.savedMessagesTitle ?? '',
+          directMessageFallbackTitle: () =>
+              _loc()?.approvalsScreenForwardDirectMessageFallback ?? '',
+        );
+        _shareTargetsSync!.publishNow();
         // Covers the fresh-sign-in case, including the rotation owed after a
         // password reset — the reset signs the user in, which disposes the
         // LoginScreen that would otherwise have pushed the gate.
@@ -1212,6 +1369,13 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         await FeedStore.instance.detach();
         // Same rule for the daily games: the standings carry friends' names.
         GamesStore.instance.clear();
+        // And for the share-sheet suggestions, which name people and live
+        // OUTSIDE the app — in the system's shortcut store and in Siri's
+        // donation history. Left behind, the next account on this handset
+        // would be offered the previous one's chats by the OS itself.
+        _shareTargetsSync?.dispose();
+        _shareTargetsSync = null;
+        unawaited(ShareTargets.instance.clear());
         // Deletes this device's row, which takes every push credential with it
         // — including the browser's Web Push subscription. Nothing addressed to
         // the account that just signed out can reach this device again.
@@ -1260,6 +1424,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     WidgetsBinding.instance.removeObserver(this);
     _auth.removeListener(_onAuthChange);
     _family.removeListener(_syncAccountType);
+    _shareTargetsSync?.dispose();
     _signaling.stop();
     _repo.dispose();
     super.dispose();

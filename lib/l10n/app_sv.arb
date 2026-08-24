@@ -2034,5 +2034,10 @@
   "newChatMenuCreateTitle": "Skapa ett rum",
   "newChatMenuCreateSub": "Starta en grupp och bjud in folk",
   "newChatMenuJoinTitle": "Gå med via kod",
-  "newChatMenuJoinSub": "Öppna en grupp som någon delat med dig"
+  "newChatMenuJoinSub": "Öppna en grupp som någon delat med dig",
+  "shareSheetTitle": "DELA MED",
+  "shareSheetSuggestedHeading": "FÖRSLAG",
+  "shareSheetPreviewItems": "{count, plural, one{1 bilaga} other{{count} bilagor}}",
+  "shareSheetTooLargeDropped": "{count, plural, one{1 fil är över gränsen på {size} och togs inte med} other{{count} filer är över gränsen på {size} och togs inte med}}",
+  "shareSheetSendToSemantic": "Skicka till {title}"
 }

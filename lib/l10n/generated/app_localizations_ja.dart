@@ -6915,4 +6915,35 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get newChatMenuJoinSub => '共有されたグループを開きます';
+
+  @override
+  String get shareSheetTitle => '送信先';
+
+  @override
+  String get shareSheetSuggestedHeading => '候補';
+
+  @override
+  String shareSheetPreviewItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '添付$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String shareSheetTooLargeDropped(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のファイルが$sizeの上限を超えたため除外しました',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String shareSheetSendToSemantic(String title) {
+    return '$titleに送信';
+  }
 }

@@ -9,6 +9,10 @@
 .tags*
 **/.vagrant/
 **/DerivedData/
+# `xcodebuild -project Runner.xcodeproj -target ShareExtension` (the standalone
+# check in tool/setup_ios_share_extension.rb) writes here. The root .gitignore's
+# `/build/` is anchored and does not cover it.
+build/
 Icon?
 **/Pods/
 **/.symlinks/

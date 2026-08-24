@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Direct Share. Declares that the dynamic shortcuts ShareShortcuts publishes are
+  share targets, not just launcher shortcuts — that declaration is what puts the
+  app's chats in the TOP ROW of the system share sheet instead of leaving it as
+  one more icon in the app row.
+
+  Three things have to agree or a shortcut silently never appears, with no error
+  anywhere:
+
+    1. `targetClass` names a component that is ENABLED and has an ACTION_SEND
+       intent-filter. It is ShareTargetActivity rather than MainActivity on
+       purpose — MainActivity is disabled whenever an alternate launcher icon is
+       active. See ShareTargetActivity's class doc.
+    2. `<category>` matches ShareShortcuts.CATEGORY exactly, and every published
+       ShortcutInfoCompat carries it.
+    3. The mime types listed here are a superset of what the intent-filter in
+       AndroidManifest.xml accepts. A type filtered here but not accepted there
+       produces a suggestion that opens nothing.
+
+  This file is reached through `<meta-data android:name="android.app.shortcuts">`
+  on the LAUNCHER activity — which means MainActivity *and* every
+  <activity-alias>, because whichever one is currently enabled is the one the
+  system reads it from.
+-->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <share-target android:targetClass="com.walhallaa.chattest20241220.ShareTargetActivity">
+        <data android:mimeType="image/*" />
+        <data android:mimeType="video/*" />
+        <data android:mimeType="audio/*" />
+        <data android:mimeType="text/plain" />
+        <data android:mimeType="application/*" />
+        <category android:name="com.walhallaa.chattest20241220.category.SHARE_TARGET" />
+    </share-target>
+</shortcuts>

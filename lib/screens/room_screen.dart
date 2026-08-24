@@ -1,4 +1,8 @@
 import 'dart:async';
+// Reached only from `_deliverShare`, which only ever runs off a share the OS
+// staged on disk — an iOS/Android-only path. Flutter web resolves this to its
+// stub, so the import costs the web build nothing and never executes there.
+import 'dart:io' show File;
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:camera/camera.dart' show CameraLensDirection;
@@ -87,6 +91,9 @@ import '../widgets/user_avatar.dart';
 import '../widgets/message_action_menu.dart';
 import '../widgets/report_sheet.dart';
 import '../widgets/visibility_badge.dart';
+import '../share/share_intake.dart';
+import '../share/share_targets.dart';
+import '../share/shared_payload.dart';
 import 'camera_editor_screen.dart';
 import 'camera_screen.dart';
 import 'room_content_actions.dart';
@@ -318,6 +325,27 @@ class _RoomScreenState extends State<RoomScreen>
     // can push the capture scope immediately. Otherwise _onRepoChange will
     // pick it up on the first notification.
     _maybePushCaptureScope(widget.repo.roomById(widget.roomId));
+    // A share the user routed here from the system sheet.
+    //
+    // Both doors, because there are two. A share that opened this room lands
+    // before the first frame; a share sent into the room ALREADY on screen —
+    // which on desktop is what selecting the selected room does, i.e. nothing —
+    // arrives later and only through the listener.
+    ShareIntake.instance.addListener(_takeStagedShare);
+    _takeStagedShare();
+  }
+
+  /// Collects and delivers a share staged for this room, if there is one.
+  ///
+  /// Post-frame because delivering opens a route (the editor) and shows snack
+  /// bars, neither of which a widget may do while it is being built — and this
+  /// is called from `initState` as well as from a notification.
+  void _takeStagedShare() {
+    final staged = ShareIntake.instance.takeStagedFor(widget.roomId);
+    if (staged == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_deliverShare(staged));
+    });
   }
 
   // Pushes, pops and the idle expiry all change whether the back pill is there
@@ -676,6 +704,7 @@ class _RoomScreenState extends State<RoomScreen>
     // last visit's peeks — and a spoiler that only stays open for a few
     // seconds in-room would be inconsistent if it survived a whole exit.
     SpoilerStore.instance.clear();
+    ShareIntake.instance.removeListener(_takeStagedShare);
     _ticker.cancel();
     _captureController.dispose();
     // Before the controller: the session is a listener on it.
@@ -759,6 +788,9 @@ class _RoomScreenState extends State<RoomScreen>
     }
     _keepComposerFocus();
     _scrollToBottom();
+    // The OS ranks share-sheet suggestions by who you actually talk to, and
+    // this is where the app finds that out.
+    _touchShareTarget();
   }
 
   /// Hold-Send: queue what is in the composer for later instead of sending it.
@@ -1893,6 +1925,154 @@ class _RoomScreenState extends State<RoomScreen>
     }
   }
 
+  // ─────────────────────────── incoming shares ─────────────────────────────
+
+  /// Puts a share from the system sheet into this room.
+  ///
+  /// Everything here is the room's own send path, reached from a different
+  /// door. That is the point: a share is subject to the same size cap, the same
+  /// editor and the same optimistic bubble as a photo picked from the composer,
+  /// and a second pipeline would be a second set of bugs.
+  ///
+  /// Three shapes, in the order they are common:
+  ///
+  ///  * **One photo** — the editor, exactly as the gallery pick gets. It is the
+  ///    only chance to crop, annotate or arm view-once, and a share arrives
+  ///    sight-unseen from an app the user has already left.
+  ///  * **Anything else with bytes** — straight into the transcript. There is no
+  ///    carousel to preview five photos in, and a document has nothing to edit.
+  ///  * **Text or a link** — the composer, not a message. A shared URL is a
+  ///    draft; sending it is still the user's tap.
+  Future<void> _deliverShare(SharedPayload payload) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final loc = AppLocalizations.of(context);
+
+    // Text first and unconditionally: with attachments it reads as their
+    // caption, and the user can send or discard it after the pictures land.
+    final text = payload.text;
+    if (text != null && text.isNotEmpty) {
+      // Appended rather than assigned — a draft already in the composer is
+      // something the user typed, and a share must not eat it.
+      final existing = _composer.text.trimRight();
+      _composer.text = existing.isEmpty ? text : '$existing\n$text';
+      _keepComposerFocus();
+    }
+
+    // Refused here rather than silently: the platform declined to copy these
+    // because they are over the cap, so there are no bytes to fall back on and
+    // saying nothing would look like the share simply failed.
+    if (payload.oversized.isNotEmpty) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            loc.roomScreenFileSizeCapSnack(formatFileSize(kMaxFileUploadBytes)),
+          ),
+        ),
+      );
+    }
+
+    final items = payload.sendable;
+    if (items.isEmpty) {
+      // Text-only share. Nothing staged on disk to release.
+      _touchShareTarget();
+      return;
+    }
+
+    // Same uncovered gap the picker paths document: reading a shared file back
+    // is a whole-file read, tens of megabytes for a video, and it happens after
+    // the system share sheet has already slid away — so without the scrim the
+    // user is handed a chat screen that appears to be doing nothing.
+    _setMediaBusy(true);
+    try {
+      final lone = payload.loneImage;
+      if (lone != null) {
+        final bytes = await _readShared(lone, messenger, loc);
+        if (bytes == null || !mounted) return;
+        final outcome = await CameraEditorScreen.open(context, source: bytes);
+        // Released whether or not it was sent: the editor holds its own copy of
+        // the bytes, and a share the user backed out of has no second chance to
+        // be delivered from disk.
+        ShareIntake.instance.disposeItems(payload.items);
+        // `_sendEdited` goes through `_sendMedia`, which bumps the suggestion.
+        if (outcome is EditorSend) _sendEdited(outcome);
+        return;
+      }
+
+      // Everything else, in the order the sender chose. Sent one at a time
+      // through the same funnel as a picked file, so the repository's upload
+      // budget and retry queue see nothing unusual.
+      for (final item in items) {
+        final bytes = await _readShared(item, messenger, loc);
+        if (bytes == null) continue;
+        if (!mounted) return;
+        _sendMedia(
+          bytes: bytes,
+          type: item.messageType,
+          contentType: item.mimeType,
+          fileName: item.messageType == MessageType.file ? item.fileName : null,
+          fileSize: item.messageType == MessageType.file ? bytes.length : null,
+          // The same poster the video PICKER extracts, and for the same reason:
+          // without it the shared-content grid shows a play glyph forever,
+          // because `messages.posterStorageId` is set once at send time and
+          // never backfilled. `item.path` is a real filesystem path (both
+          // platforms staged it themselves), which is exactly what the
+          // extractor needs — the `kIsWeb` guard is belt-and-braces, since a
+          // share cannot arrive there at all.
+          posterBytes: item.messageType == MessageType.video && !kIsWeb
+              ? await VideoPoster.extract(item.path)
+              : null,
+        );
+      }
+      ShareIntake.instance.disposeItems(payload.items);
+    } finally {
+      _setMediaBusy(false);
+    }
+  }
+
+  /// Reads a staged share off disk, reporting the one failure that is a user's
+  /// problem rather than a bug: the OS reclaimed the cache between the share
+  /// and the tap that placed it.
+  Future<Uint8List?> _readShared(
+    SharedItem item,
+    ScaffoldMessengerState messenger,
+    AppLocalizations loc,
+  ) async {
+    try {
+      return await File(item.path).readAsBytes();
+    } catch (e) {
+      debugPrint('share: could not read ${item.path}: $e');
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(loc.roomScreenFileReadFailedSnack)),
+        );
+      }
+      return null;
+    }
+  }
+
+  /// Tells the OS this chat was just messaged, so its share sheet ranks it up.
+  ///
+  /// Called from the room's send paths rather than from the repository because
+  /// the suggestion needs a title and an avatar gradient, and those come from
+  /// the theme — which only a widget has. Cheap and fire-and-forget: on Android
+  /// it re-pushes one shortcut, on iOS it donates one intent, and a failure at
+  /// either costs a slightly staler share sheet and nothing else.
+  void _touchShareTarget() {
+    if (!mounted) return;
+    final room = _room ?? widget.repo.roomById(widget.roomId);
+    if (room == null) return;
+    if (!widget.repo.capabilitiesFor(room).canReceiveForwards) return;
+    final loc = AppLocalizations.of(context);
+    unawaited(ShareTargets.instance.touch(shareTargetFor(
+      repo: widget.repo,
+      theme: ThemeScope.of(context),
+      room: room,
+      savedMessagesTitle: loc.savedMessagesTitle,
+      directMessageFallbackTitle:
+          loc.approvalsScreenForwardDirectMessageFallback,
+    )));
+  }
+
   /// Sends what came out of the editor.
   void _sendEdited(EditorSend outcome) {
     final img = outcome.image;
@@ -2171,6 +2351,7 @@ class _RoomScreenState extends State<RoomScreen>
       viewOnce: viewOnce,
     );
     _scrollToBottom();
+    _touchShareTarget();
   }
 
   @override

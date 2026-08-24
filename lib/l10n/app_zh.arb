@@ -2034,5 +2034,10 @@
   "newChatMenuCreateTitle": "创建房间",
   "newChatMenuCreateSub": "创建群组并邀请他人",
   "newChatMenuJoinTitle": "用口令码加入",
-  "newChatMenuJoinSub": "打开别人分享给你的群组"
+  "newChatMenuJoinSub": "打开别人分享给你的群组",
+  "shareSheetTitle": "分享到",
+  "shareSheetSuggestedHeading": "推荐",
+  "shareSheetPreviewItems": "{count, plural, other{{count} 个附件}}",
+  "shareSheetTooLargeDropped": "{count, plural, other{{count} 个文件超过 {size} 上限，已略过}}",
+  "shareSheetSendToSemantic": "发送给 {title}"
 }

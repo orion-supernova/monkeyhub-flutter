@@ -7322,4 +7322,37 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get newChatMenuJoinSub =>
       'Ouvre un groupe que quelqu\'un t\'a partagé';
+
+  @override
+  String get shareSheetTitle => 'PARTAGER AVEC';
+
+  @override
+  String get shareSheetSuggestedHeading => 'SUGGESTIONS';
+
+  @override
+  String shareSheetPreviewItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pièces jointes',
+      one: '1 pièce jointe',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String shareSheetTooLargeDropped(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count fichiers dépassent la limite de $size et ont été ignorés',
+      one: '1 fichier dépasse la limite de $size et a été ignoré',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String shareSheetSendToSemantic(String title) {
+    return 'Envoyer à $title';
+  }
 }

@@ -11,6 +11,22 @@
 	     portal; if it isn't, signing fails. -->
 	<key>com.apple.developer.usernotifications.time-sensitive</key>
 	<true/>
+	<!-- The App Group the Share Extension writes into and this app reads back.
+	     It is the ONLY channel between the two binaries — see
+	     ios/Shared/ShareGroup.swift, which both targets compile.
+
+	     REQUIRES "App Groups" enabled on BOTH App IDs in the Apple Developer
+	     portal (the app's and the extension's) with this exact group selected.
+	     Signing fails if the capability is missing from an App ID, which is the
+	     loud failure. The quiet one is this string differing from the copy in
+	     ios/ShareExtension/ShareExtension.entitlements: everything builds,
+	     everything signs, and `containerURL` returns nil at runtime with no
+	     error anywhere — the share sheet dismisses and nothing happens. See
+	     SHARE_SHEET.md. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.walhallaa.monkeyhub</string>
+	</array>
 	<key>com.apple.developer.applesignin</key>
 	<array>
 		<string>Default</string>
