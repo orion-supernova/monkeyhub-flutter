@@ -25,11 +25,47 @@ system share sheet┤                             → straight into that chat
                                                 → chat picker sheet
 ```
 
-Both end in the same place: the payload is staged in
+### iOS sends without opening the app. Android opens it.
+
+That difference is not an inconsistency, it is the platform convention:
+
+* **iOS** — the extension is a real compose sheet (pick a chat, add a caption,
+  Send) and it talks to Convex itself. The user stays in Photos, exactly as they
+  do with Messages, WhatsApp and Telegram. Opening the app is an *escape hatch*,
+  offered for two cases only: nobody is signed in, or the user wants the photo
+  editor (crop, annotation, view-once), which lives in the app.
+* **Android** — there is no in-chooser compose convention. The chooser hands the
+  intent to an activity and the app opens, which is what WhatsApp and Telegram
+  do there too.
+
+On the Android path (and the iOS escape hatch) the payload is staged in
 [`ShareIntake`](lib/share/share_intake.dart) and the room's own `RoomScreen`
 delivers it — through the same editor, the same size cap and the same optimistic
-bubble a photo picked from the composer goes through. There is deliberately no
-second send pipeline.
+bubble a photo picked from the composer goes through.
+
+> ### How the extension can send with no app, no engine and no login
+>
+> **This backend has no `ctx.auth` anywhere** — identity is the `userId`
+> argument, and every function re-derives permission from it. See the note at
+> the top of `backend/convex/feed.ts`, which says so in as many words.
+>
+> So the credential is a string. The app leaves it, the deployment URL and the
+> recent-chat list in the App Group (`ShareSession`), and the extension does the
+> rest with three `URLSession` calls against Convex's HTTP API — the same
+> function paths and argument shapes the Dart client uses over its socket
+> (`ConvexHTTP.swift`).
+>
+> **If the backend ever gains real authentication, this stops working** — loudly,
+> as a 401 surfaced in the sheet — and the extension will need the token too.
+> `share_contract_test.dart` pins the argument names in the meantime, because a
+> second implementation of the send path is a second thing to drift.
+>
+> The cache is written at the same protection class the keychain holds the
+> session under (`first_unlock_this_device` ↔
+> `.completeFileProtectionUntilFirstUserAuthentication`), excluded from backups,
+> and **deleted on sign-out** — otherwise the next person to pick up the phone
+> could send as the account that left, from the share sheet, without unlocking
+> the app.
 
 One photo gets the editor (crop, annotate, view-once). Anything else goes
 straight into the transcript; there is no carousel to preview five photos in.
@@ -82,9 +118,13 @@ long enough to be read later.
 
 | Where | What it does |
 |---|---|
-| `ios/ShareExtension/ShareViewController.swift` | The extension. No UI — copies into the App Group and wakes the app |
-| `ios/Shared/ShareGroup.swift` | Compiled into **both** binaries. The group id, the inbox layout, the wake-up URL |
-| `ios/Runner/ShareInbox.swift` | Reads the container back |
+| `ios/ShareExtension/ShareViewController.swift` | The extension: composes, uploads, sends, and completes |
+| `ios/ShareExtension/ShareComposeView.swift` | The sheet the user sees (SwiftUI, deliberately system-native) |
+| `ios/ShareExtension/ConvexHTTP.swift` | Just enough Convex to send one message, over `URLSession` |
+| `ios/ShareExtension/Staging.swift` | Copies attachments out of their item providers |
+| `ios/Shared/ShareGroup.swift`, `ShareSession.swift` | Compiled into **both** binaries: the group id, the inbox layout, the wake-up URL, the cached session |
+| `ios/Runner/ShareInbox.swift` | Reads a handed-off payload back |
+| `ios/Runner/ShareCache.swift` | Writes the session the extension sends with; clears it on sign-out |
 | `AppDelegate.swift` | The channel, and `donateSendMessage` — the suggestions |
 | `tool/setup_ios_share_extension.rb` | Creates the extension target. Run from the Podfile's `post_install` |
 
@@ -138,11 +178,20 @@ placeholder beyond what is already committed.
 
 1. **Delete the app first.** iOS caches an app's extension registrations, and a
    plain reinstall over an older build sometimes keeps the old set.
-2. Install, **open the app once and sign in** — suggestions come from donations,
-   and a fresh install has donated nothing.
+2. Install, **open the app once and sign in**. This is not optional: signing in
+   is what writes the session the extension sends with, and suggestions come
+   from donations, which a fresh install has none of.
 3. Send a message to two or three chats. That is what populates the top row.
-4. Take a screenshot → Share. MonkeyHub should be in the app row; the chats you
-   just messaged should be above it.
+4. Take a screenshot → Share → MonkeyHub. **The app must not open.** A compose
+   sheet appears with those chats in it; pick one, press Send, and you should be
+   back in Photos with the message already delivered.
+5. Tap one of the suggested chats in the top row instead — the same sheet opens
+   with that chat already selected.
+
+If the sheet appears and **nothing happens at all**, the App Group is not
+provisioned: `ShareSession.load()` returns nil, the picker is empty, and the
+only offer is "Open MonkeyHub". Check the console for
+`no App Group container`.
 
 Suggestions can take a minute to appear and are ranked by iOS, not by us. There
 is no way to force one, and no API to inspect the ranking. If the app icon shows

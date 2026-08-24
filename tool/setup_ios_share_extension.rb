@@ -176,15 +176,32 @@ def add_source(target, ref)
   true
 end
 
-ext_swift = file_ref(ext_group, 'ShareViewController.swift')
-shared_swift = file_ref(shared_group, 'ShareGroup.swift')
-app_inbox = file_ref(project.main_group['Runner'], 'ShareInbox.swift')
+# Extension-only sources. ConvexHTTP is what lets it send without the app;
+# ShareComposeView + Staging are the sheet the user actually sees.
+%w[
+  ShareViewController.swift
+  ShareComposeView.swift
+  ConvexHTTP.swift
+  Staging.swift
+].each do |name|
+  changed = true if add_source(target, file_ref(ext_group, name))
+end
 
-changed = true if add_source(target, ext_swift)
-changed = true if add_source(target, shared_swift)
-# The app compiles the shared constants too — same file, two binaries.
-changed = true if add_source(app, shared_swift)
-changed = true if add_source(app, app_inbox)
+# Compiled into BOTH binaries. Every constant in these is one half of a
+# handshake between two separately-signed processes, and the failure mode of a
+# disagreement is silence rather than an error.
+%w[ShareGroup.swift ShareSession.swift].each do |name|
+  ref = file_ref(shared_group, name)
+  changed = true if add_source(target, ref)
+  changed = true if add_source(app, ref)
+end
+
+# App-only: reading the inbox back, and writing the session the extension sends
+# with.
+runner_group = project.main_group['Runner']
+%w[ShareInbox.swift ShareCache.swift].each do |name|
+  changed = true if add_source(app, file_ref(runner_group, name))
+end
 
 # The Info.plist and entitlements are referenced (so they show up in Xcode and
 # so a `git mv` is visible) but never added to a build phase: they are consumed
@@ -244,7 +261,7 @@ end
 #
 # Intents is the one that is not implicit: ShareViewController reads the
 # INSendMessageIntent that a tapped suggestion arrives with.
-%w[Intents.framework UIKit.framework].each do |name|
+%w[Intents.framework UIKit.framework SwiftUI.framework ImageIO.framework].each do |name|
   next if target.frameworks_build_phase.files.any? do |f|
     f.display_name == name
   end
@@ -264,10 +281,15 @@ end
 
 missing = %w[
   ShareExtension/ShareViewController.swift
+  ShareExtension/ShareComposeView.swift
+  ShareExtension/ConvexHTTP.swift
+  ShareExtension/Staging.swift
   ShareExtension/Info.plist
   ShareExtension/ShareExtension.entitlements
   Shared/ShareGroup.swift
+  Shared/ShareSession.swift
   Runner/ShareInbox.swift
+  Runner/ShareCache.swift
 ].reject { |rel| File.exist?(File.join(ios_dir, rel)) }
 unless missing.empty?
   warn "[setup_ios_share_extension] MISSING on disk: #{missing.join(', ')}"

@@ -1347,6 +1347,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
           savedMessagesTitle: () => _loc()?.savedMessagesTitle ?? '',
           directMessageFallbackTitle: () =>
               _loc()?.approvalsScreenForwardDirectMessageFallback ?? '',
+          // Sent as `senderName` on a message composed inside the iOS Share
+          // Extension, so a push from one reads like every other one rather
+          // than arriving from nobody.
+          senderName: () => _auth.session?.name,
         );
         _shareTargetsSync!.publishNow();
         // Covers the fresh-sign-in case, including the rotation owed after a

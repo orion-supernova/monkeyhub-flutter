@@ -1157,7 +1157,13 @@ import flutter_callkit_incoming
           result(nil)
 
         case "publishTargets":
-          // Android's model. iOS has no publishable list — see above.
+          // iOS has no publishable suggestion list — the top row comes from
+          // donations. But the same payload is exactly what the Share
+          // Extension needs to send WITHOUT the app: the deployment URL, the
+          // user id (which is this backend's whole credential — see
+          // ConvexHTTP.swift) and the chats to offer. Stored in the App Group,
+          // which is the only channel between the two binaries.
+          ShareCache.store(call.arguments as? [String: Any] ?? [:])
           result(nil)
 
         case "clearTargets":
@@ -1170,6 +1176,10 @@ import flutter_callkit_incoming
               NSLog("[share] could not delete donations: \(error.localizedDescription)")
             }
           }
+          // And the extension's copy, which is the one that could still SEND.
+          // A chat list left behind is a privacy problem; a user id left behind
+          // is an account somebody else could post as from the share sheet.
+          ShareCache.clear()
           result(nil)
 
         default:

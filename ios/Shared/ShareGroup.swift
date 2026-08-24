@@ -31,6 +31,22 @@ enum ShareGroup {
   /// describes files which are still being copied.
   static let manifestName = "payload.json"
 
+  /// What the app leaves behind so the extension can send WITHOUT the app.
+  ///
+  /// The deployment URL, the signed-in user id, and the same recent-chat list
+  /// the share sheet's top row is built from. Refreshed by the app whenever
+  /// that list changes and deleted on sign-out.
+  ///
+  /// This is the whole reason the extension needs no Flutter engine, no Convex
+  /// client and no login of its own: `messages:send` takes the user id as an
+  /// ordinary argument, so with these three facts a plain `URLSession` can do
+  /// the entire job. See `ConvexHTTP.swift`.
+  static let sessionName = "session.json"
+
+  static var sessionURL: URL? {
+    containerURL?.appendingPathComponent(sessionName)
+  }
+
   /// Wakes the app. Shares the invite link's scheme (already registered on
   /// every platform) with a path the invite parser explicitly refuses —
   /// `kSharePathSegment` in lib/invites/invite_link.dart, which is the other

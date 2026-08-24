@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+import '../backend/server_store.dart';
 import '../data/chat_repository.dart';
 import '../media/file_url_cache.dart';
 import '../models/chat_room.dart';
@@ -112,14 +113,45 @@ class ShareTargets {
   /// platform round trip. The rooms subscription re-fires on every message in
   /// every room, which without this would be a shortcut republish per message.
   List<ShareTarget> _published = const [];
+  String? _publishedUserId;
+  String? _publishedDeployment;
+  String? _publishedSenderName;
 
-  Future<void> sync(List<ShareTarget> targets) async {
+  /// Hands the OS the current list — and, on iOS, the credential behind it.
+  ///
+  /// [userId] and [deploymentUrl] are what let the **Share Extension send
+  /// without opening the app**. It is a separate binary with no Flutter engine
+  /// and no Convex client, and this backend's identity is the `userId`
+  /// argument rather than a token (there is no `ctx.auth` in the deployment —
+  /// see the note at the top of `backend/convex/feed.ts`), so those two strings
+  /// plus the chat list are the whole of what it needs. iOS stores them in the
+  /// App Group; Android ignores them, because its share target opens the app.
+  ///
+  /// Both are cleared by [clear] on sign-out, which is what stops a share
+  /// composed afterwards from being sent as the account that left.
+  Future<void> sync(
+    List<ShareTarget> targets, {
+    required String userId,
+    required String deploymentUrl,
+    String? senderName,
+  }) async {
     if (!_supported) return;
     final capped = targets.take(kMaxShareTargets).toList(growable: false);
-    if (listEquals(capped, _published)) return;
+    if (listEquals(capped, _published) &&
+        userId == _publishedUserId &&
+        deploymentUrl == _publishedDeployment &&
+        senderName == _publishedSenderName) {
+      return;
+    }
     _published = capped;
+    _publishedUserId = userId;
+    _publishedDeployment = deploymentUrl;
+    _publishedSenderName = senderName;
     await _invoke('publishTargets', {
       'targets': [for (final t in capped) t.toChannel()],
+      'userId': userId,
+      'deploymentUrl': deploymentUrl,
+      'senderName': senderName,
     });
   }
 
@@ -134,6 +166,9 @@ class ShareTargets {
   Future<void> clear() async {
     if (!_supported) return;
     _published = const [];
+    _publishedUserId = null;
+    _publishedDeployment = null;
+    _publishedSenderName = null;
     await _invoke('clearTargets', const <String, Object?>{});
   }
 
@@ -148,7 +183,12 @@ class ShareTargets {
   }
 
   @visibleForTesting
-  void debugReset() => _published = const [];
+  void debugReset() {
+    _published = const [];
+    _publishedUserId = null;
+    _publishedDeployment = null;
+    _publishedSenderName = null;
+  }
 }
 
 /// Turns the repository's room list into share-sheet suggestions.
@@ -280,11 +320,13 @@ class ShareTargetsSync {
     required AppTheme Function() theme,
     required String Function() savedMessagesTitle,
     required String Function() directMessageFallbackTitle,
+    required String? Function() senderName,
     Duration debounce = const Duration(seconds: 2),
   })  : _repo = repo,
         _theme = theme,
         _savedMessagesTitle = savedMessagesTitle,
         _directMessageFallbackTitle = directMessageFallbackTitle,
+        _senderName = senderName,
         _debounce = debounce {
     _repo.addListener(_onRepoChange);
   }
@@ -293,6 +335,7 @@ class ShareTargetsSync {
   final AppTheme Function() _theme;
   final String Function() _savedMessagesTitle;
   final String Function() _directMessageFallbackTitle;
+  final String? Function() _senderName;
   final Duration _debounce;
 
   Timer? _timer;
@@ -307,13 +350,22 @@ class ShareTargetsSync {
   void publishNow() {
     _timer?.cancel();
     _timer = null;
-    if (_repo.userId == null) return;
-    unawaited(ShareTargets.instance.sync(buildShareTargets(
-      repo: _repo,
-      theme: _theme(),
-      savedMessagesTitle: _savedMessagesTitle(),
-      directMessageFallbackTitle: _directMessageFallbackTitle(),
-    )));
+    final userId = _repo.userId;
+    if (userId == null) return;
+    unawaited(ShareTargets.instance.sync(
+      buildShareTargets(
+        repo: _repo,
+        theme: _theme(),
+        savedMessagesTitle: _savedMessagesTitle(),
+        directMessageFallbackTitle: _directMessageFallbackTitle(),
+      ),
+      userId: userId,
+      // Read live rather than captured: a server switch rebinds every client,
+      // and an extension left pointing at the previous deployment would send
+      // into a backend this account does not exist on.
+      deploymentUrl: ServerStore.instance.deploymentUrl,
+      senderName: _senderName(),
+    ));
   }
 
   void dispose() {
