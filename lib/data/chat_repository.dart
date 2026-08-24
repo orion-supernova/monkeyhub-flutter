@@ -1109,6 +1109,10 @@ class ChatRepository extends ChangeNotifier {
 
   // ───────────── messages ─────────────
 
+  @visibleForTesting
+  void debugSeedMessages(String roomId, List<ChatMessage> messages) =>
+      _messages[roomId] = List.of(messages);
+
   List<ChatMessage> messagesFor(String roomId) {
     final live = _messages[roomId] ?? const [];
     final pend = _pending[roomId] ?? const [];
@@ -1171,6 +1175,18 @@ class ChatRepository extends ChangeNotifier {
     _activeDeliveredState.clear();
     _initialLoaded.remove(roomId);
     final me = _userId;
+    // Guarantees at least one microtask boundary before the first
+    // `notifyListeners()` below, on every path — including the one where
+    // `_messages[roomId]` is already warm and the cache read beneath is
+    // skipped entirely. `openRoom` is called synchronously from
+    // `RoomScreen.initState()`, which can itself be running mid-build (e.g.
+    // inside a `LayoutBuilder` rebuild triggered during layout); a
+    // `notifyListeners()` reached with no await ahead of it hits a
+    // listener's `setState()` on that SAME synchronous stack and crashes
+    // with "setState() or markNeedsBuild() called during build." Dropping
+    // the old one-shot `listMessages` fetch below removed the await that
+    // used to guarantee this for free.
+    await Future<void>.value();
     // Hydrate from disk first for an instant render.
     if (me != null && (_messages[roomId] == null || _messages[roomId]!.isEmpty)) {
       try {

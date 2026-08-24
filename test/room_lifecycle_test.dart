@@ -280,4 +280,54 @@ void main() {
       },
     );
   });
+
+  group('synchronous-notify safety', () {
+    test(
+      'openRoom never notifies before its first await, even with warm messages',
+      () async {
+        // `RoomScreen.initState` calls `repo.openRoom(...)` synchronously and
+        // fire-and-forget, and can itself run mid-build (e.g. inside a
+        // LayoutBuilder rebuild triggered during layout). If openRoom's
+        // synchronous prefix could reach `notifyListeners()` before its
+        // first await, a listener's `setState()` would run on that SAME
+        // synchronous stack and crash with "setState() or markNeedsBuild()
+        // called during build."
+        //
+        // The dangerous path is a room whose messages are already warm in
+        // memory (closeRoom keeps them, for instant re-entry) — the cache
+        // read that used to guarantee a yield is skipped entirely, and the
+        // one-shot `listMessages` fetch that also used to guarantee one is
+        // gone (see chat_repository.dart's openRoom).
+        repo.debugSeedMessages('a', [
+          ChatMessage(
+            id: 'm1',
+            roomId: 'a',
+            senderId: 'someone',
+            senderName: 'Someone',
+            content: 'hi',
+            createdAt: DateTime.now(),
+          ),
+        ]);
+
+        var notifiedSynchronously = false;
+        void listener() => notifiedSynchronously = true;
+        repo.addListener(listener);
+
+        // ignore: unawaited_futures
+        repo.openRoom('a', owner: screenA);
+
+        expect(
+          notifiedSynchronously,
+          isFalse,
+          reason:
+              'openRoom must yield at least once before its first '
+              'notifyListeners(), or a listener can setState() on the '
+              'caller\'s own synchronous stack mid-build',
+        );
+
+        repo.removeListener(listener);
+        await _pump();
+      },
+    );
+  });
 }
