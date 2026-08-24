@@ -42,6 +42,40 @@ import 'profile_screen.dart';
 /// row has to be laid out edge to edge and inset itself.
 const _gutter = EdgeInsets.symmetric(horizontal: 20);
 
+/// Clamps overscroll only at the top of the chat list, leaving the bottom
+/// edge whatever the platform default (bounce on iOS, clamp on Android)
+/// already does.
+///
+/// [PullRevealSlot] turns the top overscroll into its own drag-driven reveal
+/// — see `_HomeScreenState._onScrollNotification`. Left on the platform
+/// default, iOS's `BouncingScrollPhysics` ALSO visually shifts the whole list
+/// down by the overscroll amount while that reveal is growing by the same
+/// amount: the two stack, showing up as a gap above the search field that
+/// grows twice as fast as the finger dragging it open. Pinning `pixels` at
+/// the top boundary — the same thing Android's default clamping physics
+/// already does, which is why this was never a problem there — leaves the
+/// reveal itself as the only thing moving.
+class _TopClampScrollPhysics extends ScrollPhysics {
+  const _TopClampScrollPhysics({super.parent});
+
+  @override
+  _TopClampScrollPhysics applyTo(ScrollPhysics? ancestor) =>
+      _TopClampScrollPhysics(parent: buildParent(ancestor));
+
+  @override
+  double applyBoundaryConditions(ScrollMetrics position, double value) {
+    if (value < position.pixels &&
+        position.pixels <= position.minScrollExtent) {
+      return value - position.pixels;
+    }
+    if (value < position.minScrollExtent &&
+        position.minScrollExtent < position.pixels) {
+      return value - position.minScrollExtent;
+    }
+    return super.applyBoundaryConditions(position, value);
+  }
+}
+
 /// Your conversations, and nothing else.
 ///
 /// Discover (public rooms) and Friends used to live here as sibling tabs, above
@@ -167,35 +201,31 @@ class _HomeScreenState extends State<HomeScreen>
     return label.toLowerCase().contains(needle);
   }
 
-  /// Tracks the overscroll-at-the-top gesture that reveals [PullRevealSlot].
-  /// Once the panel is open it is ordinary list content and this stops
-  /// intervening — see the panel's own collapse chevron for how it closes.
+  /// Tracks the overscroll-at-the-top gesture that reveals [PullRevealSlot],
+  /// and — once it's open — the ordinary forward drag that closes it again.
   ///
-  /// Two physics families report a pull-past-the-top completely differently,
-  /// and both need handling — relying on only one silently broke the gesture
-  /// on whichever platform uses the other:
-  ///   - Clamping (Android default): `pixels` stays pinned at the boundary,
-  ///     and each denied delta is reported separately via
-  ///     `OverscrollNotification.overscroll`.
-  ///   - Bouncing (iOS default): nothing is ever "denied" —
-  ///     `BouncingScrollPhysics.applyBoundaryConditions` always returns 0, so
-  ///     `OverscrollNotification` never fires at all. `pixels` genuinely goes
-  ///     negative instead, delivered as an ordinary `ScrollUpdateNotification`
-  ///     whose `metrics.pixels` IS the absolute overscroll amount.
-  /// Both branches also require `dragDetails != null` — non-null only while a
-  /// real finger drag is in progress, null during the ballistic spring-back
-  /// Flutter runs after release, which would otherwise be misread as a second
-  /// pull while the position animates back to zero.
+  /// The list runs on [_TopClampScrollPhysics], which pins `pixels` at the
+  /// top boundary instead of letting it go negative, so a pull-past-the-top
+  /// always arrives the same way regardless of platform: `pixels` stays at
+  /// the boundary and the denied delta is reported separately via
+  /// `OverscrollNotification.overscroll`. `dragDetails != null` is required
+  /// throughout — non-null only while a real finger drag is in progress, null
+  /// during the ballistic spring-back Flutter runs after release, which would
+  /// otherwise be misread as a second pull while the position animates back
+  /// to zero.
   bool _onScrollNotification(ScrollNotification n) {
-    if (_pullPanelOpen) return false;
-    if (n is ScrollUpdateNotification &&
-        n.dragDetails != null &&
-        n.metrics.pixels < 0) {
-      setState(() {
-        _dragging = true;
-        _pullDrag = (-n.metrics.pixels).clamp(0.0, _pullMaxDrag);
-      });
-    } else if (n is OverscrollNotification &&
+    if (_pullPanelOpen) {
+      // Swiping the other way — an ordinary forward drag starting from the
+      // very top, where the panel lives — closes it again, the same as
+      // tapping its own collapse chevron.
+      if (n is ScrollUpdateNotification &&
+          n.dragDetails != null &&
+          n.metrics.pixels > 0) {
+        _collapsePullPanel();
+      }
+      return false;
+    }
+    if (n is OverscrollNotification &&
         n.dragDetails != null &&
         n.overscroll < 0 &&
         n.metrics.pixels <= n.metrics.minScrollExtent) {
@@ -212,6 +242,11 @@ class _HomeScreenState extends State<HomeScreen>
       });
     }
     return false;
+  }
+
+  void _collapsePullPanel() {
+    _searchFocus.unfocus();
+    setState(() => _pullPanelOpen = false);
   }
 
   void _onChange() {
@@ -419,7 +454,9 @@ class _HomeScreenState extends State<HomeScreen>
                         // overscroll at all — silently breaking the pull
                         // gesture for exactly the accounts that most need an
                         // easy path to Archived Chats.
-                        physics: const AlwaysScrollableScrollPhysics(),
+                        physics: const _TopClampScrollPhysics(
+                          parent: AlwaysScrollableScrollPhysics(),
+                        ),
                         padding: EdgeInsets.fromLTRB(
                           0,
                           14,
@@ -442,10 +479,7 @@ class _HomeScreenState extends State<HomeScreen>
                               repo: widget.repo,
                               api: widget.api,
                             ),
-                            onCollapse: () {
-                              _searchFocus.unfocus();
-                              setState(() => _pullPanelOpen = false);
-                            },
+                            onCollapse: _collapsePullPanel,
                           ),
                       // The filter control rides inside the scroll view rather
                       // than sitting above it: as a fixed band it ate a strip of
