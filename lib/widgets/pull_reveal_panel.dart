@@ -120,7 +120,7 @@ class _PullRevealPanel extends StatelessWidget {
       // symmetric padding would be. It has to live in here rather than
       // between the two in home_screen: out there it would hold space even
       // with the panel shut, which is the dead band this panel just lost.
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 18),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
       child: Column(
         // Load-bearing now that the reveal measures this panel instead of
         // clipping it to a constant: a max-size Column would report whatever
@@ -129,39 +129,51 @@ class _PullRevealPanel extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Align(
-            alignment: Alignment.centerRight,
-            child: FocusableTap(
-              onTap: onCollapse,
-              semanticLabel: l10n.pullRevealCollapseSemanticLabel,
-              shape: FocusRingShape.circle,
-              radius: 999,
-              child: GestureDetector(
+          Row(
+            children: [
+              // The app's one search bar — the same widget Discover's search
+              // screen uses, which is what keeps the two from drifting apart
+              // the way the hand-rolled copies did.
+              Expanded(
+                child: SearchField(
+                  controller: searchCtrl,
+                  focusNode: searchFocus,
+                  hintText: l10n.pullRevealSearchHint,
+                  onChanged: onSearchChanged,
+                  // Its own, not the default: this one also has to cancel
+                  // the pending debounce, or the list would come back 250ms
+                  // after a tap that asked for it now.
+                  onClear: onClear,
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Beside the field rather than on a row of its own above it —
+              // that row used to be almost entirely empty (one small glyph
+              // against the panel's full width), which read as dead space
+              // stacked on top of the search bar rather than part of it.
+              FocusableTap(
                 onTap: onCollapse,
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding: const EdgeInsets.all(6),
-                  child: Icon(
-                    CupertinoIcons.chevron_up,
-                    size: 16,
-                    color: theme.inkMuted,
+                semanticLabel: l10n.pullRevealCollapseSemanticLabel,
+                shape: FocusRingShape.circle,
+                radius: 999,
+                child: GestureDetector(
+                  onTap: onCollapse,
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Icon(
+                      // Not a chevron any more — pointing "up" only read as
+                      // "collapse" while this sat alone on its own row above
+                      // the field. Beside it, a plain X reads as "dismiss"
+                      // the way it does next to any inline search bar.
+                      CupertinoIcons.xmark,
+                      size: 16,
+                      color: theme.inkMuted,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
-          // The app's one search bar — the same widget Discover's search
-          // screen uses, which is what keeps the two from drifting apart the
-          // way the hand-rolled copies did.
-          SearchField(
-            controller: searchCtrl,
-            focusNode: searchFocus,
-            hintText: l10n.pullRevealSearchHint,
-            onChanged: onSearchChanged,
-            // Its own, not the default: this one also has to cancel the
-            // pending debounce, or the list would come back 250ms after a tap
-            // that asked for it now.
-            onClear: onClear,
+            ],
           ),
           if (archivedCount > 0) ...[
             const SizedBox(height: 10),

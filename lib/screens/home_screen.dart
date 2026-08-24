@@ -129,6 +129,14 @@ class _HomeScreenState extends State<HomeScreen>
   /// [PullRevealSlot] for what this changes about the reveal's timing.
   bool _dragging = false;
   bool _pullPanelOpen = false;
+
+  /// True from the first forward-scroll sample of a close-by-swipe gesture
+  /// until release — see `_onScrollNotification`. Distinct from
+  /// [_pullPanelOpen] because that flips to `false` the moment the gesture
+  /// starts (so [PullRevealSlot]'s progress tracks the drag instead of
+  /// staying pinned at 1.0), while this has to keep routing later samples of
+  /// the *same* gesture back into the closing branch.
+  bool _closingPanel = false;
   static const _pullOpenThreshold = 64.0;
   static const _pullMaxDrag = 96.0;
 
@@ -203,6 +211,10 @@ class _HomeScreenState extends State<HomeScreen>
 
   /// Tracks the overscroll-at-the-top gesture that reveals [PullRevealSlot],
   /// and — once it's open — the ordinary forward drag that closes it again.
+  /// Both directions track the finger 1:1 (`_dragging` gates the reveal to
+  /// `Duration.zero`, see [PullRevealSlot]) rather than the close firing a
+  /// canned collapse animation on its own fixed clock, disconnected from how
+  /// fast the list is actually being scrolled.
   ///
   /// The list runs on [_TopClampScrollPhysics], which pins `pixels` at the
   /// top boundary instead of letting it go negative, so a pull-past-the-top
@@ -214,14 +226,33 @@ class _HomeScreenState extends State<HomeScreen>
   /// otherwise be misread as a second pull while the position animates back
   /// to zero.
   bool _onScrollNotification(ScrollNotification n) {
-    if (_pullPanelOpen) {
-      // Swiping the other way — an ordinary forward drag starting from the
-      // very top, where the panel lives — closes it again, the same as
-      // tapping its own collapse chevron.
-      if (n is ScrollUpdateNotification &&
-          n.dragDetails != null &&
-          n.metrics.pixels > 0) {
-        _collapsePullPanel();
+    if (_pullPanelOpen || _closingPanel) {
+      if (n is ScrollUpdateNotification && n.dragDetails != null) {
+        setState(() {
+          _pullPanelOpen = false;
+          _closingPanel = true;
+          _dragging = true;
+          // Remaining "openness": full at the top (pixels 0, matching the
+          // 1.0 progress the panel was already showing, so there's no jump
+          // the instant this branch takes over) and gone by the same
+          // distance the opening pull commits at.
+          _pullDrag = (_pullOpenThreshold - n.metrics.pixels).clamp(
+            0.0,
+            _pullOpenThreshold,
+          );
+        });
+      } else if (n is ScrollEndNotification && _closingPanel) {
+        // Dragged past the halfway point: commit closed. Short of that:
+        // spring back open, the same forgiveness an opening pull that
+        // doesn't reach its own threshold gets.
+        final reopen = _pullDrag > _pullOpenThreshold / 2;
+        setState(() {
+          _dragging = false;
+          _closingPanel = false;
+          _pullDrag = 0;
+          _pullPanelOpen = reopen;
+        });
+        if (!reopen) _searchFocus.unfocus();
       }
       return false;
     }
