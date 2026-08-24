@@ -43,6 +43,29 @@ class MainActivity : FlutterActivity() {
         /// [provideFlutterEngine] — does not strand a second idle thread.
         private val shareWorker: java.util.concurrent.ExecutorService =
             java.util.concurrent.Executors.newSingleThreadExecutor()
+
+        /// The monkeyhub/notifications and monkeyhub/share channels, and whether
+        /// Dart has drained each one's backlog — process-scoped, NOT Activity
+        /// instance fields, and deliberately so.
+        ///
+        /// [provideFlutterEngine] above documents why a second `MainActivity`
+        /// instance sharing this process's one cached engine is an ordinary,
+        /// expected event here (answering a call relaunches through
+        /// flutter_callkit_incoming's TransparentActivity; switching the launcher
+        /// icon relaunches through a different <activity-alias> ComponentName).
+        /// PushManager/ShareIntake on the Dart side call `takePendingEvents` /
+        /// `takePendingShare` exactly ONCE per process — `PushManager.initialize`
+        /// is guarded on `_initialized`. These four used to be Activity instance
+        /// fields, which meant a fresh second instance constructed a fresh
+        /// `notifDartReady = false` / `shareDartReady = false` that Dart's
+        /// already-drained-once handler would never ask again — so a notification
+        /// or share tapped for the rest of that process's life queued into a list
+        /// nobody ever collected, and the tap silently did nothing.
+        private var notifChannel: MethodChannel? = null
+        private val pendingNotifEvents = mutableListOf<Map<String, Any?>>()
+        private var notifDartReady = false
+        private var shareChannel: MethodChannel? = null
+        private var shareDartReady = false
     }
 
     /// Reuse the process's existing Dart isolate instead of booting a second
@@ -74,25 +97,10 @@ class MainActivity : FlutterActivity() {
     /// NOTIF_PERMISSION_REQUEST.
     private var pendingNotifPermissionResult: MethodChannel.Result? = null
 
-    /// The monkeyhub/notifications channel, retained so a notification tap can
-    /// be pushed to Dart from onCreate/onNewIntent.
-    private var notifChannel: MethodChannel? = null
-
-    /// Taps that arrived before Dart installed its handler — a cold start from
-    /// a notification is exactly that case. Drained by `takePendingEvents`.
-    private val pendingNotifEvents = mutableListOf<Map<String, Any?>>()
-    private var notifDartReady = false
-
-    /// The monkeyhub/share channel, retained so a share that lands while the
-    /// app is already running can be pushed straight to Dart.
-    private var shareChannel: MethodChannel? = null
-
-    /// Whether Dart has installed its share handler. Until it has, a payload
-    /// waits in [ShareIntake] and is collected by `takePendingShare` — which is
-    /// the ordinary case rather than the edge one, because the share sheet is
-    /// very often what started the process.
-    private var shareDartReady = false
-
+    // notifChannel/pendingNotifEvents/notifDartReady and
+    // shareChannel/shareDartReady moved to the companion object above — see the
+    // note there for why they must be process-scoped rather than Activity
+    // instance fields.
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         val cache = FlutterEngineCache.getInstance()

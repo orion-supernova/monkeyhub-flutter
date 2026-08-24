@@ -129,12 +129,20 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _consumePendingRequests(),
     );
+    // …and the same request arriving while this screen is ALREADY on it. The
+    // post-frame callback above only fires on mount, and steering the shell to
+    // a section it is already showing remounts nothing — so a request tapped by
+    // somebody who happened to be looking at Discover would have set the
+    // one-shot and then had nobody left to consume it. See FeedScreen's
+    // matching fix for the games nudge.
+    UiSelectionStore.instance.addListener(_consumePendingRequests);
   }
 
   @override
   void dispose() {
     widget.repo.removeListener(_onChange);
     widget.family.removeListener(_onChange);
+    UiSelectionStore.instance.removeListener(_consumePendingRequests);
     _scroll.dispose();
     super.dispose();
   }

@@ -123,8 +123,18 @@ class _FeedScreenState extends State<FeedScreen>
   /// lands on whichever navigator this Feed belongs to — the root one on a
   /// phone, and the section's own on a wide window, where a root push would
   /// cover the shell it was just told to show.
+  ///
+  /// Peeks [gamesViewPending] rather than consuming it up front: on a cold
+  /// start, `HomeShell`/this screen can mount before `ChatRepository.attach`
+  /// has run — `_applyAuthChange` in app.dart awaits the call-stack attach
+  /// first — so `widget.repo.userId` (and therefore [_openGamesHub], which
+  /// needs it) is briefly unavailable. Consuming the one-shot here regardless
+  /// would drop the notification on the floor with nothing left to retry it.
+  /// [_onChange] re-runs this once the repo attaches and notifies.
   void _consumePendingGames() {
     if (!mounted) return;
+    if (!UiSelectionStore.instance.gamesViewPending) return;
+    if (widget.repo.userId == null) return;
     if (!UiSelectionStore.instance.consumeGamesView()) return;
     if (_gamesHubOpen) return;
     _openGamesHub();
@@ -143,6 +153,9 @@ class _FeedScreenState extends State<FeedScreen>
   void _onChange() {
     if (!mounted) return;
     setState(() {});
+    // The repo attaching (userId becoming available) is one of the reasons
+    // this fires — see [_consumePendingGames].
+    _consumePendingGames();
   }
 
   /// Whether this account may publish media.
