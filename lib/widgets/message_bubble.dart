@@ -65,7 +65,6 @@ class MessageBubble extends StatelessWidget {
     this.lastInRun = true,
     this.showAvatarSlot = true,
     this.showAvatar = true,
-    this.avatarAtBottom = false,
     this.senderName,
     this.onOpenViewOnce,
     this.onStopLiveShare,
@@ -187,11 +186,6 @@ class MessageBubble extends StatelessWidget {
   /// shift between rows of a run — or while `author` is still resolving.
   final bool showAvatar;
 
-  /// Aligns the avatar with the bubble's bottom edge instead of its top. Set
-  /// on the last row of a multi-message run, where the face closes a block
-  /// the sender's name opened.
-  final bool avatarAtBottom;
-
   /// Rendered above the bubble when non-null. Callers pass it only on the
   /// first row of a run, and never for the current user or in a DM.
   final String? senderName;
@@ -250,6 +244,21 @@ class MessageBubble extends StatelessWidget {
     // `isReply` is the veto: a marker can only draw when there is a preview to
     // draw it from, and that is exactly what `isReply` asserts.
     final marker = message.isReply ? replyMarker : ReplyMarker.none;
+    // The name sits OUTSIDE the bubble, on the room's own ground — so the ink
+    // is conditioned against the background rather than against the fill the
+    // bubble under it happens to be washed with.
+    final nameColor =
+        SpeakerScope.inkOf(context, message.senderId, on: theme.background);
+    final tailGutter = theme.bubbleTailGutter(bubbleStyle);
+    // A full quote card is tall enough to need its own beat — see
+    // `continuesRun` — and a name floating above that card reads as
+    // disconnected from the avatar closing the block down at the bubble's
+    // bottom edge. Bracketing the name with the bubble instead, right below
+    // the card that earns its own space, keeps a sender's name and face
+    // around the one thing they actually said. The compact marker never hits
+    // this: it draws a thin tether, not a card tall enough to matter.
+    final showInlineName =
+        marker == ReplyMarker.full && (senderName?.isNotEmpty ?? false);
     final Widget bubbleArea;
     if (marker == ReplyMarker.none) {
       bubbleArea = keyed;
@@ -286,6 +295,12 @@ class MessageBubble extends StatelessWidget {
               },
               onViewThread: onViewThread,
             ),
+          if (showInlineName)
+            _SenderNameLabel(
+              name: senderName!,
+              color: nameColor,
+              left: (isMine ? 0 : tailGutter) + 4,
+            ),
           keyed,
         ],
       );
@@ -299,14 +314,9 @@ class MessageBubble extends StatelessWidget {
       child: _BubbleLayout(
         isMine: isMine,
         showAvatarSlot: showAvatarSlot,
-        avatarAtBottom: avatarAtBottom,
-        senderName: senderName,
-        // The name sits OUTSIDE the bubble, on the room's own ground — so the
-        // ink is conditioned against the background rather than against the
-        // fill the bubble under it happens to be washed with.
-        nameColor:
-            SpeakerScope.inkOf(context, message.senderId, on: theme.background),
-        tailGutter: theme.bubbleTailGutter(bubbleStyle),
+        senderName: showInlineName ? null : senderName,
+        nameColor: nameColor,
+        tailGutter: tailGutter,
         avatar: _AvatarSlot(
           author: author,
           api: api,
@@ -401,7 +411,6 @@ class EphemeralMessageBubble extends StatelessWidget {
     this.lastInRun = true,
     this.showAvatarSlot = true,
     this.showAvatar = true,
-    this.avatarAtBottom = false,
     this.senderName,
     this.onOpenViewOnce,
     this.onStopLiveShare,
@@ -479,9 +488,6 @@ class EphemeralMessageBubble extends StatelessWidget {
 
   /// See [MessageBubble.showAvatar].
   final bool showAvatar;
-
-  /// See [MessageBubble.avatarAtBottom].
-  final bool avatarAtBottom;
 
   /// See [MessageBubble.senderName].
   final String? senderName;
@@ -575,6 +581,14 @@ class EphemeralMessageBubble extends StatelessWidget {
 
     // See the twin in [MessageBubble] — same rule, same veto.
     final marker = message.isReply ? replyMarker : ReplyMarker.none;
+    // See the twin in [MessageBubble] — same ground, same reasoning.
+    final nameColor =
+        SpeakerScope.inkOf(context, message.senderId, on: theme.background);
+    final tailGutter = theme.bubbleTailGutter(bubbleStyle);
+    // See the twin in [MessageBubble] for why a full quote card pulls the
+    // name down beside the bubble instead of leaving it to float above.
+    final showInlineName =
+        marker == ReplyMarker.full && (senderName?.isNotEmpty ?? false);
     final Widget bubbleArea;
     if (marker == ReplyMarker.none) {
       bubbleArea = keyed;
@@ -613,6 +627,13 @@ class EphemeralMessageBubble extends StatelessWidget {
               },
               onViewThread: onViewThread,
             ),
+          if (showInlineName)
+            _SenderNameLabel(
+              name: senderName!,
+              color: nameColor,
+              left: (isMine ? 0 : tailGutter) + 4,
+              opacity: 1 - dissolveT,
+            ),
           keyed,
         ],
       );
@@ -628,12 +649,9 @@ class EphemeralMessageBubble extends StatelessWidget {
         child: _BubbleLayout(
           isMine: isMine,
           showAvatarSlot: showAvatarSlot,
-          avatarAtBottom: avatarAtBottom,
-          senderName: senderName,
-          // See the twin in [MessageBubble] — same ground, same reasoning.
-          nameColor: SpeakerScope.inkOf(context, message.senderId,
-              on: theme.background),
-          tailGutter: theme.bubbleTailGutter(bubbleStyle),
+          senderName: showInlineName ? null : senderName,
+          nameColor: nameColor,
+          tailGutter: tailGutter,
           nameOpacity: 1 - dissolveT,
           avatar: Opacity(
             opacity: 1 - dissolveT * 0.7,
@@ -731,20 +749,73 @@ class _BubbleGestureDetector extends StatelessWidget {
   }
 }
 
+/// The name label bracketing a run from above — rendered either at the top of
+/// [_BubbleLayout], for a plain first-in-run message, or, when a full quote
+/// card sits above the bubble instead, inline right beside it (see
+/// `showInlineName` in both bubble widgets' `_build`). Kept as one widget so
+/// the two placements read as the same signature rather than two different
+/// labels that happen to look alike.
+class _SenderNameLabel extends StatelessWidget {
+  const _SenderNameLabel({
+    required this.name,
+    required this.color,
+    required this.left,
+    this.opacity = 1,
+  });
+
+  final String name;
+
+  /// Null keeps the accent every sender used to share — a DM, a room with
+  /// speaker colours off, or a sender who is no longer a member and so has no
+  /// colour of their own.
+  final Color? color;
+  final double left;
+  final double opacity;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Padding(
+      padding: EdgeInsets.only(left: left, bottom: 2),
+      child: Opacity(
+        opacity: opacity,
+        child: Text(
+          name,
+          // Deliberately NOT the uppercased monoTiny that reply indicators
+          // and the composer card use: those are labels, this is a person.
+          // mono has no letter-spacing and enough size to read as a name, and
+          // stays clear of the 9px timestamp below.
+          style: theme.mono.copyWith(
+            // The 0.95 stays off the speaker ink: that colour was
+            // conditioned to clear 4.5:1 against this exact background, and
+            // shaving five percent off it would spend contrast the
+            // conditioning just finished earning.
+            color: color ?? theme.accent.withValues(alpha: 0.95),
+            fontWeight: FontWeight.w600,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    );
+  }
+}
+
 /// The row scaffold both bubble variants share: an optional sender name, the
 /// avatar-and-bubble row, then reactions and the meta row.
 ///
 /// Reactions and the meta row deliberately sit OUTSIDE the row rather than in
-/// a column beside the avatar. That is what lets [avatarAtBottom] mean the
-/// bubble's bottom edge — inside the row, "bottom" would be the bottom of the
-/// timestamp, dropping the face a line and a half below the bubble it belongs
-/// to. Everything outside the row is instead indented by the avatar's width so
-/// it still lines up with the bubble.
+/// a column beside the avatar. That is what keeps "bottom" — where the avatar
+/// always sits, whether it closes a five-message run or is a run of one
+/// standing on its own — meaning the bubble's bottom edge: inside the row,
+/// "bottom" would be the bottom of the timestamp, dropping the face a line
+/// and a half below the bubble it belongs to. Everything outside the row is
+/// instead indented by the avatar's width so it still lines up with the
+/// bubble.
 class _BubbleLayout extends StatelessWidget {
   const _BubbleLayout({
     required this.isMine,
     required this.showAvatarSlot,
-    required this.avatarAtBottom,
     required this.senderName,
     required this.avatar,
     required this.bubble,
@@ -757,7 +828,6 @@ class _BubbleLayout extends StatelessWidget {
 
   final bool isMine;
   final bool showAvatarSlot;
-  final bool avatarAtBottom;
   final String? senderName;
   final Widget avatar;
   final Widget bubble;
@@ -783,7 +853,6 @@ class _BubbleLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final name = senderName;
     // The avatar column exists only for incoming messages, and only outside a
     // DM. When it does, everything below the bubble row shifts right by the
@@ -795,40 +864,22 @@ class _BubbleLayout extends StatelessWidget {
           isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       children: [
         if (name != null && name.isNotEmpty)
-          Padding(
-            // +4 matches _MetaRow's own inset, so the name and the timestamp
-            // bracketing the run sit on the same line. The tail gutter joins
-            // in for incoming bubbles, where the body starts a hook's width in.
-            padding: EdgeInsets.only(
-              left: leadingIndent + 4 + (isMine ? 0 : tailGutter),
-              bottom: 2,
-            ),
-            child: Opacity(
-              opacity: nameOpacity,
-              child: Text(
-                name,
-                // Deliberately NOT the uppercased monoTiny that reply
-                // indicators and the composer card use: those are labels, this
-                // is a person. mono has no letter-spacing and enough size to
-                // read as a name, and stays clear of the 9px timestamp below.
-                style: theme.mono.copyWith(
-                  // The 0.95 stays off the speaker ink: that colour was
-                  // conditioned to clear 4.5:1 against this exact background,
-                  // and shaving five percent off it would spend contrast the
-                  // conditioning just finished earning.
-                  color: nameColor ?? theme.accent.withValues(alpha: 0.95),
-                  fontWeight: FontWeight.w600,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
+          // +4 matches _MetaRow's own inset, so the name and the timestamp
+          // bracketing the run sit on the same line. The tail gutter joins
+          // in for incoming bubbles, where the body starts a hook's width in.
+          _SenderNameLabel(
+            name: name,
+            color: nameColor,
+            left: leadingIndent + 4 + (isMine ? 0 : tailGutter),
+            opacity: nameOpacity,
           ),
         Row(
           mainAxisAlignment:
               isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
-          crossAxisAlignment:
-              avatarAtBottom ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          // Always the bubble's bottom edge — the face closes whatever block
+          // it belongs to, whether that block is a five-message run or a
+          // run of one standing on its own.
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             if (leads) ...[avatar, const SizedBox(width: 8)],
             Flexible(child: bubble),

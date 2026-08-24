@@ -85,16 +85,28 @@ class MessageItem extends RoomItem {
   MessageItem(
     this.message, {
     this.grouped = false,
+    this.newSender = true,
     this.lastInRun = true,
     this.replyMarker = ReplyMarker.full,
   });
 
   final ChatMessage message;
 
-  /// Continues a run from the same sender: the sender's name is not repeated
-  /// and the vertical gap tightens, so five replies in a row read as one
-  /// block instead of five separate cards.
+  /// Continues a run from the same sender: the vertical gap tightens and the
+  /// bubble's corners tighten on the sender's side, so five replies in a row
+  /// read as one block instead of five separate cards. A full-quote reply
+  /// always breaks this — see [continuesRun] — even from the same sender,
+  /// because the card needs a beat of its own.
   final bool grouped;
+
+  /// Whether the sender differs from the previous *visible* message — same
+  /// day, within the grouping window. This is what decides whether the
+  /// sender's name needs to be shown again, and it is deliberately looser
+  /// than [grouped]: a full-quote reply earns its own spacing beat even from
+  /// the same sender, but that beat should not reprint a name the reader saw
+  /// one bubble ago. [sameSenderAsPrev] is the same check [grouped] runs,
+  /// minus the reply-marker veto.
+  final bool newSender;
 
   /// Closes a run — nothing below it continues the same sender. This is the
   /// row that carries the avatar, so a run is bracketed by its name at the
@@ -157,12 +169,25 @@ ReplyMarker replyMarkerFor(ChatMessage? prev, ChatMessage m) {
   return ReplyMarker.full;
 }
 
-/// Whether [m] continues [prev]'s run: same sender, same day, close in time,
-/// and not interrupted by a full quote card — that card is tall enough to
-/// need a beat of its own, whereas the compact marker is one line and sits
-/// happily inside a run. Shared with the thread overlay, which renders the
-/// same bubbles against its own list and used to carry a hand-copied version
-/// of this rule.
+/// Whether [m] shares [prev]'s sender, same day, close in time — the same
+/// check [continuesRun] runs, minus the reply-marker veto. This is what
+/// decides whether a sender's name still needs saying, independent of
+/// whether a full quote card forces this row to open its own spacing beat.
+bool sameSenderAsPrev(
+  ChatMessage? prev,
+  ChatMessage m, {
+  bool startsDay = false,
+}) =>
+    !startsDay &&
+    prev != null &&
+    prev.senderId == m.senderId &&
+    m.createdAt.difference(prev.createdAt).inMinutes < 5;
+
+/// Whether [m] continues [prev]'s run: [sameSenderAsPrev], and not
+/// interrupted by a full quote card — that card is tall enough to need a beat
+/// of its own, whereas the compact marker is one line and sits happily inside
+/// a run. Shared with the thread overlay, which renders the same bubbles
+/// against its own list and used to carry a hand-copied version of this rule.
 ///
 /// The marker is derived here rather than passed in. It is a function of the
 /// same [prev] and [m] the rest of the rule already has, and every caller that
@@ -173,11 +198,8 @@ bool continuesRun(
   ChatMessage m, {
   bool startsDay = false,
 }) =>
-    !startsDay &&
-    prev != null &&
-    prev.senderId == m.senderId &&
-    replyMarkerFor(prev, m) != ReplyMarker.full &&
-    m.createdAt.difference(prev.createdAt).inMinutes < 5;
+    sameSenderAsPrev(prev, m, startsDay: startsDay) &&
+    replyMarkerFor(prev, m) != ReplyMarker.full;
 
 ({List<RoomItem> items, Set<String> hidden}) buildRoomItems({
   required List<ChatMessage> messages,
@@ -311,11 +333,17 @@ bool continuesRun(
     // Folds don't need a clause here: they always emit a chip, and the chip
     // clears prevVisible.
     final grouped = continuesRun(prevVisible, m, startsDay: startsDay);
+    final newSender = !sameSenderAsPrev(prevVisible, m, startsDay: startsDay);
 
     // The row above only stays a run's last once nothing continues it.
     if (grouped) prevRow?.lastInRun = false;
 
-    final row = MessageItem(m, grouped: grouped, replyMarker: marker);
+    final row = MessageItem(
+      m,
+      grouped: grouped,
+      newSender: newSender,
+      replyMarker: marker,
+    );
     out.add(row);
     prevRow = row;
 

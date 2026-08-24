@@ -3062,14 +3062,19 @@ class _RoomScreenState extends State<RoomScreen>
                 final author = _members[m.senderId];
                 final isMine = m.senderId == me;
                 // A run is bracketed: name on the row that opens it, avatar on
-                // the row that closes it. A run of one keeps the avatar at the
-                // top, where it has always been — there is no block to close.
+                // the row that closes it — always at the bubble's bottom edge,
+                // whether that row closes a five-message run or is a run of
+                // one standing on its own.
                 final showAvatar = messageItem.lastInRun;
-                final avatarAtBottom = messageItem.lastInRun && grouped;
                 // `author` is null until rooms:getMembers lands, and optimistic
                 // local sends carry an empty senderName — both mean "no name to
                 // show yet" rather than a blank line.
-                final senderName = (isMine || room.isDm || grouped)
+                //
+                // Gated on `newSender`, not `grouped`: a full-quote reply opens
+                // its own spacing beat even from the same sender (see
+                // `continuesRun`), but that is not a reason to say their name
+                // again — the reader saw it one bubble ago.
+                final senderName = (isMine || room.isDm || !messageItem.newSender)
                     ? null
                     : (author?.displayName.trim().isNotEmpty ?? false
                         ? author!.displayName
@@ -3153,7 +3158,6 @@ class _RoomScreenState extends State<RoomScreen>
                               lastInRun: messageItem.lastInRun,
                               showAvatarSlot: !room.isDm,
                               showAvatar: showAvatar,
-                              avatarAtBottom: avatarAtBottom,
                               senderName: senderName,
                               onOpenViewOnce: () => _openViewOnce(m),
                             )
@@ -3172,7 +3176,6 @@ class _RoomScreenState extends State<RoomScreen>
                               lastInRun: messageItem.lastInRun,
                               showAvatarSlot: !room.isDm,
                               showAvatar: showAvatar,
-                              avatarAtBottom: avatarAtBottom,
                               senderName: senderName,
                               onOpenViewOnce: () => _openViewOnce(m),
                             ),
@@ -3360,7 +3363,6 @@ class _RoomScreenState extends State<RoomScreen>
                         lastInRun: messageItem.lastInRun,
                         showAvatarSlot: !room.isDm,
                         showAvatar: showAvatar,
-                        avatarAtBottom: avatarAtBottom,
                         senderName: senderName,
                         onOpenViewOnce: () => _openViewOnce(m),
                         // Offered only on the sender's own running share. A
@@ -3402,7 +3404,6 @@ class _RoomScreenState extends State<RoomScreen>
                         lastInRun: messageItem.lastInRun,
                         showAvatarSlot: !room.isDm,
                         showAvatar: showAvatar,
-                        avatarAtBottom: avatarAtBottom,
                         senderName: senderName,
                         onOpenViewOnce: () => _openViewOnce(m),
                         // Offered only on the sender's own running share. A

@@ -310,6 +310,29 @@ void main() {
           isFalse,
           reason: 'the card needs a beat of its own',
         );
+        expect(
+          itemFor(r.items, 'c').newSender,
+          isFalse,
+          reason:
+              'the card earns its own spacing beat, but alice is still the '
+              'same sender the reader just saw — repeating her name would '
+              'answer a question nobody asked',
+        );
+      },
+    );
+
+    test(
+      'newSender stays true across a full-card reply from an actual new '
+      'speaker',
+      () {
+        final ms = [
+          msg('p', t: 0, sender: 'alice'),
+          msg('u', t: 1, sender: 'alice'),
+          msg('c', t: 2, sender: 'bob', replyTo: 'p', root: 'p'),
+        ];
+        final r = build(ms);
+        expect(itemFor(r.items, 'c').replyMarker, ReplyMarker.full);
+        expect(itemFor(r.items, 'c').newSender, isTrue);
       },
     );
 
@@ -354,7 +377,7 @@ void main() {
       expect(
         solo.lastInRun,
         isTrue,
-        reason: 'lastInRun && !grouped is what keeps the avatar top-aligned',
+        reason: 'a run of one is still the row that closes its own run',
       );
     });
 

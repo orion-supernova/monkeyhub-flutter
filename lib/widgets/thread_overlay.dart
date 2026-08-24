@@ -720,6 +720,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
     final j = messages.indexWhere((x) => x.id == m.id);
     final prev = j <= 0 ? null : messages[j - 1];
     final grouped = continuesRun(prev, m);
+    final newSender = !sameSenderAsPrev(prev, m);
     final next = j == -1 || j + 1 >= messages.length ? null : messages[j + 1];
     final lastInRun = next == null || !continuesRun(m, next);
 
@@ -743,6 +744,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
         replyMarker: replyMarkerFor(prev, m),
         interactive: false,
         grouped: grouped,
+        newSender: newSender,
         lastInRun: lastInRun,
       ),
     );
@@ -861,6 +863,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
     required ReplyMarker replyMarker,
     required bool interactive,
     bool grouped = false,
+    bool newSender = true,
     bool lastInRun = true,
     double highlightT = 0,
   }) {
@@ -877,7 +880,8 @@ class _ThreadSheetState extends State<_ThreadSheet>
           )
         : null;
     // Same bracketing as the room transcript — see room_screen's builder.
-    final name = (m.senderId == me || isDm || grouped)
+    // Gated on `newSender`, not `grouped`: see room_screen's own comment.
+    final name = (m.senderId == me || isDm || !newSender)
         ? null
         : (author?.displayName.trim().isNotEmpty ?? false
               ? author!.displayName
@@ -915,7 +919,6 @@ class _ThreadSheetState extends State<_ThreadSheet>
         lastInRun: lastInRun,
         showAvatarSlot: !isDm,
         showAvatar: lastInRun,
-        avatarAtBottom: lastInRun && grouped,
         senderName: name,
         highlightT: highlightT,
         replyMarker: replyMarker,
@@ -944,7 +947,6 @@ class _ThreadSheetState extends State<_ThreadSheet>
       lastInRun: lastInRun,
       showAvatarSlot: !isDm,
       showAvatar: lastInRun,
-      avatarAtBottom: lastInRun && grouped,
       senderName: name,
       highlightT: highlightT,
       replyMarker: replyMarker,
@@ -1236,6 +1238,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
           // Note this deliberately has no day-boundary clause: a thread draws
           // no date dividers.
           final grouped = continuesRun(prev, m);
+          final newSender = !sameSenderAsPrev(prev, m);
 
           // Whether anything below continues this run — the next message must
           // be evaluated the same way, marker included.
@@ -1256,6 +1259,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
               replyMarker: marker,
               interactive: true,
               grouped: grouped,
+              newSender: newSender,
               lastInRun: lastInRun,
               highlightT: _highlightedId == m.id ? _pulse.value : 0.0,
             ),

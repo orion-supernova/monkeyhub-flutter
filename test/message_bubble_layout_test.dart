@@ -61,7 +61,6 @@ void main() {
     GlobalKey? bubbleKey,
     bool showAvatarSlot = true,
     bool showAvatar = true,
-    bool avatarAtBottom = false,
     bool grouped = false,
     bool lastInRun = true,
     String? senderName,
@@ -79,7 +78,6 @@ void main() {
     author: ChatUser(id: 'alice', username: 'alice', name: 'Alice'),
     showAvatarSlot: showAvatarSlot,
     showAvatar: showAvatar,
-    avatarAtBottom: avatarAtBottom,
     grouped: grouped,
     lastInRun: lastInRun,
     senderName: senderName,
@@ -126,7 +124,7 @@ void main() {
   testWidgets('a run-closing avatar sits on the bubble\'s bottom edge', (
     tester,
   ) async {
-    await tester.pumpWidget(host(bubble(avatarAtBottom: true)));
+    await tester.pumpWidget(host(bubble(grouped: true)));
 
     final avatar = tester.getRect(find.byType(UserAvatar));
     final bubble_ = bubbleRect(tester);
@@ -138,14 +136,22 @@ void main() {
     expect(avatar.height, 28);
   });
 
-  testWidgets('a standalone message keeps its avatar at the top', (
-    tester,
-  ) async {
-    await tester.pumpWidget(host(bubble()));
+  testWidgets(
+    'a standalone message also sits its avatar on the bubble\'s bottom edge',
+    (tester) async {
+      // A run of one is still the row that closes its own run — there is no
+      // reason for its avatar to land anywhere but where every other
+      // run-closing avatar does.
+      await tester.pumpWidget(host(bubble()));
 
-    final avatar = tester.getRect(find.byType(UserAvatar));
-    expect(avatar.top, moreOrLessEquals(bubbleRect(tester).top, epsilon: 0.5));
-  });
+      final avatar = tester.getRect(find.byType(UserAvatar));
+      final bubble_ = bubbleRect(tester);
+      expect(
+        avatar.bottom,
+        moreOrLessEquals(bubble_.bottom, epsilon: 0.5),
+      );
+    },
+  );
 
   testWidgets('mid-run rows hold the avatar space without drawing it', (
     tester,
@@ -286,6 +292,63 @@ void main() {
       reason: 'and it does not reach up over the tether either',
     );
   });
+
+  testWidgets(
+    'a full-quote reply keeps the sender name beside the bubble it names, '
+    'not floating above the quote card',
+    (tester) async {
+      // Previously the name sat above the ENTIRE block — quote card included
+      // — leaving it stranded above content about a different person, far
+      // from the avatar that closes the same block down at the bubble's
+      // bottom. It belongs bracketing the bubble, same as it does with no
+      // reply at all.
+      await tester.pumpWidget(
+        host(
+          MessageBubble(
+            message: ChatMessage(
+              id: 'm1',
+              roomId: 'r',
+              senderId: 'alice',
+              senderName: 'alice',
+              content: 'ok',
+              createdAt: DateTime(2026, 3, 1, 12),
+              type: MessageType.text,
+              status: MessageStatus.sent,
+              replyToId: 'parent',
+              rootId: 'parent',
+              replyToPreview: const ReplyPreview(
+                senderId: 'bob',
+                senderName: 'bob',
+                contentPreview: 'an older message being quoted back',
+                type: MessageType.text,
+              ),
+            ),
+            now: DateTime(2026, 3, 1, 12),
+            currentUserId: 'bob',
+            api: api,
+            author: ChatUser(id: 'alice', username: 'alice', name: 'Alice'),
+            replyMarker: ReplyMarker.full,
+            senderName: 'Alice',
+          ),
+        ),
+      );
+
+      final name = tester.getRect(find.text('Alice'));
+      final bubble_ = bubbleRect(tester);
+      final quote = tester.getRect(find.byType(ReplyIndicator));
+
+      expect(
+        name.top,
+        greaterThanOrEqualTo(quote.bottom - 0.5),
+        reason: 'the name sits below the quote card, not above it',
+      );
+      expect(
+        name.bottom,
+        lessThanOrEqualTo(bubble_.top + 0.5),
+        reason: 'and still brackets the bubble immediately above it',
+      );
+    },
+  );
 
   group('vertical rhythm', () {
     /// The decorated box of the i-th bubble in a stack of them.
