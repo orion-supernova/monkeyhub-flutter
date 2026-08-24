@@ -25,6 +25,7 @@
   "roomScreenDeleteConfirmBody": "سيؤدي هذا إلى حذفها لدى الجميع في هذه المحادثة. لا يمكن التراجع عن هذا الإجراء.",
   "roomScreenDeleteConfirmButton": "حذف للجميع",
   "roomScreenJumpFailedSnack": "تعذّر الانتقال إلى تلك الرسالة",
+  "roomScreenUnreadDivider": "رسائل غير مقروءة",
   "roomScreenViewOnceAlreadyViewed": "لقد فتحت هذه الصورة من قبل.",
   "roomScreenViewOnceGone": "لم تعد هذه الصورة متاحة.",
   "roomScreenViewOnceNetworkError": "تعذّر تحميل تلك الصورة.",

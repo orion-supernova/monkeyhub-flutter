@@ -25,6 +25,7 @@
   "roomScreenDeleteConfirmBody": "このチャットにいる全員から削除されます。元に戻すことはできません。",
   "roomScreenDeleteConfirmButton": "全員に対して削除",
   "roomScreenJumpFailedSnack": "そのメッセージに移動できませんでした",
+  "roomScreenUnreadDivider": "未読メッセージ",
   "roomScreenViewOnceAlreadyViewed": "この写真はすでに開いています。",
   "roomScreenViewOnceGone": "この写真はもう利用できません。",
   "roomScreenViewOnceNetworkError": "その写真を読み込めませんでした。",

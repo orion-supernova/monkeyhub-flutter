@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -97,6 +98,9 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get roomScreenJumpFailedSnack =>
       'não foi possível saltar para essa mensagem';
+
+  @override
+  String get roomScreenUnreadDivider => 'MENSAGENS NÃO LIDAS';
 
   @override
   String get roomScreenViewOnceAlreadyViewed => 'já abriste esta fotografia.';
@@ -7503,6 +7507,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get roomScreenJumpFailedSnack => 'não deu pra ir até essa mensagem';
+
+  @override
+  String get roomScreenUnreadDivider => 'MENSAGENS NÃO LIDAS';
 
   @override
   String get roomScreenViewOnceAlreadyViewed => 'você já abriu essa foto.';

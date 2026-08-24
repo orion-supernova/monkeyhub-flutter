@@ -25,6 +25,7 @@
   "roomScreenDeleteConfirmBody": "이 채팅에 있는 모든 사람에게서 삭제돼요. 되돌릴 수 없어요.",
   "roomScreenDeleteConfirmButton": "모두에게서 삭제",
   "roomScreenJumpFailedSnack": "그 메시지로 이동할 수 없어요",
+  "roomScreenUnreadDivider": "읽지 않은 메시지",
   "roomScreenViewOnceAlreadyViewed": "이 사진은 이미 열어봤어요.",
   "roomScreenViewOnceGone": "이 사진은 더 이상 볼 수 없어요.",
   "roomScreenViewOnceNetworkError": "그 사진을 불러올 수 없어요.",

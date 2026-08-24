@@ -267,6 +267,12 @@ abstract class AppLocalizations {
   /// **'couldn’t jump to that message'**
   String get roomScreenJumpFailedSnack;
 
+  /// All-caps label on the divider marking the first unread message when the room screen opens onto a backlog — shown once, above the messages that are new since the reader's last visit.
+  ///
+  /// In en, this message translates to:
+  /// **'UNREAD MESSAGES'**
+  String get roomScreenUnreadDivider;
+
   /// SnackBar shown when trying to reopen a view-once photo that was already viewed by this user.
   ///
   /// In en, this message translates to:

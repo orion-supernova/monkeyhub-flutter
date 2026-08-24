@@ -100,6 +100,10 @@
   "@roomScreenJumpFailedSnack": {
     "description": "SnackBar shown when the app cannot locate/scroll to a message the user tried to jump to (via reply tether, pin, or room-info result), e.g. it was deleted or is offline."
   },
+  "roomScreenUnreadDivider": "UNREAD MESSAGES",
+  "@roomScreenUnreadDivider": {
+    "description": "All-caps label on the divider marking the first unread message when the room screen opens onto a backlog — shown once, above the messages that are new since the reader's last visit."
+  },
   "roomScreenViewOnceAlreadyViewed": "you’ve already opened this photo.",
   "@roomScreenViewOnceAlreadyViewed": {
     "description": "SnackBar shown when trying to reopen a view-once photo that was already viewed by this user."

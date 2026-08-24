@@ -231,6 +231,18 @@ class _RoomScreenState extends State<RoomScreen>
   // scroll frame.
   final JumpBackStack _jumpBack = JumpBackStack();
 
+  // ──── land-on-unread ────
+  // See _maybeLandOnUnread. Snapshotted once in initState, before openRoom's
+  // markRoomRead call advances the server cursor and the subscription echoes
+  // it back into widget.repo.roomById(...).lastReadAt.
+  DateTime? _unreadAnchorReadAt;
+
+  // True from mount until the initial landing has either succeeded or been
+  // given up on — guards against re-triggering on a later notification (a
+  // reaction, a typing update) once the reader has already scrolled off on
+  // their own.
+  bool _unreadLandingPending = false;
+
   /// Which pin the banner is describing. Read as `_pinCursor % pins.length` at
   /// build time and never clamped in place: a pinned message can self-destruct
   /// between subscription frames, so this is allowed to be briefly stale.
@@ -320,6 +332,19 @@ class _RoomScreenState extends State<RoomScreen>
           _highlightCtrl.reset();
         }
       });
+    // Snapshotted before openRoom below, which marks the room read and — once
+    // the mutation's round trip echoes back through rooms:listUserRooms —
+    // moves lastReadAt out from under a cursor taken any later. Guarded on a
+    // real unread count: a room with nothing unread has nowhere to land that
+    // isn't the bottom, and one that has never been read at all (lastReadAt
+    // null) has no cursor to land relative to.
+    final roomAtOpen = widget.repo.roomById(widget.roomId);
+    if (roomAtOpen != null &&
+        roomAtOpen.lastReadAt != null &&
+        roomAtOpen.unreadCount > 0) {
+      _unreadAnchorReadAt = roomAtOpen.lastReadAt;
+      _unreadLandingPending = true;
+    }
     // `this` is the ownership token: whichever State opened the room is the
     // only one allowed to close it. Route transitions dispose the outgoing
     // RoomScreen well after the incoming one has opened its room, so an
@@ -459,6 +484,7 @@ class _RoomScreenState extends State<RoomScreen>
       roomIsEphemeral: room.isEphemeral,
       mustKeepOwnRow: _mustKeepOwnRow,
       dayLabel: humanDay,
+      unreadAfter: _unreadAnchorReadAt,
     );
     _memoSource = messages;
     _memoFoldKey = foldKey;
@@ -705,8 +731,69 @@ class _RoomScreenState extends State<RoomScreen>
       _scrolledUp.value = false;
     }
     _drainChildGate();
-    // With reverse:true the viewport naturally starts at the bottom (newest
-    // message). No initial jumpTo needed.
+    // Deferred a frame so _rowIndexOf reflects the rebuild this notification
+    // just triggered above, rather than whatever it held before it.
+    if (_unreadLandingPending) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _maybeLandOnUnread());
+    }
+  }
+
+  /// Snaps the transcript to the first unread message once, as soon as its
+  /// row can be located — instead of the reverse:true default of opening at
+  /// the very bottom and paging a backlog in above it. Mirrors what a
+  /// notification tap or reopening a room with unread messages does in
+  /// every big chat app: land where you left off, not where the list ends.
+  ///
+  /// Self-clearing: gives up (clears [_unreadLandingPending] without
+  /// scrolling) once the room's first batch is confirmed in and the target
+  /// still can't be found — either it was read on another device since, or
+  /// the backlog is deeper than what's loaded. Anything short of that keeps
+  /// trying on the next notification rather than landing on a stale guess.
+  void _maybeLandOnUnread() {
+    if (!_unreadLandingPending || !mounted) return;
+    final anchor = _unreadAnchorReadAt;
+    if (anchor == null) {
+      _unreadLandingPending = false;
+      return;
+    }
+    String? targetId;
+    for (final m in widget.repo.timelineFor(widget.roomId)) {
+      if (m.createdAt.isAfter(anchor)) {
+        targetId = m.id;
+        break;
+      }
+    }
+    final index = targetId == null ? null : _rowIndexOf[targetId];
+    if (targetId == null || index == null) {
+      // Gated on the SUBSCRIPTION landing, not just hasLoadedInitial: that
+      // one is already true off a disk-cache hydrate, which can predate
+      // whatever arrived while this device was offline — exactly the
+      // messages this landing exists to find. Giving up on a stale cache's
+      // word would silently disable the feature on precisely its most
+      // common trigger: reopening the app after time away.
+      if (widget.repo.hasLiveMessages(widget.roomId)) {
+        _unreadLandingPending = false;
+      }
+      return;
+    }
+    _unreadLandingPending = false;
+    final id = targetId;
+    unawaited(snapToIndex(
+      controller: _scroll,
+      // Re-read every hop: a message arriving mid-jump shifts every index.
+      targetIndex: () => _rowIndexOf[id],
+      itemCount: () => _revItems.length,
+      targetContext: () => _dateTracks['m_$id']?.key.currentContext,
+      probes: _mountedRowProbes,
+      // Lower than a reply jump's 0.3: the point is to show what's NEW below
+      // the divider, not to centre the divider itself.
+      alignment: 0.15,
+      // This is where the screen opens, not a jump the reader triggered —
+      // landing already-scrolled reads as "here's where you left off",
+      // where an animated scroll-past would read as scrolling through
+      // messages the reader hasn't seen yet.
+      settle: Duration.zero,
+    ));
   }
 
   /// Surface a child-guard refusal that nobody was awaiting.
@@ -2942,6 +3029,13 @@ class _RoomScreenState extends State<RoomScreen>
                     }
                     // MUST precede the cast below — a new RoomItem subtype
                     // reaching it throws, and the analyzer won't catch that.
+                    if (item is UnreadDividerItem) {
+                      // Not wrapped in _trackedDate, same as the fold chip
+                      // below: it carries no date and would otherwise win the
+                      // topmost-tracked-item contest in
+                      // _recomputePositionState and show a wrong floating date.
+                      return const _UnreadDivider();
+                    }
                     if (item is ThreadFoldItem) {
                       // Deliberately not wrapped in _trackedDate: the chip
                       // carries no date, and registering it would let it win
@@ -3933,6 +4027,43 @@ class _DateDivider extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: _dateChipDecoration(theme),
           child: _DateChipContent(label: label),
+        ),
+      ),
+    );
+  }
+}
+
+/// Marks where a reader's backlog starts — a full-width band rather than a
+/// centred pill, deliberately: a pill reads as a date marker in this app (see
+/// `_ThreadFoldChip`'s own note on the same rule), and this is answering a
+/// different question — not "what day is it" but "everything below this line
+/// is new". [_RoomScreenState._maybeLandOnUnread] is what puts it on screen
+/// on open; this widget only draws it.
+class _UnreadDivider extends StatelessWidget {
+  const _UnreadDivider();
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Padding(
+      // Top only — see [MessageGap], same convention _DateDivider follows.
+      padding: const EdgeInsets.only(top: MessageGap.aroundMarker),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        decoration: BoxDecoration(
+          color: theme.accentSoft,
+          border: Border.symmetric(
+            horizontal: BorderSide(color: theme.accent.withValues(alpha: 0.35)),
+          ),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          AppLocalizations.of(context).roomScreenUnreadDivider,
+          style: theme.monoTiny.copyWith(
+            color: theme.accent,
+            letterSpacing: 1.8,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
     );

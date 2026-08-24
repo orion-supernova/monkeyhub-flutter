@@ -35,6 +35,7 @@
   "roomScreenDeleteConfirmBody": "Ça les supprime pour tout le monde dans cette conversation. C’est irréversible.",
   "roomScreenDeleteConfirmButton": "SUPPRIMER POUR TOUT LE MONDE",
   "roomScreenJumpFailedSnack": "impossible d’aller à ce message",
+  "roomScreenUnreadDivider": "MESSAGES NON LUS",
   "roomScreenViewOnceAlreadyViewed": "tu as déjà ouvert cette photo.",
   "roomScreenViewOnceGone": "cette photo n’est plus disponible.",
   "roomScreenViewOnceNetworkError": "impossible de charger cette photo.",

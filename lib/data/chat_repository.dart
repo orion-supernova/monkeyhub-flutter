@@ -1174,6 +1174,7 @@ class ChatRepository extends ChangeNotifier {
     _activeReadState.clear();
     _activeDeliveredState.clear();
     _initialLoaded.remove(roomId);
+    _liveMessagesLoaded.remove(roomId);
     final me = _userId;
     // Guarantees at least one microtask boundary before the first
     // `notifyListeners()` below, on every path — including the one where
@@ -1237,6 +1238,14 @@ class ChatRepository extends ChangeNotifier {
         // `_exhausted` isn't reset here — permanently kill `hasMoreOlder`.
         _messages[roomId] = _withOlderPrefix(roomId, parsed);
         _initialLoaded.add(roomId);
+        // Distinct from `_initialLoaded`: that one also flips true off a
+        // cache-hydrate or bare subscription registration, neither of which
+        // means the SERVER's own view of this room has actually landed. A
+        // caller deciding whether to keep waiting for a message that isn't
+        // in the cached snapshot yet — see `RoomScreen._maybeLandOnUnread` —
+        // needs this stronger signal, or it gives up mid-race against the
+        // live data that would have answered it.
+        _liveMessagesLoaded.add(roomId);
         _reconcilePending(roomId);
         if (me != null) {
           CacheStore.instance.scheduleSaveMessages(me, roomId, parsed);
@@ -1485,7 +1494,15 @@ class ChatRepository extends ChangeNotifier {
   /// placeholder during the initial fetch.
   bool hasLoadedInitial(String roomId) => _initialLoaded.contains(roomId);
 
+  /// Whether the `messages:list` SUBSCRIPTION has delivered at least once for
+  /// [roomId] — stronger than [hasLoadedInitial], which a cache-hydrate alone
+  /// already satisfies. A disk cache can be older than the last time this
+  /// device was online, so a caller that needs to know the room's messages
+  /// are actually current (not just non-empty) has to wait for this instead.
+  bool hasLiveMessages(String roomId) => _liveMessagesLoaded.contains(roomId);
+
   final Set<String> _initialLoaded = {};
+  final Set<String> _liveMessagesLoaded = {};
 
   // ───────────── pagination ─────────────
 

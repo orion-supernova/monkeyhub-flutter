@@ -25,6 +25,7 @@
   "roomScreenDeleteConfirmBody": "ये मैसेज इस चैट में सबके लिए हट जाएंगे। इसे वापस नहीं लिया जा सकता।",
   "roomScreenDeleteConfirmButton": "सबके लिए डिलीट करें",
   "roomScreenJumpFailedSnack": "उस मैसेज तक नहीं पहुंच पाए",
+  "roomScreenUnreadDivider": "अपठित मैसेज",
   "roomScreenViewOnceAlreadyViewed": "यह फ़ोटो पहले ही खोली जा चुकी है।",
   "roomScreenViewOnceGone": "यह फ़ोटो अब उपलब्ध नहीं है।",
   "roomScreenViewOnceNetworkError": "वह फ़ोटो लोड नहीं हो सकी।",

@@ -25,6 +25,7 @@
   "roomScreenDeleteConfirmBody": "Bu, mesajları sohbetteki herkes için kaldırır. Geri alınamaz.",
   "roomScreenDeleteConfirmButton": "HERKES İÇİN SİL",
   "roomScreenJumpFailedSnack": "o mesaja gidilemedi",
+  "roomScreenUnreadDivider": "OKUNMAMIŞ MESAJLAR",
   "roomScreenViewOnceAlreadyViewed": "bu fotoğrafı zaten açtın.",
   "roomScreenViewOnceGone": "bu fotoğraf artık mevcut değil.",
   "roomScreenViewOnceNetworkError": "fotoğraf yüklenemedi.",

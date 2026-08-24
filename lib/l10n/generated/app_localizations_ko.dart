@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -93,6 +94,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get roomScreenJumpFailedSnack => '그 메시지로 이동할 수 없어요';
+
+  @override
+  String get roomScreenUnreadDivider => '읽지 않은 메시지';
 
   @override
   String get roomScreenViewOnceAlreadyViewed => '이 사진은 이미 열어봤어요.';

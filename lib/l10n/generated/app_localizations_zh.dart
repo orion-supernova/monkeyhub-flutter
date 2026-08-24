@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -91,6 +92,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get roomScreenJumpFailedSnack => '无法跳转到该消息';
+
+  @override
+  String get roomScreenUnreadDivider => '未读消息';
 
   @override
   String get roomScreenViewOnceAlreadyViewed => '你已经打开过这张照片了。';

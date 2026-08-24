@@ -35,6 +35,7 @@
   "roomScreenDeleteConfirmBody": "Isto elimina as mensagens para todos nesta conversa. Não é possível desfazer esta ação.",
   "roomScreenDeleteConfirmButton": "ELIMINAR PARA TODOS",
   "roomScreenJumpFailedSnack": "não foi possível saltar para essa mensagem",
+  "roomScreenUnreadDivider": "MENSAGENS NÃO LIDAS",
   "roomScreenViewOnceAlreadyViewed": "já abriste esta fotografia.",
   "roomScreenViewOnceGone": "esta fotografia já não está disponível.",
   "roomScreenViewOnceNetworkError": "não foi possível carregar essa fotografia.",

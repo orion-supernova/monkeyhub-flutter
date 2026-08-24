@@ -41,12 +41,14 @@ ChatMessage msg(
   bool ephemeral = false,
   bool Function(ChatMessage)? mustKeepOwnRow,
   int minFolded = kMinFoldedMessages,
+  DateTime? unreadAfter,
 }) => buildRoomItems(
   messages: messages,
   roomIsEphemeral: ephemeral,
   mustKeepOwnRow: mustKeepOwnRow ?? (_) => false,
   dayLabel: (d) => '${d.year}-${d.month}-${d.day}',
   minFolded: minFolded,
+  unreadAfter: unreadAfter,
 );
 
 List<String> visibleIds(List<RoomItem> items) => items
@@ -423,6 +425,88 @@ void main() {
       final ms = [msg('a', t: 0), msg('b', t: 1), msg('c', t: 60 * 24)];
       final r = build(ms);
       expect(r.items.whereType<DateDividerItem>(), hasLength(2));
+    });
+  });
+
+  group('unread divider', () {
+    test('no cursor, no divider', () {
+      final ms = [msg('a', t: 0), msg('b', t: 1)];
+      final r = build(ms);
+      expect(r.items.whereType<UnreadDividerItem>(), isEmpty);
+    });
+
+    test('lands immediately before the first message newer than the cursor', () {
+      final ms = [msg('a', t: 0), msg('b', t: 1), msg('c', t: 2)];
+      final r = build(ms, unreadAfter: _epoch.add(const Duration(minutes: 1)));
+      final dividerRow = r.items.indexWhere((i) => i is UnreadDividerItem);
+      final cRow = r.items.indexOf(itemFor(r.items, 'c'));
+      expect(dividerRow, cRow - 1);
+      // b is not after the cursor (equal, not newer) so it stays read.
+      expect(
+        r.items.indexOf(itemFor(r.items, 'b')),
+        lessThan(dividerRow),
+      );
+    });
+
+    test('a cursor exactly at a message\'s timestamp does not mark it unread', () {
+      // "newer than lastReadAt" — matches ChatRoom.unreadCount's own rule.
+      final ms = [msg('a', t: 0), msg('b', t: 1)];
+      final r = build(ms, unreadAfter: _epoch.add(const Duration(minutes: 1)));
+      expect(r.items.whereType<UnreadDividerItem>(), isEmpty);
+    });
+
+    test('a cursor before every message lands the divider ahead of everything', () {
+      // Day 1's own DateDividerItem also lands on `a`, so the two are not
+      // strictly adjacent — this only pins the ordering.
+      final ms = [msg('a', t: 0), msg('b', t: 1)];
+      final r = build(ms, unreadAfter: _epoch.subtract(const Duration(minutes: 1)));
+      final dividerRow = r.items.indexWhere((i) => i is UnreadDividerItem);
+      final aRow = r.items.indexOf(itemFor(r.items, 'a'));
+      expect(dividerRow, isNot(-1));
+      expect(dividerRow, lessThan(aRow));
+    });
+
+    test('a cursor after every message inserts nothing', () {
+      final ms = [msg('a', t: 0), msg('b', t: 1)];
+      final r = build(ms, unreadAfter: _epoch.add(const Duration(minutes: 10)));
+      expect(r.items.whereType<UnreadDividerItem>(), isEmpty);
+    });
+
+    test('emitted once, even with several messages past the cursor', () {
+      final ms = [msg('a', t: 0), msg('b', t: 1), msg('c', t: 2), msg('d', t: 3)];
+      final r = build(ms, unreadAfter: _epoch);
+      expect(r.items.whereType<UnreadDividerItem>(), hasLength(1));
+    });
+
+    test('precedes a thread fold chip anchored at the first unread message', () {
+      // The chip for the interior run [m2,m4,m6,m8] is anchored at m2 (the
+      // oldest of the run) — landing the cursor just before m2 puts the
+      // crossing on the very message the chip stands in for, so the marker
+      // must show up ahead of it rather than after.
+      final ms = interleavedThread();
+      final r = build(
+        ms,
+        unreadAfter: _epoch.add(const Duration(seconds: 30)),
+      );
+      final dividerRow = r.items.indexWhere((i) => i is UnreadDividerItem);
+      final foldRow = r.items.indexWhere((i) => i is ThreadFoldItem);
+      expect(dividerRow, isNot(-1));
+      expect(foldRow, isNot(-1));
+      expect(dividerRow, lessThan(foldRow));
+    });
+
+    test('precedes the date divider for the day it lands in', () {
+      final ms = [msg('a', t: 0), msg('b', t: 60 * 24)]; // b is a day later
+      final r = build(ms, unreadAfter: _epoch.add(const Duration(hours: 1)));
+      final unreadRow = r.items.indexWhere((i) => i is UnreadDividerItem);
+      final dateRows = [
+        for (var i = 0; i < r.items.length; i++)
+          if (r.items[i] is DateDividerItem) i,
+      ];
+      // Two: day 1's (ahead of `a`, unrelated to the cursor) and day 2's
+      // (the one the unread marker must precede).
+      expect(dateRows, hasLength(2));
+      expect(unreadRow, lessThan(dateRows[1]));
     });
   });
 

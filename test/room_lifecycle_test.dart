@@ -29,11 +29,15 @@ import 'package:monkeyhub/models/friend_request.dart';
 /// dispose, so nothing here waits on a real timer, socket or frame.
 
 class _FakeSub extends Fake implements Subscription {
-  _FakeSub(this.label);
+  _FakeSub(this.label, this.fireOnData);
 
   /// `<query>/<roomId>` — enough to tell one room's subscriptions from another's.
   final String label;
   bool cancelled = false;
+
+  /// Lets a test simulate the live subscription delivering — as opposed to
+  /// the cache-hydrate branch that runs before it registers at all.
+  final void Function(dynamic) fireOnData;
 
   @override
   void cancel() => cancelled = true;
@@ -54,7 +58,7 @@ class _FakeCv extends Fake implements ConvexBackend {
   }) async {
     final gate = gates[name];
     if (gate != null) await gate.future;
-    final sub = _FakeSub('$name/${args['roomId'] ?? '-'}');
+    final sub = _FakeSub('$name/${args['roomId'] ?? '-'}', onData);
     issued.add(sub);
     return sub;
   }
@@ -279,6 +283,63 @@ void main() {
         expect(repo.activeRoomId, isNull);
       },
     );
+  });
+
+  group('hasLiveMessages', () {
+    test(
+      'stays false until the subscription itself delivers, unlike hasLoadedInitial',
+      () async {
+        await repo.openRoom('a', owner: screenA);
+
+        // Registration alone (what hasLoadedInitial also accepts, so a
+        // never-cached room offline doesn't spin forever) is not enough —
+        // nothing has actually come back from the server yet.
+        expect(repo.hasLoadedInitial('a'), isTrue);
+        expect(
+          repo.hasLiveMessages('a'),
+          isFalse,
+          reason:
+              'no onData has fired yet; a caller that needs to know the '
+              "server's own view has landed (not just a maybe-stale disk "
+              'cache) must not be told it has',
+        );
+
+        cv.issued.firstWhere((s) => s.label == 'messages:list/a').fireOnData([
+          {
+            '_id': 'm1',
+            'roomId': 'a',
+            'userId': 'someone',
+            'createdAt': DateTime.now().millisecondsSinceEpoch,
+          },
+        ]);
+
+        expect(repo.hasLiveMessages('a'), isTrue);
+      },
+    );
+
+    test('clears on the next open, like hasLoadedInitial does', () async {
+      await repo.openRoom('a', owner: screenA);
+      cv.issued.firstWhere((s) => s.label == 'messages:list/a').fireOnData([
+        {
+          '_id': 'm1',
+          'roomId': 'a',
+          'userId': 'someone',
+          'createdAt': DateTime.now().millisecondsSinceEpoch,
+        },
+      ]);
+      expect(repo.hasLiveMessages('a'), isTrue);
+
+      repo.closeRoom(screenA);
+      await repo.openRoom('a', owner: screenB);
+
+      expect(
+        repo.hasLiveMessages('a'),
+        isFalse,
+        reason:
+            'a fresh open has not heard from this subscription generation '
+            'yet, regardless of what the last one delivered',
+      );
+    });
   });
 
   group('synchronous-notify safety', () {

@@ -71,6 +71,16 @@ class DateDividerItem extends RoomItem {
   final String label;
 }
 
+/// Marks the first message newer than the reader's `lastReadAt` cursor at the
+/// moment the room was opened — where [buildRoomItems] draws the "new
+/// messages" line and where the room screen lands the initial scroll, so a
+/// reader with a backlog opens onto what's new instead of the very bottom.
+///
+/// Emitted at most once per build, ahead of whatever else that message would
+/// contribute (a date divider, a thread fold chip), so "everything from here
+/// down is new" reads as literally true regardless of what follows it.
+class UnreadDividerItem extends RoomItem {}
+
 class MessageItem extends RoomItem {
   MessageItem(
     this.message, {
@@ -175,6 +185,11 @@ bool continuesRun(
   required bool Function(ChatMessage m) mustKeepOwnRow,
   required String Function(DateTime day) dayLabel,
   int minFolded = kMinFoldedMessages,
+  /// The reader's `lastReadAt` cursor, captured once when the room screen
+  /// opened. Null skips the divider entirely — a room with no read cursor
+  /// yet (never opened before) or one the caller already knows is fully
+  /// read shouldn't draw a line under nothing.
+  DateTime? unreadAfter,
 }) {
   if (messages.isEmpty) {
     return (items: <RoomItem>[IntroItem()], hidden: const <String>{});
@@ -249,8 +264,16 @@ bool continuesRun(
   // The most recently emitted message row, so a grouped row can reach back and
   // clear its predecessor's `lastInRun`.
   MessageItem? prevRow;
+  // Already null when there's no cursor to compare against, so the loop
+  // below never has to null-check `unreadAfter` itself.
+  var unreadMarked = unreadAfter == null;
 
   for (final m in messages) {
+    if (!unreadMarked && m.createdAt.isAfter(unreadAfter!)) {
+      out.add(UnreadDividerItem());
+      unreadMarked = true;
+    }
+
     final fold = foldAt[m.id];
     final isHidden = hidden.contains(m.id);
 
