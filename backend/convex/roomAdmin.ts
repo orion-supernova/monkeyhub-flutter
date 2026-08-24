@@ -36,6 +36,7 @@ import { v } from "convex/values";
 import { assertNotSystemRoom } from "./systemAccount";
 import { seenVisibilityOf } from "./visibility";
 import { wipeRoomCompletely } from "./roomCleanup";
+import { purgeSpeakerColorsForMember } from "./speakerColors";
 
 export const ROLE_OWNER = "owner";
 export const ROLE_ADMIN = "admin";
@@ -227,6 +228,12 @@ export async function removeMembership(
     )
     .collect();
   for (const b of bookmarks) await ctx.db.delete(b._id);
+
+  // Their manual speaker colours, and — the half that is easy to miss —
+  // everyone ELSE's pins on them. See `purgeSpeakerColorsForMember`: a pin left
+  // behind names somebody who is no longer here and holds a palette slot shut
+  // against whoever joins next.
+  await purgeSpeakerColorsForMember(ctx, roomId, userId);
 
   // Anything still outstanding for this person in this room is moot now, and
   // leaving it would let a stale row re-admit someone an admin just removed.

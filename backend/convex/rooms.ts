@@ -602,7 +602,7 @@ export const getMembers = query({
           // arrived later. Ordering by user id instead (what an older client,
           // or an older backend, falls back to) still agrees across devices;
           // it just reshuffles when the roster grows.
-          joinedAt: m._creationTime,
+          joinedAt: m.joinedAt,
         };
       })
     );

@@ -2051,5 +2051,20 @@
   "speakerColorScreenNameLabel": "NOMS",
   "speakerColorScreenNameDescription": "chacun garde sa propre couleur, sur son nom et autour de son visage.",
   "speakerColorScreenBubbleLabel": "BULLES",
-  "speakerColorScreenBubbleDescription": "la couleur passe aussi dans ses messages : une série de cinq dit encore qui a écrit."
+  "speakerColorScreenBubbleDescription": "la couleur passe aussi dans ses messages : une série de cinq dit encore qui a écrit.",
+  "roomInfoScreenSpeakerColorsLabel": "COULEURS",
+  "roomInfoScreenSpeakerColorsAutomatic": "Automatique",
+  "roomInfoScreenSpeakerColorsCustom": "Personnalisé",
+  "roomColorsScreenTitle": "qui est qui.",
+  "roomColorsScreenSubtitle": "la couleur de chaque personne",
+  "roomColorsScreenOffTitle": "les couleurs des auteurs sont désactivées",
+  "roomColorsScreenOffBody": "pour l'instant tout le monde s'affiche avec la même encre. activez-les et chacun ici aura la sienne.",
+  "roomColorsScreenOffAction": "ACTIVER",
+  "roomColorsScreenOffHint": "s'applique à tous les salons, pas seulement à celui-ci. aussi dans les réglages.",
+  "roomColorsScreenAutoChip": "AUTO",
+  "roomColorsScreenAlsoUsedBy": "partagée avec {name}",
+  "roomColorsScreenResetAll": "REVENIR À AUTOMATIQUE",
+  "roomColorsScreenLimitToast": "C'est le maximum qu'un salon peut fixer.",
+  "roomColorsScreenFailedToast": "Impossible d'enregistrer cette couleur.",
+  "roomColorsScreenSwatchSemantic": "Couleur {index}"
 }

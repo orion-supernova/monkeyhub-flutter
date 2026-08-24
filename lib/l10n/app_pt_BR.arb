@@ -2051,5 +2051,20 @@
   "speakerColorScreenNameLabel": "NOMES",
   "speakerColorScreenNameDescription": "cada pessoa ganha uma cor só dela, no nome e em volta do rosto.",
   "speakerColorScreenBubbleLabel": "BALÕES",
-  "speakerColorScreenBubbleDescription": "a cor vai junto para as mensagens, então uma sequência de cinco ainda diz quem escreveu."
+  "speakerColorScreenBubbleDescription": "a cor vai junto para as mensagens, então uma sequência de cinco ainda diz quem escreveu.",
+  "roomInfoScreenSpeakerColorsLabel": "CORES",
+  "roomInfoScreenSpeakerColorsAutomatic": "Automático",
+  "roomInfoScreenSpeakerColorsCustom": "Personalizado",
+  "roomColorsScreenTitle": "quem é quem.",
+  "roomColorsScreenSubtitle": "a cor de cada pessoa",
+  "roomColorsScreenOffTitle": "as cores das pessoas estão desligadas",
+  "roomColorsScreenOffBody": "por enquanto todo mundo aparece com a mesma tinta. ligue e cada pessoa aqui ganha a sua.",
+  "roomColorsScreenOffAction": "LIGAR",
+  "roomColorsScreenOffHint": "vale para todas as salas, não só esta. também está nas configurações.",
+  "roomColorsScreenAutoChip": "AUTO",
+  "roomColorsScreenAlsoUsedBy": "compartilhada com {name}",
+  "roomColorsScreenResetAll": "VOLTAR AO AUTOMÁTICO",
+  "roomColorsScreenLimitToast": "É o máximo que uma sala pode fixar.",
+  "roomColorsScreenFailedToast": "Não foi possível salvar essa cor.",
+  "roomColorsScreenSwatchSemantic": "Cor {index}"
 }

@@ -2051,5 +2051,20 @@
   "speakerColorScreenNameLabel": "الأسماء",
   "speakerColorScreenNameDescription": "لكل شخص لون خاص به، على اسمه وحول صورته.",
   "speakerColorScreenBubbleLabel": "الفقاعات",
-  "speakerColorScreenBubbleDescription": "اللون ينتقل إلى رسائلهم أيضًا، فتظل خمس رسائل متتالية تخبرك بمن كتبها."
+  "speakerColorScreenBubbleDescription": "اللون ينتقل إلى رسائلهم أيضًا، فتظل خمس رسائل متتالية تخبرك بمن كتبها.",
+  "roomInfoScreenSpeakerColorsLabel": "الألوان",
+  "roomInfoScreenSpeakerColorsAutomatic": "تلقائي",
+  "roomInfoScreenSpeakerColorsCustom": "مخصّص",
+  "roomColorsScreenTitle": "من هو من.",
+  "roomColorsScreenSubtitle": "اللون الذي يتحدّث به كل شخص",
+  "roomColorsScreenOffTitle": "ألوان المتحدّثين مُعطَّلة",
+  "roomColorsScreenOffBody": "الآن يظهر الجميع بالحبر نفسه. فعّلها ليحصل كل شخص هنا على لون خاص به.",
+  "roomColorsScreenOffAction": "تفعيل",
+  "roomColorsScreenOffHint": "تنطبق على كل الغرف، لا على هذه فقط. متاحة أيضًا في الإعدادات.",
+  "roomColorsScreenAutoChip": "تلقائي",
+  "roomColorsScreenAlsoUsedBy": "مشترك مع {name}",
+  "roomColorsScreenResetAll": "العودة إلى التلقائي",
+  "roomColorsScreenLimitToast": "هذا أقصى عدد ألوان يمكن تثبيته في غرفة.",
+  "roomColorsScreenFailedToast": "تعذّر حفظ هذا اللون.",
+  "roomColorsScreenSwatchSemantic": "اللون {index}"
 }

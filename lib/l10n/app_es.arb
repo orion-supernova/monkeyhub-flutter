@@ -2051,5 +2051,20 @@
   "speakerColorScreenNameLabel": "NOMBRES",
   "speakerColorScreenNameDescription": "cada persona tiene un color propio, en su nombre y alrededor de su cara.",
   "speakerColorScreenBubbleLabel": "BURBUJAS",
-  "speakerColorScreenBubbleDescription": "el color pasa también a sus mensajes, así que una racha de cinco sigue diciendo quién escribió."
+  "speakerColorScreenBubbleDescription": "el color pasa también a sus mensajes, así que una racha de cinco sigue diciendo quién escribió.",
+  "roomInfoScreenSpeakerColorsLabel": "COLORES",
+  "roomInfoScreenSpeakerColorsAutomatic": "Automático",
+  "roomInfoScreenSpeakerColorsCustom": "Personalizado",
+  "roomColorsScreenTitle": "quién es quién.",
+  "roomColorsScreenSubtitle": "el color con el que habla cada persona",
+  "roomColorsScreenOffTitle": "los colores por persona están desactivados",
+  "roomColorsScreenOffBody": "ahora mismo todos se dibujan con la misma tinta. actívalo y cada persona de aquí tendrá el suyo.",
+  "roomColorsScreenOffAction": "ACTIVAR",
+  "roomColorsScreenOffHint": "se aplica a todas las salas, no solo a esta. también está en ajustes.",
+  "roomColorsScreenAutoChip": "AUTO",
+  "roomColorsScreenAlsoUsedBy": "compartido con {name}",
+  "roomColorsScreenResetAll": "VOLVER A AUTOMÁTICO",
+  "roomColorsScreenLimitToast": "Es todo lo que una sala puede fijar.",
+  "roomColorsScreenFailedToast": "No se pudo guardar ese color.",
+  "roomColorsScreenSwatchSemantic": "Color {index}"
 }

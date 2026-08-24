@@ -209,6 +209,20 @@ class ChatRepository extends ChangeNotifier {
   Subscription? _outgoingSub;
   Subscription? _roomInvitationsSub;
   Subscription? _globalTypingSub;
+  Subscription? _speakerColorsSub;
+
+  /// This reader's manual speaker colours: roomId → subjectId → palette slot.
+  ///
+  /// ONE app-wide subscription rather than one per room, and it is worth being
+  /// precise about why both halves of that are cheap. The set is bounded at
+  /// twelve per room by the server and is empty for almost every reader, so
+  /// holding all of it costs nothing; and the query reads only rows keyed to
+  /// this reader, so it is invalidated by this reader's own writes and by
+  /// nothing anyone else in any room does. A per-room subscription would be a
+  /// live query opened and torn down on every room entry, for a feature most
+  /// people never touch.
+  Map<String, Map<String, int>> _speakerColors = const {};
+
   String? _activeRoomIdValue;
 
   /// The room currently visible to the user (if any).
@@ -434,6 +448,8 @@ class ChatRepository extends ChangeNotifier {
     _outgoingSub?.cancel();
     _roomInvitationsSub?.cancel();
     _globalTypingSub?.cancel();
+    _speakerColorsSub?.cancel();
+    _speakerColorsSub = null;
     _roomsSub = null;
     _friendsSub = null;
     _incomingSub = null;
@@ -554,6 +570,32 @@ class ChatRepository extends ChangeNotifier {
         notifyListeners();
       },
       onError: (err) => debugPrint('typing(global) sub error: $err'),
+    );
+
+    // Manual speaker colours — see [_speakerColors]. Deliberately NOT gated on
+    // the reader's `speakerTint` preference: a reader who turns colours off and
+    // back on should find their pins where they left them, and skipping the
+    // subscription would mean the first room they open after re-enabling paints
+    // in derived colours and then visibly re-paints when the overrides land.
+    _speakerColorsSub = await cv.subscribe(
+      'speakerColors:mine',
+      {'viewerId': userId},
+      onData: (data) {
+        final fresh = <String, Map<String, int>>{};
+        if (data is Map) {
+          data.forEach((roomId, byUser) {
+            if (byUser is! Map) return;
+            final inner = <String, int>{};
+            byUser.forEach((subjectId, slot) {
+              if (slot is num) inner[subjectId.toString()] = slot.toInt();
+            });
+            if (inner.isNotEmpty) fresh[roomId.toString()] = inner;
+          });
+        }
+        _speakerColors = fresh;
+        notifyListeners();
+      },
+      onError: (err) => debugPrint('speaker colors sub error: $err'),
     );
 
     // Stuck sends used to be retried from a raw `cv.connectionState` listener
@@ -686,6 +728,7 @@ class ChatRepository extends ChangeNotifier {
     _pinsSub?.cancel();
     _bookmarksSub?.cancel();
     _scheduledSub?.cancel();
+    _speakerColorsSub?.cancel();
     _typingHeartbeat?.cancel();
     _roomsSub = null;
     _friendsSub = null;
@@ -698,6 +741,7 @@ class ChatRepository extends ChangeNotifier {
     _pinsSub = null;
     _bookmarksSub = null;
     _scheduledSub = null;
+    _speakerColorsSub = null;
     _typingHeartbeat = null;
     _activeRoomId = null;
     _openOwner = null;
@@ -717,6 +761,12 @@ class ChatRepository extends ChangeNotifier {
     // And these are the previous account's PRIVATE room state, so if anything
     // the case for dropping them is stronger.
     _bookmarks.clear();
+    // How the departing account chose to read the rooms it was in. Same
+    // argument as the bookmarks above — private, per-account state — with one
+    // sharper consequence if it were left: the next person on this handset
+    // would open a shared room and find its colours already pinned by someone
+    // whose choices they cannot see the reason for.
+    _speakerColors = const {};
     // Same argument again, and one step further: these are messages the
     // departing account has not sent yet. Leaving them cached would show the
     // next person on this device a pill counting somebody else's unsent words.
@@ -3100,6 +3150,83 @@ class ChatRepository extends ChangeNotifier {
 
   bool isMessageSaved(String roomId, String messageId) =>
       savedFor(roomId).any((b) => b.message.id == messageId);
+
+  /// This reader's manual speaker colours in [roomId] — subject id to palette
+  /// slot, empty for the overwhelming majority of rooms.
+  ///
+  /// Handed straight to `SpeakerSlots.forMembers`, which folds the pins into
+  /// the assignment so nothing downstream of it pays for this feature.
+  Map<String, int> speakerColorsFor(String roomId) =>
+      _speakerColors[roomId] ?? const {};
+
+  /// Pins [subjectId] to [slot] for this reader in [roomId], or clears the pin
+  /// when [slot] is null. Returns null on success, or an error code to surface.
+  ///
+  /// Applied locally first. The round trip is short but it is a round trip, and
+  /// a colour that arrives a beat after the tap reads as a laggy picker — this
+  /// is a preference, not a fact being negotiated with anyone. The subscription
+  /// echo that follows is identical to what is already on screen, so it lands
+  /// as a no-op rather than a second repaint.
+  Future<String?> setSpeakerSlot(
+    String roomId,
+    String subjectId,
+    int? slot,
+  ) async {
+    final id = _userId;
+    if (id == null) return null;
+    final before = _speakerColors;
+    final next = {
+      for (final e in before.entries) e.key: Map<String, int>.from(e.value),
+    };
+    final room = next.putIfAbsent(roomId, () => <String, int>{});
+    if (slot == null) {
+      room.remove(subjectId);
+      if (room.isEmpty) next.remove(roomId);
+    } else {
+      room[subjectId] = slot;
+    }
+    _speakerColors = next;
+    notifyListeners();
+    try {
+      await api.setSpeakerSlot(
+        viewerId: id,
+        roomId: roomId,
+        subjectId: subjectId,
+        slot: slot,
+      );
+      return null;
+    } catch (e) {
+      // Put the old map back rather than leaving the optimistic one to be
+      // corrected by the next subscription delivery — which, on the failure
+      // that matters here (the per-room cap), never comes, because nothing was
+      // written and so nothing invalidates.
+      _speakerColors = before;
+      notifyListeners();
+      return e.toString().contains('OVERRIDE_LIMIT')
+          ? 'OVERRIDE_LIMIT'
+          : 'SPEAKER_COLOR_FAILED';
+    }
+  }
+
+  /// Drops every override this reader holds in [roomId] — the picker's "back to
+  /// automatic for everyone" affordance.
+  Future<void> clearSpeakerSlots(String roomId) async {
+    final id = _userId;
+    if (id == null) return;
+    final before = _speakerColors;
+    if (!before.containsKey(roomId)) return;
+    _speakerColors = {
+      for (final e in before.entries)
+        if (e.key != roomId) e.key: e.value,
+    };
+    notifyListeners();
+    try {
+      await api.clearSpeakerSlots(viewerId: id, roomId: roomId);
+    } catch (_) {
+      _speakerColors = before;
+      notifyListeners();
+    }
+  }
 
   /// Saves [messageId]. Returns null on success, or an error code the caller
   /// must surface.

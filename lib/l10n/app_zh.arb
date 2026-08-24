@@ -2051,5 +2051,20 @@
   "speakerColorScreenNameLabel": "名字",
   "speakerColorScreenNameDescription": "每个人都有自己的颜色，显示在名字和头像圈上。",
   "speakerColorScreenBubbleLabel": "气泡",
-  "speakerColorScreenBubbleDescription": "颜色也会延伸到气泡里，连发五条也知道是谁写的。"
+  "speakerColorScreenBubbleDescription": "颜色也会延伸到气泡里，连发五条也知道是谁写的。",
+  "roomInfoScreenSpeakerColorsLabel": "颜色",
+  "roomInfoScreenSpeakerColorsAutomatic": "自动",
+  "roomInfoScreenSpeakerColorsCustom": "自定义",
+  "roomColorsScreenTitle": "谁是谁。",
+  "roomColorsScreenSubtitle": "每个人说话的颜色",
+  "roomColorsScreenOffTitle": "发言人颜色已关闭",
+  "roomColorsScreenOffBody": "现在所有人都用同一种颜色显示。打开后，这里的每个人都会有自己的颜色。",
+  "roomColorsScreenOffAction": "打开",
+  "roomColorsScreenOffHint": "对所有房间生效，不只是这一个。设置里也有。",
+  "roomColorsScreenAutoChip": "自动",
+  "roomColorsScreenAlsoUsedBy": "与 {name} 相同",
+  "roomColorsScreenResetAll": "恢复自动",
+  "roomColorsScreenLimitToast": "一个房间最多只能固定这么多颜色。",
+  "roomColorsScreenFailedToast": "无法保存该颜色。",
+  "roomColorsScreenSwatchSemantic": "颜色 {index}"
 }

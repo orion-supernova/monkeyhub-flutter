@@ -7394,4 +7394,58 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get speakerColorScreenBubbleDescription =>
       'la couleur passe aussi dans ses messages : une série de cinq dit encore qui a écrit.';
+
+  @override
+  String get roomInfoScreenSpeakerColorsLabel => 'COULEURS';
+
+  @override
+  String get roomInfoScreenSpeakerColorsAutomatic => 'Automatique';
+
+  @override
+  String get roomInfoScreenSpeakerColorsCustom => 'Personnalisé';
+
+  @override
+  String get roomColorsScreenTitle => 'qui est qui.';
+
+  @override
+  String get roomColorsScreenSubtitle => 'la couleur de chaque personne';
+
+  @override
+  String get roomColorsScreenOffTitle =>
+      'les couleurs des auteurs sont désactivées';
+
+  @override
+  String get roomColorsScreenOffBody =>
+      'pour l\'instant tout le monde s\'affiche avec la même encre. activez-les et chacun ici aura la sienne.';
+
+  @override
+  String get roomColorsScreenOffAction => 'ACTIVER';
+
+  @override
+  String get roomColorsScreenOffHint =>
+      's\'applique à tous les salons, pas seulement à celui-ci. aussi dans les réglages.';
+
+  @override
+  String get roomColorsScreenAutoChip => 'AUTO';
+
+  @override
+  String roomColorsScreenAlsoUsedBy(Object name) {
+    return 'partagée avec $name';
+  }
+
+  @override
+  String get roomColorsScreenResetAll => 'REVENIR À AUTOMATIQUE';
+
+  @override
+  String get roomColorsScreenLimitToast =>
+      'C\'est le maximum qu\'un salon peut fixer.';
+
+  @override
+  String get roomColorsScreenFailedToast =>
+      'Impossible d\'enregistrer cette couleur.';
+
+  @override
+  String roomColorsScreenSwatchSemantic(Object index) {
+    return 'Couleur $index';
+  }
 }

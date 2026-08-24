@@ -7244,4 +7244,56 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get speakerColorScreenBubbleDescription =>
       'renk mesajlara da geçer; art arda beş mesaj bile kimin yazdığını söyler.';
+
+  @override
+  String get roomInfoScreenSpeakerColorsLabel => 'RENKLER';
+
+  @override
+  String get roomInfoScreenSpeakerColorsAutomatic => 'Otomatik';
+
+  @override
+  String get roomInfoScreenSpeakerColorsCustom => 'Özel';
+
+  @override
+  String get roomColorsScreenTitle => 'kim kim.';
+
+  @override
+  String get roomColorsScreenSubtitle => 'herkesin konuştuğu renk';
+
+  @override
+  String get roomColorsScreenOffTitle => 'kişi renkleri kapalı';
+
+  @override
+  String get roomColorsScreenOffBody =>
+      'şu anda herkes aynı mürekkeple yazıyor. aç, buradaki herkes kendi rengini alsın.';
+
+  @override
+  String get roomColorsScreenOffAction => 'AÇ';
+
+  @override
+  String get roomColorsScreenOffHint =>
+      'sadece bu oda için değil, tüm odalar için geçerli. ayarlarda da var.';
+
+  @override
+  String get roomColorsScreenAutoChip => 'OTOMATİK';
+
+  @override
+  String roomColorsScreenAlsoUsedBy(Object name) {
+    return '$name ile aynı';
+  }
+
+  @override
+  String get roomColorsScreenResetAll => 'OTOMATİĞE DÖN';
+
+  @override
+  String get roomColorsScreenLimitToast =>
+      'Bir odada sabitlenebilecek renk sayısı bu kadar.';
+
+  @override
+  String get roomColorsScreenFailedToast => 'Renk kaydedilemedi.';
+
+  @override
+  String roomColorsScreenSwatchSemantic(Object index) {
+    return 'Renk $index';
+  }
 }

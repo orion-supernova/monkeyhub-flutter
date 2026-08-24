@@ -13,6 +13,7 @@
 
 import { deleteStored, releaseMessageBlobs } from "./files";
 import { purgeScheduledForRoom } from "./scheduledMessages";
+import { purgeSpeakerColorsForRoom } from "./speakerColors";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 
@@ -68,6 +69,12 @@ async function wipeRoomContents(ctx: any, roomId: any) {
     .withIndex("by_room_user_message", (q: any) => q.eq("roomId", roomId))
     .collect();
   for (const b of bookmarks) await ctx.db.delete(b._id);
+  // Every reader's manual speaker colours for this room. Swept by room off
+  // `by_room_subject`, one index range rather than a probe per member — and
+  // unlike almost everything else here, these rows belong to readers rather
+  // than to the room, so missing them would leave live rows pointing at a
+  // roomId nothing resolves.
+  await purgeSpeakerColorsForRoom(ctx, roomId);
   // Typing indicators
   const typing = await ctx.db
     .query("typingIndicators")

@@ -2051,5 +2051,20 @@
   "speakerColorScreenNameLabel": "नाम",
   "speakerColorScreenNameDescription": "हर किसी को अपना एक रंग मिलता है — नाम पर और चेहरे के चारों ओर.",
   "speakerColorScreenBubbleLabel": "बबल",
-  "speakerColorScreenBubbleDescription": "रंग उनके संदेशों में भी जाता है, तो लगातार पाँच संदेश भी बताते हैं किसने लिखा."
+  "speakerColorScreenBubbleDescription": "रंग उनके संदेशों में भी जाता है, तो लगातार पाँच संदेश भी बताते हैं किसने लिखा.",
+  "roomInfoScreenSpeakerColorsLabel": "रंग",
+  "roomInfoScreenSpeakerColorsAutomatic": "स्वचालित",
+  "roomInfoScreenSpeakerColorsCustom": "कस्टम",
+  "roomColorsScreenTitle": "कौन कौन है.",
+  "roomColorsScreenSubtitle": "हर व्यक्ति का रंग",
+  "roomColorsScreenOffTitle": "बोलने वालों के रंग बंद हैं",
+  "roomColorsScreenOffBody": "अभी सब एक ही स्याही से दिखते हैं. चालू करें और यहाँ हर किसी को अपना रंग मिलेगा.",
+  "roomColorsScreenOffAction": "चालू करें",
+  "roomColorsScreenOffHint": "यह हर कमरे पर लागू होता है, सिर्फ़ इस पर नहीं. सेटिंग्स में भी है.",
+  "roomColorsScreenAutoChip": "ऑटो",
+  "roomColorsScreenAlsoUsedBy": "{name} के साथ साझा",
+  "roomColorsScreenResetAll": "स्वचालित पर लौटें",
+  "roomColorsScreenLimitToast": "एक कमरे में इतने ही रंग तय किए जा सकते हैं.",
+  "roomColorsScreenFailedToast": "वह रंग सहेजा नहीं जा सका.",
+  "roomColorsScreenSwatchSemantic": "रंग {index}"
 }

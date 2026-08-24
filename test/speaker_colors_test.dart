@@ -82,6 +82,72 @@ void main() {
       expect(roomB.slotOf('dana'), speakerPreferredSlot('dana'));
     });
 
+    test('a pin wins, and closes its colour to everyone automatic', () {
+      // Nine people, one of them pinned onto the slot somebody else's hash
+      // wanted. The pin is not a preference that loses a tiebreak.
+      final roster = [for (var i = 0; i < 9; i++) m('user_$i', 100 + i)];
+      final contested = speakerPreferredSlot('user_3');
+      final slots = SpeakerSlots.forMembers(
+        roster,
+        pinned: {'user_7': contested},
+      );
+      expect(slots.slotOf('user_7'), contested);
+      expect(slots.slotOf('user_3'), isNot(contested),
+          reason: 'an automatic member was left sitting on a pinned colour');
+      expect(slots.holdersOf(contested), ['user_7']);
+    });
+
+    test('two people pinned to one colour is honoured, not corrected', () {
+      // A reader is allowed to decide they do not need to tell two people
+      // apart. A picker that silently moved the second one would be overruling
+      // the person it is for — the UI states the overlap instead.
+      final roster = [m('a', 1), m('b', 2), m('c', 3)];
+      final slots = SpeakerSlots.forMembers(roster, pinned: {'a': 5, 'b': 5});
+      expect(slots.slotOf('a'), 5);
+      expect(slots.slotOf('b'), 5);
+      expect(slots.holdersOf(5)..sort(), ['a', 'b']);
+      expect(slots.slotOf('c'), isNot(5),
+          reason: 'the automatic third should still steer clear');
+    });
+
+    test('a pin on somebody who has left holds nothing shut', () {
+      // The server sweeps these rows on departure; this is the window before
+      // that lands, and the failure it prevents is a colour reserved forever
+      // for a person who cannot speak.
+      final roster = [m('a', 1), m('b', 2)];
+      final slots =
+          SpeakerSlots.forMembers(roster, pinned: {'ghost': 4, 'a': 9});
+      expect(slots.slotOf('ghost'), isNull);
+      expect(slots.slotOf('a'), 9);
+      // 4 is free again, so whoever wants it may have it.
+      final crowd = SpeakerSlots.forMembers(
+        [for (var i = 0; i < 12; i++) m('u_$i', i)],
+        pinned: const {'ghost': 4},
+      );
+      expect(crowd.holdersOf(4).length, 1);
+    });
+
+    test('the viewer cannot be pinned, and a wild slot is folded in range', () {
+      final slots = SpeakerSlots.forMembers(
+        [m('me', 1), m('them', 2)],
+        exclude: 'me',
+        pinned: const {'me': 3, 'them': kSpeakerSlotCount + 2},
+      );
+      expect(slots.slotOf('me'), isNull);
+      expect(slots.slotOf('them'), 2,
+          reason: 'a server or a future client sending a slot past the '
+              'palette must not paint out of range');
+    });
+
+    test('pinning nobody is exactly the unpinned assignment', () {
+      // The cheap path has to stay the same path — most rooms will never hold
+      // a single override, and a divergence here would be invisible.
+      final roster = [for (var i = 0; i < 15; i++) m('user_$i', i)];
+      final plain = SpeakerSlots.forMembers(roster);
+      final empty = SpeakerSlots.forMembers(roster, pinned: const {});
+      expect(plain, empty);
+    });
+
     test('an empty roster is the no-colours room', () {
       expect(SpeakerSlots.forMembers(const []).isEmpty, isTrue);
       expect(SpeakerSlots.none.slotOf('anyone'), isNull);
