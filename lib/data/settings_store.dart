@@ -7,6 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../calls/call_models.dart' show VideoQualityTier, VideoQualityTierWire;
 import '../services/launcher_icon_service.dart';
 import '../theme/bubble_shape.dart';
+import '../theme/speaker_colors.dart';
 import '../theme/theme_scope.dart';
 import 'glass_config.dart';
 import 'room_filter.dart';
@@ -30,6 +31,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kChatStyle = 'mh.chatStyle';
   static const _kReplyStyle = 'mh.replyStyle';
   static const _kBubbleStyle = 'mh.bubbleStyle';
+  static const _kSpeakerTint = 'mh.speakerTint';
   static const _kViewReadReceipts = 'mh.viewReadReceipts';
   static const _kLogoMode = 'mh.logoMode';
   static const _kManualLogoThemeId = 'mh.manualLogoThemeId';
@@ -77,6 +79,11 @@ class SettingsStore extends ChangeNotifier {
   ChatStyle _chatStyle = ChatStyle.compact;
   ReplyStyle _replyStyle = ReplyStyle.phantomEcho;
   BubbleStyle _bubbleStyle = BubbleStyle.tailed;
+  // On, and on all the way, by default. A group room where five people's
+  // messages are all drawn in the same ink is the problem this setting is the
+  // answer to — shipping the answer switched off would mean nobody who never
+  // opens Settings ever sees it.
+  SpeakerTint _speakerTint = SpeakerTint.bubble;
   bool _viewReadReceipts = false;
   LogoMode _logoMode = LogoMode.auto;
   String? _manualLogoThemeId;
@@ -116,6 +123,11 @@ class SettingsStore extends ChangeNotifier {
   /// The shape family every message bubble is drawn with. Defaults to
   /// [BubbleStyle.tailed] — a run of messages closes with a curved tail.
   BubbleStyle get bubbleStyle => _bubbleStyle;
+
+  /// How far each speaker's own colour reaches inside a group room. Defaults
+  /// to [SpeakerTint.bubble]. Has no effect in a DM, where there is exactly
+  /// one other person and the margin already says who is talking.
+  SpeakerTint get speakerTint => _speakerTint;
   LogoMode get logoMode => _logoMode;
   String? get manualLogoThemeId => _manualLogoThemeId;
 
@@ -296,6 +308,17 @@ class SettingsStore extends ChangeNotifier {
           break;
         default:
           _bubbleStyle = BubbleStyle.tailed;
+      }
+      final st = await _storage.read(key: _kSpeakerTint);
+      switch (st) {
+        case 'off':
+          _speakerTint = SpeakerTint.off;
+          break;
+        case 'name':
+          _speakerTint = SpeakerTint.name;
+          break;
+        default:
+          _speakerTint = SpeakerTint.bubble;
       }
       final vrr = await _storage.read(key: _kViewReadReceipts);
       _viewReadReceipts = vrr == 'true'; // default false
@@ -508,6 +531,13 @@ class SettingsStore extends ChangeNotifier {
     _bubbleStyle = s;
     notifyListeners();
     await _storage.write(key: _kBubbleStyle, value: s.name);
+  }
+
+  Future<void> setSpeakerTint(SpeakerTint t) async {
+    if (_speakerTint == t) return;
+    _speakerTint = t;
+    notifyListeners();
+    await _storage.write(key: _kSpeakerTint, value: t.name);
   }
 
   Future<void> setViewReadReceipts(bool v) async {

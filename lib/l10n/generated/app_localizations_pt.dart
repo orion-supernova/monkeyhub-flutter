@@ -7316,6 +7316,45 @@ class AppLocalizationsPt extends AppLocalizations {
   String shareSheetSendToSemantic(String title) {
     return 'Enviar para $title';
   }
+
+  @override
+  String get settingsScreenRowSpeakerColors => 'CORES DAS PESSOAS';
+
+  @override
+  String get settingsScreenValueSpeakerOff => 'Desligado';
+
+  @override
+  String get settingsScreenValueSpeakerName => 'Nomes';
+
+  @override
+  String get settingsScreenValueSpeakerBubble => 'Nomes + balões';
+
+  @override
+  String get speakerColorScreenTitle => 'cores das pessoas.';
+
+  @override
+  String get speakerColorScreenSubtitle => 'quem disse aquilo, sem ler o nome';
+
+  @override
+  String get speakerColorScreenOffLabel => 'DESLIGADO';
+
+  @override
+  String get speakerColorScreenOffDescription =>
+      'toda a gente na sala escreve com a mesma tinta.';
+
+  @override
+  String get speakerColorScreenNameLabel => 'NOMES';
+
+  @override
+  String get speakerColorScreenNameDescription =>
+      'cada pessoa fica com uma cor própria, no nome e à volta da cara.';
+
+  @override
+  String get speakerColorScreenBubbleLabel => 'BALÕES';
+
+  @override
+  String get speakerColorScreenBubbleDescription =>
+      'a cor passa também para as mensagens, por isso uma sequência de cinco continua a dizer quem escreveu.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -14627,4 +14666,43 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String shareSheetSendToSemantic(String title) {
     return 'Enviar para $title';
   }
+
+  @override
+  String get settingsScreenRowSpeakerColors => 'CORES DAS PESSOAS';
+
+  @override
+  String get settingsScreenValueSpeakerOff => 'Desligado';
+
+  @override
+  String get settingsScreenValueSpeakerName => 'Nomes';
+
+  @override
+  String get settingsScreenValueSpeakerBubble => 'Nomes + balões';
+
+  @override
+  String get speakerColorScreenTitle => 'cores das pessoas.';
+
+  @override
+  String get speakerColorScreenSubtitle => 'quem disse aquilo, sem ler o nome';
+
+  @override
+  String get speakerColorScreenOffLabel => 'DESLIGADO';
+
+  @override
+  String get speakerColorScreenOffDescription =>
+      'todo mundo na sala escreve com a mesma tinta.';
+
+  @override
+  String get speakerColorScreenNameLabel => 'NOMES';
+
+  @override
+  String get speakerColorScreenNameDescription =>
+      'cada pessoa ganha uma cor só dela, no nome e em volta do rosto.';
+
+  @override
+  String get speakerColorScreenBubbleLabel => 'BALÕES';
+
+  @override
+  String get speakerColorScreenBubbleDescription =>
+      'a cor vai junto para as mensagens, então uma sequência de cinco ainda diz quem escreveu.';
 }

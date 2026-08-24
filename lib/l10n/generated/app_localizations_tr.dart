@@ -7205,4 +7205,43 @@ class AppLocalizationsTr extends AppLocalizations {
   String shareSheetSendToSemantic(String title) {
     return '$title kişisine gönder';
   }
+
+  @override
+  String get settingsScreenRowSpeakerColors => 'KİŞİ RENKLERİ';
+
+  @override
+  String get settingsScreenValueSpeakerOff => 'Kapalı';
+
+  @override
+  String get settingsScreenValueSpeakerName => 'İsimler';
+
+  @override
+  String get settingsScreenValueSpeakerBubble => 'İsimler + baloncuklar';
+
+  @override
+  String get speakerColorScreenTitle => 'kişi renkleri.';
+
+  @override
+  String get speakerColorScreenSubtitle => 'ismi okumadan kimin yazdığını gör';
+
+  @override
+  String get speakerColorScreenOffLabel => 'KAPALI';
+
+  @override
+  String get speakerColorScreenOffDescription =>
+      'odadaki herkes aynı mürekkeple yazar.';
+
+  @override
+  String get speakerColorScreenNameLabel => 'İSİMLER';
+
+  @override
+  String get speakerColorScreenNameDescription =>
+      'herkesin kendine ait bir rengi olur; isminde ve avatarının çevresinde.';
+
+  @override
+  String get speakerColorScreenBubbleLabel => 'BALONCUKLAR';
+
+  @override
+  String get speakerColorScreenBubbleDescription =>
+      'renk mesajlara da geçer; art arda beş mesaj bile kimin yazdığını söyler.';
 }

@@ -2039,5 +2039,17 @@
   "shareSheetSuggestedHeading": "ÖNERİLEN",
   "shareSheetPreviewItems": "{count, plural, other{{count} ek}}",
   "shareSheetTooLargeDropped": "{count, plural, other{{count} dosya {size} sınırını aştığı için alınmadı}}",
-  "shareSheetSendToSemantic": "{title} kişisine gönder"
+  "shareSheetSendToSemantic": "{title} kişisine gönder",
+  "settingsScreenRowSpeakerColors": "KİŞİ RENKLERİ",
+  "settingsScreenValueSpeakerOff": "Kapalı",
+  "settingsScreenValueSpeakerName": "İsimler",
+  "settingsScreenValueSpeakerBubble": "İsimler + baloncuklar",
+  "speakerColorScreenTitle": "kişi renkleri.",
+  "speakerColorScreenSubtitle": "ismi okumadan kimin yazdığını gör",
+  "speakerColorScreenOffLabel": "KAPALI",
+  "speakerColorScreenOffDescription": "odadaki herkes aynı mürekkeple yazar.",
+  "speakerColorScreenNameLabel": "İSİMLER",
+  "speakerColorScreenNameDescription": "herkesin kendine ait bir rengi olur; isminde ve avatarının çevresinde.",
+  "speakerColorScreenBubbleLabel": "BALONCUKLAR",
+  "speakerColorScreenBubbleDescription": "renk mesajlara da geçer; art arda beş mesaj bile kimin yazdığını söyler."
 }

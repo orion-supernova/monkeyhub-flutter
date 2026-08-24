@@ -7314,4 +7314,43 @@ class AppLocalizationsAr extends AppLocalizations {
   String shareSheetSendToSemantic(String title) {
     return 'إرسال إلى $title';
   }
+
+  @override
+  String get settingsScreenRowSpeakerColors => 'ألوان المتحدّثين';
+
+  @override
+  String get settingsScreenValueSpeakerOff => 'مُعطَّل';
+
+  @override
+  String get settingsScreenValueSpeakerName => 'الأسماء';
+
+  @override
+  String get settingsScreenValueSpeakerBubble => 'الأسماء + الفقاعات';
+
+  @override
+  String get speakerColorScreenTitle => 'ألوان المتحدّثين.';
+
+  @override
+  String get speakerColorScreenSubtitle => 'من قال ذلك، دون قراءة الاسم';
+
+  @override
+  String get speakerColorScreenOffLabel => 'مُعطَّل';
+
+  @override
+  String get speakerColorScreenOffDescription =>
+      'الجميع في الغرفة يكتبون بالحبر نفسه.';
+
+  @override
+  String get speakerColorScreenNameLabel => 'الأسماء';
+
+  @override
+  String get speakerColorScreenNameDescription =>
+      'لكل شخص لون خاص به، على اسمه وحول صورته.';
+
+  @override
+  String get speakerColorScreenBubbleLabel => 'الفقاعات';
+
+  @override
+  String get speakerColorScreenBubbleDescription =>
+      'اللون ينتقل إلى رسائلهم أيضًا، فتظل خمس رسائل متتالية تخبرك بمن كتبها.';
 }

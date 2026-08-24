@@ -593,6 +593,16 @@ export const getMembers = query({
           // member. users.getProfile serves it to self only.
           ...publicUserView(lens, user, now),
           role: m.role,
+          // When they joined, not who they are — and not redacted with the
+          // rest, because it says nothing about the person: everyone in the
+          // room can already see the join notice and the roster order.
+          //
+          // The client settles each member's per-speaker colour in join order
+          // so an existing member never has their colour taken by someone who
+          // arrived later. Ordering by user id instead (what an older client,
+          // or an older backend, falls back to) still agrees across devices;
+          // it just reshuffles when the roster grows.
+          joinedAt: m._creationTime,
         };
       })
     );

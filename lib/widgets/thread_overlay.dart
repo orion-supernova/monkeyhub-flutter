@@ -36,6 +36,7 @@ import 'message_bubble.dart';
 import 'reaction_picker_sheet.dart';
 import 'report_sheet.dart';
 import 'scroll_to_latest.dart';
+import 'speaker_scope.dart';
 import 'swipe_to_reply.dart';
 
 /// Page size for thread paging. Small on purpose — the overlay pages on
@@ -132,6 +133,22 @@ class _ThreadSheet extends StatefulWidget {
 class _ThreadSheetState extends State<_ThreadSheet>
     with TickerProviderStateMixin {
   late final AnimationController _ctrl;
+
+  /// Who speaks in which colour, from the roster the room handed over. That
+  /// roster is a constructor argument and does not change while the sheet is
+  /// open, so this is settled once rather than per build — and it agrees with
+  /// the transcript underneath because both are the same pure function of the
+  /// same list.
+  late final SpeakerSlots _speakerSlots =
+      (widget.repo.roomById(widget.roomId)?.isDm ?? false)
+          ? SpeakerSlots.none
+          : SpeakerSlots.forMembers(
+              [
+                for (final u in widget.members)
+                  (id: u.id, joinedAt: u.joinedAt?.millisecondsSinceEpoch ?? 0)
+              ],
+              exclude: widget.repo.userId,
+            );
 
   /// Accent halo pulse on a message we've just scrolled to — the anchor the
   /// overlay opened on, or a parent reached by tapping a reply tether. Same
@@ -965,7 +982,16 @@ class _ThreadSheetState extends State<_ThreadSheet>
 
     return Material(
       type: MaterialType.transparency,
-      child: OverlayModalScope(
+      // The overlay mounts on the ROOT overlay, so the room's own scope is not
+      // an ancestor of anything in here — a thread would print its replies in
+      // plain ink while the transcript one layer down had them coloured, and
+      // two views of the same message would disagree.
+      //
+      // Built from the roster the room already handed over rather than from a
+      // second subscription, for exactly the reason `members` is passed at all.
+      child: SpeakerScope(
+        slots: _speakerSlots,
+        child: OverlayModalScope(
         onDismiss: _dismiss,
         // This overlay owns a text field, so restoring focus to the room's
         // composer on close would pop the keyboard straight back up.
@@ -1151,7 +1177,8 @@ class _ThreadSheetState extends State<_ThreadSheet>
                 bottom: bottomInset + 96,
                 child: IgnorePointer(child: _Toast(message: _toast!)),
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );

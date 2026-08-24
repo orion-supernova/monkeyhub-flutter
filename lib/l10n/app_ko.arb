@@ -2039,5 +2039,17 @@
   "shareSheetSuggestedHeading": "추천",
   "shareSheetPreviewItems": "{count, plural, other{첨부 {count}개}}",
   "shareSheetTooLargeDropped": "{count, plural, other{파일 {count}개가 {size} 제한을 넘어서 제외했어요}}",
-  "shareSheetSendToSemantic": "{title}에게 보내기"
+  "shareSheetSendToSemantic": "{title}에게 보내기",
+  "settingsScreenRowSpeakerColors": "말한 사람 색상",
+  "settingsScreenValueSpeakerOff": "끄기",
+  "settingsScreenValueSpeakerName": "이름",
+  "settingsScreenValueSpeakerBubble": "이름 + 말풍선",
+  "speakerColorScreenTitle": "말한 사람 색상.",
+  "speakerColorScreenSubtitle": "이름을 읽지 않아도 누가 말했는지",
+  "speakerColorScreenOffLabel": "끄기",
+  "speakerColorScreenOffDescription": "방에 있는 모두가 같은 색으로 표시됩니다.",
+  "speakerColorScreenNameLabel": "이름",
+  "speakerColorScreenNameDescription": "각자 고유한 색을 갖습니다. 이름과 프로필 테두리에 표시돼요.",
+  "speakerColorScreenBubbleLabel": "말풍선",
+  "speakerColorScreenBubbleDescription": "색이 말풍선까지 이어져, 다섯 개가 연달아 와도 누가 썼는지 알 수 있어요."
 }

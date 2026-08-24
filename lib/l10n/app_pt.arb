@@ -2039,5 +2039,17 @@
   "shareSheetSuggestedHeading": "SUGERIDOS",
   "shareSheetPreviewItems": "{count, plural, one{1 anexo} other{{count} anexos}}",
   "shareSheetTooLargeDropped": "{count, plural, one{1 ficheiro excede o limite de {size} e ficou de fora} other{{count} ficheiros excedem o limite de {size} e ficaram de fora}}",
-  "shareSheetSendToSemantic": "Enviar para {title}"
+  "shareSheetSendToSemantic": "Enviar para {title}",
+  "settingsScreenRowSpeakerColors": "CORES DAS PESSOAS",
+  "settingsScreenValueSpeakerOff": "Desligado",
+  "settingsScreenValueSpeakerName": "Nomes",
+  "settingsScreenValueSpeakerBubble": "Nomes + balões",
+  "speakerColorScreenTitle": "cores das pessoas.",
+  "speakerColorScreenSubtitle": "quem disse aquilo, sem ler o nome",
+  "speakerColorScreenOffLabel": "DESLIGADO",
+  "speakerColorScreenOffDescription": "toda a gente na sala escreve com a mesma tinta.",
+  "speakerColorScreenNameLabel": "NOMES",
+  "speakerColorScreenNameDescription": "cada pessoa fica com uma cor própria, no nome e à volta da cara.",
+  "speakerColorScreenBubbleLabel": "BALÕES",
+  "speakerColorScreenBubbleDescription": "a cor passa também para as mensagens, por isso uma sequência de cinco continua a dizer quem escreveu."
 }

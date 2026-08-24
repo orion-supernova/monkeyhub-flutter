@@ -33,6 +33,7 @@ import 'reaction_bubble.dart';
 import 'remote_image.dart';
 import 'steady_hero.dart';
 import 'reply_indicator.dart';
+import 'speaker_scope.dart';
 import 'user_avatar.dart';
 import 'video_message.dart';
 import 'video_note_message.dart';
@@ -300,6 +301,11 @@ class MessageBubble extends StatelessWidget {
         showAvatarSlot: showAvatarSlot,
         avatarAtBottom: avatarAtBottom,
         senderName: senderName,
+        // The name sits OUTSIDE the bubble, on the room's own ground — so the
+        // ink is conditioned against the background rather than against the
+        // fill the bubble under it happens to be washed with.
+        nameColor:
+            SpeakerScope.inkOf(context, message.senderId, on: theme.background),
         tailGutter: theme.bubbleTailGutter(bubbleStyle),
         avatar: _AvatarSlot(
           author: author,
@@ -624,6 +630,9 @@ class EphemeralMessageBubble extends StatelessWidget {
           showAvatarSlot: showAvatarSlot,
           avatarAtBottom: avatarAtBottom,
           senderName: senderName,
+          // See the twin in [MessageBubble] — same ground, same reasoning.
+          nameColor: SpeakerScope.inkOf(context, message.senderId,
+              on: theme.background),
           tailGutter: theme.bubbleTailGutter(bubbleStyle),
           nameOpacity: 1 - dissolveT,
           avatar: Opacity(
@@ -743,6 +752,7 @@ class _BubbleLayout extends StatelessWidget {
     required this.meta,
     this.tailGutter = 0,
     this.nameOpacity = 1,
+    this.nameColor,
   });
 
   final bool isMine;
@@ -765,6 +775,11 @@ class _BubbleLayout extends StatelessWidget {
   final double tailGutter;
 
   final double nameOpacity;
+
+  /// The ink [senderName] is written in. Null keeps the accent every sender
+  /// used to share — a DM, a room with speaker colours off, or a sender who is
+  /// no longer a member and so has no colour of their own.
+  final Color? nameColor;
 
   @override
   Widget build(BuildContext context) {
@@ -797,7 +812,11 @@ class _BubbleLayout extends StatelessWidget {
                 // is a person. mono has no letter-spacing and enough size to
                 // read as a name, and stays clear of the 9px timestamp below.
                 style: theme.mono.copyWith(
-                  color: theme.accent.withValues(alpha: 0.95),
+                  // The 0.95 stays off the speaker ink: that colour was
+                  // conditioned to clear 4.5:1 against this exact background,
+                  // and shaving five percent off it would spend contrast the
+                  // conditioning just finished earning.
+                  color: nameColor ?? theme.accent.withValues(alpha: 0.95),
                   fontWeight: FontWeight.w600,
                 ),
                 maxLines: 1,
@@ -974,12 +993,32 @@ Widget buildMessageContent({
   /// wired up.
   void Function(String userId)? onMentionTap,
 }) {
+  // Who is talking, painted into the bubble itself rather than only into the
+  // name above it. A run of five messages prints its sender's name once, and
+  // without this the four bubbles under that name carry no identity at all —
+  // which is the whole complaint group rooms have about coloured usernames.
+  //
+  // Outgoing bubbles are left alone: they are filled with the accent, sit on
+  // the other margin, and never show a name. There is nothing left to
+  // disambiguate.
+  final authored =
+      theme.messageBubbleDecoration(isMine: isMine, ephemeral: ephemeral);
+  final authoredFill = authored.color;
+  final speakerFill = (isMine || authoredFill == null)
+      ? null
+      : SpeakerScope.washOf(context, message.senderId, surface: authoredFill);
   final deco = theme.bubbleDecoration(
     isMine: isMine,
     ephemeral: ephemeral,
     style: bubbleStyle,
     firstInRun: firstInRun,
     lastInRun: lastInRun,
+    fill: speakerFill,
+    // Only ever handed over alongside a fill, so a reader who asked for names
+    // alone never gets a recoloured border out of it.
+    edge: speakerFill == null
+        ? null
+        : SpeakerScope.markOf(context, message.senderId, on: authoredFill!),
   );
   final imageSize = metrics?.mediaMaxWidth ?? ChatMetrics.mediaMin;
 
@@ -1381,6 +1420,22 @@ Widget buildMessageContent({
         stamp: stampFor(bubbleTone),
         currentUserId: currentUserId,
         onMentionTap: onMentionTap,
+        // Naming someone in a group is the second half of "who is this" — the
+        // first is who wrote the message, and a mention that arrives in the
+        // mentioned person's own colour answers both in one glance.
+        //
+        // Incoming bubbles only, and resolved against the fill this bubble
+        // actually paints (wash included), not against the theme's untinted
+        // one. An outgoing bubble IS the accent, and a hue laid over a
+        // saturated fill fights it instead of reading against it — the same
+        // reasoning that already sends mentions to `linkInk` there.
+        mentionTint: (isMine || authoredFill == null)
+            ? null
+            : (userId) => SpeakerScope.inkOf(
+                  context,
+                  userId,
+                  on: speakerFill ?? authoredFill,
+                ),
       );
   }
 }
@@ -2258,9 +2313,25 @@ class _AvatarSlot extends StatelessWidget {
     if (collapsed || user == null) {
       return const SizedBox(width: _size, height: _size);
     }
+    // The face is the one part of a row that is unmistakably one person, so the
+    // ring is where the colour and the person get introduced to each other. It
+    // is also what makes the colour legible to a reader who cannot tell two
+    // hues apart: the ring is always around the same face.
+    //
+    // Ringed against the theme's ground rather than the bubble's, because that
+    // is what a 28px circle out in the margin actually sits on.
+    final theme = ThemeScope.of(context);
+    final ring = SpeakerScope.markOf(context, user.id, on: theme.background);
     return GestureDetector(
       onTap: onTap,
-      child: UserAvatar(user: user, size: _size, api: api, showStatus: false),
+      child: UserAvatar(
+        user: user,
+        size: _size,
+        api: api,
+        showStatus: false,
+        ring: ring != null,
+        ringColor: ring,
+      ),
     );
   }
 }
@@ -2287,6 +2358,7 @@ class _LinkAwareBubble extends StatelessWidget {
     required this.stamp,
     this.currentUserId,
     this.onMentionTap,
+    this.mentionTint,
   });
 
   final AppTheme theme;
@@ -2294,6 +2366,11 @@ class _LinkAwareBubble extends StatelessWidget {
   final bool isMine;
   final String? currentUserId;
   final void Function(String userId)? onMentionTap;
+
+  /// The colour to write a mention OF [userId] in, or null to leave it in the
+  /// bubble's own mention ink. See the call site for why outgoing bubbles pass
+  /// null outright.
+  final Color? Function(String userId)? mentionTint;
 
   /// Tucked into the text block's bottom-trailing corner. Null for the
   /// card-only mode below, which has no bubble of its own — see
@@ -2434,6 +2511,7 @@ class _LinkAwareBubble extends StatelessWidget {
           selfUserId: currentUserId,
           mentionStyle: mentionStyle,
           selfMentionStyle: selfMentionStyle,
+          mentionTint: mentionTint,
           onMentionTap: onMentionTap,
           formatting: message.formatting,
           codeStyle: theme.codeStyle(baseStyle),

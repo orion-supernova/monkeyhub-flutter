@@ -82,6 +82,7 @@ import '../widgets/scheduled_list_sheet.dart';
 import '../widgets/scheduled_pill.dart';
 import '../widgets/scroll_to_latest.dart';
 import '../widgets/selection_check.dart';
+import '../widgets/speaker_scope.dart';
 import '../widgets/typing_indicator.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/steady_hero.dart';
@@ -137,6 +138,12 @@ class _RoomScreenState extends State<RoomScreen>
   // the whole transcript pay for a pill.
   final BottomProximity _scrolledUp = BottomProximity();
   final Map<String, ChatUser> _members = {}; // id → user (for sender names/avatars)
+
+  /// Which colour each member speaks in, recomputed only when the roster
+  /// itself changes — the assignment is a sort plus a walk, and doing it per
+  /// build would redo it on every keyboard frame. `_membersSig` already gates
+  /// the roster rebuild, so this rides along on the one signal that matters.
+  SpeakerSlots _speakerSlots = SpeakerSlots.none;
   Subscription? _membersSub;
   String _membersSig = '';
   ChatRoom? _room;
@@ -144,6 +151,7 @@ class _RoomScreenState extends State<RoomScreen>
   // room — so dispose can pop exactly one and we don't double-push.
   bool _pushedCaptureScope = false;
   ChatStyle _lastChatStyle = SettingsStore.instance.chatStyle;
+  SpeakerTint _lastSpeakerTint = SettingsStore.instance.speakerTint;
 
   // ──── floating date chip (visible while scrolling) ────
   // Renders the date of the topmost visible message as an overlay pill so
@@ -378,8 +386,15 @@ class _RoomScreenState extends State<RoomScreen>
 
   void _onSettings() {
     final cs = SettingsStore.instance.chatStyle;
-    if (cs == _lastChatStyle) return;
+    // Speaker colours ride along here for the composer's reply card and the
+    // rest of the chrome. Every BUBBLE already repaints itself — each one wraps
+    // its row in an `AnimatedBuilder` on this store for the bubble-shape
+    // preference — but the card above the composer is built by this screen and
+    // would otherwise keep the old colour until something unrelated rebuilt it.
+    final st = SettingsStore.instance.speakerTint;
+    if (cs == _lastChatStyle && st == _lastSpeakerTint) return;
     _lastChatStyle = cs;
+    _lastSpeakerTint = st;
     if (mounted) setState(() {});
   }
 
@@ -609,6 +624,13 @@ class _RoomScreenState extends State<RoomScreen>
             for (final u in fresh) {
               _members[u.id] = u;
             }
+            _speakerSlots = SpeakerSlots.forMembers(
+              [
+                for (final u in fresh)
+                  (id: u.id, joinedAt: u.joinedAt?.millisecondsSinceEpoch ?? 0)
+              ],
+              exclude: widget.repo.userId,
+            );
           });
         },
         onError: (err) => debugPrint('members sub error: $err'),
@@ -2403,29 +2425,35 @@ class _RoomScreenState extends State<RoomScreen>
     // keyboard animates. (The builder still re-runs on every keyboard frame,
     // but the width doesn't move, so ChatMetricsScope.updateShouldNotify
     // returns false and nothing below rebuilds.)
-    return ChatPane(
-      // Back cancels a selection before it leaves the room — the selection bar
-      // has its own CANCEL, but a system back that walked out of the chat
-      // instead of out of the mode would be the wrong kind of surprising.
-      child: PopScope(
-        canPop: !_selection.active,
-        onPopInvokedWithResult: (didPop, _) {
-          if (!didPop) _selection.clear();
-        },
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          body: Stack(
-            children: [
-              theme.backgroundLayer(context),
-              if (chatStyle == ChatStyle.classic)
-                _buildClassic(context, room, messages, items, me)
-              else
-                _buildLiquid(context, room, messages, items, me),
-              // Last, so it covers the header and the composer too — a scrim that
-              // dims the transcript but leaves a live attach button underneath it
-              // is an invitation to make the problem worse.
-              if (_mediaBusy) const BusyScrim(),
-            ],
+    return SpeakerScope(
+      // A DM hands out no colours at all. Two people, two margins — the layout
+      // has already said everything a colour could, and tinting the one
+      // incoming bubble would just be a second accent.
+      slots: room.isDm ? SpeakerSlots.none : _speakerSlots,
+      child: ChatPane(
+        // Back cancels a selection before it leaves the room — the selection
+        // bar has its own CANCEL, but a system back that walked out of the chat
+        // instead of out of the mode would be the wrong kind of surprising.
+        child: PopScope(
+          canPop: !_selection.active,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop) _selection.clear();
+          },
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            body: Stack(
+              children: [
+                theme.backgroundLayer(context),
+                if (chatStyle == ChatStyle.classic)
+                  _buildClassic(context, room, messages, items, me)
+                else
+                  _buildLiquid(context, room, messages, items, me),
+                // Last, so it covers the header and the composer too — a scrim
+                // that dims the transcript but leaves a live attach button
+                // underneath it is an invitation to make the problem worse.
+                if (_mediaBusy) const BusyScrim(),
+              ],
+            ),
           ),
         ),
       ),
@@ -2974,7 +3002,15 @@ class _RoomScreenState extends State<RoomScreen>
                       // Same avatar/name geometry as the row it lifted off, so
                       // the preview reads as that exact bubble rather than a
                       // subtly different one.
-                      return m.isEphemeral
+                      //
+                      // Re-scoped for the same reason the menu re-reads the
+                      // chat metrics: this builder runs on the ROOT overlay,
+                      // where the room's own SpeakerScope is not an ancestor.
+                      // Without it the lifted bubble would drop its speaker
+                      // colour at exactly the moment it is being stared at.
+                      return SpeakerScope(
+                        slots: room.isDm ? SpeakerSlots.none : _speakerSlots,
+                        child: m.isEphemeral
                           ? EphemeralMessageBubble(
                               message: m,
                               now: _now,
@@ -3010,7 +3046,8 @@ class _RoomScreenState extends State<RoomScreen>
                               avatarAtBottom: avatarAtBottom,
                               senderName: senderName,
                               onOpenViewOnce: () => _openViewOnce(m),
-                            );
+                            ),
+                      );
                     },
                   );
                   if (!mounted || result == null) return;

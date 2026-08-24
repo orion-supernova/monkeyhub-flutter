@@ -6,6 +6,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'speaker_scope.dart';
 import 'user_avatar.dart';
 
 /// Wording for "who is typing", shared by every surface that shows it — the
@@ -142,12 +143,24 @@ class _TypistAvatars extends StatelessWidget {
                   // avatars separate instead of smearing into each other.
                   color: stacked ? theme.surface : null,
                 ),
-                child: UserAvatar(
-                  user: shown[i],
-                  size: size - inset * 2,
-                  api: api,
-                  showStatus: false,
-                ),
+                child: Builder(builder: (context) {
+                  // Ringed exactly like the face on this person's messages —
+                  // the row is a message that hasn't arrived yet, so it should
+                  // be recognisable as theirs before a word of it exists.
+                  final ring = SpeakerScope.markOf(
+                    context,
+                    shown[i].id,
+                    on: ThemeScope.of(context).background,
+                  );
+                  return UserAvatar(
+                    user: shown[i],
+                    size: size - inset * 2,
+                    api: api,
+                    showStatus: false,
+                    ring: ring != null,
+                    ringColor: ring,
+                  );
+                }),
               ),
             ),
         ],
@@ -246,20 +259,42 @@ class _TypingRowState extends State<TypingRow> {
                           _TypistAvatars(typists: shown, api: widget.api),
                           const SizedBox(width: 8),
                         ],
-                        Container(
-                          // The incoming-bubble decoration itself, so the row
-                          // inherits every theme's bubble treatment for free
-                          // and reads as a message that hasn't landed yet.
-                          decoration: theme.bubbleDecoration(
-                            isMine: false,
-                            ephemeral: false,
-                            // A tail is right here: the dots are one incoming
-                            // message that hasn't landed, not part of a run.
-                            style: SettingsStore.instance.bubbleStyle,
-                          ),
-                          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-                          child: TypingDots(color: theme.inkSoft, size: 5),
-                        ),
+                        Builder(builder: (context) {
+                          // Only ONE typist gets the colour treatment. Two
+                          // people share one bubble here, and washing it in the
+                          // first one's colour would name the wrong person —
+                          // worse than naming nobody.
+                          final solo = shown.length == 1 ? shown.first.id : null;
+                          final authored = theme.messageBubbleDecoration(
+                              isMine: false, ephemeral: false);
+                          final fill = authored.color;
+                          final wash = fill == null
+                              ? null
+                              : SpeakerScope.washOf(context, solo,
+                                  surface: fill);
+                          final dots = SpeakerScope.markOf(context, solo,
+                                  on: wash ?? fill ?? theme.surfaceRaised) ??
+                              theme.inkSoft;
+                          return Container(
+                            // The incoming-bubble decoration itself, so the row
+                            // inherits every theme's bubble treatment for free
+                            // and reads as a message that hasn't landed yet.
+                            decoration: theme.bubbleDecoration(
+                              isMine: false,
+                              ephemeral: false,
+                              // A tail is right here: the dots are one incoming
+                              // message that hasn't landed, not part of a run.
+                              style: SettingsStore.instance.bubbleStyle,
+                              fill: wash,
+                              edge: wash == null
+                                  ? null
+                                  : SpeakerScope.markOf(context, solo,
+                                      on: fill!),
+                            ),
+                            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                            child: TypingDots(color: dots, size: 5),
+                          );
+                        }),
                       ],
                     ),
                   ),

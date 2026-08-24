@@ -7245,4 +7245,43 @@ class AppLocalizationsHi extends AppLocalizations {
   String shareSheetSendToSemantic(String title) {
     return '$title को भेजो';
   }
+
+  @override
+  String get settingsScreenRowSpeakerColors => 'बोलने वालों के रंग';
+
+  @override
+  String get settingsScreenValueSpeakerOff => 'बंद';
+
+  @override
+  String get settingsScreenValueSpeakerName => 'नाम';
+
+  @override
+  String get settingsScreenValueSpeakerBubble => 'नाम + बबल';
+
+  @override
+  String get speakerColorScreenTitle => 'बोलने वालों के रंग.';
+
+  @override
+  String get speakerColorScreenSubtitle => 'नाम पढ़े बिना जानें किसने कहा';
+
+  @override
+  String get speakerColorScreenOffLabel => 'बंद';
+
+  @override
+  String get speakerColorScreenOffDescription =>
+      'कमरे में सब एक ही स्याही से लिखते हैं.';
+
+  @override
+  String get speakerColorScreenNameLabel => 'नाम';
+
+  @override
+  String get speakerColorScreenNameDescription =>
+      'हर किसी को अपना एक रंग मिलता है — नाम पर और चेहरे के चारों ओर.';
+
+  @override
+  String get speakerColorScreenBubbleLabel => 'बबल';
+
+  @override
+  String get speakerColorScreenBubbleDescription =>
+      'रंग उनके संदेशों में भी जाता है, तो लगातार पाँच संदेश भी बताते हैं किसने लिखा.';
 }

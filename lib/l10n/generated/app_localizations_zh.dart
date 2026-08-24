@@ -6863,4 +6863,40 @@ class AppLocalizationsZh extends AppLocalizations {
   String shareSheetSendToSemantic(String title) {
     return '发送给 $title';
   }
+
+  @override
+  String get settingsScreenRowSpeakerColors => '发言人颜色';
+
+  @override
+  String get settingsScreenValueSpeakerOff => '关闭';
+
+  @override
+  String get settingsScreenValueSpeakerName => '名字';
+
+  @override
+  String get settingsScreenValueSpeakerBubble => '名字 + 气泡';
+
+  @override
+  String get speakerColorScreenTitle => '发言人颜色。';
+
+  @override
+  String get speakerColorScreenSubtitle => '不用看名字也知道是谁说的';
+
+  @override
+  String get speakerColorScreenOffLabel => '关闭';
+
+  @override
+  String get speakerColorScreenOffDescription => '房间里的所有人都用同一种颜色显示。';
+
+  @override
+  String get speakerColorScreenNameLabel => '名字';
+
+  @override
+  String get speakerColorScreenNameDescription => '每个人都有自己的颜色，显示在名字和头像圈上。';
+
+  @override
+  String get speakerColorScreenBubbleLabel => '气泡';
+
+  @override
+  String get speakerColorScreenBubbleDescription => '颜色也会延伸到气泡里，连发五条也知道是谁写的。';
 }

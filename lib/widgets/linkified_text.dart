@@ -37,6 +37,7 @@ class LinkifiedText extends StatefulWidget {
     this.selfUserId,
     this.mentionStyle,
     this.selfMentionStyle,
+    this.mentionTint,
     this.onMentionTap,
     this.formatting = const [],
     this.codeStyle,
@@ -92,6 +93,20 @@ class LinkifiedText extends StatefulWidget {
 
   final TextStyle? mentionStyle;
   final TextStyle? selfMentionStyle;
+
+  /// Per-mentioned-user ink, layered over [mentionStyle] — the colour that
+  /// person speaks in, in a group room that hands colours out. Null, or a null
+  /// return for a given id, leaves the mention in [mentionStyle] exactly as
+  /// before.
+  ///
+  /// Colour only. Weight, background and the deliberate absence of an
+  /// underline stay with [mentionStyle], so a tinted mention is still visibly
+  /// a mention and still tellable apart from a link.
+  ///
+  /// Never consulted for a mention of the reader: [selfMentionStyle] already
+  /// draws that one the loudest, and repainting it in a speaker colour would
+  /// quietly demote the one distinction the feature exists for.
+  final Color? Function(String userId)? mentionTint;
   final void Function(String userId)? onMentionTap;
 
   /// The message's stored formatting spans, offsets into [text].
@@ -320,6 +335,13 @@ class _LinkifiedTextState extends State<LinkifiedText> {
         final isSelf = m.isEveryone ||
             (m.userId != null && m.userId == widget.selfUserId);
         style = isSelf ? widget.selfMentionStyle : widget.mentionStyle;
+        final id = m.userId;
+        if (!isSelf && id != null) {
+          final tint = widget.mentionTint?.call(id);
+          if (tint != null) {
+            style = (style ?? const TextStyle()).copyWith(color: tint);
+          }
+        }
       }
     }
 

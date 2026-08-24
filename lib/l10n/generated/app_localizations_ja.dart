@@ -6946,4 +6946,41 @@ class AppLocalizationsJa extends AppLocalizations {
   String shareSheetSendToSemantic(String title) {
     return '$titleに送信';
   }
+
+  @override
+  String get settingsScreenRowSpeakerColors => '話し手の色';
+
+  @override
+  String get settingsScreenValueSpeakerOff => 'オフ';
+
+  @override
+  String get settingsScreenValueSpeakerName => '名前';
+
+  @override
+  String get settingsScreenValueSpeakerBubble => '名前＋吹き出し';
+
+  @override
+  String get speakerColorScreenTitle => '話し手の色。';
+
+  @override
+  String get speakerColorScreenSubtitle => '名前を読まなくても、誰の発言かわかる';
+
+  @override
+  String get speakerColorScreenOffLabel => 'オフ';
+
+  @override
+  String get speakerColorScreenOffDescription => '部屋の全員が同じ色で表示されます。';
+
+  @override
+  String get speakerColorScreenNameLabel => '名前';
+
+  @override
+  String get speakerColorScreenNameDescription => '一人ひとりに専用の色。名前とアイコンの縁につきます。';
+
+  @override
+  String get speakerColorScreenBubbleLabel => '吹き出し';
+
+  @override
+  String get speakerColorScreenBubbleDescription =>
+      '色は吹き出しにも広がるので、5件続いても誰の発言かわかります。';
 }

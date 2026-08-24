@@ -114,8 +114,14 @@ extension BubbleGeometry on AppTheme {
     required BubbleStyle style,
     bool firstInRun = true,
     bool lastInRun = true,
+    Color? fill,
+    Color? edge,
   }) {
-    final base = messageBubbleDecoration(isMine: isMine, ephemeral: ephemeral);
+    final base = _speakerTinted(
+      messageBubbleDecoration(isMine: isMine, ephemeral: ephemeral),
+      fill: fill,
+      edge: edge,
+    );
     return ShapeDecoration(
       color: base.color,
       gradient: base.gradient,
@@ -132,6 +138,43 @@ extension BubbleGeometry on AppTheme {
         lastInRun: lastInRun,
       ),
     );
+  }
+
+  /// Restates a theme's authored bubble in one speaker's colour.
+  ///
+  /// [fill] replaces the authored background outright — it is already that
+  /// background with the speaker's colour washed through it
+  /// (`SpeakerPalette.speakerWash`), computed by the caller so the blend has
+  /// exactly one definition and this file does no colour maths.
+  ///
+  /// [edge] only ever lends its HUE. Alpha and width stay whatever the theme
+  /// authored, because those are what make Risograph's border a 1.8px slab and
+  /// Bio-Organic's a 0.8px whisper — a speaker colour that overrode them would
+  /// be redrawing the theme, not tinting it. A theme that draws no border on
+  /// an incoming bubble (Basic, Deep Ocean) does not grow one here either: the
+  /// wash, the name and the avatar ring are the signal there.
+  ///
+  /// Both null — every caller outside a group room — returns the decoration
+  /// untouched.
+  BoxDecoration _speakerTinted(
+    BoxDecoration base, {
+    required Color? fill,
+    required Color? edge,
+  }) {
+    if (fill == null && edge == null) return base;
+    final authored = base.border;
+    final BoxBorder? border;
+    if (edge != null && authored is Border && authored.isUniform) {
+      final side = authored.top;
+      border = Border.all(
+        color: Color.lerp(side.color, edge, 0.6)!
+            .withValues(alpha: side.color.a),
+        width: side.width,
+      );
+    } else {
+      border = authored;
+    }
+    return base.copyWith(color: fill ?? base.color, border: border);
   }
 
   /// The same outline [bubbleDecoration] paints, for callers that need the

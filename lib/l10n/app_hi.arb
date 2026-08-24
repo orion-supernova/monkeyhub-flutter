@@ -2039,5 +2039,17 @@
   "shareSheetSuggestedHeading": "सुझाए गए",
   "shareSheetPreviewItems": "{count, plural, one{1 अटैचमेंट} other{{count} अटैचमेंट}}",
   "shareSheetTooLargeDropped": "{count, plural, one{1 फ़ाइल {size} की सीमा से बड़ी है, इसलिए छोड़ दी गई} other{{count} फ़ाइलें {size} की सीमा से बड़ी हैं, इसलिए छोड़ दी गईं}}",
-  "shareSheetSendToSemantic": "{title} को भेजो"
+  "shareSheetSendToSemantic": "{title} को भेजो",
+  "settingsScreenRowSpeakerColors": "बोलने वालों के रंग",
+  "settingsScreenValueSpeakerOff": "बंद",
+  "settingsScreenValueSpeakerName": "नाम",
+  "settingsScreenValueSpeakerBubble": "नाम + बबल",
+  "speakerColorScreenTitle": "बोलने वालों के रंग.",
+  "speakerColorScreenSubtitle": "नाम पढ़े बिना जानें किसने कहा",
+  "speakerColorScreenOffLabel": "बंद",
+  "speakerColorScreenOffDescription": "कमरे में सब एक ही स्याही से लिखते हैं.",
+  "speakerColorScreenNameLabel": "नाम",
+  "speakerColorScreenNameDescription": "हर किसी को अपना एक रंग मिलता है — नाम पर और चेहरे के चारों ओर.",
+  "speakerColorScreenBubbleLabel": "बबल",
+  "speakerColorScreenBubbleDescription": "रंग उनके संदेशों में भी जाता है, तो लगातार पाँच संदेश भी बताते हैं किसने लिखा."
 }

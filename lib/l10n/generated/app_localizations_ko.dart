@@ -6966,4 +6966,42 @@ class AppLocalizationsKo extends AppLocalizations {
   String shareSheetSendToSemantic(String title) {
     return '$title에게 보내기';
   }
+
+  @override
+  String get settingsScreenRowSpeakerColors => '말한 사람 색상';
+
+  @override
+  String get settingsScreenValueSpeakerOff => '끄기';
+
+  @override
+  String get settingsScreenValueSpeakerName => '이름';
+
+  @override
+  String get settingsScreenValueSpeakerBubble => '이름 + 말풍선';
+
+  @override
+  String get speakerColorScreenTitle => '말한 사람 색상.';
+
+  @override
+  String get speakerColorScreenSubtitle => '이름을 읽지 않아도 누가 말했는지';
+
+  @override
+  String get speakerColorScreenOffLabel => '끄기';
+
+  @override
+  String get speakerColorScreenOffDescription => '방에 있는 모두가 같은 색으로 표시됩니다.';
+
+  @override
+  String get speakerColorScreenNameLabel => '이름';
+
+  @override
+  String get speakerColorScreenNameDescription =>
+      '각자 고유한 색을 갖습니다. 이름과 프로필 테두리에 표시돼요.';
+
+  @override
+  String get speakerColorScreenBubbleLabel => '말풍선';
+
+  @override
+  String get speakerColorScreenBubbleDescription =>
+      '색이 말풍선까지 이어져, 다섯 개가 연달아 와도 누가 썼는지 알 수 있어요.';
 }

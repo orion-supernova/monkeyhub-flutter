@@ -2039,5 +2039,17 @@
   "shareSheetSuggestedHeading": "مقترحون",
   "shareSheetPreviewItems": "{count, plural, zero{{count} مرفقات} one{مرفق واحد} two{مرفقان} few{{count} مرفقات} many{{count} مرفقًا} other{{count} مرفق}}",
   "shareSheetTooLargeDropped": "{count, plural, zero{{count} ملفات تتجاوز حد {size} ولم تُضَف} one{ملف واحد يتجاوز حد {size} ولم يُضَف} two{ملفان يتجاوزان حد {size} ولم يُضافا} few{{count} ملفات تتجاوز حد {size} ولم تُضَف} many{{count} ملفًا يتجاوز حد {size} ولم يُضَف} other{{count} ملف يتجاوز حد {size} ولم يُضَف}}",
-  "shareSheetSendToSemantic": "إرسال إلى {title}"
+  "shareSheetSendToSemantic": "إرسال إلى {title}",
+  "settingsScreenRowSpeakerColors": "ألوان المتحدّثين",
+  "settingsScreenValueSpeakerOff": "مُعطَّل",
+  "settingsScreenValueSpeakerName": "الأسماء",
+  "settingsScreenValueSpeakerBubble": "الأسماء + الفقاعات",
+  "speakerColorScreenTitle": "ألوان المتحدّثين.",
+  "speakerColorScreenSubtitle": "من قال ذلك، دون قراءة الاسم",
+  "speakerColorScreenOffLabel": "مُعطَّل",
+  "speakerColorScreenOffDescription": "الجميع في الغرفة يكتبون بالحبر نفسه.",
+  "speakerColorScreenNameLabel": "الأسماء",
+  "speakerColorScreenNameDescription": "لكل شخص لون خاص به، على اسمه وحول صورته.",
+  "speakerColorScreenBubbleLabel": "الفقاعات",
+  "speakerColorScreenBubbleDescription": "اللون ينتقل إلى رسائلهم أيضًا، فتظل خمس رسائل متتالية تخبرك بمن كتبها."
 }

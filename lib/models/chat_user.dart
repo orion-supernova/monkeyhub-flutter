@@ -135,6 +135,7 @@ class ChatUser {
     this.hasPassword,
     this.usernameChangedAt,
     this.isSystem = false,
+    this.joinedAt,
   });
 
   final String id;
@@ -148,6 +149,17 @@ class ChatUser {
   FriendshipStatus friendshipStatus;
   String? requestId; // friendship row id (for accept/reject ops)
   String? role; // "owner" | "member" (room context)
+
+  /// When this user joined the room they were fetched for — room context only,
+  /// null everywhere else and on a backend that predates the field.
+  ///
+  /// Never displayed. It exists so per-speaker colours can be settled in JOIN
+  /// order (`SpeakerSlots.forMembers`): whoever was here first keeps the colour
+  /// they had, and a new member takes a free one instead of taking someone
+  /// else's and cascading the whole room. Ordering by id instead — which is
+  /// what a null everywhere degrades to — is still deterministic and identical
+  /// on every client, it just loses that one guarantee.
+  final DateTime? joinedAt;
 
   /// Present only on a self-profile fetch — null when viewing other users.
   /// Other viewers seeing someone's settings would itself be a privacy leak.
@@ -255,6 +267,11 @@ class ChatUser {
       },
       // Sent only when true — see `publicUserView` in backend/convex/visibility.ts.
       isSystem: (j['isSystem'] as bool?) ?? false,
+      // Room-scoped, so absent on every other fetch — see the field's doc.
+      joinedAt: switch (j['joinedAt']) {
+        final num ms => DateTime.fromMillisecondsSinceEpoch(ms.toInt()),
+        _ => null,
+      },
     );
   }
 
@@ -322,5 +339,9 @@ class ChatUser {
         // Same reason: ProfileScreen re-grafts friendship state onto a fresh
         // fetch, and dropping this would turn a bot back into a person.
         isSystem: isSystem,
+        // And the same again: a member re-grafted mid-session must not lose
+        // the join instant their speaker colour is settled from, or the room
+        // would reshuffle its colours under the reader.
+        joinedAt: joinedAt,
       );
 }

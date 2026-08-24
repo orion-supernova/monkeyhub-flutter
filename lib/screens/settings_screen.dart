@@ -19,6 +19,7 @@ import '../push/android_call_reliability.dart';
 import '../push/push_manager.dart';
 import '../services/link_opener.dart';
 import '../theme/bubble_shape.dart';
+import '../theme/speaker_colors.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../update/update_availability.dart';
@@ -37,6 +38,7 @@ import 'diagnostics_screen.dart';
 import 'glass_screen.dart';
 import 'language_screen.dart';
 import 'reply_style_screen.dart';
+import 'speaker_color_screen.dart';
 import 'logo_screen.dart';
 import 'motion_screen.dart';
 import 'navigation_screen.dart';
@@ -259,6 +261,18 @@ class _SettingsScreenState extends State<SettingsScreen>
         return l10n.settingsScreenValueReplyComicTail;
       case ReplyStyle.classic:
         return l10n.settingsScreenValueClassic;
+    }
+  }
+
+  String get _speakerTintLabel {
+    final l10n = AppLocalizations.of(context);
+    switch (SettingsStore.instance.speakerTint) {
+      case SpeakerTint.off:
+        return l10n.settingsScreenValueSpeakerOff;
+      case SpeakerTint.name:
+        return l10n.settingsScreenValueSpeakerName;
+      case SpeakerTint.bubble:
+        return l10n.settingsScreenValueSpeakerBubble;
     }
   }
 
@@ -637,6 +651,22 @@ class _SettingsScreenState extends State<SettingsScreen>
                     context,
                     key: 'bubbleStyle',
                     builder: (_) => const BubbleStyleScreen(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _DisclosureRow(
+                  label: l10n.settingsScreenRowSpeakerColors,
+                  value: _speakerTintLabel,
+                  selected: _isOpen('speakerColors'),
+                  leading: Icon(
+                    Icons.palette_outlined,
+                    size: 16,
+                    color: theme.inkSoft,
+                  ),
+                  onTap: () => openSettingsDetail(
+                    context,
+                    key: 'speakerColors',
+                    builder: (_) => const SpeakerColorScreen(),
                   ),
                 ),
                 const SizedBox(height: 10),

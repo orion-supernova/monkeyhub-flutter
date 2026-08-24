@@ -12390,6 +12390,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Send to {title}'**
   String shareSheetSendToSemantic(String title);
+
+  /// All-caps row label that opens the Speaker Colours picker.
+  ///
+  /// In en, this message translates to:
+  /// **'SPEAKER COLOURS'**
+  String get settingsScreenRowSpeakerColors;
+
+  /// Sentence-case value next to SPEAKER COLOURS when nobody is tinted.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get settingsScreenValueSpeakerOff;
+
+  /// Sentence-case value next to SPEAKER COLOURS when only names and avatar rings are tinted.
+  ///
+  /// In en, this message translates to:
+  /// **'Names'**
+  String get settingsScreenValueSpeakerName;
+
+  /// Sentence-case value next to SPEAKER COLOURS when the tint also reaches the message bubbles.
+  ///
+  /// In en, this message translates to:
+  /// **'Names + bubbles'**
+  String get settingsScreenValueSpeakerBubble;
+
+  /// Display heading at the top of the speaker colours picker screen (lowercase sentence-fragment style, matches other settings detail screens).
+  ///
+  /// In en, this message translates to:
+  /// **'speaker colours.'**
+  String get speakerColorScreenTitle;
+
+  /// Caption line under the speaker colours screen title, next to a small accent divider.
+  ///
+  /// In en, this message translates to:
+  /// **'who said that, without reading the name'**
+  String get speakerColorScreenSubtitle;
+
+  /// All-caps option label for the card that turns per-person colours off.
+  ///
+  /// In en, this message translates to:
+  /// **'OFF'**
+  String get speakerColorScreenOffLabel;
+
+  /// Small mono-caption under the OFF card, explaining that every sender is drawn in the same colour.
+  ///
+  /// In en, this message translates to:
+  /// **'everyone in the room writes in the same ink.'**
+  String get speakerColorScreenOffDescription;
+
+  /// All-caps option label for the card that colours sender names and avatar rings only.
+  ///
+  /// In en, this message translates to:
+  /// **'NAMES'**
+  String get speakerColorScreenNameLabel;
+
+  /// Small mono-caption under the NAMES card, explaining that each person gets their own colour on their name and avatar ring.
+  ///
+  /// In en, this message translates to:
+  /// **'each person keeps a colour of their own, on their name and around their face.'**
+  String get speakerColorScreenNameDescription;
+
+  /// All-caps option label for the card that also washes each sender's colour through their message bubbles.
+  ///
+  /// In en, this message translates to:
+  /// **'BUBBLES'**
+  String get speakerColorScreenBubbleLabel;
+
+  /// Small mono-caption under the BUBBLES card, explaining that the colour also reaches the bubbles so a run of messages still shows who wrote it.
+  ///
+  /// In en, this message translates to:
+  /// **'the colour carries into their messages too, so a run of five still says who wrote it.'**
+  String get speakerColorScreenBubbleDescription;
 }
 
 class _AppLocalizationsDelegate

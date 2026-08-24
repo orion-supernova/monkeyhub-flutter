@@ -2039,5 +2039,17 @@
   "shareSheetSuggestedHeading": "SUGERIDOS",
   "shareSheetPreviewItems": "{count, plural, one{1 archivo adjunto} other{{count} archivos adjuntos}}",
   "shareSheetTooLargeDropped": "{count, plural, one{1 archivo supera el límite de {size} y se ha omitido} other{{count} archivos superan el límite de {size} y se han omitido}}",
-  "shareSheetSendToSemantic": "Enviar a {title}"
+  "shareSheetSendToSemantic": "Enviar a {title}",
+  "settingsScreenRowSpeakerColors": "COLORES POR PERSONA",
+  "settingsScreenValueSpeakerOff": "Desactivado",
+  "settingsScreenValueSpeakerName": "Nombres",
+  "settingsScreenValueSpeakerBubble": "Nombres + burbujas",
+  "speakerColorScreenTitle": "colores por persona.",
+  "speakerColorScreenSubtitle": "quién lo dijo, sin leer el nombre",
+  "speakerColorScreenOffLabel": "DESACTIVADO",
+  "speakerColorScreenOffDescription": "todos en la sala escriben con la misma tinta.",
+  "speakerColorScreenNameLabel": "NOMBRES",
+  "speakerColorScreenNameDescription": "cada persona tiene un color propio, en su nombre y alrededor de su cara.",
+  "speakerColorScreenBubbleLabel": "BURBUJAS",
+  "speakerColorScreenBubbleDescription": "el color pasa también a sus mensajes, así que una racha de cinco sigue diciendo quién escribió."
 }

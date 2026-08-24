@@ -7257,4 +7257,44 @@ class AppLocalizationsSv extends AppLocalizations {
   String shareSheetSendToSemantic(String title) {
     return 'Skicka till $title';
   }
+
+  @override
+  String get settingsScreenRowSpeakerColors => 'PERSONFÄRGER';
+
+  @override
+  String get settingsScreenValueSpeakerOff => 'Av';
+
+  @override
+  String get settingsScreenValueSpeakerName => 'Namn';
+
+  @override
+  String get settingsScreenValueSpeakerBubble => 'Namn + bubblor';
+
+  @override
+  String get speakerColorScreenTitle => 'personfärger.';
+
+  @override
+  String get speakerColorScreenSubtitle =>
+      'vem som sa det, utan att läsa namnet';
+
+  @override
+  String get speakerColorScreenOffLabel => 'AV';
+
+  @override
+  String get speakerColorScreenOffDescription =>
+      'alla i rummet skriver med samma bläck.';
+
+  @override
+  String get speakerColorScreenNameLabel => 'NAMN';
+
+  @override
+  String get speakerColorScreenNameDescription =>
+      'varje person får en egen färg, på namnet och runt ansiktet.';
+
+  @override
+  String get speakerColorScreenBubbleLabel => 'BUBBLOR';
+
+  @override
+  String get speakerColorScreenBubbleDescription =>
+      'färgen följer med in i meddelandena, så en rad på fem säger fortfarande vem som skrev.';
 }

@@ -7309,4 +7309,43 @@ class AppLocalizationsEs extends AppLocalizations {
   String shareSheetSendToSemantic(String title) {
     return 'Enviar a $title';
   }
+
+  @override
+  String get settingsScreenRowSpeakerColors => 'COLORES POR PERSONA';
+
+  @override
+  String get settingsScreenValueSpeakerOff => 'Desactivado';
+
+  @override
+  String get settingsScreenValueSpeakerName => 'Nombres';
+
+  @override
+  String get settingsScreenValueSpeakerBubble => 'Nombres + burbujas';
+
+  @override
+  String get speakerColorScreenTitle => 'colores por persona.';
+
+  @override
+  String get speakerColorScreenSubtitle => 'quién lo dijo, sin leer el nombre';
+
+  @override
+  String get speakerColorScreenOffLabel => 'DESACTIVADO';
+
+  @override
+  String get speakerColorScreenOffDescription =>
+      'todos en la sala escriben con la misma tinta.';
+
+  @override
+  String get speakerColorScreenNameLabel => 'NOMBRES';
+
+  @override
+  String get speakerColorScreenNameDescription =>
+      'cada persona tiene un color propio, en su nombre y alrededor de su cara.';
+
+  @override
+  String get speakerColorScreenBubbleLabel => 'BURBUJAS';
+
+  @override
+  String get speakerColorScreenBubbleDescription =>
+      'el color pasa también a sus mensajes, así que una racha de cinco sigue diciendo quién escribió.';
 }

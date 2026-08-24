@@ -2039,5 +2039,17 @@
   "shareSheetSuggestedHeading": "FÖRSLAG",
   "shareSheetPreviewItems": "{count, plural, one{1 bilaga} other{{count} bilagor}}",
   "shareSheetTooLargeDropped": "{count, plural, one{1 fil är över gränsen på {size} och togs inte med} other{{count} filer är över gränsen på {size} och togs inte med}}",
-  "shareSheetSendToSemantic": "Skicka till {title}"
+  "shareSheetSendToSemantic": "Skicka till {title}",
+  "settingsScreenRowSpeakerColors": "PERSONFÄRGER",
+  "settingsScreenValueSpeakerOff": "Av",
+  "settingsScreenValueSpeakerName": "Namn",
+  "settingsScreenValueSpeakerBubble": "Namn + bubblor",
+  "speakerColorScreenTitle": "personfärger.",
+  "speakerColorScreenSubtitle": "vem som sa det, utan att läsa namnet",
+  "speakerColorScreenOffLabel": "AV",
+  "speakerColorScreenOffDescription": "alla i rummet skriver med samma bläck.",
+  "speakerColorScreenNameLabel": "NAMN",
+  "speakerColorScreenNameDescription": "varje person får en egen färg, på namnet och runt ansiktet.",
+  "speakerColorScreenBubbleLabel": "BUBBLOR",
+  "speakerColorScreenBubbleDescription": "färgen följer med in i meddelandena, så en rad på fem säger fortfarande vem som skrev."
 }

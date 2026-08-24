@@ -7,6 +7,7 @@ import '../models/enums.dart';
 import '../models/message_preview.dart';
 import '../theme/theme_scope.dart';
 import 'remote_image.dart';
+import 'speaker_scope.dart';
 
 /// Sits above the composer when the user is replying to a message. Shows
 /// who's being replied to + a one-line snippet (or media thumbnail), with an
@@ -58,6 +59,16 @@ class _ComposerReplyCardState extends State<ComposerReplyCard>
     final theme = ThemeScope.of(context);
     final m = widget.parent;
     final isMedia = m.type == MessageType.image || m.type == MessageType.video;
+    // The card names the person you are about to answer, so it is exactly the
+    // kind of place their own colour belongs — and it is the one surface where
+    // the reader can no longer see the bubble they tapped. Falls back to the
+    // accent in a DM and wherever colours are off, which is what it always was.
+    final strip =
+        SpeakerScope.markOf(context, m.senderId, on: theme.surfaceRaised) ??
+            theme.accent;
+    final nameInk =
+        SpeakerScope.inkOf(context, m.senderId, on: theme.surfaceRaised) ??
+            theme.accent;
 
     return AnimatedBuilder(
       animation: _ctrl,
@@ -89,14 +100,14 @@ class _ComposerReplyCardState extends State<ComposerReplyCard>
               child: Row(
                 children: [
                   // Accent strip — visual anchor mirroring the inline tether.
-                  Container(width: 3, color: theme.accent),
+                  Container(width: 3, color: strip),
                   const SizedBox(width: 10),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Icon(
                       CupertinoIcons.arrowshape_turn_up_left_fill,
                       size: 14,
-                      color: theme.accent,
+                      color: strip,
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -112,7 +123,7 @@ class _ComposerReplyCardState extends State<ComposerReplyCard>
                                 .composerReplyCardReplyingToLabel(
                               m.senderName.toUpperCase(),
                             ),
-                            style: theme.monoTiny.copyWith(color: theme.accent),
+                            style: theme.monoTiny.copyWith(color: nameInk),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),

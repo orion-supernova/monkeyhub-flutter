@@ -2039,5 +2039,17 @@
   "shareSheetSuggestedHeading": "推荐",
   "shareSheetPreviewItems": "{count, plural, other{{count} 个附件}}",
   "shareSheetTooLargeDropped": "{count, plural, other{{count} 个文件超过 {size} 上限，已略过}}",
-  "shareSheetSendToSemantic": "发送给 {title}"
+  "shareSheetSendToSemantic": "发送给 {title}",
+  "settingsScreenRowSpeakerColors": "发言人颜色",
+  "settingsScreenValueSpeakerOff": "关闭",
+  "settingsScreenValueSpeakerName": "名字",
+  "settingsScreenValueSpeakerBubble": "名字 + 气泡",
+  "speakerColorScreenTitle": "发言人颜色。",
+  "speakerColorScreenSubtitle": "不用看名字也知道是谁说的",
+  "speakerColorScreenOffLabel": "关闭",
+  "speakerColorScreenOffDescription": "房间里的所有人都用同一种颜色显示。",
+  "speakerColorScreenNameLabel": "名字",
+  "speakerColorScreenNameDescription": "每个人都有自己的颜色，显示在名字和头像圈上。",
+  "speakerColorScreenBubbleLabel": "气泡",
+  "speakerColorScreenBubbleDescription": "颜色也会延伸到气泡里，连发五条也知道是谁写的。"
 }

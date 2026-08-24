@@ -2039,5 +2039,17 @@
   "shareSheetSuggestedHeading": "SUGGESTIONS",
   "shareSheetPreviewItems": "{count, plural, one{1 pièce jointe} other{{count} pièces jointes}}",
   "shareSheetTooLargeDropped": "{count, plural, one{1 fichier dépasse la limite de {size} et a été ignoré} other{{count} fichiers dépassent la limite de {size} et ont été ignorés}}",
-  "shareSheetSendToSemantic": "Envoyer à {title}"
+  "shareSheetSendToSemantic": "Envoyer à {title}",
+  "settingsScreenRowSpeakerColors": "COULEURS DES AUTEURS",
+  "settingsScreenValueSpeakerOff": "Désactivé",
+  "settingsScreenValueSpeakerName": "Noms",
+  "settingsScreenValueSpeakerBubble": "Noms + bulles",
+  "speakerColorScreenTitle": "couleurs des auteurs.",
+  "speakerColorScreenSubtitle": "qui a dit ça, sans lire le nom",
+  "speakerColorScreenOffLabel": "DÉSACTIVÉ",
+  "speakerColorScreenOffDescription": "tout le monde dans le salon écrit avec la même encre.",
+  "speakerColorScreenNameLabel": "NOMS",
+  "speakerColorScreenNameDescription": "chacun garde sa propre couleur, sur son nom et autour de son visage.",
+  "speakerColorScreenBubbleLabel": "BULLES",
+  "speakerColorScreenBubbleDescription": "la couleur passe aussi dans ses messages : une série de cinq dit encore qui a écrit."
 }

@@ -2039,5 +2039,17 @@
   "shareSheetSuggestedHeading": "候補",
   "shareSheetPreviewItems": "{count, plural, other{添付{count}件}}",
   "shareSheetTooLargeDropped": "{count, plural, other{{count}件のファイルが{size}の上限を超えたため除外しました}}",
-  "shareSheetSendToSemantic": "{title}に送信"
+  "shareSheetSendToSemantic": "{title}に送信",
+  "settingsScreenRowSpeakerColors": "話し手の色",
+  "settingsScreenValueSpeakerOff": "オフ",
+  "settingsScreenValueSpeakerName": "名前",
+  "settingsScreenValueSpeakerBubble": "名前＋吹き出し",
+  "speakerColorScreenTitle": "話し手の色。",
+  "speakerColorScreenSubtitle": "名前を読まなくても、誰の発言かわかる",
+  "speakerColorScreenOffLabel": "オフ",
+  "speakerColorScreenOffDescription": "部屋の全員が同じ色で表示されます。",
+  "speakerColorScreenNameLabel": "名前",
+  "speakerColorScreenNameDescription": "一人ひとりに専用の色。名前とアイコンの縁につきます。",
+  "speakerColorScreenBubbleLabel": "吹き出し",
+  "speakerColorScreenBubbleDescription": "色は吹き出しにも広がるので、5件続いても誰の発言かわかります。"
 }

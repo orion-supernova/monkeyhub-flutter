@@ -14,7 +14,46 @@ import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import 'remote_image.dart';
+import 'speaker_scope.dart';
 import 'user_avatar.dart';
+
+/// The two colours a quote card paints the person it is quoting in.
+///
+/// A reply is the one place in a transcript that talks about a message OTHER
+/// than the one it is attached to, so it is also the one place where the
+/// reader has to be told *whose* message that is. Every one of these designs
+/// already had a colour for exactly that job — [AppTheme.accent] — and every
+/// one of them used the same one for everybody, which meant four elaborate
+/// quote designs that all answered "replying to a message" and none that
+/// answered "replying to WHOSE".
+///
+/// Both fall back to the accent, so a DM, a room with speaker colours off,
+/// and a quote of your OWN message all render exactly as they did before.
+///
+/// [ring] is the same colour as [mark] but NULL where there is no speaker
+/// colour to be had, which is what lets the quoted avatar stay unringed in a
+/// DM instead of gaining an accent circle it never had.
+typedef QuoteTone = ({Color mark, Color ink, Color? ring});
+
+QuoteTone _quoteTone(
+  BuildContext context,
+  AppTheme theme,
+  ReplyPreview preview,
+) {
+  // Quote cards all sit on a raised surface — the phantom's frosted plate, the
+  // comic's mini bubble, sticky's polaroid, classic's inset — so both colours
+  // are conditioned against that one ground rather than each design measuring
+  // its own.
+  final mark =
+      SpeakerScope.markOf(context, preview.senderId, on: theme.surfaceRaised);
+  return (
+    mark: mark ?? theme.accent,
+    ink: SpeakerScope.inkOf(context, preview.senderId,
+            on: theme.surfaceRaised) ??
+        theme.accent,
+    ring: mark,
+  );
+}
 
 /// Inline reply context, rendered as a sibling ABOVE the reply bubble.
 ///
@@ -73,6 +112,7 @@ class ReplyIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = styleOverride ?? SettingsStore.instance.replyStyle;
+    final tone = _quoteTone(context, ThemeScope.of(context), preview);
     switch (style) {
       case ReplyStyle.phantomEcho:
         return _PhantomEcho(
@@ -81,6 +121,7 @@ class ReplyIndicator extends StatelessWidget {
           parentIsMine: parentIsMine,
           api: api,
           parentAuthor: parentAuthor,
+          tone: tone,
           onTap: onTap,
           onViewThread: onViewThread,
         );
@@ -90,6 +131,7 @@ class ReplyIndicator extends StatelessWidget {
           isMine: isMine,
           api: api,
           parentAuthor: parentAuthor,
+          tone: tone,
           onTap: onTap,
           onViewThread: onViewThread,
         );
@@ -100,6 +142,7 @@ class ReplyIndicator extends StatelessWidget {
           parentIsMine: parentIsMine,
           api: api,
           parentAuthor: parentAuthor,
+          tone: tone,
           onTap: onTap,
           onViewThread: onViewThread,
         );
@@ -109,6 +152,7 @@ class ReplyIndicator extends StatelessWidget {
           isMine: isMine,
           api: api,
           parentAuthor: parentAuthor,
+          tone: tone,
           onTap: onTap,
           onViewThread: onViewThread,
         );
@@ -241,9 +285,14 @@ class ReplyTether extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final deleted = preview.isDeleted;
+    // The compact marker prints no name at all — the line IS the whole
+    // statement — so colouring it in the quoted author's own hue is the only
+    // way it can say which of the bubbles above it is being answered.
     final tone = deleted
         ? theme.inkMuted.withValues(alpha: 0.55)
-        : theme.accent;
+        : (SpeakerScope.markOf(context, preview.senderId,
+                on: theme.background) ??
+            theme.accent);
     final branch = onViewThread;
     final showBranch = branch != null && !deleted;
 
@@ -431,6 +480,11 @@ Widget _smallAvatar({
   required ChatUser? parentAuthor,
   required AppTheme theme,
   required Color accentTone,
+  /// The quoted author's speaker colour, or null where there is none. Rings
+  /// the puck so the face in the quote matches the face beside the message
+  /// being quoted — the two are usually both on screen, and an unringed copy
+  /// of a ringed avatar reads as a different person.
+  Color? ring,
   double size = 18,
 }) {
   if (parentAuthor != null) {
@@ -439,6 +493,8 @@ Widget _smallAvatar({
       api: api,
       size: size,
       showStatus: false,
+      ring: ring != null,
+      ringColor: ring,
     );
   }
   return Container(
@@ -554,6 +610,7 @@ class _PhantomEcho extends StatelessWidget {
     required this.parentIsMine,
     required this.api,
     required this.parentAuthor,
+    required this.tone,
     required this.onTap,
     required this.onViewThread,
   });
@@ -562,6 +619,7 @@ class _PhantomEcho extends StatelessWidget {
   final bool parentIsMine;
   final ChatApi api;
   final ChatUser? parentAuthor;
+  final QuoteTone tone;
   final VoidCallback onTap;
   final VoidCallback? onViewThread;
 
@@ -609,7 +667,7 @@ class _PhantomEcho extends StatelessWidget {
                       color: phantomBg.withValues(alpha: 0.88),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: theme.accent.withValues(alpha: 0.28),
+                        color: tone.mark.withValues(alpha: 0.28),
                         width: 0.8,
                       ),
                       boxShadow: [
@@ -625,6 +683,7 @@ class _PhantomEcho extends StatelessWidget {
                       api: api,
                       parentAuthor: parentAuthor,
                       theme: theme,
+                      tone: tone,
                       phantomInk: phantomInk,
                       phantomMuted: phantomMuted,
                       deleted: deleted,
@@ -657,7 +716,7 @@ class _PhantomEcho extends StatelessWidget {
                         isMine: isMine,
                         color: deleted
                             ? theme.inkMuted.withValues(alpha: 0.55)
-                            : theme.accent,
+                            : tone.mark,
                       ),
                     ),
                   ),
@@ -729,6 +788,7 @@ class _PhantomBody extends StatelessWidget {
     required this.api,
     required this.parentAuthor,
     required this.theme,
+    required this.tone,
     required this.phantomInk,
     required this.phantomMuted,
     required this.deleted,
@@ -737,6 +797,7 @@ class _PhantomBody extends StatelessWidget {
   final ChatApi api;
   final ChatUser? parentAuthor;
   final AppTheme theme;
+  final QuoteTone tone;
   final Color phantomInk;
   final Color phantomMuted;
   final bool deleted;
@@ -753,7 +814,8 @@ class _PhantomBody extends StatelessWidget {
           api: api,
           parentAuthor: parentAuthor,
           theme: theme,
-          accentTone: theme.accent,
+          accentTone: tone.mark,
+          ring: tone.ring,
           size: 18,
         ),
         const SizedBox(width: 8),
@@ -765,9 +827,7 @@ class _PhantomBody extends StatelessWidget {
               Text(
                 preview.senderName.toUpperCase(),
                 style: theme.monoTiny.copyWith(
-                  color: deleted
-                      ? phantomMuted
-                      : theme.accent.withValues(alpha: 0.95),
+                  color: deleted ? phantomMuted : tone.ink,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -822,6 +882,7 @@ class _StickyNote extends StatelessWidget {
     required this.isMine,
     required this.api,
     required this.parentAuthor,
+    required this.tone,
     required this.onTap,
     required this.onViewThread,
   });
@@ -829,6 +890,7 @@ class _StickyNote extends StatelessWidget {
   final bool isMine;
   final ChatApi api;
   final ChatUser? parentAuthor;
+  final QuoteTone tone;
   final VoidCallback onTap;
   final VoidCallback? onViewThread;
 
@@ -894,7 +956,8 @@ class _StickyNote extends StatelessWidget {
                             api: api,
                             parentAuthor: parentAuthor,
                             theme: theme,
-                            accentTone: theme.accent,
+                            accentTone: tone.mark,
+                            ring: tone.ring,
                             size: 16,
                           ),
                           const SizedBox(width: 8),
@@ -906,9 +969,7 @@ class _StickyNote extends StatelessWidget {
                                 Text(
                                   preview.senderName.toUpperCase(),
                                   style: theme.monoTiny.copyWith(
-                                    color: deleted
-                                        ? theme.inkMuted
-                                        : theme.accent,
+                                    color: deleted ? theme.inkMuted : tone.ink,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -999,7 +1060,7 @@ class _StickyNote extends StatelessWidget {
                 width: 2,
                 height: 10,
                 decoration: BoxDecoration(
-                  color: theme.accent.withValues(alpha: deleted ? 0.35 : 0.75),
+                  color: tone.mark.withValues(alpha: deleted ? 0.35 : 0.75),
                   borderRadius: BorderRadius.circular(1),
                 ),
               ),
@@ -1020,6 +1081,7 @@ class _ComicTail extends StatelessWidget {
     required this.parentIsMine,
     required this.api,
     required this.parentAuthor,
+    required this.tone,
     required this.onTap,
     required this.onViewThread,
   });
@@ -1028,6 +1090,7 @@ class _ComicTail extends StatelessWidget {
   final bool parentIsMine;
   final ChatApi api;
   final ChatUser? parentAuthor;
+  final QuoteTone tone;
   final VoidCallback onTap;
   final VoidCallback? onViewThread;
 
@@ -1087,7 +1150,8 @@ class _ComicTail extends StatelessWidget {
                         api: api,
                         parentAuthor: parentAuthor,
                         theme: theme,
-                        accentTone: theme.accent,
+                        accentTone: tone.mark,
+                        ring: tone.ring,
                         size: 16,
                       ),
                       const SizedBox(width: 6),
@@ -1099,7 +1163,7 @@ class _ComicTail extends StatelessWidget {
                             Text(
                               preview.senderName.toUpperCase(),
                               style: theme.monoTiny.copyWith(
-                                color: deleted ? theme.inkMuted : theme.accent,
+                                color: deleted ? theme.inkMuted : tone.ink,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -1238,6 +1302,7 @@ class _ClassicQuote extends StatelessWidget {
     required this.isMine,
     required this.api,
     required this.parentAuthor,
+    required this.tone,
     required this.onTap,
     required this.onViewThread,
   });
@@ -1245,6 +1310,7 @@ class _ClassicQuote extends StatelessWidget {
   final bool isMine;
   final ChatApi api;
   final ChatUser? parentAuthor;
+  final QuoteTone tone;
   final VoidCallback onTap;
   final VoidCallback? onViewThread;
 
@@ -1267,7 +1333,7 @@ class _ClassicQuote extends StatelessWidget {
           onTap: deleted ? null : onTap,
           child: Container(
             decoration: BoxDecoration(
-              color: theme.accent.withValues(alpha: 0.10),
+              color: tone.mark.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(8),
             ),
             child: IntrinsicHeight(
@@ -1289,7 +1355,7 @@ class _ClassicQuote extends StatelessWidget {
                   Container(
                     width: 3,
                     decoration: BoxDecoration(
-                      color: theme.accent.withValues(alpha: 0.95),
+                      color: tone.mark.withValues(alpha: 0.95),
                       borderRadius: BorderRadiusDirectional.horizontal(
                         start: const Radius.circular(8),
                       ).resolve(isMine ? TextDirection.rtl : TextDirection.ltr),
@@ -1303,7 +1369,8 @@ class _ClassicQuote extends StatelessWidget {
                       api: api,
                       parentAuthor: parentAuthor,
                       theme: theme,
-                      accentTone: theme.accent,
+                      accentTone: tone.mark,
+                      ring: tone.ring,
                       size: 18,
                     ),
                   ),
@@ -1322,7 +1389,7 @@ class _ClassicQuote extends StatelessWidget {
                           Text(
                             preview.senderName.toUpperCase(),
                             style: theme.monoTiny.copyWith(
-                              color: deleted ? mutedInk : theme.accent,
+                              color: deleted ? mutedInk : tone.ink,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
