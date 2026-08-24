@@ -48,6 +48,7 @@ import '../models/room_capabilities.dart';
 import '../models/room_pin.dart';
 import '../data/ui_selection_store.dart';
 import '../platform.dart';
+import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import 'room_items.dart';
 import 'view_once_viewer.dart';
@@ -3584,7 +3585,11 @@ class _Header extends StatelessWidget {
           ],
           Expanded(
             child: GestureDetector(
-              onTap: dmUser != null ? onTapPeer : null,
+              // Matches the liquid header's title capsule: a tap opens Room
+              // Info regardless of DM or group. The peer's own profile is
+              // still one tap away from there, and from the avatar beside
+              // this title, which keeps its dedicated `onTapPeer`.
+              onTap: onOpenInfo,
               behavior: HitTestBehavior.opaque,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -3849,6 +3854,36 @@ class _FoldSender extends StatelessWidget {
   }
 }
 
+/// The icon + label row a date marker renders, inline or floating — the one
+/// place to touch to change what a date marker looks like everywhere at once.
+class _DateChipContent extends StatelessWidget {
+  const _DateChipContent({required this.label});
+  final String label;
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(CupertinoIcons.calendar, size: 11, color: theme.accent),
+        const SizedBox(width: 6),
+        Text(label, style: theme.monoTiny.copyWith(letterSpacing: 1.8)),
+      ],
+    );
+  }
+}
+
+/// The decoration a date marker's pill sits on, shared by the inline divider
+/// and the floating chip so the two read as the same object, not a hard cut
+/// between "a line with text on it" and "a glass pill" mid-scroll.
+BoxDecoration _dateChipDecoration(AppTheme theme, {List<BoxShadow>? shadow}) =>
+    BoxDecoration(
+      color: theme.accentSoft,
+      border: Border.all(color: theme.divider, width: 1),
+      borderRadius: BorderRadius.circular(999),
+      boxShadow: shadow,
+    );
+
 class _DateDivider extends StatelessWidget {
   const _DateDivider({required this.label});
   final String label;
@@ -3859,15 +3894,12 @@ class _DateDivider extends StatelessWidget {
       // Top only — see [MessageGap]. The air below a divider is the following
       // message's own gap, which is the same number.
       padding: const EdgeInsets.only(top: MessageGap.aroundMarker),
-      child: Row(
-        children: [
-          Expanded(child: Container(height: 1, color: theme.divider)),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Text(label, style: theme.monoTiny.copyWith(letterSpacing: 1.8)),
-          ),
-          Expanded(child: Container(height: 1, color: theme.divider)),
-        ],
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: _dateChipDecoration(theme),
+          child: _DateChipContent(label: label),
+        ),
       ),
     );
   }
@@ -3902,26 +3934,14 @@ class _FloatingDateChip extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: theme.accentSoft,
-            border: Border.all(color: theme.divider, width: 1),
-            borderRadius: BorderRadius.circular(999),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.16),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(CupertinoIcons.calendar, size: 11, color: theme.accent),
-              const SizedBox(width: 6),
-              Text(label, style: theme.monoTiny.copyWith(letterSpacing: 1.8)),
-            ],
-          ),
+          decoration: _dateChipDecoration(theme, shadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.16),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ]),
+          child: _DateChipContent(label: label),
         ),
       ),
     );

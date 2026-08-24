@@ -1132,26 +1132,26 @@ class ChatRepository extends ChangeNotifier {
         }
       } catch (_) {}
     }
-    try {
-      _messages[roomId] = await api.listMessages(roomId: roomId, viewerUserId: me);
-      if (me != null) {
-        CacheStore.instance.scheduleSaveMessages(me, roomId, _messages[roomId]!);
-      }
-    } catch (_) {/* offline — cached messages remain */}
-    // Superseded while reading disk / fetching: bail before registering
-    // anything. Nothing is dangling yet — no subscription has been created,
-    // and everything written above is keyed by `roomId`, so a late write
-    // can't corrupt whichever room won.
+    // Superseded while reading disk: bail before registering anything.
+    // Nothing is dangling yet — no subscription has been created, and
+    // everything written above is keyed by `roomId`, so a late write can't
+    // corrupt whichever room won.
     if (gen != _openGen) return;
     _pending[roomId] ??= [];
-    _initialLoaded.add(roomId);
-    // Prime the dedup baseline with the newest message we already loaded, so
-    // the first onData fire (which echoes the same set) doesn't fire a
-    // redundant markRoomRead.
+    // Prime the dedup baseline with whatever we already have (cache, if any),
+    // so the live subscription's first fire only trips `markRoomRead` when it
+    // carries a message genuinely newer than what's already on screen.
     _lastSeenNewestMsgId[roomId] = _messages[roomId]?.isNotEmpty == true
         ? _messages[roomId]!.last.id
         : null;
     notifyListeners();
+    // Subscribed directly rather than one-shot-fetched-then-subscribed: both
+    // roads run the exact same `messages:list` query with the exact same
+    // args, so fetching it here first only bought a SECOND round trip to the
+    // same query in front of the subscription's own first `onData` — on a
+    // resource-constrained backend, a redundant query per room-open that
+    // competes with the one that actually matters. The subscription's first
+    // fire below IS the initial load.
     final messagesSub = await cv.subscribe(
       'messages:list',
       // `viewerUserId` widens the subscription's read set by this viewer's OWN
@@ -1170,6 +1170,7 @@ class ChatRepository extends ChangeNotifier {
         // used to collapse the room back to the newest 100 and — because
         // `_exhausted` isn't reset here — permanently kill `hasMoreOlder`.
         _messages[roomId] = _withOlderPrefix(roomId, parsed);
+        _initialLoaded.add(roomId);
         _reconcilePending(roomId);
         if (me != null) {
           CacheStore.instance.scheduleSaveMessages(me, roomId, parsed);
@@ -1199,6 +1200,11 @@ class ChatRepository extends ChangeNotifier {
       return;
     }
     _messagesSub = messagesSub;
+    // Marked once the subscription is registered rather than held for its
+    // first `onData`: registration is a local/instant op (see
+    // `ConvexBackend.subscribe`), so this keeps `hasLoadedInitial` from
+    // spinning forever on a device that opens a never-cached room offline.
+    _initialLoaded.add(roomId);
 
     // Pinned messages. Registered here rather than by the room screen so the
     // `gen` guard and `SubscriptionRegistry`'s reconnect rebinding cover it for
