@@ -34,6 +34,15 @@ class MainActivity : FlutterActivity() {
 
         /// Cache key for the one and only Dart isolate this process runs.
         const val ENGINE_ID = "monkeyhub.main"
+
+        /// Shortcut work runs here, never on the main thread: publishing
+        /// fetches an avatar per chat over the network. Single-threaded so a
+        /// burst of `touchTarget` calls (one per sent message) queues instead
+        /// of opening eight sockets, and process-global so a second activity
+        /// instance — which answering a call can always produce, see
+        /// [provideFlutterEngine] — does not strand a second idle thread.
+        private val shareWorker: java.util.concurrent.ExecutorService =
+            java.util.concurrent.Executors.newSingleThreadExecutor()
     }
 
     /// Reuse the process's existing Dart isolate instead of booting a second
@@ -73,6 +82,17 @@ class MainActivity : FlutterActivity() {
     /// a notification is exactly that case. Drained by `takePendingEvents`.
     private val pendingNotifEvents = mutableListOf<Map<String, Any?>>()
     private var notifDartReady = false
+
+    /// The monkeyhub/share channel, retained so a share that lands while the
+    /// app is already running can be pushed straight to Dart.
+    private var shareChannel: MethodChannel? = null
+
+    /// Whether Dart has installed its share handler. Until it has, a payload
+    /// waits in [ShareIntake] and is collected by `takePendingShare` — which is
+    /// the ordinary case rather than the edge one, because the share sheet is
+    /// very often what started the process.
+    private var shareDartReady = false
+
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         val cache = FlutterEngineCache.getInstance()
@@ -397,6 +417,54 @@ class MainActivity : FlutterActivity() {
             }
         }
 
+        // monkeyhub/share — the system share sheet, both directions.
+        //
+        // INBOUND: ShareTargetActivity has already copied the shared content
+        // into our cache by the time anything reaches here (see ShareIntake),
+        // so what crosses this channel is file paths, never bytes.
+        //
+        // OUTBOUND: the chats the app offers in the sheet's top row. Dart owns
+        // WHICH chats and what they are called; this side owns what a shortcut
+        // is and what its icon has to look like.
+        shareChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "monkeyhub/share"
+        ).also { channel ->
+            channel.setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "takePendingShare" -> {
+                        // Dart's handler is installed (it just called us), so
+                        // everything after this is delivered live.
+                        shareDartReady = true
+                        result.success(ShareIntake.take())
+                    }
+                    "publishTargets" -> {
+                        val targets = call.argument<List<Map<String, Any?>>>("targets")
+                            .orEmpty()
+                        val ctx = applicationContext
+                        shareWorker.execute { ShareShortcuts.publish(ctx, targets) }
+                        result.success(null)
+                    }
+                    "touchTarget" -> {
+                        val raw = call.arguments as? Map<*, *>
+                        if (raw != null) {
+                            @Suppress("UNCHECKED_CAST")
+                            val target = raw as Map<String, Any?>
+                            val ctx = applicationContext
+                            shareWorker.execute { ShareShortcuts.touch(ctx, target) }
+                        }
+                        result.success(null)
+                    }
+                    "clearTargets" -> {
+                        val ctx = applicationContext
+                        shareWorker.execute { ShareShortcuts.clear(ctx) }
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+        }
+
         // monkeyhub/live_location — the foreground service that keeps a live
         // share publishing off screen, its stoppable notification, and the
         // background-location escalation. Registered through the shared object
@@ -413,6 +481,13 @@ class MainActivity : FlutterActivity() {
         // A cold start FROM a notification: the intent is already on the
         // activity by the time the engine is configured.
         handleNotificationIntent(intent)
+        handleShareIntent(intent)
+
+        // Anything left in the share staging directory from a previous run.
+        // Age-bounded rather than a wipe — see ShareIntake.sweepStaging for
+        // why "delete everything now" is not safe here.
+        val ctx = applicationContext
+        shareWorker.execute { ShareIntake.sweepStaging(ctx) }
     }
 
     /// A tap while the process is alive. `launchMode="singleTask"` routes it
@@ -421,6 +496,7 @@ class MainActivity : FlutterActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         handleNotificationIntent(intent)
+        handleShareIntent(intent)
     }
 
     private fun handleNotificationIntent(intent: Intent?) {
@@ -446,6 +522,20 @@ class MainActivity : FlutterActivity() {
         } else {
             pendingNotifEvents.add(event)
         }
+    }
+
+    /// Hands over a share that [ShareTargetActivity] parked for us.
+    ///
+    /// Keyed on an extra rather than on "is there anything pending", so a
+    /// rotation — which replays the launch intent — cannot resurrect a share
+    /// the user has already dealt with. Consumed for the same reason
+    /// `handleNotificationIntent` consumes its extras.
+    private fun handleShareIntent(intent: Intent?) {
+        if (intent?.getBooleanExtra(ShareIntake.EXTRA_HAS_SHARE, false) != true) return
+        intent.removeExtra(ShareIntake.EXTRA_HAS_SHARE)
+        if (!shareDartReady) return  // waits in ShareIntake for takePendingShare
+        val payload = ShareIntake.take() ?: return
+        shareChannel?.invokeMethod("onShare", payload)
     }
 
     private fun notificationAuthorizationStatus(): String {

@@ -6935,4 +6935,35 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get newChatMenuJoinSub => '누군가 공유한 그룹을 열어요';
+
+  @override
+  String get shareSheetTitle => '보낼 대상';
+
+  @override
+  String get shareSheetSuggestedHeading => '추천';
+
+  @override
+  String shareSheetPreviewItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '첨부 $count개',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String shareSheetTooLargeDropped(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '파일 $count개가 $size 제한을 넘어서 제외했어요',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String shareSheetSendToSemantic(String title) {
+    return '$title에게 보내기';
+  }
 }

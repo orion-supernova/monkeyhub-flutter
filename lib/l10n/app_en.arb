@@ -8291,5 +8291,47 @@
   "newChatMenuJoinSub": "Open a group someone shared with you",
   "@newChatMenuJoinSub": {
     "description": "Sub-line under 'Join with a code'."
+  },
+  "shareSheetTitle": "SHARE TO",
+  "@shareSheetTitle": {
+    "description": "All-caps title of the sheet that asks which chat an incoming system share should go to. Shown when the user picked the app icon in the OS share sheet rather than one of the app's own suggested chats."
+  },
+  "shareSheetSuggestedHeading": "SUGGESTED",
+  "@shareSheetSuggestedHeading": {
+    "description": "All-caps heading above the friends who have no chat yet, listed under the recent chats in the share destination sheet."
+  },
+  "shareSheetPreviewItems": "{count, plural, one{1 attachment} other{{count} attachments}}",
+  "@shareSheetPreviewItems": {
+    "description": "Names what is about to be shared when there is no filename to show — several photos, or a single attachment the OS gave no name for.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "How many attachments came in."
+      }
+    }
+  },
+  "shareSheetTooLargeDropped": "{count, plural, one{1 file is over the {size} limit and was left out} other{{count} files are over the {size} limit and were left out}}",
+  "@shareSheetTooLargeDropped": {
+    "description": "Warning under the share preview: some incoming files were over the upload cap and were not brought in. {size} is a pre-formatted human-readable size like '20 MB'.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "How many files were left out."
+      },
+      "size": {
+        "type": "String",
+        "description": "The pre-formatted cap."
+      }
+    }
+  },
+  "shareSheetSendToSemantic": "Send to {title}",
+  "@shareSheetSendToSemantic": {
+    "description": "Screen-reader label for a row in the share destination sheet. {title} is the chat or person's name.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "description": "The chat or person's name."
+      }
+    }
   }
 }

@@ -6,6 +6,7 @@ import CallKit
 import AVKit
 import AVFoundation
 import CoreLocation
+import Intents
 import flutter_callkit_incoming
 
 @main
@@ -81,6 +82,19 @@ import flutter_callkit_incoming
   // Dart handler is installed, and a bare invokeMethod would be dropped.
   private var pendingNotifEvents: [(method: String, args: [String: Any])] = []
   private var notifDartReady = false
+
+  // ── The system share sheet ───────────────────────────────────────────────
+  //
+  // The Share Extension cannot talk to this process directly — it is a
+  // separate binary in a separate sandbox — so it writes into the App Group
+  // container and asks iOS to open us. [ShareInbox] reads the container; this
+  // channel carries the result to Dart.
+  private var shareChannel: FlutterMethodChannel?
+  // Same queue-until-Dart-exists contract as the two channels above, and here
+  // it is the ORDINARY case rather than the edge one: a share is very often
+  // what launched the process.
+  private var pendingShares: [[String: Any]] = []
+  private var shareDartReady = false
   // The room the user is currently looking at, pushed down from Dart on every
   // open and close. Read in `willPresent` to suppress a banner for a
   // conversation that is already on screen.
@@ -126,6 +140,32 @@ import flutter_callkit_incoming
       name: UIScreen.capturedDidChangeNotification,
       object: nil
     )
+
+    // Shares are collected from the App Group container, not from a URL.
+    //
+    // The Share Extension's only documented way to wake us is
+    // `extensionContext.open`, which is allowed to fail and on some releases
+    // simply does — so nothing may depend on that URL arriving. Draining on
+    // every foreground makes the container the delivery mechanism and the URL
+    // a mere optimisation, at the cost of one listing of a usually-empty
+    // directory.
+    //
+    // `didBecomeActiveNotification` rather than `applicationDidBecomeActive`:
+    // this app runs the UIScene lifecycle (see SceneDelegate), under which the
+    // app delegate's own lifecycle callbacks are never called. The notification
+    // is posted either way.
+    NotificationCenter.default.addObserver(
+      self,
+      selector: #selector(_drainShareInbox),
+      name: UIApplication.didBecomeActiveNotification,
+      object: nil
+    )
+    // A cold launch FROM a share: the extension has already written the
+    // container by the time we get here, and the first `didBecomeActive` is
+    // still several runloop turns away.
+    _drainShareInbox()
+    // Anything a previous run never collected. Day-bounded — see ShareInbox.sweep.
+    DispatchQueue.global(qos: .utility).async { ShareInbox.sweep() }
 
     // Register for VoIP pushes. The callback flow:
     //   PKPushRegistry → didUpdate pushCredentials → Dart picks up token via
@@ -640,6 +680,100 @@ import flutter_callkit_incoming
     }
   }
 
+  /// Collects whatever the Share Extension has staged and hands it to Dart.
+  ///
+  /// Called at launch and on every return to the foreground. Cheap when there
+  /// is nothing there, which is almost always.
+  @objc private func _drainShareInbox() {
+    let payloads = ShareInbox.drain()
+    guard !payloads.isEmpty else { return }
+    if shareDartReady, let channel = shareChannel {
+      // One at a time. Placing a share opens a chat, and Dart cannot be in two
+      // at once; the rest wait for the next `takePendingShare`.
+      channel.invokeMethod("onShare", arguments: payloads[0])
+      pendingShares.append(contentsOf: payloads.dropFirst())
+    } else {
+      pendingShares.append(contentsOf: payloads)
+    }
+  }
+
+  /// Tells iOS the user just messaged this chat.
+  ///
+  /// A donated `INSendMessageIntent` is how a conversation earns its place in
+  /// the share sheet's top row: iOS keeps the history and ranks by recency and
+  /// frequency, so this is called on every send rather than on a schedule.
+  ///
+  /// `conversationIdentifier` is the load-bearing field. It is the room id, and
+  /// it is what comes back on `extensionContext.intent` when the suggestion is
+  /// tapped — the only reason a share can arrive already knowing where it is
+  /// going. See ShareViewController.
+  ///
+  /// Three things must agree or no suggestion ever appears, and not one of them
+  /// fails loudly: this donation, `IntentsSupported` in the extension's
+  /// Info.plist, and `NSUserActivityTypes` in this app's.
+  private func donateSendMessage(_ args: [String: Any]) {
+    guard let roomId = args["id"] as? String, !roomId.isEmpty else { return }
+    let title = (args["title"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? roomId
+    let isGroup = (args["isGroup"] as? Bool) == true
+    let image = shareTargetImage(args)
+
+    let recipient = INPerson(
+      personHandle: INPersonHandle(value: roomId, type: .unknown),
+      nameComponents: nil,
+      displayName: title,
+      image: image,
+      contactIdentifier: nil,
+      // Ties every send to this room to one identity. Without a stable
+      // identifier iOS treats each send as a new person and ranks none of them
+      // highly enough to offer.
+      customIdentifier: roomId
+    )
+
+    let intent = INSendMessageIntent(
+      recipients: [recipient],
+      outgoingMessageType: .outgoingMessageText,
+      content: nil,
+      speakableGroupName: isGroup ? INSpeakableString(spokenPhrase: title) : nil,
+      conversationIdentifier: roomId,
+      serviceName: nil,
+      sender: nil,
+      attachments: nil
+    )
+    // A group has no single person to draw, so the picture hangs off the group
+    // name instead. Setting it on a 1:1 intent would be ignored — there the
+    // recipient's own INImage above is what gets rendered.
+    if isGroup, let image {
+      intent.setImage(image, forParameterNamed: \.speakableGroupName)
+    }
+
+    let interaction = INInteraction(intent: intent, response: nil)
+    // Groups every send to this room under one identity, so a re-donation
+    // updates the existing suggestion (new name, new avatar) rather than
+    // stacking a second one beside it.
+    interaction.groupIdentifier = roomId
+    interaction.direction = .outgoing
+    interaction.donate { error in
+      if let error {
+        NSLog("[share] donation failed: \(error.localizedDescription)")
+      }
+    }
+  }
+
+  /// The avatar for a donated conversation.
+  ///
+  /// `INImage(url:)` is lazy: the read happens when the system renders the
+  /// suggestion, which is where that work belongs and not on a send. A missing
+  /// or unreachable URL yields nil and iOS draws its own initial — the same
+  /// fallback the app's own avatars use.
+  private func shareTargetImage(_ args: [String: Any]) -> INImage? {
+    guard
+      let raw = args["avatarUrl"] as? String,
+      !raw.isEmpty,
+      let url = URL(string: raw)
+    else { return nil }
+    return INImage(url: url)
+  }
+
   @objc private func _capturedDidChange() {
     captureEventSink?(UIScreen.main.isCaptured)
   }
@@ -980,6 +1114,63 @@ import flutter_callkit_incoming
           } else {
             result([])
           }
+
+        default:
+          result(FlutterMethodNotImplemented)
+        }
+      }
+    }
+
+    // monkeyhub/share — the system share sheet, both directions.
+    //
+    // INBOUND: what the Share Extension staged in the App Group container. The
+    // files are already on disk by the time anything crosses this channel, so
+    // what travels is paths, never bytes.
+    //
+    // OUTBOUND: `touchTarget`, which donates an INSendMessageIntent — the whole
+    // mechanism behind MonkeyHub's chats appearing in the sheet's top row. iOS
+    // ranks the suggestions itself, by how recently and how often each
+    // conversation was donated. There is no list to publish and no single
+    // suggestion to remove, which is why `publishTargets` is a no-op here and
+    // does all the work on Android.
+    if let registrar = engine.registrar(forPlugin: "MonkeyHubSharePlugin") {
+      let channel = FlutterMethodChannel(
+        name: "monkeyhub/share",
+        binaryMessenger: registrar.messenger()
+      )
+      shareChannel = channel
+      channel.setMethodCallHandler { [weak self] call, result in
+        switch call.method {
+        case "takePendingShare":
+          guard let self else { result(nil); return }
+          // Dart's handler is installed (it just called us), so everything
+          // after this is delivered live.
+          self.shareDartReady = true
+          // One more drain first: a share can land between launch and the
+          // moment the isolate is ready to hear about it.
+          self.pendingShares.append(contentsOf: ShareInbox.drain())
+          let next = self.pendingShares.isEmpty ? nil : self.pendingShares.removeFirst()
+          result(next)
+
+        case "touchTarget":
+          self?.donateSendMessage(call.arguments as? [String: Any] ?? [:])
+          result(nil)
+
+        case "publishTargets":
+          // Android's model. iOS has no publishable list — see above.
+          result(nil)
+
+        case "clearTargets":
+          // Signing out. The donations name people, so they cannot outlive the
+          // session that could see them: this deletes every interaction this
+          // app has donated, which is what stops the previous account's chats
+          // being suggested to whoever signs in next on a shared handset.
+          INInteraction.deleteAll { error in
+            if let error {
+              NSLog("[share] could not delete donations: \(error.localizedDescription)")
+            }
+          }
+          result(nil)
 
         default:
           result(FlutterMethodNotImplemented)

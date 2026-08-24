@@ -135,6 +135,23 @@ dependencies {
     // highest of the pair, so a drift makes -ui and -exoplayer straddle a
     // release, which is exactly how you get a NoSuchMethodError at runtime
     // instead of a compile error here.
+    // ShortcutManagerCompat / ShortcutInfoCompat / Person / IconCompat — the
+    // Sharing Shortcuts API behind ShareShortcuts, which is what puts this
+    // app's chats in the TOP ROW of the system share sheet rather than leaving
+    // it as one more icon in the app row.
+    //
+    // Declared rather than inherited, for the same reason media3 is below: the
+    // Flutter embedding pulls androidx.core in transitively, but a plugin's
+    // transitive graph is not a dependency contract — and the symptom of losing
+    // it is a Kotlin file that stops compiling with no hint as to why.
+    //
+    // A FLOOR, not a pin. flutter_webrtc already drags androidx.core 1.18.x in
+    // (see the compileSdk note above) and Gradle resolves to the highest of the
+    // pair, so this number is what the module is guaranteed to compile against
+    // if that ever goes away — 1.13 is the line that ships `pushDynamicShortcut`
+    // and the `FLAG_MATCH_PINNED` query ShareShortcuts.clear uses on sign-out.
+    implementation("androidx.core:core-ktx:1.13.1")
+
     val media3Version = "1.9.2"
     implementation("androidx.media3:media3-exoplayer:${media3Version}")
     implementation("androidx.media3:media3-ui:${media3Version}")

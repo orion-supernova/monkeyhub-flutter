@@ -76,6 +76,15 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <!-- Direct Share. The system reads this from whichever component
+                 is the CURRENT launcher entry, which is why the identical line
+                 is repeated on every <activity-alias> below: applyAlternateIcon
+                 disables this activity whenever a themed icon is chosen, and
+                 the alias that replaces it has to carry the declaration or the
+                 suggestion row silently empties. See res/xml/share_targets.xml. -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
@@ -189,6 +198,56 @@
             android:launchMode="singleTop"
             android:windowSoftInputMode="adjustNothing" />
 
+        <!-- The app's entry in the system share sheet.
+
+             A dedicated activity rather than an intent-filter on MainActivity,
+             and that is load-bearing rather than tidy: applyAlternateIcon
+             DISABLES .MainActivity whenever one of the aliases below is the
+             active launcher icon, and a disabled component resolves to nothing
+             — so the app would vanish from the share sheet for exactly the
+             users who bothered to pick a themed icon. Nothing enables or
+             disables this one.
+
+             It is also the `targetClass` of the <share-target> in
+             res/xml/share_targets.xml, for the same reason.
+
+             Translucent and with no layout: it copies the shared content out of
+             the sender's provider (see ShareIntake — the content:// grant is
+             scoped to THIS activity and dies with it, which is why the copy
+             happens before it finishes), then starts the app the same way a
+             notification tap does. The user sees the share sheet dismiss and
+             MonkeyHub open, and nothing in between.
+
+             excludeFromRecents keeps an invisible entry out of the task
+             switcher; noHistory means a share the user abandoned by pressing
+             home cannot be resurrected by returning to it. -->
+        <activity
+            android:name=".ShareTargetActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:configChanges="orientation|screenSize|keyboardHidden|keyboard|locale|layoutDirection|fontScale|density|uiMode">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+                <data android:mimeType="audio/*" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="application/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+                <data android:mimeType="audio/*" />
+                <data android:mimeType="application/*" />
+            </intent-filter>
+        </activity>
+
         <!-- Alternate launcher icons. Each <activity-alias> corresponds to one
              theme's brand mark. Names match the alt-icon names passed to
              FlutterDynamicIconPlus.setAlternateIconName. Drawables are
@@ -203,6 +262,9 @@
             android:exported="true"
             android:enabled="false"
             android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -216,6 +278,9 @@
             android:exported="true"
             android:enabled="false"
             android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -229,6 +294,9 @@
             android:exported="true"
             android:enabled="false"
             android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -242,6 +310,9 @@
             android:exported="true"
             android:enabled="false"
             android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -255,6 +326,9 @@
             android:exported="true"
             android:enabled="false"
             android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -268,6 +342,9 @@
             android:exported="true"
             android:enabled="false"
             android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -281,6 +358,9 @@
             android:exported="true"
             android:enabled="false"
             android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -294,6 +374,9 @@
             android:exported="true"
             android:enabled="false"
             android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -307,6 +390,9 @@
             android:exported="true"
             android:enabled="false"
             android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -320,6 +406,9 @@
             android:exported="true"
             android:enabled="false"
             android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -333,6 +422,9 @@
             android:exported="true"
             android:enabled="false"
             android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -346,6 +438,9 @@
             android:exported="true"
             android:enabled="false"
             android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -359,6 +454,9 @@
             android:exported="true"
             android:enabled="false"
             android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -374,6 +472,9 @@
             android:exported="true"
             android:enabled="false"
             android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -387,6 +488,9 @@
             android:exported="true"
             android:enabled="false"
             android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -400,6 +504,9 @@
             android:exported="true"
             android:enabled="false"
             android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -413,6 +520,9 @@
             android:exported="true"
             android:enabled="false"
             android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

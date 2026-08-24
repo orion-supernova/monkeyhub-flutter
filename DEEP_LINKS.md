@@ -6,6 +6,14 @@ browser, and how to find out which piece is wrong when it doesn't.
 There is exactly one deep link in this app today: the room invite. Everything
 below is about that URL.
 
+> **One other URL uses the `monkeyhub://` scheme, and it is not a link.**
+> The iOS Share Extension wakes the app with `monkeyhub://share/open` — nobody
+> sends it, nobody taps it, and `parseInviteLink` refuses it explicitly near
+> the top rather than merely failing to match. That refusal is load-bearing:
+> the parser's last resort is "treat what is left as a typed code", so without
+> it the app's own wake-up URL becomes the invite code `SHAREOPEN`. See
+> `SHARE_SHEET.md`.
+
 ```
 https://monkeyhub.walhallaa.com/j/MUZU4KUP7V
                                 └┬┘ └───┬──┘

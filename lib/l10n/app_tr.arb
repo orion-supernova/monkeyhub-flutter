@@ -2034,5 +2034,10 @@
   "newChatMenuCreateTitle": "Oda oluştur",
   "newChatMenuCreateSub": "Bir grup başlat ve insanları davet et",
   "newChatMenuJoinTitle": "Kodla katıl",
-  "newChatMenuJoinSub": "Birinin seninle paylaştığı grubu aç"
+  "newChatMenuJoinSub": "Birinin seninle paylaştığı grubu aç",
+  "shareSheetTitle": "ŞUNA GÖNDER",
+  "shareSheetSuggestedHeading": "ÖNERİLEN",
+  "shareSheetPreviewItems": "{count, plural, other{{count} ek}}",
+  "shareSheetTooLargeDropped": "{count, plural, other{{count} dosya {size} sınırını aştığı için alınmadı}}",
+  "shareSheetSendToSemantic": "{title} kişisine gönder"
 }

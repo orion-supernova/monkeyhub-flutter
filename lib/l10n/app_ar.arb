@@ -2034,5 +2034,10 @@
   "newChatMenuCreateTitle": "إنشاء غرفة",
   "newChatMenuCreateSub": "ابدأ مجموعة وادعُ الناس",
   "newChatMenuJoinTitle": "الانضمام برمز",
-  "newChatMenuJoinSub": "افتح مجموعة شاركها أحدهم معك"
+  "newChatMenuJoinSub": "افتح مجموعة شاركها أحدهم معك",
+  "shareSheetTitle": "مشاركة مع",
+  "shareSheetSuggestedHeading": "مقترحون",
+  "shareSheetPreviewItems": "{count, plural, zero{{count} مرفقات} one{مرفق واحد} two{مرفقان} few{{count} مرفقات} many{{count} مرفقًا} other{{count} مرفق}}",
+  "shareSheetTooLargeDropped": "{count, plural, zero{{count} ملفات تتجاوز حد {size} ولم تُضَف} one{ملف واحد يتجاوز حد {size} ولم يُضَف} two{ملفان يتجاوزان حد {size} ولم يُضافا} few{{count} ملفات تتجاوز حد {size} ولم تُضَف} many{{count} ملفًا يتجاوز حد {size} ولم يُضَف} other{{count} ملف يتجاوز حد {size} ولم يُضَف}}",
+  "shareSheetSendToSemantic": "إرسال إلى {title}"
 }

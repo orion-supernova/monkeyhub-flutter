@@ -7283,6 +7283,39 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get newChatMenuJoinSub => 'Abre um grupo que alguém partilhou contigo';
+
+  @override
+  String get shareSheetTitle => 'PARTILHAR COM';
+
+  @override
+  String get shareSheetSuggestedHeading => 'SUGERIDOS';
+
+  @override
+  String shareSheetPreviewItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count anexos',
+      one: '1 anexo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String shareSheetTooLargeDropped(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ficheiros excedem o limite de $size e ficaram de fora',
+      one: '1 ficheiro excede o limite de $size e ficou de fora',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String shareSheetSendToSemantic(String title) {
+    return 'Enviar para $title';
+  }
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -14561,4 +14594,37 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get newChatMenuJoinSub =>
       'Abra um grupo que alguém compartilhou com você';
+
+  @override
+  String get shareSheetTitle => 'COMPARTILHAR COM';
+
+  @override
+  String get shareSheetSuggestedHeading => 'SUGERIDOS';
+
+  @override
+  String shareSheetPreviewItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count anexos',
+      one: '1 anexo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String shareSheetTooLargeDropped(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count arquivos passam do limite de $size e ficaram de fora',
+      one: '1 arquivo passa do limite de $size e ficou de fora',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String shareSheetSendToSemantic(String title) {
+    return 'Enviar para $title';
+  }
 }

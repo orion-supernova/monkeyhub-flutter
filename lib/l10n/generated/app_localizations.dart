@@ -12360,6 +12360,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open a group someone shared with you'**
   String get newChatMenuJoinSub;
+
+  /// All-caps title of the sheet that asks which chat an incoming system share should go to. Shown when the user picked the app icon in the OS share sheet rather than one of the app's own suggested chats.
+  ///
+  /// In en, this message translates to:
+  /// **'SHARE TO'**
+  String get shareSheetTitle;
+
+  /// All-caps heading above the friends who have no chat yet, listed under the recent chats in the share destination sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'SUGGESTED'**
+  String get shareSheetSuggestedHeading;
+
+  /// Names what is about to be shared when there is no filename to show — several photos, or a single attachment the OS gave no name for.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 attachment} other{{count} attachments}}'**
+  String shareSheetPreviewItems(int count);
+
+  /// Warning under the share preview: some incoming files were over the upload cap and were not brought in. {size} is a pre-formatted human-readable size like '20 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 file is over the {size} limit and was left out} other{{count} files are over the {size} limit and were left out}}'**
+  String shareSheetTooLargeDropped(int count, String size);
+
+  /// Screen-reader label for a row in the share destination sheet. {title} is the chat or person's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Send to {title}'**
+  String shareSheetSendToSemantic(String title);
 }
 
 class _AppLocalizationsDelegate

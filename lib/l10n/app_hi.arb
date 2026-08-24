@@ -2034,5 +2034,10 @@
   "newChatMenuCreateTitle": "रूम बनाएँ",
   "newChatMenuCreateSub": "ग्रुप शुरू करें और लोगों को बुलाएँ",
   "newChatMenuJoinTitle": "कोड से जुड़ें",
-  "newChatMenuJoinSub": "किसी ने जो ग्रुप साझा किया है उसे खोलें"
+  "newChatMenuJoinSub": "किसी ने जो ग्रुप साझा किया है उसे खोलें",
+  "shareSheetTitle": "किसे भेजना है",
+  "shareSheetSuggestedHeading": "सुझाए गए",
+  "shareSheetPreviewItems": "{count, plural, one{1 अटैचमेंट} other{{count} अटैचमेंट}}",
+  "shareSheetTooLargeDropped": "{count, plural, one{1 फ़ाइल {size} की सीमा से बड़ी है, इसलिए छोड़ दी गई} other{{count} फ़ाइलें {size} की सीमा से बड़ी हैं, इसलिए छोड़ दी गईं}}",
+  "shareSheetSendToSemantic": "{title} को भेजो"
 }

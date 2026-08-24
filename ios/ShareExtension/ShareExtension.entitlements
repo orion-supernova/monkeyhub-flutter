@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- The only channel between this extension and the app. The extension
+	     writes the shared photo here and the app reads it back; there is no
+	     other way for two separately-signed binaries to hand each other a file.
+
+	     REQUIRES "App Groups" enabled on the EXTENSION's App ID
+	     (com.walhallaa.chatTest-20241220.ShareExtension) in the Apple Developer
+	     portal, with this exact group selected — and the same on the app's own
+	     App ID, where ios/Runner/*.entitlements carries the matching key.
+
+	     Signing FAILS if the capability is absent from the App ID, which is the
+	     good case. The bad case is a mismatch between the two files: everything
+	     builds, everything signs, and `containerURL` returns nil at runtime with
+	     no error anywhere — the share sheet dismisses and nothing happens. See
+	     SHARE_SHEET.md. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.walhallaa.monkeyhub</string>
+	</array>
+</dict>
+</plist>
