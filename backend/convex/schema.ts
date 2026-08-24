@@ -1299,6 +1299,56 @@ export default defineSchema({
     // cannot answer "everything this user saved" without a full scan.
     .index("by_user", ["userId"]),
 
+  // One reader's manual colour choices for the people in a room.
+  //
+  // Per-speaker colours are normally DERIVED (see `SpeakerSlots` on the client):
+  // a hash of the user id, de-collided in join order, needing no stored state at
+  // all. This table exists only for the overrides — "make jun the teal one" —
+  // and holds nothing for the overwhelming majority of readers and rooms.
+  //
+  // ITS OWN TABLE, deliberately, rather than a field on `roomMembers`. That row
+  // looked like the natural home: it is already per-member, already per-room,
+  // and already patched per-viewer by `markRoomRead`. But `rooms:getMembers`
+  // reads EVERY membership row in the room, so a Convex subscription to it is
+  // invalidated by a write to ANY of them — meaning one person picking a colour
+  // would re-run the roster query, and re-deliver the whole roster, on every
+  // other member's device. Here, `by_viewer_room_subject` scopes the live query
+  // to one reader's own rows, so a write lands in nobody else's read set and
+  // fans out to nobody.
+  //
+  // [slot] is an index into the palette, NOT a colour. Colours are conditioned
+  // per theme (hue from the slot, saturation and lightness from the theme), so
+  // a stored slot follows the reader across all thirteen themes and keeps
+  // clearing its contrast floors in each. A stored ARGB would be a Cyberpunk
+  // green pasted onto Risograph cream.
+  speakerColors: defineTable({
+    // WHOSE reading preference. Nobody else's client ever reads these rows —
+    // an override is a fact about how one person wants to read a room, not
+    // about the person it names, so there is no permission question and
+    // nothing to reconcile between two members who disagree.
+    viewerId: v.id("users"),
+    roomId: v.id("rooms"),
+    // Who the colour was pinned ON.
+    subjectId: v.id("users"),
+    // 0 .. kSpeakerSlotCount-1, validated in `speakerColors.setSlot`.
+    slot: v.number(),
+  })
+    // Three reads off one index, the same prefix-scan trick `messageBookmarks`
+    // documents: this reader's whole set (`viewerId` alone — the one live
+    // subscription, held app-wide rather than per room), this reader's set in
+    // one room, and the exact row for an upsert or a clear.
+    .index("by_viewer_room_subject", ["viewerId", "roomId", "subjectId"])
+    // Room teardown (`roomCleanup.wipeRoomContents`, every reader's rows), and
+    // the half of a departure that the leaver's own sweep cannot see: the
+    // overrides OTHER people set about them, which would otherwise pin a colour
+    // on someone who is no longer in the room and quietly hold a palette slot
+    // shut against whoever joins next.
+    .index("by_room_subject", ["roomId", "subjectId"])
+    // Account teardown. Not subsumed by the index above — that one leads with
+    // `roomId`, so it cannot answer "every room where somebody pinned a colour
+    // on this user" without a full scan.
+    .index("by_subject", ["subjectId"]),
+
   // ── Feed board ─────────────────────────────────────────────────────────────
   //
   // ONE table for two features. A "highlight" (a photo worth showing, with an

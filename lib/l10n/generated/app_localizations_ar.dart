@@ -7353,4 +7353,56 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get speakerColorScreenBubbleDescription =>
       'اللون ينتقل إلى رسائلهم أيضًا، فتظل خمس رسائل متتالية تخبرك بمن كتبها.';
+
+  @override
+  String get roomInfoScreenSpeakerColorsLabel => 'الألوان';
+
+  @override
+  String get roomInfoScreenSpeakerColorsAutomatic => 'تلقائي';
+
+  @override
+  String get roomInfoScreenSpeakerColorsCustom => 'مخصّص';
+
+  @override
+  String get roomColorsScreenTitle => 'من هو من.';
+
+  @override
+  String get roomColorsScreenSubtitle => 'اللون الذي يتحدّث به كل شخص';
+
+  @override
+  String get roomColorsScreenOffTitle => 'ألوان المتحدّثين مُعطَّلة';
+
+  @override
+  String get roomColorsScreenOffBody =>
+      'الآن يظهر الجميع بالحبر نفسه. فعّلها ليحصل كل شخص هنا على لون خاص به.';
+
+  @override
+  String get roomColorsScreenOffAction => 'تفعيل';
+
+  @override
+  String get roomColorsScreenOffHint =>
+      'تنطبق على كل الغرف، لا على هذه فقط. متاحة أيضًا في الإعدادات.';
+
+  @override
+  String get roomColorsScreenAutoChip => 'تلقائي';
+
+  @override
+  String roomColorsScreenAlsoUsedBy(Object name) {
+    return 'مشترك مع $name';
+  }
+
+  @override
+  String get roomColorsScreenResetAll => 'العودة إلى التلقائي';
+
+  @override
+  String get roomColorsScreenLimitToast =>
+      'هذا أقصى عدد ألوان يمكن تثبيته في غرفة.';
+
+  @override
+  String get roomColorsScreenFailedToast => 'تعذّر حفظ هذا اللون.';
+
+  @override
+  String roomColorsScreenSwatchSemantic(Object index) {
+    return 'اللون $index';
+  }
 }

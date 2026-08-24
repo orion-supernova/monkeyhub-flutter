@@ -6983,4 +6983,54 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get speakerColorScreenBubbleDescription =>
       '色は吹き出しにも広がるので、5件続いても誰の発言かわかります。';
+
+  @override
+  String get roomInfoScreenSpeakerColorsLabel => 'カラー';
+
+  @override
+  String get roomInfoScreenSpeakerColorsAutomatic => '自動';
+
+  @override
+  String get roomInfoScreenSpeakerColorsCustom => 'カスタム';
+
+  @override
+  String get roomColorsScreenTitle => '誰が誰か。';
+
+  @override
+  String get roomColorsScreenSubtitle => 'それぞれの人の色';
+
+  @override
+  String get roomColorsScreenOffTitle => '話し手の色はオフです';
+
+  @override
+  String get roomColorsScreenOffBody =>
+      '今は全員が同じ色で表示されます。オンにすると、ここにいる一人ひとりに専用の色がつきます。';
+
+  @override
+  String get roomColorsScreenOffAction => 'オンにする';
+
+  @override
+  String get roomColorsScreenOffHint => 'この部屋だけでなく、すべての部屋に適用されます。設定にもあります。';
+
+  @override
+  String get roomColorsScreenAutoChip => '自動';
+
+  @override
+  String roomColorsScreenAlsoUsedBy(Object name) {
+    return '$name と同じ色';
+  }
+
+  @override
+  String get roomColorsScreenResetAll => '自動に戻す';
+
+  @override
+  String get roomColorsScreenLimitToast => '1つの部屋で固定できる色はここまでです。';
+
+  @override
+  String get roomColorsScreenFailedToast => 'その色を保存できませんでした。';
+
+  @override
+  String roomColorsScreenSwatchSemantic(Object index) {
+    return '色 $index';
+  }
 }

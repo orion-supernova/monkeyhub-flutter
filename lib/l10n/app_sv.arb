@@ -2051,5 +2051,20 @@
   "speakerColorScreenNameLabel": "NAMN",
   "speakerColorScreenNameDescription": "varje person får en egen färg, på namnet och runt ansiktet.",
   "speakerColorScreenBubbleLabel": "BUBBLOR",
-  "speakerColorScreenBubbleDescription": "färgen följer med in i meddelandena, så en rad på fem säger fortfarande vem som skrev."
+  "speakerColorScreenBubbleDescription": "färgen följer med in i meddelandena, så en rad på fem säger fortfarande vem som skrev.",
+  "roomInfoScreenSpeakerColorsLabel": "FÄRGER",
+  "roomInfoScreenSpeakerColorsAutomatic": "Automatiskt",
+  "roomInfoScreenSpeakerColorsCustom": "Eget",
+  "roomColorsScreenTitle": "vem är vem.",
+  "roomColorsScreenSubtitle": "färgen varje person talar i",
+  "roomColorsScreenOffTitle": "personfärger är av",
+  "roomColorsScreenOffBody": "just nu ritas alla med samma bläck. slå på så får var och en här en egen.",
+  "roomColorsScreenOffAction": "SLÅ PÅ",
+  "roomColorsScreenOffHint": "gäller alla rum, inte bara det här. finns även i inställningar.",
+  "roomColorsScreenAutoChip": "AUTO",
+  "roomColorsScreenAlsoUsedBy": "delas med {name}",
+  "roomColorsScreenResetAll": "TILLBAKA TILL AUTOMATISKT",
+  "roomColorsScreenLimitToast": "Fler färger än så kan ett rum inte fästa.",
+  "roomColorsScreenFailedToast": "Kunde inte spara färgen.",
+  "roomColorsScreenSwatchSemantic": "Färg {index}"
 }

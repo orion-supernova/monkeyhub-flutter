@@ -12462,6 +12462,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'the colour carries into their messages too, so a run of five still says who wrote it.'**
   String get speakerColorScreenBubbleDescription;
+
+  /// All-caps section label in Room Info above the row that opens the per-member colour picker.
+  ///
+  /// In en, this message translates to:
+  /// **'COLOURS'**
+  String get roomInfoScreenSpeakerColorsLabel;
+
+  /// Value on the Room Info colours row when nobody in the room has been pinned to a colour by hand.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get roomInfoScreenSpeakerColorsAutomatic;
+
+  /// Value on the Room Info colours row when at least one member has been pinned to a colour by hand.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get roomInfoScreenSpeakerColorsCustom;
+
+  /// Display heading at the top of the per-room speaker colour picker (lowercase sentence-fragment style, matches other detail screens).
+  ///
+  /// In en, this message translates to:
+  /// **'who\'s who.'**
+  String get roomColorsScreenTitle;
+
+  /// Caption line under the room colours screen title, next to a small accent divider.
+  ///
+  /// In en, this message translates to:
+  /// **'the colour each person speaks in'**
+  String get roomColorsScreenSubtitle;
+
+  /// Heading of the card shown at the top of the room colours screen when speaker colours are switched off app-wide.
+  ///
+  /// In en, this message translates to:
+  /// **'speaker colours are off'**
+  String get roomColorsScreenOffTitle;
+
+  /// Body of that card, explaining that everyone currently reads in the same colour and what turning it on does.
+  ///
+  /// In en, this message translates to:
+  /// **'everyone is drawn in the same ink right now. turn it on and each person here gets one of their own.'**
+  String get roomColorsScreenOffBody;
+
+  /// All-caps button on that card that switches speaker colours on for every room, without leaving the screen.
+  ///
+  /// In en, this message translates to:
+  /// **'TURN ON'**
+  String get roomColorsScreenOffAction;
+
+  /// Small caption under that button, making clear the switch is app-wide rather than per room and that it also lives in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'applies to every room, not just this one. also in settings.'**
+  String get roomColorsScreenOffHint;
+
+  /// All-caps chip at the head of the colour rail that clears a manual pin and returns that person to their automatic colour.
+  ///
+  /// In en, this message translates to:
+  /// **'AUTO'**
+  String get roomColorsScreenAutoChip;
+
+  /// Note under a member whose colour is also somebody else's; {name} is the other person (or a comma-joined list of them).
+  ///
+  /// In en, this message translates to:
+  /// **'shared with {name}'**
+  String roomColorsScreenAlsoUsedBy(Object name);
+
+  /// All-caps button at the bottom of the room colours screen that clears every manual pin in this room.
+  ///
+  /// In en, this message translates to:
+  /// **'BACK TO AUTOMATIC'**
+  String get roomColorsScreenResetAll;
+
+  /// Toast shown when the reader tries to pin more members in one room than the server allows.
+  ///
+  /// In en, this message translates to:
+  /// **'That\'s as many colours as one room can pin.'**
+  String get roomColorsScreenLimitToast;
+
+  /// Toast shown when saving a colour choice fails for any other reason.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save that colour.'**
+  String get roomColorsScreenFailedToast;
+
+  /// Accessibility (Semantics) label on one colour swatch in the rail, read by screen readers; {index} is its 1-based position in the palette.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour {index}'**
+  String roomColorsScreenSwatchSemantic(Object index);
 }
 
 class _AppLocalizationsDelegate

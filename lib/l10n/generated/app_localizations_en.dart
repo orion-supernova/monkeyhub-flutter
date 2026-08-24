@@ -7264,4 +7264,56 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get speakerColorScreenBubbleDescription =>
       'the colour carries into their messages too, so a run of five still says who wrote it.';
+
+  @override
+  String get roomInfoScreenSpeakerColorsLabel => 'COLOURS';
+
+  @override
+  String get roomInfoScreenSpeakerColorsAutomatic => 'Automatic';
+
+  @override
+  String get roomInfoScreenSpeakerColorsCustom => 'Custom';
+
+  @override
+  String get roomColorsScreenTitle => 'who\'s who.';
+
+  @override
+  String get roomColorsScreenSubtitle => 'the colour each person speaks in';
+
+  @override
+  String get roomColorsScreenOffTitle => 'speaker colours are off';
+
+  @override
+  String get roomColorsScreenOffBody =>
+      'everyone is drawn in the same ink right now. turn it on and each person here gets one of their own.';
+
+  @override
+  String get roomColorsScreenOffAction => 'TURN ON';
+
+  @override
+  String get roomColorsScreenOffHint =>
+      'applies to every room, not just this one. also in settings.';
+
+  @override
+  String get roomColorsScreenAutoChip => 'AUTO';
+
+  @override
+  String roomColorsScreenAlsoUsedBy(Object name) {
+    return 'shared with $name';
+  }
+
+  @override
+  String get roomColorsScreenResetAll => 'BACK TO AUTOMATIC';
+
+  @override
+  String get roomColorsScreenLimitToast =>
+      'That\'s as many colours as one room can pin.';
+
+  @override
+  String get roomColorsScreenFailedToast => 'Couldn\'t save that colour.';
+
+  @override
+  String roomColorsScreenSwatchSemantic(Object index) {
+    return 'Colour $index';
+  }
 }

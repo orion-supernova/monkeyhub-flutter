@@ -7004,4 +7004,54 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get speakerColorScreenBubbleDescription =>
       '색이 말풍선까지 이어져, 다섯 개가 연달아 와도 누가 썼는지 알 수 있어요.';
+
+  @override
+  String get roomInfoScreenSpeakerColorsLabel => '색상';
+
+  @override
+  String get roomInfoScreenSpeakerColorsAutomatic => '자동';
+
+  @override
+  String get roomInfoScreenSpeakerColorsCustom => '직접 지정';
+
+  @override
+  String get roomColorsScreenTitle => '누가 누구인지.';
+
+  @override
+  String get roomColorsScreenSubtitle => '각자가 말하는 색';
+
+  @override
+  String get roomColorsScreenOffTitle => '말한 사람 색상이 꺼져 있어요';
+
+  @override
+  String get roomColorsScreenOffBody =>
+      '지금은 모두 같은 색으로 표시됩니다. 켜면 여기 있는 사람마다 고유한 색이 생겨요.';
+
+  @override
+  String get roomColorsScreenOffAction => '켜기';
+
+  @override
+  String get roomColorsScreenOffHint => '이 방뿐 아니라 모든 방에 적용됩니다. 설정에도 있어요.';
+
+  @override
+  String get roomColorsScreenAutoChip => '자동';
+
+  @override
+  String roomColorsScreenAlsoUsedBy(Object name) {
+    return '$name 님과 같은 색';
+  }
+
+  @override
+  String get roomColorsScreenResetAll => '자동으로 되돌리기';
+
+  @override
+  String get roomColorsScreenLimitToast => '한 방에서 지정할 수 있는 색은 여기까지예요.';
+
+  @override
+  String get roomColorsScreenFailedToast => '그 색을 저장하지 못했어요.';
+
+  @override
+  String roomColorsScreenSwatchSemantic(Object index) {
+    return '색 $index';
+  }
 }

@@ -35,7 +35,9 @@ import '../widgets/skeleton_rows.dart';
 import '../widgets/room_join_requests_sheet.dart';
 import '../widgets/room_member_actions_sheet.dart';
 import '../widgets/steady_hero.dart';
+import '../theme/speaker_colors.dart';
 import '../widgets/user_avatar.dart';
+import 'room_colors_screen.dart';
 import '../widgets/destructive_sheet.dart';
 import 'fullscreen_image_viewer.dart';
 import 'image_crop_screen.dart';
@@ -100,6 +102,35 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   bool _deleting = false;
   String? _error;
   List<ChatUser> _members = const [];
+
+  /// Who speaks in which colour, settled the same way the transcript settles
+  /// it — same roster, same pins, same pure function — so the roster below is a
+  /// legend for the room rather than a second opinion about it.
+  SpeakerSlots _speakerSlots = SpeakerSlots.none;
+  String _speakerPinsSig = '';
+
+  /// Same two inputs the transcript settles from — the roster and this
+  /// reader's pins — so the ring beside a face here is the colour that face
+  /// will actually speak in.
+  void _rebuildSpeakerSlots() {
+    _speakerSlots = SpeakerSlots.forMembers(
+      [
+        for (final u in _members)
+          (id: u.id, joinedAt: u.joinedAt?.millisecondsSinceEpoch ?? 0)
+      ],
+      exclude: widget.repo.userId,
+      pinned: widget.repo.speakerColorsFor(widget.roomId),
+    );
+  }
+
+  /// Cheap identity for the pin map — empty, and so free, in every room nobody
+  /// has opened the picker in.
+  String _speakerPinsSignature() {
+    final pins = widget.repo.speakerColorsFor(widget.roomId);
+    if (pins.isEmpty) return '';
+    final parts = [for (final e in pins.entries) '${e.key}:${e.value}']..sort();
+    return parts.join(',');
+  }
   Subscription? _membersSub;
   String _membersSig = '';
   ChatRoom? _lastObservedRoom;
@@ -297,6 +328,17 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   void _onRepo() {
     if (!mounted) return;
     final r = _room;
+    // A colour pinned on this very screen comes back through the repository,
+    // so it has to survive the same-fields early return below — the room row
+    // has not changed at all, and the rings and the section value have.
+    final pinsSig = _speakerPinsSignature();
+    if (pinsSig != _speakerPinsSig) {
+      _speakerPinsSig = pinsSig;
+      _rebuildSpeakerSlots();
+      setState(() {});
+      _lastObservedRoom = r;
+      return;
+    }
     // Repo fires for typing/messages/read-receipts which don't affect this
     // screen — naïvely rebuilding on every notify caused scroll stutter
     // because each frame during a drag triggered a full settings rebuild.
@@ -365,7 +407,10 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
           final sig = _signatureFor(fresh);
           if (sig == _membersSig) return;
           _membersSig = sig;
-          setState(() => _members = fresh);
+          setState(() {
+            _members = fresh;
+            _rebuildSpeakerSlots();
+          });
         },
         onError: (err) => debugPrint('members sub error: $err'),
       );
@@ -1164,6 +1209,11 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                             const SizedBox(height: 6),
                           ],
                           _membersList(theme, r),
+                          // Under the roster, not above it: the rings on the
+                          // faces are the answer, and this row is the place to
+                          // go when you want to argue with one of them.
+                          const SizedBox(height: 14),
+                          _speakerColorsRow(theme),
                         ],
                         // Last of the ordinary sections, above only the
                         // destructive pair. It is one row, it is set once and
@@ -1574,7 +1624,23 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Row(
           children: [
-            UserAvatar(user: m, size: 32, api: widget.api),
+            // Ringed in the colour this person speaks in, so the roster IS the
+            // legend for the transcript. Without it a reader can see that
+            // somebody is "the teal one" and have nowhere to look up which
+            // teal one they are.
+            Builder(builder: (context) {
+              final slot = _speakerSlots.slotOf(m.id);
+              final ring = slot == null
+                  ? null
+                  : theme.speakerMark(slot, on: theme.background);
+              return UserAvatar(
+                user: m,
+                size: 32,
+                api: widget.api,
+                ring: ring != null,
+                ringColor: ring,
+              );
+            }),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -2023,6 +2089,91 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   /// against the wall clock on every build — so a mute that lapses while this
   /// screen is open corrects itself on the next frame, with nothing having run
   /// at the deadline on either side of the wire.
+  /// Opens the per-member colour picker.
+  ///
+  /// Only under a real roster — a DM hands out no speaker colours at all, and
+  /// `caps.hasMembers` is already the flag for "a member list says something
+  /// here", so this inherits that judgement rather than making a second one.
+  Widget _speakerColorsRow(AppTheme theme) {
+    final l10n = AppLocalizations.of(context);
+    final pinned = widget.repo.speakerColorsFor(widget.roomId);
+    void open() => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => RoomColorsScreen(
+              roomId: widget.roomId,
+              repo: widget.repo,
+              api: widget.api,
+              members: _members,
+            ),
+          ),
+        );
+    final value = pinned.isEmpty
+        ? l10n.roomInfoScreenSpeakerColorsAutomatic
+        : l10n.roomInfoScreenSpeakerColorsCustom;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        FieldLabel(l10n.roomInfoScreenSpeakerColorsLabel),
+        const SizedBox(height: 6),
+        FocusableTap(
+          onTap: open,
+          semanticLabel: l10n.roomInfoScreenSpeakerColorsLabel,
+          radius: theme.radiusMd,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: open,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
+              decoration: BoxDecoration(
+                color: theme.surfaceSunken,
+                borderRadius: BorderRadius.circular(theme.radiusMd),
+                border: Border.all(color: theme.divider, width: 1.4),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.palette_outlined,
+                      size: 18, color: theme.inkMuted),
+                  const SizedBox(width: 14),
+                  Expanded(child: Text(value, style: theme.body)),
+                  // A strip of the room's own colours rather than a chevron.
+                  // The row is about colour; showing three of them says what it
+                  // leads to more directly than any wording would.
+                  ..._speakerColorPreview(theme),
+                  const SizedBox(width: 8),
+                  Icon(Icons.chevron_right, size: 18, color: theme.inkMuted),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Up to four of the room's live speaker colours, in roster order.
+  List<Widget> _speakerColorPreview(AppTheme theme) {
+    final me = widget.repo.userId;
+    final dots = <Widget>[];
+    for (final m in _members) {
+      if (m.id == me) continue;
+      final slot = _speakerSlots.slotOf(m.id);
+      if (slot == null) continue;
+      dots.add(Padding(
+        padding: const EdgeInsets.only(left: 4),
+        child: Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: theme.speakerMark(slot, on: theme.surfaceSunken),
+          ),
+        ),
+      ));
+      if (dots.length == 4) break;
+    }
+    return dots;
+  }
+
   Widget _muteRow(AppTheme theme, ChatRoom r) {
     final l10n = AppLocalizations.of(context);
     final muted = r.isMuted;

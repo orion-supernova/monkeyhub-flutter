@@ -1650,6 +1650,37 @@ class ChatApi {
     });
   }
 
+  /// Pins [subjectId] to a palette [slot] for [viewerId] in [roomId], or clears
+  /// the pin when [slot] is null.
+  ///
+  /// Writes land in a table only [viewerId] reads (see `speakerColors.ts`), so
+  /// this is one of the very few room-scoped mutations that costs the other
+  /// members of the room precisely nothing.
+  Future<void> setSpeakerSlot({
+    required String viewerId,
+    required String roomId,
+    required String subjectId,
+    required int? slot,
+  }) async {
+    await _cv.mutation('speakerColors:setSlot', {
+      'viewerId': viewerId,
+      'roomId': roomId,
+      'subjectId': subjectId,
+      'slot': slot,
+    });
+  }
+
+  /// Drops every speaker-colour override [viewerId] holds in [roomId].
+  Future<void> clearSpeakerSlots({
+    required String viewerId,
+    required String roomId,
+  }) async {
+    await _cv.mutation('speakerColors:clearRoom', {
+      'viewerId': viewerId,
+      'roomId': roomId,
+    });
+  }
+
   Future<void> unsaveMessage({
     required String messageId,
     required String userId,

@@ -106,9 +106,21 @@ class SpeakerSlots {
   /// other margin, and a second identity colour on top of that would be
   /// answering a question the layout already answered. It also frees a colour
   /// for someone who needs one.
+  ///
+  /// [pinned] is this reader's manual overrides for this room, subject id to
+  /// slot. They are applied FIRST and absolutely — a pin is not a preference
+  /// that loses to a hash — and the slots they occupy are then off-limits to
+  /// everyone the room places automatically. Two pins on one slot is the
+  /// reader's own doing and is honoured; nothing derived is ever pushed onto a
+  /// pinned slot while a free one remains.
+  ///
+  /// Folding overrides in HERE rather than at lookup time is what keeps the
+  /// read path free: a bubble asking for its speaker's colour does one map
+  /// lookup whether or not anybody has ever opened the picker.
   factory SpeakerSlots.forMembers(
     Iterable<SpeakerMember> members, {
     String? exclude,
+    Map<String, int> pinned = const <String, int>{},
   }) {
     final roster = [
       for (final m in members)
@@ -124,7 +136,21 @@ class SpeakerSlots {
 
     final out = <String, int>{};
     final taken = <int>{};
+    // Pins first, so the automatic pass below sees their slots as occupied. A
+    // pin naming somebody who has since left is dropped rather than holding a
+    // colour shut for a person who can no longer speak — the server sweeps
+    // those rows on departure, and this covers the window before that lands.
+    if (pinned.isNotEmpty) {
+      for (final m in roster) {
+        final slot = pinned[m.id];
+        if (slot == null) continue;
+        final bounded = slot % kSpeakerSlotCount;
+        out[m.id] = bounded;
+        taken.add(bounded);
+      }
+    }
     for (final m in roster) {
+      if (out.containsKey(m.id)) continue;
       // A band is one full pass over the wheel. Rooms with more than twelve
       // speakers start the wheel again rather than piling everyone left onto
       // one colour.
@@ -148,6 +174,17 @@ class SpeakerSlots {
   /// non-member (a former member whose messages are still in the transcript),
   /// or a room that hands out no colours.
   int? slotOf(String? userId) => userId == null ? null : _slots[userId];
+
+  /// Everyone currently speaking in [slot].
+  ///
+  /// Normally one person, or nobody. More than one only where the reader has
+  /// pinned two people onto the same colour, or where the room is past twelve
+  /// speakers and has wrapped — which is exactly what the picker has to be able
+  /// to say out loud before somebody makes it worse.
+  List<String> holdersOf(int slot) => [
+        for (final e in _slots.entries)
+          if (e.value == slot) e.key,
+      ];
 
   bool get isEmpty => _slots.isEmpty;
 

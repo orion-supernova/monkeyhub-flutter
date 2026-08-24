@@ -7297,4 +7297,56 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get speakerColorScreenBubbleDescription =>
       'färgen följer med in i meddelandena, så en rad på fem säger fortfarande vem som skrev.';
+
+  @override
+  String get roomInfoScreenSpeakerColorsLabel => 'FÄRGER';
+
+  @override
+  String get roomInfoScreenSpeakerColorsAutomatic => 'Automatiskt';
+
+  @override
+  String get roomInfoScreenSpeakerColorsCustom => 'Eget';
+
+  @override
+  String get roomColorsScreenTitle => 'vem är vem.';
+
+  @override
+  String get roomColorsScreenSubtitle => 'färgen varje person talar i';
+
+  @override
+  String get roomColorsScreenOffTitle => 'personfärger är av';
+
+  @override
+  String get roomColorsScreenOffBody =>
+      'just nu ritas alla med samma bläck. slå på så får var och en här en egen.';
+
+  @override
+  String get roomColorsScreenOffAction => 'SLÅ PÅ';
+
+  @override
+  String get roomColorsScreenOffHint =>
+      'gäller alla rum, inte bara det här. finns även i inställningar.';
+
+  @override
+  String get roomColorsScreenAutoChip => 'AUTO';
+
+  @override
+  String roomColorsScreenAlsoUsedBy(Object name) {
+    return 'delas med $name';
+  }
+
+  @override
+  String get roomColorsScreenResetAll => 'TILLBAKA TILL AUTOMATISKT';
+
+  @override
+  String get roomColorsScreenLimitToast =>
+      'Fler färger än så kan ett rum inte fästa.';
+
+  @override
+  String get roomColorsScreenFailedToast => 'Kunde inte spara färgen.';
+
+  @override
+  String roomColorsScreenSwatchSemantic(Object index) {
+    return 'Färg $index';
+  }
 }

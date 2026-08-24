@@ -2051,5 +2051,20 @@
   "speakerColorScreenNameLabel": "İSİMLER",
   "speakerColorScreenNameDescription": "herkesin kendine ait bir rengi olur; isminde ve avatarının çevresinde.",
   "speakerColorScreenBubbleLabel": "BALONCUKLAR",
-  "speakerColorScreenBubbleDescription": "renk mesajlara da geçer; art arda beş mesaj bile kimin yazdığını söyler."
+  "speakerColorScreenBubbleDescription": "renk mesajlara da geçer; art arda beş mesaj bile kimin yazdığını söyler.",
+  "roomInfoScreenSpeakerColorsLabel": "RENKLER",
+  "roomInfoScreenSpeakerColorsAutomatic": "Otomatik",
+  "roomInfoScreenSpeakerColorsCustom": "Özel",
+  "roomColorsScreenTitle": "kim kim.",
+  "roomColorsScreenSubtitle": "herkesin konuştuğu renk",
+  "roomColorsScreenOffTitle": "kişi renkleri kapalı",
+  "roomColorsScreenOffBody": "şu anda herkes aynı mürekkeple yazıyor. aç, buradaki herkes kendi rengini alsın.",
+  "roomColorsScreenOffAction": "AÇ",
+  "roomColorsScreenOffHint": "sadece bu oda için değil, tüm odalar için geçerli. ayarlarda da var.",
+  "roomColorsScreenAutoChip": "OTOMATİK",
+  "roomColorsScreenAlsoUsedBy": "{name} ile aynı",
+  "roomColorsScreenResetAll": "OTOMATİĞE DÖN",
+  "roomColorsScreenLimitToast": "Bir odada sabitlenebilecek renk sayısı bu kadar.",
+  "roomColorsScreenFailedToast": "Renk kaydedilemedi.",
+  "roomColorsScreenSwatchSemantic": "Renk {index}"
 }

@@ -144,6 +144,11 @@ class _RoomScreenState extends State<RoomScreen>
   /// build would redo it on every keyboard frame. `_membersSig` already gates
   /// the roster rebuild, so this rides along on the one signal that matters.
   SpeakerSlots _speakerSlots = SpeakerSlots.none;
+
+  /// Signature of this reader's manual colour pins for the room, so the
+  /// assignment is rebuilt when a pin changes and not on every one of the
+  /// repository notifications that arrive while a conversation is live.
+  String _speakerPinsSig = '';
   Subscription? _membersSub;
   String _membersSig = '';
   ChatRoom? _room;
@@ -624,13 +629,7 @@ class _RoomScreenState extends State<RoomScreen>
             for (final u in fresh) {
               _members[u.id] = u;
             }
-            _speakerSlots = SpeakerSlots.forMembers(
-              [
-                for (final u in fresh)
-                  (id: u.id, joinedAt: u.joinedAt?.millisecondsSinceEpoch ?? 0)
-              ],
-              exclude: widget.repo.userId,
-            );
+            _rebuildSpeakerSlots();
           });
         },
         onError: (err) => debugPrint('members sub error: $err'),
@@ -638,6 +637,31 @@ class _RoomScreenState extends State<RoomScreen>
     } catch (_) {
       /* ignore — initial fetch may fail offline */
     }
+  }
+
+  /// Re-settles who speaks in which colour.
+  ///
+  /// Two inputs, both of which change rarely: the roster, and this reader's own
+  /// pins. Everything downstream reads the result as a plain map lookup, so
+  /// this is the only place the sort and the walk are paid for.
+  void _rebuildSpeakerSlots() {
+    _speakerSlots = SpeakerSlots.forMembers(
+      [
+        for (final u in _members.values)
+          (id: u.id, joinedAt: u.joinedAt?.millisecondsSinceEpoch ?? 0)
+      ],
+      exclude: widget.repo.userId,
+      pinned: widget.repo.speakerColorsFor(widget.roomId),
+    );
+  }
+
+  /// Cheap identity for the pin map — empty, and so free, for the rooms nobody
+  /// has ever opened the picker in.
+  String _speakerPinsSignature() {
+    final pins = widget.repo.speakerColorsFor(widget.roomId);
+    if (pins.isEmpty) return '';
+    final parts = [for (final e in pins.entries) '${e.key}:${e.value}']..sort();
+    return parts.join(',');
   }
 
   String _signatureFor(List<ChatUser> users) {
@@ -657,8 +681,18 @@ class _RoomScreenState extends State<RoomScreen>
   void _onRepoChange() {
     if (!mounted) return;
     final room = widget.repo.roomById(widget.roomId);
+    // A pin lands through the repository like everything else, so this is where
+    // a colour picked in room info reaches the transcript. Gated on the
+    // signature because this handler runs on every repository notification and
+    // re-settling the palette on each would be a sort per incoming message.
+    final pinsSig = _speakerPinsSignature();
+    final pinsMoved = pinsSig != _speakerPinsSig;
     setState(() {
       _room = room;
+      if (pinsMoved) {
+        _speakerPinsSig = pinsSig;
+        _rebuildSpeakerSlots();
+      }
     });
     _maybePushCaptureScope(room);
     // An emptied transcript has no scroll offset to be away from, and it can

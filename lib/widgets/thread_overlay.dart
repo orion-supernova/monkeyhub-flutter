@@ -148,6 +148,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
                   (id: u.id, joinedAt: u.joinedAt?.millisecondsSinceEpoch ?? 0)
               ],
               exclude: widget.repo.userId,
+              pinned: widget.repo.speakerColorsFor(widget.roomId),
             );
 
   /// Accent halo pulse on a message we've just scrolled to — the anchor the

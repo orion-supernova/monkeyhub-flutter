@@ -2051,5 +2051,20 @@
   "speakerColorScreenNameLabel": "名前",
   "speakerColorScreenNameDescription": "一人ひとりに専用の色。名前とアイコンの縁につきます。",
   "speakerColorScreenBubbleLabel": "吹き出し",
-  "speakerColorScreenBubbleDescription": "色は吹き出しにも広がるので、5件続いても誰の発言かわかります。"
+  "speakerColorScreenBubbleDescription": "色は吹き出しにも広がるので、5件続いても誰の発言かわかります。",
+  "roomInfoScreenSpeakerColorsLabel": "カラー",
+  "roomInfoScreenSpeakerColorsAutomatic": "自動",
+  "roomInfoScreenSpeakerColorsCustom": "カスタム",
+  "roomColorsScreenTitle": "誰が誰か。",
+  "roomColorsScreenSubtitle": "それぞれの人の色",
+  "roomColorsScreenOffTitle": "話し手の色はオフです",
+  "roomColorsScreenOffBody": "今は全員が同じ色で表示されます。オンにすると、ここにいる一人ひとりに専用の色がつきます。",
+  "roomColorsScreenOffAction": "オンにする",
+  "roomColorsScreenOffHint": "この部屋だけでなく、すべての部屋に適用されます。設定にもあります。",
+  "roomColorsScreenAutoChip": "自動",
+  "roomColorsScreenAlsoUsedBy": "{name} と同じ色",
+  "roomColorsScreenResetAll": "自動に戻す",
+  "roomColorsScreenLimitToast": "1つの部屋で固定できる色はここまでです。",
+  "roomColorsScreenFailedToast": "その色を保存できませんでした。",
+  "roomColorsScreenSwatchSemantic": "色 {index}"
 }

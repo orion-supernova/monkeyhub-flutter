@@ -6899,4 +6899,53 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get speakerColorScreenBubbleDescription => '颜色也会延伸到气泡里，连发五条也知道是谁写的。';
+
+  @override
+  String get roomInfoScreenSpeakerColorsLabel => '颜色';
+
+  @override
+  String get roomInfoScreenSpeakerColorsAutomatic => '自动';
+
+  @override
+  String get roomInfoScreenSpeakerColorsCustom => '自定义';
+
+  @override
+  String get roomColorsScreenTitle => '谁是谁。';
+
+  @override
+  String get roomColorsScreenSubtitle => '每个人说话的颜色';
+
+  @override
+  String get roomColorsScreenOffTitle => '发言人颜色已关闭';
+
+  @override
+  String get roomColorsScreenOffBody => '现在所有人都用同一种颜色显示。打开后，这里的每个人都会有自己的颜色。';
+
+  @override
+  String get roomColorsScreenOffAction => '打开';
+
+  @override
+  String get roomColorsScreenOffHint => '对所有房间生效，不只是这一个。设置里也有。';
+
+  @override
+  String get roomColorsScreenAutoChip => '自动';
+
+  @override
+  String roomColorsScreenAlsoUsedBy(Object name) {
+    return '与 $name 相同';
+  }
+
+  @override
+  String get roomColorsScreenResetAll => '恢复自动';
+
+  @override
+  String get roomColorsScreenLimitToast => '一个房间最多只能固定这么多颜色。';
+
+  @override
+  String get roomColorsScreenFailedToast => '无法保存该颜色。';
+
+  @override
+  String roomColorsScreenSwatchSemantic(Object index) {
+    return '颜色 $index';
+  }
 }

@@ -4,6 +4,7 @@ import { internal } from "./_generated/api";
 import { ACCOUNT_CHILD, ERR_MUST_PAIR, ERR_NOT_ALLOWED } from "./childGuard";
 import { SOCIAL_ONLY_PASSWORD_SENTINEL, ERR_USE_SOCIAL } from "./socialAuth";
 import { wipeRoomCompletely } from "./roomCleanup";
+import { purgeSpeakerColorsForUser } from "./speakerColors";
 import { ensureOwner } from "./roomAdmin";
 import { purgeScheduledForUser } from "./scheduledMessages";
 import {
@@ -481,6 +482,12 @@ async function purgeUser(ctx: any, userId: any) {
       .withIndex("by_user", byUser(userId))
       .collect(),
   );
+
+  // Manual speaker colours, both directions: the ones this user set, and the
+  // ones other people set about them in rooms that outlive this account. The
+  // second direction is why `speakerColors.by_subject` exists — the room pass
+  // above only reaches rooms this user was still in.
+  await purgeSpeakerColorsForUser(ctx, userId);
 
   // View-once rows where this user was the VIEWER. These hang off other
   // people's messages, so the loop above never reaches them — same shape as
