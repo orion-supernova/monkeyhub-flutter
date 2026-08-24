@@ -33,6 +33,64 @@ type DevicePatch = Partial<
 >;
 
 /**
+ * The language and time zone a caller may stamp alongside whatever else it is
+ * writing. See [deviceContextPatch].
+ */
+type DeviceContextArgs = {
+  locale?: string;
+  tzOffsetMinutes?: number;
+};
+
+/**
+ * Convex validators for [DeviceContextArgs], spread into the token setters.
+ */
+const vDeviceContext = {
+  /** BCP-47-ish, as Flutter resolved it: "en", "tr", "pt-BR". */
+  locale: v.optional(v.string()),
+  /** Minutes ahead of UTC: +180 Istanbul, -480 California. */
+  tzOffsetMinutes: v.optional(v.number()),
+};
+
+/**
+ * [DeviceContextArgs] as a patch — only what was actually passed, so a caller
+ * that knows one of the two never clears the other.
+ *
+ * Every path that writes a push credential carries these now, which is a
+ * deliberate belt-and-braces on top of [setDeviceContext] rather than a
+ * replacement for it. `setDeviceContext` remains the entry point that *tracks*
+ * the two values and re-sends them when either moves; what this adds is an
+ * invariant the daily nudge could not otherwise rely on — **a row that holds a
+ * push token has a time zone**. Without it, a login whose context call failed
+ * or never ran (a hang in the notification prompt, a socket that dropped
+ * between the two mutations, an app build older than the feature) leaves a row
+ * that is perfectly pushable and permanently invisible to `dailyNudge`, which
+ * addresses its audience through `by_tz_offset` and cannot see a row that is
+ * missing the field. That was five of eleven live phones the day the nudge
+ * shipped.
+ */
+function deviceContextPatch(args: DeviceContextArgs): DevicePatch {
+  const patch: DevicePatch = {};
+  if (args.locale !== undefined) patch.locale = args.locale;
+  if (args.tzOffsetMinutes !== undefined) {
+    patch.tzOffsetMinutes = snapOffset(args.tzOffsetMinutes);
+  }
+  return patch;
+}
+
+/**
+ * A reported UTC offset, snapped to the quarter hour the audience query probes
+ * on.
+ *
+ * Every real zone already is one (Kathmandu +345, Chatham +765); a device whose
+ * clock reports something else is broken, and rounding it is the difference
+ * between that device being nudged an odd number of minutes late and never
+ * being nudged at all.
+ */
+function snapOffset(minutes: number): number {
+  return Math.round(minutes / 15) * 15;
+}
+
+/**
  * Find-or-create this user's row for [deviceId] and apply [patch].
  *
  * Every registration entry point funnels through here so that "which fields
@@ -112,14 +170,16 @@ export const setVoipToken = mutation({
     // "sandbox" for debug/dev builds, "production" for TestFlight/App Store.
     // Lets the backend pick the matching APNs host per token.
     apnsEnv: v.optional(v.union(v.literal("sandbox"), v.literal("production"))),
+    ...vDeviceContext,
   },
   handler: async (
     ctx,
-    { userId, deviceId, platform, token, deviceName, apnsEnv },
+    { userId, deviceId, platform, token, deviceName, apnsEnv, ...context },
   ) => {
     await upsertDevice(ctx, userId, deviceId, platform, deviceName, {
       voipToken: token,
       ...(apnsEnv ? { apnsEnv } : {}),
+      ...deviceContextPatch(context),
     });
     const dupes = await ctx.db
       .query("userDevices")
@@ -145,14 +205,16 @@ export const setApnsToken = mutation({
     token: v.string(),
     deviceName: v.optional(v.string()),
     apnsEnv: v.optional(v.union(v.literal("sandbox"), v.literal("production"))),
+    ...vDeviceContext,
   },
   handler: async (
     ctx,
-    { userId, deviceId, platform, token, deviceName, apnsEnv },
+    { userId, deviceId, platform, token, deviceName, apnsEnv, ...context },
   ) => {
     await upsertDevice(ctx, userId, deviceId, platform, deviceName, {
       apnsToken: token,
       ...(apnsEnv ? { apnsEnv } : {}),
+      ...deviceContextPatch(context),
     });
     const dupes = await ctx.db
       .query("userDevices")
@@ -171,10 +233,15 @@ export const setFcmToken = mutation({
     platform: v.string(),
     token: v.string(),
     deviceName: v.optional(v.string()),
+    ...vDeviceContext,
   },
-  handler: async (ctx, { userId, deviceId, platform, token, deviceName }) => {
+  handler: async (
+    ctx,
+    { userId, deviceId, platform, token, deviceName, ...context },
+  ) => {
     await upsertDevice(ctx, userId, deviceId, platform, deviceName, {
       fcmToken: token,
+      ...deviceContextPatch(context),
     });
     const dupes = await ctx.db
       .query("userDevices")
@@ -253,12 +320,13 @@ export const setPushEnabled = mutation({
 /**
  * This device's language and time zone, as its running app resolves them.
  *
- * Its own entry point rather than an argument bolted onto the five token
- * setters, because it is re-run on a completely different schedule from any of
- * them: a token changes when the OS mints a new one, whereas these two change
+ * Its own entry point, and NOT because the token setters cannot carry these —
+ * they do, see [deviceContextPatch] — but because nothing else is re-run on
+ * this schedule. A token changes when the OS mints a new one; these two change
  * when the user picks a language, boards a plane, or the zone shifts for DST.
- * Wiring them into `setApnsToken` would mean a person who never rotates a
- * token never updates a time zone.
+ * Only wiring them into `setApnsToken` would mean a person who never rotates a
+ * token never updates a time zone. The token setters are the floor (a pushable
+ * row always has a zone); this is the ceiling (the zone is the current one).
  *
  * Both arguments are optional and only what is passed is written, so one can
  * move without disturbing the other — changing app language must not silently
@@ -285,17 +353,14 @@ export const setDeviceContext = mutation({
     ctx,
     { userId, deviceId, platform, deviceName, locale, tzOffsetMinutes },
   ) => {
-    const patch: DevicePatch = {};
-    if (locale !== undefined) patch.locale = locale;
-    if (tzOffsetMinutes !== undefined) {
-      // Snapped to the quarter hour the audience query probes on. Every real
-      // zone already is one (Kathmandu +345, Chatham +765); a device whose
-      // clock reports something else is broken, and rounding it is the
-      // difference between that device being nudged an odd number of minutes
-      // late and never being nudged at all.
-      patch.tzOffsetMinutes = Math.round(tzOffsetMinutes / 15) * 15;
-    }
-    await upsertDevice(ctx, userId, deviceId, platform, deviceName, patch);
+    await upsertDevice(
+      ctx,
+      userId,
+      deviceId,
+      platform,
+      deviceName,
+      deviceContextPatch({ locale, tzOffsetMinutes }),
+    );
   },
 });
 

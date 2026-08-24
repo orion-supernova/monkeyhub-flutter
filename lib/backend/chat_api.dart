@@ -373,6 +373,11 @@ class ChatApi {
   /// Persist the PushKit (iOS) VoIP token so the backend can wake this device
   /// into CallKit even when the app is killed. Keyed by (userId, deviceId)
   /// so multiple devices for the same user keep their own tokens.
+  /// [locale] and [tzOffsetMinutes] ride along with every push credential, and
+  /// deliberately duplicate [setDeviceContext]. They are what the daily games
+  /// nudge addresses its audience by, and a row that holds a token but no zone
+  /// is pushable and permanently invisible to it — so the two facts travel with
+  /// the token rather than depending on a second call having also landed.
   Future<void> setVoipToken({
     required String userId,
     required String deviceId,
@@ -380,6 +385,8 @@ class ChatApi {
     required String token,
     String? deviceName,
     String? apnsEnv, // "sandbox" | "production"
+    String? locale,
+    int? tzOffsetMinutes,
   }) async {
     await _cv.mutation('voipTokens:setVoipToken', {
       'userId': userId,
@@ -388,6 +395,8 @@ class ChatApi {
       'token': token,
       'deviceName': ?deviceName,
       'apnsEnv': ?apnsEnv,
+      'locale': ?locale,
+      'tzOffsetMinutes': ?tzOffsetMinutes,
     });
   }
 
@@ -405,6 +414,8 @@ class ChatApi {
     required String token,
     String? deviceName,
     String? apnsEnv, // "sandbox" | "production"
+    String? locale,
+    int? tzOffsetMinutes,
   }) async {
     await _cv.mutation('voipTokens:setApnsToken', {
       'userId': userId,
@@ -413,6 +424,8 @@ class ChatApi {
       'token': token,
       'deviceName': ?deviceName,
       'apnsEnv': ?apnsEnv,
+      'locale': ?locale,
+      'tzOffsetMinutes': ?tzOffsetMinutes,
     });
   }
 
@@ -500,6 +513,8 @@ class ChatApi {
     required String platform,
     required String token,
     String? deviceName,
+    String? locale,
+    int? tzOffsetMinutes,
   }) async {
     await _cv.mutation('voipTokens:setFcmToken', {
       'userId': userId,
@@ -507,6 +522,8 @@ class ChatApi {
       'platform': platform,
       'token': token,
       'deviceName': ?deviceName,
+      'locale': ?locale,
+      'tzOffsetMinutes': ?tzOffsetMinutes,
     });
   }
 

@@ -262,6 +262,14 @@ class PushManager {
     _userId = userId;
     _deviceId = await DeviceIdentity.ensure();
     _deviceName = await DeviceIdentity.displayName();
+    // FIRST, ahead of the permission prompt and the token fetch, because both
+    // of those can block for as long as they like — the prompt waits on a human
+    // and has been seen to never return at all on a headless cold start (see
+    // app.dart's note on this method). This was the LAST line of the method,
+    // which made the one fact the daily nudge cannot work without the first
+    // thing a slow login dropped. It creates the device row on its own, so
+    // nothing below depends on having run first.
+    await syncDeviceContext(force: true);
     if (_pushSupported && _initialized) {
       await _maybeRequestNotificationPermission();
     }
@@ -280,9 +288,6 @@ class PushManager {
       // tab still gets banners.
       await _registerWebPush();
     }
-    // Every platform, push-capable or not: a desktop registers a device row
-    // above and wants its language and zone on that row too.
-    await syncDeviceContext(force: true);
   }
 
   /// Subscribe this browser to Web Push and hand the backend what it needs to
@@ -348,6 +353,13 @@ class PushManager {
 
   Future<void> _maybeRequestNotificationPermission() => _permission.maybeAsk();
 
+  /// This device's UTC offset, right now, in minutes.
+  ///
+  /// Read at the moment of use rather than cached: it moves under us on a
+  /// flight and twice a year for daylight saving, and the whole value of
+  /// sending it with a token is that the token's row is never the stale one.
+  int get _tzOffsetMinutes => DateTime.now().timeZoneOffset.inMinutes;
+
   Future<void> _registerNoPushDevice() async {
     final userId = _userId;
     final api = _api;
@@ -390,6 +402,11 @@ class PushManager {
         // native side for the authoritative value; fall back to the build-
         // mode heuristic only if it's unavailable (e.g. App Store build).
         apnsEnv: await _resolveApnsEnv(),
+        // Stamped with the token, and duplicated from [syncDeviceContext] on
+        // purpose — see the note there. A row with a credential and no time
+        // zone is one the daily nudge can push to and cannot find.
+        locale: _appLocale,
+        tzOffsetMinutes: _tzOffsetMinutes,
       );
     } catch (e) {
       debugPrint('PushManager: setVoipToken failed: $e');
@@ -419,6 +436,8 @@ class PushManager {
         token: token,
         deviceName: _deviceName,
         apnsEnv: await _resolveApnsEnv(),
+        locale: _appLocale,
+        tzOffsetMinutes: _tzOffsetMinutes,
       );
     } catch (e) {
       debugPrint('PushManager: setApnsToken failed: $e');
@@ -520,6 +539,8 @@ class PushManager {
         platform: DeviceIdentity.platformTag(),
         token: token,
         deviceName: _deviceName,
+        locale: _appLocale,
+        tzOffsetMinutes: _tzOffsetMinutes,
       );
     } catch (e) {
       debugPrint('PushManager: setFcmToken failed: $e');
@@ -634,6 +655,23 @@ class PushManager {
   /// The two values are always read fresh and sent together, so neither can
   /// carry the other's staleness: changing language never re-stamps an old
   /// offset, and landing in a new zone never rewrites the language.
+  ///
+  /// Every token upload stamps the same two values as well ([ChatApi
+  /// .setApnsToken] and friends), which is not redundancy for its own sake.
+  /// This method is what keeps the offset CURRENT — it is the only thing that
+  /// re-runs when a plane lands or the clocks go back. The token setters are
+  /// what keep it PRESENT: the daily nudge finds its audience through
+  /// `userDevices.by_tz_offset`, so a row with a live token and no offset is
+  /// one the backend can push to and cannot see, and the only call that could
+  /// have filled it in is this one — which a login that hung, or an app build
+  /// older than the feature, never made.
+  ///
+  /// [_appLocale] can still be null the first time this runs at cold start, on
+  /// a login that beats the first frame. That is fine and deliberate: an absent
+  /// locale is not written, the notification falls back to English for that one
+  /// day, and `noteAppLocale` sends the real answer as soon as the widget tree
+  /// resolves it. The offset — the value that decides whether this device is
+  /// reachable at all — never depends on the frame.
   Future<void> syncDeviceContext({bool force = false}) async {
     final userId = _userId;
     final api = _api;

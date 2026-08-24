@@ -41,12 +41,24 @@ service account that are already set up — but four things are worth knowing
 before changing it.
 
 **It is sent at local noon, from one quarter-hourly cron.** `dailyNudge.run`
-ticks every 15 minutes and asks whose wall clock reads 12:00 right now, answered
-by an equality probe on `userDevices.by_tz_offset`. Istanbul is nudged at
-Istanbul's lunchtime and California at California's. Quarter-hourly and not
+runs on `0,15,30,45 * * * *` and asks whose wall clock reads 12:00 right now,
+answered by an equality probe on `userDevices.by_tz_offset`. Istanbul is nudged
+at Istanbul's lunchtime and California at California's. Quarter-hourly and not
 hourly because India (+5:30), Nepal (+5:45) and Chatham (+12:45) have noons an
 hourly tick would never land on. Most of the 96 daily ticks match no populated
 zone and cost one index probe returning nothing.
+
+A **cron string, not `crons.interval`** — the distinction is load-bearing and
+was a real bug. An interval is measured from the end of the previous run, so the
+ticks slide later by however long each took; since a tick is snapped to the
+nearest quarter hour to decide which zone it serves, a drifting schedule skips a
+quarter outright and the zone that quarter addresses hears nothing that day.
+`test/daily_nudge_schedule_test.dart` fails if it is changed back.
+
+**A missed tick is not a lost day.** Each tick also re-serves the zones whose
+noon fell in the previous hour (`dueOffsetsAt`, `CATCH_UP_TICKS`), and each
+bucket runs inside its own try/catch. Free, because a zone already served today
+costs one document read per person to establish that and sends nothing.
 
 **The offset comes from the device and is refreshed aggressively.**
 `userDevices.tzOffsetMinutes` and `.locale` are written by
@@ -54,17 +66,43 @@ zone and cost one index probe returning nothing.
 when the local day rolls over, and whenever the resolved app language changes —
 see `PushManager.syncDeviceContext`. It compares against what it last uploaded,
 so the common case costs no round trip. Travel is picked up on the resume as the
-phone comes off airplane mode. **Known gap:** daylight saving moves at ~03:00
-local, so a phone nobody opens between the change and noon is nudged an hour off
-for that one day. Closing it properly means storing an IANA zone name, which
-Dart cannot report without a plugin.
+phone comes off airplane mode. Every token upload (`setApnsToken`,
+`setFcmToken`, `setVoipToken`) stamps the same two values as a floor, so a row
+that holds a push credential always has a zone even if the context call never
+landed. **Known gap:** daylight saving moves at ~03:00 local, so a phone nobody
+opens between the change and noon is nudged an hour off for that one day.
+Closing it properly means storing an IANA zone name, which Dart cannot report
+without a plugin.
+
+**A device that has never reported a zone is still reached.** `by_tz_offset`
+cannot return a row that is missing the field, so under a strictly-zoned
+audience those devices were invisible forever while holding live tokens — the
+day the nudge shipped that was five of the eleven push-capable phones on the
+deployment, every one of them on an app build older than the feature. They are
+now a bucket of their own: served with their account's zoned phones when it has
+any, and otherwise at noon in a deployment-wide fallback offset.
+
+```sh
+# The offset most of your zone-less users actually live in. Default 0 (UTC).
+npx convex env set NUDGE_FALLBACK_TZ_OFFSET 180   # Istanbul
+```
+
+A device leaves that bucket for its own zone the first time its app tells us
+where it is, which is the first login or resume on a build new enough to.
 
 **Nobody is nudged twice, and nobody who already played is nudged at all.**
 `dailyNudge.claimNudges` reads the day's five results (the code puzzle and four
 boards) and stamps `users.lastNudgedDayKey` in the same mutation. A finished set
-is skipped; a retry, an overlapping deploy, or a person with devices in two time
-zones finds the day already claimed. The same check picks between the two lines
-of copy, both of which are true of whoever reads them.
+is skipped; a retry, an overlapping deploy, a catch-up tick, or a person with
+devices in two time zones finds the day already claimed. The same check picks
+between the two lines of copy, both of which are true of whoever reads them.
+
+The claim is per ACCOUNT while the audience index is per DEVICE, so the fan-out
+runs the other way afterwards: the winner of a claim is re-read through `by_user`
+(`devicesForUsers`) and every phone it owns in that bucket is sent to. Reading
+devices straight off the audience page instead — which is what this did first —
+silently dropped every phone that landed on a later page of a busy zone, because
+the day was already claimed by the time that page was reached.
 
 **Web is excluded on purpose; desktop cannot be reached.** A browser only
 receives a push while its service worker is alive, so the web audience is
@@ -74,9 +112,33 @@ audience test on their own, though they do report language and time zone, so
 they would join with no backend change the day a local notifier exists.
 `push_payload_contract_test.dart` pins both facts.
 
+**The copy is not the same two sentences every day.** It was, and that is the
+second way to teach somebody to swipe a daily notification away unread — the
+first being sending it to people who already played. `claimNudges` now returns
+the day's shape rather than a sentence: how many of the five are left, whether
+something was opened and walked away from, whether the day is untouched.
+`friendsAhead` adds how many friends already played today. `composeNudge` pools
+every line that is true of the reader and rotates by calendar day, so
+consecutive days cannot repeat, everyone in a language reads the same line on
+the same day, and the exact title+body pair comes back roughly every 12 days in
+the commonest state and every 30 in the richest.
+
+The lines never name a game, on purpose. The backend knows exactly which board
+was left half-played; saying so turns a nudge into a status report, and costs
+four game names in twelve languages for a detail nobody wants at lunchtime.
+
+The social line obeys `visibility.puzzle`, exactly as `games.standings` does,
+and needs two friends before it fires — at one, "a friend played today" is a
+statement about one identifiable person. It is capped three ways
+(`SOCIAL_FRIEND_CAP`, `SOCIAL_USERS_PER_QUERY`, `SOCIAL_MAX`) so it cannot grow
+into the query that takes the box down, runs only over accounts that already won
+a claim, and fails soft: losing it costs the sentence, never the notification.
+
 Copy lives in `NUDGE_COPY` in `dailyNudge.ts`, one row per shipped language,
 mirroring `lib/l10n/app_*.arb`. `test/daily_nudge_copy_test.dart` fails if a
-thirteenth language ships without one — nothing else would notice.
+thirteenth language ships without one — nothing else would notice — and fails
+too if a language is given fewer lines than English, repeats a line inside one
+list, or puts `{count}` in a list that passes no number.
 
 Off switches: the per-device `userDevices.gameRemindersEnabled` (Settings ▸
 Notifications ▸ DAILY GAME REMINDER), the Android `mh_games` channel, and
@@ -84,8 +146,12 @@ Notifications ▸ DAILY GAME REMINDER), the Android `mh_games` channel, and
 way to stop a daily broadcast should not cost you your messages.
 
 Ops: `npx convex run dailyNudge:audienceReport` — devices per time zone and per
-language, plus how many are reachable at all. A zone reading zero usually means
-a fleet on a build that has never uploaded an offset, not an empty zone.
+language, plus how many are reachable at all. `fallback` is the count still on a
+build that has never uploaded an offset; it should fall towards zero over a
+release. (The first version of this report keyed its counts by locale into an
+object and used `"—"` for "none", which Convex rejects as a field name — so the
+one command for finding out whether anybody was being missed threw on every
+deployment that had a single device with no locale. Counts are arrays now.)
 
 ## 1. Apple: APNs key and the Time Sensitive capability
 
@@ -226,7 +292,8 @@ must display something — which is why the backend never sends the silent
     predates direct push.
 14. Daily nudge: set the device clock to a zone whose noon is minutes away,
     reopen the app (that is what uploads the offset), and confirm
-    `npx convex run dailyNudge:audienceReport` counts it under the right zone.
+    `npx convex run dailyNudge:audienceReport` counts it under the right zone
+    and reports `fallback: 0` for it.
     At noon the banner must arrive in the app's language, and tapping it must
     land on the Feed with the games shelf open — not merely raise the app.
     Play everything, and the next day's nudge must not arrive at all.

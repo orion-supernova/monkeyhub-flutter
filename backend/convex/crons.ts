@@ -238,14 +238,26 @@ crons.interval(
 // Fifteen minutes because India (+5:30), Nepal (+5:45) and Chatham (+12:45)
 // have noons an hourly job would never land on.
 //
+// A cron STRING and not `crons.interval({ minutes: 15 })`, which is what this
+// was and which quietly does not mean the same thing. An interval is measured
+// from the end of the previous run, so the ticks slide later by however long
+// each one took — a few seconds a tick, several minutes a day, without bound.
+// Every other sweep in this file shrugs that off; this one cannot. A tick is
+// snapped to the nearest quarter hour to decide WHICH TIME ZONE it belongs to,
+// so a schedule that drifts past the halfway mark simply skips a quarter — and
+// the zone that quarter addresses hears nothing at all that day. `0,15,30,45`
+// is wall-clock anchored, so all 96 ticks happen, exactly once each.
+//
 // Cheap despite the rate, which this file's header demands justifying: a tick
 // is one equality probe on `by_tz_offset` per candidate zone, and the great
 // majority of the 96 daily ticks match a zone nobody lives in and return
-// nothing. Only the handful that hit a populated offset do any work at all.
-// See dailyNudge.ts.
-crons.interval(
+// nothing. Only the handful that hit a populated offset do any work at all —
+// and a zone already nudged today costs one document read per person to
+// establish that, which is what makes the hour-long catch-up window in
+// `dueOffsetsAt` affordable. See dailyNudge.ts.
+crons.cron(
   "dailyNudge.run",
-  { minutes: 15 },
+  "0,15,30,45 * * * *",
   internal.dailyNudge.run,
   {},
 );
