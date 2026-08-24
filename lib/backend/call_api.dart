@@ -26,16 +26,21 @@ class CallApi {
     return res.toString();
   }
 
-  Future<void> acceptCall({
+  /// Returns the backend's disposition ("accepted" | "not-ringing"), or null
+  /// from a backend that predates status returns. A late accept — the call
+  /// already timed out, was cancelled, or a sibling device settled it first
+  /// — comes back as "not-ringing" instead of throwing.
+  Future<String?> acceptCall({
     required String callId,
     required String userId,
     String? acceptingDeviceId,
   }) async {
-    await _cv.mutation('calls:accept', {
+    final res = await _cv.mutation('calls:accept', {
       'callId': callId,
       'userId': userId,
       'acceptingDeviceId': ?acceptingDeviceId,
     });
+    return res?.toString();
   }
 
   /// Returns the backend's disposition ("rejected" | "not-ringing"), or null

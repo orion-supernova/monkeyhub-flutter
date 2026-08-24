@@ -564,11 +564,19 @@ class CallService extends ChangeNotifier {
         'sdpLen=${answer.sdp?.length ?? 0}',
       );
 
-      await api.acceptCall(
+      final disposition = await api.acceptCall(
         callId: s.callId,
         userId: me,
         acceptingDeviceId: _deviceId,
       );
+      if (disposition == 'not-ringing') {
+        // The call was already settled elsewhere — timed out, cancelled, or
+        // a sibling device took it — before our accept landed on the
+        // backend. Not a real failure, just late: tear down quietly instead
+        // of surfacing "Could not start call".
+        await endCall();
+        return;
+      }
       await api.sendCallSignal(
         callId: s.callId,
         fromUserId: me,
@@ -827,6 +835,11 @@ class CallService extends ChangeNotifier {
       // Web/desktop have no earpiece/loudspeaker switch — the browser/OS owns
       // output routing — and Helper.setSpeakerphoneOn throws there. Still keep
       // the speakerOn flag in sync below so the UI toggle stays coherent.
+      //
+      // Unconditional log (not just on failure): the plugin call can also
+      // silently no-op at the platform layer without throwing, which used to
+      // leave no trace at all that a route change was even attempted.
+      debugPrint('CallService._applyAudioRoute: setSpeakerphoneOn($speaker)');
       try {
         await Helper.setSpeakerphoneOn(speaker);
       } catch (e) {
@@ -986,8 +999,13 @@ class CallService extends ChangeNotifier {
         ));
         await _teardown(CallStatus.ended);
         // Fall through: ring for the winner's invite below.
-      } else if (cur != null) {
-        // Already in a call — auto-reject as busy. The reject mutation
+      } else if (cur != null && inCall) {
+        // Already in a LIVE call — auto-reject as busy. Gated on [inCall],
+        // not just non-null: `_teardown` holds a terminal session (status
+        // ended/failed) for `teardownUiHold` so the UI can show it, and a
+        // bare `cur != null` check here treated that leftover terminal
+        // session as "busy" too — silently auto-rejecting (never ringing)
+        // any call that arrived in that window. The reject mutation
         // will broadcast `taken` so the caller learns immediately. The
         // `taken` push excludes THIS device (it's the rejecting one), so
         // dismiss the second call's native card ourselves — targeted, so
@@ -1054,10 +1072,12 @@ class CallService extends ChangeNotifier {
         return;
       }
       final s = _session;
-      if (s != null && s.callId != callId) {
+      if (s != null && s.callId != callId && inCall) {
         // Some other call's offer landed while we're already on this one —
         // busy-reject without disturbing our session (targeted native
-        // dismiss for the same reason as the invite busy branch).
+        // dismiss for the same reason as the invite busy branch). Gated on
+        // [inCall] for the same reason as the invite branch above: a
+        // terminal leftover session must not busy-reject a fresh call.
         try {
           await api.rejectCall(
             callId: callId,

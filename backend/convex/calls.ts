@@ -397,12 +397,17 @@ export const accept = mutation({
     userId: v.id("users"),
     acceptingDeviceId: v.optional(v.string()),
   },
+  // "accepted" | "not-ringing" — a late accept (the call already timed out,
+  // was cancelled, or a sibling device settled it first) tells the client so
+  // instead of throwing. Mirrors reject/cancel/end, which all resolve this
+  // same stale-state race with a soft return instead of an uncaught error.
+  returns: v.string(),
   handler: async (ctx, { callId, userId, acceptingDeviceId }) => {
     const call = await assertCallParticipant(ctx, callId, userId);
     if (call.calleeId.toString() !== userId.toString()) {
       throw new Error("ONLY_CALLEE_CAN_ACCEPT");
     }
-    if (call.status !== "ringing") throw new Error("NOT_RINGING");
+    if (call.status !== "ringing") return "not-ringing";
     await ctx.db.patch(callId, {
       status: "active",
       acceptedAt: Date.now(),
@@ -434,6 +439,7 @@ export const accept = mutation({
       excludeDeviceId: acceptingDeviceId ?? null,
       reason: "accepted",
     });
+    return "accepted";
   },
 });
 
