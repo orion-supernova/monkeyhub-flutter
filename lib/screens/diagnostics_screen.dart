@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 
+import '../diagnostics/device_report.dart';
 import '../diagnostics/diag_buffer.dart';
 import '../diagnostics/diag_event.dart';
 import '../diagnostics/diag_export.dart';
@@ -44,10 +45,20 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
   Timer? _tick;
   int _seenRevision = -1;
 
+  /// `1.3.81 (1) · macos · macos-testflight` — see [DeviceReport.describeBuild].
+  /// Null until the first gather resolves; the header simply omits the line
+  /// until then rather than reserving space for it and jumping.
+  String? _build;
+
   @override
   void initState() {
     super.initState();
     _scroll.addListener(_onScroll);
+    // `gather()` is cached per launch, so this is a map lookup on every visit
+    // after the first.
+    DeviceReport.gather().then((d) {
+      if (mounted) setState(() => _build = DeviceReport.describeBuild(d));
+    });
     // 4 Hz is fast enough to read as live and slow enough to be free.
     _tick = Timer.periodic(const Duration(milliseconds: 250), (_) {
       final rev = DiagBuffer.instance.revision.value;
@@ -154,6 +165,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
           child: Column(
             children: [
               _Header(
+                buildLine: _build,
                 total: buf.length,
                 shown: events.length,
                 dropped: buf.dropped,
@@ -560,6 +572,7 @@ class _CatChip extends StatelessWidget {
 
 class _Header extends StatelessWidget {
   const _Header({
+    required this.buildLine,
     required this.total,
     required this.shown,
     required this.dropped,
@@ -571,6 +584,8 @@ class _Header extends StatelessWidget {
     required this.onClose,
   });
 
+  /// Which binary this is. Null while it is still being gathered.
+  final String? buildLine;
   final int total;
   final int shown;
   final int dropped;
@@ -623,6 +638,18 @@ class _Header extends StatelessWidget {
               _Action(icon: Icons.close, label: 'Close', onTap: onClose),
             ],
           ),
+          // Which binary this is, under the counts. The question it answers
+          // ("am I even looking at the build I just shipped?") comes up before
+          // any question the timeline below can answer, and every other signal
+          // a tester has — window chrome, Dock icon, app name — reads the same
+          // for an iOS build on an Apple silicon Mac as for the real macOS one.
+          if (buildLine != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              buildLine!,
+              style: theme.monoTiny.copyWith(color: theme.inkMuted),
+            ),
+          ],
         ],
       ),
     );

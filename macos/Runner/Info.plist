@@ -22,6 +22,14 @@
 	     warns at archive time, ASC's server rejects the upload outright. -->
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.social-networking</string>
+	<!-- Export compliance, declared the same way ios/Runner/Info.plist declares
+	     it. Without it the upload SUCCEEDS and then parks in App Store Connect
+	     as "Missing Compliance", which never reaches a tester — the macOS build
+	     simply is not listed in TestFlight and there is nothing on the Mac to
+	     explain why. False because the app ships no non-exempt cryptography of
+	     its own: everything is HTTPS/TLS through the OS. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleVersion</key>

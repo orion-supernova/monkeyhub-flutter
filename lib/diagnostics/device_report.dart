@@ -8,6 +8,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../backend/server_store.dart';
 import '../data/settings_store.dart';
 import '../push/device_identity.dart';
+import '../update/release_channel.dart';
 
 /// The snapshot printed at the top of every export and as line one of every
 /// session file.
@@ -64,6 +65,15 @@ class DeviceReport {
     try {
       out['deviceId'] = await DeviceIdentity.ensure();
       out['platform'] = DeviceIdentity.platformTag();
+    } catch (_) {}
+
+    try {
+      // How this copy was delivered. `unknown` in debug, and on a build carrying
+      // no MH_CHANNEL define it falls back to the installer — see
+      // `resolveChannel()`. Paired with `platform` above it is the only thing
+      // here that tells an iOS build installed on an Apple silicon Mac apart
+      // from the real macOS one; see `describeBuild`.
+      out['channel'] = (await resolveChannel()).wire;
     } catch (_) {}
 
     try {
@@ -148,6 +158,31 @@ class DeviceReport {
     return out;
   }
 
+  /// The build, in one line: `1.3.81 (1) · macos · macos-testflight`.
+  ///
+  /// Answers "which binary am I actually looking at", which is not the question
+  /// the version alone answers. The three parts disagree in exactly the case
+  /// that is hardest to spot from the outside: an iOS build installed on an
+  /// Apple silicon Mac reports `ios · ios-testflight` here while the window,
+  /// the Dock icon and the app name all say Mac — and every `isWebOrDesktop`
+  /// gate in the app quietly takes the mobile branch. `platform` is the part
+  /// that decides behaviour, because it reads the same `dart:io` answer
+  /// `lib/platform.dart` gates on; `channel` is the part that says how it got
+  /// installed, which is what you go and change.
+  static String describeBuild(Map<String, Object?> d) {
+    final version = d['appVersion']?.toString();
+    final build = d['appBuild']?.toString();
+    final b = StringBuffer(
+      version == null || version.isEmpty ? '—' : version,
+    );
+    if (build != null && build.isNotEmpty) b.write(' ($build)');
+    for (final key in const ['platform', 'channel']) {
+      final value = d[key]?.toString();
+      if (value != null && value.isNotEmpty) b.write(' · $value');
+    }
+    return b.toString();
+  }
+
   /// The handset, in one line: `iPhone15,3 · Apple` / `SM-S918B · samsung`.
   ///
   /// Shared by the export header and the user-facing problem report so the two
@@ -194,7 +229,7 @@ class DeviceReport {
       'generated   ${DateTime.now().toIso8601String()}'
       '  (uptime ${_hms(uptimeMs)})',
     );
-    b.writeln('app         ${v('appVersion')} (${v('appBuild')})');
+    b.writeln('app         ${describeBuild(d)}');
     b.writeln('device      ${describeDevice(d)} · ${describeSystem(d)}');
     b.writeln('deviceId    ${v('deviceId')}');
     b.writeln(
