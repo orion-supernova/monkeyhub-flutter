@@ -84,8 +84,34 @@ export const resolveSessionInternal = internalQuery({
   handler: async (ctx, { token }) => requireSession(ctx, token),
 });
 
+/**
+ * The injected argument's name.
+ *
+ * NOT `token`. `voipTokens.setVoipToken`, `setApnsToken` and `setFcmToken`
+ * each already had an argument called `token` — the PUSH token — and the first
+ * version of this wrapper injected the session token under that same name. The
+ * client's own injection overwrote the push token with the session token, the
+ * handler stored the session token as the device's push credential, and the
+ * call still SUCCEEDED because the value it resolved was a real session. Push
+ * died silently on every device, and every client call site swallows its error
+ * with a debugPrint, so nothing said a word.
+ *
+ * Hence a name no domain object would ever want, and the assertion below.
+ */
+const IDENTITY_ARG = "sessionToken";
+
 function withToken(args?: PropertyValidators): PropertyValidators {
-  return { ...(args ?? {}), token: v.string() };
+  const declared = args ?? {};
+  // Thrown at MODULE LOAD, so a collision breaks the deploy immediately
+  // instead of quietly corrupting whatever field it shadowed. There is no
+  // version of this that should be a warning.
+  if (IDENTITY_ARG in declared) {
+    throw new Error(
+      `A function declares an argument named \`${IDENTITY_ARG}\`, which the ` +
+        `auth wrapper injects. Rename the argument — see functions.ts.`,
+    );
+  }
+  return { ...declared, [IDENTITY_ARG]: v.string() };
 }
 
 /**
@@ -114,8 +140,8 @@ export function authedQuery<
     args: withToken(def.args),
     ...(def.returns ? { returns: def.returns } : {}),
     handler: async (ctx: QueryCtx, args: any) => {
-      const { token, ...rest } = args;
-      const userId = await requireSession(ctx, token);
+      const { [IDENTITY_ARG]: sessionToken, ...rest } = args;
+      const userId = await requireSession(ctx, sessionToken);
       return def.handler(ctx, { ...rest, [key]: userId });
     },
   });
@@ -141,8 +167,8 @@ export function authedMutation<
     args: withToken(def.args),
     ...(def.returns ? { returns: def.returns } : {}),
     handler: async (ctx: MutationCtx, args: any) => {
-      const { token, ...rest } = args;
-      const userId = await requireSession(ctx, token);
+      const { [IDENTITY_ARG]: sessionToken, ...rest } = args;
+      const userId = await requireSession(ctx, sessionToken);
       return def.handler(ctx, { ...rest, [key]: userId });
     },
   });
@@ -174,10 +200,10 @@ export function authedAction<
     args: withToken(def.args),
     ...(def.returns ? { returns: def.returns } : {}),
     handler: async (ctx: ActionCtx, args: any) => {
-      const { token, ...rest } = args;
+      const { [IDENTITY_ARG]: sessionToken, ...rest } = args;
       const userId: Id<"users"> = await ctx.runQuery(
         internal.functions.resolveSessionInternal,
-        { token },
+        { token: sessionToken },
       );
       return def.handler(ctx, { ...rest, [key]: userId });
     },

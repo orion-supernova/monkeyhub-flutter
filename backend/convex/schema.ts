@@ -1804,7 +1804,14 @@ export default defineSchema({
     // The hot path once enforcement lands: one equality probe per request.
     .index("by_token_hash", ["tokenHash"])
     .index("by_user", ["userId"])
-    .index("by_user_device", ["userId", "deviceId"]),
+    .index("by_user_device", ["userId", "deviceId"])
+    // Bounds the sweep below. Without a GC this table and its indexes grow
+    // forever — a row per sign-in, kept after revocation — and this deployment
+    // shares a 1 GB box with two others and already lives in swap. Every other
+    // ephemeral table here (deviceLoginRequests, callSignals, pairingCodes)
+    // has had a sweep from the start; this one shipped without and should not
+    // have.
+    .index("by_revoked_at", ["revokedAt"]),
 
   authAttempts: defineTable({
     key: v.string(), // "login:<userId>" | "recovery:<userId>"

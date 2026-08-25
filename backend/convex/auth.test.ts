@@ -59,7 +59,7 @@ describe("minting", () => {
 
     // And the token opens an authenticated function.
     const devices = await t.query(api.voipTokens.listDevices, {
-      token: res.token,
+      sessionToken: res.token,
       userId: res.userId,
       deviceId: DEVICE,
     });
@@ -78,7 +78,7 @@ describe("minting", () => {
     expect(second.token).not.toBe(first.token);
     await expect(
       t.query(api.voipTokens.listDevices, {
-        token: first.token,
+        sessionToken: first.token,
         userId: first.userId,
         deviceId: DEVICE,
       }),
@@ -93,7 +93,7 @@ describe("the boundary", () => {
 
     await expect(
       t.query(api.voipTokens.listDevices, {
-        token: "",
+        sessionToken: "",
         userId: me.userId,
         deviceId: DEVICE,
       }),
@@ -106,7 +106,7 @@ describe("the boundary", () => {
 
     await expect(
       t.query(api.voipTokens.listDevices, {
-        token: "f".repeat(64),
+        sessionToken: "f".repeat(64),
         userId: me.userId,
         deviceId: DEVICE,
       }),
@@ -130,14 +130,14 @@ describe("the boundary", () => {
 
     // The victim registers a device, so there is something to steal.
     await t.mutation(api.voipTokens.registerDevice, {
-      token: victim.token,
+      sessionToken: victim.token,
       userId: victim.userId,
       deviceId: DEVICE,
       platform: "ios",
       deviceName: "Victim's iPhone",
     });
     const asVictim = await t.query(api.voipTokens.listDevices, {
-      token: victim.token,
+      sessionToken: victim.token,
       userId: victim.userId,
       deviceId: DEVICE,
     });
@@ -146,7 +146,7 @@ describe("the boundary", () => {
     // The attacker presents their OWN token but claims the victim's userId —
     // the exact shape that used to work.
     const stolen = await t.query(api.voipTokens.listDevices, {
-      token: attacker.token,
+      sessionToken: attacker.token,
       userId: victim.userId,
       deviceId: DEVICE,
     });
@@ -178,7 +178,7 @@ describe("revocation", () => {
       deviceId: OTHER_DEVICE,
     });
     await t.mutation(api.voipTokens.registerDevice, {
-      token: other.token,
+      sessionToken: other.token,
       userId: other.userId,
       deviceId: OTHER_DEVICE,
       platform: "macos",
@@ -186,7 +186,7 @@ describe("revocation", () => {
 
     // ...and is removed from the first.
     await t.mutation(api.voipTokens.clearDeviceToken, {
-      token: me.token,
+      sessionToken: me.token,
       userId: me.userId,
       deviceId: OTHER_DEVICE,
     });
@@ -194,7 +194,7 @@ describe("revocation", () => {
     // The removed device's token is dead — this is what "Remove" now promises.
     await expect(
       t.query(api.voipTokens.listDevices, {
-        token: other.token,
+        sessionToken: other.token,
         userId: other.userId,
         deviceId: OTHER_DEVICE,
       }),
@@ -203,7 +203,7 @@ describe("revocation", () => {
     // And the device doing the removing is untouched.
     await expect(
       t.query(api.voipTokens.listDevices, {
-        token: me.token,
+        sessionToken: me.token,
         userId: me.userId,
         deviceId: DEVICE,
       }),
@@ -220,21 +220,21 @@ describe("revocation", () => {
     });
 
     await t.mutation(api.voipTokens.removeOtherDevices, {
-      token: me.token,
+      sessionToken: me.token,
       userId: me.userId,
       deviceId: DEVICE,
     });
 
     await expect(
       t.query(api.voipTokens.listDevices, {
-        token: other.token,
+        sessionToken: other.token,
         userId: other.userId,
         deviceId: OTHER_DEVICE,
       }),
     ).rejects.toThrow(/SESSION_REVOKED/);
     await expect(
       t.query(api.voipTokens.listDevices, {
-        token: me.token,
+        sessionToken: me.token,
         userId: me.userId,
         deviceId: DEVICE,
       }),
@@ -245,11 +245,11 @@ describe("revocation", () => {
     const t = convexTest(schema);
     const me = await signUp(t, "murat");
 
-    await t.mutation(api.auth.logout, { token: me.token, deviceId: DEVICE });
+    await t.mutation(api.auth.logout, { sessionToken: me.token, deviceId: DEVICE });
 
     await expect(
       t.query(api.voipTokens.listDevices, {
-        token: me.token,
+        sessionToken: me.token,
         userId: me.userId,
         deviceId: DEVICE,
       }),
@@ -272,7 +272,7 @@ describe("getProfile — the one function where userId is the subject", () => {
     // If the wrapper had overwritten `userId` here, this would come back as
     // the caller's own profile — the trap that made this function special.
     const profile = await t.query(api.users.getProfile, {
-      token: me.token,
+      sessionToken: me.token,
       userId: them.userId,
     });
     expect(profile).not.toBeNull();
@@ -294,7 +294,7 @@ describe("device login — the desktop QR flow, end to end", () => {
 
     // The phone scans it and approves.
     await t.mutation(api.deviceLogin.respondToDeviceLoginRequest, {
-      token: phone.token,
+      sessionToken: phone.token,
       callerId: phone.userId,
       approve: true,
       requestId: req.requestId,
@@ -312,7 +312,7 @@ describe("device login — the desktop QR flow, end to end", () => {
     // ...and that session works, on its own device row.
     await expect(
       t.query(api.voipTokens.listDevices, {
-        token: desktop.token,
+        sessionToken: desktop.token,
         userId: desktop.userId,
         deviceId: OTHER_DEVICE,
       }),
@@ -340,7 +340,7 @@ describe("device login — the desktop QR flow, end to end", () => {
 
     // The attacker approves it while claiming to be the victim.
     await t.mutation(api.deviceLogin.respondToDeviceLoginRequest, {
-      token: attacker.token,
+      sessionToken: attacker.token,
       callerId: victim.userId,
       approve: true,
       requestId: req.requestId,

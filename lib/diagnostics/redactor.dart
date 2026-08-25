@@ -147,6 +147,12 @@ class Redactor {
     // tokens
     'token', 'idtoken', 'identitytoken', 'accesstoken', 'refreshtoken',
     'voiptoken', 'fcmtoken', 'apnstoken', 'authorization', 'authorizationcode',
+    // The session bearer, which `ConvexBackend` now attaches to EVERY
+    // authenticated call — so it passes through this redactor more often than
+    // anything else here. Layer 3's opaque-string rule would also catch a
+    // 64-hex token, but relying on that would make the most common credential
+    // in the app the one secret with no name on the list.
+    'sessiontoken',
     'jwt', 'nonce', 'rawnonce',
     // codes
     'code', 'pairingcode', 'releasecode', 'otp',

@@ -31,8 +31,18 @@ class SessionGuard {
   SessionGuard._();
   static final SessionGuard instance = SessionGuard._();
 
+  /// The argument the session token travels in.
+  ///
+  /// NOT `token`: `voipTokens.setVoipToken`, `setApnsToken` and `setFcmToken`
+  /// each already have an argument by that name carrying the PUSH token, and
+  /// the first version of this overwrote it — storing the session token as the
+  /// device's push credential and killing notifications on every device,
+  /// silently, because the call still succeeded. `functions.ts` throws at
+  /// module load if any function declares this name.
+  static const String identityArg = 'sessionToken';
+
   /// Backend functions that are reachable with no session, and therefore must
-  /// NOT be sent a `token` argument.
+  /// NOT be sent a session-token argument.
   ///
   /// Every entry is a decision, and they all reduce to the same principle: a
   /// session cannot be a precondition for the thing that creates one.

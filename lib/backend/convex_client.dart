@@ -180,7 +180,7 @@ class ConvexBackend implements ConnectionProbe {
     // answer SESSION_UNKNOWN. Failing here instead would produce a different
     // error shape for the same condition, and `SessionGuard` would never see
     // the signal that drives the sign-out.
-    return {...args, 'token': token ?? ''};
+    return {...args, SessionGuard.identityArg: token ?? ''};
   }
 
   Future<dynamic> query(String name, Map<String, dynamic> rawArgs) async {

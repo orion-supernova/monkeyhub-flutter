@@ -181,6 +181,41 @@ void main() {
     );
   });
 
+  test('nothing declares the argument the wrapper injects', () {
+    // `functions.ts` injects the session under `SessionGuard.identityArg`, and
+    // an argument of the same name would be silently overwritten by it.
+    //
+    // This is not hypothetical. The first version injected under `token`, and
+    // `voipTokens.setVoipToken`/`setApnsToken`/`setFcmToken` each already had a
+    // `token` argument holding the PUSH token. The session token replaced it,
+    // the handler stored a session token as the device's push credential, the
+    // call SUCCEEDED — and notifications died on every device, silently,
+    // because every client call site swallows its error with a debugPrint.
+    //
+    // `functions.ts` also throws at module load if this happens, so a deploy
+    // would break loudly. This catches it one step earlier, in the suite.
+    final declares = RegExp(
+      '\\n\\s+${SessionGuard.identityArg}\\s*:\\s*v\\.',
+    );
+    final offenders = <String>[];
+    for (final entity in convexDir.listSync(recursive: true)) {
+      if (entity is! File || !entity.path.endsWith('.ts')) continue;
+      if (entity.path.contains('/_generated/')) continue;
+      final base = entity.uri.pathSegments.last;
+      if (base == 'functions.ts') continue;
+      if (declares.hasMatch(entity.readAsStringSync())) {
+        offenders.add(base);
+      }
+    }
+    expect(
+      offenders,
+      isEmpty,
+      reason:
+          'These declare an argument named "${SessionGuard.identityArg}", which '
+          'the auth wrapper injects and would overwrite. Rename the argument.',
+    );
+  });
+
   test('a session loss is recognised from the error the server throws', () {
     // The two codes `sessionCore.requireSession` throws. Matched on the
     // message because Convex surfaces a thrown Error as text.

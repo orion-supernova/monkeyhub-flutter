@@ -262,4 +262,13 @@ crons.cron(
   {},
 );
 
+// Sweep revoked sessions a week after revocation. Live sessions are never
+// touched — they do not expire — so this only reclaims rows nobody can use.
+crons.interval(
+  "sessions.gcRevokedSessions",
+  { hours: 6 },
+  internal.sessionCore.gcRevokedSessions,
+  {},
+);
+
 export default crons;

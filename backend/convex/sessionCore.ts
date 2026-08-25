@@ -1,5 +1,7 @@
+import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
 
 /**
  * Bearer sessions: the primitives.
@@ -185,3 +187,49 @@ export async function revokeOtherSessions(
   }
   return revoked;
 }
+
+
+/**
+ * How long a revoked session is kept before it is swept.
+ *
+ * Not zero. A device that was signed out remotely asks the server one more
+ * time on its next request, and the answer it gets decides what the user is
+ * told: a row still present answers SESSION_REVOKED — "you were signed out" —
+ * while a deleted one answers SESSION_UNKNOWN, which is the shape a bug takes.
+ * A week is long enough that anyone who was signed out gets the honest message.
+ */
+const REVOKED_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * Delete revoked sessions past their retention.
+ *
+ * Live sessions are never touched: this app's sessions do not expire, and a
+ * sweep that guessed at staleness would sign people out for being quiet.
+ * Bounded per run, like every other sweep in this backend.
+ */
+export const gcRevokedSessions = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const cutoff = Date.now() - REVOKED_RETENTION_MS;
+    const stale = await ctx.db
+      .query("sessions")
+      // The lower bound is load-bearing, not tidiness. In a Convex index
+      // `undefined` sorts BELOW every number, so a bare `lt("revokedAt",
+      // cutoff)` matches every LIVE session — `revokedAt` is undefined on all
+      // of them. This sweep would then have deleted every session on the
+      // deployment every six hours, signing out every user. Caught by the test
+      // below and by nothing else: it typechecks, it reads correctly, and on a
+      // fresh table it even appears to work.
+      .withIndex("by_revoked_at", (q) =>
+        q.gt("revokedAt", 0).lt("revokedAt", cutoff),
+      )
+      .take(200);
+    for (const row of stale) {
+      // Belt and braces: never delete a live session, whatever the range did.
+      if (row.revokedAt === undefined) continue;
+      await ctx.db.delete(row._id);
+    }
+    return null;
+  },
+});
