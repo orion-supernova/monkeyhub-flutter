@@ -41,9 +41,33 @@ void main() {
         if (trimmed.startsWith('//') || trimmed.startsWith('*')) continue;
         if (!line.contains('VideoPoster.extract')) continue;
 
-        // The guard has to be on the same expression, not merely somewhere in
-        // the file — a `kIsWeb` check three methods away protects nothing.
-        if (!line.contains('kIsWeb')) {
+        // The guard has to be on the same EXPRESSION, not merely somewhere in
+        // the file — a `kIsWeb` check three methods away protects nothing. But
+        // "expression" is not "line": a wrapped ternary puts the condition
+        // above the call, which is how the (correctly guarded) share path in
+        // room_screen.dart read as a violation for as long as this test only
+        // looked at one line.
+        //
+        // So walk back to the start of the statement and no further. A
+        // previous line that ended in `;`, `{` or `}` closed something else,
+        // and anything beyond it is a different expression.
+        // Comments are EXCLUDED from the walk-back, and that is not a detail:
+        // the prose above this very call site says the words "the `kIsWeb`
+        // guard is belt-and-braces", so counting comment text made the whole
+        // check pass on code with no guard at all.
+        final buffer = StringBuffer(line);
+        for (var j = i - 1; j >= 0 && j >= i - 6; j--) {
+          final prev = lines[j].trimRight();
+          final prevTrimmed = prev.trimLeft();
+          if (prevTrimmed.startsWith('//') || prevTrimmed.startsWith('*')) {
+            continue;
+          }
+          buffer.write(prev);
+          if (prev.endsWith(';') || prev.endsWith('{') || prev.endsWith('}')) {
+            break;
+          }
+        }
+        if (!buffer.toString().contains('kIsWeb')) {
           offenders.add('${entity.path}:${i + 1}');
         }
       }

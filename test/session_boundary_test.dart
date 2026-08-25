@@ -136,6 +136,51 @@ void main() {
     expect(offenders, isEmpty);
   });
 
+  test('no authed function still takes its caller from the client', () {
+    // The wrapper injects the identity under ONE key, defaulting to `userId`.
+    // A function whose caller is spelled `callerId` or `viewerUserId` and that
+    // does not set `identityArg` therefore keeps taking that identity FROM THE
+    // CLIENT — the exact hole this migration exists to shut, and one that
+    // produces no error and no type failure.
+    //
+    // It has bitten twice already: ten `viewerUserId` readers, and
+    // `respondToDeviceLoginRequest`, where it meant approving a sign-in as
+    // anybody.
+    final callerShaped = RegExp(r'\b(callerId|viewerUserId|actorId)\s*:\s*v\.');
+    final decl = RegExp(
+      r'export const (\w+)\s*=\s*(publicQuery|publicMutation|publicAction|query|mutation|action)\(\{',
+    );
+    final offenders = <String>[];
+    for (final entity in convexDir.listSync(recursive: true)) {
+      if (entity is! File || !entity.path.endsWith('.ts')) continue;
+      if (entity.path.contains('/_generated/')) continue;
+      final base = entity.uri.pathSegments.last;
+      if (base == 'schema.ts' || base == 'functions.ts') continue;
+      final src = entity.readAsStringSync();
+      final matches = decl.allMatches(src).toList();
+      for (var i = 0; i < matches.length; i++) {
+        final m = matches[i];
+        final kind = m.group(2)!;
+        if (kind.startsWith('public')) continue; // unauthenticated by design
+        final end = i + 1 < matches.length ? matches[i + 1].start : src.length;
+        final body = src.substring(m.end, end);
+        final head = body.length > 400 ? body.substring(0, 400) : body;
+        final argsEnd = body.indexOf('\n  },');
+        final args = argsEnd > 0 ? body.substring(0, argsEnd) : head;
+        if (callerShaped.hasMatch(args) && !head.contains('identityArg:')) {
+          offenders.add('$base:${m.group(1)}');
+        }
+      }
+    }
+    expect(
+      offenders,
+      isEmpty,
+      reason:
+          'These take caller identity from the client. Add `identityArg` so '
+          'the wrapper injects it, or rename the arg to `userId`.',
+    );
+  });
+
   test('a session loss is recognised from the error the server throws', () {
     // The two codes `sessionCore.requireSession` throws. Matched on the
     // message because Convex surfaces a thrown Error as text.

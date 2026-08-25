@@ -192,6 +192,11 @@ async function purgeCallSignals(
 // ────────────────────────── initiate / lifecycle ──────────────────────────
 
 export const initiate = mutation({
+  // The caller is spelled `callerId` here, so the wrapper is told to inject
+  // under that name. Without this the arg stayed CLIENT-SUPPLIED and
+  // trusted — on `respondToDeviceLoginRequest` that meant approving a
+  // sign-in as anybody.
+  identityArg: "callerId" as const,
   args: {
     callerId: v.id("users"),
     calleeId: v.id("users"),

@@ -174,6 +174,11 @@ async function resolveRequest(
  * cannot write.
  */
 export const peekDeviceLoginRequest = mutation({
+  // The caller is spelled `callerId` here, so the wrapper is told to inject
+  // under that name. Without this the arg stayed CLIENT-SUPPLIED and
+  // trusted — on `respondToDeviceLoginRequest` that meant approving a
+  // sign-in as anybody.
+  identityArg: "callerId" as const,
   args: {
     callerId: v.id("users"),
     requestId: v.optional(v.string()),
@@ -191,6 +196,11 @@ export const peekDeviceLoginRequest = mutation({
  * is ever set — the desktop never chooses who it signs in as.
  */
 export const respondToDeviceLoginRequest = mutation({
+  // The caller is spelled `callerId` here, so the wrapper is told to inject
+  // under that name. Without this the arg stayed CLIENT-SUPPLIED and
+  // trusted — on `respondToDeviceLoginRequest` that meant approving a
+  // sign-in as anybody.
+  identityArg: "callerId" as const,
   args: {
     callerId: v.id("users"),
     approve: v.boolean(),
