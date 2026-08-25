@@ -1,4 +1,5 @@
-import { query, internalMutation } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
+import { publicQuery, query } from "./functions";
 import { v } from "convex/values";
 
 /// Which backend clients should be talking to right now.
@@ -24,7 +25,7 @@ import { v } from "convex/values";
 /// nobody. Prefer `serverDirectory:set` over `convex env set` for exactly that
 /// reason; the env vars remain as a seed for a deployment that has never had
 /// the row written.
-export const current = query({
+export const current = publicQuery({
   args: {},
   returns: v.object({
     serve: v.union(v.literal("primary"), v.literal("homeserver")),

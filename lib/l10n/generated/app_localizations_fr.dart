@@ -7451,4 +7451,107 @@ class AppLocalizationsFr extends AppLocalizations {
   String roomColorsScreenSwatchSemantic(Object index) {
     return 'Couleur $index';
   }
+
+  @override
+  String get devicesScreenTitle => 'TES APPAREILS';
+
+  @override
+  String get devicesScreenSubtitle =>
+      'Tous les endroits où tu t\'es connecté à ce compte.';
+
+  @override
+  String get devicesScreenLoading => 'vérification…';
+
+  @override
+  String get devicesScreenLoadFailed => 'impossible de charger tes appareils';
+
+  @override
+  String get devicesScreenThisDevice => 'CET APPAREIL';
+
+  @override
+  String get devicesScreenActiveNow => 'actif maintenant';
+
+  @override
+  String devicesScreenMinutesAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'il y a $count minutes',
+      one: 'il y a 1 minute',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String devicesScreenHoursAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'il y a $count heures',
+      one: 'il y a 1 heure',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String devicesScreenDaysAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'il y a $count jours',
+      one: 'il y a 1 jour',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get devicesScreenNoNotifications =>
+      'les notifications n\'arrivent pas jusqu\'à celui-ci';
+
+  @override
+  String get devicesScreenRemove => 'RETIRER';
+
+  @override
+  String get devicesScreenRemoveTitle => 'RETIRER CET APPAREIL ?';
+
+  @override
+  String devicesScreenRemoveBody(Object name) {
+    return '$name sera déconnecté et cessera de recevoir des notifications. Celui qui l\'a devra se reconnecter.';
+  }
+
+  @override
+  String get devicesScreenRemoveConfirm => 'RETIRER';
+
+  @override
+  String get devicesScreenRemoveAll => 'Retirer tous les autres appareils';
+
+  @override
+  String get devicesScreenRemoveAllTitle =>
+      'RETIRER TOUS LES AUTRES APPAREILS ?';
+
+  @override
+  String get devicesScreenRemoveAllBody =>
+      'Ils seront tous déconnectés et cesseront de recevoir des notifications. Seul cet appareil reste connecté.';
+
+  @override
+  String get devicesScreenRemoveAllConfirm => 'TOUT RETIRER';
+
+  @override
+  String devicesScreenRemovedCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count appareils retirés',
+      one: '1 appareil retiré',
+      zero: 'aucun autre appareil à retirer',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get devicesScreenRemoveFailed => 'impossible de retirer cet appareil';
+
+  @override
+  String get devicesScreenFootnote =>
+      'Retirer un appareil le déconnecte et coupe ses notifications. L\'effet est immédiat : la prochaine chose que cet appareil tentera le renverra à l\'écran de connexion.';
 }

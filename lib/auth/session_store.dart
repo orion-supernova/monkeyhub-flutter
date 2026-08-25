@@ -14,6 +14,10 @@ class SessionStore {
   static final SessionStore instance = SessionStore._();
 
   static const _kUserId = 'mh.userId';
+  /// The bearer token. Kept in the SAME secure store as the userId and cleared
+  /// with it, because a token outliving its session is a credential nobody can
+  /// see and nothing can revoke.
+  static const _kToken = 'mh.sessionToken';
   static const _kUsername = 'mh.username';
   static const _kName = 'mh.name';
   static const _kThemeId = 'mh.themeId';
@@ -89,12 +93,30 @@ class SessionStore {
   bool _hasSignedInBefore = false;
   bool get hasSignedInBefore => _hasSignedInBefore;
 
+  /// The live bearer token, or null when signed out.
+  ///
+  /// Cached in memory as well as persisted, because `ConvexBackend` reads it on
+  /// EVERY call and a keychain round trip per request would be the most
+  /// expensive thing in the app. Kept in step by [saveSession]/[clearSession],
+  /// which are the only two writers.
+  String? _token;
+  String? get token => _token;
+
   Future<void> saveSession({
     required String userId,
     required String username,
     required String name,
+    /// Null means "keep whatever token is already stored" — for the re-saves
+    /// that change a display name or graduate an account, which rewrite the
+    /// session's *description* and must not disturb the credential it was
+    /// established with.
+    String? token,
     AccountType accountType = AccountType.adult,
   }) async {
+    if (token != null) {
+      _token = token;
+      await _storage.write(key: _kToken, value: token);
+    }
     await _storage.write(key: _kUserId, value: userId);
     await _storage.write(key: _kUsername, value: username);
     await _storage.write(key: _kName, value: name);
@@ -110,7 +132,16 @@ class SessionStore {
     _isChildDevice = (await _read(_kChildDevice)) == 'true';
     _hasSignedInBefore = (await _read(_kHasSignedIn)) == 'true';
     final id = await _read(_kUserId);
+    _token = await _read(_kToken);
     if (id == null || id.isEmpty) return null;
+    // A stored identity with no token is a session from before tokens existed.
+    // It cannot authenticate anything, so it is not a session — returning null
+    // sends the app to the login screen, which is the honest outcome and the
+    // one `SessionGuard` produces for a revoked token too.
+    if (_token == null || _token!.isEmpty) {
+      await clearSession();
+      return null;
+    }
     final username = await _read(_kUsername) ?? '';
     final name = await _read(_kName) ?? username;
     final type = AccountTypeWire.parse(await _read(_kAccountType));
@@ -146,6 +177,8 @@ class SessionStore {
   /// `_kHasSignedIn` (see [hasSignedInBefore]). Both describe the handset
   /// rather than the session, and both must outlive a sign-out.
   Future<void> clearSession() async {
+    _token = null;
+    await _storage.delete(key: _kToken);
     await _storage.delete(key: _kUserId);
     await _storage.delete(key: _kUsername);
     await _storage.delete(key: _kName);

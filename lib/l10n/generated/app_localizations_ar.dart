@@ -7408,4 +7408,120 @@ class AppLocalizationsAr extends AppLocalizations {
   String roomColorsScreenSwatchSemantic(Object index) {
     return 'اللون $index';
   }
+
+  @override
+  String get devicesScreenTitle => 'أجهزتك';
+
+  @override
+  String get devicesScreenSubtitle =>
+      'كل مكان سجّلت فيه الدخول إلى هذا الحساب.';
+
+  @override
+  String get devicesScreenLoading => 'جارٍ التحقق…';
+
+  @override
+  String get devicesScreenLoadFailed => 'تعذّر تحميل أجهزتك';
+
+  @override
+  String get devicesScreenThisDevice => 'هذا الجهاز';
+
+  @override
+  String get devicesScreenActiveNow => 'نشط الآن';
+
+  @override
+  String devicesScreenMinutesAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'قبل $count دقيقة',
+      many: 'قبل $count دقيقة',
+      few: 'قبل $count دقائق',
+      two: 'قبل دقيقتين',
+      one: 'قبل دقيقة',
+      zero: 'الآن',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String devicesScreenHoursAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'قبل $count ساعة',
+      many: 'قبل $count ساعة',
+      few: 'قبل $count ساعات',
+      two: 'قبل ساعتين',
+      one: 'قبل ساعة',
+      zero: 'الآن',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String devicesScreenDaysAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'قبل $count يوم',
+      many: 'قبل $count يومًا',
+      few: 'قبل $count أيام',
+      two: 'قبل يومين',
+      one: 'قبل يوم',
+      zero: 'اليوم',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get devicesScreenNoNotifications => 'الإشعارات لا تصل إلى هذا الجهاز';
+
+  @override
+  String get devicesScreenRemove => 'إزالة';
+
+  @override
+  String get devicesScreenRemoveTitle => 'إزالة هذا الجهاز؟';
+
+  @override
+  String devicesScreenRemoveBody(Object name) {
+    return 'سيتم تسجيل خروج $name وسيتوقف عن تلقي الإشعارات. من بحوزته الجهاز سيضطر إلى تسجيل الدخول من جديد.';
+  }
+
+  @override
+  String get devicesScreenRemoveConfirm => 'إزالة';
+
+  @override
+  String get devicesScreenRemoveAll => 'إزالة كل الأجهزة الأخرى';
+
+  @override
+  String get devicesScreenRemoveAllTitle => 'إزالة كل الأجهزة الأخرى؟';
+
+  @override
+  String get devicesScreenRemoveAllBody =>
+      'سيتم تسجيل خروجها جميعًا وستتوقف عن تلقي الإشعارات. هذا الجهاز وحده سيبقى مسجّل الدخول.';
+
+  @override
+  String get devicesScreenRemoveAllConfirm => 'إزالة الكل';
+
+  @override
+  String devicesScreenRemovedCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'تمت إزالة $count جهاز',
+      many: 'تمت إزالة $count جهازًا',
+      few: 'تمت إزالة $count أجهزة',
+      two: 'تمت إزالة جهازين',
+      one: 'تمت إزالة جهاز واحد',
+      zero: 'لا توجد أجهزة أخرى لإزالتها',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get devicesScreenRemoveFailed => 'تعذّرت إزالة هذا الجهاز';
+
+  @override
+  String get devicesScreenFootnote =>
+      'إزالة جهاز تُسجّل خروجه وتوقف إشعاراته. يسري ذلك فورًا — أول شيء يحاول ذلك الجهاز فعله سيعيده إلى شاشة تسجيل الدخول.';
 }

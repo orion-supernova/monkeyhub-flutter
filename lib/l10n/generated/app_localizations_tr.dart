@@ -7299,4 +7299,105 @@ class AppLocalizationsTr extends AppLocalizations {
   String roomColorsScreenSwatchSemantic(Object index) {
     return 'Renk $index';
   }
+
+  @override
+  String get devicesScreenTitle => 'CİHAZLARIN';
+
+  @override
+  String get devicesScreenSubtitle => 'Bu hesaba giriş yaptığın her yer.';
+
+  @override
+  String get devicesScreenLoading => 'kontrol ediliyor…';
+
+  @override
+  String get devicesScreenLoadFailed => 'cihazların yüklenemedi';
+
+  @override
+  String get devicesScreenThisDevice => 'BU CİHAZ';
+
+  @override
+  String get devicesScreenActiveNow => 'şu an aktif';
+
+  @override
+  String devicesScreenMinutesAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dakika önce',
+      one: '1 dakika önce',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String devicesScreenHoursAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count saat önce',
+      one: '1 saat önce',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String devicesScreenDaysAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count gün önce',
+      one: '1 gün önce',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get devicesScreenNoNotifications => 'bildirimler buraya ulaşmıyor';
+
+  @override
+  String get devicesScreenRemove => 'KALDIR';
+
+  @override
+  String get devicesScreenRemoveTitle => 'BU CİHAZ KALDIRILSIN MI?';
+
+  @override
+  String devicesScreenRemoveBody(Object name) {
+    return '$name oturumu kapatılacak ve bildirim almayı bırakacak. Cihazı kim kullanıyorsa yeniden giriş yapmak zorunda kalacak.';
+  }
+
+  @override
+  String get devicesScreenRemoveConfirm => 'KALDIR';
+
+  @override
+  String get devicesScreenRemoveAll => 'Diğer tüm cihazları kaldır';
+
+  @override
+  String get devicesScreenRemoveAllTitle =>
+      'DİĞER TÜM CİHAZLAR KALDIRILSIN MI?';
+
+  @override
+  String get devicesScreenRemoveAllBody =>
+      'Hepsinin oturumu kapatılacak ve bildirim almayı bırakacaklar. Yalnızca bu cihaz açık kalacak.';
+
+  @override
+  String get devicesScreenRemoveAllConfirm => 'TÜMÜNÜ KALDIR';
+
+  @override
+  String devicesScreenRemovedCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count cihaz kaldırıldı',
+      one: '1 cihaz kaldırıldı',
+      zero: 'kaldırılacak başka cihaz yok',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get devicesScreenRemoveFailed => 'cihaz kaldırılamadı';
+
+  @override
+  String get devicesScreenFootnote =>
+      'Bir cihazı kaldırmak oturumunu kapatır ve bildirimlerini durdurur. Anında geçerli olur — o cihaz bir şey yapmaya kalktığı anda giriş ekranına döner.';
 }

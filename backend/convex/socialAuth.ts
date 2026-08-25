@@ -22,14 +22,9 @@
  * the same ID token — stateless, and no extra table.
  */
 
-import {
-  action,
-  mutation,
-  query,
-  internalAction,
-  internalMutation,
-  internalQuery,
-} from "./_generated/server";
+import { internalAction, internalMutation, internalQuery } from "./_generated/server";
+import { action, mutation, publicAction, query } from "./functions";
+import { mintSession } from "./sessionCore";
 import { v, type Infer } from "convex/values";
 import { internal } from "./_generated/api";
 import { ACCOUNT_CHILD, ERR_MUST_PAIR } from "./childGuard";
@@ -73,6 +68,9 @@ const authResultValidator = v.object({
   username: v.string(),
   name: v.string(),
   accountType: v.string(),
+  // The bearer token, minted by whichever internal mutation established the
+  // session. Returned exactly once — only its hash is kept server-side.
+  token: v.string(),
 });
 
 const signInResultValidator = v.union(
@@ -125,8 +123,10 @@ async function captureAppleRefresh(
  * An ACTION rather than a mutation because verification fetches the provider's
  * JWKS, and only actions can `fetch`.
  */
-export const signIn = action({
+export const signIn = publicAction({
   args: {
+    // Binds the minted session to this device.
+    deviceId: v.string(),
     provider: providerValidator,
     idToken: v.string(),
     rawNonce: v.optional(v.string()),
@@ -165,6 +165,7 @@ export const signIn = action({
       : await captureAppleRefresh(args.provider, args.authorizationCode);
 
     return await ctx.runMutation(internal.socialAuth.touchIdentity, {
+      deviceId: args.deviceId,
       identityId: existing.identityId,
       email: identity.email,
       isPrivateRelay: identity.isPrivateRelay,
@@ -180,8 +181,10 @@ export const signIn = action({
  * ID tokens live 24h and Google's an hour, so there is ample room for a user to
  * pick a username.
  */
-export const completeSignUp = action({
+export const completeSignUp = publicAction({
   args: {
+    // Binds the minted session to this device.
+    deviceId: v.string(),
     provider: providerValidator,
     idToken: v.string(),
     rawNonce: v.optional(v.string()),
@@ -203,6 +206,7 @@ export const completeSignUp = action({
     );
 
     return await ctx.runMutation(internal.socialAuth.createWithIdentity, {
+      deviceId: args.deviceId,
       provider: identity.provider,
       subject: identity.subject,
       email: identity.email,
@@ -226,8 +230,10 @@ export const completeSignUp = action({
  * Distinct from [link] because the caller is NOT signed in here and has no
  * `userId` to offer; the username is the lookup and the password is the proof.
  */
-export const linkExistingAccount = action({
+export const linkExistingAccount = publicAction({
   args: {
+    // Binds the minted session to this device.
+    deviceId: v.string(),
     provider: providerValidator,
     idToken: v.string(),
     rawNonce: v.optional(v.string()),
@@ -248,6 +254,7 @@ export const linkExistingAccount = action({
       args.authorizationCode,
     );
     return await ctx.runMutation(internal.socialAuth.attachToExistingAccount, {
+      deviceId: args.deviceId,
       username: args.username,
       passwordHash: args.passwordHash,
       provider: identity.provider,
@@ -569,6 +576,7 @@ export const findIdentity = internalQuery({
 
 export const touchIdentity = internalMutation({
   args: {
+    deviceId: v.string(),
     identityId: v.id("socialIdentities"),
     email: v.optional(v.string()),
     isPrivateRelay: v.optional(v.boolean()),
@@ -607,12 +615,14 @@ export const touchIdentity = internalMutation({
       username: user.username,
       name: user.name ?? user.username,
       accountType: user.accountType ?? "adult",
+      token: await mintSession(ctx, user._id, args.deviceId),
     };
   },
 });
 
 export const createWithIdentity = internalMutation({
   args: {
+    deviceId: v.string(),
     provider: v.string(),
     subject: v.string(),
     email: v.optional(v.string()),
@@ -666,6 +676,7 @@ export const createWithIdentity = internalMutation({
           username: user.username,
           name: user.name ?? user.username,
           accountType: user.accountType ?? "adult",
+          token: await mintSession(ctx, user._id, args.deviceId),
         };
       }
     }
@@ -704,12 +715,14 @@ export const createWithIdentity = internalMutation({
       username,
       name: name && name.length > 0 ? name : username,
       accountType: "adult",
+      token: await mintSession(ctx, userId, args.deviceId),
     };
   },
 });
 
 export const attachToExistingAccount = internalMutation({
   args: {
+    deviceId: v.string(),
     username: v.string(),
     passwordHash: v.string(),
     provider: v.string(),
@@ -795,6 +808,7 @@ export const attachToExistingAccount = internalMutation({
       username: user.username,
       name: user.name ?? user.username,
       accountType: user.accountType ?? "adult",
+      token: await mintSession(ctx, user._id, args.deviceId),
     };
   },
 });

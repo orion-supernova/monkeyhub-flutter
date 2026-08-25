@@ -1,5 +1,7 @@
 import { v } from "convex/values";
-import { internalMutation, mutation } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
+import { mutation, query } from "./functions";
+import { revokeSessionsForDevice, revokeOtherSessions } from "./sessionCore";
 import type { Doc, Id } from "./_generated/dataModel";
 
 // Per-device push registry. Rows live in `userDevices`, keyed by
@@ -408,7 +410,85 @@ export const registerDevice = mutation({
   },
 });
 
-// Logout from a single device — drop only this device's row.
+// The "your devices" list. Everything the screen shows and nothing else — no
+// push credentials leave the server, because a token is a send capability and
+// this query exists to be rendered, not to be acted on.
+//
+// `isThis` is resolved HERE rather than compared on the client, so the row the
+// UI refuses to offer a Remove button for is decided by the same code that
+// would carry out the removal. A client that compared ids itself could be
+// talked into showing Remove on its own row by a stale deviceId.
+export const listDevices = query({
+  args: { userId: v.id("users"), deviceId: v.string() },
+  handler: async (ctx, { userId, deviceId }) => {
+    const rows = await ctx.db
+      .query("userDevices")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    return rows
+      .map((row) => ({
+        deviceId: row.deviceId,
+        platform: row.platform,
+        deviceName: row.deviceName,
+        lastSeenAt: row.lastSeenAt,
+        createdAt: row.createdAt,
+        isThis: row.deviceId === deviceId,
+        // Whether this row can still be reached by a notification. The screen
+        // says so plainly rather than implying every listed device is live:
+        // a row with no credential left (swept dead, or a desktop that never
+        // had one) is still a device you signed in on, and still worth seeing.
+        reachable:
+          row.pushEnabled !== false &&
+          Boolean(
+            row.voipToken ?? row.apnsToken ?? row.fcmToken ?? row.webEndpoint,
+          ),
+      }))
+      // Newest sighting first, and this device pinned to the top regardless —
+      // it is the row the reader is looking for confirmation of.
+      .sort((a, b) =>
+        a.isThis === b.isThis
+          ? b.lastSeenAt - a.lastSeenAt
+          : a.isThis
+            ? -1
+            : 1,
+      );
+  },
+});
+
+// "Remove every device except this one."
+//
+// Deliberately takes the CALLER's deviceId and derives the victims, rather
+// than accepting a list from the client. The client's list is whatever it last
+// rendered, so a device that signed in during the intervening seconds would
+// survive a sweep the user believed was total — the one guarantee this button
+// makes.
+//
+// Returns the count so the UI can report what happened rather than guess.
+export const removeOtherDevices = mutation({
+  args: { userId: v.id("users"), deviceId: v.string() },
+  handler: async (ctx, { userId, deviceId }) => {
+    const rows = await ctx.db
+      .query("userDevices")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    await revokeOtherSessions(ctx, userId, deviceId);
+    let removed = 0;
+    for (const row of rows) {
+      if (row.deviceId === deviceId) continue;
+      await ctx.db.delete(row._id);
+      removed++;
+    }
+    return { removed };
+  },
+});
+
+// Sign a single device out: revoke its session, then drop its push row.
+//
+// Order matters. The session goes first, because that is the half that stops
+// the device DOING anything; if the second write failed we would rather be
+// left with a signed-out device still listed than a silent one still able to
+// post. Convex runs both in one transaction anyway, so this is about how the
+// code reads under a future refactor, not about what can actually interleave.
 export const clearDeviceToken = mutation({
   args: { userId: v.id("users"), deviceId: v.string() },
   handler: async (ctx, { userId, deviceId }) => {
@@ -418,6 +498,7 @@ export const clearDeviceToken = mutation({
         q.eq("userId", userId).eq("deviceId", deviceId),
       )
       .first();
+    await revokeSessionsForDevice(ctx, userId, deviceId);
     if (row) await ctx.db.delete(row._id);
   },
 });

@@ -52,6 +52,30 @@ const String kInviteScheme = 'monkeyhub';
 /// `share_link_test.dart` pins the two together.
 const String kSharePathSegment = 'share';
 
+/// The first segment of the device-login QR, `monkeyhub://devicelogin?r=<id>`
+/// — see `lib/auth/device_login_link.dart`, which builds and parses it.
+///
+/// Here for exactly the reason [kSharePathSegment] is here, and it arrived the
+/// same way: without an explicit refusal the parser fell through to
+/// [_bareCode], and a desktop sign-in QR scanned with the phone's own Camera
+/// app became the invite code `DEVICELOGIN` and opened a join screen that
+/// reported the room missing. The QR is scanned by a camera the app does not
+/// control, so this URL reaches the invite parser whether or not anything else
+/// is wired up.
+const String kDeviceLoginPathSegment = 'devicelogin';
+
+/// First segments that are this app talking to itself, not invites.
+///
+/// A set rather than a chain of `==` because the cost of forgetting one is not
+/// a no-op: everything that falls past the branches in [parseInviteLink] ends
+/// at [_bareCode], which strips the separators and calls whatever is left a
+/// code. Every entry here is a URL some part of this app sends itself, and
+/// each one would otherwise open a join screen for a room that never existed.
+const Set<String> _reservedRoutes = {
+  kSharePathSegment,
+  kDeviceLoginPathSegment,
+};
+
 /// A code that is GUARANTEED never to be a real one. Use this, and only this,
 /// anywhere an example code is shown or written down.
 ///
@@ -142,16 +166,9 @@ InviteLink? parseInviteLink(String raw) {
   final trimmed = raw.trim();
   if (trimmed.isEmpty) return null;
 
-  // The share-extension handoff, refused before anything else looks at it.
-  //
-  // Refused rather than merely unmatched, because "unmatched" is not a safe
-  // state in this function: every shape that falls past the branches below
-  // ends at [_bareCode], which strips the separators and calls what is left a
-  // code. `monkeyhub://share/open` would become `SHAREOPEN`, and the route
-  // form the engine reports it as (`/share/open`, or `/open` depending on the
-  // platform) would become `SHAREOPEN` or `OPEN`. All three open a join screen
-  // for a room that does not exist, from a URL the app sent itself.
-  if (_isShareHandoff(trimmed)) return null;
+  // This app's own internal URLs, refused before anything else looks at them.
+  // See [_reservedRoutes] for why refusing beats falling through.
+  if (_isReservedRoute(trimmed)) return null;
 
   final uri = Uri.tryParse(trimmed);
   if (uri == null || (!uri.hasScheme && uri.pathSegments.length <= 1)) {
@@ -213,23 +230,26 @@ InviteLink? parseInviteLink(String raw) {
   return _bareCode(trimmed);
 }
 
-/// Whether [raw] is the share-extension handoff rather than an invite.
+/// Whether [raw] is one of this app's own URLs rather than an invite.
 ///
 /// Matches on the first meaningful segment however the platform spelled the
-/// URL — `monkeyhub://share/open` puts `share` in the HOST, `/share/open` puts
-/// it in the path, and both have to be refused.
+/// URL. A custom scheme has no authority, so `monkeyhub://share/open` puts
+/// `share` in the HOST while `/share/open` puts it in the path, and
+/// `monkeyhub://devicelogin?r=…` has no path at all — the marker is the whole
+/// host. All of those have to be refused, so both places are flattened before
+/// the comparison.
 ///
-/// The cost is that the literal string `share` can no longer be typed into the
-/// join box as a bare code. Codes are ten Crockford characters, so that was
-/// never one.
-bool _isShareHandoff(String raw) {
+/// The cost is that the literal strings in [_reservedRoutes] can no longer be
+/// typed into the join box as bare codes. Codes are ten Crockford characters,
+/// so none of them ever was one.
+bool _isReservedRoute(String raw) {
   final uri = Uri.tryParse(raw);
   if (uri == null) return false;
   final parts = [
     if (uri.host.isNotEmpty) uri.host,
     ...uri.pathSegments.where((s) => s.isNotEmpty),
   ];
-  return parts.isNotEmpty && parts.first.toLowerCase() == kSharePathSegment;
+  return parts.isNotEmpty && _reservedRoutes.contains(parts.first.toLowerCase());
 }
 
 /// A typed code, accepted with or without the dashes the UI shows it with.

@@ -125,8 +125,17 @@ class DeviceIdentity {
 
   /// Friendly fallback label used when no OS-provided deviceName is
   /// available — keeps the pill readable on every platform.
-  static String friendlyPlatformLabel() {
-    final tag = platformTag();
+  static String friendlyPlatformLabel() => friendlyPlatformLabelFor(platformTag());
+
+  /// The same mapping for a platform tag that came from somewhere else — a
+  /// `userDevices` row belonging to one of this account's OTHER devices, which
+  /// by definition cannot be read off this process.
+  ///
+  /// Not localized, and deliberately consistent with [friendlyPlatformLabel]:
+  /// these are product names ("iPhone", "Mac"), and a device list that called
+  /// the same hardware something different depending on which device you read
+  /// it from would be worse than an untranslated one.
+  static String friendlyPlatformLabelFor(String tag) {
     switch (tag) {
       case 'ios':
         return 'iPhone';

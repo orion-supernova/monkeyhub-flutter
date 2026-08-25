@@ -1,3 +1,5 @@
+import '../auth/session_guard.dart';
+import '../auth/session_store.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -163,8 +165,27 @@ class ConvexBackend implements ConnectionProbe {
   // them captures 100% of traffic without touching ~300 call sites. DiagLog is
   // a static no-op until a device is allowlisted, so the cost here is one bool
   // read per call.
-  Future<dynamic> query(String name, Map<String, dynamic> args) async {
+
+  /// Attach the bearer token, unless this function is one the backend serves
+  /// without a session.
+  ///
+  /// Every request in the app funnels through [query], [mutation] and
+  /// [action], which is the only reason a 162-function auth migration did not
+  /// also become a 101-call-site client migration: identity is added here, once,
+  /// rather than threaded through every method on `ChatApi`.
+  Map<String, dynamic> _withToken(String name, Map<String, dynamic> args) {
+    if (!SessionGuard.instance.requiresToken(name)) return args;
+    final token = SessionStore.instance.token;
+    // No token but the function wants one: send it anyway and let the server
+    // answer SESSION_UNKNOWN. Failing here instead would produce a different
+    // error shape for the same condition, and `SessionGuard` would never see
+    // the signal that drives the sign-out.
+    return {...args, 'token': token ?? ''};
+  }
+
+  Future<dynamic> query(String name, Map<String, dynamic> rawArgs) async {
     await _ensureInitialized();
+    final args = _withToken(name, rawArgs);
     final corr = DiagLog.apiStart('query', name, args);
     final sw = Stopwatch()..start();
     try {
@@ -173,12 +194,14 @@ class ConvexBackend implements ConnectionProbe {
       return decoded;
     } catch (e) {
       DiagLog.apiError(corr, name, sw.elapsedMilliseconds, e);
+      SessionGuard.instance.noteError(e);
       rethrow;
     }
   }
 
-  Future<dynamic> mutation(String name, Map<String, dynamic> args) async {
+  Future<dynamic> mutation(String name, Map<String, dynamic> rawArgs) async {
     await _ensureInitialized();
+    final args = _withToken(name, rawArgs);
     final corr = DiagLog.apiStart('mutation', name, args);
     final sw = Stopwatch()..start();
     try {
@@ -193,12 +216,14 @@ class ConvexBackend implements ConnectionProbe {
         return null;
       }
       DiagLog.apiError(corr, name, sw.elapsedMilliseconds, e);
+      SessionGuard.instance.noteError(e);
       rethrow;
     }
   }
 
-  Future<dynamic> action(String name, Map<String, dynamic> args) async {
+  Future<dynamic> action(String name, Map<String, dynamic> rawArgs) async {
     await _ensureInitialized();
+    final args = _withToken(name, rawArgs);
     final corr = DiagLog.apiStart('action', name, args);
     final sw = Stopwatch()..start();
     try {
@@ -211,6 +236,7 @@ class ConvexBackend implements ConnectionProbe {
         return null;
       }
       DiagLog.apiError(corr, name, sw.elapsedMilliseconds, e);
+      SessionGuard.instance.noteError(e);
       rethrow;
     }
   }
@@ -240,16 +266,24 @@ class ConvexBackend implements ConnectionProbe {
 
   Future<Subscription> subscribe(
     String name,
-    Map<String, dynamic> args, {
+    Map<String, dynamic> rawArgs, {
     required void Function(dynamic) onData,
     void Function(Object error)? onError,
   }) async {
     await _ensureInitialized();
+    final args = _withToken(name, rawArgs);
     final entry = await _registry.add(
       name,
       args,
       onData: onData,
-      onError: onError,
+      // A subscription is where a revoked session shows up FIRST in a live
+      // app: the user is sitting on the chat list, touching nothing, when
+      // another device signs them out. Without this the socket would just go
+      // quiet and the screen would look merely stale.
+      onError: (Object error) {
+        SessionGuard.instance.noteError(error);
+        onError?.call(error);
+      },
     );
     return Subscription._(entry);
   }

@@ -7057,4 +7057,100 @@ class AppLocalizationsKo extends AppLocalizations {
   String roomColorsScreenSwatchSemantic(Object index) {
     return '색 $index';
   }
+
+  @override
+  String get devicesScreenTitle => '내 기기';
+
+  @override
+  String get devicesScreenSubtitle => '이 계정으로 로그인한 모든 곳.';
+
+  @override
+  String get devicesScreenLoading => '확인 중…';
+
+  @override
+  String get devicesScreenLoadFailed => '기기를 불러오지 못했습니다';
+
+  @override
+  String get devicesScreenThisDevice => '이 기기';
+
+  @override
+  String get devicesScreenActiveNow => '지금 활동 중';
+
+  @override
+  String devicesScreenMinutesAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count분 전',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String devicesScreenHoursAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count시간 전',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String devicesScreenDaysAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count일 전',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get devicesScreenNoNotifications => '이 기기에는 알림이 도착하지 않습니다';
+
+  @override
+  String get devicesScreenRemove => '삭제';
+
+  @override
+  String get devicesScreenRemoveTitle => '이 기기를 삭제할까요?';
+
+  @override
+  String devicesScreenRemoveBody(Object name) {
+    return '$name은(는) 로그아웃되고 알림도 오지 않습니다. 그 기기를 가진 사람은 다시 로그인해야 합니다.';
+  }
+
+  @override
+  String get devicesScreenRemoveConfirm => '삭제';
+
+  @override
+  String get devicesScreenRemoveAll => '다른 기기 모두 삭제';
+
+  @override
+  String get devicesScreenRemoveAllTitle => '다른 기기를 모두 삭제할까요?';
+
+  @override
+  String get devicesScreenRemoveAllBody =>
+      '모두 로그아웃되고 알림도 오지 않습니다. 이 기기만 로그인 상태로 남습니다.';
+
+  @override
+  String get devicesScreenRemoveAllConfirm => '모두 삭제';
+
+  @override
+  String devicesScreenRemovedCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '기기 $count대를 삭제했습니다',
+      zero: '삭제할 다른 기기가 없습니다',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get devicesScreenRemoveFailed => '그 기기를 삭제하지 못했습니다';
+
+  @override
+  String get devicesScreenFootnote =>
+      '기기를 삭제하면 로그아웃되고 알림도 중단됩니다. 즉시 적용되며, 그 기기가 다음에 무언가 하려는 순간 로그인 화면으로 돌아갑니다.';
 }

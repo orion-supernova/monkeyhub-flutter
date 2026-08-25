@@ -1,4 +1,5 @@
-import { internalMutation, mutation } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
+import { mutation } from "./functions";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { galleryBucketFor } from "./messages";

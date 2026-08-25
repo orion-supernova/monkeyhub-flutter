@@ -1772,6 +1772,40 @@ export default defineSchema({
   // and therefore no unlock mail, and no admin console — so a lockout that
   // could not expire on its own would be a permanent account loss. Every
   // lockout here heals itself.
+  // Bearer sessions. Added 2026-08-25 as the foundation for real remote
+  // sign-out; see DEVICES.md for the staged rollout.
+  //
+  // Until enforcement lands this table is WRITTEN and never READ for
+  // authorization: every function still takes `userId` as a plain argument, so
+  // minting a row changes no behaviour and cannot lock anyone out. That is the
+  // whole point of landing it separately — a half-enforced auth layer is worse
+  // than an unenforced one, and this half is the one that is safe to ship
+  // alone.
+  //
+  // `tokenHash`, never the token. The plaintext is returned to the client
+  // exactly once, at mint time, and is not recoverable from here — so a leaked
+  // database snapshot is not a set of working credentials. Same reasoning the
+  // `users.passwordHash` column already follows.
+  //
+  // `deviceId` ties a session to a `userDevices` row so the Devices screen can
+  // show one list rather than two, and so "remove this device" can grow into
+  // "sign this device out" without the user learning a second concept.
+  sessions: defineTable({
+    userId: v.id("users"),
+    tokenHash: v.string(),
+    deviceId: v.string(),
+    createdAt: v.number(),
+    lastSeenAt: v.number(),
+    // Set rather than deleted, so a revoked session can answer "this was
+    // signed out" instead of "no such session" — the two are indistinguishable
+    // to a client and one of them is a much better error message.
+    revokedAt: v.optional(v.number()),
+  })
+    // The hot path once enforcement lands: one equality probe per request.
+    .index("by_token_hash", ["tokenHash"])
+    .index("by_user", ["userId"])
+    .index("by_user_device", ["userId", "deviceId"]),
+
   authAttempts: defineTable({
     key: v.string(), // "login:<userId>" | "recovery:<userId>"
     failures: v.number(),

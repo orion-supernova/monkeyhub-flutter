@@ -6951,4 +6951,99 @@ class AppLocalizationsZh extends AppLocalizations {
   String roomColorsScreenSwatchSemantic(Object index) {
     return '颜色 $index';
   }
+
+  @override
+  String get devicesScreenTitle => '你的设备';
+
+  @override
+  String get devicesScreenSubtitle => '你登录过此账号的所有地方。';
+
+  @override
+  String get devicesScreenLoading => '正在检查…';
+
+  @override
+  String get devicesScreenLoadFailed => '无法加载你的设备';
+
+  @override
+  String get devicesScreenThisDevice => '当前设备';
+
+  @override
+  String get devicesScreenActiveNow => '当前活跃';
+
+  @override
+  String devicesScreenMinutesAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 分钟前',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String devicesScreenHoursAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 小时前',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String devicesScreenDaysAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 天前',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get devicesScreenNoNotifications => '通知无法送达此设备';
+
+  @override
+  String get devicesScreenRemove => '移除';
+
+  @override
+  String get devicesScreenRemoveTitle => '移除此设备？';
+
+  @override
+  String devicesScreenRemoveBody(Object name) {
+    return '$name 将被退出登录，并停止接收通知。持有该设备的人必须重新登录。';
+  }
+
+  @override
+  String get devicesScreenRemoveConfirm => '移除';
+
+  @override
+  String get devicesScreenRemoveAll => '移除其他所有设备';
+
+  @override
+  String get devicesScreenRemoveAllTitle => '移除其他所有设备？';
+
+  @override
+  String get devicesScreenRemoveAllBody => '它们都将被退出登录，并停止接收通知。只有当前设备保持登录。';
+
+  @override
+  String get devicesScreenRemoveAllConfirm => '全部移除';
+
+  @override
+  String devicesScreenRemovedCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已移除 $count 台设备',
+      zero: '没有其他设备可移除',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get devicesScreenRemoveFailed => '无法移除该设备';
+
+  @override
+  String get devicesScreenFootnote =>
+      '移除设备会将其退出登录并停止通知。立即生效——该设备下一次尝试操作时就会回到登录界面。';
 }

@@ -30,7 +30,7 @@
  * machinery lives in `roomInvites.ts` and calls in here for its checks.
  */
 
-import { mutation, query } from "./_generated/server";
+import { mutation, query } from "./functions";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { assertNotSystemRoom } from "./systemAccount";

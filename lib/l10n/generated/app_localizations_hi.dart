@@ -7339,4 +7339,105 @@ class AppLocalizationsHi extends AppLocalizations {
   String roomColorsScreenSwatchSemantic(Object index) {
     return 'रंग $index';
   }
+
+  @override
+  String get devicesScreenTitle => 'आपके डिवाइस';
+
+  @override
+  String get devicesScreenSubtitle =>
+      'हर जगह जहाँ आपने इस अकाउंट में साइन इन किया है।';
+
+  @override
+  String get devicesScreenLoading => 'जाँच रहे हैं…';
+
+  @override
+  String get devicesScreenLoadFailed => 'आपके डिवाइस लोड नहीं हो सके';
+
+  @override
+  String get devicesScreenThisDevice => 'यही डिवाइस';
+
+  @override
+  String get devicesScreenActiveNow => 'अभी सक्रिय';
+
+  @override
+  String devicesScreenMinutesAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count मिनट पहले',
+      one: '1 मिनट पहले',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String devicesScreenHoursAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count घंटे पहले',
+      one: '1 घंटा पहले',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String devicesScreenDaysAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count दिन पहले',
+      one: '1 दिन पहले',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get devicesScreenNoNotifications => 'इस पर सूचनाएँ नहीं पहुँच रही हैं';
+
+  @override
+  String get devicesScreenRemove => 'हटाएँ';
+
+  @override
+  String get devicesScreenRemoveTitle => 'यह डिवाइस हटाएँ?';
+
+  @override
+  String devicesScreenRemoveBody(Object name) {
+    return '$name साइन आउट हो जाएगा और सूचनाएँ आना बंद हो जाएँगी। जिसके पास वह है उसे दोबारा साइन इन करना होगा।';
+  }
+
+  @override
+  String get devicesScreenRemoveConfirm => 'हटाएँ';
+
+  @override
+  String get devicesScreenRemoveAll => 'बाकी सभी डिवाइस हटाएँ';
+
+  @override
+  String get devicesScreenRemoveAllTitle => 'बाकी सभी डिवाइस हटाएँ?';
+
+  @override
+  String get devicesScreenRemoveAllBody =>
+      'वे सभी साइन आउट हो जाएँगे और सूचनाएँ आना बंद हो जाएँगी। सिर्फ़ यही डिवाइस साइन इन रहेगा।';
+
+  @override
+  String get devicesScreenRemoveAllConfirm => 'सभी हटाएँ';
+
+  @override
+  String devicesScreenRemovedCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count डिवाइस हटाए गए',
+      one: '1 डिवाइस हटाया गया',
+      zero: 'हटाने के लिए कोई और डिवाइस नहीं',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get devicesScreenRemoveFailed => 'वह डिवाइस हटाया नहीं जा सका';
+
+  @override
+  String get devicesScreenFootnote =>
+      'डिवाइस हटाने से वह साइन आउट हो जाता है और उसकी सूचनाएँ रुक जाती हैं। यह तुरंत लागू होता है — वह डिवाइस अगली बार जो भी करने की कोशिश करेगा, उसे लॉगिन स्क्रीन पर भेज देगा।';
 }

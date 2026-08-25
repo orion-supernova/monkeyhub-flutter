@@ -4,22 +4,11 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../auth/auth_errors.dart';
 import '../auth/auth_service.dart';
+import '../auth/device_login_link.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/code_field.dart';
-
-/// Pulls the request id out of whatever the scanner saw. Accepts both the
-/// `monkeyhub://devicelogin?r=<id>` URI `DeviceLoginScreen` renders and a
-/// bare id, mirroring `extractPairingCode` in `child_pair_screen.dart`.
-String? extractDeviceLoginRequestId(String raw) {
-  final trimmed = raw.trim();
-  final uri = Uri.tryParse(trimmed);
-  final fromQuery = uri?.queryParameters['r'];
-  final candidate = (fromQuery != null && fromQuery.isNotEmpty) ? fromQuery : trimmed;
-  // 16 random bytes, hex-encoded — see `randomHex` in deviceLogin.ts.
-  return RegExp(r'^[0-9a-f]{32}$').hasMatch(candidate) ? candidate : null;
-}
 
 enum _Stage { entry, confirm, done }
 
@@ -34,9 +23,23 @@ enum _Stage { entry, confirm, done }
 /// resistance the whole feature rests on — before ever calling
 /// `respondToDeviceLoginRequest`.
 class DeviceLoginScanScreen extends StatefulWidget {
-  const DeviceLoginScanScreen({super.key, required this.auth});
+  const DeviceLoginScanScreen({
+    super.key,
+    required this.auth,
+    this.initialRequestId,
+  });
 
   final AuthService auth;
+
+  /// A request id that arrived before this screen did — the desktop QR scanned
+  /// with the phone's own Camera app, routed here by `DeepLinkService`. Skips
+  /// straight to the "approve this device?" confirmation.
+  ///
+  /// It skips the SCANNER, never the confirmation. The confirmation naming the
+  /// device that is asking is the whole phishing resistance of this feature,
+  /// and an id that arrived from outside the app is precisely the one that has
+  /// to keep it: anyone can put a QR in front of a camera.
+  final String? initialRequestId;
 
   @override
   State<DeviceLoginScanScreen> createState() => _DeviceLoginScanScreenState();
@@ -64,6 +67,19 @@ class _DeviceLoginScanScreenState extends State<DeviceLoginScanScreen> {
   /// Guards against the scanner firing the same QR repeatedly while a peek is
   /// already in flight — mirrors `ChildPairScreen._consumed`.
   bool _consumed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final seeded = widget.initialRequestId;
+    // After the first frame: `_peek` calls setState on failure, and the
+    // confirm stage renders from state this build has not produced yet.
+    if (seeded != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _peek(requestId: seeded);
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -97,7 +113,7 @@ class _DeviceLoginScanScreenState extends State<DeviceLoginScanScreen> {
     for (final barcode in capture.barcodes) {
       final raw = barcode.rawValue;
       if (raw == null) continue;
-      final requestId = extractDeviceLoginRequestId(raw);
+      final requestId = parseDeviceLoginRequestId(raw);
       if (requestId == null) continue;
       _consumed = true;
       HapticFeedback.mediumImpact();

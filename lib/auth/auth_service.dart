@@ -6,6 +6,7 @@ import '../backend/chat_api.dart';
 import '../data/cache_store.dart';
 import '../models/family.dart';
 import '../push/device_identity.dart';
+import 'session_guard.dart';
 import 'session_store.dart';
 import 'social_sign_in.dart';
 export 'session_store.dart' show Session;
@@ -203,11 +204,17 @@ class AuthService extends ChangeNotifier {
     AuthResult res, {
     AccountType accountType = AccountType.adult,
   }) {
+    // Re-arm the loss detector. Without this a device that was signed out
+    // remotely and then signed back in would never notice a SECOND revocation,
+    // because the latch that stops one dead session firing five sign-outs
+    // would still be closed from the first.
+    SessionGuard.instance.reset();
     SessionStore.instance
         .saveSession(
           userId: res.userId,
           username: res.username,
           name: res.name,
+          token: res.token,
           accountType: accountType,
         )
         .catchError((_) {/* see signIn docs */});
@@ -338,6 +345,35 @@ class AuthService extends ChangeNotifier {
 
     // Best-effort, and off the critical path. Neither can hold the UI now.
     unawaited(_afterSignOut(s.userId));
+  }
+
+  /// The server rejected this device's token: the session is revoked, or the
+  /// account is gone.
+  ///
+  /// Distinct from [signOut] in three ways that matter:
+  ///
+  ///  * **It applies to child devices too.** A child cannot CHOOSE to sign
+  ///    out, but a guardian who unpaired the handset has already decided, and
+  ///    leaving it on a dead session would strand it on a screen where nothing
+  ///    works and no button helps.
+  ///  * **It does not call `auth:logout`.** There is no session left to tear
+  ///    down, and the call would be rejected for the very reason we are here.
+  ///  * **It cannot fail into staying signed in.** Storage errors are logged
+  ///    and the in-memory session is dropped regardless, because the
+  ///    alternative is an app that keeps showing a signed-in shell whose every
+  ///    request 401s.
+  Future<void> forceSignOut() async {
+    if (_session == null) return;
+    debugPrint('[auth] session lost — returning to the login screen');
+    try {
+      await SessionStore.instance.clearSession().timeout(_localSignOutTimeout);
+    } catch (e) {
+      debugPrint('[auth] forceSignOut: clearing stored session failed: $e');
+    }
+    _session = null;
+    _needsPhraseRotation = false;
+    _pendingRotationPassword = null;
+    notifyListeners();
   }
 
   /// How long the local half of [signOut] may take before we give up on it and

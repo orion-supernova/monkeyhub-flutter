@@ -1,4 +1,5 @@
-import { mutation, query, internalMutation, internalQuery } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
+import { mutation, query } from "./functions";
 import { v } from "convex/values";
 
 // Generate a short-lived upload URL for the client to PUT a file directly to Convex storage

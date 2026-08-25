@@ -6,16 +6,11 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../auth/auth_errors.dart';
 import '../auth/auth_service.dart';
+import '../auth/device_login_link.dart';
 import '../backend/convex_client.dart' show Subscription;
 import '../l10n/generated/app_localizations.dart';
 import '../push/device_identity.dart';
 import '../theme/theme_scope.dart';
-
-/// URI the QR encodes. `device_login_scan_screen.dart` on the phone accepts
-/// this; a bare six-digit code typed by hand takes the codeHash path instead
-/// — see `deviceLogin.ts` for why the two are separate secrets on the same
-/// request row.
-String deviceLoginUri(String requestId) => 'monkeyhub://devicelogin?r=$requestId';
 
 enum _Phase { minting, waiting, exchanging, denied, error }
 

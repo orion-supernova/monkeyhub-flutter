@@ -1,4 +1,5 @@
-import { mutation, query, internalMutation, internalQuery } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
+import { mutation, query } from "./functions";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -1841,6 +1842,7 @@ export const deleteMany = mutation({
 });
 
 export const list = query({
+  identityArg: "viewerUserId" as const,
   args: {
     roomId: v.id("rooms"),
     limit: v.optional(v.number()),
@@ -1878,6 +1880,7 @@ export const list = query({
 });
 
 export const listBefore = query({
+  identityArg: "viewerUserId" as const,
   args: {
     roomId: v.id("rooms"),
     beforeTimestamp: v.number(),
@@ -1913,6 +1916,7 @@ export const listBefore = query({
 // the present after a jump into old history — the newest end of the room is
 // owned by the live `list` subscription, so nothing subscribes to this.
 export const listAfter = query({
+  identityArg: "viewerUserId" as const,
   args: {
     roomId: v.id("rooms"),
     afterTimestamp: v.number(),
@@ -1954,6 +1958,7 @@ export const listAfter = query({
 // scans; at millisecond precision that's vanishingly rare, and the client
 // dedupes by id anyway.
 export const listAround = query({
+  identityArg: "viewerUserId" as const,
   args: {
     roomId: v.id("rooms"),
     messageId: v.id("messages"),
@@ -2042,6 +2047,7 @@ export const expireMessage = internalMutation({
 // unshifted once the scan runs dry (a reply's createdAt always postdates its
 // parent's, so the root is unconditionally the head of the thread).
 export const getThreadPage = query({
+  identityArg: "viewerUserId" as const,
   args: {
     roomId: v.id("rooms"),
     rootId: v.id("messages"),
@@ -2643,6 +2649,7 @@ export const markRoomDelivered = mutation({
  * The viewer's own row is always returned in full.
  */
 export const getReadState = query({
+  identityArg: "viewerUserId" as const,
   args: {
     roomId: v.id("rooms"),
     viewerUserId: v.id("users"),

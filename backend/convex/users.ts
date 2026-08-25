@@ -1,4 +1,5 @@
-import { internalMutation, mutation, query } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
+import { mutation, publicQuery, query } from "./functions";
 import { v } from "convex/values";
 import {
   PRESENCE_OFFLINE_MS,
@@ -41,9 +42,19 @@ import { lensFor } from "./visibility";
  * `friendRequests` doesn't affect the profile payload directly — it's
  * enforced at request-mutation time.
  */
+// The one function in the codebase where `userId` names the person being
+// looked AT rather than the person asking. `identityArg` moves the injected
+// identity onto `viewerUserId` so the subject keeps coming from the client —
+// without it the wrapper would overwrite `userId` with the caller and this
+// query would only ever return your own profile.
 export const getProfile = query({
+  identityArg: "viewerUserId" as const,
   args: {
     userId: v.id("users"),
+    // Still DECLARED so the client's existing payload validates — Convex
+    // rejects arguments a function did not declare — but no longer TRUSTED:
+    // `identityArg` above makes the wrapper overwrite it with the resolved
+    // caller. Removing it outright broke every profile view in the app.
     viewerUserId: v.optional(v.id("users")),
   },
   handler: async (ctx, { userId, viewerUserId }) => {
@@ -394,7 +405,7 @@ export const updateProfile = mutation({
  * on the write, in the same transaction, because a name can be claimed between
  * the answer and the tap.
  */
-export const isUsernameAvailable = query({
+export const isUsernameAvailable = publicQuery({
   args: {
     username: v.string(),
     // Set on the rename sheet. Your CURRENT handle is obviously "taken" — by

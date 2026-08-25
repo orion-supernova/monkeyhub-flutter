@@ -1,4 +1,5 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, publicMutation, query } from "./functions";
+import { mintSession } from "./sessionCore";
 import { internal } from "./_generated/api";
 import {
   ERR_DISPLAY_NAME_RESERVED,
@@ -276,7 +277,7 @@ export const revokePairingCode = mutation({
  * the same shape `auth.login` does, plus `accountType`, so the client's session
  * plumbing is identical for both paths.
  */
-export const redeemPairingCode = mutation({
+export const redeemPairingCode = publicMutation({
   args: {
     codeHash: v.string(),
     deviceId: v.string(),
@@ -330,6 +331,7 @@ export const redeemPairingCode = mutation({
       username: child.username,
       name: child.name ?? child.username,
       accountType: ACCOUNT_CHILD,
+      token: await mintSession(ctx, child._id, deviceId),
     };
   },
 });

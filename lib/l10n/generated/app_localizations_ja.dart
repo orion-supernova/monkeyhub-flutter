@@ -7036,4 +7036,100 @@ class AppLocalizationsJa extends AppLocalizations {
   String roomColorsScreenSwatchSemantic(Object index) {
     return '色 $index';
   }
+
+  @override
+  String get devicesScreenTitle => 'デバイス';
+
+  @override
+  String get devicesScreenSubtitle => 'このアカウントでサインインしたすべての場所。';
+
+  @override
+  String get devicesScreenLoading => '確認中…';
+
+  @override
+  String get devicesScreenLoadFailed => 'デバイスを読み込めませんでした';
+
+  @override
+  String get devicesScreenThisDevice => 'このデバイス';
+
+  @override
+  String get devicesScreenActiveNow => '現在アクティブ';
+
+  @override
+  String devicesScreenMinutesAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count分前',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String devicesScreenHoursAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count時間前',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String devicesScreenDaysAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count日前',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get devicesScreenNoNotifications => 'このデバイスには通知が届いていません';
+
+  @override
+  String get devicesScreenRemove => '削除';
+
+  @override
+  String get devicesScreenRemoveTitle => 'このデバイスを削除しますか？';
+
+  @override
+  String devicesScreenRemoveBody(Object name) {
+    return '$name はサインアウトされ、通知も届かなくなります。その端末を持っている人は、もう一度サインインする必要があります。';
+  }
+
+  @override
+  String get devicesScreenRemoveConfirm => '削除';
+
+  @override
+  String get devicesScreenRemoveAll => '他のデバイスをすべて削除';
+
+  @override
+  String get devicesScreenRemoveAllTitle => '他のデバイスをすべて削除しますか？';
+
+  @override
+  String get devicesScreenRemoveAllBody =>
+      'すべてサインアウトされ、通知も届かなくなります。サインインしたままになるのはこの端末だけです。';
+
+  @override
+  String get devicesScreenRemoveAllConfirm => 'すべて削除';
+
+  @override
+  String devicesScreenRemovedCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count台のデバイスを削除しました',
+      zero: '削除できる他のデバイスはありません',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get devicesScreenRemoveFailed => 'そのデバイスを削除できませんでした';
+
+  @override
+  String get devicesScreenFootnote =>
+      'デバイスを削除すると、サインアウトされ通知も止まります。すぐに反映され、その端末が次に何かしようとした時点でログイン画面に戻ります。';
 }

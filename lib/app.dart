@@ -6,6 +6,7 @@ import 'package:flutter/services.dart' show SystemUiOverlayStyle;
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'auth/auth_service.dart';
+import 'auth/session_guard.dart';
 import 'backend/call_api.dart';
 import 'backend/chat_api.dart';
 import 'backend/connection_health.dart';
@@ -43,6 +44,7 @@ import 'l10n/generated/app_localizations.dart';
 import 'invites/deep_link_service.dart';
 import 'invites/invite_link.dart';
 import 'main.dart' show rootNavigatorKey;
+import 'screens/device_login_scan_screen.dart';
 import 'screens/join_by_invite_screen.dart';
 import 'screens/navigation/route_return.dart' show appRoutes;
 import 'share/share_intake.dart';
@@ -429,7 +431,16 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     WebPush.setOnOpenRoom(_openRoomFromPush);
     // Inbound universal links / App Links. Reported here rather than acted on:
     // `_openInvite` decides whether the app is ready and stashes if not.
+    // A revoked or unknown token means this device is no longer signed in —
+    // someone hit "remove all other devices", or the account is gone. Wired
+    // here, above the navigator, because the shell has to be torn down from
+    // outside whatever screen happened to be showing when it happened.
+    SessionGuard.instance.onSessionLost = () {
+      unawaited(_auth.forceSignOut());
+    };
     DeepLinkService.instance.onInvite = _openInvite;
+    // The desktop/web sign-in QR, scanned with the phone's own Camera app.
+    DeepLinkService.instance.onDeviceLogin = _openDeviceLogin;
     unawaited(DeepLinkService.instance.start());
     // The system share sheet. Same arrangement as the invite above — reported
     // here, placed by `_openShare`, which stashes when the app isn't ready.
@@ -681,6 +692,35 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
           api: _api,
           code: invite.code,
           serverUrl: invite.serverUrl,
+        ),
+      ),
+    );
+  }
+
+  /// Approve (or refuse) a sign-in on another device, from its QR.
+  ///
+  /// Deliberately NOT stashed when the app isn't ready, which is the one place
+  /// this differs from [_openInvite]. An invite keeps its meaning indefinitely;
+  /// a device-login request is a short-lived secret that a signed-out phone
+  /// cannot act on at all, and replaying one after a later sign-in would open a
+  /// confirmation for a request that expired long ago. Dropping it costs the
+  /// user one rescan and keeps the flow honest about what it is approving.
+  void _openDeviceLogin(String requestId) {
+    final session = _auth.session;
+    if (session == null || rootNavigatorKey.currentState == null) {
+      debugPrint('device login link dropped: no session to approve with');
+      return;
+    }
+    // A supervised device has no business handing out full account sessions —
+    // the same rule `profile_screen.dart` applies to the entry point it owns.
+    if (_auth.isChild) return;
+    final nav = rootNavigatorKey.currentState!;
+    nav.popUntil((r) => r.isFirst);
+    nav.push(
+      MaterialPageRoute(
+        builder: (_) => DeviceLoginScanScreen(
+          auth: _auth,
+          initialRequestId: requestId,
         ),
       ),
     );

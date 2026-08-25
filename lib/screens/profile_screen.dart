@@ -44,6 +44,7 @@ import 'blocked_users_screen.dart';
 import 'recovery_phrase_screen.dart';
 import 'camera_screen.dart';
 import 'device_login_scan_screen.dart';
+import 'devices_screen.dart';
 import 'family_screen.dart';
 import 'friend_request_draft_screen.dart';
 import 'fullscreen_image_viewer.dart';
@@ -481,6 +482,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
       MaterialPageRoute(builder: (_) => LinkedAccountsScreen(auth: auth)),
     );
     await _refreshLinkedProviders();
+  }
+
+  /// Opens the list of devices this account has signed in on.
+  ///
+  /// Above the scan row on purpose: "what is signed in?" is the question
+  /// someone arrives with, and "approve another device" is the one they leave
+  /// with. A child device is excluded for the same reason it cannot approve a
+  /// sign-in — it does not administer the account supervising it.
+  void _openDevices() {
+    final auth = widget.auth;
+    final api = widget.api;
+    if (auth == null || api == null || auth.isChild) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => DevicesScreen(auth: auth, api: api)),
+    );
   }
 
   /// Opens the phone-side scan-and-approve screen for a desktop/web
@@ -1428,6 +1444,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 8),
           ],
+          // Every platform — a device list is the same question wherever it
+          // is asked, and the desktop is where someone is most likely to
+          // wonder what else is signed in.
+          DetailLinkRow(
+            label: AppLocalizations.of(context).devicesScreenTitle,
+            icon: Icons.devices_other_rounded,
+            onTap: _openDevices,
+          ),
+          const SizedBox(height: 8),
           // Mobile only — approving a desktop/web sign-in needs a camera (or
           // at least a keyboard for the fallback code), and the counterpart
           // QR screen only ever shows up on desktop/web in the first place.

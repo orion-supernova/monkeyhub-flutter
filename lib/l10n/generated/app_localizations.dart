@@ -12558,6 +12558,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Colour {index}'**
   String roomColorsScreenSwatchSemantic(Object index);
+
+  /// All-caps screen title of the device list reached from the profile screen.
+  ///
+  /// In en, this message translates to:
+  /// **'YOUR DEVICES'**
+  String get devicesScreenTitle;
+
+  /// One-line subtitle under the Devices screen title, explaining what the list is.
+  ///
+  /// In en, this message translates to:
+  /// **'Everywhere you\'ve signed in to this account.'**
+  String get devicesScreenSubtitle;
+
+  /// Quiet placeholder shown while the device list is still being fetched. Lowercase on purpose.
+  ///
+  /// In en, this message translates to:
+  /// **'checking…'**
+  String get devicesScreenLoading;
+
+  /// Error line shown when the device list could not be fetched, e.g. offline.
+  ///
+  /// In en, this message translates to:
+  /// **'couldn’t load your devices'**
+  String get devicesScreenLoadFailed;
+
+  /// Small all-caps accent badge marking the row for the device the user is currently holding.
+  ///
+  /// In en, this message translates to:
+  /// **'THIS DEVICE'**
+  String get devicesScreenThisDevice;
+
+  /// Last-seen label for a device seen within the last couple of minutes.
+  ///
+  /// In en, this message translates to:
+  /// **'active now'**
+  String get devicesScreenActiveNow;
+
+  /// Last-seen label for a device seen under an hour ago. {count} is whole minutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 minute ago} other{{count} minutes ago}}'**
+  String devicesScreenMinutesAgo(num count);
+
+  /// Last-seen label for a device seen under a day ago. {count} is whole hours.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 hour ago} other{{count} hours ago}}'**
+  String devicesScreenHoursAgo(num count);
+
+  /// Last-seen label for a device last seen a day or more ago. {count} is whole days.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 day ago} other{{count} days ago}}'**
+  String devicesScreenDaysAgo(num count);
+
+  /// Sub-line on a device row that can no longer receive notifications — muted, credential expired, or a desktop that never had one.
+  ///
+  /// In en, this message translates to:
+  /// **'notifications aren’t reaching this one'**
+  String get devicesScreenNoNotifications;
+
+  /// All-caps destructive action on a single device row. Deliberately not 'sign out' — it removes the device from the list and stops notifications, it does not end a session.
+  ///
+  /// In en, this message translates to:
+  /// **'REMOVE'**
+  String get devicesScreenRemove;
+
+  /// All-caps headline of the confirm sheet before removing one device.
+  ///
+  /// In en, this message translates to:
+  /// **'REMOVE THIS DEVICE?'**
+  String get devicesScreenRemoveTitle;
+
+  /// Body of the confirm sheet before removing one device. {name} is the device's name, e.g. 'Bob's iPhone'. The last sentence is load-bearing — do not soften or drop it.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} will be signed out and will stop receiving notifications. Whoever has it will have to sign in again.'**
+  String devicesScreenRemoveBody(Object name);
+
+  /// All-caps destructive confirm button for removing a single device.
+  ///
+  /// In en, this message translates to:
+  /// **'REMOVE'**
+  String get devicesScreenRemoveConfirm;
+
+  /// Action below the list that removes every device except the one in the user's hand. Sentence case, not a button label.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove all other devices'**
+  String get devicesScreenRemoveAll;
+
+  /// All-caps headline of the confirm sheet before removing every device except this one.
+  ///
+  /// In en, this message translates to:
+  /// **'REMOVE ALL OTHER DEVICES?'**
+  String get devicesScreenRemoveAllTitle;
+
+  /// Body of the confirm sheet before removing all other devices. The last sentence is load-bearing — do not soften or drop it.
+  ///
+  /// In en, this message translates to:
+  /// **'They\'ll all be signed out and will stop receiving notifications. Only this device stays signed in.'**
+  String get devicesScreenRemoveAllBody;
+
+  /// All-caps destructive confirm button for removing every other device.
+  ///
+  /// In en, this message translates to:
+  /// **'REMOVE ALL'**
+  String get devicesScreenRemoveAllConfirm;
+
+  /// Snackbar confirming how many devices were removed. {count} is how many rows the server actually deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{no other devices to remove} one{1 device removed} other{{count} devices removed}}'**
+  String devicesScreenRemovedCount(num count);
+
+  /// Error line shown when removing a device fails.
+  ///
+  /// In en, this message translates to:
+  /// **'couldn’t remove that device'**
+  String get devicesScreenRemoveFailed;
+
+  /// Honest footnote at the bottom of the Devices screen explaining the limits of Remove. Accuracy matters more than brevity here: this screen is opened by people who think a device was stolen.
+  ///
+  /// In en, this message translates to:
+  /// **'Removing a device signs it out and stops its notifications. It takes effect immediately — the next thing that device tries to do will send it back to the login screen.'**
+  String get devicesScreenFootnote;
 }
 
 class _AppLocalizationsDelegate

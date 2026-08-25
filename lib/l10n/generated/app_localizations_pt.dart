@@ -7412,6 +7412,111 @@ class AppLocalizationsPt extends AppLocalizations {
   String roomColorsScreenSwatchSemantic(Object index) {
     return 'Cor $index';
   }
+
+  @override
+  String get devicesScreenTitle => 'OS TEUS DISPOSITIVOS';
+
+  @override
+  String get devicesScreenSubtitle =>
+      'Todos os sítios onde iniciaste sessão nesta conta.';
+
+  @override
+  String get devicesScreenLoading => 'a verificar…';
+
+  @override
+  String get devicesScreenLoadFailed =>
+      'não foi possível carregar os teus dispositivos';
+
+  @override
+  String get devicesScreenThisDevice => 'ESTE DISPOSITIVO';
+
+  @override
+  String get devicesScreenActiveNow => 'ativo agora';
+
+  @override
+  String devicesScreenMinutesAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'há $count minutos',
+      one: 'há 1 minuto',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String devicesScreenHoursAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'há $count horas',
+      one: 'há 1 hora',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String devicesScreenDaysAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'há $count dias',
+      one: 'há 1 dia',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get devicesScreenNoNotifications =>
+      'as notificações não chegam a este';
+
+  @override
+  String get devicesScreenRemove => 'REMOVER';
+
+  @override
+  String get devicesScreenRemoveTitle => 'REMOVER ESTE DISPOSITIVO?';
+
+  @override
+  String devicesScreenRemoveBody(Object name) {
+    return 'A sessão em $name será terminada e deixará de receber notificações. Quem o tiver terá de iniciar sessão outra vez.';
+  }
+
+  @override
+  String get devicesScreenRemoveConfirm => 'REMOVER';
+
+  @override
+  String get devicesScreenRemoveAll => 'Remover todos os outros dispositivos';
+
+  @override
+  String get devicesScreenRemoveAllTitle =>
+      'REMOVER TODOS OS OUTROS DISPOSITIVOS?';
+
+  @override
+  String get devicesScreenRemoveAllBody =>
+      'Todos terão a sessão terminada e deixarão de receber notificações. Só este dispositivo continua com sessão iniciada.';
+
+  @override
+  String get devicesScreenRemoveAllConfirm => 'REMOVER TODOS';
+
+  @override
+  String devicesScreenRemovedCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dispositivos removidos',
+      one: '1 dispositivo removido',
+      zero: 'não há outros dispositivos para remover',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get devicesScreenRemoveFailed =>
+      'não foi possível remover esse dispositivo';
+
+  @override
+  String get devicesScreenFootnote =>
+      'Remover um dispositivo termina a sua sessão e para as notificações. Tem efeito imediato — a próxima coisa que esse dispositivo tentar fazer devolve-o ao ecrã de início de sessão.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -14818,4 +14923,109 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String roomColorsScreenSwatchSemantic(Object index) {
     return 'Cor $index';
   }
+
+  @override
+  String get devicesScreenTitle => 'SEUS DISPOSITIVOS';
+
+  @override
+  String get devicesScreenSubtitle =>
+      'Todos os lugares onde você entrou nesta conta.';
+
+  @override
+  String get devicesScreenLoading => 'verificando…';
+
+  @override
+  String get devicesScreenLoadFailed =>
+      'não foi possível carregar seus dispositivos';
+
+  @override
+  String get devicesScreenThisDevice => 'ESTE DISPOSITIVO';
+
+  @override
+  String get devicesScreenActiveNow => 'ativo agora';
+
+  @override
+  String devicesScreenMinutesAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'há $count minutos',
+      one: 'há 1 minuto',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String devicesScreenHoursAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'há $count horas',
+      one: 'há 1 hora',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String devicesScreenDaysAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'há $count dias',
+      one: 'há 1 dia',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get devicesScreenNoNotifications =>
+      'as notificações não estão chegando neste';
+
+  @override
+  String get devicesScreenRemove => 'REMOVER';
+
+  @override
+  String get devicesScreenRemoveTitle => 'REMOVER ESTE DISPOSITIVO?';
+
+  @override
+  String devicesScreenRemoveBody(Object name) {
+    return '$name será desconectado e vai parar de receber notificações. Quem estiver com ele terá que entrar de novo.';
+  }
+
+  @override
+  String get devicesScreenRemoveConfirm => 'REMOVER';
+
+  @override
+  String get devicesScreenRemoveAll => 'Remover todos os outros dispositivos';
+
+  @override
+  String get devicesScreenRemoveAllTitle =>
+      'REMOVER TODOS OS OUTROS DISPOSITIVOS?';
+
+  @override
+  String get devicesScreenRemoveAllBody =>
+      'Todos serão desconectados e vão parar de receber notificações. Só este dispositivo continua conectado.';
+
+  @override
+  String get devicesScreenRemoveAllConfirm => 'REMOVER TODOS';
+
+  @override
+  String devicesScreenRemovedCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dispositivos removidos',
+      one: '1 dispositivo removido',
+      zero: 'não há outros dispositivos para remover',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get devicesScreenRemoveFailed =>
+      'não foi possível remover esse dispositivo';
+
+  @override
+  String get devicesScreenFootnote =>
+      'Remover um dispositivo o desconecta e interrompe as notificações. Vale na hora — a próxima coisa que esse dispositivo tentar fazer o manda de volta para a tela de login.';
 }

@@ -21,7 +21,7 @@
  * either way, so an admin can tighten a room without reissuing anything.
  */
 
-import { mutation, query } from "./_generated/server";
+import { mutation, query } from "./functions";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import {

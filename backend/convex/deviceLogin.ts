@@ -1,4 +1,6 @@
-import { mutation, query, internalMutation } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
+import { mutation, publicMutation, publicQuery, query } from "./functions";
+import { mintSession } from "./sessionCore";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
@@ -57,7 +59,7 @@ const deviceLoginKey = (userId: Id<"users">) => `deviceLogin:${userId}`;
  * because the QR needs far more entropy than a human ever has to type; see
  * the schema comment for why the two are not the same secret.
  */
-export const createLoginRequest = mutation({
+export const createLoginRequest = publicMutation({
   args: {
     deviceInfo: v.string(),
     codeHash: v.string(),
@@ -89,7 +91,7 @@ export const createLoginRequest = mutation({
  * which is exactly the channel `exchangeDeviceLoginRequest` exists to avoid
  * using for the actual credential.
  */
-export const getDeviceLoginRequestStatus = query({
+export const getDeviceLoginRequestStatus = publicQuery({
   args: { requestId: v.string() },
   handler: async (ctx, { requestId }) => {
     const row = await ctx.db
@@ -219,9 +221,15 @@ export const respondToDeviceLoginRequest = mutation({
  * `family.redeemPairingCode` do, so the client's session-adoption code has
  * no idea which path it came from.
  */
-export const exchangeDeviceLoginRequest = mutation({
-  args: { requestId: v.string() },
-  handler: async (ctx, { requestId }) => {
+export const exchangeDeviceLoginRequest = publicMutation({
+  args: {
+    requestId: v.string(),
+    // The DESKTOP's device id — the one claiming the session, not the phone
+    // that approved it. Binding it here is what puts the new sign-in in the
+    // Devices list under its own name.
+    deviceId: v.string(),
+  },
+  handler: async (ctx, { requestId, deviceId }) => {
     const row = await ctx.db
       .query("deviceLoginRequests")
       .withIndex("by_requestId", (q) => q.eq("requestId", requestId))
@@ -247,6 +255,7 @@ export const exchangeDeviceLoginRequest = mutation({
       userId: user._id,
       username: user.username,
       name: user.name ?? user.username,
+      token: await mintSession(ctx, user._id, deviceId),
     };
   },
 });

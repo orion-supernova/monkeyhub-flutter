@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query } from "./functions";
 import { v } from "convex/values";
 import { sanitizeViewOnce } from "./messages";
 
@@ -124,6 +124,7 @@ export const unpin = mutation({
  * what that already hands out.
  */
 export const listForRoom = query({
+  identityArg: "viewerUserId" as const,
   args: {
     roomId: v.id("rooms"),
     // Only used to tell this viewer whether they personally opened a pinned

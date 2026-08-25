@@ -12,6 +12,8 @@ import '../models/friend_request_message.dart';
 import '../models/message_formatting.dart';
 import '../models/room_admin.dart';
 import '../models/room_content_item.dart';
+import '../models/user_device.dart';
+import '../push/device_identity.dart';
 import 'convex_client.dart';
 import 'hashing.dart';
 import 'server_store.dart';
@@ -45,6 +47,9 @@ class ChatApi {
       'name': name,
       'passwordHash': sha256Hash(password),
       'recoveryKeyHash': recoveryKeyHash,
+      // Binds the minted session to this device, so it can be named and
+      // revoked from the Devices screen.
+      'deviceId': await DeviceIdentity.ensure(),
     });
     return AuthResult.fromJson(res as Map<String, dynamic>);
   }
@@ -53,12 +58,17 @@ class ChatApi {
     final res = await _cv.mutation('auth:login', {
       'username': username,
       'passwordHash': sha256Hash(password),
+      'deviceId': await DeviceIdentity.ensure(),
     });
     return AuthResult.fromJson(res as Map<String, dynamic>);
   }
 
   Future<void> logout({required String userId}) async {
-    await _cv.mutation('auth:logout', {'userId': userId});
+    // `userId` is now derived from the token server-side; the device id is what
+    // names WHICH session to revoke.
+    await _cv.mutation('auth:logout', {
+      'deviceId': await DeviceIdentity.ensure(),
+    });
   }
 
   /// Resets a password using a recovery phrase, as typed.
@@ -79,6 +89,7 @@ class ChatApi {
       'recoveryKeyHash': hashes.primary,
       'legacyRecoveryKeyHash': hashes.legacy,
       'newPasswordHash': sha256Hash(newPassword),
+      'deviceId': await DeviceIdentity.ensure(),
     });
     return AuthResult.fromJson(res as Map<String, dynamic>);
   }
@@ -192,6 +203,7 @@ class ChatApi {
   Future<SocialSignInOutcome> socialSignIn(SocialCredential credential) async {
     final res = await _cv.action('socialAuth:signIn', {
       'provider': credential.provider.wire,
+      'deviceId': await DeviceIdentity.ensure(),
       'idToken': credential.idToken,
       if (credential.rawNonce != null) 'rawNonce': credential.rawNonce,
       if (credential.authorizationCode != null)
@@ -215,6 +227,7 @@ class ChatApi {
   }) async {
     final res = await _cv.action('socialAuth:completeSignUp', {
       'provider': credential.provider.wire,
+      'deviceId': await DeviceIdentity.ensure(),
       'idToken': credential.idToken,
       if (credential.rawNonce != null) 'rawNonce': credential.rawNonce,
       if (credential.authorizationCode != null)
@@ -238,6 +251,7 @@ class ChatApi {
   }) async {
     final res = await _cv.action('socialAuth:linkExistingAccount', {
       'provider': credential.provider.wire,
+      'deviceId': await DeviceIdentity.ensure(),
       'idToken': credential.idToken,
       if (credential.rawNonce != null) 'rawNonce': credential.rawNonce,
       if (credential.authorizationCode != null)
@@ -543,6 +557,45 @@ class ChatApi {
       'platform': platform,
       'deviceName': ?deviceName,
     });
+  }
+
+  /// Every device this account has signed in on, newest sighting first with
+  /// this one pinned to the top.
+  ///
+  /// A one-shot read rather than a subscription: the list changes when the
+  /// user signs in somewhere or removes a row, neither of which happens while
+  /// they are staring at this screen, and a live subscription here would be
+  /// one more thing fanning out on every `userDevices` write.
+  ///
+  /// [deviceId] is this device's own id, so the server can mark its row.
+  Future<List<UserDevice>> listDevices({
+    required String userId,
+    required String deviceId,
+  }) async {
+    final res = await _cv.query('voipTokens:listDevices', {
+      'userId': userId,
+      'deviceId': deviceId,
+    });
+    final rows = (res as List?) ?? const [];
+    return rows
+        .map((row) => UserDevice.fromJson(row as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Remove every device except this one. Returns how many rows went.
+  ///
+  /// The server derives the victims from [deviceId] rather than taking a list,
+  /// so a device that signed in since the screen last rendered is swept too —
+  /// which is the only promise this button actually makes.
+  Future<int> removeOtherDevices({
+    required String userId,
+    required String deviceId,
+  }) async {
+    final res = await _cv.mutation('voipTokens:removeOtherDevices', {
+      'userId': userId,
+      'deviceId': deviceId,
+    });
+    return ((res as Map<String, dynamic>?)?['removed'] as num?)?.toInt() ?? 0;
   }
 
   /// Logout from a single device — remove only this device's row from
@@ -2211,6 +2264,9 @@ class ChatApi {
   /// two separate calls; see the schema comment on why).
   Future<AuthResult> exchangeDeviceLoginRequest(String requestId) async {
     final res = await _cv.mutation('deviceLogin:exchangeDeviceLoginRequest', {
+      // The desktop claiming the session names itself, so the new sign-in
+      // shows up in the Devices list as this machine.
+      'deviceId': await DeviceIdentity.ensure(),
       'requestId': requestId,
     });
     return AuthResult.fromJson((res as Map).cast<String, dynamic>());
@@ -2561,14 +2617,25 @@ class UsernameAvailability {
 }
 
 class AuthResult {
-  AuthResult({required this.userId, required this.username, required this.name});
+  AuthResult({
+    required this.userId,
+    required this.username,
+    required this.name,
+    required this.token,
+  });
   final String userId;
   final String username;
   final String name;
+
+  /// The bearer token, returned exactly once — at mint. It is not recoverable
+  /// from the server afterwards (only its hash is stored), so a caller that
+  /// drops it has signed the user in and immediately lost the session.
+  final String token;
   factory AuthResult.fromJson(Map<String, dynamic> j) => AuthResult(
         userId: (j['userId']).toString(),
         username: (j['username']).toString(),
         name: (j['name']).toString(),
+        token: (j['token'] ?? '').toString(),
       );
 }
 

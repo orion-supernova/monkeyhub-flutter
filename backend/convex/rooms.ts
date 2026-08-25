@@ -1,4 +1,5 @@
-import { mutation, query, internalQuery } from "./_generated/server";
+import { internalQuery } from "./_generated/server";
+import { mutation, query } from "./functions";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import {
@@ -267,6 +268,7 @@ export const updateRoomAvatar = mutation({
 });
 
 export const listPublic = query({
+  identityArg: "viewerUserId" as const,
   args: { viewerUserId: v.optional(v.id("users")) },
   handler: async (ctx, { viewerUserId }) => {
     // A child doesn't get a filtered Discover — they get no Discover at all.
@@ -572,6 +574,7 @@ export const unmuteRoom = mutation({
  * they just get the public-only view, which is the safe direction to fail.
  */
 export const getMembers = query({
+  identityArg: "viewerUserId" as const,
   args: {
     roomId: v.id("rooms"),
     viewerUserId: v.optional(v.id("users")),

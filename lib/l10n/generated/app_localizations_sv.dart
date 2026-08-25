@@ -7352,4 +7352,105 @@ class AppLocalizationsSv extends AppLocalizations {
   String roomColorsScreenSwatchSemantic(Object index) {
     return 'Färg $index';
   }
+
+  @override
+  String get devicesScreenTitle => 'DINA ENHETER';
+
+  @override
+  String get devicesScreenSubtitle =>
+      'Alla ställen där du har loggat in på det här kontot.';
+
+  @override
+  String get devicesScreenLoading => 'kollar…';
+
+  @override
+  String get devicesScreenLoadFailed => 'kunde inte ladda dina enheter';
+
+  @override
+  String get devicesScreenThisDevice => 'DEN HÄR ENHETEN';
+
+  @override
+  String get devicesScreenActiveNow => 'aktiv nu';
+
+  @override
+  String devicesScreenMinutesAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'för $count minuter sedan',
+      one: 'för 1 minut sedan',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String devicesScreenHoursAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'för $count timmar sedan',
+      one: 'för 1 timme sedan',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String devicesScreenDaysAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'för $count dagar sedan',
+      one: 'för 1 dag sedan',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get devicesScreenNoNotifications => 'aviseringar når inte fram hit';
+
+  @override
+  String get devicesScreenRemove => 'TA BORT';
+
+  @override
+  String get devicesScreenRemoveTitle => 'TA BORT DEN HÄR ENHETEN?';
+
+  @override
+  String devicesScreenRemoveBody(Object name) {
+    return '$name loggas ut och slutar ta emot aviseringar. Den som har enheten måste logga in igen.';
+  }
+
+  @override
+  String get devicesScreenRemoveConfirm => 'TA BORT';
+
+  @override
+  String get devicesScreenRemoveAll => 'Ta bort alla andra enheter';
+
+  @override
+  String get devicesScreenRemoveAllTitle => 'TA BORT ALLA ANDRA ENHETER?';
+
+  @override
+  String get devicesScreenRemoveAllBody =>
+      'Alla loggas ut och slutar ta emot aviseringar. Bara den här enheten förblir inloggad.';
+
+  @override
+  String get devicesScreenRemoveAllConfirm => 'TA BORT ALLA';
+
+  @override
+  String devicesScreenRemovedCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count enheter borttagna',
+      one: '1 enhet borttagen',
+      zero: 'inga andra enheter att ta bort',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get devicesScreenRemoveFailed => 'kunde inte ta bort den enheten';
+
+  @override
+  String get devicesScreenFootnote =>
+      'Att ta bort en enhet loggar ut den och stoppar dess aviseringar. Det gäller direkt — nästa sak enheten försöker göra skickar den till inloggningsskärmen.';
 }

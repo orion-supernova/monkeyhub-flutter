@@ -15,7 +15,7 @@
  * schema comment on `roomInvitations` for why the two are separate tables.
  */
 
-import { mutation, query } from "./_generated/server";
+import { mutation, query } from "./functions";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import {

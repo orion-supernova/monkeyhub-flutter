@@ -7405,4 +7405,108 @@ class AppLocalizationsEs extends AppLocalizations {
   String roomColorsScreenSwatchSemantic(Object index) {
     return 'Color $index';
   }
+
+  @override
+  String get devicesScreenTitle => 'TUS DISPOSITIVOS';
+
+  @override
+  String get devicesScreenSubtitle =>
+      'Todos los sitios donde has iniciado sesión con esta cuenta.';
+
+  @override
+  String get devicesScreenLoading => 'comprobando…';
+
+  @override
+  String get devicesScreenLoadFailed =>
+      'no se pudieron cargar tus dispositivos';
+
+  @override
+  String get devicesScreenThisDevice => 'ESTE DISPOSITIVO';
+
+  @override
+  String get devicesScreenActiveNow => 'activo ahora';
+
+  @override
+  String devicesScreenMinutesAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'hace $count minutos',
+      one: 'hace 1 minuto',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String devicesScreenHoursAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'hace $count horas',
+      one: 'hace 1 hora',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String devicesScreenDaysAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'hace $count días',
+      one: 'hace 1 día',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get devicesScreenNoNotifications =>
+      'las notificaciones no llegan a este';
+
+  @override
+  String get devicesScreenRemove => 'QUITAR';
+
+  @override
+  String get devicesScreenRemoveTitle => '¿QUITAR ESTE DISPOSITIVO?';
+
+  @override
+  String devicesScreenRemoveBody(Object name) {
+    return 'Se cerrará la sesión de $name y dejará de recibir notificaciones. Quien lo tenga tendrá que iniciar sesión otra vez.';
+  }
+
+  @override
+  String get devicesScreenRemoveConfirm => 'QUITAR';
+
+  @override
+  String get devicesScreenRemoveAll => 'Quitar todos los demás dispositivos';
+
+  @override
+  String get devicesScreenRemoveAllTitle =>
+      '¿QUITAR TODOS LOS DEMÁS DISPOSITIVOS?';
+
+  @override
+  String get devicesScreenRemoveAllBody =>
+      'Se cerrará la sesión en todos y dejarán de recibir notificaciones. Solo este dispositivo sigue con la sesión iniciada.';
+
+  @override
+  String get devicesScreenRemoveAllConfirm => 'QUITAR TODOS';
+
+  @override
+  String devicesScreenRemovedCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dispositivos quitados',
+      one: '1 dispositivo quitado',
+      zero: 'no hay otros dispositivos que quitar',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get devicesScreenRemoveFailed => 'no se pudo quitar ese dispositivo';
+
+  @override
+  String get devicesScreenFootnote =>
+      'Quitar un dispositivo cierra su sesión y detiene sus notificaciones. Surte efecto de inmediato: lo siguiente que intente hacer ese dispositivo lo devolverá a la pantalla de inicio de sesión.';
 }

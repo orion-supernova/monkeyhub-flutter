@@ -7319,4 +7319,106 @@ class AppLocalizationsEn extends AppLocalizations {
   String roomColorsScreenSwatchSemantic(Object index) {
     return 'Colour $index';
   }
+
+  @override
+  String get devicesScreenTitle => 'YOUR DEVICES';
+
+  @override
+  String get devicesScreenSubtitle =>
+      'Everywhere you\'ve signed in to this account.';
+
+  @override
+  String get devicesScreenLoading => 'checking…';
+
+  @override
+  String get devicesScreenLoadFailed => 'couldn’t load your devices';
+
+  @override
+  String get devicesScreenThisDevice => 'THIS DEVICE';
+
+  @override
+  String get devicesScreenActiveNow => 'active now';
+
+  @override
+  String devicesScreenMinutesAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count minutes ago',
+      one: '1 minute ago',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String devicesScreenHoursAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count hours ago',
+      one: '1 hour ago',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String devicesScreenDaysAgo(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days ago',
+      one: '1 day ago',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get devicesScreenNoNotifications =>
+      'notifications aren’t reaching this one';
+
+  @override
+  String get devicesScreenRemove => 'REMOVE';
+
+  @override
+  String get devicesScreenRemoveTitle => 'REMOVE THIS DEVICE?';
+
+  @override
+  String devicesScreenRemoveBody(Object name) {
+    return '$name will be signed out and will stop receiving notifications. Whoever has it will have to sign in again.';
+  }
+
+  @override
+  String get devicesScreenRemoveConfirm => 'REMOVE';
+
+  @override
+  String get devicesScreenRemoveAll => 'Remove all other devices';
+
+  @override
+  String get devicesScreenRemoveAllTitle => 'REMOVE ALL OTHER DEVICES?';
+
+  @override
+  String get devicesScreenRemoveAllBody =>
+      'They\'ll all be signed out and will stop receiving notifications. Only this device stays signed in.';
+
+  @override
+  String get devicesScreenRemoveAllConfirm => 'REMOVE ALL';
+
+  @override
+  String devicesScreenRemovedCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count devices removed',
+      one: '1 device removed',
+      zero: 'no other devices to remove',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get devicesScreenRemoveFailed => 'couldn’t remove that device';
+
+  @override
+  String get devicesScreenFootnote =>
+      'Removing a device signs it out and stops its notifications. It takes effect immediately — the next thing that device tries to do will send it back to the login screen.';
 }

@@ -1,4 +1,5 @@
-import { query, internalMutation } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
+import { publicQuery, query } from "./functions";
 import { v } from "convex/values";
 
 /// The latest shipped build for one distribution channel, or null if nothing
@@ -8,7 +9,7 @@ import { v } from "convex/values";
 /// runs this check on every cold start, *before* restoring a session. Someone
 /// locked out by a client too old to talk to this backend is exactly who needs
 /// the prompt, and they can't authenticate to ask for it.
-export const latest = query({
+export const latest = publicQuery({
   args: { channel: v.string() },
   handler: async (ctx, { channel }) => {
     const row = await ctx.db

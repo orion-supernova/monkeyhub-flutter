@@ -1,4 +1,6 @@
-import { mutation, query, internalMutation } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
+import {  mutation, publicMutation, query  } from "./functions";
+import { mintSession, revokeSessionsForDevice } from "./sessionCore";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { ACCOUNT_CHILD, ERR_MUST_PAIR, ERR_NOT_ALLOWED } from "./childGuard";
@@ -22,15 +24,22 @@ import {
   MAX_RECOVERY_FAILURES,
 } from "./rateLimit";
 
-export const signup = mutation({
+export const signup = publicMutation({
   args: {
     username: v.string(),
     name: v.string(),
     passwordHash: v.string(),
     recoveryKeyHash: v.optional(v.string()),
     email: v.optional(v.string()),
+    // Which device this session belongs to. Required: a session that is not
+    // tied to a device cannot be shown in the Devices list or revoked from it,
+    // which is the whole reason sessions exist here.
+    deviceId: v.string(),
   },
-  handler: async (ctx, { username, name, passwordHash, recoveryKeyHash, email }) => {
+  handler: async (
+    ctx,
+    { username, name, passwordHash, recoveryKeyHash, email, deviceId },
+  ) => {
     // Reserved handles — anything reading as the brand, not just the exact
     // system names. Checked before the collision test so the answer does not
     // depend on whether a system account happens to exist yet: they are created
@@ -61,16 +70,17 @@ export const signup = mutation({
       status: "online",
       lastSeen: Date.now(),
     });
-    return { userId, username, name };
+    return { userId, username, name, token: await mintSession(ctx, userId, deviceId) };
   },
 });
 
-export const login = mutation({
+export const login = publicMutation({
   args: {
     username: v.string(),
     passwordHash: v.string(),
+    deviceId: v.string(),
   },
-  handler: async (ctx, { username, passwordHash }) => {
+  handler: async (ctx, { username, passwordHash, deviceId }) => {
     const user = await ctx.db
       .query("users")
       .withIndex("by_username", (q) => q.eq("username", username))
@@ -110,18 +120,26 @@ export const login = mutation({
     await clearFailures(ctx, key);
 
     await ctx.db.patch(user._id, { status: "online", lastSeen: Date.now() });
-    return { userId: user._id, username: user.username, name: user.name ?? user.username };
+    return {
+      userId: user._id,
+      username: user.username,
+      name: user.name ?? user.username,
+      token: await mintSession(ctx, user._id, deviceId),
+    };
   },
 });
 
 export const logout = mutation({
-  args: { userId: v.id("users") },
-  handler: async (ctx, { userId }) => {
+  // The device signing itself out, so its session can be revoked rather than
+  // left live for anyone holding the token.
+  args: { deviceId: v.string() },
+  handler: async (ctx, { userId, deviceId }) => {
+    await revokeSessionsForDevice(ctx, userId, deviceId);
     await ctx.db.patch(userId, { status: "offline", lastSeen: Date.now() });
   },
 });
 
-export const resetPasswordWithRecoveryKey = mutation({
+export const resetPasswordWithRecoveryKey = publicMutation({
   args: {
     username: v.string(),
     // Required, not optional: clients from before the 12-word scheme are still
@@ -132,10 +150,20 @@ export const resetPasswordWithRecoveryKey = mutation({
     // table in lib/auth/recovery_phrase.dart#recoveryResetHashes.
     legacyRecoveryKeyHash: v.optional(v.string()),
     newPasswordHash: v.string(),
+    // Reset signs the account straight back in, so it mints like any other
+    // entry point — without this the client would hold a session with no
+    // token and be signed out again on its very next request.
+    deviceId: v.string(),
   },
   handler: async (
     ctx,
-    { username, recoveryKeyHash, legacyRecoveryKeyHash, newPasswordHash },
+    {
+      username,
+      recoveryKeyHash,
+      legacyRecoveryKeyHash,
+      newPasswordHash,
+      deviceId,
+    },
   ) => {
     const user = await ctx.db
       .query("users")
@@ -183,6 +211,7 @@ export const resetPasswordWithRecoveryKey = mutation({
       userId: user._id,
       username: user.username,
       name: user.name ?? user.username,
+      token: await mintSession(ctx, user._id, deviceId),
     };
   },
 });
