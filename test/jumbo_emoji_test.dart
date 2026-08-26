@@ -212,5 +212,44 @@ void main() {
       expect(find.byType(JumboEmojiBubble), findsOneWidget);
       expect(tester.binding.transientCallbackCount, 0);
     });
+
+    // Never `pumpAndSettle` past this point: a heart's beat never settles, so
+    // it would run to the timeout rather than to a frame.
+
+    testWidgets('a heart keeps beating long after it has arrived',
+        (tester) async {
+      await tester.pumpWidget(host(bubble(msg(id: 'beat-1', content: '❤️'))));
+      // Well past the arrival, which is under two seconds all told.
+      await tester.pump(const Duration(seconds: 10));
+      expect(tester.binding.transientCallbackCount, greaterThan(0));
+    });
+
+    testWidgets('an emoji with no heart in it stops', (tester) async {
+      await tester.pumpWidget(host(bubble(msg(id: 'still-1'))));
+      await tester.pumpAndSettle();
+      expect(tester.binding.transientCallbackCount, 0);
+    });
+
+    testWidgets('a calm heart never starts', (tester) async {
+      await tester.pumpWidget(
+          host(bubble(msg(id: 'calm-heart-1', content: '❤️')), calm: true));
+      await tester.pump(const Duration(seconds: 3));
+      expect(find.byType(JumboEmojiBubble), findsOneWidget);
+      expect(tester.binding.transientCallbackCount, 0);
+    });
+
+    testWidgets('the burst leaves the glyph on a beat, not between two',
+        (tester) async {
+      await tester.pumpWidget(host(bubble(msg(id: 'sync-1', content: '❤️'))));
+      // The pop runs 460ms and the burst starts the instant it ends. The
+      // heartbeat is phased so its thump lands exactly there — which is only
+      // observable as the glyph being *bigger* at that moment than it is
+      // halfway through the following rest.
+      await tester.pump(const Duration(milliseconds: 460));
+      final onBeat = tester.getRect(find.text('❤️')).width;
+      await tester.pump(const Duration(milliseconds: 575));
+      final atRest = tester.getRect(find.text('❤️')).width;
+      expect(onBeat, greaterThan(atRest * 1.05));
+    });
   });
 }

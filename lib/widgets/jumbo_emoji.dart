@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/gestures.dart' show kTouchSlop;
 import 'package:flutter/material.dart';
 
-import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 
@@ -178,12 +177,30 @@ bool isHeartEmoji(String cluster) =>
 /// tuck one into. A lozenge floating beside a transparent glyph would read as a
 /// detached label, which is the same answer the round video note reached.
 ///
-/// The entrance plays once per message rather than on every build: a
-/// transcript recycles rows as it scrolls, so an animation tied to the widget's
-/// lifetime would fire again every time the reader passed the same message.
-/// [identity] is what "the same message" means — the client id where there is
-/// one, because an optimistic send changes `id` the moment the server confirms
-/// it, and without that the sender would watch their own emoji pop twice.
+/// Three animations, and the difference between them is the whole design:
+///
+///  * **The entrance** — every emoji. A staggered overshooting pop.
+///  * **The burst** — hearts only. Small hearts spray out of the glyph on the
+///    first beat and fall away. This is an *arrival*, so it fires with the
+///    entrance and is spent with it.
+///  * **The heartbeat** — hearts only, and it never stops. A heart that beat
+///    twice and then sat still reads as a rendering glitch; the charm is that
+///    it keeps going, so it loops for as long as the message is on screen.
+///    [TickerMode] pauses it whenever the room is not the visible route, so a
+///    transcript left behind on the navigator stack costs nothing.
+///
+/// The entrance and the burst are spent once per *message* rather than once
+/// per row: a transcript recycles rows as it scrolls, so an arrival tied to
+/// the widget's lifetime would fire again every time the reader passed the
+/// same message. [identity] is what "the same message" means — the client id
+/// where there is one, because an optimistic send changes `id` the moment the
+/// server confirms it, and without that the sender would watch their own emoji
+/// pop twice. A tap replays both.
+///
+/// All three stop dead under Reduce Motion.
+///
+/// One consequence for tests: a heart message never settles, so
+/// `pumpAndSettle` on one will time out. Pump a fixed span instead.
 class JumboEmojiBubble extends StatefulWidget {
   const JumboEmojiBubble({
     super.key,
@@ -216,26 +233,45 @@ class JumboEmojiBubble extends StatefulWidget {
 }
 
 class _JumboEmojiBubbleState extends State<JumboEmojiBubble>
-    with SingleTickerProviderStateMixin {
-  /// Messages whose entrance has already been spent. Bounded rather than
+    with TickerProviderStateMixin {
+  /// Messages whose arrival has already been spent. Bounded rather than
   /// unbounded because a long-lived session scrolling a busy room would
   /// otherwise accumulate one string per emoji message forever; dropping the
   /// whole set at the ceiling costs, at worst, one replayed pop.
   static final Set<String> _played = <String>{};
   static const int _playedCeiling = 512;
 
-  /// The pop, and then — hearts only — the flourish, back to back on one
-  /// controller so there is a single ticker per bubble.
   static const int _popMs = 460;
-  static const int _flourishMs = 1500;
+  static const int _burstMs = 1250;
 
-  late final bool _hearted = widget.clusters.any(isHeartEmoji);
-  late final int _totalMs = _popMs + (_hearted ? _flourishMs : 0);
+  /// One cycle of the heartbeat: two thumps and the rest after them.
+  ///
+  /// About 52 beats a minute — slower than a real resting pulse on purpose.
+  /// This runs for as long as the message is on screen, and anything at a
+  /// lifelike rate turns from alive into insistent inside ten seconds.
+  static const Duration _beatDuration = Duration(milliseconds: 1150);
 
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: Duration(milliseconds: _totalMs),
-  );
+  /// Which clusters are hearts, resolved once: it is asked per glyph per
+  /// frame, and it drives whether there is a second ticker at all.
+  late final List<bool> _isHeart = [
+    for (final c in widget.clusters) isHeartEmoji(c),
+  ];
+  late final bool _hearted = _isHeart.contains(true);
+
+  /// The arrival: pop, then — hearts only — the burst, back to back on one
+  /// controller so a replay re-runs both in step.
+  late final int _introMs = _popMs + (_hearted ? _burstMs : 0);
+  late final AnimationController _intro =
+      AnimationController(vsync: this, duration: Duration(milliseconds: _introMs));
+
+  /// Hearts only, and only where motion is allowed — so a message with no
+  /// heart in it has no second ticker, and a calm reader has neither.
+  AnimationController? _pulse;
+
+  /// Whatever is currently driving a frame. Held rather than rebuilt inline so
+  /// the [AnimatedBuilder] resubscribes when the set of controllers changes
+  /// and not on every build.
+  late Listenable _driver;
 
   /// Built in [didChangeDependencies] and handed to the [AnimatedBuilder]
   /// untouched, so a frame of animation re-wraps them in transforms without
@@ -276,56 +312,98 @@ class _JumboEmojiBubbleState extends State<JumboEmojiBubble>
     ];
     // `MotionScope` is read here rather than in initState for the same reason
     // the style is: it depends on MediaQuery, and a reader who flips Reduce
-    // Motion mid-session should stop getting entrances without leaving the
-    // room.
+    // Motion mid-session should stop getting motion without leaving the room.
     if (MotionScope.of(context).calm) {
-      _c.value = 1;
+      _intro.value = 1;
+      _pulse?.stop();
       _played.add(widget.identity);
-      return;
+    } else {
+      _playArrivalIfUnspent();
+      if (_hearted) {
+        _pulse ??= AnimationController(vsync: this, duration: _beatDuration);
+        if (!_pulse!.isAnimating) _startBeat();
+      }
     }
-    if (_c.isAnimating || _c.value > 0) return;
+    _driver =
+        _pulse == null ? _intro : Listenable.merge(<Listenable>[_intro, _pulse!]);
+  }
+
+  /// Starts the loop on the phase that puts its next thump exactly where the
+  /// burst leaves the glyph — so the hearts are thrown BY the beat rather than
+  /// alongside it. Once the two clocks drift apart they stay apart, which is
+  /// fine: the only beat that has to land on something is the first.
+  void _startBeat() {
+    final pulse = _pulse!;
+    if (_intro.isAnimating) {
+      final untilBurst = (1 - _intro.value) * _popSpan * _introMs;
+      final phase = _thumpAt - untilBurst / _beatDuration.inMilliseconds;
+      pulse.value = phase - phase.floorToDouble();
+    } else {
+      // Nothing to land on — this message arrived long ago and is only being
+      // scrolled back into view. Offset it by its own identity instead, so
+      // three hearts on screen at once beat like three hearts rather than like
+      // a metronome driving all of them.
+      pulse.value = (widget.identity.hashCode & 0x3FF) / 0x400;
+    }
+    pulse.repeat();
+  }
+
+  void _playArrivalIfUnspent() {
+    if (_intro.isAnimating || _intro.value > 0) return;
     if (_played.contains(widget.identity)) {
-      _c.value = 1;
+      _intro.value = 1;
       return;
     }
     if (_played.length >= _playedCeiling) _played.clear();
     _played.add(widget.identity);
-    _c.forward();
+    _intro.forward();
   }
 
   @override
   void dispose() {
-    _c.dispose();
+    _pulse?.dispose();
+    _intro.dispose();
     super.dispose();
   }
 
-  /// Where the pop ends and the flourish begins, as a fraction of [_c].
-  double get _popSpan => _popMs / _totalMs;
+  /// Where the pop ends and the burst begins, as a fraction of [_intro].
+  double get _popSpan => _popMs / _introMs;
 
-  double get _popT => (_c.value / _popSpan).clamp(0.0, 1.0);
+  double get _popT => (_intro.value / _popSpan).clamp(0.0, 1.0);
 
-  double get _flourishT => _hearted
-      ? ((_c.value - _popSpan) / (1 - _popSpan)).clamp(0.0, 1.0)
+  double get _burstT => _hearted
+      ? ((_intro.value - _popSpan) / (1 - _popSpan)).clamp(0.0, 1.0)
       : 0.0;
 
-  /// Two quick bumps — the second softer than the first, the way a heartbeat
-  /// actually reads — over the first third of the flourish.
+  /// How much bigger a heart is, [u] fractions of the way through one beat.
+  ///
+  /// Two thumps — the second softer and close behind the first, the way a
+  /// heartbeat actually reads — and then a long rest, which is what makes it a
+  /// heartbeat rather than a throb. Distance to a thump's centre is measured
+  /// *around* the cycle, so the loop point is as smooth as the middle.
+  /// Where in a cycle the loud thump sits. Shared by [_beat] and [_startBeat],
+  /// which is the point — the phase maths and the curve have to name the same
+  /// instant or the burst leaves on silence.
+  static const double _thumpAt = 0.08;
+
   static double _beat(double u) {
-    double bump(double centre, double width, double height) {
-      final d = (u - centre) / width;
-      return height * math.exp(-d * d);
+    double thump(double centre, double width, double height) {
+      var d = (u - centre).abs();
+      if (d > 0.5) d = 1 - d;
+      final z = d / width;
+      return height * math.exp(-z * z);
     }
 
-    return bump(0.10, 0.055, 1.0) + bump(0.27, 0.070, 0.62);
+    return thump(_thumpAt, 0.042, 0.13) + thump(0.23, 0.048, 0.075);
   }
 
-  /// A tap replays it. Deliberately a [Listener] and not a tap recognizer:
-  /// the bubble above this one already runs a long-press (the action menu) and
-  /// a double-tap (react) in its own arena, and a recognizer down here would
-  /// win that arena on the first tap up and swallow the react gesture. A
-  /// pointer listener never enters the arena at all, so both still work and a
-  /// double-tap now both reacts *and* replays — which is the right answer
-  /// anyway.
+  /// A tap replays the arrival. Deliberately a [Listener] and not a tap
+  /// recognizer: the bubble above this one already runs a long-press (the
+  /// action menu) and a double-tap (react) in its own arena, and a recognizer
+  /// down here would win that arena on the first tap up and swallow the react
+  /// gesture. A pointer listener never enters the arena at all, so both still
+  /// work and a double-tap now both reacts *and* replays — which is the right
+  /// answer anyway.
   Offset? _down;
   int _downMs = 0;
 
@@ -343,12 +421,14 @@ class _JumboEmojiBubbleState extends State<JumboEmojiBubble>
     if ((e.position - down).distance > kTouchSlop) return;
     if (DateTime.now().millisecondsSinceEpoch - _downMs >= 400) return;
     if (MotionScope.of(context).calm) return;
-    _c.forward(from: 0);
+    _intro.forward(from: 0);
+    // Re-phased after the intro is rewound, so the replayed burst leaves on a
+    // thump instead of wherever in its cycle the loop happened to be.
+    if (_pulse != null) _startBeat();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final count = widget.clusters.length;
     final size = JumboEmojiBubble.glyphSize(count);
     return Listener(
@@ -361,19 +441,22 @@ class _JumboEmojiBubbleState extends State<JumboEmojiBubble>
         // (MessageGap) already brackets this, and the tightened line height
         // above leaves the glyph very little slack of its own.
         padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: AnimatedBuilder(
-          animation: _c,
-          builder: (context, _) => _frame(theme, size, count),
+        child: RepaintBoundary(
+          // The heartbeat runs for as long as the message is on screen, and
+          // without this every frame of it would repaint the transcript rows
+          // sharing its layer.
+          child: AnimatedBuilder(
+            animation: _driver,
+            builder: (context, _) => _frame(count, size),
+          ),
         ),
       ),
     );
   }
 
-  Widget _frame(AppTheme theme, double size, int count) {
+  Widget _frame(int count, double size) {
     final pop = _popT;
-    final flourish = _flourishT;
-    final beat = flourish > 0 ? _beat(flourish) : 0.0;
-
+    final beat = _pulse == null ? 0.0 : _beat(_pulse!.value);
     final row = Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -381,11 +464,9 @@ class _JumboEmojiBubbleState extends State<JumboEmojiBubble>
         for (var i = 0; i < count; i++) ...[
           if (i > 0) const SizedBox(width: _gap),
           Transform.scale(
-            // The stagger lives in the curve's input, not in a delay: each
-            // glyph runs the same arc a beat later than the one before it, and
-            // the last one still lands inside the pop's own window.
-            scale: _entrance(pop, i, count) *
-                (isHeartEmoji(widget.clusters[i]) ? 1 + 0.16 * beat : 1.0),
+            // The entrance and the beat multiply rather than one winning: a
+            // heart that arrives mid-thump should still arrive.
+            scale: _entrance(pop, i, count) * (_isHeart[i] ? 1 + beat : 1.0),
             child: Opacity(
               opacity: (pop * 2.6).clamp(0.0, 1.0),
               child: _glyphs[i],
@@ -395,32 +476,37 @@ class _JumboEmojiBubbleState extends State<JumboEmojiBubble>
       ],
     );
 
-    if (!_hearted || flourish <= 0 || flourish >= 1) return row;
+    final burst = _burstT;
+    if (burst <= 0 || burst >= 1) return row;
 
-    // Painted behind the glyphs and allowed to overflow upward, which is where
-    // the whole effect lives. `Clip.none` on the Stack is what permits it; no
+    // Painted BEHIND the glyphs, and allowed to overflow the row — which is
+    // where the effect lives. The motes emerge from behind the heart rather
+    // than appearing on top of it, and `Clip.none` is what permits that; no
     // ancestor between here and the transcript's own viewport clips.
+    final reach = size * _reach;
     return Stack(
       clipBehavior: Clip.none,
       alignment: Alignment.center,
       children: [
         Positioned(
-          left: -14,
-          right: -14,
-          bottom: 0,
-          top: -_riseHeight,
+          left: -reach,
+          right: -reach,
+          top: -reach,
+          // Far less headroom below: the fan is aimed upward, and the only
+          // thing under this row is its own timestamp.
+          bottom: -size * 0.5,
           child: IgnorePointer(
-            child: RepaintBoundary(
-              child: CustomPaint(
-                painter: _HeartFlourish(
-                  t: flourish,
-                  colors: [
-                    for (final c in widget.clusters)
-                      if (isHeartEmoji(c)) heartTint(c, theme),
-                  ],
-                  glyph: size,
-                  seed: widget.identity.hashCode,
-                ),
+            child: CustomPaint(
+              painter: _HeartBurst(
+                t: burst,
+                inset: reach,
+                glyph: size,
+                tints: [
+                  for (var i = 0; i < count; i++)
+                    if (_isHeart[i]) MapEntry(i, heartTint(widget.clusters[i])),
+                ],
+                count: count,
+                seed: widget.identity.hashCode,
               ),
             ),
           ),
@@ -430,22 +516,30 @@ class _JumboEmojiBubbleState extends State<JumboEmojiBubble>
     );
   }
 
-  /// How far above the glyph the motes are allowed to climb.
-  static const double _riseHeight = 64;
+  /// How far a mote can travel, as a multiple of the glyph's point size.
+  ///
+  /// Deliberately about one glyph: further than this and the spray climbs into
+  /// the message above, which reads as a bug in the row above rather than as a
+  /// flourish on this one.
+  static const double _reach = 1.4;
 
   /// A single overshooting arc per glyph, offset by [i].
+  ///
+  /// The stagger lives in the curve's input, not in a delay: each glyph runs
+  /// the same arc a beat later than the one before it, and the last one still
+  /// lands inside the entrance's own window.
   static double _entrance(double pop, int i, int count) {
     if (pop >= 1) return 1;
     const stagger = 0.16;
-    final u = ((pop - i * stagger) / (1 - (count - 1) * stagger))
-        .clamp(0.0, 1.0);
+    final u =
+        ((pop - i * stagger) / (1 - (count - 1) * stagger)).clamp(0.0, 1.0);
     return 0.32 + 0.68 * Curves.easeOutBack.transform(u);
   }
 }
 
-/// The hue to draw a heart's motes in — the glyph's own colour, so a 💙 rains
-/// blue and a 🖤 rains something that can still be seen against the theme.
-Color heartTint(String cluster, AppTheme theme) {
+/// The hue to draw a heart's motes in — the glyph's own colour, so a 💙 sprays
+/// blue and a 💛 yellow.
+Color heartTint(String cluster) {
   switch (cluster.runes.first) {
     case 0x1F9E1: // 🧡
       return const Color(0xFFF5871F);
@@ -459,10 +553,10 @@ Color heartTint(String cluster, AppTheme theme) {
     case 0x1F49F: // 💟
       return const Color(0xFF9E6BFF);
     case 0x1F5A4: // 🖤
-      // Not black: the motes are drawn ON the transcript's ground, which on a
-      // dark theme is already near black. This is "a black heart's colour, as
-      // dark as it can be and still be a mote", not the glyph's fill.
-      return theme.ink;
+      // Not black. The motes are drawn on the transcript's ground, which on a
+      // dark theme is already near black; this is a black heart's colour as
+      // dark as it can be and still be seen leaving the glyph.
+      return const Color(0xFF6E7681);
     case 0x1F90D: // 🤍
       return const Color(0xFFE8E8EC);
     case 0x1F90E: // 🤎
@@ -477,90 +571,107 @@ Color heartTint(String cluster, AppTheme theme) {
   }
 }
 
-/// Small hearts drifting up off a jumbo heart, plus one ring on the first beat.
+/// Small hearts thrown out of a jumbo heart and falling away.
+///
+/// A *burst*, not a stream: every mote leaves within the first fifth of the
+/// animation, in an upward fan, decelerating as it goes and then dropping —
+/// which is what makes it read as one event rather than as a smoke machine.
+/// The earlier version launched them in sequence up a narrow column, which
+/// climbed into the message above and never stopped looking like a leak.
 ///
 /// Vector paths rather than more copies of the emoji: a glyph would need a
 /// `saveLayer` per mote to fade, and at this size the silhouette is the whole
 /// read anyway — the colour comes from [heartTint].
-class _HeartFlourish extends CustomPainter {
-  const _HeartFlourish({
+class _HeartBurst extends CustomPainter {
+  const _HeartBurst({
     required this.t,
-    required this.colors,
+    required this.inset,
     required this.glyph,
+    required this.tints,
+    required this.count,
     required this.seed,
   });
 
-  /// 0..1 across the flourish.
+  /// 0..1 across the burst.
   final double t;
 
-  /// One per heart in the message; motes cycle through them.
-  final List<Color> colors;
+  /// How far this canvas extends past the glyph row on the left, right and
+  /// top — needed to place a mote's origin back on the row itself.
+  final double inset;
 
-  /// The emoji's point size, which sets the motes' and the ring's scale.
+  /// The emoji's point size, which every distance below is a multiple of.
   final double glyph;
 
-  /// Deterministic jitter, so a message looks the same on every replay and
-  /// two messages side by side do not.
+  /// `(index in the row, colour)` for each heart. The index is what puts the
+  /// burst under the right glyph in a two-heart message.
+  final List<MapEntry<int, Color>> tints;
+
+  /// How many glyphs the row holds, heart or not.
+  final int count;
+
+  /// Deterministic jitter, so a message looks the same on every replay and two
+  /// messages side by side do not.
   final int seed;
 
-  static const int _count = 9;
+  /// Motes per heart. Enough to read as a handful at a glance; past about a
+  /// dozen they stop being countable and start being confetti.
+  static const int _perHeart = 14;
 
-  /// Fraction of [t] one mote is alive for. The launches are spread across the
-  /// remainder, so the last one is still climbing as the flourish ends.
-  static const double _life = 0.62;
+  /// The window every mote has left the glyph by, as a fraction of [t].
+  static const double _launch = 0.14;
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (colors.isEmpty) return;
-    final rnd = math.Random(seed);
-    final ring = _ringT();
-    if (ring > 0) {
-      final p = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5 * (1 - ring)
-        ..color = colors.first
-            .withValues(alpha: 0.34 * (1 - ring) * (1 - ring));
-      canvas.drawCircle(
-        Offset(size.width / 2, size.height - glyph * 0.5),
-        glyph * (0.42 + 0.75 * ring),
-        p,
-      );
+    if (tints.isEmpty) return;
+    // The row itself, inside the padding this canvas was grown by.
+    final rowWidth = size.width - inset * 2;
+    final rowBottom = size.height - glyph * 0.5;
+
+    for (final tint in tints) {
+      final rnd = math.Random(seed ^ (tint.key * 0x9E3779B9));
+      // The optical centre of this glyph. Emoji in a row are close enough to
+      // the same width that dividing the row evenly lands inside the right
+      // one, which is all this needs.
+      final cx = inset + rowWidth * (tint.key + 0.5) / count;
+      final cy = rowBottom - glyph * 0.55;
+
+      for (var i = 0; i < _perHeart; i++) {
+        final jAngle = rnd.nextDouble();
+        final jSpeed = rnd.nextDouble();
+        final jSize = rnd.nextDouble();
+        final jSpin = rnd.nextDouble();
+        final u = (t - rnd.nextDouble() * _launch) / (1 - _launch);
+        if (u <= 0 || u >= 1) continue;
+
+        // A fan around straight up, wide enough to look thrown and narrow
+        // enough that nothing flies sideways into the next message.
+        final angle = -math.pi / 2 + (jAngle - 0.5) * 2.1;
+        // Fast out, then coasting: the mote covers most of its distance in
+        // the first third, which is the difference between thrown and drifting.
+        final travel = 1 - math.pow(1 - u, 2.6).toDouble();
+        final dist = glyph * (0.55 + 0.75 * jSpeed) * travel;
+        final x = cx + math.cos(angle) * dist;
+        // …and then gravity takes over, so the fan closes into a fall.
+        final y = cy + math.sin(angle) * dist + glyph * 0.9 * u * u;
+
+        final grow = u < 0.14 ? u / 0.14 : 1.0;
+        final s = glyph * (0.12 + 0.14 * jSize) * grow * (1 - 0.25 * u);
+        final alpha =
+            math.min(u / 0.07, (1 - u) / 0.5).clamp(0.0, 1.0) * 0.95;
+        if (alpha <= 0.01 || s <= 0.5) continue;
+
+        canvas.save();
+        canvas.translate(x, y);
+        // A slow tumble, seeded off the same jitter as the throw so a mote
+        // that flies left leans left.
+        canvas.rotate((jSpin - 0.5) * 1.4 * u + (jAngle - 0.5) * 0.6);
+        canvas.drawPath(
+          _heart(s),
+          Paint()..color = tint.value.withValues(alpha: alpha),
+        );
+        canvas.restore();
+      }
     }
-
-    final launchSpread = 1 - _life;
-    for (var i = 0; i < _count; i++) {
-      // Drawn before the early-out so the sequence advances identically on
-      // every frame — otherwise a mote's jitter would change as its
-      // neighbours came and went.
-      final jx = rnd.nextDouble();
-      final jsize = rnd.nextDouble();
-      final jsway = rnd.nextDouble();
-      final u = (t - (i / _count) * launchSpread) / _life;
-      if (u <= 0 || u >= 1) continue;
-
-      final arc = math.sin(u * math.pi);
-      final x = size.width * (0.18 + 0.64 * jx) +
-          math.sin((u * 2.1 + jsway * 6.28)) * glyph * 0.22;
-      final y = size.height - glyph * 0.35 - u * (size.height - glyph * 0.2);
-      final s = glyph * (0.16 + 0.13 * jsize) * (0.55 + 0.45 * arc);
-
-      final paint = Paint()
-        ..color = colors[i % colors.length]
-            .withValues(alpha: (0.85 * arc).clamp(0.0, 1.0));
-      canvas.save();
-      canvas.translate(x, y);
-      // A slow tumble, tied to the sway so a mote that drifts left leans left.
-      canvas.rotate(math.sin(u * 2.4 + jsway * 6.28) * 0.35);
-      canvas.drawPath(_heart(s), paint);
-      canvas.restore();
-    }
-  }
-
-  /// 0 outside the ring's window, 0..1 across it.
-  double _ringT() {
-    const end = 0.30;
-    if (t <= 0 || t >= end) return 0;
-    return t / end;
   }
 
   /// A heart of width and height [s], centred on the origin.
@@ -573,6 +684,6 @@ class _HeartFlourish extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_HeartFlourish old) =>
+  bool shouldRepaint(_HeartBurst old) =>
       old.t != t || old.glyph != glyph || old.seed != seed;
 }
