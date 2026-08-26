@@ -59,4 +59,13 @@ post_install do |installer|
   # an extension that inherits the app's Pods xcconfig links the whole Flutter
   # framework into a process that has no engine and no use for one.
   load File.expand_path('../tool/setup_ios_share_extension.rb', __dir__)
+
+  # Create the NotificationService target — the Notification Service Extension
+  # that redraws an incoming banner with the sender's face instead of the app
+  # icon. Same reasoning and the same idempotency as the line above.
+  #
+  # AFTER the share extension, not before: both need the app's 'Embed App
+  # Extensions' phase, and this script expects to find one rather than create a
+  # second. Also takes no pods, for the same reason.
+  load File.expand_path('../tool/setup_ios_notification_extension.rb', __dir__)
 end

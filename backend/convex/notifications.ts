@@ -201,7 +201,7 @@ export const sendMessagePush = internalAction({
     // closed, not open, if a future recipient bucket is added and forgets it.
     const perUser: Record<
       string,
-      { title?: string; data: Record<string, string> }
+      { title?: string; subtitle?: string; data: Record<string, string> }
     > = {};
     for (const m of members) {
       const uid = m.userId.toString();
@@ -213,6 +213,16 @@ export const sendMessagePush = internalAction({
       if (mentionedHere) {
         perUser[uid] = {
           title: `${senderName} mentioned you`,
+          // iOS draws a communication notification's title from the INPerson
+          // the extension builds, which overwrites the title above — so on that
+          // platform the mention has to live in the one line
+          // `updating(from:)` leaves alone. In a group that line was carrying
+          // the room name; being named is the more urgent of the two facts and
+          // the room is still one tap away.
+          subtitle:
+            isGroup && roomName
+              ? `mentioned you in ${roomName}`
+              : "mentioned you",
           data: { mention: "true", ...extra },
         };
       } else if (Object.keys(extra).length > 0) {

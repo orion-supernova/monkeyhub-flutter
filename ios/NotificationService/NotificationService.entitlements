@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- What lets `UNNotificationContent.updating(from:)` render a banner as a
+	     COMMUNICATION notification — the sender's face where the app icon
+	     normally sits, rather than a thumbnail beside it.
+
+	     REQUIRES "Communication Notifications" enabled on the EXTENSION's App ID
+	     (com.walhallaa.chatTest-20241220.NotificationService) in the Apple
+	     Developer portal, and on the app's own App ID, where
+	     ios/Runner/*.entitlements carries the matching key.
+
+	     Signing does NOT fail when the capability is missing from an App ID —
+	     the capability is simply absent from the profile, exactly as the
+	     associated-domains comment in Runner.entitlements warns. What happens
+	     then is `updating(from:)` throwing (or returning undecorated content,
+	     depending on the iOS version), which NotificationService.swift catches
+	     and answers with the plain banner. So the failure costs the face and
+	     never the message — and looks, from the outside, like the feature was
+	     never built. -->
+	<key>com.apple.developer.usernotifications.communication</key>
+	<true/>
+</dict>
+</plist>

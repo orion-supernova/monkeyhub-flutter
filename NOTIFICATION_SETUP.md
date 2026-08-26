@@ -13,12 +13,12 @@ remains below needs console access and can't be done from the repo.
 
 | Path | Carries | iOS | Android | Web |
 |---|---|---|---|---|
-| Alert push (`backend/convex/push.ts`) | Chat, approvals, call banners, silent dismiss | APNs on topic `<bundle>` → `AppDelegate.swift` | FCM data-only → `CallFcmService.kt` → `ChatNotifications.kt` | Web Push (RFC 8291) → `web/mh-push-sw.js` |
+| Alert push (`backend/convex/push.ts`) | Chat, approvals, call banners, silent dismiss | APNs on topic `<bundle>` → `NotificationService.swift` (only when it carries a face) → `AppDelegate.swift` | FCM data-only → `CallFcmService.kt` → `ChatNotifications.kt` | Web Push (RFC 8291) → `web/mh-push-sw.js` |
 | Ring push (`backend/convex/voipPush.ts`) | Call invite / taken | APNs VoIP on topic `<bundle>.voip` → CallKit | FCM data-only → full-screen call UI | — |
 | Daily games nudge (`backend/convex/dailyNudge.ts`) | The once-a-day "you haven't played today" reminder | APNs on topic `<bundle>` | FCM data-only, channel `mh_games` | — (deliberately) |
 | Convex realtime subscription | In-app ringing while the app is open | ✓ | ✓ | ✓ |
 
-Two things are worth internalising:
+Three things are worth internalising:
 
 - **iOS holds two different APNs tokens on two different topics.** The PushKit
   token rings the phone; the ordinary token draws banners. Sending one on the
@@ -32,6 +32,13 @@ Two things are worth internalising:
   forfeiting collapse, group summaries, per-room dismissal and active-room
   suppression. The cost is that a *force-stopped* app receives nothing until
   next launch — already true of the call path.
+- **The sender's face is a per-recipient key, not a per-message one.** It rides
+  the `perUser` override map because `visibility.avatar` is answered from each
+  *recipient's* side, and `buildApnsBody` gates `mutable-content` on that same
+  key — so the privacy check and the "don't wake a second process for nothing"
+  check turn out to be one line of code. Put `senderAvatarUrl` in the shared
+  `data` block instead and you have handed a face to everyone in the room whose
+  owner set it to "friends". `push_payload_contract_test.dart` fails if you do.
 
 ## The daily games nudge
 
@@ -172,6 +179,46 @@ Focus. Verify by putting a device in Focus and calling it.
 Existing Convex env (unchanged): `APNS_KEY_ID`, `APNS_TEAM_ID`,
 `APNS_BUNDLE_ID`, `APNS_KEY_P8`, `APNS_SANDBOX`.
 
+## 1b. Apple: Communication Notifications
+
+What puts the **sender's face where the app icon normally sits** on a chat
+banner, rather than a thumbnail beside it. The work happens in
+`ios/NotificationService/NotificationService.swift`, a Notification Service
+Extension iOS wakes for any push carrying `mutable-content: 1`.
+
+**Enable "Communication Notifications" on BOTH App IDs** (developer.apple.com →
+Certificates, IDs & Profiles → Identifiers): the app's
+`com.walhallaa.chatTest-20241220`, and the extension's
+`com.walhallaa.chatTest-20241220.NotificationService` — which has to exist as an
+App ID of its own, exactly as the Share Extension's does. Then regenerate
+provisioning profiles.
+
+Unlike Time Sensitive in §1, **signing does not fail when this is missing.** The
+capability is simply absent from the profile, `content.updating(from:)` refuses
+at runtime, `NotificationService.swift` catches that and delivers the plain
+banner, and the whole feature looks like it was never built. The one signal is
+`[push] communication notification refused: …` in the device console.
+
+Nothing else needs configuring — no new key, no new env var. The extension takes
+no pods and is created by `tool/setup_ios_notification_extension.rb` from the
+Podfile's `post_install`, the same way the Share Extension is.
+
+**Two limits worth knowing before someone files them as bugs:**
+
+- **The 1:1 CallKit ringer keeps the generic silhouette.** A PushKit payload
+  never passes through a Notification Service Extension, and CallKit draws a
+  photo only for a handle that matches a real entry in the system Contacts app.
+  There is no API to hand it an arbitrary image. Android's full-screen ringer
+  *does* take an avatar (`CallFcmService.kt` passes `avatar` to
+  flutter_callkit_incoming), so the two platforms genuinely differ here. What
+  iOS does get is the `call_invite` **banner** — which `voipPush.ts` only sends
+  when the ring failed on every device — and the `group_call_invite` banner.
+- **A mention's title is drawn from the intent, not from `aps.alert.title`.** So
+  "X mentioned you" would be overwritten by the bare sender name. `sendMessagePush`
+  puts the mention in the *subtitle* instead, which `updating(from:)` leaves
+  alone; delete that and iOS silently stops distinguishing a mention from any
+  other message.
+
 ## 2. Firebase project (Android)
 
 > Already done, and there is only one right answer: **`monkeyhub-2b2c6`** (project
@@ -269,7 +316,13 @@ must display something — which is why the backend never sends the silent
 4. Repeat with the app backgrounded, then foregrounded (foreground rings
    in-app only).
 5. Send a chat message to a backgrounded device → banner arrives; tapping opens
-   the right room.
+   the right room. From a sender **with an avatar** on iOS, the banner shows
+   that face in place of the app icon; from one without, the app icon — and the
+   Convex log for that push carries no `mutable-content`. Set the sender's
+   avatar visibility to "nobody" and it must go back to the app icon, which is
+   the per-recipient gate holding on iOS the way it already does on Android.
+   Point the avatar at a dead URL and the banner must still arrive *promptly*,
+   faceless: a picture that will not load may never hold up a message.
 6. Open that room on a second device → the banner clears on the first, and the
    badge drops.
 7. **Foreground, inside that room** → no banner (the live subscription already
@@ -290,7 +343,14 @@ must display something — which is why the backend never sends the silent
 13. `npx convex run push:coverageReport` → how much of the active user base is
     actually reachable. `iosVoipOnly` counts devices still on a build that
     predates direct push.
-14. Daily nudge: set the device clock to a zone whose noon is minutes away,
+14. iOS communication notifications: after step 5, confirm a **group** message
+    shows the sender's name over the room's name, an `@`-mention still says
+    "mentioned you", and both survive a force-quit (swipe away, then send) —
+    an extension runs for a killed app. Then re-check the paths the extension
+    now sits in front of: tap-to-open-room, banner clearing when the room is
+    read elsewhere, two messages in one room still threading together, and no
+    banner while that room is on screen.
+15. Daily nudge: set the device clock to a zone whose noon is minutes away,
     reopen the app (that is what uploads the offset), and confirm
     `npx convex run dailyNudge:audienceReport` counts it under the right zone
     and reports `fallback: 0` for it.

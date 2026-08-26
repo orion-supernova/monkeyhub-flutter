@@ -912,12 +912,13 @@ export const sendCallPush = internalAction({
     calleeId: v.id("users"),
     callerId: v.id("users"),
     callerName: v.string(),
+    callerAvatarUrl: v.optional(v.string()),
     type: v.string(),
     roomId: v.id("rooms"),
   },
   handler: async (
     ctx,
-    { callId, calleeId, callerId, callerName, type, roomId },
+    { callId, calleeId, callerId, callerName, callerAvatarUrl, type, roomId },
   ) => {
     const verb = type === "video" ? "Video call" : "Voice call";
     await ctx.runAction(internal.push.sendAlert, {
@@ -937,6 +938,17 @@ export const sendCallPush = internalAction({
       // A second invite for the same call replaces the first rather than
       // stacking a second banner on the lock screen.
       collapseId: callId.toString(),
+      // The caller's face, under the SAME key the chat path uses so iOS's
+      // extension and the payload contract each have one branch instead of two
+      // (ios/NotificationService/NotificationService.swift).
+      //
+      // There is exactly one recipient here, so the shared `data` block would
+      // be equivalent today — but `senderAvatarUrl` travelling per-recipient is
+      // an invariant with no exceptions anywhere else, and an exception is what
+      // somebody copies the day this action grows a second callee.
+      perUser: callerAvatarUrl
+        ? { [calleeId.toString()]: { data: { senderAvatarUrl: callerAvatarUrl } } }
+        : undefined,
     });
   },
 });

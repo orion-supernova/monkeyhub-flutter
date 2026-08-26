@@ -11,6 +11,19 @@
 	     portal; if it isn't, signing fails. -->
 	<key>com.apple.developer.usernotifications.time-sensitive</key>
 	<true/>
+	<!-- Lets an incoming message banner be drawn as a COMMUNICATION
+	     notification — the sender's face where the app icon normally sits.
+	     The work happens in the Notification Service Extension
+	     (ios/NotificationService/), which carries the matching key.
+
+	     REQUIRES "Communication Notifications" enabled on the App ID in the
+	     developer portal, and on the extension's App ID
+	     (com.walhallaa.chatTest-20241220.NotificationService). Signing does NOT
+	     fail without it — the capability is simply absent from the profile, the
+	     same quiet way associated-domains fails below — and the banner then
+	     renders with the app icon exactly as it did before this shipped. -->
+	<key>com.apple.developer.usernotifications.communication</key>
+	<true/>
 	<!-- The App Group the Share Extension writes into and this app reads back.
 	     It is the ONLY channel between the two binaries — see
 	     ios/Shared/ShareGroup.swift, which both targets compile.

@@ -26,6 +26,11 @@ void main() {
       'chattest20241220/MainActivity.kt';
   const web = 'web/mh-push-sw.js';
   const nudge = 'backend/convex/dailyNudge.ts';
+  // The Notification Service Extension, which redraws a banner with the
+  // sender's face. A fifth reader of the same flat map, in a fourth language.
+  const iosNse = 'ios/NotificationService/NotificationService.swift';
+  const calls = 'backend/convex/calls.ts';
+  const groupCalls = 'backend/convex/groupCalls.ts';
 
   final cache = <String, String>{};
   String source(String path) => cache.putIfAbsent(path, () {
@@ -64,14 +69,19 @@ void main() {
     'subtitle': [backend, senders],
     // Whether the room is a group, not a 1:1 DM — gates both `roomName`
     // below and whether Android/web render a subtitle line at all.
-    'isGroup': [senders, androidRender, web],
+    'isGroup': [senders, androidRender, web, iosNse],
     // The group's name, sent only when `isGroup` is true. Absent for a DM,
     // whose `rooms.name` is the internal `dm:...` key, not a real title.
-    'roomName': [senders, androidRender, web],
+    'roomName': [senders, androidRender, web, iosNse],
     // The sender's avatar, present only for a recipient the sender's own
     // avatar-visibility setting actually allows to see it (resolved
     // per-recipient in rooms.ts, mirroring the call ringer in calls.ts).
-    'senderAvatarUrl': [senders, androidRender, web],
+    'senderAvatarUrl': [senders, androidRender, web, iosNse, calls, groupCalls],
+    // The name the iOS extension puts on the INPerson, which is what a
+    // communication notification draws as the title. Losing it does not lose
+    // the banner — it silently costs the sender's name on the one platform
+    // that renders the notification from an intent rather than from the title.
+    'senderName': [senders, iosNse],
   };
 
   contract.forEach((key, consumers) {
@@ -227,6 +237,38 @@ void main() {
           reason:
               'senderAvatarUrl must never sit in the data every recipient '
               'shares — it belongs in the per-user override only');
+
+      // The call paths send the same key and must obey the same rule. A group
+      // call fans out to a whole room, so a face in its shared `data` block
+      // would leak exactly as a message's would; the 1:1 path has one recipient
+      // and would be equivalent today, which is precisely the exception
+      // somebody copies the day it grows a second.
+      for (final path in [calls, groupCalls]) {
+        final src = source(path);
+        expect(src.contains('senderAvatarUrl'), isTrue,
+            reason: '$path stopped sending the avatar entirely');
+        expect(_sendAlertData(src).contains('senderAvatarUrl'), isFalse,
+            reason: 'in $path, senderAvatarUrl must travel inside the perUser '
+                'map — never the shared data block every recipient gets');
+      }
+    });
+
+    test('mutable-content is set only when there is an avatar to draw', () {
+      // `mutable-content` launches the Notification Service Extension on the
+      // recipient's phone. Setting it unconditionally would spend that on every
+      // push, including the ones whose sender has no avatar and the ones whose
+      // recipient is not allowed to see it — where the extension can only hand
+      // back the banner it was given.
+      final src = source(backend);
+      expect(src.contains('mutable-content'), isTrue);
+      final at = src.indexOf('aps["mutable-content"]');
+      expect(at, greaterThan(-1),
+          reason: 'mutable-content moved — update this test');
+      final guard = src.lastIndexOf('if (spec.data.senderAvatarUrl)', at);
+      expect(guard, greaterThan(-1),
+          reason: 'mutable-content must be gated on senderAvatarUrl being '
+              'present, which is also what gates it on the recipient being '
+              'allowed to see the face at all');
     });
 
     test('Android is sent data-only, never a notification block', () {
@@ -236,4 +278,27 @@ void main() {
       expect(source(backend).contains('notification:'), isFalse);
     });
   });
+}
+
+
+/// The literal `data: { … }` object handed to `push.sendAlert`, brace-balanced.
+///
+/// Crude on purpose, like the rest of this file: a real parse would be a
+/// dependency, and what is being checked is the presence of one string inside
+/// one block. Returns an empty string when the call has no `data` block, which
+/// reads as "nothing leaked" — correct, because there is nothing to leak.
+String _sendAlertData(String src) {
+  final call = src.indexOf('internal.push.sendAlert');
+  if (call < 0) return '';
+  final open = src.indexOf('data: {', call);
+  if (open < 0) return '';
+  var depth = 0;
+  for (var i = src.indexOf('{', open); i < src.length; i++) {
+    if (src[i] == '{') depth++;
+    if (src[i] == '}') {
+      depth--;
+      if (depth == 0) return src.substring(open, i + 1);
+    }
+  }
+  return src.substring(open);
 }

@@ -129,6 +129,10 @@ export const sendVoip = internalAction({
         calleeId: args.calleeId,
         callerId: args.callerId,
         callerName: args.callerName,
+        // Already lens-checked against the CALLEE in `calls.initiate` — the
+        // same value the native ringer would have drawn, forwarded so the
+        // rescue banner is not the one call surface with a faceless caller.
+        callerAvatarUrl: args.callerAvatarUrl ?? undefined,
         type: args.type,
         roomId: args.roomId,
       });

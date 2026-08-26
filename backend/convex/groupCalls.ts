@@ -205,6 +205,38 @@ export const start = mutation({
     if (invited.length > 0) {
       const starter = await ctx.db.get(userId);
       const room = await ctx.db.get(roomId);
+      // The starter's face for the invite banner, resolved HERE rather than in
+      // the action: this mutation already holds the `starter` doc and a db
+      // context, so it costs no round trip, where the action would need an
+      // internal query of its own the way notifications.ts does.
+      //
+      // Per invitee, because `visibility.avatar` is answered from the
+      // INVITEE's side — the same lens the 1:1 ringer applies in calls.ts —
+      // so it can never be one key everybody shares.
+      const starterAvatarUrl = starter?.avatarStorageId
+        ? await ctx.storage.getUrl(starter.avatarStorageId)
+        : null;
+      // "public" unless the starter said otherwise, and read straight off the
+      // row — exactly as `rooms.getMemberIds` does for a message, and for the
+      // same reason. A lens costs two full friendship scans to build, this is
+      // the mutation a ringing phone is waiting on, and the common case needs
+      // no lens at all. Only "friends"/"nobody" pays per invitee.
+      const avatarLevel = starter?.visibility?.avatar ?? "public";
+      const perUser: Record<string, { data: Record<string, string> }> = {};
+      if (starter && starterAvatarUrl) {
+        for (const inviteeId of invited) {
+          let visible = true;
+          if (avatarLevel !== "public") {
+            const lens = await lensFor(ctx, inviteeId);
+            visible = lens.canSee(starter, "avatar");
+          }
+          if (visible) {
+            perUser[inviteeId.toString()] = {
+              data: { senderAvatarUrl: starterAvatarUrl },
+            };
+          }
+        }
+      }
       await ctx.scheduler.runAfter(0, internal.groupCalls.sendGroupInvitePush, {
         groupCallId,
         roomId,
@@ -212,6 +244,7 @@ export const start = mutation({
         starterName: starter?.name ?? starter?.username ?? "Someone",
         roomName: room?.name ?? "a room",
         type,
+        perUser,
       });
     }
 
@@ -563,10 +596,17 @@ export const sendGroupInvitePush = internalAction({
     starterName: v.string(),
     roomName: v.string(),
     type: v.string(),
+    /**
+     * `{ [inviteeId]: { data: { senderAvatarUrl } } }` — the starter's avatar
+     * for the invitees their view of the starter's `visibility.avatar` lets
+     * see it, resolved in the mutation that schedules this. Shaped like
+     * `push.sendAlert`'s own `perUser`, which is where it is going.
+     */
+    perUser: v.optional(v.any()),
   },
   handler: async (
     ctx,
-    { groupCallId, roomId, inviteeIds, starterName, roomName, type },
+    { groupCallId, roomId, inviteeIds, starterName, roomName, type, perUser },
   ) => {
     if (inviteeIds.length === 0) return;
     const verb = type === "video" ? "video call" : "voice call";
@@ -585,6 +625,7 @@ export const sendGroupInvitePush = internalAction({
       },
       roomId,
       collapseId: groupCallId.toString(),
+      perUser,
     });
   },
 });

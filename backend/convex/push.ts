@@ -163,8 +163,23 @@ export function buildApnsBody(spec: AlertSpec): Record<string, unknown> {
     // just gets swallowed. See ios/Runner/*.entitlements.
     aps["interruption-level"] = "time-sensitive";
   }
-  // No `mutable-content`: it does nothing without a Notification Service
-  // Extension and this app ships none. Add it the day one exists.
+  // Wakes the Notification Service Extension, which swaps the app icon for the
+  // sender's face — see ios/NotificationService/NotificationService.swift.
+  //
+  // Set ONLY when there is a face to draw. `mutable-content` launches a second
+  // process on the recipient's phone before anything is shown; spending that on
+  // a sender with no avatar buys a notification identical to the one that would
+  // have rendered without it. The extension still has to cope with arriving and
+  // finding nothing usable — a deleted avatar, a dead host — but that should be
+  // the exception rather than every push.
+  //
+  // `spec.data` is the MERGED map (see `sendAlert`, which spreads the per-user
+  // override over the shared data), so a recipient whose view of the sender's
+  // `visibility.avatar` hides it has no `senderAvatarUrl` here and never pays
+  // for the launch. The privacy gate and the battery gate are the same line.
+  if (spec.data.senderAvatarUrl) {
+    aps["mutable-content"] = 1;
+  }
   return { aps, ...spec.data };
 }
 
