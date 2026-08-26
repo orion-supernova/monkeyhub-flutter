@@ -16,12 +16,17 @@
 	     The work happens in the Notification Service Extension
 	     (ios/NotificationService/), which carries the matching key.
 
-	     REQUIRES "Communication Notifications" enabled on the App ID in the
-	     developer portal, and on the extension's App ID
-	     (com.walhallaa.chatTest-20241220.NotificationService). Signing does NOT
-	     fail without it — the capability is simply absent from the profile, the
-	     same quiet way associated-domains fails below — and the banner then
-	     renders with the app icon exactly as it did before this shipped. -->
+	     REQUIRES "Communication Notifications" enabled on the App ID
+	     (com.walhallaa.chatTest-20241220), then regenerated profiles. This one
+	     fails LOUDLY, like time-sensitive above and unlike associated-domains
+	     below — automatic signing compares this file against the profile and
+	     refuses:
+
+	         Provisioning profile "..." doesn't include the
+	         com.apple.developer.usernotifications.communication entitlement.
+
+	     It is self-service in Xcode's Signing & Capabilities pane (the portal
+	     marks it editable, so there is no request form to fill in). -->
 	<key>com.apple.developer.usernotifications.communication</key>
 	<true/>
 	<!-- The App Group the Share Extension writes into and this app reads back.

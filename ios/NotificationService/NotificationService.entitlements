@@ -6,19 +6,22 @@
 	     COMMUNICATION notification — the sender's face where the app icon
 	     normally sits, rather than a thumbnail beside it.
 
-	     REQUIRES "Communication Notifications" enabled on the EXTENSION's App ID
-	     (com.walhallaa.chatTest-20241220.NotificationService) in the Apple
-	     Developer portal, and on the app's own App ID, where
-	     ios/Runner/*.entitlements carries the matching key.
+	     The app's own App ID needs this capability and fails signing without
+	     it. Whether THIS App ID
+	     (com.walhallaa.chatTest-20241220.NotificationService) needs it too is
+	     genuinely unsettled: Xcode's portal database lists the capability as
+	     supported on an application and a watchkit2-extension and not on an
+	     ordinary app extension — but it says the same of App Groups, which the
+	     Share Extension next door has been signing with for as long as it has
+	     existed. So the list is not to be trusted either way.
 
-	     Signing does NOT fail when the capability is missing from an App ID —
-	     the capability is simply absent from the profile, exactly as the
-	     associated-domains comment in Runner.entitlements warns. What happens
-	     then is `updating(from:)` throwing (or returning undecorated content,
-	     depending on the iOS version), which NotificationService.swift catches
-	     and answers with the plain banner. So the failure costs the face and
-	     never the message — and looks, from the outside, like the feature was
-	     never built. -->
+	     If the portal offers no Communication Notifications checkbox when you
+	     create this App ID, DELETE this key rather than hunting for it. The
+	     app's entitlement is what governs the rendering; this one is belt and
+	     braces, and an entitlement no profile can carry is a build that cannot
+	     sign. The console line in NotificationService.swift
+	     ("communication notification refused") is what tells you if removing it
+	     was the wrong call. -->
 	<key>com.apple.developer.usernotifications.communication</key>
 	<true/>
 </dict>

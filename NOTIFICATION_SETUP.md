@@ -186,18 +186,37 @@ banner, rather than a thumbnail beside it. The work happens in
 `ios/NotificationService/NotificationService.swift`, a Notification Service
 Extension iOS wakes for any push carrying `mutable-content: 1`.
 
-**Enable "Communication Notifications" on BOTH App IDs** (developer.apple.com →
-Certificates, IDs & Profiles → Identifiers): the app's
-`com.walhallaa.chatTest-20241220`, and the extension's
-`com.walhallaa.chatTest-20241220.NotificationService` — which has to exist as an
-App ID of its own, exactly as the Share Extension's does. Then regenerate
-provisioning profiles.
+Two things are needed, and **both fail the build loudly** — this is a
+§1-shaped capability, not an associated-domains-shaped one:
 
-Unlike Time Sensitive in §1, **signing does not fail when this is missing.** The
-capability is simply absent from the profile, `content.updating(from:)` refuses
-at runtime, `NotificationService.swift` catches that and delivers the plain
-banner, and the whole feature looks like it was never built. The one signal is
-`[push] communication notification refused: …` in the device console.
+1. **An App ID for the extension**, `com.walhallaa.chatTest-20241220.NotificationService`,
+   exactly as the Share Extension has one. Without it:
+
+       No profiles for 'com.walhallaa.chatTest-20241220.NotificationService'
+       were found.
+
+2. **"Communication Notifications" enabled on the app's App ID**
+   `com.walhallaa.chatTest-20241220`, then regenerated profiles. Without it:
+
+       Provisioning profile "..." doesn't include the
+       com.apple.developer.usernotifications.communication entitlement.
+
+The capability is **self-service** — the portal marks it editable, so there is
+no request form and Xcode's Signing & Capabilities pane can add it directly.
+
+Whether the *extension's* App ID needs the capability too is unsettled. Xcode's
+portal database lists it as supported on an application and a watchkit2-extension
+and not on an ordinary app extension — but it says the same of App Groups, which
+the Share Extension has been signing with all along, so the list is not
+trustworthy either way. **If the checkbox is not offered when you create that App
+ID, delete the key from `ios/NotificationService/NotificationService.entitlements`
+rather than hunting for it**: the app's entitlement governs the rendering, and an
+entitlement no profile can carry is a build that cannot sign.
+
+The runtime fallback stays regardless. If `content.updating(from:)` is ever
+refused on a device, `NotificationService.swift` catches it, delivers the plain
+banner, and logs `[push] communication notification refused: …` — so the failure
+costs the face and never the message.
 
 Nothing else needs configuring — no new key, no new env var. The extension takes
 no pods and is created by `tool/setup_ios_notification_extension.rb` from the
