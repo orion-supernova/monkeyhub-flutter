@@ -149,10 +149,11 @@ class ComposerCaptureHost extends StatefulWidget {
   /// turned "teach the gesture once per room" into "play a bounce every time
   /// someone opens a thread," which is a bug, not a feature.
   ///
-  /// Gated per room, via [SettingsStore.shouldShowComposerModeHint] keyed on
-  /// this id — a room already taught the user nothing the second time it is
-  /// opened, but a room they have never opened plays it fresh regardless of
-  /// what they've already learned elsewhere.
+  /// The bump itself plays every time a room's composer mounts. Only the
+  /// tooltip is gated per room, via [SettingsStore.shouldShowComposerModeHint]
+  /// keyed on this id — a room already taught the user nothing the second
+  /// time it is opened, but a room they have never opened shows it fresh
+  /// regardless of what they've already learned elsewhere.
   final String? openHintRoomId;
 
   @override
@@ -165,9 +166,10 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   late final AnimationController _modeBumpController;
 
   /// Drives the same rubbery bump as [_modeBumpController], at half amplitude,
-  /// played once when the composer first mounts — so a chatroom that just
-  /// opened nudges the mode button rather than leaving a screen-reader-only
-  /// control to be discovered by accident.
+  /// played every time the composer mounts with a room — so a chatroom that
+  /// just opened nudges the mode button rather than leaving a
+  /// screen-reader-only control to be discovered by accident. Unlike the
+  /// tooltip, this is not gated on whether the room has been opened before.
   late final AnimationController _entranceBumpController;
 
   CaptureRecorder? _recorder;
@@ -265,17 +267,18 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     // still-sliding screen, where nobody is looking at it yet.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final roomId = widget.openHintRoomId;
-      if (!mounted ||
-          widget.capture == null ||
-          roomId == null ||
-          !SettingsStore.instance.shouldShowComposerModeHint(roomId)) {
-        return;
-      }
+      if (!mounted || widget.capture == null || roomId == null) return;
+      // The tooltip still teaches the gesture once per room; the bump below
+      // is not gated on that, so it decides nothing here beyond whether the
+      // tooltip fires alongside it.
+      final showTooltip = SettingsStore.instance.shouldShowComposerModeHint(roomId);
       _entranceTimer = Timer(const Duration(milliseconds: 400), () {
         if (!mounted) return;
         _entranceBumpController.forward(from: 0.0);
-        _triggerTooltip();
-        unawaited(SettingsStore.instance.markComposerModeHintShown(roomId));
+        if (showTooltip) {
+          _triggerTooltip();
+          unawaited(SettingsStore.instance.markComposerModeHintShown(roomId));
+        }
       });
     });
   }
