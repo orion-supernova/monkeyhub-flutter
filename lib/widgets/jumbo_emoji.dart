@@ -25,12 +25,29 @@ const int kJumboEmojiMax = 3;
 /// keycap (1️⃣) and a skin-toned hand (👍🏽) each count once no matter how many
 /// code points they are built from.
 List<String>? jumboEmojiRun(String text) {
+  // This runs on every bubble build, for every message in the room, so the two
+  // rejections below come before anything that allocates.
+  //
+  // A paragraph is not three emoji, and its length says so in constant time.
+  // Generous, because the trim has not happened yet.
+  if (text.length > 128) return null;
+  // And the overwhelmingly common message is plain prose. No emoji is ASCII —
+  // not even a keycap, whose U+20E3 puts it well out of the range — so a scan
+  // of the code units rejects ordinary text without a trimmed copy or a
+  // grapheme segmenter ever being allocated.
+  var ascii = true;
+  for (var i = 0; i < text.length; i++) {
+    if (text.codeUnitAt(i) >= 0x80) {
+      ascii = false;
+      break;
+    }
+  }
+  if (ascii) return null;
   final trimmed = text.trim();
   if (trimmed.isEmpty) return null;
-  // A cheap ceiling before touching the grapheme splitter. Three of the
-  // longest RGI sequences (a tag-sequence flag is 14 code units) plus their
-  // separators fit inside this; anything longer cannot be three emoji and is
-  // not worth segmenting to find out.
+  // The real ceiling, now that the whitespace is gone. Three of the longest
+  // RGI sequences (a tag-sequence flag is 14 code units) plus their separators
+  // fit inside this.
   if (trimmed.length > 64) return null;
   final run = <String>[];
   for (final cluster in trimmed.characters) {
@@ -268,16 +285,27 @@ class _JumboEmojiBubbleState extends State<JumboEmojiBubble>
   /// heart in it has no second ticker, and a calm reader has neither.
   AnimationController? _pulse;
 
-  /// Whatever is currently driving a frame. Held rather than rebuilt inline so
-  /// the [AnimatedBuilder] resubscribes when the set of controllers changes
-  /// and not on every build.
-  late Listenable _driver;
-
-  /// Built in [didChangeDependencies] and handed to the [AnimatedBuilder]
-  /// untouched, so a frame of animation re-wraps them in transforms without
-  /// re-laying-out a single paragraph. Rebuilt only when the theme changes,
-  /// which is the one thing their style depends on.
-  late List<Widget> _glyphs;
+  /// The whole drawn subtree, assembled once and then left alone.
+  ///
+  /// This is the shape the performance depends on, so it is worth stating
+  /// plainly. A beating heart asks the engine for a frame forever, so the cost
+  /// of *one* of those frames is the only number that matters, and everything
+  /// here exists to keep it near zero:
+  ///
+  ///  * the row, the glyph paragraphs and the burst layer are built once, so a
+  ///    frame reconciles nothing and lays out nothing;
+  ///  * each glyph sits behind its own [RepaintBoundary], so the transform that
+  ///    animates it composites a cached raster instead of re-rasterising a
+  ///    56pt colour glyph sixty times a second — which is the one thing here
+  ///    that would genuinely have cost frames;
+  ///  * only the glyphs that actually move listen to the beat, so the two
+  ///    ordinary emoji beside a heart go completely still once they land;
+  ///  * the burst's painter repaints off the arrival alone, so it stops being
+  ///    visited at all once that controller does.
+  ///
+  /// What is left per frame is a handful of transform matrices handed to the
+  /// compositor.
+  late Widget _content;
 
   /// The gap between two clusters. Emoji already carry generous side bearings,
   /// so this only has to keep two round faces from touching.
@@ -288,7 +316,7 @@ class _JumboEmojiBubbleState extends State<JumboEmojiBubble>
     super.didChangeDependencies();
     final theme = ThemeScope.of(context);
     final size = JumboEmojiBubble.glyphSize(widget.clusters.length);
-    _glyphs = [
+    final glyphs = [
       for (final cluster in widget.clusters)
         Text(
           cluster,
@@ -324,8 +352,96 @@ class _JumboEmojiBubbleState extends State<JumboEmojiBubble>
         if (!_pulse!.isAnimating) _startBeat();
       }
     }
-    _driver =
-        _pulse == null ? _intro : Listenable.merge(<Listenable>[_intro, _pulse!]);
+    _content = _assemble(glyphs, size);
+  }
+
+  /// Wires [glyphs] to the controllers. Called once per dependency change, and
+  /// never per frame — see [_content].
+  Widget _assemble(List<Widget> glyphs, double size) {
+    final count = glyphs.length;
+    // A glyph that never moves after the entrance must not listen to the beat,
+    // or an ordinary emoji standing next to a heart would rebuild forever for
+    // a scale it is not using.
+    final beating = <Listenable>[_intro, ?_pulse];
+    final row = Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        for (var i = 0; i < count; i++) ...[
+          if (i > 0) const SizedBox(width: _gap),
+          AnimatedBuilder(
+            animation: _isHeart[i] && _pulse != null
+                ? Listenable.merge(beating)
+                : _intro,
+            // Hoisted past the builder, and boundaried: the paragraph inside is
+            // laid out once and rasterised once, and every frame after that is
+            // the transform above it moving a finished layer.
+            child: RepaintBoundary(child: glyphs[i]),
+            builder: (context, child) {
+              final pop = _popT;
+              final beat = _isHeart[i] && _pulse != null
+                  ? _beat(_pulse!.value)
+                  : 0.0;
+              return Opacity(
+                // A no-op at 1, which is where this sits for all but the first
+                // fifth of a second of the message's life.
+                opacity: (pop * 2.6).clamp(0.0, 1.0),
+                child: Transform.scale(
+                  // The entrance and the beat multiply rather than one winning:
+                  // a heart that arrives mid-thump should still arrive.
+                  scale: _entrance(pop, i, count) * (1 + beat),
+                  child: child,
+                ),
+              );
+            },
+          ),
+        ],
+      ],
+    );
+    if (!_hearted) return row;
+
+    final tints = [
+      for (var i = 0; i < count; i++)
+        if (_isHeart[i]) MapEntry(i, heartTint(widget.clusters[i])),
+    ];
+    final reach = size * _reach;
+    // Painted BEHIND the glyphs, and allowed to overflow the row — which is
+    // where the effect lives. The motes emerge from behind the heart rather
+    // than appearing on top of it, and `Clip.none` is what permits that; no
+    // ancestor between here and the transcript's own viewport clips.
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.center,
+      children: [
+        Positioned(
+          left: -reach,
+          right: -reach,
+          top: -reach,
+          // Far less headroom below: the fan is aimed upward, and the only
+          // thing under this row is its own timestamp.
+          bottom: -size * 0.5,
+          child: IgnorePointer(
+            child: RepaintBoundary(
+              // Driven by the arrival alone. Once that controller stops the
+              // layer is clean forever, so the beat's frames skip this subtree
+              // entirely instead of calling a painter that would only return.
+              child: CustomPaint(
+                painter: _HeartBurst(
+                  arrival: _intro,
+                  popSpan: _popSpan,
+                  inset: reach,
+                  glyph: size,
+                  tints: tints,
+                  count: count,
+                  seed: widget.identity.hashCode,
+                ),
+              ),
+            ),
+          ),
+        ),
+        row,
+      ],
+    );
   }
 
   /// Starts the loop on the phase that puts its next thump exactly where the
@@ -371,10 +487,6 @@ class _JumboEmojiBubbleState extends State<JumboEmojiBubble>
 
   double get _popT => (_intro.value / _popSpan).clamp(0.0, 1.0);
 
-  double get _burstT => _hearted
-      ? ((_intro.value - _popSpan) / (1 - _popSpan)).clamp(0.0, 1.0)
-      : 0.0;
-
   /// How much bigger a heart is, [u] fractions of the way through one beat.
   ///
   /// Two thumps — the second softer and close behind the first, the way a
@@ -394,7 +506,14 @@ class _JumboEmojiBubbleState extends State<JumboEmojiBubble>
       return height * math.exp(-z * z);
     }
 
-    return thump(_thumpAt, 0.042, 0.13) + thump(0.23, 0.048, 0.075);
+    final beat = thump(_thumpAt, 0.042, 0.13) + thump(0.23, 0.048, 0.075);
+    // Snapped to exactly zero through the rest. A Gaussian never truly reaches
+    // it, and the difference between 1.0 and 1.0000000001 is invisible on
+    // screen but not to `RenderTransform`, which compares matrices and skips
+    // the repaint when they match. This is what makes two thirds of every
+    // cycle cost nothing at all rather than a paint pass for no visible
+    // change.
+    return beat < 0.001 ? 0 : beat;
   }
 
   /// A tap replays the arrival. Deliberately a [Listener] and not a tap
@@ -429,8 +548,6 @@ class _JumboEmojiBubbleState extends State<JumboEmojiBubble>
 
   @override
   Widget build(BuildContext context) {
-    final count = widget.clusters.length;
-    final size = JumboEmojiBubble.glyphSize(count);
     return Listener(
       onPointerDown: _onDown,
       onPointerUp: _onUp,
@@ -443,76 +560,11 @@ class _JumboEmojiBubbleState extends State<JumboEmojiBubble>
         padding: const EdgeInsets.symmetric(horizontal: 4),
         child: RepaintBoundary(
           // The heartbeat runs for as long as the message is on screen, and
-          // without this every frame of it would repaint the transcript rows
-          // sharing its layer.
-          child: AnimatedBuilder(
-            animation: _driver,
-            builder: (context, _) => _frame(count, size),
-          ),
+          // without this the transcript rows sharing this layer would be
+          // walked on every one of its frames.
+          child: _content,
         ),
       ),
-    );
-  }
-
-  Widget _frame(int count, double size) {
-    final pop = _popT;
-    final beat = _pulse == null ? 0.0 : _beat(_pulse!.value);
-    final row = Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        for (var i = 0; i < count; i++) ...[
-          if (i > 0) const SizedBox(width: _gap),
-          Transform.scale(
-            // The entrance and the beat multiply rather than one winning: a
-            // heart that arrives mid-thump should still arrive.
-            scale: _entrance(pop, i, count) * (_isHeart[i] ? 1 + beat : 1.0),
-            child: Opacity(
-              opacity: (pop * 2.6).clamp(0.0, 1.0),
-              child: _glyphs[i],
-            ),
-          ),
-        ],
-      ],
-    );
-
-    final burst = _burstT;
-    if (burst <= 0 || burst >= 1) return row;
-
-    // Painted BEHIND the glyphs, and allowed to overflow the row — which is
-    // where the effect lives. The motes emerge from behind the heart rather
-    // than appearing on top of it, and `Clip.none` is what permits that; no
-    // ancestor between here and the transcript's own viewport clips.
-    final reach = size * _reach;
-    return Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.center,
-      children: [
-        Positioned(
-          left: -reach,
-          right: -reach,
-          top: -reach,
-          // Far less headroom below: the fan is aimed upward, and the only
-          // thing under this row is its own timestamp.
-          bottom: -size * 0.5,
-          child: IgnorePointer(
-            child: CustomPaint(
-              painter: _HeartBurst(
-                t: burst,
-                inset: reach,
-                glyph: size,
-                tints: [
-                  for (var i = 0; i < count; i++)
-                    if (_isHeart[i]) MapEntry(i, heartTint(widget.clusters[i])),
-                ],
-                count: count,
-                seed: widget.identity.hashCode,
-              ),
-            ),
-          ),
-        ),
-        row,
-      ],
     );
   }
 
@@ -584,16 +636,23 @@ Color heartTint(String cluster) {
 /// read anyway — the colour comes from [heartTint].
 class _HeartBurst extends CustomPainter {
   const _HeartBurst({
-    required this.t,
+    required this.arrival,
+    required this.popSpan,
     required this.inset,
     required this.glyph,
     required this.tints,
     required this.count,
     required this.seed,
-  });
+  }) : super(repaint: arrival);
 
-  /// 0..1 across the burst.
-  final double t;
+  /// The arrival controller, read directly rather than rebuilt into: passing
+  /// it as `repaint` means the widget above this painter is built once and the
+  /// canvas is redrawn straight off the ticker — and, once the arrival stops,
+  /// not at all.
+  final Animation<double> arrival;
+
+  /// Where the pop ends and the burst begins, in [arrival]'s own 0..1.
+  final double popSpan;
 
   /// How far this canvas extends past the glyph row on the left, right and
   /// top — needed to place a mote's origin back on the row itself.
@@ -623,6 +682,8 @@ class _HeartBurst extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (tints.isEmpty) return;
+    final t = ((arrival.value - popSpan) / (1 - popSpan)).clamp(0.0, 1.0);
+    if (t <= 0 || t >= 1) return;
     // The row itself, inside the padding this canvas was grown by.
     final rowWidth = size.width - inset * 2;
     final rowBottom = size.height - glyph * 0.5;
@@ -685,5 +746,5 @@ class _HeartBurst extends CustomPainter {
 
   @override
   bool shouldRepaint(_HeartBurst old) =>
-      old.t != t || old.glyph != glyph || old.seed != seed;
+      old.arrival != arrival || old.glyph != glyph || old.seed != seed;
 }

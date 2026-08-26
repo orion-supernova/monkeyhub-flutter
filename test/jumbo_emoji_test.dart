@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
 import 'package:monkeyhub/backend/convex_client.dart';
@@ -67,6 +68,7 @@ void main() {
 
     test('a long paragraph never reaches the segmenter', () {
       expect(jumboEmojiRun('😀' * 100), isNull);
+      expect(jumboEmojiRun('the quick brown fox ' * 20), isNull);
     });
   });
 
@@ -236,6 +238,38 @@ void main() {
       await tester.pump(const Duration(seconds: 3));
       expect(find.byType(JumboEmojiBubble), findsOneWidget);
       expect(tester.binding.transientCallbackCount, 0);
+    });
+
+    testWidgets('a beating heart re-rasterises nothing', (tester) async {
+      await tester.pumpWidget(host(bubble(msg(id: 'perf-1', content: '❤️'))));
+      // Past the arrival: from here on the only thing moving is the beat.
+      await tester.pump(const Duration(seconds: 3));
+
+      // The glyph has a boundary of its own — without it the transform above
+      // would re-rasterise a 56pt colour glyph on every frame of the beat,
+      // forever, which is the one thing about this feature that could
+      // plausibly cost the transcript its frames.
+      final boundary = tester.renderObject<RenderRepaintBoundary>(
+        find
+            .ancestor(
+                of: find.text('❤️'), matching: find.byType(RepaintBoundary))
+            .first,
+      );
+      boundary.debugResetMetrics();
+
+      const frames = 72; // a shade over one full cycle at 60Hz
+      for (var i = 0; i < frames; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+
+      // Flutter's own definition of a boundary earning its keep: the child
+      // never repainted at the same time as its parent. The parent's transform
+      // changed on every beating frame and the paragraph under it did not.
+      expect(boundary.debugSymmetricPaintCount, 0);
+      // And through the rest between thumps the scale is snapped to exactly
+      // one, so the matrix does not change and nothing is marked dirty at all
+      // — most of a cycle costs nothing beyond the frame itself.
+      expect(boundary.debugAsymmetricPaintCount, lessThan(frames * 0.6));
     });
 
     testWidgets('the burst leaves the glyph on a beat, not between two',
