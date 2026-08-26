@@ -3023,6 +3023,41 @@ class AppLocalizationsKo extends AppLocalizations {
   String get photoChromeShowInChatSemanticLabel => '채팅에서 보기';
 
   @override
+  String photoChromeThumbnailSemanticLabel(Object current, Object total) {
+    return '$total개 중 $current번째';
+  }
+
+  @override
+  String photoTrayCountLabel(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '사진 $count장',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get photoTrayDiscardSemanticLabel => '이 사진들 취소';
+
+  @override
+  String get photoTrayRemoveSemanticLabel => '이 사진 빼기';
+
+  @override
+  String get photoTrayEditSemanticLabel => '이 사진 자르기 또는 그리기';
+
+  @override
+  String get photoTrayAddMoreSemanticLabel => '사진 더 추가';
+
+  @override
+  String photoTrayLimitSnack(Object count) {
+    return '한 번에 사진 $count장까지 보낼 수 있어요';
+  }
+
+  @override
+  String get photoTrayLoadFailedSnack => '일부 사진을 열 수 없었어요';
+
+  @override
   String typingIndicatorOnePersonTyping(Object name) {
     return '$name님이 입력 중이에요';
   }

@@ -384,3 +384,50 @@ Uint8List _encodeJpegJob(_JpegJob job) {
   );
   return img.encodeJpg(decoded, quality: job.quality);
 }
+
+/// The [CroppedImage] to send for a photo nobody edited.
+///
+/// This is the outgoing-size POLICY, in one place, because it is a policy and
+/// not a calculation: a photo goes out at the size the sender gave us when they
+/// asked for [hd] or when it was already inside [kSendPhotoMaxEdge], and gets
+/// capped otherwise. It used to live inline in the chat editor's pass-through,
+/// which was the only path that had one — the bulk photo tray would have needed
+/// a second copy of the same three rules, and two copies of a policy is one
+/// copy that eventually drifts.
+///
+/// Returns null when the source's header cannot be read or the re-encode fails.
+/// Null rather than a throw because the two callers want opposite things from
+/// it: the editor falls through to its full export path, which decodes for real
+/// and applies the same cap on the way out, while the tray has nothing behind
+/// it and drops that one photo.
+///
+/// [onCompressing] fires only on the branch that does real work — a 12
+/// megapixel decode and JPEG re-encode is a second or two on an older handset,
+/// and it is the caller who owns the spinner that has to cover it. The
+/// pass-through branches never call it, which is the point: raising a spinner
+/// for work that isn't happening is its own kind of lie.
+Future<CroppedImage?> prepareUneditedForSend(
+  Uint8List source, {
+  required bool hd,
+  VoidCallback? onCompressing,
+}) async {
+  try {
+    // The header, not a decode: this runs before we know whether anything is
+    // going to be re-encoded, and decoding a photo only to find out it was
+    // already small enough would cost the whole saving.
+    final size = await imageBytesSize(source);
+    if (hd || math.max(size.width, size.height) <= kSendPhotoMaxEdge) {
+      return CroppedImage(
+        bytes: source,
+        contentType: sniffImageContentType(source),
+        width: size.width.round(),
+        height: size.height.round(),
+      );
+    }
+    onCompressing?.call();
+    return await compressForSend(source);
+  } catch (e) {
+    debugPrint('[image_raster] prepareUneditedForSend failed: $e');
+    return null;
+  }
+}

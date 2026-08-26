@@ -163,7 +163,16 @@ void main() {
         reason: 'a fullscreen player shoved up on every swipe past a video '
             'would make the gallery unswipeable',
       );
-      expect(find.byIcon(Icons.play_arrow), findsOneWidget);
+      // Scoped to the page, not the whole route: the thumbnail rail marks the
+      // video with the same glyph so you can pick it out of forty photographs,
+      // which is a second (correct) play_arrow on screen.
+      expect(
+        find.descendant(
+          of: find.byType(PageView),
+          matching: find.byIcon(Icons.play_arrow),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('only the page on screen may fly', (tester) async {

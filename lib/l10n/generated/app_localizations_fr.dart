@@ -3188,6 +3188,44 @@ class AppLocalizationsFr extends AppLocalizations {
       'Afficher dans la conversation';
 
   @override
+  String photoChromeThumbnailSemanticLabel(Object current, Object total) {
+    return 'Élément $current sur $total';
+  }
+
+  @override
+  String photoTrayCountLabel(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count photos',
+      one: '1 photo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get photoTrayDiscardSemanticLabel => 'abandonner ces photos';
+
+  @override
+  String get photoTrayRemoveSemanticLabel => 'retirer cette photo';
+
+  @override
+  String get photoTrayEditSemanticLabel =>
+      'recadrer cette photo ou dessiner dessus';
+
+  @override
+  String get photoTrayAddMoreSemanticLabel => 'ajouter d’autres photos';
+
+  @override
+  String photoTrayLimitSnack(Object count) {
+    return 'vous pouvez envoyer $count photos à la fois';
+  }
+
+  @override
+  String get photoTrayLoadFailedSnack =>
+      'certaines de ces photos n’ont pas pu être ouvertes';
+
+  @override
   String typingIndicatorOnePersonTyping(Object name) {
     return '$name est en train d’écrire';
   }

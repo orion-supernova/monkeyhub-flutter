@@ -3109,6 +3109,41 @@ class AppLocalizationsTr extends AppLocalizations {
   String get photoChromeShowInChatSemanticLabel => 'Sohbette göster';
 
   @override
+  String photoChromeThumbnailSemanticLabel(Object current, Object total) {
+    return '$total öğeden $current.';
+  }
+
+  @override
+  String photoTrayCountLabel(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count fotoğraf',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get photoTrayDiscardSemanticLabel => 'bu fotoğrafları bırak';
+
+  @override
+  String get photoTrayRemoveSemanticLabel => 'bu fotoğrafı çıkar';
+
+  @override
+  String get photoTrayEditSemanticLabel => 'bu fotoğrafı kırp veya üzerine çiz';
+
+  @override
+  String get photoTrayAddMoreSemanticLabel => 'daha fazla fotoğraf ekle';
+
+  @override
+  String photoTrayLimitSnack(Object count) {
+    return 'tek seferde $count fotoğraf gönderebilirsin';
+  }
+
+  @override
+  String get photoTrayLoadFailedSnack => 'o fotoğrafların bazıları açılamadı';
+
+  @override
   String typingIndicatorOnePersonTyping(Object name) {
     return '$name yazıyor';
   }

@@ -8,6 +8,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart' show CircularProgressIndicator;
 
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 
 /// Chrome that floats over a photograph — the camera preview and the post-
 /// capture editor share it, so the two screens read as one surface.
@@ -303,6 +304,135 @@ class _PhotoGlassPillState extends State<PhotoGlassPill> {
                       Icon(widget.icon, size: 16, color: fg),
                     ],
                   ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The two send-time toggles. They live here rather than in the chat editor
+/// that first grew them because the photo tray puts the same two controls on
+/// the same glass rail — a bulk send has exactly the same two decisions to
+/// make, and a near-copy of a 38pt circle is how two screens that are meant to
+/// read as one surface start to drift apart.
+/// The circled "1" — arms burn-after-reading for this photo.
+///
+/// Sized to the 38pt glass buttons beside it so the rail sits on one baseline.
+/// Kept hand-drawn rather than swapped for an icon: nothing in any icon set
+/// says "they get one look at this", and the numeral does.
+class PhotoViewOnceToggle extends StatelessWidget {
+  const PhotoViewOnceToggle({
+    super.key,
+    required this.active,
+    required this.accent,
+    required this.accentInk,
+    required this.onTap,
+  });
+
+  final bool active;
+  final Color accent;
+  final Color accentInk;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    final fg = active
+        ? accentInk
+        : (enabled ? PhotoChrome.ink : PhotoChrome.inkDisabled);
+    final l10n = AppLocalizations.of(context);
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: active
+          ? l10n.cameraEditorScreenViewOnceOnSemanticLabel
+          : l10n.cameraEditorScreenViewOnceOffSemanticLabel,
+      shape: FocusRingShape.circle,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: PhotoGlassSurface(
+          shape: BoxShape.circle,
+          tint: active ? accent : null,
+          child: SizedBox(
+            width: 38,
+            height: 38,
+            child: Center(
+              child: Text(
+                '1',
+                style: TextStyle(
+                  color: fg,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  height: 1,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The HD switch: send at source resolution instead of the capped default.
+///
+/// Deliberately built as a near-twin of [PhotoViewOnceToggle] — same 38pt circle,
+/// same glass surface, same accent fill when armed — because the two sit side
+/// by side and are the same KIND of control: a per-photo property of the send,
+/// not a tool that changes the picture.
+class PhotoHdToggle extends StatelessWidget {
+  const PhotoHdToggle({
+    super.key,
+    required this.active,
+    required this.accent,
+    required this.accentInk,
+    required this.onTap,
+  });
+
+  final bool active;
+  final Color accent;
+  final Color accentInk;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    final fg = active
+        ? accentInk
+        : (enabled ? PhotoChrome.ink : PhotoChrome.inkDisabled);
+    final l10n = AppLocalizations.of(context);
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: active
+          ? l10n.cameraEditorScreenHdOnSemanticLabel
+          : l10n.cameraEditorScreenHdOffSemanticLabel,
+      shape: FocusRingShape.circle,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: PhotoGlassSurface(
+          shape: BoxShape.circle,
+          tint: active ? accent : null,
+          child: SizedBox(
+            width: 38,
+            height: 38,
+            child: Center(
+              child: Text(
+                'HD',
+                style: TextStyle(
+                  color: fg,
+                  // A shade smaller than the view-once "1": two glyphs in the
+                  // same 38pt circle need the room.
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  height: 1,
+                  letterSpacing: 0.2,
+                  decoration: TextDecoration.none,
                 ),
               ),
             ),

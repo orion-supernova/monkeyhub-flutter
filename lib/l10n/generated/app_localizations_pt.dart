@@ -3162,6 +3162,43 @@ class AppLocalizationsPt extends AppLocalizations {
   String get photoChromeShowInChatSemanticLabel => 'Mostrar na conversa';
 
   @override
+  String photoChromeThumbnailSemanticLabel(Object current, Object total) {
+    return 'Item $current de $total';
+  }
+
+  @override
+  String photoTrayCountLabel(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count fotos',
+      one: '1 foto',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get photoTrayDiscardSemanticLabel => 'descartar estas fotos';
+
+  @override
+  String get photoTrayRemoveSemanticLabel => 'remover esta foto';
+
+  @override
+  String get photoTrayEditSemanticLabel => 'recortar ou desenhar nesta foto';
+
+  @override
+  String get photoTrayAddMoreSemanticLabel => 'adicionar mais fotos';
+
+  @override
+  String photoTrayLimitSnack(Object count) {
+    return 'pode enviar $count fotos de cada vez';
+  }
+
+  @override
+  String get photoTrayLoadFailedSnack =>
+      'algumas dessas fotos não puderam ser abertas';
+
+  @override
   String typingIndicatorOnePersonTyping(Object name) {
     return '$name está a escrever';
   }
@@ -10669,6 +10706,43 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get photoChromeShowInChatSemanticLabel => 'Mostrar no chat';
+
+  @override
+  String photoChromeThumbnailSemanticLabel(Object current, Object total) {
+    return 'Item $current de $total';
+  }
+
+  @override
+  String photoTrayCountLabel(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count fotos',
+      one: '1 foto',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get photoTrayDiscardSemanticLabel => 'descartar estas fotos';
+
+  @override
+  String get photoTrayRemoveSemanticLabel => 'remover esta foto';
+
+  @override
+  String get photoTrayEditSemanticLabel => 'cortar ou desenhar nesta foto';
+
+  @override
+  String get photoTrayAddMoreSemanticLabel => 'adicionar mais fotos';
+
+  @override
+  String photoTrayLimitSnack(Object count) {
+    return 'você pode enviar $count fotos por vez';
+  }
+
+  @override
+  String get photoTrayLoadFailedSnack =>
+      'algumas dessas fotos não puderam ser abertas';
 
   @override
   String typingIndicatorOnePersonTyping(Object name) {

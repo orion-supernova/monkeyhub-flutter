@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
+import '../widgets/photo_dismiss_area.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/route_landing.dart';
 import '../widgets/steady_hero.dart';
@@ -131,119 +132,17 @@ class FullscreenImageViewer extends StatefulWidget {
 }
 
 class _FullscreenImageViewerState extends State<FullscreenImageViewer>
-    with TickerProviderStateMixin, RouteLanding {
-  /// Fraction of screen height that commits a slow drag to a dismiss.
-  static const _dismissFraction = 0.18;
-
-  /// A flick faster than this dismisses regardless of distance — the gesture
-  /// people actually make is a short fast flick, not a long slow drag.
-  static const _dismissVelocity = 700.0;
-
-  /// How far the image shrinks at a full-screen drag. Subtle on purpose: enough
-  /// to read as "peeling away", not so much that it detaches from the finger.
-  static const _dragShrink = 0.28;
-
-  final TransformationController _xform = TransformationController();
-  late final AnimationController _zoomCtrl;
-  Animation<Matrix4>? _zoomTween;
-
-  /// Live drag offset. A notifier rather than `setState` so a drag repaints one
-  /// transform instead of rebuilding the whole route every frame.
+    with RouteLanding {
+  /// Live drag offset, written by [PhotoDismissArea] and painted here. A
+  /// notifier rather than `setState` so a drag repaints one transform instead
+  /// of rebuilding the whole route every frame.
   final ValueNotifier<Offset> _drag = ValueNotifier(Offset.zero);
-
-  /// Drives the spring back when a drag is released without committing.
-  late final AnimationController _settleCtrl;
-  Animation<Offset>? _settleTween;
-
-  bool _dismissing = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _zoomCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 220),
-    )..addListener(() {
-        final t = _zoomTween;
-        if (t != null) _xform.value = t.value;
-      });
-    _settleCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 260),
-    )..addListener(() {
-        final t = _settleTween;
-        if (t != null) _drag.value = t.value;
-      });
-  }
 
   @override
   void dispose() {
-    _xform.dispose();
-    _zoomCtrl.dispose();
-    _settleCtrl.dispose();
     _drag.dispose();
     super.dispose();
   }
-
-  bool get _zoomed => _xform.value.getMaxScaleOnAxis() > 1.05;
-
-  void _handleDoubleTap(TapDownDetails d) {
-    Matrix4 target;
-    if (_zoomed) {
-      target = Matrix4.identity();
-    } else {
-      // Zoom 2.5× centered on the double-tap point.
-      const scale = 2.5;
-      final x = -d.localPosition.dx * (scale - 1);
-      final y = -d.localPosition.dy * (scale - 1);
-      target = Matrix4.identity()
-        ..translateByDouble(x, y, 0.0, 1.0)
-        ..scaleByDouble(scale, scale, scale, 1.0);
-    }
-    _zoomTween = Matrix4Tween(begin: _xform.value, end: target).animate(
-      CurvedAnimation(parent: _zoomCtrl, curve: Curves.easeOutCubic),
-    );
-    _zoomCtrl
-      ..value = 0
-      ..forward();
-  }
-
-  void _onDragStart(DragStartDetails _) {
-    _settleCtrl.stop();
-  }
-
-  void _onDragUpdate(DragUpdateDetails d) {
-    // While zoomed the same gesture is panning the image, so dismissal has to
-    // stay out of the way.
-    if (_zoomed || _dismissing) return;
-    _drag.value += Offset(0, d.delta.dy);
-  }
-
-  void _onDragEnd(DragEndDetails d) {
-    if (_dismissing) return;
-    final dy = _drag.value.dy;
-    final velocity = d.velocity.pixelsPerSecond.dy;
-    final threshold = MediaQuery.sizeOf(context).height * _dismissFraction;
-
-    // Velocity has to agree with the direction of travel, or a fast *upward*
-    // correction at the end of a downward drag would read as a dismiss.
-    final flung = velocity.abs() > _dismissVelocity && velocity.sign == dy.sign;
-    if (dy != 0 && (flung || dy.abs() > threshold)) {
-      _dismissing = true;
-      Navigator.of(context).maybePop();
-      return;
-    }
-    _settleTween = Tween(begin: _drag.value, end: Offset.zero).animate(
-      CurvedAnimation(parent: _settleCtrl, curve: Curves.easeOutCubic),
-    );
-    _settleCtrl
-      ..value = 0
-      ..forward();
-  }
-
-  /// 0 while at rest, 1 at a full screen-height drag.
-  double _progress(Offset drag, Size screen) =>
-      (drag.dy.abs() / (screen.height * 0.65)).clamp(0.0, 1.0);
 
   @override
   Widget build(BuildContext context) {
@@ -257,7 +156,7 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
       body: ValueListenableBuilder<Offset>(
         valueListenable: _drag,
         builder: (context, drag, child) {
-          final t = _progress(drag, screen);
+          final t = photoDismissProgress(drag, screen);
           return Stack(
             children: [
               // Barrier inside the route so it can fade to fully transparent as
@@ -273,7 +172,7 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
               Transform.translate(
                 offset: drag,
                 child: Transform.scale(
-                  scale: 1 - t * _dragShrink,
+                  scale: 1 - t * kPhotoDismissShrink,
                   child: child,
                 ),
               ),
@@ -295,25 +194,14 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
         },
         // Built once and passed through the builder: the image subtree is the
         // expensive part and none of it depends on the drag offset.
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onDoubleTapDown: _handleDoubleTap,
-          onDoubleTap: () {},
-          onVerticalDragStart: _onDragStart,
-          onVerticalDragUpdate: _onDragUpdate,
-          onVerticalDragEnd: _onDragEnd,
-          child: Center(
-            child: InteractiveViewer(
-              transformationController: _xform,
-              minScale: 1,
-              maxScale: 5,
-              // Hero wraps the image only, NOT the InteractiveViewer. Wrapping
-              // the viewer meant the flight scaled the interactive layer itself,
-              // so its gesture geometry was mid-animation garbage for the
-              // duration of every open and close.
-              child: _maybeHero(image),
-            ),
-          ),
+        // Hero wraps the image only, NOT the InteractiveViewer inside
+        // [PhotoDismissArea]. Wrapping the viewer meant the flight scaled the
+        // interactive layer itself, so its gesture geometry was mid-animation
+        // garbage for the duration of every open and close.
+        child: PhotoDismissArea(
+          drag: _drag,
+          onDismiss: () => Navigator.of(context).maybePop(),
+          child: _maybeHero(image),
         ),
       ),
     );

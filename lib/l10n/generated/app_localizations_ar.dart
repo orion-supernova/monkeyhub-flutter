@@ -3180,6 +3180,46 @@ class AppLocalizationsAr extends AppLocalizations {
   String get photoChromeShowInChatSemanticLabel => 'عرض في المحادثة';
 
   @override
+  String photoChromeThumbnailSemanticLabel(Object current, Object total) {
+    return 'العنصر $current من $total';
+  }
+
+  @override
+  String photoTrayCountLabel(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count صورة',
+      many: '$count صورة',
+      few: '$count صور',
+      two: 'صورتان',
+      one: 'صورة واحدة',
+      zero: 'لا صور',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get photoTrayDiscardSemanticLabel => 'تجاهل هذه الصور';
+
+  @override
+  String get photoTrayRemoveSemanticLabel => 'إزالة هذه الصورة';
+
+  @override
+  String get photoTrayEditSemanticLabel => 'قص الصورة أو الرسم عليها';
+
+  @override
+  String get photoTrayAddMoreSemanticLabel => 'إضافة المزيد من الصور';
+
+  @override
+  String photoTrayLimitSnack(Object count) {
+    return 'يمكنك إرسال $count صور في المرة الواحدة';
+  }
+
+  @override
+  String get photoTrayLoadFailedSnack => 'تعذّر فتح بعض تلك الصور';
+
+  @override
   String typingIndicatorOnePersonTyping(Object name) {
     return '$name يكتب الآن';
   }

@@ -3134,6 +3134,43 @@ class AppLocalizationsHi extends AppLocalizations {
   String get photoChromeShowInChatSemanticLabel => 'चैट में दिखाएं';
 
   @override
+  String photoChromeThumbnailSemanticLabel(Object current, Object total) {
+    return '$total में से $current';
+  }
+
+  @override
+  String photoTrayCountLabel(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count फ़ोटो',
+      one: '1 फ़ोटो',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get photoTrayDiscardSemanticLabel => 'ये फ़ोटो छोड़ें';
+
+  @override
+  String get photoTrayRemoveSemanticLabel => 'यह फ़ोटो हटाएँ';
+
+  @override
+  String get photoTrayEditSemanticLabel =>
+      'इस फ़ोटो को क्रॉप करें या उस पर बनाएँ';
+
+  @override
+  String get photoTrayAddMoreSemanticLabel => 'और फ़ोटो जोड़ें';
+
+  @override
+  String photoTrayLimitSnack(Object count) {
+    return 'आप एक बार में $count फ़ोटो भेज सकते हैं';
+  }
+
+  @override
+  String get photoTrayLoadFailedSnack => 'उनमें से कुछ फ़ोटो नहीं खुल सकीं';
+
+  @override
   String typingIndicatorOnePersonTyping(Object name) {
     return '$name टाइप कर रहे हैं';
   }
