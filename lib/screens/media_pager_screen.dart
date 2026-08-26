@@ -7,18 +7,25 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/chat_message.dart';
 import '../models/enums.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/media_filmstrip.dart';
 import '../widgets/media_grid_tile.dart' show roomMediaHeroTag;
+import '../widgets/photo_dismiss_area.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/route_landing.dart';
 import '../widgets/steady_hero.dart';
 import 'fullscreen_video_viewer.dart';
 
-/// Fullscreen media, swipeable across everything in the MEDIA tab.
+/// Fullscreen media, swipeable across a set — the MEDIA tab's grid, or every
+/// picture in one conversation.
 ///
-/// `FullscreenImageViewer` opens exactly one picture and is the right thing
-/// from a bubble, where "the next photo" has no meaning. From a grid it does:
-/// the set is on screen, and a viewer that made you back out and tap again to
-/// see the next one would be the only gallery that works that way.
+/// This is now what a photo in the transcript opens too. It used to be
+/// `FullscreenImageViewer`, which shows exactly one picture: the right thing
+/// from a bubble in 2010 and wrong ever since, because "the next photo" plainly
+/// does have a meaning in a chat, and every messenger anyone has used since
+/// then answers it by swiping. Backing out and hunting up the transcript for
+/// the next photograph was the only gallery in the app that worked that way.
+/// `FullscreenImageViewer` is still the right screen for a lone picture with no
+/// set behind it — an avatar, a lifted bubble preview.
 ///
 /// **No page here ever owns a video player.** A video is a poster with a play
 /// disc on it, and playing hands off to [FullscreenVideoViewer] — which is to
@@ -45,6 +52,7 @@ class MediaPagerScreen extends StatefulWidget {
     required this.initialIndex,
     required this.api,
     this.onShowInChat,
+    this.heroTagFor,
   });
 
   final List<ChatMessage> items;
@@ -54,6 +62,15 @@ class MediaPagerScreen extends StatefulWidget {
   /// Pops the pager and asks the room to travel to this message. Null when
   /// there is nothing to travel back to.
   final void Function(ChatMessage message)? onShowInChat;
+
+  /// The [Hero] tag the picture for a message flies from and back to.
+  ///
+  /// Defaults to the grid's, because the grid was the only caller for as long
+  /// as there was only one. The transcript's bubbles carry their own tags and
+  /// have to hand theirs in, or a photo opened from a chat would fly from
+  /// nowhere and land back nowhere — which is the state that reads as the app
+  /// cutting to a picture rather than moving it.
+  final Object Function(ChatMessage message)? heroTagFor;
 
   /// Returns the index the pager was left on, so the grid can put that tile
   /// back under the reader's eyes. Null if it was dismissed without settling.
@@ -67,6 +84,7 @@ class MediaPagerScreen extends StatefulWidget {
     required int initialIndex,
     required ChatApi api,
     void Function(ChatMessage message)? onShowInChat,
+    Object Function(ChatMessage message)? heroTagFor,
   }) {
     return Navigator.of(context, rootNavigator: true).push<int>(
       PageRouteBuilder<int>(
@@ -82,6 +100,7 @@ class MediaPagerScreen extends StatefulWidget {
           initialIndex: initialIndex,
           api: api,
           onShowInChat: onShowInChat,
+          heroTagFor: heroTagFor,
         ),
         transitionsBuilder: (_, anim, _, child) =>
             FadeTransition(opacity: anim, child: child),
@@ -97,6 +116,25 @@ class _MediaPagerScreenState extends State<MediaPagerScreen> {
   late final PageController _pager;
   late int _index;
 
+  /// Live dismiss-drag offset, written by whichever page is under a finger and
+  /// painted here. Shared across the pages on purpose — only one of them can be
+  /// dragged at a time, and the thing that moves is the whole gallery.
+  final ValueNotifier<Offset> _drag = ValueNotifier(Offset.zero);
+
+  /// Whether the chrome is showing. A tap on the picture toggles it: this is
+  /// the one screen in the app whose entire content is a photograph, and the
+  /// furniture over it should get out of the way for the same reason a
+  /// gallery's does everywhere else.
+  bool _chrome = true;
+
+  /// True while the current page is pinch- or double-tap-zoomed. The
+  /// `PageView` stops scrolling for the duration, or a sideways drag meant to
+  /// move around inside one photograph would flick to the next one instead —
+  /// the single most annoying thing a zoomable pager can do.
+  bool _zoomed = false;
+
+  bool _closing = false;
+
   @override
   void initState() {
     super.initState();
@@ -107,58 +145,304 @@ class _MediaPagerScreenState extends State<MediaPagerScreen> {
   @override
   void dispose() {
     _pager.dispose();
+    _drag.dispose();
     super.dispose();
+  }
+
+  /// Pops with the index the reader settled on. Guarded because a committed
+  /// dismiss drag and a tap on the close button can land in the same frame.
+  void _close() {
+    if (_closing) return;
+    _closing = true;
+    Navigator.of(context).pop(_index);
+  }
+
+  Object _heroTag(ChatMessage m) =>
+      widget.heroTagFor?.call(m) ?? roomMediaHeroTag(m.id);
+
+  void _jumpTo(int i) {
+    if (i == _index) return;
+    // Jumped, not animated. The rail can be dragged a long way from where the
+    // pager is, and sliding forty photographs past the reader to answer a tap
+    // on a thumbnail is a long wait for something they can already see.
+    _pager.jumpToPage(i);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     if (widget.items.isEmpty) return const SizedBox.shrink();
+    final screen = MediaQuery.sizeOf(context);
     final current = widget.items[_index];
+    // A rail under a set of one is a rail with one tile on it, saying nothing
+    // the position counter above has not already said.
+    final strip = widget.items.length > 1;
 
     return Material(
       type: MaterialType.transparency,
       child: DefaultTextStyle(
         style: theme.body.copyWith(color: Colors.white),
-        child: Stack(
-          children: [
-            const Positioned.fill(child: ColoredBox(color: Color(0xF2000000))),
-            Positioned.fill(
-              child: PageView.builder(
-                controller: _pager,
-                itemCount: widget.items.length,
-                onPageChanged: (i) => setState(() => _index = i),
-                itemBuilder: (_, i) => HeroMode(
-                  // Neighbours stay built; only the visible one may fly. See
-                  // the class comment.
-                  enabled: i == _index,
-                  child: _Page(message: widget.items[i], api: widget.api),
+        child: ValueListenableBuilder<Offset>(
+          valueListenable: _drag,
+          builder: (context, drag, pages) {
+            final t = photoDismissProgress(drag, screen);
+            // The chrome leaves twice as fast as the picture does, so it is
+            // gone before the photograph is halfway home rather than riding
+            // out over the transcript behind it.
+            final chromeOpacity = _chrome ? (1 - t * 2).clamp(0.0, 1.0) : 0.0;
+
+            return Stack(
+              children: [
+                // Painted inside the route rather than left to the barrier, so
+                // it can fade to nothing as the drag commits — that is what
+                // makes the Hero return read as the picture going back where it
+                // came from rather than as a cut.
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: ColoredBox(
+                      color: Colors.black.withValues(alpha: 0.95 * (1 - t)),
+                    ),
+                  ),
                 ),
+                Positioned.fill(
+                  child: Transform.translate(
+                    offset: drag,
+                    child: Transform.scale(
+                      scale: 1 - t * kPhotoDismissShrink,
+                      child: pages,
+                    ),
+                  ),
+                ),
+                _FadingChrome(
+                  opacity: chromeOpacity,
+                  child: _TopBar(
+                    message: current,
+                    position: AppLocalizations.of(context)
+                        .photoChromeMediaPositionLabel(
+                      _index + 1,
+                      widget.items.length,
+                    ),
+                    onClose: _close,
+                    onShowInChat: widget.onShowInChat == null
+                        ? null
+                        : () => widget.onShowInChat!(current),
+                  ),
+                ),
+                if (strip)
+                  _FadingChrome(
+                    opacity: chromeOpacity,
+                    alignBottom: true,
+                    child: _Strip(
+                      items: widget.items,
+                      index: _index,
+                      api: widget.api,
+                      onTap: _jumpTo,
+                    ),
+                  ),
+              ],
+            );
+          },
+          // Built once and passed through the builder: the pages are the
+          // expensive part and none of them depend on the drag offset.
+          child: PageView.builder(
+            controller: _pager,
+            physics: _zoomed
+                ? const NeverScrollableScrollPhysics()
+                : const PageScrollPhysics(),
+            itemCount: widget.items.length,
+            onPageChanged: (i) => setState(() {
+              _index = i;
+              // Belt and braces. A zoomed page cannot be swiped away, so this
+              // should already be false — but a stuck `true` would leave the
+              // gallery unswipeable with nothing on screen to explain why.
+              _zoomed = false;
+            }),
+            itemBuilder: (_, i) => HeroMode(
+              // Neighbours stay built; only the visible one may fly. See the
+              // class comment.
+              enabled: i == _index,
+              child: _Page(
+                message: widget.items[i],
+                api: widget.api,
+                heroTag: _heroTag(widget.items[i]),
+                drag: _drag,
+                onDismiss: _close,
+                onToggleChrome: () => setState(() => _chrome = !_chrome),
+                onZoomChanged: (z) {
+                  if (i == _index && z != _zoomed) {
+                    setState(() => _zoomed = z);
+                  }
+                },
               ),
             ),
-            _Chrome(
-              message: current,
-              position: AppLocalizations.of(context).photoChromeMediaPositionLabel(
-                _index + 1,
-                widget.items.length,
-              ),
-              onClose: () => Navigator.of(context).pop(_index),
-              onShowInChat: widget.onShowInChat == null
-                  ? null
-                  : () => widget.onShowInChat!(current),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _Page extends StatelessWidget {
-  const _Page({required this.message, required this.api});
+/// Holds a piece of chrome against an edge of the screen and fades it.
+///
+/// [AnimatedOpacity] rather than a plain [Opacity] so the tap-to-hide toggle
+/// is a fade and not a cut. It is driven by the dismiss drag as well, and at
+/// 90ms that follows a finger closely enough to still read as continuous.
+class _FadingChrome extends StatelessWidget {
+  const _FadingChrome({
+    required this.opacity,
+    required this.child,
+    this.alignBottom = false,
+  });
+
+  final double opacity;
+  final Widget child;
+  final bool alignBottom;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: 0,
+      right: 0,
+      top: alignBottom ? null : 0,
+      bottom: alignBottom ? 0 : null,
+      child: IgnorePointer(
+        // Not merely invisible: hidden chrome that still swallowed taps would
+        // make the gesture that hid it impossible to undo.
+        ignoring: opacity < 0.05,
+        child: AnimatedOpacity(
+          opacity: opacity,
+          duration: const Duration(milliseconds: 90),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+/// The thumbnail rail, plus the scrim that keeps it legible over a bright
+/// photograph.
+class _Strip extends StatelessWidget {
+  const _Strip({
+    required this.items,
+    required this.index,
+    required this.api,
+    required this.onTap,
+  });
+
+  final List<ChatMessage> items;
+  final int index;
+  final ChatApi api;
+  final void Function(int i) onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final bottom = MediaQuery.paddingOf(context).bottom;
+    return Stack(
+      alignment: Alignment.bottomCenter,
+      children: [
+        MediaScrim(height: MediaFilmstrip.height + bottom + 24),
+        Padding(
+          padding: EdgeInsets.only(bottom: bottom + 6),
+          child: MediaFilmstrip(
+            count: items.length,
+            index: index,
+            onTap: onTap,
+            tileSemanticLabel: (i, total) =>
+                l10n.photoChromeThumbnailSemanticLabel(i, total),
+            thumbnailBuilder: (_, i) => _Thumb(message: items[i], api: api),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// One tile in the rail.
+///
+/// A video shows its poster with a play glyph on it rather than a still and
+/// nothing else — the rail is how you find the clip you remember among forty
+/// photographs, and "which of these is the video" is the one question it has to
+/// answer that a photo's own thumbnail cannot.
+class _Thumb extends StatelessWidget {
+  const _Thumb({required this.message, required this.api});
 
   final ChatMessage message;
   final ChatApi api;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final video = _isMovie(message);
+    final id = video ? message.posterStorageId : message.mediaStorageId;
+    if (id == null) {
+      return ColoredBox(
+        color: theme.surfaceSunken,
+        child: Icon(
+          video ? CupertinoIcons.film : CupertinoIcons.photo,
+          size: 18,
+          color: Colors.white24,
+        ),
+      );
+    }
+    final thumb = RemoteImage(
+      storageId: id,
+      api: api,
+      // The box is already tight from the rail, so this only steers the
+      // DECODE — 54pt of thumbnail has no business decoding at the screen cap,
+      // which is what `decodeSizeFor` falls back to when neither axis is given.
+      width: MediaFilmstrip.tileSize,
+      height: MediaFilmstrip.tileSize,
+      fit: BoxFit.cover,
+      borderRadius: BorderRadius.zero,
+    );
+    if (!video) return thumb;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        thumb,
+        const Center(
+          child: Icon(
+            Icons.play_arrow,
+            size: 18,
+            color: Colors.white,
+            shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Whether [m] is a movie rather than a photograph, for the two places on this
+/// screen that have to draw a poster and a play glyph instead of a picture.
+///
+/// [MessageType.videoNote] belongs here and used to be missing, which was a
+/// real bug rather than a nicety: the shared-content MEDIA tab puts circular
+/// video notes in the same grid as everything else, so swiping onto one handed
+/// its `.mp4` storage id to a `RemoteImage` and drew a broken-image glyph on a
+/// clip that plays perfectly well.
+bool _isMovie(ChatMessage m) =>
+    m.type == MessageType.video || m.type == MessageType.videoNote;
+
+class _Page extends StatelessWidget {
+  const _Page({
+    required this.message,
+    required this.api,
+    required this.heroTag,
+    required this.drag,
+    required this.onDismiss,
+    required this.onToggleChrome,
+    required this.onZoomChanged,
+  });
+
+  final ChatMessage message;
+  final ChatApi api;
+  final Object heroTag;
+  final ValueNotifier<Offset> drag;
+  final VoidCallback onDismiss;
+  final VoidCallback onToggleChrome;
+  final void Function(bool zoomed) onZoomChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -173,30 +457,38 @@ class _Page extends StatelessWidget {
       );
     }
 
-    if (message.type == MessageType.video) {
-      return _VideoPage(message: message, api: api);
+    if (_isMovie(message)) {
+      return _VideoPage(
+        message: message,
+        api: api,
+        heroTag: heroTag,
+        drag: drag,
+        onDismiss: onDismiss,
+      );
     }
 
-    return InteractiveViewer(
-      minScale: 1,
+    return PhotoDismissArea(
+      drag: drag,
+      onDismiss: onDismiss,
+      onTap: onToggleChrome,
+      onZoomChanged: onZoomChanged,
       maxScale: 4,
-      child: Center(
-        child: mediaFlight(
-          message,
-          RemoteImage(storageId: id, api: api, fit: BoxFit.contain),
-        ),
+      child: mediaFlight(
+        heroTag,
+        RemoteImage(storageId: id, api: api, fit: BoxFit.contain),
       ),
     );
   }
 }
 
-/// Pairs a page with its grid tile for the open/close flight.
+/// Pairs a page with the thumbnail it was opened from, for the open/close
+/// flight.
 ///
 /// `SteadyHero` rather than `Hero` for the reason its own doc gives: a plain
 /// one tears the child out of the tree at both ends of a flight, so the
 /// picture arrives as a hole and fills in a frame later.
-Widget mediaFlight(ChatMessage message, Widget child) =>
-    SteadyHero(tag: roomMediaHeroTag(message.id), child: child);
+Widget mediaFlight(Object tag, Widget child) =>
+    SteadyHero(tag: tag, child: child);
 
 /// A video page: a poster with a play disc on it, and nothing else.
 ///
@@ -224,10 +516,19 @@ Widget mediaFlight(ChatMessage message, Widget child) =>
 /// player in the tree at all there is nothing left to work around: the poster
 /// is simply always there, and it flies both ways.
 class _VideoPage extends StatefulWidget {
-  const _VideoPage({required this.message, required this.api});
+  const _VideoPage({
+    required this.message,
+    required this.api,
+    required this.heroTag,
+    required this.drag,
+    required this.onDismiss,
+  });
 
   final ChatMessage message;
   final ChatApi api;
+  final Object heroTag;
+  final ValueNotifier<Offset> drag;
+  final VoidCallback onDismiss;
 
   @override
   State<_VideoPage> createState() => _VideoPageState();
@@ -261,51 +562,50 @@ class _VideoPageState extends State<_VideoPage> with RouteLanding {
     final poster = widget.message.posterStorageId;
     final playable = widget.message.mediaStorageId != null;
 
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Positioned.fill(
-          child: GestureDetector(
-            onTap: playable ? _play : null,
-            behavior: HitTestBehavior.opaque,
-            // The disc below carries the label and the focus ring; this is the
-            // same action with a bigger target, and announcing it twice would
-            // put two identical buttons on one screen.
-            excludeFromSemantics: true,
-            child: Center(
-              child: mediaFlight(
-                widget.message,
-                poster == null
-                    ? const Icon(
-                        CupertinoIcons.film,
-                        size: 34,
-                        color: Colors.white24,
-                      )
-                    : RemoteImage(
-                        storageId: poster,
-                        api: widget.api,
-                        fit: BoxFit.contain,
-                      ),
+    return PhotoDismissArea(
+      drag: widget.drag,
+      onDismiss: widget.onDismiss,
+      // A tap on a video means play, not "hide the chrome". The disc below is
+      // the same action with a smaller target and a focus ring on it.
+      onTap: playable ? _play : null,
+      // A poster is not a photograph to examine: zooming one would enlarge a
+      // still of something the OS player is one tap away from showing properly.
+      maxScale: 1,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          mediaFlight(
+            widget.heroTag,
+            poster == null
+                ? const Icon(
+                    CupertinoIcons.film,
+                    size: 34,
+                    color: Colors.white24,
+                  )
+                : RemoteImage(
+                    storageId: poster,
+                    api: widget.api,
+                    fit: BoxFit.contain,
+                  ),
+          ),
+          if (playable)
+            // Held back until the picture has arrived. A disc fading in over a
+            // photograph that has come to rest reads as the page finishing; the
+            // same disc riding the flight in reads as a second thing moving.
+            IgnorePointer(
+              ignoring: !landed,
+              child: AnimatedOpacity(
+                opacity: landed ? 1 : 0,
+                duration: const Duration(milliseconds: 140),
+                child: _PlayDisc(
+                  onTap: _play,
+                  semanticLabel:
+                      l10n.bubbleStyleScreenMediaTileVideoSemanticLabel,
+                ),
               ),
             ),
-          ),
-        ),
-        if (playable)
-          // Held back until the picture has arrived. A disc fading in over a
-          // photograph that has come to rest reads as the page finishing; the
-          // same disc riding the flight in reads as a second thing moving.
-          IgnorePointer(
-            ignoring: !landed,
-            child: AnimatedOpacity(
-              opacity: landed ? 1 : 0,
-              duration: const Duration(milliseconds: 140),
-              child: _PlayDisc(
-                onTap: _play,
-                semanticLabel: l10n.bubbleStyleScreenMediaTileVideoSemanticLabel,
-              ),
-            ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -346,8 +646,8 @@ class _PlayDisc extends StatelessWidget {
   }
 }
 
-class _Chrome extends StatelessWidget {
-  const _Chrome({
+class _TopBar extends StatelessWidget {
+  const _TopBar({
     required this.message,
     required this.position,
     required this.onClose,
@@ -364,47 +664,50 @@ class _Chrome extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final pad = MediaQuery.paddingOf(context);
 
-    return Positioned(
-      left: 0,
-      right: 0,
-      top: 0,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(8, pad.top + 6, 8, 0),
-        child: Row(
-          children: [
-            _GlassButton(
-              icon: CupertinoIcons.xmark,
-              semanticLabel: AppLocalizations.of(context).photoChromeCloseSemanticLabel,
-              onTap: onClose,
-            ),
-            const Spacer(),
-            Column(
-              children: [
-                Text(
-                  message.senderName.isEmpty
-                      ? AppLocalizations.of(context).photoChromeMediaYouLabel
-                      : message.senderName,
-                  style: theme.bodyEmph.copyWith(color: Colors.white),
-                ),
-                Text(
-                  position,
-                  style: theme.monoTiny.copyWith(color: Colors.white70),
-                ),
-              ],
-            ),
-            const Spacer(),
-            if (onShowInChat != null)
+    return Stack(
+      children: [
+        // Same reason the rail has one: white on white is not a colour scheme,
+        // and the top of a photograph is as likely to be sky as anything else.
+        MediaScrim(height: pad.top + 62, fromTop: true),
+        Padding(
+          padding: EdgeInsets.fromLTRB(8, pad.top + 6, 8, 10),
+          child: Row(
+            children: [
               _GlassButton(
-                icon: CupertinoIcons.chat_bubble,
+                icon: CupertinoIcons.xmark,
                 semanticLabel:
-                    AppLocalizations.of(context).photoChromeShowInChatSemanticLabel,
-                onTap: onShowInChat!,
-              )
-            else
-              const SizedBox(width: 38),
-          ],
+                    AppLocalizations.of(context).photoChromeCloseSemanticLabel,
+                onTap: onClose,
+              ),
+              const Spacer(),
+              Column(
+                children: [
+                  Text(
+                    message.senderName.isEmpty
+                        ? AppLocalizations.of(context).photoChromeMediaYouLabel
+                        : message.senderName,
+                    style: theme.bodyEmph.copyWith(color: Colors.white),
+                  ),
+                  Text(
+                    position,
+                    style: theme.monoTiny.copyWith(color: Colors.white70),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              if (onShowInChat != null)
+                _GlassButton(
+                  icon: CupertinoIcons.chat_bubble,
+                  semanticLabel: AppLocalizations.of(context)
+                      .photoChromeShowInChatSemanticLabel,
+                  onTap: onShowInChat!,
+                )
+              else
+                const SizedBox(width: 38),
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }

@@ -582,52 +582,32 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
     // Untouched photo: hand back the original bytes. Re-encoding would cost a
     // JPEG generation and a full-resolution rasterize to produce something
     // meant to be identical to what we were given.
+    //
+    // The rule about WHEN that is allowed — HD, or already inside the cap —
+    // lives in `prepareUneditedForSend` rather than here, because the photo
+    // tray sends unedited pictures too and a second copy of the same three
+    // lines is one copy that eventually disagrees with this one.
     if (!_hasEdits) {
-      // The decoded image on screen is capped at _maxDisplayEdge, so its size
-      // is not the source's size — read the real one from the header.
-      //
-      // A header we cannot read is not a reason to lose the send. Falling
-      // through costs one re-encode of a picture we meant to pass through
-      // untouched, and the export path below takes its dimensions from a real
-      // decode, so the photo still goes out at the size the user gave us.
-      try {
-        final size = await imageBytesSize(widget.source);
-        if (!mounted) return;
-
-        // Genuinely untouched: already inside the cap, or the user asked for
-        // HD. Handing back the picked bytes costs nothing and loses nothing.
-        if (_hd ||
-            math.max(size.width, size.height) <= kSendPhotoMaxEdge) {
-          Navigator.of(context).pop(
-            EditorSend(
-              image: CroppedImage(
-                bytes: widget.source,
-                contentType: sniffImageContentType(widget.source),
-                width: size.width.round(),
-                height: size.height.round(),
-              ),
-              viewOnce: _viewOnce,
-            ),
-          );
-          return;
-        }
-
-        // Oversized and not HD. Spinner first: a 12 megapixel decode and JPEG
-        // re-encode is a second or two on an older handset, and this is the
-        // one pass-through case that does real work.
-        setState(() => _saving = true);
-        final shrunk = await compressForSend(widget.source);
-        if (!mounted) return;
+      final ready = await prepareUneditedForSend(
+        widget.source,
+        hd: _hd,
+        // Fires only on the branch that actually re-encodes: a 12 megapixel
+        // decode is a second or two on an older handset, and the two
+        // pass-through branches finish in the same frame they started.
+        onCompressing: () {
+          if (mounted) setState(() => _saving = true);
+        },
+      );
+      if (!mounted) return;
+      if (ready != null) {
         Navigator.of(context).pop(
-          EditorSend(image: shrunk, viewOnce: _viewOnce),
+          EditorSend(image: ready, viewOnce: _viewOnce),
         );
         return;
-      } catch (e) {
-        // A header we cannot read, or a decode that failed, is not a reason to
-        // lose the send — fall through to the full export path below, which
-        // takes its dimensions from a real decode and applies the same cap.
-        debugPrint('[camera_editor] pass-through failed, re-encoding: $e');
       }
+      // Null means a header we could not read or a decode that failed. Not a
+      // reason to lose the send: fall through to the full export path below,
+      // which takes its dimensions from a real decode and applies the same cap.
     }
 
     setState(() => _saving = true);
@@ -1213,7 +1193,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
               const SizedBox(width: 8),
             ],
             if (widget.allowViewOnce) ...[
-              _ViewOnceToggle(
+              PhotoViewOnceToggle(
                 active: _viewOnce,
                 accent: theme.accent,
                 accentInk: theme.accentInk,
@@ -1223,7 +1203,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
               ),
               const SizedBox(width: 8),
             ],
-            _HdToggle(
+            PhotoHdToggle(
               active: _hd,
               accent: theme.accent,
               accentInk: theme.accentInk,
@@ -1395,128 +1375,6 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
                 ],
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The circled "1" — arms burn-after-reading for this photo.
-///
-/// Sized to the 38pt glass buttons beside it so the rail sits on one baseline.
-/// Kept hand-drawn rather than swapped for an icon: nothing in any icon set
-/// says "they get one look at this", and the numeral does.
-class _ViewOnceToggle extends StatelessWidget {
-  const _ViewOnceToggle({
-    required this.active,
-    required this.accent,
-    required this.accentInk,
-    required this.onTap,
-  });
-
-  final bool active;
-  final Color accent;
-  final Color accentInk;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final enabled = onTap != null;
-    final fg = active
-        ? accentInk
-        : (enabled ? PhotoChrome.ink : PhotoChrome.inkDisabled);
-    final l10n = AppLocalizations.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: active
-          ? l10n.cameraEditorScreenViewOnceOnSemanticLabel
-          : l10n.cameraEditorScreenViewOnceOffSemanticLabel,
-      shape: FocusRingShape.circle,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: PhotoGlassSurface(
-          shape: BoxShape.circle,
-          tint: active ? accent : null,
-          child: SizedBox(
-            width: 38,
-            height: 38,
-            child: Center(
-              child: Text(
-                '1',
-                style: TextStyle(
-                  color: fg,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  height: 1,
-                  decoration: TextDecoration.none,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The HD switch: send at source resolution instead of the capped default.
-///
-/// Deliberately built as a near-twin of [_ViewOnceToggle] — same 38pt circle,
-/// same glass surface, same accent fill when armed — because the two sit side
-/// by side and are the same KIND of control: a per-photo property of the send,
-/// not a tool that changes the picture.
-class _HdToggle extends StatelessWidget {
-  const _HdToggle({
-    required this.active,
-    required this.accent,
-    required this.accentInk,
-    required this.onTap,
-  });
-
-  final bool active;
-  final Color accent;
-  final Color accentInk;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final enabled = onTap != null;
-    final fg = active
-        ? accentInk
-        : (enabled ? PhotoChrome.ink : PhotoChrome.inkDisabled);
-    final l10n = AppLocalizations.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: active
-          ? l10n.cameraEditorScreenHdOnSemanticLabel
-          : l10n.cameraEditorScreenHdOffSemanticLabel,
-      shape: FocusRingShape.circle,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: PhotoGlassSurface(
-          shape: BoxShape.circle,
-          tint: active ? accent : null,
-          child: SizedBox(
-            width: 38,
-            height: 38,
-            child: Center(
-              child: Text(
-                'HD',
-                style: TextStyle(
-                  color: fg,
-                  // A shade smaller than the view-once "1": two glyphs in the
-                  // same 38pt circle need the room.
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  height: 1,
-                  letterSpacing: 0.2,
-                  decoration: TextDecoration.none,
-                ),
-              ),
-            ),
           ),
         ),
       ),

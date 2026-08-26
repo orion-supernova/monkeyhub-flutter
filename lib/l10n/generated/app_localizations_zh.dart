@@ -2976,6 +2976,41 @@ class AppLocalizationsZh extends AppLocalizations {
   String get photoChromeShowInChatSemanticLabel => '在聊天中显示';
 
   @override
+  String photoChromeThumbnailSemanticLabel(Object current, Object total) {
+    return '第 $current 项，共 $total 项';
+  }
+
+  @override
+  String photoTrayCountLabel(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 张照片',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get photoTrayDiscardSemanticLabel => '放弃这些照片';
+
+  @override
+  String get photoTrayRemoveSemanticLabel => '移除这张照片';
+
+  @override
+  String get photoTrayEditSemanticLabel => '裁剪或涂画这张照片';
+
+  @override
+  String get photoTrayAddMoreSemanticLabel => '再加照片';
+
+  @override
+  String photoTrayLimitSnack(Object count) {
+    return '一次最多发送 $count 张照片';
+  }
+
+  @override
+  String get photoTrayLoadFailedSnack => '有些照片打不开';
+
+  @override
   String typingIndicatorOnePersonTyping(Object name) {
     return '$name正在输入';
   }

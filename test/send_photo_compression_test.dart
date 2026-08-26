@@ -83,4 +83,59 @@ void main() {
       expect(hd.bytes.length, greaterThan(standard.bytes.length));
     });
   });
+
+  /// The rule the editor's pass-through and the photo tray's bulk send now
+  /// share. It exists because they used to disagree by construction: only one
+  /// of them had a rule at all.
+  group('prepareUneditedForSend', () {
+    test('hands back the source untouched when it is inside the cap', () async {
+      final source = await _photo(400, 300);
+      final out = await prepareUneditedForSend(source, hd: false);
+
+      expect(out, isNotNull);
+      // Identity, not equality: the whole point is that no re-encode happened.
+      expect(identical(out!.bytes, source), isTrue);
+      expect(out.width, 400);
+      expect(out.height, 300);
+      expect(out.contentType, 'image/jpeg');
+    });
+
+    test('hands back an oversized source untouched when HD is armed', () async {
+      final source = await _photo(2400, 1800);
+      final out = await prepareUneditedForSend(source, hd: true);
+
+      expect(identical(out!.bytes, source), isTrue);
+      expect(out.width, 2400, reason: 'HD means the size they gave us');
+    });
+
+    test('caps an oversized source when HD is not armed', () async {
+      final source = await _photo(2400, 1800);
+      final out = await prepareUneditedForSend(source, hd: false);
+
+      expect(out!.width, kSendPhotoMaxEdge);
+      expect(out.bytes.length, lessThan(source.length ~/ 2));
+    });
+
+    test('reports the compress ONLY on the branch that compresses', () async {
+      var raised = 0;
+      await prepareUneditedForSend(
+        await _photo(400, 300),
+        hd: false,
+        onCompressing: () => raised++,
+      );
+      expect(raised, 0, reason: 'a pass-through must not raise a spinner');
+
+      await prepareUneditedForSend(
+        await _photo(2400, 1800),
+        hd: false,
+        onCompressing: () => raised++,
+      );
+      expect(raised, 1);
+    });
+
+    test('returns null rather than throwing on bytes it cannot read', () async {
+      final junk = Uint8List.fromList(List.filled(64, 0x7F));
+      expect(await prepareUneditedForSend(junk, hd: false), isNull);
+    });
+  });
 }

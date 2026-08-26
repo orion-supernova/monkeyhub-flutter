@@ -45,6 +45,7 @@ import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/family.dart';
 import '../models/room_capabilities.dart';
+import '../models/room_content_item.dart';
 import '../models/room_pin.dart';
 import '../data/ui_selection_store.dart';
 import '../platform.dart';
@@ -86,6 +87,7 @@ import '../widgets/selection_check.dart';
 import '../widgets/speaker_scope.dart';
 import '../widgets/typing_indicator.dart';
 import '../widgets/remote_image.dart';
+import '../widgets/room_gallery_scope.dart';
 import '../widgets/steady_hero.dart';
 import '../widgets/swipe_to_reply.dart';
 import '../widgets/thread_overlay.dart';
@@ -100,6 +102,8 @@ import 'camera_editor_screen.dart';
 import 'camera_screen.dart';
 import 'room_content_actions.dart';
 import 'fullscreen_image_viewer.dart';
+import 'media_pager_screen.dart';
+import 'photo_tray_screen.dart';
 import 'profile_screen.dart';
 import 'room_info_screen.dart';
 import 'voice_recorder_screen.dart';
@@ -2218,14 +2222,72 @@ class _RoomScreenState extends State<RoomScreen>
   }
 
   /// Sends what came out of the editor.
-  void _sendEdited(EditorSend outcome) {
-    final img = outcome.image;
+  void _sendEdited(EditorSend outcome) =>
+      _sendPhoto(outcome.image, viewOnce: outcome.viewOnce);
+
+  /// Sends one finished photograph. The single funnel for both photo paths —
+  /// the editor's one picture and the tray's several — so a change to how a
+  /// photo becomes a message cannot land on one of them and not the other.
+  void _sendPhoto(CroppedImage image, {required bool viewOnce}) {
     _sendMedia(
-      bytes: img.bytes,
+      bytes: image.bytes,
       type: MessageType.image,
-      contentType: img.contentType,
-      pixelSize: Size(img.width.toDouble(), img.height.toDouble()),
-      viewOnce: outcome.viewOnce,
+      contentType: image.contentType,
+      pixelSize: Size(image.width.toDouble(), image.height.toDouble()),
+      viewOnce: viewOnce,
+    );
+  }
+
+  /// Opens the fullscreen gallery on [m], swipeable across every picture and
+  /// clip in this conversation.
+  ///
+  /// The set is the transcript's own media in transcript order, which is the
+  /// only order that means anything from inside a chat: swiping right goes back
+  /// in time exactly as scrolling up does. It is a SNAPSHOT — a photo that
+  /// arrives while the gallery is open does not appear in it, and should not:
+  /// the rail would grow under the reader's thumb and the page they were
+  /// looking at would shift out from under them.
+  ///
+  /// [messageBelongsIn] rather than a hand-written filter, so this and the
+  /// shared-content MEDIA tab cannot come to disagree about what counts. It
+  /// already declines an armed view-once photo — a burn-on-open picture is not
+  /// something you swipe past — and anything with no storage id, which is what
+  /// a failed or still-running upload looks like.
+  Future<void> _openGallery(ChatMessage m) async {
+    final media = [
+      for (final x in widget.repo.timelineFor(widget.roomId))
+        if (messageBelongsIn(x, RoomContentTab.media)) x,
+    ];
+    final start = media.indexWhere((x) => x.id == m.id);
+    final id = m.mediaStorageId;
+    if (start < 0) {
+      // Tapped something the set does not contain. One picture is still better
+      // than none — the same lone viewer a bubble outside a room gets.
+      if (id == null) return;
+      await FullscreenImageViewer.open(
+        context,
+        storageId: id,
+        api: widget.api,
+        heroTag: bubbleMediaHeroTag(m),
+      );
+      return;
+    }
+
+    await MediaPagerScreen.open(
+      context,
+      items: media,
+      initialIndex: start,
+      api: widget.api,
+      // The transcript's tags, not the shared-content grid's. Without this the
+      // gallery would fly from a hero nothing in this route carries, and every
+      // open would degrade to a cross-fade.
+      heroTagFor: bubbleMediaHeroTag,
+      onShowInChat: (msg) {
+        // Pop the pager (a root-navigator route) before travelling, or the
+        // transcript would scroll along behind a fullscreen photograph.
+        Navigator.of(context, rootNavigator: true).pop();
+        _jumpToMessage(msg.id, from: m);
+      },
     );
   }
 
@@ -2260,33 +2322,103 @@ class _RoomScreenState extends State<RoomScreen>
     );
   }
 
+  /// Puts one or more photographs in front of the user before anything is sent.
+  ///
+  /// The picker is `pickMultiImage`, not `pickImage`, and that is the whole
+  /// feature: the library sheet has always been able to hand back a set, and
+  /// asking it for one picture meant that sending four cost four trips through
+  /// the attachment sheet, the OS picker and the editor — with the four photos
+  /// landing in the conversation interleaved with whatever else arrived while
+  /// the sender was going back for the next one.
+  ///
+  /// One picture still goes straight to the editor. It is the better screen for
+  /// the case where all the attention is on one photograph, it is where the pen
+  /// and the cropper live, and a review tray showing a rail of exactly one
+  /// thumbnail would be furniture answering a question nobody asked. Several go
+  /// to [PhotoTrayScreen], which is that screen for a set.
+  ///
+  /// The scrim is raised BEFORE the picker, not after it. `pickerImageQuality`
+  /// forces the plugin to fully decode and re-encode every chosen asset —
+  /// seconds for a dozen 12 megapixel HEICs — and that work happens once the
+  /// native sheet has already slid away, so the user used to be handed back an
+  /// unchanged chat screen and left to guess whether their tap had landed.
+  ///
+  /// Held for the whole method rather than lowered at the handoff: the editor
+  /// and the tray both paint over the scrim and raise a spinner of their own
+  /// while they decode, so there is no frame where nothing is spinning. One
+  /// raise, one lower, no interleaving around a route push.
   Future<void> _pickAndSendFromGallery() async {
-    // Raised BEFORE the picker, not after it. `pickerImageQuality` forces the
-    // plugin to fully decode and re-encode the chosen asset — seconds for a
-    // 12 megapixel HEIC — and that work happens once the native sheet has
-    // already slid away, so the user used to be handed back an unchanged chat
-    // screen and left to guess whether their tap had landed.
-    //
-    // Held for the whole method rather than lowered at the handoff: the editor
-    // route paints over the scrim, and the editor raises a spinner of its own
-    // while it decodes, so there is no frame where nothing is spinning. One
-    // raise, one lower, no interleaving around a route push.
     _setMediaBusy(true);
     try {
-      final picker = ImagePicker();
-      final picked = await picker.pickImage(
-        source: ImageSource.gallery,
+      final picked = await ImagePicker().pickMultiImage(
         imageQuality: pickerImageQuality,
+        // The OS enforces it, so the refusal happens while the user is still
+        // looking at their library rather than after they have chosen thirty.
+        limit: kMaxPhotoSelection,
       );
-      if (picked == null) return;
-      final bytes = await picked.readAsBytes();
+      if (picked.isEmpty || !mounted) return;
+
+      if (picked.length == 1) {
+        final bytes = await picked.first.readAsBytes();
+        if (!mounted) return;
+        // Route through the same editor the camera path uses — a preview,
+        // optional annotation, and a deliberate "send" tap instead of shipping
+        // the photo the moment it is picked. No retake: there is no camera
+        // behind this photo to go back to.
+        final outcome = await CameraEditorScreen.open(context, source: bytes);
+        if (outcome is EditorSend) _sendEdited(outcome);
+        return;
+      }
+
+      // Resolved before the awaits below, which are async gaps after which
+      // touching `context` is unsafe — the same up-front capture the file pick
+      // and the pin paths make.
+      final messenger = ScaffoldMessenger.of(context);
+      final loc = AppLocalizations.of(context);
+
+      // `limit` above is honoured by the iOS and Android pickers and by nothing
+      // else — `file_selector`-backed web and desktop implementations ignore it.
+      // Trimming here rather than letting thirty photographs through keeps the
+      // send inside the repository's retained-upload budget, and saying so is
+      // better than a batch that half-fails at the far end.
+      final within = picked.length > kMaxPhotoSelection
+          ? picked.sublist(0, kMaxPhotoSelection)
+          : picked;
+      if (within.length < picked.length) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(loc.photoTrayLimitSnack(kMaxPhotoSelection))),
+        );
+      }
+
+      final read = await readPickedPhotos(within);
       if (!mounted) return;
-      // Route through the same editor the camera path uses — gives the user a
-      // preview, optional annotation, and a deliberate "send" tap instead of
-      // shipping the photo the moment they pick it. No retake: there is no
-      // camera behind this photo to go back to.
-      final outcome = await CameraEditorScreen.open(context, source: bytes);
-      if (outcome is EditorSend) _sendEdited(outcome);
+      if (read.bytes.isEmpty) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(loc.photoTrayLoadFailedSnack)),
+        );
+        return;
+      }
+
+      final send = await PhotoTrayScreen.open(context, photos: read.bytes);
+      if (!mounted) return;
+      if (send != null) {
+        // In the rail's order, and synchronously: `sendMediaLocal` puts an
+        // optimistic bubble up per call, so the transcript grows the album in
+        // the order the sender arranged it rather than in whatever order the
+        // uploads happen to finish.
+        for (final image in send.images) {
+          _sendPhoto(image, viewOnce: send.viewOnce);
+        }
+      }
+      // Counted across both halves: a photo the platform would not hand over at
+      // all, and one whose bytes would not decode at export. Either way the
+      // send is smaller than what was chosen, and saying so is better than
+      // letting the user count bubbles.
+      if (read.dropped > 0 || (send?.dropped ?? 0) > 0) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(loc.photoTrayLoadFailedSnack)),
+        );
+      }
     } finally {
       _setMediaBusy(false);
     }
@@ -2547,34 +2679,40 @@ class _RoomScreenState extends State<RoomScreen>
     // keyboard animates. (The builder still re-runs on every keyboard frame,
     // but the width doesn't move, so ChatMetricsScope.updateShouldNotify
     // returns false and nothing below rebuilds.)
-    return SpeakerScope(
-      // A DM hands out no colours at all. Two people, two margins — the layout
-      // has already said everything a colour could, and tinting the one
-      // incoming bubble would just be a second accent.
-      slots: room.isDm ? SpeakerSlots.none : _speakerSlots,
-      child: ChatPane(
-        // Back cancels a selection before it leaves the room — the selection
-        // bar has its own CANCEL, but a system back that walked out of the chat
-        // instead of out of the mode would be the wrong kind of surprising.
-        child: PopScope(
-          canPop: !_selection.active,
-          onPopInvokedWithResult: (didPop, _) {
-            if (!didPop) _selection.clear();
-          },
-          child: Scaffold(
-            backgroundColor: Colors.transparent,
-            body: Stack(
-              children: [
-                theme.backgroundLayer(context),
-                if (chatStyle == ChatStyle.classic)
-                  _buildClassic(context, room, messages, items, me)
-                else
-                  _buildLiquid(context, room, messages, items, me),
-                // Last, so it covers the header and the composer too — a scrim
-                // that dims the transcript but leaves a live attach button
-                // underneath it is an invitation to make the problem worse.
-                if (_mediaBusy) const BusyScrim(),
-              ],
+    // Every photo bubble below reads this out of the tree instead of being
+    // handed a callback it would have to carry through five widgets. See the
+    // scope's own doc for why it is an inherited widget and not a parameter.
+    return RoomGalleryScope(
+      openGallery: _openGallery,
+      child: SpeakerScope(
+        // A DM hands out no colours at all. Two people, two margins — the layout
+        // has already said everything a colour could, and tinting the one
+        // incoming bubble would just be a second accent.
+        slots: room.isDm ? SpeakerSlots.none : _speakerSlots,
+        child: ChatPane(
+          // Back cancels a selection before it leaves the room — the selection
+          // bar has its own CANCEL, but a system back that walked out of the chat
+          // instead of out of the mode would be the wrong kind of surprising.
+          child: PopScope(
+            canPop: !_selection.active,
+            onPopInvokedWithResult: (didPop, _) {
+              if (!didPop) _selection.clear();
+            },
+            child: Scaffold(
+              backgroundColor: Colors.transparent,
+              body: Stack(
+                children: [
+                  theme.backgroundLayer(context),
+                  if (chatStyle == ChatStyle.classic)
+                    _buildClassic(context, room, messages, items, me)
+                  else
+                    _buildLiquid(context, room, messages, items, me),
+                  // Last, so it covers the header and the composer too — a scrim
+                  // that dims the transcript but leaves a live attach button
+                  // underneath it is an invitation to make the problem worse.
+                  if (_mediaBusy) const BusyScrim(),
+                ],
+              ),
             ),
           ),
         ),

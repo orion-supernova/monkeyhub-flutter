@@ -3566,6 +3566,38 @@
   "@photoChromeShowInChatSemanticLabel": {
     "description": "Accessibility/semantic label for the button in the fullscreen media pager that pops back and jumps to this message's location in the chat thread."
   },
+  "photoChromeThumbnailSemanticLabel": "Item {current} of {total}",
+  "@photoChromeThumbnailSemanticLabel": {
+    "description": "Accessibility label on one tile of the fullscreen gallery's thumbnail rail. {current} is the tile's 1-based position, {total} the number of items in the gallery."
+  },
+  "photoTrayCountLabel": "{count, plural, =1{1 photo} other{{count} photos}}",
+  "@photoTrayCountLabel": {
+    "description": "Badge at the top of the multi-photo tray showing how many pictures are staged for sending. {count} is that number."
+  },
+  "photoTrayDiscardSemanticLabel": "discard these photos",
+  "@photoTrayDiscardSemanticLabel": {
+    "description": "Accessibility label for the X button that leaves the multi-photo tray without sending anything."
+  },
+  "photoTrayRemoveSemanticLabel": "remove this photo",
+  "@photoTrayRemoveSemanticLabel": {
+    "description": "Accessibility label for the small dismiss badge on a thumbnail in the multi-photo tray, which drops that one picture from the send."
+  },
+  "photoTrayEditSemanticLabel": "crop or draw on this photo",
+  "@photoTrayEditSemanticLabel": {
+    "description": "Accessibility label for the button in the multi-photo tray that opens the photo editor on the picture currently being previewed."
+  },
+  "photoTrayAddMoreSemanticLabel": "add more photos",
+  "@photoTrayAddMoreSemanticLabel": {
+    "description": "Accessibility label for the trailing + tile on the multi-photo tray's thumbnail rail, which reopens the system picker and appends to the selection."
+  },
+  "photoTrayLimitSnack": "you can send {count} photos at a time",
+  "@photoTrayLimitSnack": {
+    "description": "SnackBar shown when the user tries to add more pictures to the multi-photo tray than one send allows. {count} is the cap."
+  },
+  "photoTrayLoadFailedSnack": "some of those photos couldn’t be opened",
+  "@photoTrayLoadFailedSnack": {
+    "description": "SnackBar shown when one or more chosen pictures could not be read back from the device, so they were skipped."
+  },
   "typingIndicatorOnePersonTyping": "{name} is typing",
   "@typingIndicatorOnePersonTyping": {
     "description": "Typing indicator label (room header, typing row, compact pill) when exactly one person is typing; {name} is the typist's display name."

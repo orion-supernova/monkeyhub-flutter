@@ -3014,6 +3014,41 @@ class AppLocalizationsJa extends AppLocalizations {
   String get photoChromeShowInChatSemanticLabel => 'チャットで表示';
 
   @override
+  String photoChromeThumbnailSemanticLabel(Object current, Object total) {
+    return '$total 件中 $current 件目';
+  }
+
+  @override
+  String photoTrayCountLabel(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '写真 $count 枚',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get photoTrayDiscardSemanticLabel => 'これらの写真を破棄';
+
+  @override
+  String get photoTrayRemoveSemanticLabel => 'この写真を外す';
+
+  @override
+  String get photoTrayEditSemanticLabel => 'この写真をトリミング・描き込み';
+
+  @override
+  String get photoTrayAddMoreSemanticLabel => '写真を追加';
+
+  @override
+  String photoTrayLimitSnack(Object count) {
+    return '一度に送れる写真は $count 枚までです';
+  }
+
+  @override
+  String get photoTrayLoadFailedSnack => '一部の写真を開けませんでした';
+
+  @override
   String typingIndicatorOnePersonTyping(Object name) {
     return '$nameが入力中…';
   }

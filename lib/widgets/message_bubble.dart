@@ -32,6 +32,7 @@ import 'message_stamp.dart';
 import 'photo_chrome.dart';
 import 'reaction_bubble.dart';
 import 'remote_image.dart';
+import 'room_gallery_scope.dart';
 import 'steady_hero.dart';
 import 'reply_indicator.dart';
 import 'speaker_scope.dart';
@@ -1278,12 +1279,9 @@ Widget buildMessageContent({
     case MessageType.video:
       final videoUpload = message.upload;
       final videoStorageId = message.mediaStorageId;
-      // Matches the photo bubble's `msg-image-<id>`, and deliberately a
-      // different string: a video and a photo are never the same message, but
-      // the shared-content grid also flies these ids under its own prefix and
-      // two heroes sharing a tag across routes that both join a flight is an
-      // assertion rather than a graceful degrade.
-      final videoHeroTag = useHero ? 'msg-video-${message.id}' : null;
+      // See [bubbleMediaHeroTag] for why a video's tag is deliberately not
+      // the photo bubble's.
+      final videoHeroTag = useHero ? bubbleMediaHeroTag(message) : null;
       final videoTile = StampedMedia(
         tile: ClipRRect(
           borderRadius: mediaRadius,
@@ -1978,6 +1976,22 @@ class _ImageTile extends StatefulWidget {
   State<_ImageTile> createState() => _ImageTileState();
 }
 
+/// The [Hero] tag the transcript's bubble for [message] flies under.
+///
+/// Public and shared because the fullscreen gallery has to build the SAME
+/// string to have anywhere to fly from: it is handed a list of messages, not a
+/// list of widgets, and a tag it guessed differently is a tag that matches
+/// nothing and degrades silently to a cross-fade.
+///
+/// A photo and a video get deliberately different prefixes. They are never the
+/// same message, but the shared-content grid flies these ids under a prefix of
+/// its own, and two heroes sharing a tag across routes that both join one
+/// flight is an assertion rather than a graceful degrade.
+Object bubbleMediaHeroTag(ChatMessage message) =>
+    message.type == MessageType.video
+        ? 'msg-video-${message.id}'
+        : 'msg-image-${message.id}';
+
 class _ImageTileState extends State<_ImageTile> {
   double? _aspect;
 
@@ -2013,11 +2027,21 @@ class _ImageTileState extends State<_ImageTile> {
     setState(() => _aspect = aspect);
   }
 
-  String get _heroTag => 'msg-image-${widget.message.id}';
+  Object get _heroTag => bubbleMediaHeroTag(widget.message);
 
+  /// Opens this photograph fullscreen.
+  ///
+  /// The gallery when there is a conversation behind it, and a lone viewer when
+  /// there is not. Both are a round trip, and both hide the stamp for its
+  /// duration — see [_viewing].
   Future<void> _openViewer() async {
+    final gallery = RoomGalleryScope.maybeOf(context);
     setState(() => _viewing = true);
     try {
+      if (gallery != null) {
+        await gallery.openGallery(widget.message);
+        return;
+      }
       await FullscreenImageViewer.open(
         context,
         storageId: widget.storageId,

@@ -5439,6 +5439,54 @@ abstract class AppLocalizations {
   /// **'Show in chat'**
   String get photoChromeShowInChatSemanticLabel;
 
+  /// Accessibility label on one tile of the fullscreen gallery's thumbnail rail. {current} is the tile's 1-based position, {total} the number of items in the gallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Item {current} of {total}'**
+  String photoChromeThumbnailSemanticLabel(Object current, Object total);
+
+  /// Badge at the top of the multi-photo tray showing how many pictures are staged for sending. {count} is that number.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 photo} other{{count} photos}}'**
+  String photoTrayCountLabel(num count);
+
+  /// Accessibility label for the X button that leaves the multi-photo tray without sending anything.
+  ///
+  /// In en, this message translates to:
+  /// **'discard these photos'**
+  String get photoTrayDiscardSemanticLabel;
+
+  /// Accessibility label for the small dismiss badge on a thumbnail in the multi-photo tray, which drops that one picture from the send.
+  ///
+  /// In en, this message translates to:
+  /// **'remove this photo'**
+  String get photoTrayRemoveSemanticLabel;
+
+  /// Accessibility label for the button in the multi-photo tray that opens the photo editor on the picture currently being previewed.
+  ///
+  /// In en, this message translates to:
+  /// **'crop or draw on this photo'**
+  String get photoTrayEditSemanticLabel;
+
+  /// Accessibility label for the trailing + tile on the multi-photo tray's thumbnail rail, which reopens the system picker and appends to the selection.
+  ///
+  /// In en, this message translates to:
+  /// **'add more photos'**
+  String get photoTrayAddMoreSemanticLabel;
+
+  /// SnackBar shown when the user tries to add more pictures to the multi-photo tray than one send allows. {count} is the cap.
+  ///
+  /// In en, this message translates to:
+  /// **'you can send {count} photos at a time'**
+  String photoTrayLimitSnack(Object count);
+
+  /// SnackBar shown when one or more chosen pictures could not be read back from the device, so they were skipped.
+  ///
+  /// In en, this message translates to:
+  /// **'some of those photos couldn’t be opened'**
+  String get photoTrayLoadFailedSnack;
+
   /// Typing indicator label (room header, typing row, compact pill) when exactly one person is typing; {name} is the typist's display name.
   ///
   /// In en, this message translates to:
