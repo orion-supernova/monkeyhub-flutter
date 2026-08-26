@@ -24,6 +24,7 @@ import 'audio_message.dart';
 import 'file_message.dart';
 import 'link_confirm_sheet.dart';
 import 'link_preview_card.dart';
+import 'jumbo_emoji.dart';
 import 'linkified_text.dart';
 import 'location_bubble.dart';
 import 'text_runs.dart';
@@ -685,7 +686,8 @@ class EphemeralMessageBubble extends StatelessWidget {
           // Only the fallback row needs its own dissolve fade — a stamp inside
           // the bubble is already carried by the bubble's own blur and opacity.
           meta: messageStampsInline(message,
-                  showLinkUrls: SettingsStore.instance.showLinkUrls)
+                  showLinkUrls: SettingsStore.instance.showLinkUrls,
+                  ephemeral: true)
               ? null
               : Opacity(
                   opacity: 1 - dissolveT,
@@ -914,7 +916,8 @@ class _BubbleLayout extends StatelessWidget {
 /// photo whose storage id never arrived is a bare error plate. Both keep the
 /// external row they always had, which is why `_BubbleLayout.meta` is nullable
 /// rather than gone.
-bool messageStampsInline(ChatMessage message, {required bool showLinkUrls}) {
+bool messageStampsInline(ChatMessage message,
+    {required bool showLinkUrls, bool ephemeral = false}) {
   switch (message.type) {
     case MessageType.image:
       // `viewOnce` is its own clause because a sealed photo never carries a
@@ -954,8 +957,37 @@ bool messageStampsInline(ChatMessage message, {required bool showLinkUrls}) {
       return false;
     case MessageType.text:
     case MessageType.url:
+      // A jumbo emoji has no bubble to tuck a stamp into and nothing opaque to
+      // lay one over — see [JumboEmojiBubble], which reads the same condition.
+      if (messageJumboEmoji(message, ephemeral: ephemeral) != null) return false;
       return !_isStandaloneLinkCard(message, showLinkUrls);
   }
+}
+
+/// The emoji run [message] should be drawn big and bare as, or null when it
+/// should keep its bubble.
+///
+/// One reading of the condition for all three of the things that have to agree
+/// about it: the content itself, the timestamp row (`messageStampsInline`) and
+/// the highlight halo's outline ([pulseShapeFor]).
+///
+/// Two vetoes beyond "is it emoji", both about something the bubble is
+/// carrying that the bare glyph could not:
+///
+///  * **Formatting.** A spoiler, a code span or a link entity over an emoji is
+///    drawn by the text pipeline, veil and all. There is nothing to gain by
+///    enlarging it and a working feature to lose.
+///  * **Ephemeral.** The frame IS the affordance — it is the only thing on
+///    screen saying this message will vanish, and it is what the dissolve
+///    signature is painted into. A disappearing message keeps its bubble.
+List<String>? messageJumboEmoji(ChatMessage message,
+    {required bool ephemeral}) {
+  if (ephemeral) return null;
+  if (message.type != MessageType.text && message.type != MessageType.url) {
+    return null;
+  }
+  if (message.formatting.isNotEmpty) return null;
+  return jumboEmojiRun(message.content);
 }
 
 /// Exactly the condition [_LinkAwareBubble] picks its card-only mode on
@@ -1086,6 +1118,7 @@ Widget buildMessageContent({
   final inline = messageStampsInline(
     message,
     showLinkUrls: SettingsStore.instance.showLinkUrls,
+    ephemeral: ephemeral,
   );
   MessageStamp? stampFor(StampTone tone) => inline
       ? MessageStamp(
@@ -1463,6 +1496,17 @@ Widget buildMessageContent({
       );
     case MessageType.url:
     case MessageType.text:
+      final jumbo = messageJumboEmoji(message, ephemeral: ephemeral);
+      if (jumbo != null) {
+        return JumboEmojiBubble(
+          // The client id, not the row id: an optimistic send swaps `id` the
+          // instant the server confirms it, and the entrance is spent per
+          // message, not per row. See [JumboEmojiBubble].
+          identity: message.clientId ?? message.id,
+          clusters: jumbo,
+          isMine: isMine,
+        );
+      }
       return _LinkAwareBubble(
         theme: theme,
         message: message,
@@ -2639,8 +2683,11 @@ ShapeBorder pulseShapeFor({
   bool firstInRun = true,
   bool lastInRun = true,
 }) {
-  final bare =
-      message.type == MessageType.image || message.type == MessageType.video;
+  // A jumbo emoji is bare for the same reason a photo is: there is no bubble
+  // under the halo, so the halo has to supply its own outline.
+  final bare = message.type == MessageType.image ||
+      message.type == MessageType.video ||
+      messageJumboEmoji(message, ephemeral: ephemeral) != null;
   if (bare) {
     return RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(theme.radiusLg),
