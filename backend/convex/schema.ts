@@ -757,7 +757,13 @@ export default defineSchema({
     ),
     // New fields
     // "text" | "image" | "video" | "videoNote" | "audio" | "file" | "url"
-    // | "system" | "location" | "liveLocation"
+    // | "system" | "location" | "liveLocation" | "poll" | "checklist" | "event"
+    //
+    // The last three are interactive messages, whose body lives in
+    // `messageInteractions` rather than here — see that table's header for why.
+    // `content` on such a row is the question, the checklist title or the event
+    // name, which is what makes every denormalized copy of it below correct
+    // without any of them knowing what a poll is.
     type: v.optional(v.string()),
     mediaStorageId: v.optional(v.id("_storage")),
     // Pixel size of `mediaStorageId`, recorded by the sender who already holds
@@ -1297,6 +1303,268 @@ export default defineSchema({
     // Account teardown. Not subsumed by `by_room_user_message` the way
     // `gameResults` subsumes its own — that index leads with `roomId`, so it
     // cannot answer "everything this user saved" without a full scan.
+    .index("by_user", ["userId"]),
+
+  // ── Interactive messages: polls, checklists and events ──────────────────────
+  //
+  // A message the room ANSWERS rather than reads. Three kinds today — a poll,
+  // a checklist and an event with RSVPs — and they share this one table
+  // because they are the same object with different words on it: a prompt, a
+  // fixed set of choices, and a tally of who picked what.
+  //
+  // ── Why the definition is not on `messages` ────────────────────────────────
+  //
+  // It would fit: `latitude`/`longitude` live there, and a poll's question and
+  // options are just as immutable as a pin's coordinates. But two of the three
+  // kinds mutate their own definition after they are sent — a checklist grows
+  // items, a poll gets closed — and `messages:list` is a live subscription that
+  // hands every row it reads to every member of the room. Patching a message
+  // document rebuilds the entire transcript on every device, which is the exact
+  // cost the `pinnedMessages` comment above refuses for the same reason. One
+  // person ticking "buy milk" would re-deliver a thousand messages to everyone.
+  //
+  // So the message row carries only `type` and `content` — and `content` is the
+  // question, the checklist title or the event name, deliberately. That single
+  // choice is what makes every existing denormalized copy of `content` correct
+  // for free: the room card preview, the push body, `replyToPreview`, search and
+  // the clipboard all already know what to do with a sentence. Nothing had to
+  // learn about polls to render one in a chat list.
+  //
+  // ── Why the tallies are on this row and not counted on read ────────────────
+  //
+  // Counting responses inside the read query would make the tally exact by
+  // construction, and it is what `messages:list` does for reactions. The
+  // difference is fan-out: that query re-reads one small index range per
+  // message, whereas a room-scoped read of interaction state would re-read
+  // EVERY response of EVERY poll in the room on every single vote, on the box
+  // `crons.ts:6-13` describes. Denormalizing moves that work to the writer,
+  // where it happens once.
+  //
+  // The counters cannot drift, and it is not care that stops them: `respond`
+  // does not increment anything. It writes the response row and then RECOUNTS
+  // this row from the full response set, in the same transaction — so the
+  // stored tally is a pure function of the rows it summarises, exactly like
+  // `galleryBucket` is a pure function of the message it describes.
+  messageInteractions: defineTable({
+    // The message this is the body of. One row per message, always — a
+    // `poll`-typed message with no row here renders as a bare prompt with no
+    // choices, which is why `interactions:create` writes both in one
+    // transaction and `removeMessageAndFanout` deletes both.
+    messageId: v.id("messages"),
+    // Denormalized exactly as `pinnedMessages` and `messageBookmarks`
+    // denormalize it, and for the same two reasons: the live read is
+    // "this room's interactions", and deriving the room from each message
+    // would be a get per row. Written server-side from `msg.roomId`, never
+    // taken from the client.
+    roomId: v.id("rooms"),
+    // "poll" | "checklist" | "event", mirroring `messages.type` on the row this
+    // belongs to. Stored rather than read back off the message because every
+    // query here ranges over THIS table and would otherwise need a `get` per
+    // row to find out what it was looking at.
+    kind: v.string(),
+    // Who posed it — and ALWAYS the same person as `messages.userId` on the row
+    // this belongs to. That is an invariant, not a coincidence, and it is
+    // load-bearing: this row is only ever written in the same transaction as
+    // its message and by the same caller (`interactions:create`, and
+    // `forkInteraction` for a forward, which makes the forwarder the author of
+    // their copy). It is what lets account teardown reach every interaction a
+    // departing user authored through the message sweep it already does, so
+    // this table needs no `by_creator` index — see `auth.ts`.
+    //
+    // A future path that wrote an interaction on somebody else's message would
+    // break that sweep silently. There is deliberately no such path.
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+
+    // ── The choices, and their tally ─────────────────────────────────────────
+    //
+    // A poll's options, a checklist's items, or the three RSVP buttons. One
+    // array for all three kinds because the read side is identical: walk it,
+    // draw a row per entry, show `count` against it.
+    //
+    // [id] is a stable token, NOT an array index, and that is load-bearing for
+    // exactly one kind: a checklist grows items after it is sent, and if ticks
+    // were keyed by position then adding an item above a ticked one would move
+    // the tick to a different task. Poll options and RSVP statuses cannot move,
+    // so for them the distinction costs nothing and buys uniformity.
+    //
+    // [count] and [respondents] are the recounted tally described above.
+    // `count` is the full number; `respondents` is the first
+    // `RESPONDENT_PREVIEW_CAP` of them, in the order they answered, so a card
+    // can show faces without a second query. The rest come from
+    // `interactions:respondents` when somebody taps through — the same
+    // count-inline / names-on-demand split `reactions` and its details sheet
+    // already use.
+    //
+    // [respondents] is ABSENT, not empty, on an anonymous poll. Not written
+    // rather than stripped on read, for the reason `posterStorageId` is not
+    // written on an armed send: a read-path filter is a list somebody has to
+    // remember to keep current, and the promise here ("nobody sees who voted")
+    // is the entire feature. A name that never reaches this row cannot leak
+    // from it. `interactionResponses` still records the voter — one vote per
+    // person has to be enforceable, and a vote has to be retractable — but
+    // nothing reads those rows out to a client for an anonymous poll.
+    choices: v.array(
+      v.object({
+        id: v.string(),
+        label: v.string(),
+        count: v.number(),
+        respondents: v.optional(
+          v.array(
+            v.object({
+              userId: v.id("users"),
+              // Snapshotted at response time, exactly as `messages.mentions`
+              // snapshots a handle beside its id and for the same reason: a
+              // card must render with no roster available — from the disk
+              // cache, in history containing someone who has since left.
+              name: v.string(),
+              at: v.number(),
+            })
+          )
+        ),
+      })
+    ),
+
+    // How many distinct people have answered at all. Not derivable from the
+    // per-choice counts once `multiple` is on, where one voter contributes to
+    // several — and "12 voted" is what a poll footer says, not "19 votes".
+    respondentCount: v.number(),
+
+    // ── Poll ─────────────────────────────────────────────────────────────────
+    //
+    // All four absent on the other two kinds. Sparse rather than defaulted for
+    // the reason the whole schema is: an absent field affords nothing to a
+    // client that predates it.
+    //
+    // [multiple] lets one voter pick several options. [anonymous] is the
+    // toggle described above, and is OFF by default — a poll in a group chat
+    // is a conversation, and who said what is the interesting half of it.
+    multiple: v.optional(v.boolean()),
+    anonymous: v.optional(v.boolean()),
+    // Quiz mode: exactly one option is right, and getting it wrong is the
+    // point. Implies single-answer and no retraction — see `interactions.respond`.
+    quiz: v.optional(v.boolean()),
+    // Which choice is the correct one, and the optional note explaining it.
+    //
+    // WITHHELD on read from anyone who has not answered yet — see
+    // `sanitizeInteraction`. Unlike `respondents` above this one cannot simply
+    // be left unwritten, because the server has to know the answer to mark
+    // anybody right; so this is the one field here that a read-path filter
+    // genuinely guards, and the filter is written as a whitelist of what a
+    // pre-answer viewer gets rather than a blacklist of what they don't.
+    correctChoiceId: v.optional(v.string()),
+    explanation: v.optional(v.string()),
+
+    // ── Checklist ────────────────────────────────────────────────────────────
+    //
+    // Who, other than the author, may act on it. Both default ON — a checklist
+    // one person can tick is a note, not a shared list — and both are enforced
+    // server-side in `respond` and `addItem`, not merely hidden client-side.
+    othersMayCheck: v.optional(v.boolean()),
+    othersMayAdd: v.optional(v.boolean()),
+    // The next item id to hand out, as a monotone counter.
+    //
+    // NOT `choices.length`, and the difference is a correctness bug rather
+    // than a style choice: removing an item and adding another would reuse the
+    // dead item's id, and any tick still holding that id — a delete that raced
+    // a tick, a client replaying a queued one — would reappear on the new
+    // task. A counter that only ever goes up cannot be made to point at two
+    // different things. Absent on lists written before it existed, which is
+    // safe to fall back to the length for: nothing could remove an item from
+    // one of those, so no id has ever been retired.
+    nextItemId: v.optional(v.number()),
+
+    // ── Event ────────────────────────────────────────────────────────────────
+    //
+    // Unix ms, and [startsAt] is the only required half — an event with no end
+    // is the ordinary case ("dinner at 8"), and inventing a duration for it
+    // would put a wrong fact on the card. [place] is free text, deliberately
+    // NOT coordinates: an address someone typed is a thing they chose to say,
+    // whereas a pin is a location share, and this table is not the place to
+    // grow a second one of those with none of `messages`' safeguards.
+    startsAt: v.optional(v.number()),
+    endsAt: v.optional(v.number()),
+    place: v.optional(v.string()),
+
+    // ── Closing ──────────────────────────────────────────────────────────────
+    //
+    // Set when the author or a room admin ends it. A closed interaction takes
+    // no further responses and reveals a quiz's answer to everybody. One-way:
+    // there is no reopen, because "the results are final" is the only thing
+    // closing communicates and a reopen would make it a lie.
+    closedAt: v.optional(v.number()),
+    closedBy: v.optional(v.id("users")),
+  })
+    // The one-row-per-message lookup: every mutation here starts by resolving
+    // the message it was handed, and `removeMessageAndFanout` holds a messageId
+    // and no room scope.
+    .index("by_message", ["messageId"])
+    // The room's live window, and `wipeRoomCompletely`'s by-room sweep as a
+    // prefix scan on `roomId` alone. Time-ordered because `listForRoom` takes
+    // the newest N — see the comment there on why the window matches
+    // `messages:list`'s own.
+    //
+    // No `by_creator`, unlike `reactions.by_user` and `pinnedMessages.by_user`.
+    // Those exist because a reaction or a pin can sit on somebody else's
+    // message, so account teardown cannot reach them through the sender sweep.
+    // An interaction never can — see the invariant on `createdBy` above — so
+    // the index would be write cost for a query nothing needs to make.
+    .index("by_room_time", ["roomId", "createdAt"]),
+
+  // One person's answer to one choice: a vote, a tick, or an RSVP.
+  //
+  // The authoritative record; `messageInteractions.choices[].count` is only its
+  // summary. Rows exist here even for an anonymous poll, because one-vote-per-
+  // person has to be enforceable and a vote has to be retractable — neither is
+  // possible against a counter. What anonymity changes is that nothing reads
+  // these rows out to a client: the tally is written without names, and
+  // `interactions:respondents` refuses the poll outright.
+  //
+  // A row per (message, user, choice) rather than one row per (message, user)
+  // holding an array, because `multiple` polls let one person pick several and
+  // an array would make "add one vote" a read-modify-write of somebody's whole
+  // ballot. Single-answer kinds enforce their own cardinality by deleting the
+  // old row in the same transaction as the new one.
+  interactionResponses: defineTable({
+    messageId: v.id("messages"),
+    // Denormalized for the account- and room-teardown sweeps, exactly as the
+    // table above denormalizes it.
+    roomId: v.id("rooms"),
+    userId: v.id("users"),
+    // Which choice — `messageInteractions.choices[].id`, and a string for all
+    // three kinds so one index serves them: a poll option's ordinal, a
+    // checklist item's stable id, or one of the three RSVP tokens.
+    choiceId: v.string(),
+    // Snapshotted beside the id, like `messages.mentions` and like the
+    // `respondents` preview this feeds. A respondents sheet that resolved names
+    // live would re-read a `users` row per voter inside a reactive query — the
+    // precise mistake `messages:list`'s header warns about, where one person
+    // going offline refires the query for everyone.
+    userName: v.string(),
+    createdAt: v.number(),
+  })
+    // Four reads off one index, because Convex indexes are prefix-scannable:
+    // the recount (`messageId` alone, which is also the per-choice bucketing —
+    // see below), this voter's existing ballot (`messageId`+`userId`), the
+    // idempotence probe and the retract lookup (all three).
+    //
+    // There is deliberately NO `by_message_choice`. It looks like the right
+    // index for "who picked option 2", but the recount in `respond` already
+    // reads every response for the message in one prefix scan on this index —
+    // so that read exists and is the real bound either way, and the
+    // respondents sheet can bucket the same scan in JS. A second index would
+    // add write amplification to the hottest table this feature has in
+    // exchange for a scan the writer is already paying for.
+    .index("by_message_user", ["messageId", "userId", "choiceId"])
+    // "Everything I answered in this room", which is the per-viewer half of
+    // the room's live state — and `wipeRoomCompletely`'s sweep as a prefix on
+    // `roomId`. Scoping the live read to one reader's own rows is what keeps
+    // one person voting out of every other member's read set; the tally
+    // refires them, and nothing else does. Same trick as
+    // `speakerColors.by_viewer_room_subject`.
+    .index("by_room_user", ["roomId", "userId"])
+    // Account teardown. Not subsumed by `by_room_user` — that leads with
+    // `roomId`, so it cannot answer "everything this user answered".
     .index("by_user", ["userId"]),
 
   // One reader's manual colour choices for the people in a room.

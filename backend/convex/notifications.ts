@@ -169,7 +169,19 @@ export const sendMessagePush = internalAction({
                       // one deliberate tap to see, not a glance from across a
                       // table.
                       "📍 Live location"
-                    : "New message";
+                    : // The three interactive kinds. `content` here is the room
+                      // preview `send` already computed, which for these is
+                      // `[poll] <the question>` — see `roomPreviewFor`. Stripping
+                      // that machine-readable prefix and putting a glyph in front
+                      // of the question is the same move the document case above
+                      // makes with a filename, and for the same reason: what the
+                      // poll ASKS is the thing worth waking somebody for, and
+                      // "New message" is the thing that is not.
+                      type === "poll" || type === "checklist" || type === "event"
+                      ? `${
+                          type === "poll" ? "📊" : type === "checklist" ? "☑️" : "📅"
+                        } ${content.replace(/^\[\w+\]\s*/, "")}`.trim()
+                      : "New message";
 
     // Who, of this room, was named. `@everyone` makes that everybody, which is
     // the whole point of it — every recipient below is already the roster minus

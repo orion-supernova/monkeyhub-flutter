@@ -31,6 +31,8 @@ import type * as games_zip from "../games/zip.js";
 import type * as groupCalls from "../groupCalls.js";
 import type * as http from "../http.js";
 import type * as idToken from "../idToken.js";
+import type * as interactionCore from "../interactionCore.js";
+import type * as interactions from "../interactions.js";
 import type * as messages from "../messages.js";
 import type * as migrations from "../migrations.js";
 import type * as mute from "../mute.js";
@@ -95,6 +97,8 @@ declare const fullApi: ApiFromModules<{
   groupCalls: typeof groupCalls;
   http: typeof http;
   idToken: typeof idToken;
+  interactionCore: typeof interactionCore;
+  interactions: typeof interactions;
   messages: typeof messages;
   migrations: typeof migrations;
   mute: typeof mute;

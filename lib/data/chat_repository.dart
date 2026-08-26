@@ -15,6 +15,7 @@ import '../models/location_share.dart';
 import '../models/message_bookmark.dart';
 import '../models/message_capabilities.dart';
 import '../models/message_formatting.dart';
+import '../models/message_interaction.dart';
 import '../models/pending_upload.dart';
 import '../models/room_admin.dart';
 import '../models/room_capabilities.dart';
@@ -267,6 +268,7 @@ class ChatRepository extends ChangeNotifier {
   Subscription? _pinsSub;
   Subscription? _bookmarksSub;
   Subscription? _scheduledSub;
+  Subscription? _interactionsSub;
 
   /// Pinned messages, keyed by room.
   ///
@@ -290,6 +292,35 @@ class ChatRepository extends ChangeNotifier {
   /// reason [_bookmarks] does — the query is keyed by (room, author), and a
   /// scheduled message is private to its author until it sends.
   final Map<String, List<ScheduledMessage>> _scheduled = {};
+
+  /// Poll, checklist and event bodies for the open room: messageId →
+  /// [MessageInteraction], keyed by room like everything above it.
+  ///
+  /// A SECOND map rather than fields on the [ChatMessage] in `_messages`,
+  /// mirroring the split the backend makes and for the same reason: a vote must
+  /// not rebuild the transcript. Merging the two here would undo that on the
+  /// client — every tally change would rewrite the message list, and every
+  /// widget that rebuilds off it would rebuild.
+  ///
+  /// Filled from two sources that must not fight, so both go through
+  /// [_mergeInteractions] and neither ever clears the map. The
+  /// `interactions:listForRoom` subscription owns the newest hundred and
+  /// upserts them on every fire; [_hydrateInteractions] fills in older ones a
+  /// page load brought into view, one shot each. A fire that replaced the map
+  /// wholesale would blank every scrolled-back poll on the next vote anybody
+  /// cast — the live window does not mention them, and "not mentioned" is not
+  /// "gone".
+  final Map<String, Map<String, MessageInteraction>> _interactions = {};
+
+  /// Message ids [_hydrateInteractions] has already asked the server about,
+  /// keyed by room.
+  ///
+  /// Without this, every `notifyListeners()` that repaints a scrolled-back poll
+  /// would re-issue the same one-shot query — a room the reader is idly
+  /// scrolling would fetch the same rows continuously. Ids are remembered
+  /// whether or not the fetch found anything, because "this old message has no
+  /// interaction row" is an answer worth keeping too.
+  final Map<String, Set<String>> _interactionsAsked = {};
   Timer? _typingHeartbeat;
   bool _typingActive = false;
 
@@ -761,6 +792,11 @@ class ChatRepository extends ChangeNotifier {
     // And these are the previous account's PRIVATE room state, so if anything
     // the case for dropping them is stronger.
     _bookmarks.clear();
+    // Poll state, which is both: the tallies are shared, but `myChoiceIds` is
+    // the departing account's own ballot. Leaving it would show the next person
+    // on this handset their predecessor's votes rendered as their own.
+    _interactions.clear();
+    _interactionsAsked.clear();
     // How the departing account chose to read the rooms it was in. Same
     // argument as the bookmarks above — private, per-account state — with one
     // sharper consequence if it were left: the next person on this handset
@@ -1157,6 +1193,7 @@ class ChatRepository extends ChangeNotifier {
     _pinsSub?.cancel();
     _bookmarksSub?.cancel();
     _scheduledSub?.cancel();
+    _interactionsSub?.cancel();
     // Nulled immediately, not just reassigned at the end: this open can now
     // bail at any of the `gen` checks below, and [closeRoom] would otherwise
     // find and re-cancel a handle that is already dead.
@@ -1166,6 +1203,7 @@ class ChatRepository extends ChangeNotifier {
     _pinsSub = null;
     _bookmarksSub = null;
     _scheduledSub = null;
+    _interactionsSub = null;
     // Dropped here rather than beside the new subscription below: several
     // awaits separate the two, and until then the old room would keep serving
     // whoever was typing in it when we left.
@@ -1306,6 +1344,58 @@ class ChatRepository extends ChangeNotifier {
       return;
     }
     _pinsSub = pinsSub;
+
+    // Poll, checklist and event state for this room's live window.
+    //
+    // Its own subscription and NOT part of `messages:list`, for the reason the
+    // backend splits the tables: that query re-delivers a hundred messages to
+    // every member whenever anything it reads changes, and a tally changes far
+    // too often to ride on it. Here a vote re-delivers a handful of small rows.
+    //
+    // Registered beside the pins, and unconditional like them: `viewerUserId`
+    // is optional server-side, so a signed-out reader still gets the tallies
+    // and simply has no `myChoiceIds` — which is the correct state rather than
+    // a gap. No paired one-shot fetch, for the same reason the pins have none:
+    // a card renders its prompt from the message the moment the transcript
+    // lands, and grows its choices when this arrives.
+    final interactionsSub = await cv.subscribe(
+      'interactions:listForRoom',
+      {'roomId': roomId, 'viewerUserId': ?me},
+      onData: (data) {
+        final list = (data as List?) ?? const [];
+        _mergeInteractions(
+          roomId,
+          list
+              .whereType<Map>()
+              .map((e) =>
+                  MessageInteraction.fromJson(e.cast<String, dynamic>()))
+              .toList(),
+          // THE server's own word on the live window. Anything this fire does
+          // not mention has either scrolled out of the window or been deleted,
+          // and a pending tap on it is spent either way — see
+          // [_mergeInteractions].
+          authoritative: true,
+        );
+        // Written from the MERGED map rather than from `list`, so a poll
+        // scrolled back to and hydrated by [ensureInteractionsFor] survives a
+        // relaunch too — the live window does not mention it, and saving only
+        // what this fire carried would quietly drop it.
+        if (me != null) {
+          CacheStore.instance.scheduleSaveInteractions(
+            me,
+            roomId,
+            _interactions[roomId]?.values ?? const [],
+          );
+        }
+        notifyListeners();
+      },
+      onError: (err) => debugPrint('interactions sub error: $err'),
+    );
+    if (gen != _openGen) {
+      interactionsSub.cancel();
+      return;
+    }
+    _interactionsSub = interactionsSub;
 
     // This viewer's saved messages. Registered beside the pins for the same
     // reasons, and gated on `me` because unlike `viewerUserId` above the
@@ -1471,12 +1561,14 @@ class ChatRepository extends ChangeNotifier {
     _pinsSub?.cancel();
     _bookmarksSub?.cancel();
     _scheduledSub?.cancel();
+    _interactionsSub?.cancel();
     _messagesSub = null;
     _activeTypingSub = null;
     _readStateSub = null;
     _pinsSub = null;
     _bookmarksSub = null;
     _scheduledSub = null;
+    _interactionsSub = null;
     _activeRoomId = null;
     // Hand the room back to the global stream's name-only entry.
     _openTypingRoomId = null;
@@ -1486,6 +1578,13 @@ class ChatRepository extends ChangeNotifier {
     _loadingOlder.clear();
     _exhausted.clear();
     _olderPrefix.clear();
+    // The asked-for set, but NOT `_interactions` itself: the tallies are kept
+    // exactly as `_pins` and `_messages` are, so re-entering the room paints a
+    // complete card instantly instead of a poll with no bars. The ask-set goes
+    // because the subscription will re-deliver the live window on re-entry, and
+    // an old page's ids should be re-fetched if the reader scrolls back to
+    // them again — a poll they last saw a week ago has moved on.
+    _interactionsAsked.clear();
     _clearHistoryWindows();
   }
 
@@ -1563,6 +1662,12 @@ class ChatRepository extends ChangeNotifier {
       _messages[roomId] = [...fresh, ...cur];
       // Retain the page so the next subscription fire can splice it back in.
       _olderPrefix[roomId] = [...fresh, ...(_olderPrefix[roomId] ?? const [])];
+      // Poll/checklist/event bodies for anything on this page too old for the
+      // live subscription's window. Deliberately NOT awaited: the page is
+      // already assembled and the caller's scroll anchoring depends on this
+      // returning promptly, while a card filling in a moment later is exactly
+      // what happens when the subscription fires anyway.
+      unawaited(ensureInteractionsFor(roomId, fresh));
       if (older.length < pageSize) _exhausted.add(roomId);
       return fresh.length;
     } catch (_) {
@@ -1655,6 +1760,11 @@ class ChatRepository extends ChangeNotifier {
       );
       if (!page.found || page.messages.isEmpty) return false;
 
+      // Every branch below keeps this page one way or another, so ask once
+      // here rather than in each of them. Un-awaited for the reason `loadOlder`
+      // gives — the jump's scroll anchoring must not wait on a tally.
+      unawaited(ensureInteractionsFor(roomId, page.messages));
+
       final live = _messages[roomId] ?? const <ChatMessage>[];
       final liveIds = {for (final m in live) m.id};
       // If the window already touches the live tail there's no hole to keep
@@ -1725,6 +1835,7 @@ class ChatRepository extends ChangeNotifier {
         ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
       if (fresh.isEmpty) return 0;
       _historyWindow[roomId] = [...fresh, ...cur];
+      unawaited(ensureInteractionsFor(roomId, fresh));
       return fresh.length;
     } catch (_) {
       return 0;
@@ -1763,6 +1874,7 @@ class ChatRepository extends ChangeNotifier {
         ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
       final all = fresh.isEmpty ? cur : <ChatMessage>[...cur, ...fresh];
       _historyWindow[roomId] = all;
+      if (fresh.isNotEmpty) unawaited(ensureInteractionsFor(roomId, fresh));
 
       final live = _messages[roomId] ?? const <ChatMessage>[];
       final reachedTail =
@@ -2041,6 +2153,82 @@ class ChatRepository extends ChangeNotifier {
       longitude: fix.longitude,
       locationAccuracyM: fix.accuracyM,
     );
+  }
+
+  /// Posts a poll, checklist or event.
+  ///
+  /// ## Why there is no optimistic bubble
+  ///
+  /// Every other send in this repository draws one immediately and reconciles
+  /// on the ack — see [_buildOptimistic]. This one cannot usefully, and the
+  /// reason is the same split that makes the whole feature cheap: the message
+  /// row carries only the prompt, and the CHOICES live in a second table this
+  /// device does not have until the server writes them. An optimistic bubble
+  /// would therefore be a card showing the question with no options under it,
+  /// replaced a round trip later by the real one — a card that visibly grows
+  /// while the sender watches, for a send they will wait on anyway.
+  ///
+  /// So this awaits the create and lets the two subscriptions deliver the
+  /// finished card together. The cost is one round trip of latency on an act
+  /// that already took a sheet and half a minute of typing; the alternative
+  /// costs a flicker on every poll ever sent.
+  ///
+  /// Returns the new message's id, or null if the send was refused — the child
+  /// gate, a block, a malformed definition the server would not take, or no
+  /// connection. The caller says so; this does not throw, matching every other
+  /// send here.
+  Future<String?> sendInteraction({
+    required String roomId,
+    required MessageType kind,
+    required String prompt,
+    List<String>? labels,
+    bool multiple = false,
+    bool anonymous = false,
+    bool quiz = false,
+    int? correctIndex,
+    String? explanation,
+    bool othersMayCheck = true,
+    bool othersMayAdd = true,
+    DateTime? startsAt,
+    DateTime? endsAt,
+    String? place,
+    String? replyToId,
+  }) async {
+    final me = _userId;
+    if (me == null) return null;
+    try {
+      return await api.createInteraction(
+        roomId: roomId,
+        userId: me,
+        kind: kind,
+        prompt: prompt,
+        labels: labels,
+        multiple: multiple,
+        anonymous: anonymous,
+        quiz: quiz,
+        correctIndex: correctIndex,
+        explanation: explanation,
+        othersMayCheck: othersMayCheck,
+        othersMayAdd: othersMayAdd,
+        startsAt: startsAt,
+        endsAt: endsAt,
+        place: place,
+        replyToId: replyToId,
+        // No `senderName`, matching [_postMessage]: `guardOutgoing` resolves
+        // the sender's display name server-side, and a client-supplied one is
+        // only ever a second chance to be wrong about it.
+        //
+        // Idempotency below. There is no retry loop for this send — no pending
+        // bubble, so nothing sweeps it on reconnect — but the convex client
+        // re-issues in-flight mutations across a reconnect on its own, and a
+        // create that lands twice would be two polls asking the same question.
+        // The server returns the existing message id on a repeat and skips
+        // writing a second body; see `interactions:create`.
+        clientId: 'int_${DateTime.now().microsecondsSinceEpoch}',
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Starts a time-boxed live share and begins publishing to it.
@@ -2962,6 +3150,238 @@ class ChatRepository extends ChangeNotifier {
 
   /// This room's pinned messages, oldest message first. Empty until the
   /// subscription lands, and offline.
+  // ───────────── interactive messages ─────────────
+
+  /// The poll, checklist or event body for [messageId], or null.
+  ///
+  /// Null is an ordinary, expected state and NOT an error: the transcript and
+  /// the interaction subscription land independently, and the message usually
+  /// arrives first. Every card is built to draw the prompt from
+  /// [ChatMessage.content] and grow its choices when this fills in — which is
+  /// also what it shows for an interaction too old for the live window, until
+  /// [ensureInteractionsFor] fetches it.
+  MessageInteraction? interactionFor(String roomId, String messageId) =>
+      _interactions[roomId]?[messageId];
+
+  /// Folds a batch of server state into [_interactions].
+  ///
+  /// Upsert, never replace — see the field's own comment for why. The two
+  /// callers differ only in [authoritative]: the live subscription knows its
+  /// rows are the server's current word and so may retire this device's
+  /// pending taps on them, while a one-shot page hydrate is a snapshot that may
+  /// already be older than a tap still in flight, and must leave those alone.
+  void _mergeInteractions(
+    String roomId,
+    List<MessageInteraction> incoming, {
+    required bool authoritative,
+  }) {
+    if (incoming.isEmpty) return;
+    final slot = _interactions[roomId] ??= {};
+    for (final fresh in incoming) {
+      final existing = slot[fresh.messageId];
+      // Carry this device's in-flight taps forward across a fire that isn't
+      // about them. A vote by somebody else refires this subscription, and
+      // dropping the marker there would un-fill the control the reader is
+      // still waiting on.
+      final pending = authoritative
+          ? const <String>{}
+          : (existing?.pendingChoiceIds ?? const <String>{});
+      slot[fresh.messageId] =
+          pending.isEmpty ? fresh : fresh.copyWith(pendingChoiceIds: pending);
+    }
+  }
+
+  /// Fetches interaction state for any of [messages] that needs it and hasn't
+  /// been asked about yet.
+  ///
+  /// The paging counterpart to the live subscription. Called after a page of
+  /// history lands, because `interactions:listForRoom` only carries the newest
+  /// hundred — a poll scrolled back to would otherwise render its question with
+  /// no bars, forever.
+  ///
+  /// Filters to the interactive types before asking, so an ordinary page of
+  /// text costs no round trip at all. Fire-and-forget: the caller is a
+  /// pagination path whose own result must not wait on this, and a card that
+  /// fills in a moment later is the same experience as one that fills in when
+  /// the subscription fires.
+  Future<void> ensureInteractionsFor(
+    String roomId,
+    List<ChatMessage> messages,
+  ) async {
+    final me = _userId;
+    if (me == null) return;
+    final asked = _interactionsAsked[roomId] ??= {};
+    final want = <String>[
+      for (final m in messages)
+        if (m.type.isInteractive &&
+            !asked.contains(m.id) &&
+            // An optimistic bubble has no server id to ask about.
+            !m.id.startsWith('tmp_'))
+          m.id,
+    ];
+    if (want.isEmpty) return;
+    // Marked BEFORE the await, not after. Two page loads can overlap, and a
+    // set updated on completion would let the second re-ask for everything the
+    // first is still fetching.
+    asked.addAll(want);
+    try {
+      final rows =
+          await api.interactionStateFor(messageIds: want, userId: me);
+      if (rows.isEmpty) return;
+      _mergeInteractions(roomId, rows, authoritative: false);
+      notifyListeners();
+    } catch (_) {
+      // Let them be re-asked. A card with no bars is recoverable by scrolling
+      // away and back; an id stuck in the asked-set after a dropped request
+      // never is.
+      asked.removeAll(want);
+    }
+  }
+
+  /// Records this reader's answer to one choice, optimistically.
+  ///
+  /// The optimism is deliberately PARTIAL: the tapped control fills in at once,
+  /// and the tally does not move until the server says it has. Moving the bar
+  /// locally would make a dropped mutation indistinguishable from a counted
+  /// vote — the bar would grow and then shrink back, which is the one thing an
+  /// optimistic update must never do. A control that fills and then un-fills is
+  /// legible; a percentage that changes twice is not.
+  ///
+  /// Toggles, exactly as the server does: tapping a choice you already hold
+  /// takes it back. The server owns that rule — this only mirrors it well
+  /// enough to draw the pending state.
+  ///
+  /// Returns false when the server refused (a closed poll, a quiz already
+  /// answered, a checklist somebody else's tick), so the caller can say so.
+  Future<bool> respondToInteraction({
+    required String roomId,
+    required String messageId,
+    required String choiceId,
+  }) async {
+    final me = _userId;
+    if (me == null) return false;
+    final current = _interactions[roomId]?[messageId];
+    if (current != null) {
+      _interactions[roomId]![messageId] = current.copyWith(
+        pendingChoiceIds: {...current.pendingChoiceIds, choiceId},
+      );
+      notifyListeners();
+    }
+    try {
+      await api.respondToInteraction(
+        messageId: messageId,
+        userId: me,
+        choiceId: choiceId,
+      );
+      return true;
+    } catch (_) {
+      return false;
+    } finally {
+      // Cleared whichever way it went, and harmlessly racing the subscription
+      // fire that also clears it: both settle on the same state, so whoever
+      // wins is right. Re-read rather than closing over `current`, because the
+      // fire may have replaced the row while this was in flight.
+      final after = _interactions[roomId]?[messageId];
+      if (after != null && after.pendingChoiceIds.contains(choiceId)) {
+        _interactions[roomId]![messageId] = after.copyWith(
+          pendingChoiceIds: {...after.pendingChoiceIds}..remove(choiceId),
+        );
+        notifyListeners();
+      }
+    }
+  }
+
+  /// Clears every answer this reader holds on one interaction.
+  ///
+  /// Not the same as toggling one choice off: a multiple-answer poll needs one
+  /// control meaning "retract my vote" rather than six taps, and the server has
+  /// a separate mutation for exactly that.
+  Future<bool> retractInteraction({
+    required String roomId,
+    required String messageId,
+  }) async {
+    final me = _userId;
+    if (me == null) return false;
+    try {
+      await api.retractInteraction(messageId: messageId, userId: me);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Appends an item to a checklist.
+  ///
+  /// No optimistic row. Unlike a tap on an existing control — which has
+  /// somewhere to show pending — a new item has no widget yet, and inserting a
+  /// provisional one that might vanish is worse than the half-second wait.
+  Future<bool> addChecklistItem({
+    required String messageId,
+    required String label,
+  }) async {
+    final me = _userId;
+    if (me == null) return false;
+    try {
+      await api.addChecklistItem(
+        messageId: messageId,
+        userId: me,
+        label: label,
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> removeChecklistItem({
+    required String messageId,
+    required String choiceId,
+  }) async {
+    final me = _userId;
+    if (me == null) return false;
+    try {
+      await api.removeChecklistItem(
+        messageId: messageId,
+        userId: me,
+        choiceId: choiceId,
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Ends a poll, checklist or event. One-way — there is no reopen.
+  Future<bool> closeInteraction({required String messageId}) async {
+    final me = _userId;
+    if (me == null) return false;
+    try {
+      await api.closeInteraction(messageId: messageId, userId: me);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Whether to OFFER this reader the close / remove-item controls.
+  ///
+  /// The author, and only the author — which is deliberately NARROWER than the
+  /// server's rule. `interactions.mayAdminister` also admits room admins, so an
+  /// abandoned poll always has somebody who can settle it; but knowing whether
+  /// this reader is one would mean a `roomAdmin:myPermissions` subscription per
+  /// room open, and the transcript's subscription budget is the one thing this
+  /// repository guards hardest (see the `messages:list` comments, and
+  /// `speakerColors`' whole reason for existing). One more live query on every
+  /// room open, to decide whether to draw a menu row that is used once a month,
+  /// is not a trade worth making.
+  ///
+  /// Narrower is the safe direction: an admin who taps CLOSE from a surface
+  /// that does offer it — room info, where the permissions are already
+  /// loaded — is still allowed by the server. Nothing is lost except a row, and
+  /// no privilege is granted by a stale answer here.
+  bool canAdministerInteraction(MessageInteraction interaction) =>
+      _userId != null && interaction.createdBy == _userId;
+
   List<RoomPin> pinsFor(String roomId) => _pins[roomId] ?? const [];
 
   bool isMessagePinned(String roomId, String messageId) =>

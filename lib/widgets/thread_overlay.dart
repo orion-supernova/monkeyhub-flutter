@@ -32,6 +32,8 @@ import 'jump_back.dart';
 import 'mention_picker.dart';
 import 'mention_text_controller.dart';
 import 'message_action_menu.dart';
+import 'interaction_bubble.dart' show InteractionActions;
+import 'interaction_respondents_sheet.dart';
 import 'message_bubble.dart';
 import 'reaction_picker_sheet.dart';
 import 'report_sheet.dart';
@@ -559,6 +561,55 @@ class _ThreadSheetState extends State<_ThreadSheet>
   }
 
   /// Opens a mentioned user's profile from inside the thread. Resolved against
+  /// What the overlay can do to a poll, checklist or event inside a thread.
+  ///
+  /// The same set the transcript offers, wired to the same repository — a card
+  /// answered here and the copy of it underneath are one object, so the two
+  /// surfaces cannot disagree about the tally.
+  ///
+  /// Built once per build rather than per row, for the reason
+  /// [InteractionActions] carries the message id at all: a thread is a list,
+  /// and most of its rows are not interactive.
+  ///
+  /// A refusal is silent here, unlike in the room. The overlay sits above the
+  /// transcript with its own scrim, and a snack bar posted from underneath it
+  /// either does not appear or appears behind it — so the control simply goes
+  /// back to where it was, which is the same thing the reader sees when a tap
+  /// does not land.
+  InteractionActions get _interactionActions => InteractionActions(
+        onRespond: (messageId, choiceId) => widget.repo.respondToInteraction(
+          roomId: widget.roomId,
+          messageId: messageId,
+          choiceId: choiceId,
+        ),
+        onRetract: (messageId) => widget.repo.retractInteraction(
+          roomId: widget.roomId,
+          messageId: messageId,
+        ),
+        onClose: (messageId) =>
+            widget.repo.closeInteraction(messageId: messageId),
+        onAddItem: (messageId, label) =>
+            widget.repo.addChecklistItem(messageId: messageId, label: label),
+        onRemoveItem: (messageId, choiceId) => widget.repo
+            .removeChecklistItem(messageId: messageId, choiceId: choiceId),
+        onShowRespondents: _showRespondents,
+      );
+
+  Future<void> _showRespondents(String messageId) async {
+    final interaction = widget.repo.interactionFor(widget.roomId, messageId);
+    final me = widget.repo.userId;
+    if (interaction == null || me == null) return;
+    await showInteractionRespondentsSheet(
+      context,
+      api: widget.api,
+      messageId: messageId,
+      currentUserId: me,
+      interaction: interaction,
+      resolveUser: (id) => widget.repo.userById(id),
+      onOpenProfile: (user) => _openMentionedProfile(user.id),
+    );
+  }
+
   /// the roster snapshot the overlay was handed; someone who has left the room
   /// still renders as a mention but has no profile to open.
   void _openMentionedProfile(String userId) {
@@ -903,6 +954,14 @@ class _ThreadSheetState extends State<_ThreadSheet>
     // copies on screen, and a bookmark visible in the transcript underneath but
     // not in the overlay would read as two different messages.
     final saved = widget.repo.isMessageSaved(widget.roomId, m.id);
+    // A poll can be replied to, so a poll can be IN a thread — and the overlay
+    // reads the same repository the transcript does, so the card behind it is
+    // the same object with the same tally. Without this it would render as its
+    // question with no options for as long as the overlay stayed open, since
+    // `interaction: null` is the "body has not arrived" state and nothing here
+    // would ever deliver one.
+    final interaction =
+        m.type.isInteractive ? widget.repo.interactionFor(widget.roomId, m.id) : null;
     if (m.isEphemeral) {
       return EphemeralMessageBubble(
         seenByOthers: seenByOthers,
@@ -930,6 +989,8 @@ class _ThreadSheetState extends State<_ThreadSheet>
             : null,
         onLongPress: interactive ? () => _onLongPressBubble(m, author) : null,
         onDoubleTap: interactive ? () => _onLongPressBubble(m, author) : null,
+        interaction: interaction,
+        interactionActions: _interactionActions,
       );
     }
     return MessageBubble(
@@ -957,6 +1018,8 @@ class _ThreadSheetState extends State<_ThreadSheet>
           : null,
       onLongPress: interactive ? () => _onLongPressBubble(m, author) : null,
       onDoubleTap: interactive ? () => _onLongPressBubble(m, author) : null,
+      interaction: interaction,
+      interactionActions: _interactionActions,
     );
   }
 

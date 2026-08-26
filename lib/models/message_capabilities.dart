@@ -159,12 +159,23 @@ MessageCapabilities messageCapabilitiesFor({
   final isPending = message.id.startsWith('tmp_');
   final isSent = message.status == MessageStatus.sent;
   final isSystem = message.type == MessageType.system;
+  // No `isInteractive` local, deliberately, even though a poll/checklist/event
+  // changes four of the answers below. Each of those rules already excludes it
+  // for a reason of its own — EDIT and COPY through `isEditableText`, which
+  // names the two text types positively rather than listing what isn't one —
+  // and a shared flag would let a future rule opt out of the interactive kinds
+  // without anyone saying which of the four reasons applied to it.
 
   // `url` is grandfathered wire vocabulary for a text message that is mostly
   // a link — same renderer, same edit mutation. The window is measured
   // against the SERVER's clock (skew-corrected by the repository), because
   // `createdAt` is server-minted and a device five minutes fast would
   // otherwise close the window early on its own messages.
+  // Excludes the interactive kinds without naming them, which is the right
+  // shape: EDIT rewrites `content`, and on a poll that is the question — moving
+  // it under answers people have already given. A checklist grows through its
+  // own mutation (`interactions:addItem`) and a poll's options never change at
+  // all, which is what makes a result mean something.
   final isEditableText =
       message.type == MessageType.text || message.type == MessageType.url;
   final canEdit = isMine &&
@@ -181,6 +192,10 @@ MessageCapabilities messageCapabilitiesFor({
     // The rule the selection bar applies to a whole batch, asked of one
     // message: nothing leaves an ephemeral room, nothing sealed, nothing the
     // server hasn't confirmed.
+    // Interactive cards forward like everything else, and the server makes the
+    // copy a FRESH one — same question, no answers, open even if the original
+    // was closed. See `forkInteraction`: carrying the votes would attribute
+    // this room's members' answers to people who are not in it.
     canForward:
         !isPending && isSent && !isSystem && !roomIsEphemeral && !message.viewOnce,
     canViewThread: message.isReply,
@@ -189,6 +204,12 @@ MessageCapabilities messageCapabilitiesFor({
     // (see the comment above), and this gate had been left checking only
     // `text` — the one shape that can edit itself as text couldn't copy
     // itself as text either.
+    // Deliberately NOT extended to an interactive card, even though
+    // `message.content` holds its prompt and would copy cleanly. Copying "which
+    // night suits everyone?" out of a poll gives you a question with none of
+    // the answers — which reads, on the clipboard, exactly like a text message
+    // somebody sent. The thing worth carrying away from a poll is its result,
+    // and that is the respondents sheet's job rather than the clipboard's.
     canCopy: isEditableText && message.content.isNotEmpty,
     canCopyName: message.type == MessageType.file && message.fileName != null,
     // See the doc comment on [MessageCapabilities.canCopyCoordinates] for why
@@ -198,10 +219,18 @@ MessageCapabilities messageCapabilitiesFor({
     canCopyCoordinates: message.locationShare != null,
     // An optimistic bubble has no server id to pin, and a system notice is
     // not something anyone means to keep.
+    // Offered on an interactive card like anything else. A poll pinned to the
+    // top of a room is one of the better reasons the banner exists — "vote on
+    // this" is exactly what a pin says — and the banner renders it through
+    // `messagePreviewLine`, which gives the prompt.
     canPin: !isPending && isSent && !isSystem,
     // Same three gates as pinning, plus the room capability — which is what
     // keeps Saved Messages from offering to save into itself. See
     // `RoomCapabilities.canSaveMessages`.
+    // A saved poll is a saved place in the conversation, exactly like a saved
+    // photo — `messageBookmarks` marks the message where it was said rather
+    // than copying it, so the card the reader comes back to is the live one
+    // with whatever the tally has become.
     canSave: !isPending && isSent && !isSystem && room.canSaveMessages,
     // Offered on anything the transcript will let you long-press — including
     // messages that aren't yours and can't be forwarded, because SELECT is

@@ -7170,4 +7170,298 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get devicesScreenFootnote =>
       'デバイスを削除すると、サインアウトされ通知も止まります。すぐに反映され、その端末が次に何かしようとした時点でログイン画面に戻ります。';
+
+  @override
+  String get attachmentMenuPollLabel => '投票';
+
+  @override
+  String get attachmentMenuChecklistLabel => 'チェックリスト';
+
+  @override
+  String get attachmentMenuEventLabel => '予定';
+
+  @override
+  String get interactionKindPoll => '投票';
+
+  @override
+  String get interactionKindQuiz => 'クイズ';
+
+  @override
+  String get interactionKindChecklist => 'チェックリスト';
+
+  @override
+  String get interactionKindEvent => '予定';
+
+  @override
+  String get interactionBadgeAnonymous => '匿名';
+
+  @override
+  String get interactionBadgeMultiple => '複数可';
+
+  @override
+  String get interactionBadgeClosed => '締切';
+
+  @override
+  String interactionPercent(int percent) {
+    return '$percent%';
+  }
+
+  @override
+  String interactionAndMore(int count, String names) {
+    return '$names 他$count人';
+  }
+
+  @override
+  String get interactionSeeWhoAnswered => '回答した人を見る';
+
+  @override
+  String interactionRemoveItem(String label) {
+    return '$label を削除';
+  }
+
+  @override
+  String interactionChoiceSemantics(int count, String label) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count票',
+    );
+    return '$label、$_temp0';
+  }
+
+  @override
+  String get interactionAddItemHint => '項目を追加';
+
+  @override
+  String get interactionRetract => '取り消す';
+
+  @override
+  String get interactionClose => '締め切る';
+
+  @override
+  String interactionVoteCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count票',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String interactionRsvpCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件の返事',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String interactionChecklistProgress(int done, int total) {
+    return '$total件中$done件 完了';
+  }
+
+  @override
+  String get interactionNoAnswers => '回答なし';
+
+  @override
+  String get interactionBeFirst => '最初に答えてみよう';
+
+  @override
+  String interactionFinalResults(String count) {
+    return '$count · 確定';
+  }
+
+  @override
+  String get interactionQuizRight => '正解';
+
+  @override
+  String get interactionQuizWrong => '惜しい';
+
+  @override
+  String interactionEventPast(String when) {
+    return '$when · 終了';
+  }
+
+  @override
+  String get interactionRespondentsTitlePoll => '投票した人';
+
+  @override
+  String get interactionRespondentsTitleChecklist => 'チェックした人';
+
+  @override
+  String get interactionRespondentsTitleEvent => '返事した人';
+
+  @override
+  String get interactionRespondentsFailed => '回答した人を読み込めませんでした。';
+
+  @override
+  String get interactionRespondentsEmpty => 'まだ誰も答えていません。';
+
+  @override
+  String get interactionFilterAll => 'すべて';
+
+  @override
+  String get interactionRsvpGoing => '行く';
+
+  @override
+  String get interactionRsvpMaybe => 'たぶん';
+
+  @override
+  String get interactionRsvpNo => '行けない';
+
+  @override
+  String get interactionComposePollTitle => '新しい投票';
+
+  @override
+  String get interactionComposePollTagline => 'みんなに聞く';
+
+  @override
+  String get interactionComposeChecklistTitle => '新しいチェックリスト';
+
+  @override
+  String get interactionComposeChecklistTagline => 'みんなでチェックするリスト';
+
+  @override
+  String get interactionComposeEventTitle => '新しい予定';
+
+  @override
+  String get interactionComposeEventTagline => '誰が来るか見る';
+
+  @override
+  String get interactionComposeQuestionLabel => '質問';
+
+  @override
+  String get interactionComposeQuestionHint => '何を聞きたい？';
+
+  @override
+  String get interactionComposeTitleLabel => 'タイトル';
+
+  @override
+  String get interactionComposeTitleHint => '何のためのリスト？';
+
+  @override
+  String get interactionComposeEventNameLabel => '予定';
+
+  @override
+  String get interactionComposeEventNameHint => '何がある？';
+
+  @override
+  String get interactionComposeOptionsLabel => '選択肢';
+
+  @override
+  String get interactionComposeItemsLabel => '項目';
+
+  @override
+  String interactionComposeOptionHint(int index) {
+    return '選択肢 $index';
+  }
+
+  @override
+  String interactionComposeItemHint(int index) {
+    return '項目 $index';
+  }
+
+  @override
+  String get interactionComposeAddOption => '選択肢を追加';
+
+  @override
+  String get interactionComposeAddItem => '項目を追加';
+
+  @override
+  String get interactionComposeRemoveRow => '削除';
+
+  @override
+  String get interactionComposeMarkCorrect => '正解として選ぶ';
+
+  @override
+  String get interactionComposeMultipleTitle => '複数回答';
+
+  @override
+  String get interactionComposeMultipleSub => 'いくつでも選べる';
+
+  @override
+  String get interactionComposeAnonymousTitle => '匿名';
+
+  @override
+  String get interactionComposeAnonymousOffSub => '誰が投票したか全員に見える';
+
+  @override
+  String get interactionComposeAnonymousOnSub => '誰が投票したか誰にも見えない';
+
+  @override
+  String get interactionComposeQuizTitle => 'クイズモード';
+
+  @override
+  String get interactionComposeQuizSub => '正解はひとつ、あとから変えられない';
+
+  @override
+  String get interactionComposeExplanationLabel => '解説';
+
+  @override
+  String get interactionComposeExplanationHint => '回答後に表示（任意）';
+
+  @override
+  String get interactionComposeOthersMayCheckTitle => '誰でもチェックできる';
+
+  @override
+  String get interactionComposeOthersMayCheckSub => 'あなただけではない';
+
+  @override
+  String get interactionComposeOthersMayAddTitle => '誰でも追加できる';
+
+  @override
+  String get interactionComposeOthersMayAddSub => 'あとから増やせる';
+
+  @override
+  String get interactionComposeWhenLabel => 'いつ';
+
+  @override
+  String get interactionComposePickStart => '開始を選ぶ';
+
+  @override
+  String get interactionComposePickEnd => '終了を追加（任意）';
+
+  @override
+  String get interactionComposePlaceLabel => '場所';
+
+  @override
+  String get interactionComposePlaceHint => 'どこ？（任意）';
+
+  @override
+  String get interactionComposeSendPoll => '投票を送る';
+
+  @override
+  String get interactionComposeSendChecklist => 'リストを送る';
+
+  @override
+  String get interactionComposeSendEvent => '予定を送る';
+
+  @override
+  String get interactionComposeErrorPrompt => 'まず何を聞くのか書いてください。';
+
+  @override
+  String interactionComposeErrorOptions(int count) {
+    return '投票には選択肢が$countつ以上必要です。';
+  }
+
+  @override
+  String get interactionComposeErrorItems => 'リストには項目が1つ以上必要です。';
+
+  @override
+  String get interactionComposeErrorAnswer => 'どれが正解か選んでください。';
+
+  @override
+  String get interactionComposeErrorWhen => 'いつ始まるか選んでください。';
+
+  @override
+  String get interactionComposeErrorEnd => '終了は開始より後にしてください。';
+
+  @override
+  String get interactionSendFailed => '送れませんでした。';
+
+  @override
+  String get interactionRefused => '反映されませんでした。';
 }

@@ -81,5 +81,23 @@ String _rawPreview(ChatMessage m, {required bool hasThumbnail}) {
       return 'location';
     case MessageType.system:
       return m.content;
+    case MessageType.poll:
+    case MessageType.checklist:
+    case MessageType.event:
+      // The prompt itself, which is exactly what `content` holds on these — the
+      // server puts the question on the message row precisely so every surface
+      // that shows a message it isn't rendering gets a readable sentence for
+      // free. See `backend/convex/schema.ts:messageInteractions`.
+      //
+      // Deliberately WITHOUT the kind's own word in front of it. Every caller
+      // here is one line tall and already short of room, and "poll · which
+      // night suits everyone?" spends a fifth of it saying something the
+      // reader learns the moment they tap through. The chat list, which has no
+      // such tap, does prefix — see `roomPreviewFor`.
+      //
+      // Falls back rather than returning empty: the prompt is required
+      // server-side, so an empty one means a row that predates the feature or
+      // a failed parse, and a blank pin banner is worse than a generic word.
+      return m.content.isEmpty ? 'poll' : m.content;
   }
 }

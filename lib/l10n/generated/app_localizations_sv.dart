@@ -7493,4 +7493,304 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get devicesScreenFootnote =>
       'Att ta bort en enhet loggar ut den och stoppar dess aviseringar. Det gäller direkt — nästa sak enheten försöker göra skickar den till inloggningsskärmen.';
+
+  @override
+  String get attachmentMenuPollLabel => 'omröstning';
+
+  @override
+  String get attachmentMenuChecklistLabel => 'lista';
+
+  @override
+  String get attachmentMenuEventLabel => 'händelse';
+
+  @override
+  String get interactionKindPoll => 'OMRÖSTNING';
+
+  @override
+  String get interactionKindQuiz => 'QUIZ';
+
+  @override
+  String get interactionKindChecklist => 'LISTA';
+
+  @override
+  String get interactionKindEvent => 'HÄNDELSE';
+
+  @override
+  String get interactionBadgeAnonymous => 'ANONYM';
+
+  @override
+  String get interactionBadgeMultiple => 'FLERA';
+
+  @override
+  String get interactionBadgeClosed => 'STÄNGD';
+
+  @override
+  String interactionPercent(int percent) {
+    return '$percent %';
+  }
+
+  @override
+  String interactionAndMore(int count, String names) {
+    return '$names +$count';
+  }
+
+  @override
+  String get interactionSeeWhoAnswered => 'Se vilka som svarat';
+
+  @override
+  String interactionRemoveItem(String label) {
+    return 'Ta bort $label';
+  }
+
+  @override
+  String interactionChoiceSemantics(int count, String label) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count röster',
+      one: '1 röst',
+    );
+    return '$label, $_temp0';
+  }
+
+  @override
+  String get interactionAddItemHint => 'Lägg till en punkt';
+
+  @override
+  String get interactionRetract => 'Ta tillbaka';
+
+  @override
+  String get interactionClose => 'Stäng';
+
+  @override
+  String interactionVoteCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count röster',
+      one: '1 röst',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String interactionRsvpCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count svar',
+      one: '1 svar',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String interactionChecklistProgress(int done, int total) {
+    return '$done av $total klara';
+  }
+
+  @override
+  String get interactionNoAnswers => 'Inga svar';
+
+  @override
+  String get interactionBeFirst => 'Bli först med att svara';
+
+  @override
+  String interactionFinalResults(String count) {
+    return '$count · slutgiltigt';
+  }
+
+  @override
+  String get interactionQuizRight => 'Rätt';
+
+  @override
+  String get interactionQuizWrong => 'Nästan';
+
+  @override
+  String interactionEventPast(String when) {
+    return '$when · har redan varit';
+  }
+
+  @override
+  String get interactionRespondentsTitlePoll => 'VILKA RÖSTADE';
+
+  @override
+  String get interactionRespondentsTitleChecklist => 'VILKA BOCKADE AV';
+
+  @override
+  String get interactionRespondentsTitleEvent => 'VILKA SVARADE';
+
+  @override
+  String get interactionRespondentsFailed =>
+      'Kunde inte hämta vilka som svarat.';
+
+  @override
+  String get interactionRespondentsEmpty => 'Ingen har svarat än.';
+
+  @override
+  String get interactionFilterAll => 'ALLA';
+
+  @override
+  String get interactionRsvpGoing => 'Kommer';
+
+  @override
+  String get interactionRsvpMaybe => 'Kanske';
+
+  @override
+  String get interactionRsvpNo => 'Kan inte';
+
+  @override
+  String get interactionComposePollTitle => 'ny omröstning';
+
+  @override
+  String get interactionComposePollTagline => 'FRÅGA RUMMET';
+
+  @override
+  String get interactionComposeChecklistTitle => 'ny lista';
+
+  @override
+  String get interactionComposeChecklistTagline => 'EN LISTA ALLA KAN BOCKA AV';
+
+  @override
+  String get interactionComposeEventTitle => 'ny händelse';
+
+  @override
+  String get interactionComposeEventTagline => 'SE VILKA SOM KOMMER';
+
+  @override
+  String get interactionComposeQuestionLabel => 'FRÅGA';
+
+  @override
+  String get interactionComposeQuestionHint => 'vad vill du fråga?';
+
+  @override
+  String get interactionComposeTitleLabel => 'TITEL';
+
+  @override
+  String get interactionComposeTitleHint => 'vad är listan till för?';
+
+  @override
+  String get interactionComposeEventNameLabel => 'HÄNDELSE';
+
+  @override
+  String get interactionComposeEventNameHint => 'vad händer?';
+
+  @override
+  String get interactionComposeOptionsLabel => 'ALTERNATIV';
+
+  @override
+  String get interactionComposeItemsLabel => 'PUNKTER';
+
+  @override
+  String interactionComposeOptionHint(int index) {
+    return 'alternativ $index';
+  }
+
+  @override
+  String interactionComposeItemHint(int index) {
+    return 'punkt $index';
+  }
+
+  @override
+  String get interactionComposeAddOption => 'Lägg till alternativ';
+
+  @override
+  String get interactionComposeAddItem => 'Lägg till punkt';
+
+  @override
+  String get interactionComposeRemoveRow => 'Ta bort';
+
+  @override
+  String get interactionComposeMarkCorrect => 'Markera som rätt svar';
+
+  @override
+  String get interactionComposeMultipleTitle => 'flera svar';
+
+  @override
+  String get interactionComposeMultipleSub => 'välj mer än ett';
+
+  @override
+  String get interactionComposeAnonymousTitle => 'anonym';
+
+  @override
+  String get interactionComposeAnonymousOffSub => 'alla ser vilka som röstat';
+
+  @override
+  String get interactionComposeAnonymousOnSub => 'ingen ser vilka som röstat';
+
+  @override
+  String get interactionComposeQuizTitle => 'quizläge';
+
+  @override
+  String get interactionComposeQuizSub => 'ett rätt svar, går inte att ändra';
+
+  @override
+  String get interactionComposeExplanationLabel => 'FÖRKLARING';
+
+  @override
+  String get interactionComposeExplanationHint =>
+      'visas efter svaret (valfritt)';
+
+  @override
+  String get interactionComposeOthersMayCheckTitle => 'alla får bocka av';
+
+  @override
+  String get interactionComposeOthersMayCheckSub => 'inte bara du';
+
+  @override
+  String get interactionComposeOthersMayAddTitle => 'alla får lägga till';
+
+  @override
+  String get interactionComposeOthersMayAddSub => 'listan kan växa senare';
+
+  @override
+  String get interactionComposeWhenLabel => 'NÄR';
+
+  @override
+  String get interactionComposePickStart => 'Välj en start';
+
+  @override
+  String get interactionComposePickEnd => 'Lägg till ett slut (valfritt)';
+
+  @override
+  String get interactionComposePlaceLabel => 'PLATS';
+
+  @override
+  String get interactionComposePlaceHint => 'var? (valfritt)';
+
+  @override
+  String get interactionComposeSendPoll => 'SKICKA OMRÖSTNINGEN';
+
+  @override
+  String get interactionComposeSendChecklist => 'SKICKA LISTAN';
+
+  @override
+  String get interactionComposeSendEvent => 'SKICKA HÄNDELSEN';
+
+  @override
+  String get interactionComposeErrorPrompt => 'Säg först vad du frågar om.';
+
+  @override
+  String interactionComposeErrorOptions(int count) {
+    return 'En omröstning behöver minst $count alternativ.';
+  }
+
+  @override
+  String get interactionComposeErrorItems => 'En lista behöver minst en punkt.';
+
+  @override
+  String get interactionComposeErrorAnswer =>
+      'Markera vilket alternativ som är rätt.';
+
+  @override
+  String get interactionComposeErrorWhen => 'Välj när den börjar.';
+
+  @override
+  String get interactionComposeErrorEnd => 'Slutet måste komma efter starten.';
+
+  @override
+  String get interactionSendFailed => 'Det skickades inte.';
+
+  @override
+  String get interactionRefused => 'Det gick inte igenom.';
 }

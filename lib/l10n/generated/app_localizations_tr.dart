@@ -7438,4 +7438,305 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get devicesScreenFootnote =>
       'Bir cihazı kaldırmak oturumunu kapatır ve bildirimlerini durdurur. Anında geçerli olur — o cihaz bir şey yapmaya kalktığı anda giriş ekranına döner.';
+
+  @override
+  String get attachmentMenuPollLabel => 'anket';
+
+  @override
+  String get attachmentMenuChecklistLabel => 'liste';
+
+  @override
+  String get attachmentMenuEventLabel => 'etkinlik';
+
+  @override
+  String get interactionKindPoll => 'ANKET';
+
+  @override
+  String get interactionKindQuiz => 'TEST';
+
+  @override
+  String get interactionKindChecklist => 'LİSTE';
+
+  @override
+  String get interactionKindEvent => 'ETKİNLİK';
+
+  @override
+  String get interactionBadgeAnonymous => 'GİZLİ';
+
+  @override
+  String get interactionBadgeMultiple => 'ÇOKLU';
+
+  @override
+  String get interactionBadgeClosed => 'KAPANDI';
+
+  @override
+  String interactionPercent(int percent) {
+    return '%$percent';
+  }
+
+  @override
+  String interactionAndMore(int count, String names) {
+    return '$names +$count';
+  }
+
+  @override
+  String get interactionSeeWhoAnswered => 'Kimler yanıtladı';
+
+  @override
+  String interactionRemoveItem(String label) {
+    return '$label kaldır';
+  }
+
+  @override
+  String interactionChoiceSemantics(int count, String label) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count oy',
+    );
+    return '$label, $_temp0';
+  }
+
+  @override
+  String get interactionAddItemHint => 'Bir madde ekle';
+
+  @override
+  String get interactionRetract => 'Geri al';
+
+  @override
+  String get interactionClose => 'Kapat';
+
+  @override
+  String interactionVoteCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count oy',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String interactionRsvpCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count yanıt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String interactionChecklistProgress(int done, int total) {
+    return '$done/$total bitti';
+  }
+
+  @override
+  String get interactionNoAnswers => 'Yanıt yok';
+
+  @override
+  String get interactionBeFirst => 'İlk yanıtlayan sen ol';
+
+  @override
+  String interactionFinalResults(String count) {
+    return '$count · kesin';
+  }
+
+  @override
+  String get interactionQuizRight => 'Doğru';
+
+  @override
+  String get interactionQuizWrong => 'Az kaldı';
+
+  @override
+  String interactionEventPast(String when) {
+    return '$when · çoktan oldu';
+  }
+
+  @override
+  String get interactionRespondentsTitlePoll => 'KİMLER OY VERDİ';
+
+  @override
+  String get interactionRespondentsTitleChecklist => 'KİMLER İŞARETLEDİ';
+
+  @override
+  String get interactionRespondentsTitleEvent => 'KİMLER YANITLADI';
+
+  @override
+  String get interactionRespondentsFailed =>
+      'Kimlerin yanıtladığı yüklenemedi.';
+
+  @override
+  String get interactionRespondentsEmpty => 'Henüz kimse yanıtlamadı.';
+
+  @override
+  String get interactionFilterAll => 'TÜMÜ';
+
+  @override
+  String get interactionRsvpGoing => 'Geliyorum';
+
+  @override
+  String get interactionRsvpMaybe => 'Belki';
+
+  @override
+  String get interactionRsvpNo => 'Gelemem';
+
+  @override
+  String get interactionComposePollTitle => 'yeni anket';
+
+  @override
+  String get interactionComposePollTagline => 'ODAYA SOR';
+
+  @override
+  String get interactionComposeChecklistTitle => 'yeni liste';
+
+  @override
+  String get interactionComposeChecklistTagline =>
+      'HERKESİN İŞARETLEDİĞİ LİSTE';
+
+  @override
+  String get interactionComposeEventTitle => 'yeni etkinlik';
+
+  @override
+  String get interactionComposeEventTagline => 'KİMLER GELİYOR GÖR';
+
+  @override
+  String get interactionComposeQuestionLabel => 'SORU';
+
+  @override
+  String get interactionComposeQuestionHint => 'ne soruyorsun?';
+
+  @override
+  String get interactionComposeTitleLabel => 'BAŞLIK';
+
+  @override
+  String get interactionComposeTitleHint => 'bu liste ne için?';
+
+  @override
+  String get interactionComposeEventNameLabel => 'ETKİNLİK';
+
+  @override
+  String get interactionComposeEventNameHint => 'ne oluyor?';
+
+  @override
+  String get interactionComposeOptionsLabel => 'SEÇENEKLER';
+
+  @override
+  String get interactionComposeItemsLabel => 'MADDELER';
+
+  @override
+  String interactionComposeOptionHint(int index) {
+    return '$index. seçenek';
+  }
+
+  @override
+  String interactionComposeItemHint(int index) {
+    return '$index. madde';
+  }
+
+  @override
+  String get interactionComposeAddOption => 'Seçenek ekle';
+
+  @override
+  String get interactionComposeAddItem => 'Madde ekle';
+
+  @override
+  String get interactionComposeRemoveRow => 'Kaldır';
+
+  @override
+  String get interactionComposeMarkCorrect => 'Doğru yanıt olarak işaretle';
+
+  @override
+  String get interactionComposeMultipleTitle => 'çoklu yanıt';
+
+  @override
+  String get interactionComposeMultipleSub => 'birden fazla seçilebilir';
+
+  @override
+  String get interactionComposeAnonymousTitle => 'gizli';
+
+  @override
+  String get interactionComposeAnonymousOffSub =>
+      'kimin oy verdiğini herkes görür';
+
+  @override
+  String get interactionComposeAnonymousOnSub =>
+      'kimin oy verdiğini kimse görmez';
+
+  @override
+  String get interactionComposeQuizTitle => 'test modu';
+
+  @override
+  String get interactionComposeQuizSub => 'tek doğru yanıt, değiştirmek yok';
+
+  @override
+  String get interactionComposeExplanationLabel => 'AÇIKLAMA';
+
+  @override
+  String get interactionComposeExplanationHint =>
+      'yanıtladıktan sonra görünür (isteğe bağlı)';
+
+  @override
+  String get interactionComposeOthersMayCheckTitle => 'herkes işaretleyebilir';
+
+  @override
+  String get interactionComposeOthersMayCheckSub => 'sadece sen değil';
+
+  @override
+  String get interactionComposeOthersMayAddTitle => 'herkes ekleyebilir';
+
+  @override
+  String get interactionComposeOthersMayAddSub => 'liste sonradan uzayabilir';
+
+  @override
+  String get interactionComposeWhenLabel => 'NE ZAMAN';
+
+  @override
+  String get interactionComposePickStart => 'Başlangıcı seç';
+
+  @override
+  String get interactionComposePickEnd => 'Bitiş ekle (isteğe bağlı)';
+
+  @override
+  String get interactionComposePlaceLabel => 'YER';
+
+  @override
+  String get interactionComposePlaceHint => 'nerede? (isteğe bağlı)';
+
+  @override
+  String get interactionComposeSendPoll => 'ANKETİ GÖNDER';
+
+  @override
+  String get interactionComposeSendChecklist => 'LİSTEYİ GÖNDER';
+
+  @override
+  String get interactionComposeSendEvent => 'ETKİNLİĞİ GÖNDER';
+
+  @override
+  String get interactionComposeErrorPrompt => 'Önce ne sorduğunu yaz.';
+
+  @override
+  String interactionComposeErrorOptions(int count) {
+    return 'Bir ankette en az $count seçenek olmalı.';
+  }
+
+  @override
+  String get interactionComposeErrorItems =>
+      'Bir listede en az bir madde olmalı.';
+
+  @override
+  String get interactionComposeErrorAnswer =>
+      'Hangi seçeneğin doğru olduğunu işaretle.';
+
+  @override
+  String get interactionComposeErrorWhen => 'Ne zaman başladığını seç.';
+
+  @override
+  String get interactionComposeErrorEnd => 'Bitiş, başlangıçtan sonra olmalı.';
+
+  @override
+  String get interactionSendFailed => 'Gönderilemedi.';
+
+  @override
+  String get interactionRefused => 'İşlenemedi.';
 }

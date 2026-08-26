@@ -8,6 +8,7 @@ import '../models/chat_message.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/message_formatting.dart';
+import '../models/message_interaction.dart';
 import '../models/pending_upload.dart';
 import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
@@ -26,6 +27,7 @@ import 'link_confirm_sheet.dart';
 import 'link_preview_card.dart';
 import 'jumbo_emoji.dart';
 import 'linkified_text.dart';
+import 'interaction_bubble.dart';
 import 'location_bubble.dart';
 import 'text_runs.dart';
 import 'message_stamp.dart';
@@ -80,7 +82,19 @@ class MessageBubble extends StatelessWidget {
     this.onAlbumTileLongPress,
     this.onAlbumReactionTap,
     this.onAlbumReactionLongPress,
+    this.interaction,
+    this.interactionActions = InteractionActions.none,
   });
+
+  /// The poll/checklist/event body for this row, when it has arrived. Null on
+  /// every other type and on an interactive one still waiting for its own
+  /// subscription — see [InteractionBubble], which treats null as an ordinary
+  /// state and draws the prompt regardless.
+  final MessageInteraction? interaction;
+
+  /// What this transcript can do to that card. Built once per room rather than
+  /// per row — see [InteractionActions].
+  final InteractionActions interactionActions;
 
   /// Every photograph this row draws, oldest first, when a run of them was
   /// collapsed into one album — see `collapseAlbums`. Empty on an ordinary
@@ -419,6 +433,8 @@ class MessageBubble extends StatelessWidget {
       onAlbumTileLongPress: onAlbumTileLongPress,
       onAlbumReactionTap: onAlbumReactionTap,
       onAlbumReactionLongPress: onAlbumReactionLongPress,
+      interaction: interaction,
+      interactionActions: interactionActions,
     );
   }
 }
@@ -457,7 +473,16 @@ class EphemeralMessageBubble extends StatelessWidget {
     this.onRetrySend,
     this.onDiscardSend,
     this.bubbleKey,
+    this.interaction,
+    this.interactionActions = InteractionActions.none,
   });
+
+  /// The poll/checklist/event body, and what may be done to it. Carried here as
+  /// well as on [MessageBubble] because a Chamber of Secrets room can hold one:
+  /// a poll that self-destructs is an ordinary poll with a clock on it, and
+  /// nothing about answering it changes.
+  final MessageInteraction? interaction;
+  final InteractionActions interactionActions;
 
   /// Spends this viewer's one look at a view-once photo and shows it. Null
   /// leaves the sealed tile inert.
@@ -575,6 +600,8 @@ class EphemeralMessageBubble extends StatelessWidget {
       onDiscardSend: onDiscardSend,
       currentUserId: currentUserId,
       onMentionTap: onMentionTap,
+      interaction: interaction,
+      interactionActions: interactionActions,
     );
 
     final bubble = Stack(
@@ -993,6 +1020,17 @@ bool messageStampsInline(ChatMessage message,
       // circle's edge reads as a detached label rather than part of the bubble.
       // It keeps the external timestamp row, the same as a bare error plate.
       return false;
+    case MessageType.poll:
+    case MessageType.checklist:
+    case MessageType.event:
+      // The card owns its stamp, but not by laying one over a filled corner the
+      // way a photo does — it has a footer row of its own with room at the end
+      // of it. See `_Footer` in `interaction_bubble.dart` for why: this edge
+      // already carries text, and a lozenge floating over a percentage is the
+      // kind of overlap that only looks right on the one string it was checked
+      // against. Either way the answer here is the same — inline, no external
+      // row.
+      return true;
     case MessageType.text:
     case MessageType.url:
       // A jumbo emoji has no bubble to tuck a stamp into and nothing opaque to
@@ -1122,6 +1160,15 @@ Widget buildMessageContent({
   void Function(ChatMessage m, GlobalKey anchor)? onAlbumTileLongPress,
   void Function(ChatMessage m, String emoji)? onAlbumReactionTap,
   void Function(ChatMessage m, String emoji)? onAlbumReactionLongPress,
+
+  /// The body of a poll, checklist or event — see [InteractionBubble]. Null on
+  /// every other type, and also on an interactive one whose body has not
+  /// arrived yet, which is an ordinary state rather than a gap.
+  MessageInteraction? interaction,
+
+  /// What the transcript can do to that card. One object rather than six
+  /// callbacks, built once per room — see [InteractionActions].
+  InteractionActions interactionActions = InteractionActions.none,
 }) {
   // Who is talking, painted into the bubble itself rather than only into the
   // name above it. A run of five messages prints its sender's name once, and
@@ -1563,6 +1610,32 @@ Widget buildMessageContent({
         stamp: stampFor(StampTone.onMedia),
         onStopSharing: onStopLiveShare,
         publishing: publishingLiveShare,
+      );
+    case MessageType.poll:
+    case MessageType.checklist:
+    case MessageType.event:
+      // No bubble frame, matching the media tiles and the location card above:
+      // this is a piece of furniture with controls on it, and a chat bubble
+      // drawn around it would be a frame around a frame. The card paints its
+      // own ground and border.
+      //
+      // [interaction] is nullable here and null is ordinary rather than an
+      // error — the transcript and the interaction subscription land
+      // independently, and the message usually arrives first. The card renders
+      // its prompt from `message.content` either way. See the header on
+      // [InteractionBubble].
+      return InteractionBubble(
+        theme: theme,
+        message: message,
+        interaction: interaction,
+        isMine: isMine,
+        width: imageSize,
+        radius: mediaRadius,
+        // `onBubble`/`onAccent`, not `onMedia`: the stamp sits in the card's own
+        // footer row against a theme surface, not laid over a picture.
+        stamp: stampFor(StampTone.onBubble),
+        actions: interactionActions,
+        currentUserId: currentUserId,
       );
     case MessageType.url:
     case MessageType.text:

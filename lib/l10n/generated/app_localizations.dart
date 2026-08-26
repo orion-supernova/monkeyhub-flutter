@@ -12738,6 +12738,516 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Removing a device signs it out and stops its notifications. It takes effect immediately — the next thing that device tries to do will send it back to the login screen.'**
   String get devicesScreenFootnote;
+
+  /// Label under the poll icon in the attachment picker sheet (attachment_menu.dart). Lower case, matching the other tiles.
+  ///
+  /// In en, this message translates to:
+  /// **'poll'**
+  String get attachmentMenuPollLabel;
+
+  /// Label under the checklist icon in the attachment picker sheet (attachment_menu.dart). Lower case, matching the other tiles.
+  ///
+  /// In en, this message translates to:
+  /// **'checklist'**
+  String get attachmentMenuChecklistLabel;
+
+  /// Label under the event icon in the attachment picker sheet (attachment_menu.dart). Lower case, matching the other tiles.
+  ///
+  /// In en, this message translates to:
+  /// **'event'**
+  String get attachmentMenuEventLabel;
+
+  /// All-caps kind label in the header strip of a poll card in the transcript. Stored upper case because Dart's toUpperCase is locale-insensitive.
+  ///
+  /// In en, this message translates to:
+  /// **'POLL'**
+  String get interactionKindPoll;
+
+  /// All-caps kind label in the header strip of a poll card that is in quiz mode (one right answer). Replaces the POLL label.
+  ///
+  /// In en, this message translates to:
+  /// **'QUIZ'**
+  String get interactionKindQuiz;
+
+  /// All-caps kind label in the header strip of a checklist card in the transcript.
+  ///
+  /// In en, this message translates to:
+  /// **'CHECKLIST'**
+  String get interactionKindChecklist;
+
+  /// All-caps kind label in the header strip of an event card in the transcript.
+  ///
+  /// In en, this message translates to:
+  /// **'EVENT'**
+  String get interactionKindEvent;
+
+  /// Small all-caps badge on a poll card meaning nobody, including the author, will be shown who voted for what.
+  ///
+  /// In en, this message translates to:
+  /// **'ANONYMOUS'**
+  String get interactionBadgeAnonymous;
+
+  /// Small all-caps badge on a poll card meaning a voter may pick more than one option. Keep it very short: it sits beside up to two other badges on one line.
+  ///
+  /// In en, this message translates to:
+  /// **'MULTI'**
+  String get interactionBadgeMultiple;
+
+  /// Small all-caps badge on a poll, checklist or event card meaning it takes no further answers.
+  ///
+  /// In en, this message translates to:
+  /// **'CLOSED'**
+  String get interactionBadgeClosed;
+
+  /// The share of the vote an option received, shown at the right-hand end of that option's row on a poll card.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}%'**
+  String interactionPercent(int percent);
+
+  /// The line of voter names under a poll option, when more people picked it than the card names. Reads like 'alice, bob +3'.
+  ///
+  /// In en, this message translates to:
+  /// **'{names} +{count}'**
+  String interactionAndMore(int count, String names);
+
+  /// Footer action on a poll, checklist or event card that opens the sheet naming everybody who answered. Never shown on an anonymous poll.
+  ///
+  /// In en, this message translates to:
+  /// **'See who answered'**
+  String get interactionSeeWhoAnswered;
+
+  /// Screen-reader label for the small minus button beside a checklist item, offered to the list's author.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {label}'**
+  String interactionRemoveItem(String label);
+
+  /// Screen-reader label for one option row on a poll or event card: what the option says, and how many people picked it.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}, {count, plural, one{1 vote} other{{count} votes}}'**
+  String interactionChoiceSemantics(int count, String label);
+
+  /// Placeholder in the inline field at the bottom of a checklist card, where anyone allowed to may type a new item.
+  ///
+  /// In en, this message translates to:
+  /// **'Add an item'**
+  String get interactionAddItemHint;
+
+  /// Footer action on a poll card that clears every answer this reader gave. Not offered on a quiz, a closed poll or a checklist.
+  ///
+  /// In en, this message translates to:
+  /// **'Retract'**
+  String get interactionRetract;
+
+  /// Footer action offered to the author that ends a poll, checklist or event so it takes no further answers. One-way: there is no reopen.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get interactionClose;
+
+  /// Footer line on a poll card counting the distinct people who voted. Not the sum of the options, which double-counts on a multiple-answer poll.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 vote} other{{count} votes}}'**
+  String interactionVoteCount(int count);
+
+  /// Footer line on an event card counting the people who chose going, maybe or can't.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 reply} other{{count} replies}}'**
+  String interactionRsvpCount(int count);
+
+  /// Footer line on a checklist card: how many items are ticked out of how many there are.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total} done'**
+  String interactionChecklistProgress(int done, int total);
+
+  /// Footer line on a closed poll or event that nobody ever answered.
+  ///
+  /// In en, this message translates to:
+  /// **'No answers'**
+  String get interactionNoAnswers;
+
+  /// Footer line on an open poll or event that nobody has answered yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Be the first to answer'**
+  String get interactionBeFirst;
+
+  /// Footer line on a closed poll or event: the ordinary count, marked as settled.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} · final'**
+  String interactionFinalResults(String count);
+
+  /// Verdict shown on a quiz card once this reader has answered and got it right.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct'**
+  String get interactionQuizRight;
+
+  /// Verdict shown on a quiz card once this reader has answered and got it wrong. Kept gentle: this is a group chat, not an exam.
+  ///
+  /// In en, this message translates to:
+  /// **'Not quite'**
+  String get interactionQuizWrong;
+
+  /// The when-line on an event card whose start time is in the past. The card stays in the transcript as a record, so this dates it rather than hiding it.
+  ///
+  /// In en, this message translates to:
+  /// **'{when} · already happened'**
+  String interactionEventPast(String when);
+
+  /// All-caps header of the sheet naming everybody who voted in a poll.
+  ///
+  /// In en, this message translates to:
+  /// **'WHO VOTED'**
+  String get interactionRespondentsTitlePoll;
+
+  /// All-caps header of the sheet naming who ticked which item of a checklist.
+  ///
+  /// In en, this message translates to:
+  /// **'WHO TICKED'**
+  String get interactionRespondentsTitleChecklist;
+
+  /// All-caps header of the sheet naming who chose going, maybe or can't on an event.
+  ///
+  /// In en, this message translates to:
+  /// **'WHO REPLIED'**
+  String get interactionRespondentsTitleEvent;
+
+  /// Shown in the who-answered sheet when the list could not be fetched — offline, a deleted message, or a poll that turns out to be anonymous.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load who answered.'**
+  String get interactionRespondentsFailed;
+
+  /// Shown in the who-answered sheet when the poll, checklist or event has no answers at all.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody has answered yet.'**
+  String get interactionRespondentsEmpty;
+
+  /// All-caps label on the first filter pill in the who-answered sheet, showing everybody regardless of what they picked.
+  ///
+  /// In en, this message translates to:
+  /// **'ALL'**
+  String get interactionFilterAll;
+
+  /// The first of an event's three RSVP answers: this person intends to come.
+  ///
+  /// In en, this message translates to:
+  /// **'Going'**
+  String get interactionRsvpGoing;
+
+  /// The second of an event's three RSVP answers: this person is unsure.
+  ///
+  /// In en, this message translates to:
+  /// **'Maybe'**
+  String get interactionRsvpMaybe;
+
+  /// The third of an event's three RSVP answers: this person cannot come. Short and unapologetic rather than 'not going'.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t'**
+  String get interactionRsvpNo;
+
+  /// Title at the top of the sheet for composing a poll. Lower case, matching the app's other sheet titles.
+  ///
+  /// In en, this message translates to:
+  /// **'new poll'**
+  String get interactionComposePollTitle;
+
+  /// All-caps tagline under the poll compose sheet's title.
+  ///
+  /// In en, this message translates to:
+  /// **'ASK THE ROOM'**
+  String get interactionComposePollTagline;
+
+  /// Title at the top of the sheet for composing a checklist. Lower case, matching the app's other sheet titles.
+  ///
+  /// In en, this message translates to:
+  /// **'new checklist'**
+  String get interactionComposeChecklistTitle;
+
+  /// All-caps tagline under the checklist compose sheet's title.
+  ///
+  /// In en, this message translates to:
+  /// **'A LIST EVERYONE CAN TICK'**
+  String get interactionComposeChecklistTagline;
+
+  /// Title at the top of the sheet for composing an event. Lower case, matching the app's other sheet titles.
+  ///
+  /// In en, this message translates to:
+  /// **'new event'**
+  String get interactionComposeEventTitle;
+
+  /// All-caps tagline under the event compose sheet's title.
+  ///
+  /// In en, this message translates to:
+  /// **'SEE WHO IS COMING'**
+  String get interactionComposeEventTagline;
+
+  /// All-caps field label above the poll's question in the compose sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'QUESTION'**
+  String get interactionComposeQuestionLabel;
+
+  /// Placeholder in the poll question field. Lower case, matching the app's other hints.
+  ///
+  /// In en, this message translates to:
+  /// **'what are you asking?'**
+  String get interactionComposeQuestionHint;
+
+  /// All-caps field label above the checklist's title in the compose sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'TITLE'**
+  String get interactionComposeTitleLabel;
+
+  /// Placeholder in the checklist title field. Lower case, matching the app's other hints.
+  ///
+  /// In en, this message translates to:
+  /// **'what is this list for?'**
+  String get interactionComposeTitleHint;
+
+  /// All-caps field label above the event's name in the compose sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'EVENT'**
+  String get interactionComposeEventNameLabel;
+
+  /// Placeholder in the event name field. Lower case, matching the app's other hints.
+  ///
+  /// In en, this message translates to:
+  /// **'what\'s happening?'**
+  String get interactionComposeEventNameHint;
+
+  /// All-caps field label above the list of typed poll options in the compose sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'OPTIONS'**
+  String get interactionComposeOptionsLabel;
+
+  /// All-caps field label above the list of typed checklist items in the compose sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'ITEMS'**
+  String get interactionComposeItemsLabel;
+
+  /// Placeholder in one empty poll option field, numbered by its position.
+  ///
+  /// In en, this message translates to:
+  /// **'option {index}'**
+  String interactionComposeOptionHint(int index);
+
+  /// Placeholder in one empty checklist item field, numbered by its position.
+  ///
+  /// In en, this message translates to:
+  /// **'item {index}'**
+  String interactionComposeItemHint(int index);
+
+  /// Button under the poll options that appends another empty option field.
+  ///
+  /// In en, this message translates to:
+  /// **'Add option'**
+  String get interactionComposeAddOption;
+
+  /// Button under the checklist items that appends another empty item field.
+  ///
+  /// In en, this message translates to:
+  /// **'Add item'**
+  String get interactionComposeAddItem;
+
+  /// Screen-reader label for the small minus button that deletes one typed option or item row in the compose sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get interactionComposeRemoveRow;
+
+  /// Screen-reader label for the round mark beside each option in quiz mode, which names that option as the right one.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as the correct answer'**
+  String get interactionComposeMarkCorrect;
+
+  /// Title of the compose-sheet switch that lets one voter pick several options. Lower case, matching the app's other switch titles.
+  ///
+  /// In en, this message translates to:
+  /// **'multiple answers'**
+  String get interactionComposeMultipleTitle;
+
+  /// Subtitle under the multiple-answers switch, saying what it does.
+  ///
+  /// In en, this message translates to:
+  /// **'pick more than one'**
+  String get interactionComposeMultipleSub;
+
+  /// Title of the compose-sheet switch that hides who voted for what. Off by default.
+  ///
+  /// In en, this message translates to:
+  /// **'anonymous'**
+  String get interactionComposeAnonymousTitle;
+
+  /// Subtitle under the anonymous switch while it is OFF — which is the default. Says what leaving it alone means, not what the setting is called.
+  ///
+  /// In en, this message translates to:
+  /// **'everyone sees who voted'**
+  String get interactionComposeAnonymousOffSub;
+
+  /// Subtitle under the anonymous switch while it is ON.
+  ///
+  /// In en, this message translates to:
+  /// **'nobody sees who voted'**
+  String get interactionComposeAnonymousOnSub;
+
+  /// Title of the compose-sheet switch that turns a poll into a quiz with one right answer.
+  ///
+  /// In en, this message translates to:
+  /// **'quiz mode'**
+  String get interactionComposeQuizTitle;
+
+  /// Subtitle under the quiz-mode switch, saying what it does.
+  ///
+  /// In en, this message translates to:
+  /// **'one right answer, no changing it'**
+  String get interactionComposeQuizSub;
+
+  /// All-caps field label above the optional note a quiz shows once somebody has answered.
+  ///
+  /// In en, this message translates to:
+  /// **'EXPLANATION'**
+  String get interactionComposeExplanationLabel;
+
+  /// Placeholder in the quiz explanation field.
+  ///
+  /// In en, this message translates to:
+  /// **'shown after answering (optional)'**
+  String get interactionComposeExplanationHint;
+
+  /// Title of the compose-sheet switch that lets people other than the author tick a checklist's items. On by default.
+  ///
+  /// In en, this message translates to:
+  /// **'anyone can tick'**
+  String get interactionComposeOthersMayCheckTitle;
+
+  /// Subtitle under the anyone-can-tick switch.
+  ///
+  /// In en, this message translates to:
+  /// **'not just you'**
+  String get interactionComposeOthersMayCheckSub;
+
+  /// Title of the compose-sheet switch that lets people other than the author add items to a checklist later. On by default.
+  ///
+  /// In en, this message translates to:
+  /// **'anyone can add'**
+  String get interactionComposeOthersMayAddTitle;
+
+  /// Subtitle under the anyone-can-add switch.
+  ///
+  /// In en, this message translates to:
+  /// **'the list can grow later'**
+  String get interactionComposeOthersMayAddSub;
+
+  /// All-caps field label above the event's date and time pickers in the compose sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'WHEN'**
+  String get interactionComposeWhenLabel;
+
+  /// Placeholder on the event compose sheet's start-time row, before a date has been chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a start'**
+  String get interactionComposePickStart;
+
+  /// Placeholder on the event compose sheet's end-time row. An event with no end is the ordinary case.
+  ///
+  /// In en, this message translates to:
+  /// **'Add an end (optional)'**
+  String get interactionComposePickEnd;
+
+  /// All-caps field label above the event's optional location, which is free text rather than a map pin.
+  ///
+  /// In en, this message translates to:
+  /// **'PLACE'**
+  String get interactionComposePlaceLabel;
+
+  /// Placeholder in the event place field.
+  ///
+  /// In en, this message translates to:
+  /// **'where? (optional)'**
+  String get interactionComposePlaceHint;
+
+  /// All-caps text of the button that posts the composed poll to the room.
+  ///
+  /// In en, this message translates to:
+  /// **'SEND POLL'**
+  String get interactionComposeSendPoll;
+
+  /// All-caps text of the button that posts the composed checklist to the room.
+  ///
+  /// In en, this message translates to:
+  /// **'SEND CHECKLIST'**
+  String get interactionComposeSendChecklist;
+
+  /// All-caps text of the button that posts the composed event to the room.
+  ///
+  /// In en, this message translates to:
+  /// **'SEND EVENT'**
+  String get interactionComposeSendEvent;
+
+  /// Error under the compose sheet when the question, checklist title or event name is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Say what you\'re asking first.'**
+  String get interactionComposeErrorPrompt;
+
+  /// Error under the compose sheet when too few poll options have been filled in.
+  ///
+  /// In en, this message translates to:
+  /// **'A poll needs at least {count} options.'**
+  String interactionComposeErrorOptions(int count);
+
+  /// Error under the compose sheet when every checklist item row was left empty.
+  ///
+  /// In en, this message translates to:
+  /// **'A checklist needs at least one item.'**
+  String get interactionComposeErrorItems;
+
+  /// Error under the compose sheet when quiz mode is on but no option has been marked correct.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark which option is the right one.'**
+  String get interactionComposeErrorAnswer;
+
+  /// Error under the compose sheet when an event has no start time.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick when it starts.'**
+  String get interactionComposeErrorWhen;
+
+  /// Error under the compose sheet when the chosen end time is not after the start, in which case the end is discarded.
+  ///
+  /// In en, this message translates to:
+  /// **'The end has to come after the start.'**
+  String get interactionComposeErrorEnd;
+
+  /// Snack bar shown when posting a poll, checklist or event was refused — no connection, a block, or a guardian's rules.
+  ///
+  /// In en, this message translates to:
+  /// **'That didn\'t send.'**
+  String get interactionSendFailed;
+
+  /// Snack bar shown when an answer, a tick or an RSVP was refused: the poll closed, a quiz answer was already spent, the tick was somebody else's, or there is no connection.
+  ///
+  /// In en, this message translates to:
+  /// **'That didn\'t go through.'**
+  String get interactionRefused;
 }
 
 class _AppLocalizationsDelegate

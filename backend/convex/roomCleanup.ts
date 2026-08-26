@@ -69,6 +69,20 @@ async function wipeRoomContents(ctx: any, roomId: any) {
     .withIndex("by_room_user_message", (q: any) => q.eq("roomId", roomId))
     .collect();
   for (const b of bookmarks) await ctx.db.delete(b._id);
+  // Poll/checklist/event bodies, and every answer to them. Swept by room off
+  // the denormalized `roomId` for exactly the reason the pins and bookmarks
+  // above are: two index ranges instead of two probes per message in the room,
+  // and the overwhelming majority of those probes would find nothing.
+  const interactions = await ctx.db
+    .query("messageInteractions")
+    .withIndex("by_room_time", (q: any) => q.eq("roomId", roomId))
+    .collect();
+  for (const i of interactions) await ctx.db.delete(i._id);
+  const answers = await ctx.db
+    .query("interactionResponses")
+    .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId))
+    .collect();
+  for (const a of answers) await ctx.db.delete(a._id);
   // Every reader's manual speaker colours for this room. Swept by room off
   // `by_room_subject`, one index range rather than a probe per member — and
   // unlike almost everything else here, these rows belong to readers rather

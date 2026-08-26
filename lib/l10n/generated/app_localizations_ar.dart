@@ -7567,4 +7567,314 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get devicesScreenFootnote =>
       'إزالة جهاز تُسجّل خروجه وتوقف إشعاراته. يسري ذلك فورًا — أول شيء يحاول ذلك الجهاز فعله سيعيده إلى شاشة تسجيل الدخول.';
+
+  @override
+  String get attachmentMenuPollLabel => 'استطلاع';
+
+  @override
+  String get attachmentMenuChecklistLabel => 'قائمة';
+
+  @override
+  String get attachmentMenuEventLabel => 'مناسبة';
+
+  @override
+  String get interactionKindPoll => 'استطلاع';
+
+  @override
+  String get interactionKindQuiz => 'اختبار';
+
+  @override
+  String get interactionKindChecklist => 'قائمة';
+
+  @override
+  String get interactionKindEvent => 'مناسبة';
+
+  @override
+  String get interactionBadgeAnonymous => 'مجهول';
+
+  @override
+  String get interactionBadgeMultiple => 'متعدد';
+
+  @override
+  String get interactionBadgeClosed => 'مغلق';
+
+  @override
+  String interactionPercent(int percent) {
+    return '$percent٪';
+  }
+
+  @override
+  String interactionAndMore(int count, String names) {
+    return '$names +$count';
+  }
+
+  @override
+  String get interactionSeeWhoAnswered => 'شاهد من أجاب';
+
+  @override
+  String interactionRemoveItem(String label) {
+    return 'إزالة $label';
+  }
+
+  @override
+  String interactionChoiceSemantics(int count, String label) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count صوت',
+      many: '$count صوتًا',
+      few: '$count أصوات',
+      two: 'صوتان',
+      one: 'صوت واحد',
+      zero: 'لا أصوات',
+    );
+    return '$label، $_temp0';
+  }
+
+  @override
+  String get interactionAddItemHint => 'أضف عنصرًا';
+
+  @override
+  String get interactionRetract => 'تراجع';
+
+  @override
+  String get interactionClose => 'إغلاق';
+
+  @override
+  String interactionVoteCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count صوت',
+      many: '$count صوتًا',
+      few: '$count أصوات',
+      two: 'صوتان',
+      one: 'صوت واحد',
+      zero: 'لا أصوات',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String interactionRsvpCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count رد',
+      many: '$count ردًا',
+      few: '$count ردود',
+      two: 'ردان',
+      one: 'رد واحد',
+      zero: 'لا ردود',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String interactionChecklistProgress(int done, int total) {
+    return '$done من $total منجزة';
+  }
+
+  @override
+  String get interactionNoAnswers => 'لا إجابات';
+
+  @override
+  String get interactionBeFirst => 'كن أول من يجيب';
+
+  @override
+  String interactionFinalResults(String count) {
+    return '$count · نهائي';
+  }
+
+  @override
+  String get interactionQuizRight => 'إجابة صحيحة';
+
+  @override
+  String get interactionQuizWrong => 'لم توفَّق';
+
+  @override
+  String interactionEventPast(String when) {
+    return '$when · انتهت';
+  }
+
+  @override
+  String get interactionRespondentsTitlePoll => 'من صوّت';
+
+  @override
+  String get interactionRespondentsTitleChecklist => 'من أشّر';
+
+  @override
+  String get interactionRespondentsTitleEvent => 'من ردّ';
+
+  @override
+  String get interactionRespondentsFailed => 'تعذّر تحميل من أجاب.';
+
+  @override
+  String get interactionRespondentsEmpty => 'لم يجب أحد بعد.';
+
+  @override
+  String get interactionFilterAll => 'الكل';
+
+  @override
+  String get interactionRsvpGoing => 'سآتي';
+
+  @override
+  String get interactionRsvpMaybe => 'ربما';
+
+  @override
+  String get interactionRsvpNo => 'لا أستطيع';
+
+  @override
+  String get interactionComposePollTitle => 'استطلاع جديد';
+
+  @override
+  String get interactionComposePollTagline => 'اسأل الغرفة';
+
+  @override
+  String get interactionComposeChecklistTitle => 'قائمة جديدة';
+
+  @override
+  String get interactionComposeChecklistTagline => 'قائمة يؤشّر عليها الجميع';
+
+  @override
+  String get interactionComposeEventTitle => 'مناسبة جديدة';
+
+  @override
+  String get interactionComposeEventTagline => 'شاهد من سيأتي';
+
+  @override
+  String get interactionComposeQuestionLabel => 'السؤال';
+
+  @override
+  String get interactionComposeQuestionHint => 'عمّ تسأل؟';
+
+  @override
+  String get interactionComposeTitleLabel => 'العنوان';
+
+  @override
+  String get interactionComposeTitleHint => 'لماذا هذه القائمة؟';
+
+  @override
+  String get interactionComposeEventNameLabel => 'المناسبة';
+
+  @override
+  String get interactionComposeEventNameHint => 'ماذا سيحدث؟';
+
+  @override
+  String get interactionComposeOptionsLabel => 'الخيارات';
+
+  @override
+  String get interactionComposeItemsLabel => 'العناصر';
+
+  @override
+  String interactionComposeOptionHint(int index) {
+    return 'الخيار $index';
+  }
+
+  @override
+  String interactionComposeItemHint(int index) {
+    return 'العنصر $index';
+  }
+
+  @override
+  String get interactionComposeAddOption => 'أضف خيارًا';
+
+  @override
+  String get interactionComposeAddItem => 'أضف عنصرًا';
+
+  @override
+  String get interactionComposeRemoveRow => 'إزالة';
+
+  @override
+  String get interactionComposeMarkCorrect => 'حدّده كإجابة صحيحة';
+
+  @override
+  String get interactionComposeMultipleTitle => 'إجابات متعددة';
+
+  @override
+  String get interactionComposeMultipleSub => 'اختر أكثر من واحد';
+
+  @override
+  String get interactionComposeAnonymousTitle => 'مجهول';
+
+  @override
+  String get interactionComposeAnonymousOffSub => 'الجميع يرى من صوّت';
+
+  @override
+  String get interactionComposeAnonymousOnSub => 'لا أحد يرى من صوّت';
+
+  @override
+  String get interactionComposeQuizTitle => 'وضع الاختبار';
+
+  @override
+  String get interactionComposeQuizSub => 'إجابة صحيحة واحدة، بلا تغيير';
+
+  @override
+  String get interactionComposeExplanationLabel => 'التوضيح';
+
+  @override
+  String get interactionComposeExplanationHint => 'يظهر بعد الإجابة (اختياري)';
+
+  @override
+  String get interactionComposeOthersMayCheckTitle => 'يمكن لأي أحد التأشير';
+
+  @override
+  String get interactionComposeOthersMayCheckSub => 'لست أنت وحدك';
+
+  @override
+  String get interactionComposeOthersMayAddTitle => 'يمكن لأي أحد الإضافة';
+
+  @override
+  String get interactionComposeOthersMayAddSub => 'يمكن أن تكبر القائمة لاحقًا';
+
+  @override
+  String get interactionComposeWhenLabel => 'متى';
+
+  @override
+  String get interactionComposePickStart => 'اختر وقت البداية';
+
+  @override
+  String get interactionComposePickEnd => 'أضف وقت نهاية (اختياري)';
+
+  @override
+  String get interactionComposePlaceLabel => 'المكان';
+
+  @override
+  String get interactionComposePlaceHint => 'أين؟ (اختياري)';
+
+  @override
+  String get interactionComposeSendPoll => 'أرسل الاستطلاع';
+
+  @override
+  String get interactionComposeSendChecklist => 'أرسل القائمة';
+
+  @override
+  String get interactionComposeSendEvent => 'أرسل المناسبة';
+
+  @override
+  String get interactionComposeErrorPrompt => 'اكتب أولًا عمّ تسأل.';
+
+  @override
+  String interactionComposeErrorOptions(int count) {
+    return 'يحتاج الاستطلاع إلى $count خيارات على الأقل.';
+  }
+
+  @override
+  String get interactionComposeErrorItems =>
+      'تحتاج القائمة إلى عنصر واحد على الأقل.';
+
+  @override
+  String get interactionComposeErrorAnswer => 'حدّد الخيار الصحيح.';
+
+  @override
+  String get interactionComposeErrorWhen => 'اختر متى تبدأ.';
+
+  @override
+  String get interactionComposeErrorEnd => 'يجب أن تكون النهاية بعد البداية.';
+
+  @override
+  String get interactionSendFailed => 'لم يُرسل.';
+
+  @override
+  String get interactionRefused => 'لم يُسجَّل.';
 }

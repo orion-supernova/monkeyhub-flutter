@@ -8565,5 +8565,429 @@
   "devicesScreenFootnote": "Removing a device signs it out and stops its notifications. It takes effect immediately — the next thing that device tries to do will send it back to the login screen.",
   "@devicesScreenFootnote": {
     "description": "Honest footnote at the bottom of the Devices screen explaining the limits of Remove. Accuracy matters more than brevity here: this screen is opened by people who think a device was stolen."
+  },
+  "attachmentMenuPollLabel": "poll",
+  "@attachmentMenuPollLabel": {
+    "description": "Label under the poll icon in the attachment picker sheet (attachment_menu.dart). Lower case, matching the other tiles."
+  },
+  "attachmentMenuChecklistLabel": "checklist",
+  "@attachmentMenuChecklistLabel": {
+    "description": "Label under the checklist icon in the attachment picker sheet (attachment_menu.dart). Lower case, matching the other tiles."
+  },
+  "attachmentMenuEventLabel": "event",
+  "@attachmentMenuEventLabel": {
+    "description": "Label under the event icon in the attachment picker sheet (attachment_menu.dart). Lower case, matching the other tiles."
+  },
+  "interactionKindPoll": "POLL",
+  "@interactionKindPoll": {
+    "description": "All-caps kind label in the header strip of a poll card in the transcript. Stored upper case because Dart's toUpperCase is locale-insensitive."
+  },
+  "interactionKindQuiz": "QUIZ",
+  "@interactionKindQuiz": {
+    "description": "All-caps kind label in the header strip of a poll card that is in quiz mode (one right answer). Replaces the POLL label."
+  },
+  "interactionKindChecklist": "CHECKLIST",
+  "@interactionKindChecklist": {
+    "description": "All-caps kind label in the header strip of a checklist card in the transcript."
+  },
+  "interactionKindEvent": "EVENT",
+  "@interactionKindEvent": {
+    "description": "All-caps kind label in the header strip of an event card in the transcript."
+  },
+  "interactionBadgeAnonymous": "ANONYMOUS",
+  "@interactionBadgeAnonymous": {
+    "description": "Small all-caps badge on a poll card meaning nobody, including the author, will be shown who voted for what."
+  },
+  "interactionBadgeMultiple": "MULTI",
+  "@interactionBadgeMultiple": {
+    "description": "Small all-caps badge on a poll card meaning a voter may pick more than one option. Keep it very short: it sits beside up to two other badges on one line."
+  },
+  "interactionBadgeClosed": "CLOSED",
+  "@interactionBadgeClosed": {
+    "description": "Small all-caps badge on a poll, checklist or event card meaning it takes no further answers."
+  },
+  "interactionPercent": "{percent}%",
+  "@interactionPercent": {
+    "description": "The share of the vote an option received, shown at the right-hand end of that option's row on a poll card.",
+    "placeholders": {
+      "percent": {
+        "type": "int",
+        "description": "A whole number from 0 to 100."
+      }
+    }
+  },
+  "interactionAndMore": "{names} +{count}",
+  "@interactionAndMore": {
+    "description": "The line of voter names under a poll option, when more people picked it than the card names. Reads like 'alice, bob +3'.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "How many further people are not named."
+      },
+      "names": {
+        "type": "String",
+        "description": "The comma-separated names the card does show."
+      }
+    }
+  },
+  "interactionSeeWhoAnswered": "See who answered",
+  "@interactionSeeWhoAnswered": {
+    "description": "Footer action on a poll, checklist or event card that opens the sheet naming everybody who answered. Never shown on an anonymous poll."
+  },
+  "interactionRemoveItem": "Remove {label}",
+  "@interactionRemoveItem": {
+    "description": "Screen-reader label for the small minus button beside a checklist item, offered to the list's author.",
+    "placeholders": {
+      "label": {
+        "type": "String",
+        "description": "The item's own text."
+      }
+    }
+  },
+  "interactionChoiceSemantics": "{label}, {count, plural, one{1 vote} other{{count} votes}}",
+  "@interactionChoiceSemantics": {
+    "description": "Screen-reader label for one option row on a poll or event card: what the option says, and how many people picked it.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "How many people picked this option."
+      },
+      "label": {
+        "type": "String",
+        "description": "The option's own text."
+      }
+    }
+  },
+  "interactionAddItemHint": "Add an item",
+  "@interactionAddItemHint": {
+    "description": "Placeholder in the inline field at the bottom of a checklist card, where anyone allowed to may type a new item."
+  },
+  "interactionRetract": "Retract",
+  "@interactionRetract": {
+    "description": "Footer action on a poll card that clears every answer this reader gave. Not offered on a quiz, a closed poll or a checklist."
+  },
+  "interactionClose": "Close",
+  "@interactionClose": {
+    "description": "Footer action offered to the author that ends a poll, checklist or event so it takes no further answers. One-way: there is no reopen."
+  },
+  "interactionVoteCount": "{count, plural, one{1 vote} other{{count} votes}}",
+  "@interactionVoteCount": {
+    "description": "Footer line on a poll card counting the distinct people who voted. Not the sum of the options, which double-counts on a multiple-answer poll.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "How many distinct people voted."
+      }
+    }
+  },
+  "interactionRsvpCount": "{count, plural, one{1 reply} other{{count} replies}}",
+  "@interactionRsvpCount": {
+    "description": "Footer line on an event card counting the people who chose going, maybe or can't.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "How many people replied."
+      }
+    }
+  },
+  "interactionChecklistProgress": "{done} of {total} done",
+  "@interactionChecklistProgress": {
+    "description": "Footer line on a checklist card: how many items are ticked out of how many there are.",
+    "placeholders": {
+      "done": {
+        "type": "int",
+        "description": "How many items are ticked."
+      },
+      "total": {
+        "type": "int",
+        "description": "How many items the list has."
+      }
+    }
+  },
+  "interactionNoAnswers": "No answers",
+  "@interactionNoAnswers": {
+    "description": "Footer line on a closed poll or event that nobody ever answered."
+  },
+  "interactionBeFirst": "Be the first to answer",
+  "@interactionBeFirst": {
+    "description": "Footer line on an open poll or event that nobody has answered yet."
+  },
+  "interactionFinalResults": "{count} · final",
+  "@interactionFinalResults": {
+    "description": "Footer line on a closed poll or event: the ordinary count, marked as settled.",
+    "placeholders": {
+      "count": {
+        "type": "String",
+        "description": "The already-formatted vote or reply count, e.g. '12 votes'."
+      }
+    }
+  },
+  "interactionQuizRight": "Correct",
+  "@interactionQuizRight": {
+    "description": "Verdict shown on a quiz card once this reader has answered and got it right."
+  },
+  "interactionQuizWrong": "Not quite",
+  "@interactionQuizWrong": {
+    "description": "Verdict shown on a quiz card once this reader has answered and got it wrong. Kept gentle: this is a group chat, not an exam."
+  },
+  "interactionEventPast": "{when} · already happened",
+  "@interactionEventPast": {
+    "description": "The when-line on an event card whose start time is in the past. The card stays in the transcript as a record, so this dates it rather than hiding it.",
+    "placeholders": {
+      "when": {
+        "type": "String",
+        "description": "The already-formatted date and time."
+      }
+    }
+  },
+  "interactionRespondentsTitlePoll": "WHO VOTED",
+  "@interactionRespondentsTitlePoll": {
+    "description": "All-caps header of the sheet naming everybody who voted in a poll."
+  },
+  "interactionRespondentsTitleChecklist": "WHO TICKED",
+  "@interactionRespondentsTitleChecklist": {
+    "description": "All-caps header of the sheet naming who ticked which item of a checklist."
+  },
+  "interactionRespondentsTitleEvent": "WHO REPLIED",
+  "@interactionRespondentsTitleEvent": {
+    "description": "All-caps header of the sheet naming who chose going, maybe or can't on an event."
+  },
+  "interactionRespondentsFailed": "Couldn't load who answered.",
+  "@interactionRespondentsFailed": {
+    "description": "Shown in the who-answered sheet when the list could not be fetched — offline, a deleted message, or a poll that turns out to be anonymous."
+  },
+  "interactionRespondentsEmpty": "Nobody has answered yet.",
+  "@interactionRespondentsEmpty": {
+    "description": "Shown in the who-answered sheet when the poll, checklist or event has no answers at all."
+  },
+  "interactionFilterAll": "ALL",
+  "@interactionFilterAll": {
+    "description": "All-caps label on the first filter pill in the who-answered sheet, showing everybody regardless of what they picked."
+  },
+  "interactionRsvpGoing": "Going",
+  "@interactionRsvpGoing": {
+    "description": "The first of an event's three RSVP answers: this person intends to come."
+  },
+  "interactionRsvpMaybe": "Maybe",
+  "@interactionRsvpMaybe": {
+    "description": "The second of an event's three RSVP answers: this person is unsure."
+  },
+  "interactionRsvpNo": "Can't",
+  "@interactionRsvpNo": {
+    "description": "The third of an event's three RSVP answers: this person cannot come. Short and unapologetic rather than 'not going'."
+  },
+  "interactionComposePollTitle": "new poll",
+  "@interactionComposePollTitle": {
+    "description": "Title at the top of the sheet for composing a poll. Lower case, matching the app's other sheet titles."
+  },
+  "interactionComposePollTagline": "ASK THE ROOM",
+  "@interactionComposePollTagline": {
+    "description": "All-caps tagline under the poll compose sheet's title."
+  },
+  "interactionComposeChecklistTitle": "new checklist",
+  "@interactionComposeChecklistTitle": {
+    "description": "Title at the top of the sheet for composing a checklist. Lower case, matching the app's other sheet titles."
+  },
+  "interactionComposeChecklistTagline": "A LIST EVERYONE CAN TICK",
+  "@interactionComposeChecklistTagline": {
+    "description": "All-caps tagline under the checklist compose sheet's title."
+  },
+  "interactionComposeEventTitle": "new event",
+  "@interactionComposeEventTitle": {
+    "description": "Title at the top of the sheet for composing an event. Lower case, matching the app's other sheet titles."
+  },
+  "interactionComposeEventTagline": "SEE WHO IS COMING",
+  "@interactionComposeEventTagline": {
+    "description": "All-caps tagline under the event compose sheet's title."
+  },
+  "interactionComposeQuestionLabel": "QUESTION",
+  "@interactionComposeQuestionLabel": {
+    "description": "All-caps field label above the poll's question in the compose sheet."
+  },
+  "interactionComposeQuestionHint": "what are you asking?",
+  "@interactionComposeQuestionHint": {
+    "description": "Placeholder in the poll question field. Lower case, matching the app's other hints."
+  },
+  "interactionComposeTitleLabel": "TITLE",
+  "@interactionComposeTitleLabel": {
+    "description": "All-caps field label above the checklist's title in the compose sheet."
+  },
+  "interactionComposeTitleHint": "what is this list for?",
+  "@interactionComposeTitleHint": {
+    "description": "Placeholder in the checklist title field. Lower case, matching the app's other hints."
+  },
+  "interactionComposeEventNameLabel": "EVENT",
+  "@interactionComposeEventNameLabel": {
+    "description": "All-caps field label above the event's name in the compose sheet."
+  },
+  "interactionComposeEventNameHint": "what's happening?",
+  "@interactionComposeEventNameHint": {
+    "description": "Placeholder in the event name field. Lower case, matching the app's other hints."
+  },
+  "interactionComposeOptionsLabel": "OPTIONS",
+  "@interactionComposeOptionsLabel": {
+    "description": "All-caps field label above the list of typed poll options in the compose sheet."
+  },
+  "interactionComposeItemsLabel": "ITEMS",
+  "@interactionComposeItemsLabel": {
+    "description": "All-caps field label above the list of typed checklist items in the compose sheet."
+  },
+  "interactionComposeOptionHint": "option {index}",
+  "@interactionComposeOptionHint": {
+    "description": "Placeholder in one empty poll option field, numbered by its position.",
+    "placeholders": {
+      "index": {
+        "type": "int",
+        "description": "This option's position, counting from 1."
+      }
+    }
+  },
+  "interactionComposeItemHint": "item {index}",
+  "@interactionComposeItemHint": {
+    "description": "Placeholder in one empty checklist item field, numbered by its position.",
+    "placeholders": {
+      "index": {
+        "type": "int",
+        "description": "This item's position, counting from 1."
+      }
+    }
+  },
+  "interactionComposeAddOption": "Add option",
+  "@interactionComposeAddOption": {
+    "description": "Button under the poll options that appends another empty option field."
+  },
+  "interactionComposeAddItem": "Add item",
+  "@interactionComposeAddItem": {
+    "description": "Button under the checklist items that appends another empty item field."
+  },
+  "interactionComposeRemoveRow": "Remove",
+  "@interactionComposeRemoveRow": {
+    "description": "Screen-reader label for the small minus button that deletes one typed option or item row in the compose sheet."
+  },
+  "interactionComposeMarkCorrect": "Mark as the correct answer",
+  "@interactionComposeMarkCorrect": {
+    "description": "Screen-reader label for the round mark beside each option in quiz mode, which names that option as the right one."
+  },
+  "interactionComposeMultipleTitle": "multiple answers",
+  "@interactionComposeMultipleTitle": {
+    "description": "Title of the compose-sheet switch that lets one voter pick several options. Lower case, matching the app's other switch titles."
+  },
+  "interactionComposeMultipleSub": "pick more than one",
+  "@interactionComposeMultipleSub": {
+    "description": "Subtitle under the multiple-answers switch, saying what it does."
+  },
+  "interactionComposeAnonymousTitle": "anonymous",
+  "@interactionComposeAnonymousTitle": {
+    "description": "Title of the compose-sheet switch that hides who voted for what. Off by default."
+  },
+  "interactionComposeAnonymousOffSub": "everyone sees who voted",
+  "@interactionComposeAnonymousOffSub": {
+    "description": "Subtitle under the anonymous switch while it is OFF — which is the default. Says what leaving it alone means, not what the setting is called."
+  },
+  "interactionComposeAnonymousOnSub": "nobody sees who voted",
+  "@interactionComposeAnonymousOnSub": {
+    "description": "Subtitle under the anonymous switch while it is ON."
+  },
+  "interactionComposeQuizTitle": "quiz mode",
+  "@interactionComposeQuizTitle": {
+    "description": "Title of the compose-sheet switch that turns a poll into a quiz with one right answer."
+  },
+  "interactionComposeQuizSub": "one right answer, no changing it",
+  "@interactionComposeQuizSub": {
+    "description": "Subtitle under the quiz-mode switch, saying what it does."
+  },
+  "interactionComposeExplanationLabel": "EXPLANATION",
+  "@interactionComposeExplanationLabel": {
+    "description": "All-caps field label above the optional note a quiz shows once somebody has answered."
+  },
+  "interactionComposeExplanationHint": "shown after answering (optional)",
+  "@interactionComposeExplanationHint": {
+    "description": "Placeholder in the quiz explanation field."
+  },
+  "interactionComposeOthersMayCheckTitle": "anyone can tick",
+  "@interactionComposeOthersMayCheckTitle": {
+    "description": "Title of the compose-sheet switch that lets people other than the author tick a checklist's items. On by default."
+  },
+  "interactionComposeOthersMayCheckSub": "not just you",
+  "@interactionComposeOthersMayCheckSub": {
+    "description": "Subtitle under the anyone-can-tick switch."
+  },
+  "interactionComposeOthersMayAddTitle": "anyone can add",
+  "@interactionComposeOthersMayAddTitle": {
+    "description": "Title of the compose-sheet switch that lets people other than the author add items to a checklist later. On by default."
+  },
+  "interactionComposeOthersMayAddSub": "the list can grow later",
+  "@interactionComposeOthersMayAddSub": {
+    "description": "Subtitle under the anyone-can-add switch."
+  },
+  "interactionComposeWhenLabel": "WHEN",
+  "@interactionComposeWhenLabel": {
+    "description": "All-caps field label above the event's date and time pickers in the compose sheet."
+  },
+  "interactionComposePickStart": "Pick a start",
+  "@interactionComposePickStart": {
+    "description": "Placeholder on the event compose sheet's start-time row, before a date has been chosen."
+  },
+  "interactionComposePickEnd": "Add an end (optional)",
+  "@interactionComposePickEnd": {
+    "description": "Placeholder on the event compose sheet's end-time row. An event with no end is the ordinary case."
+  },
+  "interactionComposePlaceLabel": "PLACE",
+  "@interactionComposePlaceLabel": {
+    "description": "All-caps field label above the event's optional location, which is free text rather than a map pin."
+  },
+  "interactionComposePlaceHint": "where? (optional)",
+  "@interactionComposePlaceHint": {
+    "description": "Placeholder in the event place field."
+  },
+  "interactionComposeSendPoll": "SEND POLL",
+  "@interactionComposeSendPoll": {
+    "description": "All-caps text of the button that posts the composed poll to the room."
+  },
+  "interactionComposeSendChecklist": "SEND CHECKLIST",
+  "@interactionComposeSendChecklist": {
+    "description": "All-caps text of the button that posts the composed checklist to the room."
+  },
+  "interactionComposeSendEvent": "SEND EVENT",
+  "@interactionComposeSendEvent": {
+    "description": "All-caps text of the button that posts the composed event to the room."
+  },
+  "interactionComposeErrorPrompt": "Say what you're asking first.",
+  "@interactionComposeErrorPrompt": {
+    "description": "Error under the compose sheet when the question, checklist title or event name is empty."
+  },
+  "interactionComposeErrorOptions": "A poll needs at least {count} options.",
+  "@interactionComposeErrorOptions": {
+    "description": "Error under the compose sheet when too few poll options have been filled in.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "The minimum number of options, currently 2."
+      }
+    }
+  },
+  "interactionComposeErrorItems": "A checklist needs at least one item.",
+  "@interactionComposeErrorItems": {
+    "description": "Error under the compose sheet when every checklist item row was left empty."
+  },
+  "interactionComposeErrorAnswer": "Mark which option is the right one.",
+  "@interactionComposeErrorAnswer": {
+    "description": "Error under the compose sheet when quiz mode is on but no option has been marked correct."
+  },
+  "interactionComposeErrorWhen": "Pick when it starts.",
+  "@interactionComposeErrorWhen": {
+    "description": "Error under the compose sheet when an event has no start time."
+  },
+  "interactionComposeErrorEnd": "The end has to come after the start.",
+  "@interactionComposeErrorEnd": {
+    "description": "Error under the compose sheet when the chosen end time is not after the start, in which case the end is discarded."
+  },
+  "interactionSendFailed": "That didn't send.",
+  "@interactionSendFailed": {
+    "description": "Snack bar shown when posting a poll, checklist or event was refused — no connection, a block, or a guardian's rules."
+  },
+  "interactionRefused": "That didn't go through.",
+  "@interactionRefused": {
+    "description": "Snack bar shown when an answer, a tick or an RSVP was refused: the poll closed, a quiz answer was already spent, the tick was somebody else's, or there is no connection."
   }
 }

@@ -22,6 +22,19 @@ class AttachmentMenuChoice {
   static const videoNote = AttachmentMenuChoice._('videoNote');
   static const file = AttachmentMenuChoice._('file');
   static const location = AttachmentMenuChoice._('location');
+
+  /// The three interactive messages. Here rather than behind a second menu
+  /// because this sheet is already the answer to "what am I sending", and a
+  /// poll is one of the answers — Telegram, Slack and every group chat that has
+  /// them put them exactly here for the same reason.
+  ///
+  /// Deliberately NOT web-gated, unlike voice and the video note. These are
+  /// text and a date: there is no recorder, no camera and no file picker
+  /// involved, so every platform can compose one and every platform can answer
+  /// one.
+  static const poll = AttachmentMenuChoice._('poll');
+  static const checklist = AttachmentMenuChoice._('checklist');
+  static const event = AttachmentMenuChoice._('event');
 }
 
 /// [allowMedia] and [allowLocation] are the guardian policy, mirrored from
@@ -129,6 +142,27 @@ class _AttachmentSheet extends StatelessWidget {
           CupertinoIcons.location,
           l10n.attachmentMenuLocationLabel,
         ),
+      // Outside the `allowMedia` block on purpose, and outside `allowLocation`
+      // too. A poll carries no blob and no coordinates — it is a sentence and
+      // some labels, which a child who may type at all may already send — so
+      // neither guardian switch has anything to say about it. Mirrored
+      // server-side by `TEXT_SHAPED_TYPES` in `messages.ts`, which is the
+      // authority; this sheet only decides what to offer.
+      (
+        AttachmentMenuChoice.poll,
+        CupertinoIcons.chart_bar_alt_fill,
+        l10n.attachmentMenuPollLabel,
+      ),
+      (
+        AttachmentMenuChoice.checklist,
+        CupertinoIcons.checkmark_square,
+        l10n.attachmentMenuChecklistLabel,
+      ),
+      (
+        AttachmentMenuChoice.event,
+        CupertinoIcons.calendar,
+        l10n.attachmentMenuEventLabel,
+      ),
     ];
     return Material(
       type: MaterialType.transparency,

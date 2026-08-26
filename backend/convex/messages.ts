@@ -11,6 +11,7 @@ import {
   childPolicyOf,
 } from "./childGuard";
 import { deleteStored, releaseMessageBlobs } from "./files";
+import { forkInteraction, purgeInteraction } from "./interactionCore";
 import { lensFor } from "./visibility";
 
 // ── Delivery-receipt tuning ─────────────────────────────────────────────────
@@ -214,19 +215,35 @@ export function galleryBucketFor(
  * Keyed on [hasBlob] rather than on the type for exactly that second reason: an
  * attachment is an attachment whatever the message calls itself.
  */
+/**
+ * The types that need no grant beyond being able to write in the room at all.
+ *
+ * `text` was the whole set until polls arrived, and adding to it IS a
+ * permission change, so it is stated here rather than buried in an expression.
+ *
+ * The three interactive kinds join it because a poll, a checklist and an event
+ * are words — a prompt and some labels the sender typed, carrying no blob and
+ * no coordinates. Gating them behind the MEDIA grant would mean a child who may
+ * say "pizza or curry?" may not ask it as a poll, which is not a distinction
+ * the guardian switch is about: that switch is about pictures and video leaving
+ * the device. See `childGuard.ts`.
+ *
+ * Note what this does NOT relax. `system` stays outside the set, exactly where
+ * the pre-existing `!== "text"` put it — extending a text-shaped exemption is
+ * not the place to quietly change an unrelated type's posture.
+ */
+const TEXT_SHAPED_TYPES = new Set(["text", "poll", "checklist", "event"]);
+
 export function permissionsFor(type: string, hasBlob: boolean) {
   const location = type === "location" || type === "liveLocation";
   return {
     location,
     // A location message is not media, but a location message with a file
-    // attached to it needs both — see above.
-    //
-    // `!== "text"` and nothing more, deliberately: that is exactly what the
-    // old `msgType !== "text"` covered, so every type that already needed the
-    // media grant still needs it. Introducing a location gate is not the place
-    // to quietly relax an unrelated one (`system`, say) — that would be a
-    // permission change hidden inside a refactor.
-    media: hasBlob || (!location && type !== "text"),
+    // attached to it needs both — see above. And an interactive message with a
+    // blob somehow attached needs the media grant like anything else would:
+    // `hasBlob` leads for the reason it always has, that an attachment is an
+    // attachment whatever the message calls itself.
+    media: hasBlob || (!location && !TEXT_SHAPED_TYPES.has(type)),
   };
 }
 
@@ -392,6 +409,19 @@ function roomPreviewFor(msg: {
   // camelCase identifier leaking onto the chat list where every other preview
   // is a word.
   if (type === "videoNote") return "[video note]";
+  // The three interactive kinds preview as their own prompt, which is why
+  // `interactions:create` puts the question in `content` at all — see the
+  // `messageInteractions` schema header. A room card saying "pizza or curry?"
+  // is the useful thing; "[poll]" is the label of a thing.
+  //
+  // Prefixed rather than bare so a chat list still distinguishes a poll from
+  // somebody typing the same words, and prefixed with a WORD rather than an
+  // emoji because this string is also read by `notifications` (which adds its
+  // own glyph) and by screen readers.
+  if (type === "poll" || type === "checklist" || type === "event") {
+    const prompt = (msg.content ?? "").slice(0, 100);
+    return prompt.length > 0 ? `[${type}] ${prompt}` : `[${type}]`;
+  }
   return `[${type}]`;
 }
 
@@ -1326,6 +1356,14 @@ async function removeMessageAndFanout(ctx: any, msg: any, messageId: any) {
   // scan is a single empty index range.
   await purgeViewOnceViews(ctx, messageId);
 
+  // The poll/checklist/event body and every answer to it. Here rather than in
+  // `deleteMessage` for the reason the pins and bookmarks above are: this is
+  // also the path a Chamber of Secrets message takes when it self-destructs,
+  // and a poll outliving the message that posed the question would be a row
+  // nothing renders and nothing can reach. Unconditional, like the line above
+  // it — only three message types find anything.
+  await purgeInteraction(ctx, messageId);
+
   // Mark every child reply's denormalized preview as deleted so their inline
   // tether keeps rendering ("message removed") instead of pointing at a
   // vanished parent.
@@ -1745,6 +1783,13 @@ export const forwardToRoom = mutation({
         expiresAt,
         ...(clientId !== undefined ? { clientId } : {}),
       });
+
+      // A poll, checklist or event forwards as a FRESH one: same question,
+      // same options, no answers. Called unconditionally because the lookup is
+      // an empty index range for every other type — the same posture as
+      // `purgeInteraction` on the teardown path. See `forkInteraction` for why
+      // the tallies deliberately do not travel.
+      await forkInteraction(ctx, msg._id, newId, targetRoomId, userId);
 
       if (expiresAt !== undefined) {
         await ctx.scheduler.runAt(

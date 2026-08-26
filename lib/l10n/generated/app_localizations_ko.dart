@@ -7191,4 +7191,298 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get devicesScreenFootnote =>
       '기기를 삭제하면 로그아웃되고 알림도 중단됩니다. 즉시 적용되며, 그 기기가 다음에 무언가 하려는 순간 로그인 화면으로 돌아갑니다.';
+
+  @override
+  String get attachmentMenuPollLabel => '투표';
+
+  @override
+  String get attachmentMenuChecklistLabel => '체크리스트';
+
+  @override
+  String get attachmentMenuEventLabel => '일정';
+
+  @override
+  String get interactionKindPoll => '투표';
+
+  @override
+  String get interactionKindQuiz => '퀴즈';
+
+  @override
+  String get interactionKindChecklist => '체크리스트';
+
+  @override
+  String get interactionKindEvent => '일정';
+
+  @override
+  String get interactionBadgeAnonymous => '익명';
+
+  @override
+  String get interactionBadgeMultiple => '복수';
+
+  @override
+  String get interactionBadgeClosed => '마감';
+
+  @override
+  String interactionPercent(int percent) {
+    return '$percent%';
+  }
+
+  @override
+  String interactionAndMore(int count, String names) {
+    return '$names 외 $count명';
+  }
+
+  @override
+  String get interactionSeeWhoAnswered => '누가 답했는지 보기';
+
+  @override
+  String interactionRemoveItem(String label) {
+    return '$label 삭제';
+  }
+
+  @override
+  String interactionChoiceSemantics(int count, String label) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count표',
+    );
+    return '$label, $_temp0';
+  }
+
+  @override
+  String get interactionAddItemHint => '항목 추가';
+
+  @override
+  String get interactionRetract => '취소';
+
+  @override
+  String get interactionClose => '마감';
+
+  @override
+  String interactionVoteCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count표',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String interactionRsvpCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '답변 $count개',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String interactionChecklistProgress(int done, int total) {
+    return '$total개 중 $done개 완료';
+  }
+
+  @override
+  String get interactionNoAnswers => '답변 없음';
+
+  @override
+  String get interactionBeFirst => '가장 먼저 답해 보세요';
+
+  @override
+  String interactionFinalResults(String count) {
+    return '$count · 확정';
+  }
+
+  @override
+  String get interactionQuizRight => '정답';
+
+  @override
+  String get interactionQuizWrong => '아깝네요';
+
+  @override
+  String interactionEventPast(String when) {
+    return '$when · 이미 지났어요';
+  }
+
+  @override
+  String get interactionRespondentsTitlePoll => '투표한 사람';
+
+  @override
+  String get interactionRespondentsTitleChecklist => '체크한 사람';
+
+  @override
+  String get interactionRespondentsTitleEvent => '답한 사람';
+
+  @override
+  String get interactionRespondentsFailed => '누가 답했는지 불러오지 못했어요.';
+
+  @override
+  String get interactionRespondentsEmpty => '아직 아무도 답하지 않았어요.';
+
+  @override
+  String get interactionFilterAll => '전체';
+
+  @override
+  String get interactionRsvpGoing => '갈게요';
+
+  @override
+  String get interactionRsvpMaybe => '아마도';
+
+  @override
+  String get interactionRsvpNo => '못 가요';
+
+  @override
+  String get interactionComposePollTitle => '새 투표';
+
+  @override
+  String get interactionComposePollTagline => '방에 물어보기';
+
+  @override
+  String get interactionComposeChecklistTitle => '새 체크리스트';
+
+  @override
+  String get interactionComposeChecklistTagline => '다 같이 체크하는 목록';
+
+  @override
+  String get interactionComposeEventTitle => '새 일정';
+
+  @override
+  String get interactionComposeEventTagline => '누가 오는지 보기';
+
+  @override
+  String get interactionComposeQuestionLabel => '질문';
+
+  @override
+  String get interactionComposeQuestionHint => '무엇을 물어볼까요?';
+
+  @override
+  String get interactionComposeTitleLabel => '제목';
+
+  @override
+  String get interactionComposeTitleHint => '어떤 목록인가요?';
+
+  @override
+  String get interactionComposeEventNameLabel => '일정';
+
+  @override
+  String get interactionComposeEventNameHint => '무슨 일인가요?';
+
+  @override
+  String get interactionComposeOptionsLabel => '선택지';
+
+  @override
+  String get interactionComposeItemsLabel => '항목';
+
+  @override
+  String interactionComposeOptionHint(int index) {
+    return '선택지 $index';
+  }
+
+  @override
+  String interactionComposeItemHint(int index) {
+    return '항목 $index';
+  }
+
+  @override
+  String get interactionComposeAddOption => '선택지 추가';
+
+  @override
+  String get interactionComposeAddItem => '항목 추가';
+
+  @override
+  String get interactionComposeRemoveRow => '삭제';
+
+  @override
+  String get interactionComposeMarkCorrect => '정답으로 표시';
+
+  @override
+  String get interactionComposeMultipleTitle => '복수 응답';
+
+  @override
+  String get interactionComposeMultipleSub => '여러 개 고를 수 있어요';
+
+  @override
+  String get interactionComposeAnonymousTitle => '익명';
+
+  @override
+  String get interactionComposeAnonymousOffSub => '누가 투표했는지 모두 볼 수 있어요';
+
+  @override
+  String get interactionComposeAnonymousOnSub => '누가 투표했는지 아무도 못 봐요';
+
+  @override
+  String get interactionComposeQuizTitle => '퀴즈 모드';
+
+  @override
+  String get interactionComposeQuizSub => '정답은 하나, 바꿀 수 없어요';
+
+  @override
+  String get interactionComposeExplanationLabel => '해설';
+
+  @override
+  String get interactionComposeExplanationHint => '답한 뒤에 보여요 (선택)';
+
+  @override
+  String get interactionComposeOthersMayCheckTitle => '누구나 체크 가능';
+
+  @override
+  String get interactionComposeOthersMayCheckSub => '나만이 아니에요';
+
+  @override
+  String get interactionComposeOthersMayAddTitle => '누구나 추가 가능';
+
+  @override
+  String get interactionComposeOthersMayAddSub => '나중에 늘릴 수 있어요';
+
+  @override
+  String get interactionComposeWhenLabel => '언제';
+
+  @override
+  String get interactionComposePickStart => '시작 시간 고르기';
+
+  @override
+  String get interactionComposePickEnd => '종료 추가 (선택)';
+
+  @override
+  String get interactionComposePlaceLabel => '장소';
+
+  @override
+  String get interactionComposePlaceHint => '어디서? (선택)';
+
+  @override
+  String get interactionComposeSendPoll => '투표 보내기';
+
+  @override
+  String get interactionComposeSendChecklist => '체크리스트 보내기';
+
+  @override
+  String get interactionComposeSendEvent => '일정 보내기';
+
+  @override
+  String get interactionComposeErrorPrompt => '먼저 무엇을 묻는지 적어 주세요.';
+
+  @override
+  String interactionComposeErrorOptions(int count) {
+    return '투표에는 선택지가 $count개 이상 필요해요.';
+  }
+
+  @override
+  String get interactionComposeErrorItems => '체크리스트에는 항목이 하나 이상 필요해요.';
+
+  @override
+  String get interactionComposeErrorAnswer => '어느 선택지가 정답인지 표시해 주세요.';
+
+  @override
+  String get interactionComposeErrorWhen => '언제 시작하는지 골라 주세요.';
+
+  @override
+  String get interactionComposeErrorEnd => '종료는 시작보다 뒤여야 해요.';
+
+  @override
+  String get interactionSendFailed => '보내지 못했어요.';
+
+  @override
+  String get interactionRefused => '처리되지 않았어요.';
 }

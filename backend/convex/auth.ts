@@ -471,6 +471,27 @@ async function purgeUser(ctx: any, userId: any) {
         .withIndex("by_message", (q: any) => q.eq("messageId", msg._id))
         .collect(),
     );
+    // Polls, checklists and events this user POSED, and everybody's answers to
+    // them. This loop is the only sweep that reaches an interaction this user
+    // authored, and it is sufficient: an interaction row is written only in the
+    // same transaction as its message and by the same caller, so its
+    // `createdBy` is always that message's `userId`. See the invariant stated
+    // on `messageInteractions` in the schema — it is what makes a `by_creator`
+    // index unnecessary rather than merely unused.
+    await deleteRows(
+      ctx,
+      await ctx.db
+        .query("interactionResponses")
+        .withIndex("by_message_user", (q: any) => q.eq("messageId", msg._id))
+        .collect(),
+    );
+    await deleteRows(
+      ctx,
+      await ctx.db
+        .query("messageInteractions")
+        .withIndex("by_message", (q: any) => q.eq("messageId", msg._id))
+        .collect(),
+    );
     await ctx.db.delete(msg._id);
   }
   await deleteStored(ctx, user?.avatarStorageId);
@@ -508,6 +529,25 @@ async function purgeUser(ctx: any, userId: any) {
     ctx,
     await ctx.db
       .query("messageBookmarks")
+      .withIndex("by_user", byUser(userId))
+      .collect(),
+  );
+
+  // Votes, ticks and RSVPs this user left on other people's polls, which
+  // outlive the loop above. Same shape as the reactions case, and the only
+  // reason `interactionResponses.by_user` exists.
+  //
+  // Note what this leaves behind, deliberately: the interaction rows those
+  // answers belonged to keep their tallies until somebody next writes to them,
+  // at which point `recount` derives the truth from the surviving rows. A sweep
+  // that patched every affected poll here would be a fan-out over every room
+  // this account ever voted in, to correct a number nobody is looking at — and
+  // it could not be complete anyway, since the same drift already follows a
+  // member simply leaving a room.
+  await deleteRows(
+    ctx,
+    await ctx.db
+      .query("interactionResponses")
       .withIndex("by_user", byUser(userId))
       .collect(),
   );

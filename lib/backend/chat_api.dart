@@ -10,6 +10,7 @@ import '../models/friend_request.dart';
 import '../models/family.dart';
 import '../models/friend_request_message.dart';
 import '../models/message_formatting.dart';
+import '../models/message_interaction.dart';
 import '../models/room_admin.dart';
 import '../models/room_content_item.dart';
 import '../models/user_device.dart';
@@ -1651,6 +1652,191 @@ class ChatApi {
       'userId': userId,
       'emoji': emoji,
     });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Interactive messages — polls, checklists and events
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Posts a poll, checklist or event.
+  ///
+  /// One method for all three because the backend has one mutation, and it has
+  /// one mutation because they are the same object with different words on it.
+  /// The per-kind arguments are all optional and all ignored by the kinds they
+  /// do not belong to — the server refuses a combination that makes no sense
+  /// (an event with client-named buttons, a quiz with no answer) rather than
+  /// quietly reinterpreting it.
+  ///
+  /// [labels] is the poll's options or the checklist's items, in order. Omitted
+  /// for an event, whose three RSVP buttons are server-owned: a client naming
+  /// its own would be inventing a fourth answer no other client can render.
+  ///
+  /// [correctIndex] indexes [labels], not a choice id — the client is naming
+  /// one of the options it is sending, and has no ids yet.
+  ///
+  /// Returns the new message's id, so the caller can reconcile its optimistic
+  /// bubble exactly as [sendMessage] lets it.
+  Future<String> createInteraction({
+    required String roomId,
+    required String userId,
+    required MessageType kind,
+    required String prompt,
+    List<String>? labels,
+    bool multiple = false,
+    bool anonymous = false,
+    bool quiz = false,
+    int? correctIndex,
+    String? explanation,
+    bool othersMayCheck = true,
+    bool othersMayAdd = true,
+    DateTime? startsAt,
+    DateTime? endsAt,
+    String? place,
+    String? replyToId,
+    String? senderName,
+    String? clientId,
+  }) async {
+    final res = await _cv.mutation('interactions:create', {
+      'roomId': roomId,
+      'userId': userId,
+      'kind': kind.wire,
+      'prompt': prompt,
+      'labels': ?labels,
+      // Omitted rather than sent false, matching `sendMessage`'s treatment of
+      // `viewOnce`: the ordinary poll is single-answer and public, and the
+      // wire should not widen to say so.
+      if (multiple) 'multiple': true,
+      if (anonymous) 'anonymous': true,
+      if (quiz) 'quiz': true,
+      'correctIndex': ?correctIndex,
+      'explanation': ?explanation,
+      // These two are the other way round — they default ON, so the wire
+      // carries only the author switching one off.
+      if (!othersMayCheck) 'othersMayCheck': false,
+      if (!othersMayAdd) 'othersMayAdd': false,
+      if (startsAt != null) 'startsAt': startsAt.millisecondsSinceEpoch,
+      if (endsAt != null) 'endsAt': endsAt.millisecondsSinceEpoch,
+      'place': ?place,
+      'replyToId': ?replyToId,
+      'senderName': ?senderName,
+      'clientId': ?clientId,
+    });
+    return res.toString();
+  }
+
+  /// Records one answer: a vote, a tick, or an RSVP.
+  ///
+  /// Toggles. Sending a choice this user already holds takes it back, which is
+  /// what lets one control do both jobs — except on a quiz, where the server
+  /// refuses and the answer stands.
+  Future<void> respondToInteraction({
+    required String messageId,
+    required String userId,
+    required String choiceId,
+  }) async {
+    await _cv.mutation('interactions:respond', {
+      'messageId': messageId,
+      'userId': userId,
+      'choiceId': choiceId,
+    });
+  }
+
+  /// Clears every answer this user holds on one interaction.
+  ///
+  /// Distinct from toggling a single choice off: a multiple-answer poll needs
+  /// one control that means "retract my vote" rather than six taps.
+  Future<void> retractInteraction({
+    required String messageId,
+    required String userId,
+  }) async {
+    await _cv.mutation('interactions:retract', {
+      'messageId': messageId,
+      'userId': userId,
+    });
+  }
+
+  /// Appends an item to a checklist. Refused by the server on the other two
+  /// kinds, and on a list whose author switched shared adding off.
+  Future<void> addChecklistItem({
+    required String messageId,
+    required String userId,
+    required String label,
+  }) async {
+    await _cv.mutation('interactions:addItem', {
+      'messageId': messageId,
+      'userId': userId,
+      'label': label,
+    });
+  }
+
+  /// Removes an item, and whatever tick it was carrying. Author or room admin
+  /// only — adding to a shared list is collaboration, deleting from one is
+  /// editing what somebody else wrote.
+  Future<void> removeChecklistItem({
+    required String messageId,
+    required String userId,
+    required String choiceId,
+  }) async {
+    await _cv.mutation('interactions:removeItem', {
+      'messageId': messageId,
+      'userId': userId,
+      'choiceId': choiceId,
+    });
+  }
+
+  /// Ends an interaction. One-way: there is no reopen, because "final" is the
+  /// only thing closing communicates.
+  Future<void> closeInteraction({
+    required String messageId,
+    required String userId,
+  }) async {
+    await _cv.mutation('interactions:close', {
+      'messageId': messageId,
+      'userId': userId,
+    });
+  }
+
+  /// Who answered what, in full — the sheet behind the faces on a card.
+  ///
+  /// Throws `POLL_IS_ANONYMOUS` on an anonymous poll rather than returning an
+  /// empty list, because an empty list is a claim ("nobody voted") and a
+  /// refusal is the truth ("this poll does not say"). The caller never opens
+  /// this on one, so reaching the throw means a stale screen.
+  Future<List<InteractionRespondentDetail>> interactionRespondents({
+    required String messageId,
+    required String userId,
+  }) async {
+    final res = await _cv.query('interactions:respondents', {
+      'messageId': messageId,
+      'viewerUserId': userId,
+    });
+    return ((res as List?) ?? const [])
+        .whereType<Map>()
+        .map((e) =>
+            InteractionRespondentDetail.fromJson(e.cast<String, dynamic>()))
+        .toList();
+  }
+
+  /// State for interactions older than the room's live window.
+  ///
+  /// The paging counterpart to the `interactions:listForRoom` subscription:
+  /// called with the ids a `listBefore` page just delivered, so a poll scrolled
+  /// back to renders its tally rather than an empty card. A one-shot on
+  /// purpose — the messages on that page are not live either, and a card that
+  /// updated while the transcript around it did not would be the odd one out.
+  Future<List<MessageInteraction>> interactionStateFor({
+    required List<String> messageIds,
+    required String userId,
+  }) async {
+    if (messageIds.isEmpty) return const [];
+    final res = await _cv.query('interactions:stateForMessages', {
+      'messageIds': messageIds,
+      'viewerUserId': userId,
+    });
+    return ((res as List?) ?? const [])
+        .whereType<Map>()
+        .map((e) => MessageInteraction.fromJson(e.cast<String, dynamic>()))
+        .toList();
   }
 
   // ─────────────────────────────────────────────────────────────────────────

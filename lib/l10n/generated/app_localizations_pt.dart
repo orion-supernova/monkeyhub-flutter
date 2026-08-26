@@ -7558,6 +7558,309 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get devicesScreenFootnote =>
       'Remover um dispositivo termina a sua sessão e para as notificações. Tem efeito imediato — a próxima coisa que esse dispositivo tentar fazer devolve-o ao ecrã de início de sessão.';
+
+  @override
+  String get attachmentMenuPollLabel => 'enquete';
+
+  @override
+  String get attachmentMenuChecklistLabel => 'lista';
+
+  @override
+  String get attachmentMenuEventLabel => 'evento';
+
+  @override
+  String get interactionKindPoll => 'ENQUETE';
+
+  @override
+  String get interactionKindQuiz => 'QUIZ';
+
+  @override
+  String get interactionKindChecklist => 'LISTA';
+
+  @override
+  String get interactionKindEvent => 'EVENTO';
+
+  @override
+  String get interactionBadgeAnonymous => 'ANÓNIMA';
+
+  @override
+  String get interactionBadgeMultiple => 'VÁRIAS';
+
+  @override
+  String get interactionBadgeClosed => 'FECHADA';
+
+  @override
+  String interactionPercent(int percent) {
+    return '$percent %';
+  }
+
+  @override
+  String interactionAndMore(int count, String names) {
+    return '$names +$count';
+  }
+
+  @override
+  String get interactionSeeWhoAnswered => 'Ver quem respondeu';
+
+  @override
+  String interactionRemoveItem(String label) {
+    return 'Remover $label';
+  }
+
+  @override
+  String interactionChoiceSemantics(int count, String label) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count votos',
+      one: '1 voto',
+    );
+    return '$label, $_temp0';
+  }
+
+  @override
+  String get interactionAddItemHint => 'Adicionar um item';
+
+  @override
+  String get interactionRetract => 'Retirar';
+
+  @override
+  String get interactionClose => 'Fechar';
+
+  @override
+  String interactionVoteCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count votos',
+      one: '1 voto',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String interactionRsvpCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count respostas',
+      one: '1 resposta',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String interactionChecklistProgress(int done, int total) {
+    return '$done de $total feitos';
+  }
+
+  @override
+  String get interactionNoAnswers => 'Sem respostas';
+
+  @override
+  String get interactionBeFirst => 'Sê o primeiro a responder';
+
+  @override
+  String interactionFinalResults(String count) {
+    return '$count · final';
+  }
+
+  @override
+  String get interactionQuizRight => 'Certo';
+
+  @override
+  String get interactionQuizWrong => 'Quase';
+
+  @override
+  String interactionEventPast(String when) {
+    return '$when · já passou';
+  }
+
+  @override
+  String get interactionRespondentsTitlePoll => 'QUEM VOTOU';
+
+  @override
+  String get interactionRespondentsTitleChecklist => 'QUEM MARCOU';
+
+  @override
+  String get interactionRespondentsTitleEvent => 'QUEM RESPONDEU';
+
+  @override
+  String get interactionRespondentsFailed =>
+      'Não foi possível carregar quem respondeu.';
+
+  @override
+  String get interactionRespondentsEmpty => 'Ainda ninguém respondeu.';
+
+  @override
+  String get interactionFilterAll => 'TODOS';
+
+  @override
+  String get interactionRsvpGoing => 'Vou';
+
+  @override
+  String get interactionRsvpMaybe => 'Talvez';
+
+  @override
+  String get interactionRsvpNo => 'Não posso';
+
+  @override
+  String get interactionComposePollTitle => 'nova enquete';
+
+  @override
+  String get interactionComposePollTagline => 'PERGUNTA À SALA';
+
+  @override
+  String get interactionComposeChecklistTitle => 'nova lista';
+
+  @override
+  String get interactionComposeChecklistTagline => 'UMA LISTA QUE TODOS MARCAM';
+
+  @override
+  String get interactionComposeEventTitle => 'novo evento';
+
+  @override
+  String get interactionComposeEventTagline => 'VÊ QUEM VEM';
+
+  @override
+  String get interactionComposeQuestionLabel => 'PERGUNTA';
+
+  @override
+  String get interactionComposeQuestionHint => 'o que queres perguntar?';
+
+  @override
+  String get interactionComposeTitleLabel => 'TÍTULO';
+
+  @override
+  String get interactionComposeTitleHint => 'para que serve esta lista?';
+
+  @override
+  String get interactionComposeEventNameLabel => 'EVENTO';
+
+  @override
+  String get interactionComposeEventNameHint => 'o que vai acontecer?';
+
+  @override
+  String get interactionComposeOptionsLabel => 'OPÇÕES';
+
+  @override
+  String get interactionComposeItemsLabel => 'ITENS';
+
+  @override
+  String interactionComposeOptionHint(int index) {
+    return 'opção $index';
+  }
+
+  @override
+  String interactionComposeItemHint(int index) {
+    return 'item $index';
+  }
+
+  @override
+  String get interactionComposeAddOption => 'Adicionar opção';
+
+  @override
+  String get interactionComposeAddItem => 'Adicionar item';
+
+  @override
+  String get interactionComposeRemoveRow => 'Remover';
+
+  @override
+  String get interactionComposeMarkCorrect => 'Marcar como resposta certa';
+
+  @override
+  String get interactionComposeMultipleTitle => 'várias respostas';
+
+  @override
+  String get interactionComposeMultipleSub => 'escolher mais do que uma';
+
+  @override
+  String get interactionComposeAnonymousTitle => 'anónima';
+
+  @override
+  String get interactionComposeAnonymousOffSub => 'todos veem quem votou';
+
+  @override
+  String get interactionComposeAnonymousOnSub => 'ninguém vê quem votou';
+
+  @override
+  String get interactionComposeQuizTitle => 'modo quiz';
+
+  @override
+  String get interactionComposeQuizSub =>
+      'uma só resposta certa, sem voltar atrás';
+
+  @override
+  String get interactionComposeExplanationLabel => 'EXPLICAÇÃO';
+
+  @override
+  String get interactionComposeExplanationHint =>
+      'mostrada depois de responder (opcional)';
+
+  @override
+  String get interactionComposeOthersMayCheckTitle => 'qualquer um pode marcar';
+
+  @override
+  String get interactionComposeOthersMayCheckSub => 'não só tu';
+
+  @override
+  String get interactionComposeOthersMayAddTitle =>
+      'qualquer um pode adicionar';
+
+  @override
+  String get interactionComposeOthersMayAddSub => 'a lista pode crescer depois';
+
+  @override
+  String get interactionComposeWhenLabel => 'QUANDO';
+
+  @override
+  String get interactionComposePickStart => 'Escolhe o início';
+
+  @override
+  String get interactionComposePickEnd => 'Adicionar um fim (opcional)';
+
+  @override
+  String get interactionComposePlaceLabel => 'LOCAL';
+
+  @override
+  String get interactionComposePlaceHint => 'onde? (opcional)';
+
+  @override
+  String get interactionComposeSendPoll => 'ENVIAR A ENQUETE';
+
+  @override
+  String get interactionComposeSendChecklist => 'ENVIAR A LISTA';
+
+  @override
+  String get interactionComposeSendEvent => 'ENVIAR O EVENTO';
+
+  @override
+  String get interactionComposeErrorPrompt =>
+      'Diz primeiro o que estás a perguntar.';
+
+  @override
+  String interactionComposeErrorOptions(int count) {
+    return 'Uma enquete precisa de pelo menos $count opções.';
+  }
+
+  @override
+  String get interactionComposeErrorItems =>
+      'Uma lista precisa de pelo menos um item.';
+
+  @override
+  String get interactionComposeErrorAnswer => 'Marca qual é a opção certa.';
+
+  @override
+  String get interactionComposeErrorWhen => 'Escolhe quando começa.';
+
+  @override
+  String get interactionComposeErrorEnd => 'O fim tem de vir depois do início.';
+
+  @override
+  String get interactionSendFailed => 'Não foi enviado.';
+
+  @override
+  String get interactionRefused => 'Não foi registado.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -15110,4 +15413,307 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get devicesScreenFootnote =>
       'Remover um dispositivo o desconecta e interrompe as notificações. Vale na hora — a próxima coisa que esse dispositivo tentar fazer o manda de volta para a tela de login.';
+
+  @override
+  String get attachmentMenuPollLabel => 'enquete';
+
+  @override
+  String get attachmentMenuChecklistLabel => 'lista';
+
+  @override
+  String get attachmentMenuEventLabel => 'evento';
+
+  @override
+  String get interactionKindPoll => 'ENQUETE';
+
+  @override
+  String get interactionKindQuiz => 'QUIZ';
+
+  @override
+  String get interactionKindChecklist => 'LISTA';
+
+  @override
+  String get interactionKindEvent => 'EVENTO';
+
+  @override
+  String get interactionBadgeAnonymous => 'ANÔNIMA';
+
+  @override
+  String get interactionBadgeMultiple => 'VÁRIAS';
+
+  @override
+  String get interactionBadgeClosed => 'FECHADA';
+
+  @override
+  String interactionPercent(int percent) {
+    return '$percent %';
+  }
+
+  @override
+  String interactionAndMore(int count, String names) {
+    return '$names +$count';
+  }
+
+  @override
+  String get interactionSeeWhoAnswered => 'Ver quem respondeu';
+
+  @override
+  String interactionRemoveItem(String label) {
+    return 'Remover $label';
+  }
+
+  @override
+  String interactionChoiceSemantics(int count, String label) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count votos',
+      one: '1 voto',
+    );
+    return '$label, $_temp0';
+  }
+
+  @override
+  String get interactionAddItemHint => 'Adicionar um item';
+
+  @override
+  String get interactionRetract => 'Retirar';
+
+  @override
+  String get interactionClose => 'Fechar';
+
+  @override
+  String interactionVoteCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count votos',
+      one: '1 voto',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String interactionRsvpCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count respostas',
+      one: '1 resposta',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String interactionChecklistProgress(int done, int total) {
+    return '$done de $total feitos';
+  }
+
+  @override
+  String get interactionNoAnswers => 'Sem respostas';
+
+  @override
+  String get interactionBeFirst => 'Seja o primeiro a responder';
+
+  @override
+  String interactionFinalResults(String count) {
+    return '$count · final';
+  }
+
+  @override
+  String get interactionQuizRight => 'Certo';
+
+  @override
+  String get interactionQuizWrong => 'Quase';
+
+  @override
+  String interactionEventPast(String when) {
+    return '$when · já passou';
+  }
+
+  @override
+  String get interactionRespondentsTitlePoll => 'QUEM VOTOU';
+
+  @override
+  String get interactionRespondentsTitleChecklist => 'QUEM MARCOU';
+
+  @override
+  String get interactionRespondentsTitleEvent => 'QUEM RESPONDEU';
+
+  @override
+  String get interactionRespondentsFailed =>
+      'Não deu para carregar quem respondeu.';
+
+  @override
+  String get interactionRespondentsEmpty => 'Ainda ninguém respondeu.';
+
+  @override
+  String get interactionFilterAll => 'TODOS';
+
+  @override
+  String get interactionRsvpGoing => 'Vou';
+
+  @override
+  String get interactionRsvpMaybe => 'Talvez';
+
+  @override
+  String get interactionRsvpNo => 'Não posso';
+
+  @override
+  String get interactionComposePollTitle => 'nova enquete';
+
+  @override
+  String get interactionComposePollTagline => 'PERGUNTA À SALA';
+
+  @override
+  String get interactionComposeChecklistTitle => 'nova lista';
+
+  @override
+  String get interactionComposeChecklistTagline => 'UMA LISTA QUE TODOS MARCAM';
+
+  @override
+  String get interactionComposeEventTitle => 'novo evento';
+
+  @override
+  String get interactionComposeEventTagline => 'VEJA QUEM VEM';
+
+  @override
+  String get interactionComposeQuestionLabel => 'PERGUNTA';
+
+  @override
+  String get interactionComposeQuestionHint => 'o que você quer perguntar?';
+
+  @override
+  String get interactionComposeTitleLabel => 'TÍTULO';
+
+  @override
+  String get interactionComposeTitleHint => 'para que serve esta lista?';
+
+  @override
+  String get interactionComposeEventNameLabel => 'EVENTO';
+
+  @override
+  String get interactionComposeEventNameHint => 'o que vai acontecer?';
+
+  @override
+  String get interactionComposeOptionsLabel => 'OPÇÕES';
+
+  @override
+  String get interactionComposeItemsLabel => 'ITENS';
+
+  @override
+  String interactionComposeOptionHint(int index) {
+    return 'opção $index';
+  }
+
+  @override
+  String interactionComposeItemHint(int index) {
+    return 'item $index';
+  }
+
+  @override
+  String get interactionComposeAddOption => 'Adicionar opção';
+
+  @override
+  String get interactionComposeAddItem => 'Adicionar item';
+
+  @override
+  String get interactionComposeRemoveRow => 'Remover';
+
+  @override
+  String get interactionComposeMarkCorrect => 'Marcar como resposta certa';
+
+  @override
+  String get interactionComposeMultipleTitle => 'várias respostas';
+
+  @override
+  String get interactionComposeMultipleSub => 'escolher mais do que uma';
+
+  @override
+  String get interactionComposeAnonymousTitle => 'anônima';
+
+  @override
+  String get interactionComposeAnonymousOffSub => 'todos veem quem votou';
+
+  @override
+  String get interactionComposeAnonymousOnSub => 'ninguém vê quem votou';
+
+  @override
+  String get interactionComposeQuizTitle => 'modo quiz';
+
+  @override
+  String get interactionComposeQuizSub =>
+      'uma só resposta certa, sem mudar depois';
+
+  @override
+  String get interactionComposeExplanationLabel => 'EXPLICAÇÃO';
+
+  @override
+  String get interactionComposeExplanationHint =>
+      'mostrada depois de responder (opcional)';
+
+  @override
+  String get interactionComposeOthersMayCheckTitle => 'qualquer um pode marcar';
+
+  @override
+  String get interactionComposeOthersMayCheckSub => 'não só você';
+
+  @override
+  String get interactionComposeOthersMayAddTitle =>
+      'qualquer um pode adicionar';
+
+  @override
+  String get interactionComposeOthersMayAddSub => 'a lista pode crescer depois';
+
+  @override
+  String get interactionComposeWhenLabel => 'QUANDO';
+
+  @override
+  String get interactionComposePickStart => 'Escolha o início';
+
+  @override
+  String get interactionComposePickEnd => 'Adicionar um fim (opcional)';
+
+  @override
+  String get interactionComposePlaceLabel => 'LOCAL';
+
+  @override
+  String get interactionComposePlaceHint => 'onde? (opcional)';
+
+  @override
+  String get interactionComposeSendPoll => 'ENVIAR A ENQUETE';
+
+  @override
+  String get interactionComposeSendChecklist => 'ENVIAR A LISTA';
+
+  @override
+  String get interactionComposeSendEvent => 'ENVIAR O EVENTO';
+
+  @override
+  String get interactionComposeErrorPrompt =>
+      'Diga primeiro o que você está perguntando.';
+
+  @override
+  String interactionComposeErrorOptions(int count) {
+    return 'Uma enquete precisa de pelo menos $count opções.';
+  }
+
+  @override
+  String get interactionComposeErrorItems =>
+      'Uma lista precisa de pelo menos um item.';
+
+  @override
+  String get interactionComposeErrorAnswer => 'Marque qual é a opção certa.';
+
+  @override
+  String get interactionComposeErrorWhen => 'Escolha quando começa.';
+
+  @override
+  String get interactionComposeErrorEnd => 'O fim tem de vir depois do início.';
+
+  @override
+  String get interactionSendFailed => 'Não foi enviado.';
+
+  @override
+  String get interactionRefused => 'Não foi registrado.';
 }

@@ -7084,4 +7084,298 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get devicesScreenFootnote =>
       '移除设备会将其退出登录并停止通知。立即生效——该设备下一次尝试操作时就会回到登录界面。';
+
+  @override
+  String get attachmentMenuPollLabel => '投票';
+
+  @override
+  String get attachmentMenuChecklistLabel => '清单';
+
+  @override
+  String get attachmentMenuEventLabel => '活动';
+
+  @override
+  String get interactionKindPoll => '投票';
+
+  @override
+  String get interactionKindQuiz => '测验';
+
+  @override
+  String get interactionKindChecklist => '清单';
+
+  @override
+  String get interactionKindEvent => '活动';
+
+  @override
+  String get interactionBadgeAnonymous => '匿名';
+
+  @override
+  String get interactionBadgeMultiple => '多选';
+
+  @override
+  String get interactionBadgeClosed => '已结束';
+
+  @override
+  String interactionPercent(int percent) {
+    return '$percent%';
+  }
+
+  @override
+  String interactionAndMore(int count, String names) {
+    return '$names 等 $count 人';
+  }
+
+  @override
+  String get interactionSeeWhoAnswered => '看看谁回应了';
+
+  @override
+  String interactionRemoveItem(String label) {
+    return '删除 $label';
+  }
+
+  @override
+  String interactionChoiceSemantics(int count, String label) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 票',
+    );
+    return '$label，$_temp0';
+  }
+
+  @override
+  String get interactionAddItemHint => '添加一项';
+
+  @override
+  String get interactionRetract => '撤回';
+
+  @override
+  String get interactionClose => '结束';
+
+  @override
+  String interactionVoteCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 票',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String interactionRsvpCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 条回应',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String interactionChecklistProgress(int done, int total) {
+    return '$total 项已完成 $done 项';
+  }
+
+  @override
+  String get interactionNoAnswers => '没有回应';
+
+  @override
+  String get interactionBeFirst => '来做第一个回应的人';
+
+  @override
+  String interactionFinalResults(String count) {
+    return '$count · 最终';
+  }
+
+  @override
+  String get interactionQuizRight => '答对了';
+
+  @override
+  String get interactionQuizWrong => '差一点';
+
+  @override
+  String interactionEventPast(String when) {
+    return '$when · 已经过去';
+  }
+
+  @override
+  String get interactionRespondentsTitlePoll => '谁投了票';
+
+  @override
+  String get interactionRespondentsTitleChecklist => '谁打了勾';
+
+  @override
+  String get interactionRespondentsTitleEvent => '谁回应了';
+
+  @override
+  String get interactionRespondentsFailed => '无法加载谁回应了。';
+
+  @override
+  String get interactionRespondentsEmpty => '还没有人回应。';
+
+  @override
+  String get interactionFilterAll => '全部';
+
+  @override
+  String get interactionRsvpGoing => '参加';
+
+  @override
+  String get interactionRsvpMaybe => '也许';
+
+  @override
+  String get interactionRsvpNo => '去不了';
+
+  @override
+  String get interactionComposePollTitle => '新投票';
+
+  @override
+  String get interactionComposePollTagline => '问问大家';
+
+  @override
+  String get interactionComposeChecklistTitle => '新清单';
+
+  @override
+  String get interactionComposeChecklistTagline => '大家都能打勾的清单';
+
+  @override
+  String get interactionComposeEventTitle => '新活动';
+
+  @override
+  String get interactionComposeEventTagline => '看看谁会来';
+
+  @override
+  String get interactionComposeQuestionLabel => '问题';
+
+  @override
+  String get interactionComposeQuestionHint => '你想问什么？';
+
+  @override
+  String get interactionComposeTitleLabel => '标题';
+
+  @override
+  String get interactionComposeTitleHint => '这份清单做什么用？';
+
+  @override
+  String get interactionComposeEventNameLabel => '活动';
+
+  @override
+  String get interactionComposeEventNameHint => '要做什么？';
+
+  @override
+  String get interactionComposeOptionsLabel => '选项';
+
+  @override
+  String get interactionComposeItemsLabel => '条目';
+
+  @override
+  String interactionComposeOptionHint(int index) {
+    return '选项 $index';
+  }
+
+  @override
+  String interactionComposeItemHint(int index) {
+    return '条目 $index';
+  }
+
+  @override
+  String get interactionComposeAddOption => '添加选项';
+
+  @override
+  String get interactionComposeAddItem => '添加条目';
+
+  @override
+  String get interactionComposeRemoveRow => '删除';
+
+  @override
+  String get interactionComposeMarkCorrect => '标记为正确答案';
+
+  @override
+  String get interactionComposeMultipleTitle => '多选';
+
+  @override
+  String get interactionComposeMultipleSub => '可以选多个';
+
+  @override
+  String get interactionComposeAnonymousTitle => '匿名';
+
+  @override
+  String get interactionComposeAnonymousOffSub => '所有人都能看到谁投了票';
+
+  @override
+  String get interactionComposeAnonymousOnSub => '没有人能看到谁投了票';
+
+  @override
+  String get interactionComposeQuizTitle => '测验模式';
+
+  @override
+  String get interactionComposeQuizSub => '只有一个正确答案，不能改';
+
+  @override
+  String get interactionComposeExplanationLabel => '解释';
+
+  @override
+  String get interactionComposeExplanationHint => '回答后显示（可选）';
+
+  @override
+  String get interactionComposeOthersMayCheckTitle => '任何人都能打勾';
+
+  @override
+  String get interactionComposeOthersMayCheckSub => '不只是你';
+
+  @override
+  String get interactionComposeOthersMayAddTitle => '任何人都能添加';
+
+  @override
+  String get interactionComposeOthersMayAddSub => '之后还能再加';
+
+  @override
+  String get interactionComposeWhenLabel => '时间';
+
+  @override
+  String get interactionComposePickStart => '选择开始时间';
+
+  @override
+  String get interactionComposePickEnd => '添加结束时间（可选）';
+
+  @override
+  String get interactionComposePlaceLabel => '地点';
+
+  @override
+  String get interactionComposePlaceHint => '在哪里？（可选）';
+
+  @override
+  String get interactionComposeSendPoll => '发送投票';
+
+  @override
+  String get interactionComposeSendChecklist => '发送清单';
+
+  @override
+  String get interactionComposeSendEvent => '发送活动';
+
+  @override
+  String get interactionComposeErrorPrompt => '先写下你要问什么。';
+
+  @override
+  String interactionComposeErrorOptions(int count) {
+    return '投票至少需要 $count 个选项。';
+  }
+
+  @override
+  String get interactionComposeErrorItems => '清单至少需要一个条目。';
+
+  @override
+  String get interactionComposeErrorAnswer => '标出哪个选项是正确的。';
+
+  @override
+  String get interactionComposeErrorWhen => '选择开始的时间。';
+
+  @override
+  String get interactionComposeErrorEnd => '结束时间要在开始之后。';
+
+  @override
+  String get interactionSendFailed => '没有发送成功。';
+
+  @override
+  String get interactionRefused => '没有生效。';
 }

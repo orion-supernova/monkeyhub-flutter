@@ -16,6 +16,15 @@ enum RoomType { regular, secret }
 /// by storage and a different thing by every rule that matters — round, capped
 /// at a minute, played in place. A `video` with an `isNote` flag would have let
 /// every existing `case video:` silently claim it.
+///
+/// [poll], [checklist] and [event] are the interactive kinds: a message the
+/// room answers rather than reads. Three members and not one `interactive`
+/// plus a kind field, for the third time and the same reason — each draws a
+/// different card, and the exhaustive switches in `message_bubble.dart` are
+/// where a missed case has to become a compile error rather than a blank
+/// bubble. Their body does NOT live on [ChatMessage]: it arrives on its own
+/// subscription as a [MessageInteraction], because a vote must not rebuild the
+/// transcript. See `backend/convex/schema.ts:messageInteractions`.
 enum MessageType {
   text,
   image,
@@ -27,6 +36,24 @@ enum MessageType {
   system,
   location,
   liveLocation,
+  poll,
+  checklist,
+  event,
+}
+
+/// Whether this type's body is a [MessageInteraction] delivered beside the
+/// transcript rather than carried on the message row.
+///
+/// One reading of the condition, because four places have to agree about it:
+/// the bubble picking a renderer, the capability table deciding what a
+/// long-press affords, the repository deciding which ids to ask
+/// `interactions:stateForMessages` about after a page load, and the cache
+/// deciding what to write beside the messages it saves.
+extension MessageTypeInteractive on MessageType {
+  bool get isInteractive =>
+      this == MessageType.poll ||
+      this == MessageType.checklist ||
+      this == MessageType.event;
 }
 
 /// Where an outgoing message is in its journey.
@@ -98,6 +125,17 @@ extension MessageTypeWire on MessageType {
         return MessageType.location;
       case 'liveLocation':
         return MessageType.liveLocation;
+      // The three interactive kinds. A client too old to know them falls
+      // through to `text` below and renders the prompt as a plain sentence,
+      // which is exactly what `content` holds — see the schema note on why the
+      // question lives on the message row. A poll degrades to the words it
+      // asked rather than to a blank bubble.
+      case 'poll':
+        return MessageType.poll;
+      case 'checklist':
+        return MessageType.checklist;
+      case 'event':
+        return MessageType.event;
       default:
         return MessageType.text;
     }

@@ -93,6 +93,8 @@ import '../widgets/steady_hero.dart';
 import '../widgets/swipe_to_reply.dart';
 import '../widgets/thread_overlay.dart';
 import '../widgets/user_avatar.dart';
+import '../widgets/interaction_bubble.dart' show InteractionActions;
+import '../widgets/interaction_respondents_sheet.dart';
 import '../widgets/message_action_menu.dart';
 import '../widgets/report_sheet.dart';
 import '../widgets/visibility_badge.dart';
@@ -100,6 +102,7 @@ import '../share/share_intake.dart';
 import '../share/share_targets.dart';
 import '../share/shared_payload.dart';
 import 'camera_editor_screen.dart';
+import 'interaction_compose_sheet.dart';
 import 'camera_screen.dart';
 import 'room_content_actions.dart';
 import 'fullscreen_image_viewer.dart';
@@ -1832,10 +1835,147 @@ class _RoomScreenState extends State<RoomScreen>
         case AttachmentMenuChoice.location:
           await _shareLocation();
           break;
+        case AttachmentMenuChoice.poll:
+          await _composeInteraction(MessageType.poll);
+          break;
+        case AttachmentMenuChoice.checklist:
+          await _composeInteraction(MessageType.checklist);
+          break;
+        case AttachmentMenuChoice.event:
+          await _composeInteraction(MessageType.event);
+          break;
       }
     } finally {
       _attachInFlight = false;
     }
+  }
+
+  // ─────────────────── polls, checklists and events ───────────────────
+
+  /// Opens the compose sheet for [kind] and posts whatever comes back.
+  ///
+  /// The sheet gathers a definition and nothing else — see [InteractionDraft]
+  /// for why it does not send: which room, which reply and what a failure looks
+  /// like are this screen's business, exactly as they are for every other
+  /// attachment.
+  Future<void> _composeInteraction(MessageType kind) async {
+    final draft = await showInteractionComposeSheet(context, kind: kind);
+    if (draft == null || !mounted) return;
+
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final roomId = widget.roomId;
+
+    // Snapshotted and disarmed up front, exactly as `_shareLocation` and
+    // `_sendMedia` do it: the sheet has been open for a while, and re-arming a
+    // reply target under someone who has moved on is worse than losing it.
+    final replyTarget = _replyingTo;
+    if (replyTarget != null) setState(() => _replyingTo = null);
+    widget.repo.exitHistoryWindow(roomId);
+
+    final id = await widget.repo.sendInteraction(
+      roomId: roomId,
+      kind: draft.kind,
+      prompt: draft.prompt,
+      labels: draft.labels,
+      multiple: draft.multiple,
+      anonymous: draft.anonymous,
+      quiz: draft.quiz,
+      correctIndex: draft.correctIndex,
+      explanation: draft.explanation,
+      othersMayCheck: draft.othersMayCheck,
+      othersMayAdd: draft.othersMayAdd,
+      startsAt: draft.startsAt,
+      endsAt: draft.endsAt,
+      place: draft.place,
+      replyToId: replyTarget?.id,
+    );
+    if (!mounted) return;
+    if (id == null) {
+      // There is no optimistic bubble to leave sitting in a failed state — see
+      // `ChatRepository.sendInteraction` — so a refusal has to be SAID. This is
+      // the one send in the room where silence would look like nothing
+      // happened at all.
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.interactionSendFailed)),
+      );
+      return;
+    }
+    _scrollToBottom();
+  }
+
+  /// The transcript's wiring for every interactive card in it.
+  ///
+  /// Built once per build rather than once per row: the callbacks take the
+  /// message id, so one object serves the whole list — see
+  /// [InteractionActions]. A per-bubble closure set would allocate six of them
+  /// for every row in a scrolling transcript, nearly all of which are not
+  /// interactive at all.
+  InteractionActions get _interactionActions => InteractionActions(
+        onRespond: (messageId, choiceId) async {
+          final ok = await widget.repo.respondToInteraction(
+            roomId: widget.roomId,
+            messageId: messageId,
+            choiceId: choiceId,
+          );
+          if (!ok && mounted) _interactionRefused();
+        },
+        onRetract: (messageId) async {
+          final ok = await widget.repo.retractInteraction(
+            roomId: widget.roomId,
+            messageId: messageId,
+          );
+          if (!ok && mounted) _interactionRefused();
+        },
+        onClose: (messageId) async {
+          final ok = await widget.repo.closeInteraction(messageId: messageId);
+          if (!ok && mounted) _interactionRefused();
+        },
+        onAddItem: (messageId, label) async {
+          final ok = await widget.repo
+              .addChecklistItem(messageId: messageId, label: label);
+          if (!ok && mounted) _interactionRefused();
+        },
+        onRemoveItem: (messageId, choiceId) async {
+          final ok = await widget.repo.removeChecklistItem(
+            messageId: messageId,
+            choiceId: choiceId,
+          );
+          if (!ok && mounted) _interactionRefused();
+        },
+        onShowRespondents: (messageId) => _showRespondents(messageId),
+      );
+
+  /// One message for every way the server can say no to an answer.
+  ///
+  /// A closed poll, a quiz already answered, somebody else's tick, a room this
+  /// reader has been removed from, or simply no connection. They are
+  /// distinguishable server-side but not usefully to a reader mid-tap: in every
+  /// case the control went back to where it was, and the sentence that helps is
+  /// the one saying that was the server's doing rather than a missed tap.
+  void _interactionRefused() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context).interactionRefused)),
+    );
+  }
+
+  Future<void> _showRespondents(String messageId) async {
+    final interaction =
+        widget.repo.interactionFor(widget.roomId, messageId);
+    final me = widget.repo.userId;
+    // Both are ordinary races rather than errors: the card can be tapped in the
+    // frame before its body lands, and a signed-out reader has no viewer id to
+    // ask with.
+    if (interaction == null || me == null) return;
+    await showInteractionRespondentsSheet(
+      context,
+      api: widget.api,
+      messageId: messageId,
+      currentUserId: me,
+      interaction: interaction,
+      resolveUser: (id) => _members[id] ?? widget.repo.userById(id),
+      onOpenProfile: _openProfile,
+    );
   }
 
   // ───────────────────────── location ─────────────────────────
@@ -3138,6 +3278,12 @@ class _RoomScreenState extends State<RoomScreen>
   }) {
     final theme = ThemeScope.of(context);
     final initialLoaded = widget.repo.hasLoadedInitial(widget.roomId);
+    // Built once for the whole transcript rather than inside the item builder.
+    // Its callbacks take the message id, so one object serves every interactive
+    // card in the list — which is the entire reason [InteractionActions] is
+    // shaped that way. Rebuilding it per row would allocate six closures for
+    // every row in a scrolling list, nearly all of which are plain text.
+    final interactionActions = _interactionActions;
     // Reserved unconditionally in the compact style: the row collapses to zero
     // height on its own when nobody is typing, so the item count stays fixed
     // and every index below shifts by exactly this much.
@@ -3612,6 +3758,14 @@ class _RoomScreenState extends State<RoomScreen>
                             widget.repo.activeLiveShareMessageId == m.id,
                         onRetrySend: sendFailed ? onRetrySend : null,
                         onDiscardSend: sendFailed ? onDiscardSend : null,
+                        // A poll in a Chamber of Secrets room is an ordinary
+                        // poll with a clock on it. Nothing about answering one
+                        // changes, so the wiring is identical to the standard
+                        // bubble's below.
+                        interaction: m.type.isInteractive
+                            ? widget.repo.interactionFor(room.id, m.id)
+                            : null,
+                        interactionActions: interactionActions,
                       )
                     : MessageBubble(
                         key: ValueKey('s_${m.id}'),
@@ -3663,6 +3817,13 @@ class _RoomScreenState extends State<RoomScreen>
                         },
                         onAlbumReactionTap: reactionTapOn,
                         onAlbumReactionLongPress: reactionLongPressOn,
+                        // Looked up only for the three types that can have one,
+                        // so an ordinary transcript costs one enum comparison
+                        // per row rather than a map probe.
+                        interaction: m.type.isInteractive
+                            ? widget.repo.interactionFor(room.id, m.id)
+                            : null,
+                        interactionActions: interactionActions,
                       );
                 final row = AnimatedSwitcher(
                   duration: theme.motionMed,

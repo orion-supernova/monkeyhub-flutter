@@ -204,6 +204,15 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
       // app would not be.
       case MessageType.location:
       case MessageType.liveLocation:
+      // Grouped with the location cases above for the same reason and with
+      // more force: an interactive message has no blob either, so it gets no
+      // gallery bucket and no tab here holds it — except SAVED, which the
+      // early return above has already sent to the transcript. A poll answered
+      // from a grid tile would be a vote cast from a surface with no room to
+      // show the result of it.
+      case MessageType.poll:
+      case MessageType.checklist:
+      case MessageType.event:
         _showInChat(m);
     }
   }

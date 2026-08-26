@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import '../models/chat_message.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
+import '../models/message_interaction.dart';
 
 /// On-disk snapshot of the data the user already saw — used to render
 /// instantly on cold boot, even when the network is down. The Convex
@@ -142,6 +143,71 @@ class CacheStore {
         );
       } catch (e) {
         debugPrint('cache saveMessages failed: $e');
+      }
+    });
+  }
+
+  // ───────────────────── interactive message bodies ─────────────────────
+  //
+  // Polls, checklists and events, beside the messages they belong to.
+  //
+  // A SECOND file rather than fields folded into `messages_<room>.json`,
+  // mirroring the split the backend and the repository both make — and for a
+  // reason of its own here: the message file is rewritten whenever the
+  // transcript changes, and an interaction's tally changes far more often than
+  // its transcript does. Two files means a vote rewrites a few hundred bytes
+  // instead of the whole room.
+  //
+  // What this buys is the cold-boot frame. Without it, opening a room offline —
+  // or in the moment before the socket connects — draws every poll as its
+  // question with no options under it, which reads as a broken card rather than
+  // as a loading one. The tallies restored here may be stale; that is fine and
+  // is the same promise the cached transcript makes.
+
+  Future<Map<String, MessageInteraction>> loadInteractions(
+    String userId,
+    String roomId,
+  ) async {
+    if (kIsWeb) return const {}; // no path_provider on web — live data only
+    try {
+      final dir = await _ensureDir(userId);
+      final f = File('${dir.path}/interactions_$roomId.json');
+      if (!await f.exists()) return const {};
+      final list = (jsonDecode(await f.readAsString()) as List?) ?? const [];
+      final out = <String, MessageInteraction>{};
+      for (final e in list) {
+        if (e is! Map) continue;
+        final it = MessageInteraction.fromJson(e.cast<String, dynamic>());
+        out[it.messageId] = it;
+      }
+      return out;
+    } catch (e) {
+      debugPrint('cache loadInteractions failed: $e');
+      return const {};
+    }
+  }
+
+  void scheduleSaveInteractions(
+    String userId,
+    String roomId,
+    Iterable<MessageInteraction> interactions,
+  ) {
+    if (kIsWeb) return; // no disk cache on web
+    // Uncapped, unlike the transcript above, because the set is already bounded
+    // by the server: `interactions:listForRoom` returns at most one live
+    // window's worth, and a room's whole history of polls is a handful of small
+    // rows next to a hundred messages. A cap here would silently drop the
+    // scrolled-back ones a page hydrate had just fetched.
+    final rows = interactions.toList(growable: false);
+    _debounce('int:$roomId', () async {
+      try {
+        final dir = await _ensureDir(userId);
+        final f = File('${dir.path}/interactions_$roomId.json');
+        await f.writeAsString(
+          jsonEncode(rows.map((i) => i.toJson()).toList()),
+        );
+      } catch (e) {
+        debugPrint('cache saveInteractions failed: $e');
       }
     });
   }
