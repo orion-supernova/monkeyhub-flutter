@@ -182,8 +182,9 @@ class SettingsStore extends ChangeNotifier {
   /// is never cleared. That difference is the whole reason for the split.
   String? get recoveryPromptDismissedFor => _recoveryPromptDismissedFor;
 
-  /// Whether room [roomId]'s composer should still play its mode-switch hint
-  /// (bump + tooltip) the next time it opens.
+  /// Whether room [roomId]'s composer should still show its mode-switch
+  /// tooltip the next time it opens. The entrance bump plays regardless —
+  /// only the tooltip is gated by this.
   ///
   /// Per room, not global: a room already teaches nothing the second time it
   /// is opened, but a room the user has never opened before has taught them
