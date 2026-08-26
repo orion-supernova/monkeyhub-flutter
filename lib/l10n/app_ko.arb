@@ -895,6 +895,7 @@
   "photoTrayAddMoreSemanticLabel": "사진 더 추가",
   "photoTrayLimitSnack": "한 번에 사진 {count}장까지 보낼 수 있어요",
   "photoTrayLoadFailedSnack": "일부 사진을 열 수 없었어요",
+  "mediaPickFailedMessage": "열 수 없었어요 — 다시 선택해 주세요",
   "typingIndicatorOnePersonTyping": "{name}님이 입력 중이에요",
   "typingIndicatorTwoPeopleTyping": "{name1}님과 {name2}님이 입력 중이에요",
   "typingIndicatorManyPeopleTyping": "{name1}, {name2} 외 {extra}명이 입력 중이에요",

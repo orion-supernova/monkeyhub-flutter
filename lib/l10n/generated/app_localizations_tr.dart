@@ -3144,6 +3144,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get photoTrayLoadFailedSnack => 'o fotoğrafların bazıları açılamadı';
 
   @override
+  String get mediaPickFailedMessage => 'bu açılamadı — tekrar seçmeyi dene';
+
+  @override
   String typingIndicatorOnePersonTyping(Object name) {
     return '$name yazıyor';
   }

@@ -3171,6 +3171,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get photoTrayLoadFailedSnack => 'उनमें से कुछ फ़ोटो नहीं खुल सकीं';
 
   @override
+  String get mediaPickFailedMessage => 'वह खुल नहीं पाया — फिर से चुनकर देखो';
+
+  @override
   String typingIndicatorOnePersonTyping(Object name) {
     return '$name टाइप कर रहे हैं';
   }

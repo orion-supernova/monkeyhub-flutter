@@ -3049,6 +3049,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get photoTrayLoadFailedSnack => '一部の写真を開けませんでした';
 
   @override
+  String get mediaPickFailedMessage => '開けませんでした。もう一度選んでみてください';
+
+  @override
   String typingIndicatorOnePersonTyping(Object name) {
     return '$nameが入力中…';
   }

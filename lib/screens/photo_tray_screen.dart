@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../media/image_raster.dart';
+import '../media/photo_picking.dart';
 import '../data/settings_store.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
@@ -204,12 +205,19 @@ class _PhotoTrayScreenState extends State<PhotoTrayScreen> {
     }
     _setBusy(true);
     try {
-      final picked = await ImagePicker().pickMultiImage(
-        imageQuality: pickerImageQuality,
-        limit: remaining,
-      );
-      if (picked.isEmpty || !mounted) return;
-      final read = await readPickedPhotos(picked);
+      final pick = await pickPhotos(limit: remaining);
+      if (!mounted) return;
+      // The whole second trip lost to one asset the platform would not produce
+      // — see [MediaPick]. The rail keeps what it already had, so this is an
+      // add that did not happen rather than a selection thrown away.
+      if (pick.unreadable) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.mediaPickFailedMessage)),
+        );
+        return;
+      }
+      if (pick.files.isEmpty) return;
+      final read = await readPickedPhotos(pick.files);
       if (!mounted || read.bytes.isEmpty) return;
       setState(() {
         _items.addAll(read.bytes.map(_TrayItem.picked));

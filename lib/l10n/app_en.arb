@@ -3598,6 +3598,10 @@
   "@photoTrayLoadFailedSnack": {
     "description": "SnackBar shown when one or more chosen pictures could not be read back from the device, so they were skipped."
   },
+  "mediaPickFailedMessage": "couldn’t open that — try picking it again",
+  "@mediaPickFailedMessage": {
+    "description": "Error line shown when the OS picker itself refused to hand over what the user chose — typically an iOS photo still in iCloud. Covers photos and videos, one or many, so keep it about 'that' rather than naming a count or a kind."
+  },
   "typingIndicatorOnePersonTyping": "{name} is typing",
   "@typingIndicatorOnePersonTyping": {
     "description": "Typing indicator label (room header, typing row, compact pill) when exactly one person is typing; {name} is the typist's display name."

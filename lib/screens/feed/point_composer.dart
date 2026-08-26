@@ -8,6 +8,7 @@ import '../../data/feed_store.dart';
 import '../../keyboard/focusable_tap.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../media/image_raster.dart';
+import '../../media/photo_picking.dart';
 import '../../media/upload_service.dart';
 import '../../models/moment.dart';
 import '../../theme/theme_scope.dart';
@@ -112,11 +113,13 @@ class _PointComposerState extends State<_PointComposer> {
     final l10n = AppLocalizations.of(context);
     setState(() => _busy = true);
     try {
-      final picked = await ImagePicker().pickImage(
-        source: ImageSource.gallery,
-        imageQuality: pickerImageQuality,
-      );
-      final bytes = await picked?.readAsBytes();
+      final pick = await pickPhoto(source: ImageSource.gallery);
+      // Reported on the composer's own error line, where the post failures go.
+      if (pick.unreadable) {
+        if (mounted) setState(() => _errorCode = 'PICK_FAILED');
+        return;
+      }
+      final bytes = await pick.file?.readAsBytes();
       if (bytes == null || !mounted) return;
       // The same editor chat uses: a crop rect dragged by its edges and
       // corners, rather than a fixed window with the picture panning beneath.
@@ -296,6 +299,7 @@ class _PointComposerState extends State<_PointComposer> {
                   'DAILY_CAP_REACHED' => l10n.momentComposerErrorDailyCap,
                   'CHILD_NOT_ALLOWED' => l10n.momentComposerErrorNotAllowed,
                   'CAPTION_TOO_LONG' => l10n.momentComposerErrorTooLong,
+                  'PICK_FAILED' => l10n.mediaPickFailedMessage,
                   _ => l10n.momentComposerErrorGeneric,
                 }, style: theme.bodySoft.copyWith(color: theme.danger)),
               ],

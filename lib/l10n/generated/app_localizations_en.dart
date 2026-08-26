@@ -3156,6 +3156,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'some of those photos couldn’t be opened';
 
   @override
+  String get mediaPickFailedMessage =>
+      'couldn’t open that — try picking it again';
+
+  @override
   String typingIndicatorOnePersonTyping(Object name) {
     return '$name is typing';
   }

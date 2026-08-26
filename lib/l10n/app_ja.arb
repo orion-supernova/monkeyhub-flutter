@@ -895,6 +895,7 @@
   "photoTrayAddMoreSemanticLabel": "写真を追加",
   "photoTrayLimitSnack": "一度に送れる写真は {count} 枚までです",
   "photoTrayLoadFailedSnack": "一部の写真を開けませんでした",
+  "mediaPickFailedMessage": "開けませんでした。もう一度選んでみてください",
   "typingIndicatorOnePersonTyping": "{name}が入力中…",
   "typingIndicatorTwoPeopleTyping": "{name1}と{name2}が入力中…",
   "typingIndicatorManyPeopleTyping": "{name1}、{name2}ほか{extra}人が入力中…",

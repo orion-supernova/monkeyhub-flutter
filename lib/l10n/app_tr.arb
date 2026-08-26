@@ -895,6 +895,7 @@
   "photoTrayAddMoreSemanticLabel": "daha fazla fotoğraf ekle",
   "photoTrayLimitSnack": "tek seferde {count} fotoğraf gönderebilirsin",
   "photoTrayLoadFailedSnack": "o fotoğrafların bazıları açılamadı",
+  "mediaPickFailedMessage": "bu açılamadı — tekrar seçmeyi dene",
   "typingIndicatorOnePersonTyping": "{name} yazıyor",
   "typingIndicatorTwoPeopleTyping": "{name1} ve {name2} yazıyor",
   "typingIndicatorManyPeopleTyping": "{name1}, {name2} +{extra} kişi yazıyor",

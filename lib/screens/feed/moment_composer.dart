@@ -12,6 +12,7 @@ import '../../keyboard/focusable_tap.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../media/file_meta.dart';
 import '../../media/image_raster.dart';
+import '../../media/photo_picking.dart';
 import '../../media/upload_service.dart';
 import '../../media/video_poster.dart';
 import '../../models/moment.dart';
@@ -170,11 +171,8 @@ class _MomentComposerState extends State<_MomentComposer> {
         case CameraUnavailable():
           // No in-app camera (web, or a denied permission). The system camera
           // is still a way through.
-          final picked = await ImagePicker().pickImage(
-            source: ImageSource.camera,
-            imageQuality: pickerImageQuality,
-          );
-          await _cropInto(await picked?.readAsBytes());
+          final picked = await pickPhoto(source: ImageSource.camera);
+          await _cropInto(await picked.file?.readAsBytes());
         case null:
           break; // backed out
       }
@@ -184,13 +182,18 @@ class _MomentComposerState extends State<_MomentComposer> {
   }
 
   Future<void> _pickFromLibrary() async {
-    final picked = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-      // Also normalizes EXIF orientation on Android, which the crop screen
-      // relies on — it does not read the orientation tag itself.
-      imageQuality: pickerImageQuality,
-    );
-    await _cropInto(await picked?.readAsBytes());
+    // The `pickerImageQuality` [pickPhoto] passes also normalizes EXIF
+    // orientation on Android, which the crop screen relies on — it does not
+    // read the orientation tag itself.
+    final pick = await pickPhoto(source: ImageSource.gallery);
+    // Down the composer's own error line rather than a snackbar: that is where
+    // every other failure on this screen already goes, and a refusal that said
+    // nothing would look like a picture the composer had rejected.
+    if (pick.unreadable) {
+      if (mounted) setState(() => _errorCode = 'PICK_FAILED');
+      return;
+    }
+    await _cropInto(await pick.file?.readAsBytes());
   }
 
   /// Picks a video from the library.
@@ -202,7 +205,12 @@ class _MomentComposerState extends State<_MomentComposer> {
   Future<void> _pickVideo() async {
     setState(() => _busy = true);
     try {
-      final picked = await ImagePicker().pickVideo(source: ImageSource.gallery);
+      final pick = await pickVideo();
+      if (pick.unreadable) {
+        if (mounted) setState(() => _errorCode = 'PICK_FAILED');
+        return;
+      }
+      final picked = pick.file;
       if (picked == null) return;
 
       // Before readAsBytes, and only off web: `XFile.path` is a real
@@ -347,6 +355,7 @@ class _MomentComposerState extends State<_MomentComposer> {
     'CAPTION_TOO_LONG' => l10n.momentComposerErrorTooLong,
     'EMPTY_MOMENT' => l10n.momentComposerErrorEmpty,
     'TOO_BIG' => l10n.momentComposerErrorTooBig,
+    'PICK_FAILED' => l10n.mediaPickFailedMessage,
     _ => l10n.momentComposerErrorGeneric,
   };
 

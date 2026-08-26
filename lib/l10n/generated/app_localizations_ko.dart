@@ -3058,6 +3058,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get photoTrayLoadFailedSnack => '일부 사진을 열 수 없었어요';
 
   @override
+  String get mediaPickFailedMessage => '열 수 없었어요 — 다시 선택해 주세요';
+
+  @override
   String typingIndicatorOnePersonTyping(Object name) {
     return '$name님이 입력 중이에요';
   }

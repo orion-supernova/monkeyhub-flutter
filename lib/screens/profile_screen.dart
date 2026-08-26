@@ -19,6 +19,7 @@ import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../media/file_url_cache.dart';
 import '../media/image_raster.dart';
+import '../media/photo_picking.dart';
 import '../media/upload_service.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
@@ -789,11 +790,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // there is still a way to set a picture. Not mirrored: `image_picker`
         // never reports which lens fired, and we ask for the front one but
         // cannot stop the user flipping inside a UI we don't control.
-        final picked = await ImagePicker().pickImage(
+        final picked = (await pickPhoto(
           source: ImageSource.camera,
-          imageQuality: pickerImageQuality,
           preferredCameraDevice: CameraDevice.front,
-        );
+        )).file;
         await _cropAndUploadAvatar(await picked?.readAsBytes());
       case null:
         await _uploadAvatar(null); // cancelled — clears the spinner
@@ -802,6 +802,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _pickAndUploadAvatarFromLibrary() async {
     if (widget.api == null || widget.repo?.userId == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     // Spinner covers BOTH phases: picker spin-up (the native UI can take a beat
     // to appear on cold launch) and the upload itself. Clear it on cancel so
     // the avatar returns to normal immediately.
@@ -809,13 +811,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _busy = true;
       _changingAvatar = true;
     });
-    // imageQuality also normalizes EXIF orientation on Android, which the crop
-    // screen relies on — keep it even though the crop re-encodes anyway.
-    final picked = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-      imageQuality: pickerImageQuality,
-    );
-    await _cropAndUploadAvatar(await picked?.readAsBytes());
+    // `pickerImageQuality`, which [pickPhoto] passes for us, also normalizes
+    // EXIF orientation on Android, which the crop screen relies on — it stays
+    // even though the crop re-encodes anyway.
+    final pick = await pickPhoto(source: ImageSource.gallery);
+    // A refusal is not a cancel, and the difference matters more here than
+    // anywhere: the avatar has been spinning since the tap, and clearing it
+    // with no word would read as "your picture was rejected".
+    if (pick.unreadable && mounted) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.mediaPickFailedMessage)),
+      );
+    }
+    // Null on every path but a chosen photo, which `_cropAndUploadAvatar`
+    // already treats as a cancel — and owns clearing the spinner for.
+    await _cropAndUploadAvatar(await pick.file?.readAsBytes());
   }
 
   /// Frame [source] into a circle and upload it. Null means the user backed out

@@ -895,6 +895,7 @@
   "photoTrayAddMoreSemanticLabel": "और फ़ोटो जोड़ें",
   "photoTrayLimitSnack": "आप एक बार में {count} फ़ोटो भेज सकते हैं",
   "photoTrayLoadFailedSnack": "उनमें से कुछ फ़ोटो नहीं खुल सकीं",
+  "mediaPickFailedMessage": "वह खुल नहीं पाया — फिर से चुनकर देखो",
   "typingIndicatorOnePersonTyping": "{name} टाइप कर रहे हैं",
   "typingIndicatorTwoPeopleTyping": "{name1} और {name2} टाइप कर रहे हैं",
   "typingIndicatorManyPeopleTyping": "{name1}, {name2} +{extra} टाइप कर रहे हैं",

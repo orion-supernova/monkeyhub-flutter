@@ -294,6 +294,13 @@ dev_dependencies:
   # suite whose whole value is that it does not have any.
   fake_async: ^1.3.3
 
+  # Transitively present via image_picker; declared explicitly because
+  # `test/photo_picking_test.dart` implements `ImagePickerPlatform` directly.
+  # The subject of that test is what the wrapper does when the OS picker
+  # THROWS, and the only seam that can make it throw is the platform instance —
+  # `image_picker` itself exports the enums but not the interface.
+  image_picker_platform_interface: ^2.11.1
+
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your

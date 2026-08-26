@@ -3220,6 +3220,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get photoTrayLoadFailedSnack => 'تعذّر فتح بعض تلك الصور';
 
   @override
+  String get mediaPickFailedMessage => 'تعذّر فتحه — جرّب اختياره مرة أخرى';
+
+  @override
   String typingIndicatorOnePersonTyping(Object name) {
     return '$name يكتب الآن';
   }

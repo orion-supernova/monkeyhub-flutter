@@ -5487,6 +5487,12 @@ abstract class AppLocalizations {
   /// **'some of those photos couldn’t be opened'**
   String get photoTrayLoadFailedSnack;
 
+  /// Error line shown when the OS picker itself refused to hand over what the user chose — typically an iOS photo still in iCloud. Covers photos and videos, one or many, so keep it about 'that' rather than naming a count or a kind.
+  ///
+  /// In en, this message translates to:
+  /// **'couldn’t open that — try picking it again'**
+  String get mediaPickFailedMessage;
+
   /// Typing indicator label (room header, typing row, compact pill) when exactly one person is typing; {name} is the typist's display name.
   ///
   /// In en, this message translates to:

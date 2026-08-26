@@ -905,6 +905,7 @@
   "photoTrayAddMoreSemanticLabel": "adicionar mais fotos",
   "photoTrayLimitSnack": "você pode enviar {count} fotos por vez",
   "photoTrayLoadFailedSnack": "algumas dessas fotos não puderam ser abertas",
+  "mediaPickFailedMessage": "não deu pra abrir — tente escolher de novo",
   "typingIndicatorOnePersonTyping": "{name} está digitando",
   "typingIndicatorTwoPeopleTyping": "{name1} e {name2} estão digitando",
   "typingIndicatorManyPeopleTyping": "{name1}, {name2} +{extra} estão digitando",

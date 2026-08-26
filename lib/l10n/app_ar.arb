@@ -895,6 +895,7 @@
   "photoTrayAddMoreSemanticLabel": "إضافة المزيد من الصور",
   "photoTrayLimitSnack": "يمكنك إرسال {count} صور في المرة الواحدة",
   "photoTrayLoadFailedSnack": "تعذّر فتح بعض تلك الصور",
+  "mediaPickFailedMessage": "تعذّر فتحه — جرّب اختياره مرة أخرى",
   "typingIndicatorOnePersonTyping": "{name} يكتب الآن",
   "typingIndicatorTwoPeopleTyping": "{name1} و{name2} يكتبان الآن",
   "typingIndicatorManyPeopleTyping": "{name1}، {name2} +{extra} يكتبون الآن",

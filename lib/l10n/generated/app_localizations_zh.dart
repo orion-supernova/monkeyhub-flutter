@@ -3011,6 +3011,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get photoTrayLoadFailedSnack => '有些照片打不开';
 
   @override
+  String get mediaPickFailedMessage => '打不开，请重新选择';
+
+  @override
   String typingIndicatorOnePersonTyping(Object name) {
     return '$name正在输入';
   }

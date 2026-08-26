@@ -3226,6 +3226,9 @@ class AppLocalizationsFr extends AppLocalizations {
       'certaines de ces photos n’ont pas pu être ouvertes';
 
   @override
+  String get mediaPickFailedMessage => 'impossible de l’ouvrir — réessaie';
+
+  @override
   String typingIndicatorOnePersonTyping(Object name) {
     return '$name est en train d’écrire';
   }

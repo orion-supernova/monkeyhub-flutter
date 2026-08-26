@@ -3176,6 +3176,9 @@ class AppLocalizationsSv extends AppLocalizations {
       'några av de fotona gick inte att öppna';
 
   @override
+  String get mediaPickFailedMessage => 'kunde inte öppna — försök välja igen';
+
+  @override
   String typingIndicatorOnePersonTyping(Object name) {
     return '$name skriver';
   }

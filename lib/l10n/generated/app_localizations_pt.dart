@@ -3199,6 +3199,10 @@ class AppLocalizationsPt extends AppLocalizations {
       'algumas dessas fotos não puderam ser abertas';
 
   @override
+  String get mediaPickFailedMessage =>
+      'não foi possível abrir — tenta escolher outra vez';
+
+  @override
   String typingIndicatorOnePersonTyping(Object name) {
     return '$name está a escrever';
   }
@@ -10743,6 +10747,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get photoTrayLoadFailedSnack =>
       'algumas dessas fotos não puderam ser abertas';
+
+  @override
+  String get mediaPickFailedMessage =>
+      'não deu pra abrir — tente escolher de novo';
 
   @override
   String typingIndicatorOnePersonTyping(Object name) {

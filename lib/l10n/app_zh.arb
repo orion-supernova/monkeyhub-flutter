@@ -895,6 +895,7 @@
   "photoTrayAddMoreSemanticLabel": "再加照片",
   "photoTrayLimitSnack": "一次最多发送 {count} 张照片",
   "photoTrayLoadFailedSnack": "有些照片打不开",
+  "mediaPickFailedMessage": "打不开，请重新选择",
   "typingIndicatorOnePersonTyping": "{name}正在输入",
   "typingIndicatorTwoPeopleTyping": "{name1}和{name2}正在输入",
   "typingIndicatorManyPeopleTyping": "{name1}、{name2} 等{extra}人正在输入",
