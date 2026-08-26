@@ -14,8 +14,14 @@ import '../models/enums.dart';
 ///  * **Folds.** A long thread's interior members collapse into a single
 ///    [ThreadFoldItem]. The root and the newest member always stay.
 ///
-/// Nothing here keys off adjacency — a thread's messages are almost never
+/// Nothing there keys off adjacency — a thread's messages are almost never
 /// consecutive in the room timeline.
+///
+/// And one thing that is entirely about adjacency, in a pass of its own after
+/// the rows are chosen:
+///
+///  * **Albums.** A run of adjacent photographs from one sender collapses into
+///    a single row carrying all of them — see [collapseAlbums].
 
 const List<String> _monthAbbrev = [
   'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
@@ -88,9 +94,20 @@ class MessageItem extends RoomItem {
     this.newSender = true,
     this.lastInRun = true,
     this.replyMarker = ReplyMarker.full,
+    this.album = const [],
   });
 
   final ChatMessage message;
+
+  /// Every photograph this row draws when a run of them was collapsed into one
+  /// album, oldest first. Empty on an ordinary row, and never of length one —
+  /// a lone picture is a bubble, not an album.
+  ///
+  /// [message] is the LAST of them, deliberately. The row carries one
+  /// timestamp, one delivery state and one place in the sender's run, and the
+  /// honest value for all three is the newest photo's: the album finished
+  /// arriving when its last picture did.
+  final List<ChatMessage> album;
 
   /// Continues a run from the same sender: the vertical gap tightens and the
   /// bubble's corners tighten on the sender's side, so five replies in a row
@@ -200,6 +217,86 @@ bool continuesRun(
 }) =>
     sameSenderAsPrev(prev, m, startsDay: startsDay) &&
     replyMarkerFor(prev, m) != ReplyMarker.full;
+
+/// The most photographs one album may hold before the run starts a second
+/// one. Matches the send cap, which is where these runs come from: one tap of
+/// SEND is one album, and a sender who empties their camera roll in three
+/// goes gets three blocks rather than one wall.
+const int kMaxAlbumPhotos = 10;
+
+/// Whether [m] may be drawn as a tile in an album rather than as its own
+/// bubble.
+///
+/// The vetoes are all the same shape: a photograph that is carrying something
+/// an 80-pixel square cannot carry. A caption is a paragraph, a quote card is
+/// a second message, a sealed view-once photo is a whole affordance with its
+/// own copy on it, an ephemeral one is a frame with a dissolve painted into it,
+/// and a failed send needs its retry and discard controls at a size a thumb
+/// can hit. Reactions are NOT a veto — the tile draws its own, because a
+/// picture leaving the album the moment somebody reacts to it would make the
+/// block jump under the reader's finger.
+bool albumEligible(ChatMessage m) =>
+    m.type == MessageType.image &&
+    m.content.isEmpty &&
+    !m.viewOnce &&
+    !m.isEphemeral &&
+    !m.isReply &&
+    m.status != MessageStatus.error;
+
+/// Collapses each run of adjacent album-eligible photo rows into one row that
+/// draws them as a mosaic.
+///
+/// Runs after the emit loop rather than inside it, on the rows it produced.
+/// Adjacency in the *output* is the property that matters — a date divider, a
+/// fold chip or a sentence between two photographs all mean they are not one
+/// album — and the output list is the only place that is already decided.
+///
+/// [MessageItem.grouped] is what ties the run together, so an album can only
+/// ever form inside one sender's own uninterrupted block; the first photo may
+/// itself continue a run of something else (a line of text, then four
+/// pictures), which is why only the members after it are required to be
+/// grouped.
+List<RoomItem> collapseAlbums(List<RoomItem> rows) {
+  final out = <RoomItem>[];
+  for (var i = 0; i < rows.length;) {
+    final head = rows[i];
+    if (head is! MessageItem || !albumEligible(head.message)) {
+      out.add(head);
+      i++;
+      continue;
+    }
+    var end = i + 1;
+    while (end < rows.length && end - i < kMaxAlbumPhotos) {
+      final next = rows[end];
+      if (next is! MessageItem ||
+          !next.grouped ||
+          !albumEligible(next.message)) {
+        break;
+      }
+      end++;
+    }
+    if (end - i < 2) {
+      out.add(head);
+      i++;
+      continue;
+    }
+    final run = [for (var k = i; k < end; k++) rows[k] as MessageItem];
+    out.add(MessageItem(
+      run.last.message,
+      grouped: run.first.grouped,
+      newSender: run.first.newSender,
+      // Safe to read now and not one row earlier: `lastInRun` is the one flag
+      // the emit loop writes back onto a row it has already emitted, and every
+      // one of those writes has happened by the time this pass runs.
+      lastInRun: run.last.lastInRun,
+      // Eligibility already refused a reply, so there is no marker to carry.
+      replyMarker: ReplyMarker.none,
+      album: [for (final r in run) r.message],
+    ));
+    i = end;
+  }
+  return out;
+}
 
 ({List<RoomItem> items, Set<String> hidden}) buildRoomItems({
   required List<ChatMessage> messages,
@@ -350,5 +447,5 @@ bool continuesRun(
     prevVisible = m;
   }
 
-  return (items: out, hidden: hidden);
+  return (items: collapseAlbums(out), hidden: hidden);
 }

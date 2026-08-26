@@ -31,6 +31,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../media/file_meta.dart';
 import '../media/video_poster.dart';
 import '../media/image_raster.dart';
+import '../media/photo_picking.dart';
 import '../media/view_once_fetch.dart';
 import '../privacy/capture_protection.dart';
 import '../services/live_location_permission.dart';
@@ -506,7 +507,15 @@ class _RoomScreenState extends State<RoomScreen>
     final index = <String, int>{};
     for (var i = 0; i < rev.length; i++) {
       final item = rev[i];
-      if (item is MessageItem) index[item.message.id] = i;
+      if (item is MessageItem) {
+        index[item.message.id] = i;
+        // Every photograph of an album points at the one row that draws it,
+        // so a reply-jump or a search hit aimed at the third picture still
+        // has somewhere to land.
+        for (final p in item.album) {
+          index[p.id] = i;
+        }
+      }
     }
     _revSource = chronological;
     _revItems = rev;
@@ -1243,6 +1252,34 @@ class _RoomScreenState extends State<RoomScreen>
     if (_editing != null) _cancelEdit();
     setState(() => _replyingTo = null);
     _selection.begin(m.id);
+  }
+
+  /// Takes or drops a whole album.
+  ///
+  /// Any member selected means the block reads as selected, so the tap that
+  /// follows drops all of them; otherwise it takes all of them. The cap is
+  /// checked against what the tap would actually add rather than one at a
+  /// time, because half an album is exactly the outcome it exists to prevent.
+  void _toggleAlbumSelection(List<ChatMessage> album) {
+    final anySelected = album.any((p) => _selection.contains(p.id));
+    if (anySelected) {
+      for (final p in album) {
+        if (_selection.contains(p.id)) _selection.toggle(p.id);
+      }
+      return;
+    }
+    if (_selection.count + album.length > _kMaxSelected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)
+              .roomScreenMaxSelectionSnack(_kMaxSelected)),
+        ),
+      );
+      return;
+    }
+    for (final p in album) {
+      _selection.toggle(p.id);
+    }
   }
 
   void _toggleSelection(ChatMessage m) {
@@ -2058,10 +2095,11 @@ class _RoomScreenState extends State<RoomScreen>
         // photo of a document would be worse than leaving a selfie unflipped.
         // No retake either: the system camera has its own, and there is no
         // route of ours underneath to go back to.
-        final picked = await ImagePicker().pickImage(
-          source: ImageSource.camera,
-          imageQuality: pickerImageQuality,
-        );
+        // A refusal folds into the cancel here rather than earning a snackbar
+        // of its own: the library reasons for one (an asset kept in iCloud) do
+        // not exist for a frame that was taken a second ago, and the camera's
+        // own permission prompt has already spoken for the rest.
+        final picked = (await pickPhoto(source: ImageSource.camera)).file;
         if (picked == null || !mounted) return;
         final bytes = await picked.readAsBytes();
         if (!mounted) return;
@@ -2324,12 +2362,14 @@ class _RoomScreenState extends State<RoomScreen>
 
   /// Puts one or more photographs in front of the user before anything is sent.
   ///
-  /// The picker is `pickMultiImage`, not `pickImage`, and that is the whole
-  /// feature: the library sheet has always been able to hand back a set, and
-  /// asking it for one picture meant that sending four cost four trips through
-  /// the attachment sheet, the OS picker and the editor — with the four photos
-  /// landing in the conversation interleaved with whatever else arrived while
-  /// the sender was going back for the next one.
+  /// The picker is `pickMultiImage` — through [pickPhotos], which is where the
+  /// platform's own failures are turned into something to say rather than an
+  /// exception — and not `pickImage`, which is the whole feature: the library
+  /// sheet has always been able to hand back a set, and asking it for one
+  /// picture meant that sending four cost four trips through the attachment
+  /// sheet, the OS picker and the editor — with the four photos landing in the
+  /// conversation interleaved with whatever else arrived while the sender was
+  /// going back for the next one.
   ///
   /// One picture still goes straight to the editor. It is the better screen for
   /// the case where all the attention is on one photograph, it is where the pen
@@ -2348,15 +2388,31 @@ class _RoomScreenState extends State<RoomScreen>
   /// while they decode, so there is no frame where nothing is spinning. One
   /// raise, one lower, no interleaving around a route push.
   Future<void> _pickAndSendFromGallery() async {
+    // Resolved before the awaits below, which are async gaps after which
+    // touching `context` is unsafe — the same up-front capture the file pick
+    // and the pin paths make.
+    final messenger = ScaffoldMessenger.of(context);
+    final loc = AppLocalizations.of(context);
     _setMediaBusy(true);
     try {
-      final picked = await ImagePicker().pickMultiImage(
-        imageQuality: pickerImageQuality,
+      final pick = await pickPhotos(
         // The OS enforces it, so the refusal happens while the user is still
         // looking at their library rather than after they have chosen thirty.
         limit: kMaxPhotoSelection,
       );
-      if (picked.isEmpty || !mounted) return;
+      if (!mounted) return;
+      // The platform kept what was chosen — an iOS asset still in iCloud is
+      // the usual reason, and one of those fails the whole batch rather than
+      // dropping itself out of it. Nothing to send, so say why: the picker has
+      // already slid away and the alternative is a tap that did nothing.
+      if (pick.unreadable) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(loc.mediaPickFailedMessage)),
+        );
+        return;
+      }
+      final picked = pick.files;
+      if (picked.isEmpty) return;
 
       if (picked.length == 1) {
         final bytes = await picked.first.readAsBytes();
@@ -2369,12 +2425,6 @@ class _RoomScreenState extends State<RoomScreen>
         if (outcome is EditorSend) _sendEdited(outcome);
         return;
       }
-
-      // Resolved before the awaits below, which are async gaps after which
-      // touching `context` is unsafe — the same up-front capture the file pick
-      // and the pin paths make.
-      final messenger = ScaffoldMessenger.of(context);
-      final loc = AppLocalizations.of(context);
 
       // `limit` above is honoured by the iOS and Android pickers and by nothing
       // else — `file_selector`-backed web and desktop implementations ignore it.
@@ -2465,10 +2515,22 @@ class _RoomScreenState extends State<RoomScreen>
   /// megabytes to read across the platform channel. The scrim covers the pick
   /// and the read; the pending bubble covers the upload.
   Future<void> _pickAndSendVideo() async {
+    // Captured before the awaits, for the reason the photo pick above gives.
+    final messenger = ScaffoldMessenger.of(context);
+    final loc = AppLocalizations.of(context);
     _setMediaBusy(true);
     try {
-      final picker = ImagePicker();
-      final picked = await picker.pickVideo(source: ImageSource.gallery);
+      final pick = await pickVideo();
+      if (!mounted) return;
+      // Same refusal the photo path handles, and likelier here: a clip is the
+      // kind of thing iCloud keeps off the device.
+      if (pick.unreadable) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(loc.mediaPickFailedMessage)),
+        );
+        return;
+      }
+      final picked = pick.file;
       if (picked == null) return;
 
       // Before `readAsBytes`, and only off web. `XFile.path` is a real
@@ -3250,26 +3312,46 @@ class _RoomScreenState extends State<RoomScreen>
                 final highlightT = (_highlightedMessageId == m.id)
                     ? _highlightCtrl.value
                     : 0.0;
-                Future<void> onLongPress() async {
+                /// The action menu for ONE message of this row.
+                ///
+                /// Parameterised because a row is not always one message. An
+                /// album draws several, and long-pressing its third picture
+                /// has to open the menu for that picture, anchored to that
+                /// tile: [anchorKey] is the tile's rect, and null falls back
+                /// to the row's own tracked one, which is what a lone bubble
+                /// wants.
+                Future<void> longPressOn(
+                  ChatMessage target, {
+                  GlobalKey? anchorKey,
+                }) async {
                   HapticFeedback.mediumImpact();
                   FocusManager.instance.primaryFocus?.unfocus();
                   final messenger = ScaffoldMessenger.of(context);
-                  final anchor = _dateTracks['m_${m.id}']?.key;
+                  final anchor =
+                      anchorKey ?? _dateTracks['m_${target.id}']?.key;
                   if (anchor == null) return;
                   final result = await showMessageActionMenu(
                     context: context,
                     anchorKey: anchor,
                     isMine: isMine,
-                    capabilities: caps,
-                    isPinned: widget.repo.isMessagePinned(room.id, m.id),
-                    isSaved: widget.repo.isMessageSaved(room.id, m.id),
+                    // Re-read for [target] rather than reused from the row:
+                    // an album's tiles are separate messages, and what may be
+                    // done to one of them is a function of which one.
+                    capabilities:
+                        widget.repo.capabilitiesForMessage(target, room),
+                    isPinned: widget.repo.isMessagePinned(room.id, target.id),
+                    isSaved: widget.repo.isMessageSaved(room.id, target.id),
                     // The transcript row holds a document's name to one line;
                     // this is where the whole thing is legible.
                     fileName:
-                        m.type == MessageType.file ? m.fileName : null,
+                        target.type == MessageType.file ? target.fileName : null,
                     bubbleBuilder: (_) {
-                      final parentAuthor = m.isReply
-                          ? _members[m.replyToPreview?.senderId]
+                      // False only on an album tile, whose lifted preview is
+                      // one photograph out of several and so inherits nothing
+                      // about the block's place in the run.
+                      final sameRow = target.id == m.id;
+                      final parentAuthor = target.isReply
+                          ? _members[target.replyToPreview?.senderId]
                           : null;
                       // Same avatar/name geometry as the row it lifted off, so
                       // the preview reads as that exact bubble rather than a
@@ -3282,25 +3364,27 @@ class _RoomScreenState extends State<RoomScreen>
                       // colour at exactly the moment it is being stared at.
                       return SpeakerScope(
                         slots: room.isDm ? SpeakerSlots.none : _speakerSlots,
-                        child: m.isEphemeral
+                        child: target.isEphemeral
                           ? EphemeralMessageBubble(
-                              message: m,
+                              message: target,
                               now: _now,
                               currentUserId: me,
                               api: widget.api,
                               author: author,
                               parentAuthor: parentAuthor,
-                              saved: saved,
-                              replyMarker: replyMarker,
-                              grouped: grouped,
-                              lastInRun: messageItem.lastInRun,
+                              saved: widget.repo
+                                  .isMessageSaved(room.id, target.id),
+                              replyMarker:
+                                  sameRow ? replyMarker : ReplyMarker.full,
+                              grouped: sameRow && grouped,
+                              lastInRun: !sameRow || messageItem.lastInRun,
                               showAvatarSlot: !room.isDm,
                               showAvatar: showAvatar,
                               senderName: senderName,
-                              onOpenViewOnce: () => _openViewOnce(m),
+                              onOpenViewOnce: () => _openViewOnce(target),
                             )
                           : MessageBubble(
-                              message: m,
+                              message: target,
                               now: _now,
                               currentUserId: me,
                               api: widget.api,
@@ -3308,47 +3392,49 @@ class _RoomScreenState extends State<RoomScreen>
                               parentAuthor: parentAuthor,
                               seenByOthers: seenByOthers,
                               deliveredToOthers: deliveredToOthers,
-                              saved: saved,
-                              replyMarker: replyMarker,
-                              grouped: grouped,
-                              lastInRun: messageItem.lastInRun,
+                              saved: widget.repo
+                                  .isMessageSaved(room.id, target.id),
+                              replyMarker:
+                                  sameRow ? replyMarker : ReplyMarker.full,
+                              grouped: sameRow && grouped,
+                              lastInRun: !sameRow || messageItem.lastInRun,
                               showAvatarSlot: !room.isDm,
                               showAvatar: showAvatar,
                               senderName: senderName,
-                              onOpenViewOnce: () => _openViewOnce(m),
+                              onOpenViewOnce: () => _openViewOnce(target),
                             ),
                       );
                     },
                   );
                   if (!mounted || result == null) return;
                   if (result.emoji != null) {
-                    await widget.repo.toggleReaction(messageId: m.id, emoji: result.emoji!);
+                    await widget.repo.toggleReaction(messageId: target.id, emoji: result.emoji!);
                     return;
                   }
                   if (result.openFullReactionPicker) {
                     final emoji = await showReactionPicker(this.context);
                     if (emoji == null || emoji.isEmpty) return;
-                    await widget.repo.toggleReaction(messageId: m.id, emoji: emoji);
+                    await widget.repo.toggleReaction(messageId: target.id, emoji: emoji);
                     return;
                   }
                   switch (result.action!) {
                     case MessageAction.reply:
-                      _armReply(m);
+                      _armReply(target);
                       break;
                     case MessageAction.edit:
-                      _armEdit(m);
+                      _armEdit(target);
                       break;
                     case MessageAction.forward:
-                      await _forwardMessages([m]);
+                      await _forwardMessages([target]);
                       break;
                     case MessageAction.select:
-                      _beginSelection(m);
+                      _beginSelection(target);
                       break;
                     case MessageAction.viewThread:
-                      await _openThread(m);
+                      await _openThread(target);
                       break;
                     case MessageAction.copy:
-                      await Clipboard.setData(ClipboardData(text: m.content));
+                      await Clipboard.setData(ClipboardData(text: target.content));
                       if (!context.mounted) return;
                       messenger.showSnackBar(SnackBar(
                           content: Text(AppLocalizations.of(context)
@@ -3356,7 +3442,7 @@ class _RoomScreenState extends State<RoomScreen>
                       break;
                     case MessageAction.copyName:
                       await Clipboard.setData(
-                          ClipboardData(text: m.fileName ?? ''));
+                          ClipboardData(text: target.fileName ?? ''));
                       if (!context.mounted) return;
                       messenger.showSnackBar(
                           SnackBar(content: Text(AppLocalizations.of(context)
@@ -3364,11 +3450,11 @@ class _RoomScreenState extends State<RoomScreen>
                       break;
                     case MessageAction.copyCoordinates:
                       // `capabilitiesForMessage` already refused this row
-                      // unless `m.locationShare` is non-null, but a share can
+                      // unless `target.locationShare` is non-null, but a share can
                       // still end between the long-press and the tap — the
                       // guard is what keeps that race from copying stale
                       // formatting of a null value instead of just no-op'ing.
-                      final share = m.locationShare;
+                      final share = target.locationShare;
                       if (share != null) {
                         await Clipboard.setData(ClipboardData(
                             text: formatCoordinates(
@@ -3380,7 +3466,7 @@ class _RoomScreenState extends State<RoomScreen>
                               .locationBubbleCoordinatesCopied)));
                       break;
                     case MessageAction.pin:
-                      final err = await widget.repo.pinMessage(room.id, m.id);
+                      final err = await widget.repo.pinMessage(room.id, target.id);
                       // Surfaced rather than swallowed: the cap is the only
                       // way this fails, and silence would read as a dead menu.
                       if (err != null) {
@@ -3394,11 +3480,11 @@ class _RoomScreenState extends State<RoomScreen>
                       }
                       break;
                     case MessageAction.unpin:
-                      await widget.repo.unpinMessage(room.id, m.id);
+                      await widget.repo.unpinMessage(room.id, target.id);
                       break;
                     case MessageAction.save:
                       final saveErr =
-                          await widget.repo.saveMessage(room.id, m.id);
+                          await widget.repo.saveMessage(room.id, target.id);
                       // Surfaced for the reason the pin cap is: the per-room
                       // ceiling is the only way this fails, and a menu row that
                       // quietly does nothing reads as broken.
@@ -3413,10 +3499,10 @@ class _RoomScreenState extends State<RoomScreen>
                       }
                       break;
                     case MessageAction.unsave:
-                      await widget.repo.unsaveMessage(room.id, m.id);
+                      await widget.repo.unsaveMessage(room.id, target.id);
                       break;
                     case MessageAction.delete:
-                      await widget.repo.deleteMessage(m.id);
+                      await widget.repo.deleteMessage(target.id);
                       break;
                     case MessageAction.viewProfile:
                       if (author != null) _openProfile(author);
@@ -3430,7 +3516,7 @@ class _RoomScreenState extends State<RoomScreen>
                         await widget.api.report(
                           reporterId: myId,
                           targetType: 'message',
-                          targetId: m.id,
+                          targetId: target.id,
                           reason: reason,
                         );
                         if (!context.mounted) return;
@@ -3443,19 +3529,27 @@ class _RoomScreenState extends State<RoomScreen>
                   }
                 }
 
-                void onReactionTap(String e) {
-                  widget.repo.toggleReaction(messageId: m.id, emoji: e);
+                Future<void> onLongPress() => longPressOn(m);
+
+                // Parameterised for the reason `longPressOn` is: an album
+                // row draws several messages, and a chip on the third
+                // photograph belongs to the third photograph.
+                void reactionTapOn(ChatMessage target, String e) {
+                  widget.repo.toggleReaction(messageId: target.id, emoji: e);
                 }
 
-                Future<void> onReactionLongPress(String e) async {
+                void onReactionTap(String e) => reactionTapOn(m, e);
+
+                Future<void> reactionLongPressOn(
+                    ChatMessage target, String e) async {
                   HapticFeedback.mediumImpact();
                   await showReactionDetailsSheet(
                     context,
                     repo: widget.repo,
                     api: widget.api,
                     roomId: room.id,
-                    messageId: m.id,
-                    fallback: m.reactions,
+                    messageId: target.id,
+                    fallback: target.reactions,
                     currentUserId: me,
                     initialEmoji: e,
                     // The live member map is the only resolver that covers
@@ -3464,6 +3558,9 @@ class _RoomScreenState extends State<RoomScreen>
                     onOpenProfile: _openProfile,
                   );
                 }
+
+                Future<void> onReactionLongPress(String e) =>
+                    reactionLongPressOn(m, e);
 
                 void onAuthorTap() {
                   if (author == null || isMine) return;
@@ -3556,6 +3653,16 @@ class _RoomScreenState extends State<RoomScreen>
                             widget.repo.activeLiveShareMessageId == m.id,
                         onRetrySend: sendFailed ? onRetrySend : null,
                         onDiscardSend: sendFailed ? onDiscardSend : null,
+                        album: messageItem.album,
+                        // Pending-ness is per tile here, not per row: a block
+                        // can be half landed, and the confirmed half has a
+                        // menu even while the rest is still going up.
+                        onAlbumTileLongPress: (target, anchor) {
+                          if (target.id.startsWith('tmp_')) return;
+                          longPressOn(target, anchorKey: anchor);
+                        },
+                        onAlbumReactionTap: reactionTapOn,
+                        onAlbumReactionLongPress: reactionLongPressOn,
                       );
                 final row = AnimatedSwitcher(
                   duration: theme.motionMed,
@@ -3575,9 +3682,19 @@ class _RoomScreenState extends State<RoomScreen>
                   isDivider: false,
                   child: selecting
                       ? _SelectableRow(
-                          selected: _selection.contains(m.id),
+                          // An album is one thing on screen and is picked as
+                          // one: any photograph of it selected marks the row,
+                          // and the tap takes or drops the whole block. A set
+                          // the reader can see but not select as a set is a
+                          // forward that quietly sends four of five.
+                          selected: messageItem.album.isEmpty
+                              ? _selection.contains(m.id)
+                              : messageItem.album
+                                  .any((p) => _selection.contains(p.id)),
                           isMine: isMine,
-                          onTap: () => _toggleSelection(m),
+                          onTap: () => messageItem.album.isEmpty
+                              ? _toggleSelection(m)
+                              : _toggleAlbumSelection(messageItem.album),
                           child: row,
                         )
                       : row,

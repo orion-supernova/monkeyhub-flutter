@@ -30,6 +30,7 @@ import 'location_bubble.dart';
 import 'text_runs.dart';
 import 'message_stamp.dart';
 import 'photo_chrome.dart';
+import 'photo_mosaic.dart';
 import 'reaction_bubble.dart';
 import 'remote_image.dart';
 import 'room_gallery_scope.dart';
@@ -74,7 +75,34 @@ class MessageBubble extends StatelessWidget {
     this.onRetrySend,
     this.onDiscardSend,
     this.bubbleKey,
+    this.album = const [],
+    this.onAlbumOpen,
+    this.onAlbumTileLongPress,
+    this.onAlbumReactionTap,
+    this.onAlbumReactionLongPress,
   });
+
+  /// Every photograph this row draws, oldest first, when a run of them was
+  /// collapsed into one album — see `collapseAlbums`. Empty on an ordinary
+  /// row, and never of length one.
+  ///
+  /// [message] is the last of them and stays the row's message in every other
+  /// respect: it owns the timestamp, the delivery ticks, the avatar's place in
+  /// the run and the swipe that arms a reply. Only the picture is different,
+  /// and only because a mosaic is what the whole set looks like.
+  final List<ChatMessage> album;
+
+  /// Opens one photograph of [album] fullscreen. Null falls back to the
+  /// gallery scope, exactly as a lone photo's tile does.
+  final void Function(ChatMessage m)? onAlbumOpen;
+
+  /// The tile under the finger and the key of its rect, for the action menu.
+  /// The row's own [onLongPress] is about [message]; inside an album the
+  /// target is whichever picture was actually pressed.
+  final void Function(ChatMessage m, GlobalKey anchor)? onAlbumTileLongPress;
+
+  final void Function(ChatMessage m, String emoji)? onAlbumReactionTap;
+  final void Function(ChatMessage m, String emoji)? onAlbumReactionLongPress;
 
   /// Spends this viewer's one look at a view-once photo and shows it. Null
   /// leaves the sealed tile inert.
@@ -330,7 +358,11 @@ class MessageBubble extends StatelessWidget {
           onDoubleTap: onDoubleTap,
           child: bubbleArea,
         ),
-        reactions: message.reactions.isNotEmpty && onReactionTap != null
+        // An album's chips are drawn on the tiles that earned them — a row
+        // under a mosaic could not say which of ten photographs it was about.
+        reactions: message.reactions.isNotEmpty &&
+                onReactionTap != null &&
+                album.length < 2
             ? ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: maxWidth),
                 child: ReactionRow(
@@ -382,6 +414,11 @@ class MessageBubble extends StatelessWidget {
       onDiscardSend: onDiscardSend,
       currentUserId: currentUserId,
       onMentionTap: onMentionTap,
+      album: album,
+      onAlbumOpen: onAlbumOpen,
+      onAlbumTileLongPress: onAlbumTileLongPress,
+      onAlbumReactionTap: onAlbumReactionTap,
+      onAlbumReactionLongPress: onAlbumReactionLongPress,
     );
   }
 }
@@ -1076,6 +1113,15 @@ Widget buildMessageContent({
   /// inert — the same treatment [onOpenViewOnce] gets where no repository is
   /// wired up.
   void Function(String userId)? onMentionTap,
+
+  /// The run of photographs this row stands for, oldest first, with [message]
+  /// as the last of them. Two or more turns the photo case into a mosaic;
+  /// anything less leaves it the single tile it has always been.
+  List<ChatMessage> album = const [],
+  void Function(ChatMessage m)? onAlbumOpen,
+  void Function(ChatMessage m, GlobalKey anchor)? onAlbumTileLongPress,
+  void Function(ChatMessage m, String emoji)? onAlbumReactionTap,
+  void Function(ChatMessage m, String emoji)? onAlbumReactionLongPress,
 }) {
   // Who is talking, painted into the bubble itself rather than only into the
   // name above it. A run of five messages prints its sender's name once, and
@@ -1143,6 +1189,32 @@ Widget buildMessageContent({
 
   switch (message.type) {
     case MessageType.image:
+      // Before every other photo branch. An album is only ever built from
+      // captionless, un-sealed, un-quoted photographs (`albumEligible`), so
+      // none of the cases below can apply to one — and the mosaic has to own
+      // the stamp, because the block's bottom-right corner is a tile's corner
+      // rather than this message's own tile.
+      if (album.length > 1) {
+        return StampedMedia(
+          tile: PhotoMosaic(
+            photos: album,
+            api: api,
+            width: imageSize,
+            radius: mediaRadius,
+            currentUserId: currentUserId ?? '',
+            // The gallery scope is the same fallback a lone photo's tile
+            // takes when no caller handed it an opener.
+            onOpen: onAlbumOpen ??
+                (m) {
+                  RoomGalleryScope.maybeOf(context)?.openGallery(m);
+                },
+            onTileLongPress: onAlbumTileLongPress,
+            onReactionTap: onAlbumReactionTap,
+            onReactionLongPress: onAlbumReactionLongPress,
+          ),
+          stamp: stampFor(StampTone.onMedia),
+        );
+      }
       final id = message.mediaStorageId;
       Widget imageTile;
       // Checked BEFORE the storage-id branch on purpose. A view-once message
