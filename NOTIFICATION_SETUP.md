@@ -204,14 +204,19 @@ Two things are needed, and **both fail the build loudly** — this is a
 The capability is **self-service** — the portal marks it editable, so there is
 no request form and Xcode's Signing & Capabilities pane can add it directly.
 
-Whether the *extension's* App ID needs the capability too is unsettled. Xcode's
-portal database lists it as supported on an application and a watchkit2-extension
-and not on an ordinary app extension — but it says the same of App Groups, which
-the Share Extension has been signing with all along, so the list is not
-trustworthy either way. **If the checkbox is not offered when you create that App
-ID, delete the key from `ios/NotificationService/NotificationService.entitlements`
-rather than hunting for it**: the app's entitlement governs the rendering, and an
-entitlement no profile can carry is a build that cannot sign.
+**Enable it on the extension's App ID too**, not only the app's. Xcode's portal
+database claims this capability is unavailable on an ordinary app extension
+(it lists `application` and `watchkit2-extension` and nothing else) — the
+database is simply wrong. The portal offers the checkbox, and both binaries
+ship signed with the entitlement:
+
+```sh
+codesign -d --entitlements - --xml build/ios/iphoneos/Runner.app/PlugIns/NotificationService.appex
+# → com.apple.developer.usernotifications.communication = true
+```
+
+It is wrong about App Groups on the Share Extension in the same way. Do not read
+that list as evidence a capability cannot be had.
 
 The runtime fallback stays regardless. If `content.updating(from:)` is ever
 refused on a device, `NotificationService.swift` catches it, delivers the plain

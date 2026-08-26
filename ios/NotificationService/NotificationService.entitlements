@@ -6,22 +6,18 @@
 	     COMMUNICATION notification — the sender's face where the app icon
 	     normally sits, rather than a thumbnail beside it.
 
-	     The app's own App ID needs this capability and fails signing without
-	     it. Whether THIS App ID
-	     (com.walhallaa.chatTest-20241220.NotificationService) needs it too is
-	     genuinely unsettled: Xcode's portal database lists the capability as
-	     supported on an application and a watchkit2-extension and not on an
-	     ordinary app extension — but it says the same of App Groups, which the
-	     Share Extension next door has been signing with for as long as it has
-	     existed. So the list is not to be trusted either way.
+	     REQUIRES "Communication Notifications" enabled on THIS extension's own
+	     App ID (com.walhallaa.chatTest-20241220.NotificationService) as well as
+	     the app's, and it fails the build loudly if it is missing, the way
+	     time-sensitive does next door in Runner.entitlements.
 
-	     If the portal offers no Communication Notifications checkbox when you
-	     create this App ID, DELETE this key rather than hunting for it. The
-	     app's entitlement is what governs the rendering; this one is belt and
-	     braces, and an entitlement no profile can carry is a build that cannot
-	     sign. The console line in NotificationService.swift
-	     ("communication notification refused") is what tells you if removing it
-	     was the wrong call. -->
+	     Worth knowing because the tooling says otherwise: Xcode's portal
+	     database lists this capability as supported on an application and a
+	     watchkit2-extension and NOT on an ordinary app extension. That list is
+	     wrong — the portal offers the checkbox anyway, and both binaries here
+	     ship signed with the entitlement. It is wrong about App Groups on the
+	     Share Extension in exactly the same way. Do not use it to conclude a
+	     capability is unavailable. -->
 	<key>com.apple.developer.usernotifications.communication</key>
 	<true/>
 </dict>
