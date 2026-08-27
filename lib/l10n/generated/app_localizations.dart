@@ -13824,6 +13824,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{name} is waking up…'**
   String translationSlabWakingUp(Object name);
+
+  /// All-caps row in the message long-press menu that discards a translation and asks the companion again. Offered alongside SHOW ORIGINAL when a translation is showing.
+  ///
+  /// In en, this message translates to:
+  /// **'TRANSLATE AGAIN'**
+  String get messageActionMenuTranslateAgainLabel;
 }
 
 class _AppLocalizationsDelegate

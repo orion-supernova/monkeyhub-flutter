@@ -7746,4 +7746,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String translationSlabWakingUp(Object name) {
     return '$name 正在唤醒…';
   }
+
+  @override
+  String get messageActionMenuTranslateAgainLabel => '重新翻译';
 }

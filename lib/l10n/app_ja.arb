@@ -2278,5 +2278,6 @@
   "companionInstallFailedIntegrity": "ダウンロードしたファイルがこのバージョンの想定と一致しません。最初からやり直します。",
   "companionBannerDownloading": "{name} · {total} 中 {received}",
   "companionBannerPaused": "{name} 一時停止 · {total} 中 {received}",
-  "translationSlabWakingUp": "{name} が起きています…"
+  "translationSlabWakingUp": "{name} が起きています…",
+  "messageActionMenuTranslateAgainLabel": "翻訳し直す"
 }

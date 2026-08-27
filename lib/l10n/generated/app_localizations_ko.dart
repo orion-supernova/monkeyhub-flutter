@@ -7858,4 +7858,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String translationSlabWakingUp(Object name) {
     return '$name 깨어나는 중…';
   }
+
+  @override
+  String get messageActionMenuTranslateAgainLabel => '다시 번역';
 }

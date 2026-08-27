@@ -26,7 +26,12 @@ library;
 
 /// Script blocks worth telling apart. Latin is one bucket because inside it
 /// the script says nothing and the words have to.
-enum _Script {
+///
+/// Public because the detector is not the only thing that cares which writing
+/// systems a string uses: `Sebastian` checks a finished translation for
+/// scripts that appear in neither the source nor the target, which is the
+/// cheapest possible test for "the model produced nonsense".
+enum TextScript {
   latin,
   han,
   kana,
@@ -51,7 +56,7 @@ abstract final class LanguageDetector {
   static String? detect(String text) {
     final cleaned = _strip(text);
 
-    final counts = <_Script, int>{};
+    final counts = <TextScript, int>{};
     var letters = 0;
     // Sub-script tells that decide between languages sharing a block.
     // Collected in the same pass rather than by re-scanning.
@@ -61,10 +66,10 @@ abstract final class LanguageDetector {
 
     for (final r in cleaned.runes) {
       final script = _scriptOf(r);
-      if (script == _Script.none) continue;
+      if (script == TextScript.none) continue;
       letters++;
       counts[script] = (counts[script] ?? 0) + 1;
-      if (script == _Script.kana) hasKana = true;
+      if (script == TextScript.kana) hasKana = true;
       // і ї є ґ — present in Ukrainian, absent from Russian.
       if (r == 0x0456 || r == 0x0457 || r == 0x0454 || r == 0x0491) {
         hasUkrainian = true;
@@ -84,15 +89,15 @@ abstract final class LanguageDetector {
     // Merging them costs nothing on the Chinese side, because the split below
     // is decided by [hasKana] rather than by these counts — Chinese never uses
     // kana at all.
-    final kana = counts.remove(_Script.kana);
+    final kana = counts.remove(TextScript.kana);
     if (kana != null) {
-      counts[_Script.han] = (counts[_Script.han] ?? 0) + kana;
+      counts[TextScript.han] = (counts[TextScript.han] ?? 0) + kana;
     }
 
     // Which block owns the text. A message can carry a stray Latin word ("ok",
     // a brand name, a hashtag) without stopping being Japanese, so this is a
     // plurality with a floor rather than a unanimity.
-    _Script? dominant;
+    TextScript? dominant;
     var best = 0;
     counts.forEach((script, n) {
       if (n > best) {
@@ -106,32 +111,66 @@ abstract final class LanguageDetector {
     switch (winner) {
       // Any kana at all settles it, and it is the ONLY thing that does: the
       // counts were merged above, so this branch owns both languages.
-      case _Script.han:
+      case TextScript.han:
         return hasKana ? 'ja' : 'zh';
       // Unreachable — kana was folded into han before the vote. Kept so the
       // switch stays exhaustive over the enum.
-      case _Script.kana:
+      case TextScript.kana:
         return 'ja';
-      case _Script.hangul:
+      case TextScript.hangul:
         return 'ko';
-      case _Script.cyrillic:
+      case TextScript.cyrillic:
         return hasUkrainian ? 'uk' : 'ru';
-      case _Script.arabic:
+      case TextScript.arabic:
         return hasPersian ? 'fa' : 'ar';
-      case _Script.hebrew:
+      case TextScript.hebrew:
         return 'he';
-      case _Script.devanagari:
+      case TextScript.devanagari:
         return 'hi';
-      case _Script.thai:
+      case TextScript.thai:
         return 'th';
-      case _Script.greek:
+      case TextScript.greek:
         return 'el';
-      case _Script.latin:
+      case TextScript.latin:
         return _detectLatin(cleaned);
-      case _Script.none:
+      case TextScript.none:
         return null;
     }
   }
+
+  /// How many letters of each writing system [text] uses.
+  ///
+  /// Exposed for [Sebastian]'s sanity check on a finished translation. Counts
+  /// rather than a set, because the question there is not "does this contain a
+  /// Chinese character" — a name or a quotation legitimately might — but "how
+  /// much of this is in a script nobody involved was writing in".
+  static Map<TextScript, int> scriptCounts(String text) {
+    final counts = <TextScript, int>{};
+    for (final r in _strip(text).runes) {
+      final script = _scriptOf(r);
+      if (script == TextScript.none) continue;
+      counts[script] = (counts[script] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  /// The writing system [languageCode] is normally written in.
+  ///
+  /// Latin for anything unlisted, which is the safe default: it is the script
+  /// this check never objects to, so an unknown language degrades to "no
+  /// opinion" rather than to a false accusation.
+  static TextScript scriptFor(String languageCode) => switch (languageCode) {
+        'zh' => TextScript.han,
+        'ja' => TextScript.kana,
+        'ko' => TextScript.hangul,
+        'ru' || 'uk' => TextScript.cyrillic,
+        'ar' || 'fa' => TextScript.arabic,
+        'he' => TextScript.hebrew,
+        'hi' => TextScript.devanagari,
+        'th' => TextScript.thai,
+        'el' => TextScript.greek,
+        _ => TextScript.latin,
+      };
 
   /// Whether it is worth asking anyone about [text] at all.
   ///
@@ -147,7 +186,7 @@ abstract final class LanguageDetector {
     final cleaned = _strip(text);
     var letters = 0;
     for (final r in cleaned.runes) {
-      if (_scriptOf(r) != _Script.none) {
+      if (_scriptOf(r) != TextScript.none) {
         letters++;
         if (letters >= _minLetters) return true;
       }
@@ -162,7 +201,7 @@ abstract final class LanguageDetector {
   /// Removes the two things that are made of letters but carry no language.
   ///
   /// Only these two. Punctuation, digits, emoji and symbols need no stripping
-  /// because [_scriptOf] already reports them as [_Script.none] and nothing
+  /// because [_scriptOf] already reports them as [TextScript.none] and nothing
   /// counts them — which is both faster than a regex and impossible to get
   /// subtly wrong for some unicode block nobody thought of.
   static String _strip(String text) =>
@@ -176,27 +215,27 @@ abstract final class LanguageDetector {
   /// ("c'est", "j'ai") survive as the single high-signal tokens they are.
   static final RegExp _wordBreak = RegExp(r"[^\p{L}']+", unicode: true);
 
-  static _Script _scriptOf(int r) {
+  static TextScript _scriptOf(int r) {
     // Ordered by how often each range is hit in this app's traffic, so the
     // common case exits in one or two comparisons.
     if ((r >= 0x41 && r <= 0x5A) || (r >= 0x61 && r <= 0x7A)) {
-      return _Script.latin;
+      return TextScript.latin;
     }
-    if (r < 0xC0) return _Script.none; // digits, ASCII punctuation, whitespace
-    if (r <= 0x24F) return _Script.latin; // Latin-1 Supplement + Extended-A/B
-    if (r >= 0x1E00 && r <= 0x1EFF) return _Script.latin; // Vietnamese
-    if (r >= 0x0400 && r <= 0x04FF) return _Script.cyrillic;
-    if (r >= 0x0600 && r <= 0x06FF) return _Script.arabic;
-    if (r >= 0x0590 && r <= 0x05FF) return _Script.hebrew;
-    if (r >= 0x0900 && r <= 0x097F) return _Script.devanagari;
-    if (r >= 0x0E00 && r <= 0x0E7F) return _Script.thai;
-    if (r >= 0x0370 && r <= 0x03FF) return _Script.greek;
-    if (r >= 0x3040 && r <= 0x30FF) return _Script.kana;
-    if (r >= 0xAC00 && r <= 0xD7A3) return _Script.hangul;
-    if (r >= 0x1100 && r <= 0x11FF) return _Script.hangul; // Jamo
-    if (r >= 0x4E00 && r <= 0x9FFF) return _Script.han;
-    if (r >= 0x3400 && r <= 0x4DBF) return _Script.han; // Extension A
-    return _Script.none;
+    if (r < 0xC0) return TextScript.none; // digits, ASCII punctuation, whitespace
+    if (r <= 0x24F) return TextScript.latin; // Latin-1 Supplement + Extended-A/B
+    if (r >= 0x1E00 && r <= 0x1EFF) return TextScript.latin; // Vietnamese
+    if (r >= 0x0400 && r <= 0x04FF) return TextScript.cyrillic;
+    if (r >= 0x0600 && r <= 0x06FF) return TextScript.arabic;
+    if (r >= 0x0590 && r <= 0x05FF) return TextScript.hebrew;
+    if (r >= 0x0900 && r <= 0x097F) return TextScript.devanagari;
+    if (r >= 0x0E00 && r <= 0x0E7F) return TextScript.thai;
+    if (r >= 0x0370 && r <= 0x03FF) return TextScript.greek;
+    if (r >= 0x3040 && r <= 0x30FF) return TextScript.kana;
+    if (r >= 0xAC00 && r <= 0xD7A3) return TextScript.hangul;
+    if (r >= 0x1100 && r <= 0x11FF) return TextScript.hangul; // Jamo
+    if (r >= 0x4E00 && r <= 0x9FFF) return TextScript.han;
+    if (r >= 0x3400 && r <= 0x4DBF) return TextScript.han; // Extension A
+    return TextScript.none;
   }
 
   /// Inside the Latin block the script is silent, so the words have to speak.

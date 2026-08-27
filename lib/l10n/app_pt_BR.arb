@@ -2278,5 +2278,6 @@
   "companionInstallFailedIntegrity": "O arquivo baixado não corresponde ao que esta versão espera. Começando de novo.",
   "companionBannerDownloading": "{name} · {received} de {total}",
   "companionBannerPaused": "{name} pausado · {received} de {total}",
-  "translationSlabWakingUp": "{name} está acordando…"
+  "translationSlabWakingUp": "{name} está acordando…",
+  "messageActionMenuTranslateAgainLabel": "TRADUZIR DE NOVO"
 }

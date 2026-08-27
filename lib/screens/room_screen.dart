@@ -3895,6 +3895,9 @@ class _RoomScreenState extends State<RoomScreen>
                     case MessageAction.showOriginal:
                       Sebastian.instance.showOriginal(target);
                       break;
+                    case MessageAction.translateAgain:
+                      Sebastian.instance.translateAgain(target);
+                      break;
                     case MessageAction.pin:
                       final err = await widget.repo.pinMessage(room.id, target.id);
                       // Surfaced rather than swallowed: the cap is the only

@@ -8239,4 +8239,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String translationSlabWakingUp(Object name) {
     return '$name está despertando…';
   }
+
+  @override
+  String get messageActionMenuTranslateAgainLabel => 'TRADUCIR DE NUEVO';
 }

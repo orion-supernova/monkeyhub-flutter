@@ -2278,5 +2278,6 @@
   "companionInstallFailedIntegrity": "الملف الذي جرى تنزيله لا يطابق ما يتوقعه هذا الإصدار. سيبدأ من جديد.",
   "companionBannerDownloading": "{name} · {received} من {total}",
   "companionBannerPaused": "{name} متوقف مؤقتًا · {received} من {total}",
-  "translationSlabWakingUp": "{name} يستيقظ…"
+  "translationSlabWakingUp": "{name} يستيقظ…",
+  "messageActionMenuTranslateAgainLabel": "أعد الترجمة"
 }

@@ -8247,6 +8247,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String translationSlabWakingUp(Object name) {
     return 'O $name está a acordar…';
   }
+
+  @override
+  String get messageActionMenuTranslateAgainLabel => 'TRADUZIR DE NOVO';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -16487,4 +16490,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String translationSlabWakingUp(Object name) {
     return '$name está acordando…';
   }
+
+  @override
+  String get messageActionMenuTranslateAgainLabel => 'TRADUZIR DE NOVO';
 }

@@ -8119,4 +8119,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String translationSlabWakingUp(Object name) {
     return '$name uyanıyor…';
   }
+
+  @override
+  String get messageActionMenuTranslateAgainLabel => 'YENİDEN ÇEVİR';
 }

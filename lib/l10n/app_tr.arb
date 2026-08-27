@@ -2278,5 +2278,6 @@
   "companionInstallFailedIntegrity": "İndirilen dosya bu sürümün beklediğiyle eşleşmedi. Baştan başlanıyor.",
   "companionBannerDownloading": "{name} · {total} / {received}",
   "companionBannerPaused": "{name} duraklatıldı · {total} / {received}",
-  "translationSlabWakingUp": "{name} uyanıyor…"
+  "translationSlabWakingUp": "{name} uyanıyor…",
+  "messageActionMenuTranslateAgainLabel": "YENİDEN ÇEVİR"
 }

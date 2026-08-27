@@ -16,6 +16,7 @@
 library;
 
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
@@ -214,7 +215,17 @@ class BrainGateway {
 
       final model = await FlutterGemma.getActiveModel(
         maxTokens: spec.contextTokens,
+        preferredBackend: _backend,
       );
+      // What the runtime ACTUALLY chose, which is not always what was asked
+      // for — FFI runtimes fall back silently. Worth a line in debug, because
+      // a wrong backend does not throw, it produces nonsense.
+      if (kDebugMode) {
+        debugPrint(
+          'BrainGateway: ${spec.id} on ${model.activeBackend ?? 'unknown'} '
+          '(asked for ${_backend?.name ?? 'default'})',
+        );
+      }
       final loaded = LoadedBrain._(model, spec);
       _loaded = loaded;
       return loaded;
@@ -265,6 +276,31 @@ class BrainGateway {
       debugPrint('BrainGateway.uninstall(${spec.id}) registry cleanup: $e');
     }
   }
+
+  /// Which accelerator to ask for, or null to let the runtime decide.
+  ///
+  /// CPU on the iOS SIMULATOR, explicitly. Upstream is unambiguous that the
+  /// simulator is CPU-only there — Metal's simulator has a 256 MB
+  /// single-allocation cap — but the default is GPU, and a real run showed
+  /// `backend=gpu` being requested and honoured on a simulator, producing
+  /// random tokens across four writing systems rather than a translation.
+  ///
+  /// That is the dangerous shape of this failure: it does not throw. Asking
+  /// for what the platform can actually service is the fix; [Sebastian]'s
+  /// output check is the net under it.
+  PreferredBackend? get _backend {
+    if (kIsWeb) return null;
+    if (Platform.isIOS && _isSimulator) return PreferredBackend.cpu;
+    return null;
+  }
+
+  /// True on the iOS simulator.
+  ///
+  /// The environment variable is set by the simulator runtime itself, and is
+  /// the check Apple's own tooling uses. `dart:io` offers nothing better —
+  /// `Platform.isIOS` is true in both places.
+  static final bool _isSimulator =
+      !kIsWeb && Platform.environment.containsKey('SIMULATOR_DEVICE_NAME');
 
   /// Which chat template the runtime should apply. The mapping lives here and
   /// not on [BrainFamily] so the enum stays free of plugin types.

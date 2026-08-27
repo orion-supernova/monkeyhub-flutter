@@ -2278,5 +2278,6 @@
   "companionInstallFailedIntegrity": "डाउनलोड की गई फ़ाइल इस वर्शन की अपेक्षा से मेल नहीं खाती। फिर से शुरू किया जा रहा है।",
   "companionBannerDownloading": "{name} · {total} में से {received}",
   "companionBannerPaused": "{name} रुका हुआ · {total} में से {received}",
-  "translationSlabWakingUp": "{name} जाग रहा है…"
+  "translationSlabWakingUp": "{name} जाग रहा है…",
+  "messageActionMenuTranslateAgainLabel": "फिर से अनुवाद करें"
 }

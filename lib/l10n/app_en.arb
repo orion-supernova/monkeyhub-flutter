@@ -9373,5 +9373,9 @@
   "translationSlabWakingUp": "{name} is waking up…",
   "@translationSlabWakingUp": {
     "description": "Shown inside a message bubble while the on-device model is loading for the first time this session, which takes far longer than a translation. {name} is the companion's name."
+  },
+  "messageActionMenuTranslateAgainLabel": "TRANSLATE AGAIN",
+  "@messageActionMenuTranslateAgainLabel": {
+    "description": "All-caps row in the message long-press menu that discards a translation and asks the companion again. Offered alongside SHOW ORIGINAL when a translation is showing."
   }
 }

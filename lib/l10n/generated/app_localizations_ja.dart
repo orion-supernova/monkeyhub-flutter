@@ -7836,4 +7836,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String translationSlabWakingUp(Object name) {
     return '$name が起きています…';
   }
+
+  @override
+  String get messageActionMenuTranslateAgainLabel => '翻訳し直す';
 }

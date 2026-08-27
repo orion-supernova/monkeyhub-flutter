@@ -57,6 +57,16 @@ enum MessageAction {
   /// [translate] the way [pin]/[unpin] are: exactly one of the two is ever
   /// offered, chosen by whether a translation is currently showing.
   showOriginal,
+
+  /// Forgets this bubble's translation and asks again.
+  ///
+  /// Offered alongside [showOriginal], and NOT paired with it — both are
+  /// useful at once, because they answer the two different things a reader
+  /// thinks when a translation is wrong: "what did it actually say" and "try
+  /// that again". The cache makes the second one necessary: without it,
+  /// TRANSLATE on an already-translated message redraws the same bad answer
+  /// forever.
+  translateAgain,
   pin,
   unpin,
 
@@ -990,6 +1000,13 @@ List<MessageActionSpec> messageActionSpecs({
     // as COPY: all of them are "do something with the WORDS in this message"
     // and none of them changes anything anyone else can see. Ahead of PIN,
     // which is where the shared-state actions start.
+    if (caps.canTranslate && isTranslated)
+      MessageActionSpec(
+        action: MessageAction.translateAgain,
+        icon: CupertinoIcons.arrow_clockwise,
+        label: l10n.messageActionMenuTranslateAgainLabel,
+        destructive: false,
+      ),
     if (caps.canTranslate)
       MessageActionSpec(
         action: isTranslated

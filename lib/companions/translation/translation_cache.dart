@@ -56,6 +56,27 @@ class TranslationCache {
   /// cost of being wrong is one re-run of a model already on the device.
   static const Duration _maxAge = Duration(days: 30);
 
+  /// What produced the entries in the file.
+  ///
+  /// Bumped whenever the pipeline that turns a model's output into bubble text
+  /// changes in a way that would have produced a different answer — a new
+  /// sanitiser rule, a new prompt, a different brain. Everything stamped with
+  /// an older number is dropped on load.
+  ///
+  /// This is not a schema version, though it doubles as one. It is a claim
+  /// about QUALITY: the cache cannot tell a bad translation from a good one,
+  /// so when the code that makes them gets better, the only honest thing to do
+  /// with the old ones is forget them. A user who has already translated a
+  /// message must not be the only user who never sees the fix.
+  ///
+  /// ── History ────────────────────────────────────────────────────────────
+  /// 1 — first release.
+  /// 2 — strips chat-template control tokens (`<|endoftext|>` and friends),
+  ///     which were reaching bubbles as text on the iOS `.litertlm` path.
+  /// 3 — rejects token soup, after a GPU backend the simulator cannot service
+  ///     returned random tokens across four writing systems.
+  static const int _version = 3;
+
   static const Duration _writeDebounce = Duration(seconds: 2);
 
   /// Insertion-ordered, which is what makes the eviction below an LRU rather
@@ -76,9 +97,10 @@ class TranslationCache {
         final f = await _file();
         if (await f.exists()) {
           final raw = jsonDecode(await f.readAsString());
-          if (raw is Map) {
+          if (raw is Map && raw['v'] == _version) {
+            final entries = raw['e'];
             final cutoff = DateTime.now().subtract(_maxAge).millisecondsSinceEpoch;
-            for (final e in raw.entries) {
+            for (final e in (entries is Map ? entries : const {}).entries) {
               final v = e.value;
               // Anything that is not the current shape is dropped rather than
               // migrated — including the older `key: "translation"` form. A
@@ -86,6 +108,7 @@ class TranslationCache {
               // carry a migration path, and a translation with no timestamp
               // cannot be aged out, which is the whole point of the field.
               if (v is! Map) continue;
+              // ignore: avoid_dynamic_calls
               final at = v['t'];
               final text = v['v'];
               if (at is! int || text is! String) continue;
@@ -96,7 +119,10 @@ class TranslationCache {
         }
       } catch (e) {
         // A corrupt cache is not worth an error path: the whole point of it is
-        // that everything in it can be recomputed.
+        // that everything in it can be recomputed. Same for a file written by
+        // an older [_version] — it is simply not read, and the first
+        // translation of each message fills it back in with the current
+        // pipeline's answer.
         debugPrint('TranslationCache load failed: $e');
       } finally {
         _loaded = true;
@@ -201,7 +227,10 @@ class TranslationCache {
         final f = await _file();
         await f.parent.create(recursive: true);
         await f.writeAsString(jsonEncode({
-          for (final e in _entries.entries) e.key: e.value.toJson(),
+          'v': _version,
+          'e': {
+            for (final e in _entries.entries) e.key: e.value.toJson(),
+          },
         }));
       } catch (e) {
         debugPrint('TranslationCache write failed: $e');

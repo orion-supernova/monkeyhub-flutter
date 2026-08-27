@@ -94,6 +94,58 @@ void main() {
     });
   });
 
+  /// The primitives `Sebastian`'s token-soup check is built on.
+  ///
+  /// That check exists because a real run returned random tokens across four
+  /// writing systems instead of a translation, and the cheapest structural
+  /// test for it is "does the output use a script that appears in neither the
+  /// source nor the target".
+  group('script counting', () {
+    test('counts letters per writing system, ignoring everything else', () {
+      final counts = LanguageDetector.scriptCounts('merhaba 你好 !!! 123 😀');
+      expect(counts[TextScript.latin], 7);
+      expect(counts[TextScript.han], 2);
+      // Punctuation, digits and emoji are not letters in any language.
+      expect(counts.containsKey(TextScript.none), isFalse);
+      expect(counts.length, 2);
+    });
+
+    /// The exact shape that reached a bubble: a Turkish source and an English
+    /// target, with Han characters in the output that could have come from
+    /// neither.
+    test('makes the token-soup case visible', () {
+      const soup = 'bareshWAREmentsreshanh畔 antespunkertainment 代表性curity';
+      final counts = LanguageDetector.scriptCounts(soup);
+      expect(counts[TextScript.han], greaterThan(2));
+      // And the source it was supposedly translating had none.
+      expect(
+        LanguageDetector.scriptCounts('evet her gün 12de bildirim')
+            .containsKey(TextScript.han),
+        isFalse,
+      );
+    });
+
+    test('names the script each language is written in', () {
+      expect(LanguageDetector.scriptFor('ja'), TextScript.kana);
+      expect(LanguageDetector.scriptFor('zh'), TextScript.han);
+      expect(LanguageDetector.scriptFor('ru'), TextScript.cyrillic);
+      expect(LanguageDetector.scriptFor('ar'), TextScript.arabic);
+      // Latin for anything unlisted — the script the check never objects to,
+      // so an unknown language degrades to "no opinion".
+      expect(LanguageDetector.scriptFor('tr'), TextScript.latin);
+      expect(LanguageDetector.scriptFor('xx'), TextScript.latin);
+    });
+
+    /// URLs and handles are stripped before counting, so a link full of Latin
+    /// cannot drown out the language a message is actually in.
+    test('ignores URLs and mentions', () {
+      final counts =
+          LanguageDetector.scriptCounts('https://example.com/abc @someone 你好');
+      expect(counts[TextScript.han], 2);
+      expect(counts.containsKey(TextScript.latin), isFalse);
+    });
+  });
+
   group('isWorthTranslating', () {
     /// This is the gate that keeps the queue empty in a busy group room, where
     /// reactions-as-messages are a large fraction of the traffic. Each of these

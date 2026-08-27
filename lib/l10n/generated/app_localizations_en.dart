@@ -8145,4 +8145,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String translationSlabWakingUp(Object name) {
     return '$name is waking up…';
   }
+
+  @override
+  String get messageActionMenuTranslateAgainLabel => 'TRANSLATE AGAIN';
 }

@@ -419,7 +419,13 @@ void main() {
           ).map((s) => s.action).toList();
 
       expect(actionsWhen(isTranslated: false), [MessageAction.translate]);
-      expect(actionsWhen(isTranslated: true), [MessageAction.showOriginal]);
+      // TRANSLATE AGAIN joins SHOW ORIGINAL rather than replacing it: they
+      // answer the two different things a reader thinks when a translation is
+      // wrong — "what did it actually say" and "try that again".
+      expect(actionsWhen(isTranslated: true), [
+        MessageAction.translateAgain,
+        MessageAction.showOriginal,
+      ]);
     });
 
     /// The row is withheld from anything whose body is not the message — a

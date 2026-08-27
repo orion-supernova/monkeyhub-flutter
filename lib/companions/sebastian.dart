@@ -345,6 +345,27 @@ class Sebastian extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Throws away what Sebastian said about [message] and asks again.
+  ///
+  /// Needed because a translation can be BAD without having failed — the model
+  /// is small, and it will sometimes hand back something clumsy, truncated, or
+  /// (before the checks that now catch it) nonsense. Tapping TRANSLATE again
+  /// would show the cached copy of exactly that, forever: the cache cannot
+  /// tell a good answer from a bad one, only a present one from an absent one.
+  ///
+  /// So this evicts the cache entry as well as the handle. Without that it
+  /// would be a redraw rather than a retry.
+  void translateAgain(ChatMessage message) {
+    final key = _key(message.content);
+    _handles.remove(key);
+    for (final queue in _queues.values) {
+      queue.remove(key);
+    }
+    TranslationCache.instance.remove(message.content, targetLanguage.code);
+    _registry.ping();
+    translate(message);
+  }
+
   /// Flip a bubble back to what was actually said.
   void showOriginal(ChatMessage message) {
     final handle = handleFor(message);
@@ -848,6 +869,10 @@ class Sebastian extends ChangeNotifier {
       handle._finish(TranslationState.failed);
       return;
     }
+    if (_looksLikeTokenSoup(result, source: job.content, target: target)) {
+      handle._finish(TranslationState.failed);
+      return;
+    }
     // The model handed the text back unchanged — which the prompt explicitly
     // asks it to do when the text is already in the target language. Reported
     // as such rather than as a translation, so the bubble doesn't show two
@@ -868,6 +893,57 @@ class Sebastian extends ChangeNotifier {
       sourceLanguage: detected,
     );
   }
+
+  /// Whether the model produced nonsense rather than a translation.
+  ///
+  /// ── Why a script check, of all things ─────────────────────────────────
+  ///
+  /// A real run on the iOS simulator returned this for one line of Turkish:
+  ///
+  ///     bareshWAREmentsreshanh畔 antespunkertainment cursesantes代表性curity
+  ///
+  /// Random tokens across four writing systems. The root cause was a GPU
+  /// backend the simulator cannot service (see [BrainGateway]), but the shape
+  /// of the failure is worth catching regardless: no sampler is guaranteed
+  /// never to derail, and the cost of showing it is a user who stops trusting
+  /// every translation they are given.
+  ///
+  /// The test is narrow on purpose. It does NOT judge quality — a 0.6B model
+  /// producing a clumsy translation is exactly what was signed up for. It asks
+  /// one structural question: does the output use a writing system that
+  /// appears in neither the source nor the target language? Turkish into
+  /// English has no reason to contain Han characters, and no legitimate
+  /// translation of a message that contained none will produce some.
+  ///
+  /// Latin is always allowed, because brand names, URLs and handles ride
+  /// through every language. And the threshold is a small ABSOLUTE count
+  /// rather than a proportion: the soup above was only about three per cent
+  /// Han by character, which a percentage test would have waved through.
+  bool _looksLikeTokenSoup(
+    String output, {
+    required String source,
+    required TranslationLanguage target,
+  }) {
+    final sourceScripts = LanguageDetector.scriptCounts(source).keys.toSet();
+    final targetScript = LanguageDetector.scriptFor(target.code);
+
+    var foreign = 0;
+    LanguageDetector.scriptCounts(output).forEach((script, count) {
+      if (script == TextScript.latin) return;
+      if (script == targetScript) return;
+      if (sourceScripts.contains(script)) return;
+      // Japanese writes in two scripts at once; having asked for one, the
+      // other cannot be evidence of anything going wrong.
+      if (targetScript == TextScript.kana && script == TextScript.han) return;
+      if (targetScript == TextScript.han && script == TextScript.kana) return;
+      foreign += count;
+    });
+    return foreign > _maxForeignChars;
+  }
+
+  /// A couple of stray characters could be a real quotation. A handful is a
+  /// model that has come off the rails.
+  static const int _maxForeignChars = 2;
 
   /// Room for the translation to be longer than the original, with a floor for
   /// very short messages (where a fixed ratio would cap a three-word answer at

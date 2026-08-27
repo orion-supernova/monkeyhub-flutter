@@ -858,6 +858,9 @@ class _ThreadSheetState extends State<_ThreadSheet>
       case MessageAction.showOriginal:
         Sebastian.instance.showOriginal(m);
         break;
+      case MessageAction.translateAgain:
+        Sebastian.instance.translateAgain(m);
+        break;
       case MessageAction.reply:
         // Stays in the thread now that there's a composer here — retarget
         // rather than dismissing to the room's composer.

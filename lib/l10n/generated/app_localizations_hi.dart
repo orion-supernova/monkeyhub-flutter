@@ -8162,4 +8162,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String translationSlabWakingUp(Object name) {
     return '$name जाग रहा है…';
   }
+
+  @override
+  String get messageActionMenuTranslateAgainLabel => 'फिर से अनुवाद करें';
 }

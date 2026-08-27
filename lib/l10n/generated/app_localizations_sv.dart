@@ -8179,4 +8179,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String translationSlabWakingUp(Object name) {
     return '$name vaknar…';
   }
+
+  @override
+  String get messageActionMenuTranslateAgainLabel => 'ÖVERSÄTT IGEN';
 }
