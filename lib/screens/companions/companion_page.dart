@@ -283,8 +283,8 @@ BrainSpec? activeMarloweBrain() {
 /// a name that changed language when the UI did would stop being a name.
 String sebastianTierName(BrainSpec brain) =>
     brain.id == BrainCatalog.sebastianFallback.id
-        ? 'Sebastian JR'
-        : 'Sebastian SR';
+        ? 'Sebastian Jr.'
+        : 'Sebastian Sr.';
 
 /// Why this device cannot run [brain], or null when it can.
 ///
@@ -295,8 +295,16 @@ String? brainUnavailableReason(BrainSpec brain, AppLocalizations l10n) {
   if (DeviceCapability.instance.canRun(brain)) return null;
   final need = brain.minRamMb;
   if (need == null) return l10n.companionUnsupportedPlatform;
-  return l10n.companionBrainNeedsMemory(companionByteLabel(need * 1024 * 1024));
+  return l10n.companionBrainNeedsMemory(_memoryLabel(need));
 }
+
+/// A memory requirement, in the units people describe phones in.
+///
+/// Whole gigabytes, and NOT [companionByteLabel]: that one is for file sizes,
+/// where a tenth of a gigabyte is a real difference worth printing. Nobody
+/// says their phone has 4.0 GB of RAM.
+String _memoryLabel(int mb) =>
+    mb >= 1024 ? '${(mb / 1024).round()} GB' : '$mb MB';
 
 /// Companions other than [self] whose shelf also lists [brain].
 ///

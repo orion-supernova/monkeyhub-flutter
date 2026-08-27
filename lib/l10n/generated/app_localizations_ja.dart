@@ -7597,6 +7597,15 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get sebastianTierSeniorDetail => 'より正確な翻訳';
+
+  @override
+  String get sebastianTierJuniorDetail => 'どの端末でも動作します';
+
+  @override
+  String get sebastianLanguageUnlisted => '対応言語ではありません — 精度は落ちます';
+
+  @override
   String get companionStatusNotInstalled => '未インストール';
 
   @override

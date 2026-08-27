@@ -7933,6 +7933,16 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
+  String get sebastianTierSeniorDetail => 'Skarpare översättningar';
+
+  @override
+  String get sebastianTierJuniorDetail => 'Fungerar på alla telefoner';
+
+  @override
+  String get sebastianLanguageUnlisted =>
+      'Inte ett av hans språk – räkna med grova resultat';
+
+  @override
   String get companionStatusNotInstalled => 'Inte installerad';
 
   @override

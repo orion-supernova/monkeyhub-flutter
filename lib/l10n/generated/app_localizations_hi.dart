@@ -7918,6 +7918,16 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
+  String get sebastianTierSeniorDetail => 'बेहतर अनुवाद';
+
+  @override
+  String get sebastianTierJuniorDetail => 'किसी भी फ़ोन पर चलता है';
+
+  @override
+  String get sebastianLanguageUnlisted =>
+      'यह उसकी भाषाओं में नहीं है — नतीजे कच्चे हो सकते हैं';
+
+  @override
   String get companionStatusNotInstalled => 'इंस्टॉल नहीं है';
 
   @override

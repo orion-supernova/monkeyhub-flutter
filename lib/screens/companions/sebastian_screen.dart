@@ -97,6 +97,49 @@ class _SebastianScreenState extends State<SebastianScreen> {
     await _sebastian.reset(clearCache: true);
   }
 
+  /// Both of his brains, including one this device cannot run.
+  ///
+  /// Still not a picker — see [Companion.brainsAreUserChosen]; there is nothing
+  /// here to select and the device has already decided. It is a statement. A
+  /// shelf that quietly omitted the bigger brain would leave somebody on the
+  /// smaller one with no idea a better one exists or why they are not being
+  /// offered it, which reads as the feature being worse than it is rather than
+  /// as their phone being smaller than it needs. "Needs 4 GB of memory" is
+  /// something a person can check against their own handset.
+  ///
+  /// Rendered whether or not anything is installed yet, which is the case that
+  /// was missing: the person deciding whether to spend a gigabyte is the one
+  /// who most needs to know there are two.
+  List<Widget> _shelf(AppLocalizations l10n) => [
+        for (final brain in BrainCatalog.sebastianBrains)
+          BrainRow(
+            brain: brain,
+            name: sebastianTierName(brain),
+            sharedWith: otherCompanionsUsing(brain, _companion),
+            // Installed: where it is and what it costs. Otherwise: what this
+            // one is FOR.
+            //
+            // Not the size — the download button beside it is already labelled
+            // with exactly that, so printing it here put the same figure on the
+            // row twice and told the reader nothing about the difference
+            // between the two rows, which is the only thing they are being
+            // shown two of them to understand.
+            detail: BrainManager.instance.isInstalled(brain)
+                ? l10n.sebastianBrainDetail(brain.sizeLabel)
+                : (brain.id == BrainCatalog.sebastianFallback.id
+                    ? l10n.sebastianTierJuniorDetail
+                    : l10n.sebastianTierSeniorDetail),
+            unavailableReason: brainUnavailableReason(brain, l10n),
+            // Only the one he is actually running can be removed. Offering it
+            // on a row with nothing behind it would be a button that cannot
+            // work.
+            onRemove: BrainManager.instance.isInstalled(brain) &&
+                    brain.id == _sebastian.brain.id
+                ? _remove
+                : null,
+          ),
+      ];
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -122,7 +165,7 @@ class _SebastianScreenState extends State<SebastianScreen> {
               ),
             ],
           )
-        else if (!installed)
+        else if (!installed) ...[
           // The panel, NOT the sheet. This screen has already drawn the
           // portrait and the blurb directly above; opening the sheet here
           // showed the reader his name, his face and his three assurances a
@@ -131,8 +174,16 @@ class _SebastianScreenState extends State<SebastianScreen> {
           CompanionInstallPanel(
             companion: _companion,
             brain: _sebastian.brain,
-          )
-        else ...[
+          ),
+          // The shelf sits under the panel here too, and this is where it
+          // matters most: somebody deciding whether to spend a gigabyte is
+          // exactly the person entitled to know there are two of him and which
+          // one their phone can hold. The panel offers whichever one they are
+          // getting; this says what the other is and why it is not on offer.
+          const SizedBox(height: 24),
+          CompanionSectionLabel(l10n.companionSectionStorage),
+          ..._shelf(l10n),
+        ] else ...[
           CompanionSectionLabel(l10n.companionSectionGeneral),
           CompanionCard(
             padding: EdgeInsets.zero,
@@ -151,37 +202,14 @@ class _SebastianScreenState extends State<SebastianScreen> {
           _LanguagePicker(
             current: SettingsStore.instance.translationTarget,
             resolved: _sebastian.targetLanguage,
+            // Which brain is actually going to be asked, so the picker can
+            // admit where it is out of its depth.
+            brain: _sebastian.brain,
             onPick: _setLanguage,
           ),
           const SizedBox(height: 24),
           CompanionSectionLabel(l10n.companionSectionStorage),
-          // BOTH rows, including one this device cannot run.
-          //
-          // Still not a picker — see [Companion.brainsAreUserChosen]; there is
-          // nothing here to select and the device has already decided. It is a
-          // statement. A shelf that quietly omitted the bigger brain would
-          // leave somebody on the smaller one with no idea a better one exists
-          // or why they are not being offered it, which reads as the feature
-          // being worse than it is rather than as their phone being smaller
-          // than it needs. "Needs 4 GB of memory" is something a person can
-          // check against their own handset.
-          for (final brain in BrainCatalog.sebastianBrains)
-            BrainRow(
-              brain: brain,
-              name: sebastianTierName(brain),
-              sharedWith: otherCompanionsUsing(brain, _companion),
-              // "On this device" is only true of the one that is. For the
-              // other row the size is the whole story, and claiming otherwise
-              // would be the row lying about what is on the phone.
-              detail: BrainManager.instance.isInstalled(brain)
-                  ? l10n.sebastianBrainDetail(brain.sizeLabel)
-                  : brain.sizeLabel,
-              unavailableReason: brainUnavailableReason(brain, l10n),
-              // Only the one he is actually running can be removed. Offering it
-              // on a row that is not installed would be a button with nothing
-              // behind it.
-              onRemove: brain.id == _sebastian.brain.id ? _remove : null,
-            ),
+          ..._shelf(l10n),
           _CacheLine(theme: theme, l10n: l10n, onCleared: _onChange),
         ],
       ],
@@ -279,8 +307,13 @@ class _LanguagePicker extends StatelessWidget {
   const _LanguagePicker({
     required this.current,
     required this.resolved,
+    required this.brain,
     required this.onPick,
   });
+
+  /// The brain that will actually be asked. Its publisher's language list is
+  /// what decides whether a row carries a warning — see [BrainSpec.covers].
+  final BrainSpec brain;
 
   /// The stored preference — null for "follow the app".
   final String? current;
@@ -299,6 +332,7 @@ class _LanguagePicker extends StatelessWidget {
       children: [
         _LanguageRow(
           theme: theme,
+          flag: resolved.flag,
           label: l10n.sebastianLanguageFollowApp,
           detail: resolved.autonym,
           selected: current == null,
@@ -307,8 +341,15 @@ class _LanguagePicker extends StatelessWidget {
         for (final lang in kTranslationLanguages)
           _LanguageRow(
             theme: theme,
+            flag: lang.flag,
             label: lang.autonym,
-            detail: null,
+            // Named, not hidden. A language this brain does not publish is
+            // still offered — see [BrainSpec.languages] for why removing it
+            // would be the worse regression — but somebody choosing it is
+            // entitled to know before they wonder why the results read oddly.
+            detail: brain.covers(lang.code)
+                ? null
+                : l10n.sebastianLanguageUnlisted,
             selected: current == lang.code,
             onTap: () => onPick(lang.code),
           ),
@@ -320,6 +361,7 @@ class _LanguagePicker extends StatelessWidget {
 class _LanguageRow extends StatelessWidget {
   const _LanguageRow({
     required this.theme,
+    required this.flag,
     required this.label,
     required this.detail,
     required this.selected,
@@ -327,6 +369,10 @@ class _LanguageRow extends StatelessWidget {
   });
 
   final AppTheme theme;
+
+  /// A landmark, never the thing naming the language — see
+  /// [TranslationLanguage.flag]. The autonym beside it does the identifying.
+  final String flag;
   final String label;
   final String? detail;
   final bool selected;
@@ -349,12 +395,25 @@ class _LanguageRow extends StatelessWidget {
         ),
         child: Row(
           children: [
+            // Fixed width so thirty rows of flags line up into a column the
+            // eye can run down. Emoji vary in advance width, and ragged
+            // landmarks are worse than no landmarks.
+            SizedBox(
+              width: 26,
+              child: Text(flag, style: theme.body),
+            ),
             Expanded(child: Text(label, style: theme.body)),
-            if (detail != null)
-              Text(
-                detail!,
-                style: theme.caption.copyWith(color: theme.inkMuted),
+            if (detail != null) ...[
+              const SizedBox(width: 10),
+              Flexible(
+                child: Text(
+                  detail!,
+                  style: theme.caption.copyWith(color: theme.inkMuted),
+                  textAlign: TextAlign.right,
+                  maxLines: 2,
+                ),
               ),
+            ],
             if (selected) ...[
               const SizedBox(width: 8),
               Icon(Icons.check, size: 15, color: theme.accent),

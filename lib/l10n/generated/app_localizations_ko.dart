@@ -7618,6 +7618,15 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get sebastianTierSeniorDetail => '더 정확한 번역';
+
+  @override
+  String get sebastianTierJuniorDetail => '어떤 기기에서도 작동';
+
+  @override
+  String get sebastianLanguageUnlisted => '지원 언어가 아닙니다 — 결과가 거칠 수 있어요';
+
+  @override
   String get companionStatusNotInstalled => '설치되지 않음';
 
   @override

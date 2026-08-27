@@ -7900,6 +7900,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get sebastianTierSeniorDetail => 'Sharper translations';
+
+  @override
+  String get sebastianTierJuniorDetail => 'Runs on any phone';
+
+  @override
+  String get sebastianLanguageUnlisted =>
+      'Not one of his languages — expect rough results';
+
+  @override
   String get companionStatusNotInstalled => 'Not installed';
 
   @override

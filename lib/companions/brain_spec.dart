@@ -37,6 +37,7 @@ class BrainSpec {
     required this.contextTokens,
     required this.license,
     this.minRamMb,
+    this.languages,
   });
 
   /// Stable key. Persisted in settings (Marlowe's chosen brain) and used as the
@@ -111,6 +112,21 @@ class BrainSpec {
   /// Shown in full on the detail screen. All rows are permissive commercial
   /// licences; this is here so that stays checkable rather than remembered.
   final String license;
+
+  /// The languages this brain's publisher lists, or null for a general model
+  /// that names no set.
+  ///
+  /// Null is not "all", it is "unstated" — a general instruct model has no
+  /// published translation set and pretending otherwise would be inventing a
+  /// claim. Either way [covers] treats an unstated set as no objection: the
+  /// list is used to warn, never to forbid, because a language a model does not
+  /// advertise is not the same as one it cannot read, and refusing on that
+  /// basis would remove translation from readers who currently have it.
+  final List<String>? languages;
+
+  /// Whether [languageCode] is one this brain's publisher lists.
+  bool covers(String languageCode) =>
+      languages == null || languages!.contains(languageCode);
 
   /// Physical RAM this brain wants before anyone should try to load it, or null
   /// for one every supported device can carry.
@@ -268,6 +284,17 @@ abstract final class BrainCatalog {
       contextTokens: 2048,
       license: 'Apache 2.0',
       minRamMb: 4096,
+      // The 33 its card publishes. Seven of the thirty this app offers are
+      // outside it — sv, el, ro, hu, da, fi, no — and they stay in the picker
+      // with a note rather than being removed: Swedish is one of this app's own
+      // UI locales, and a Swedish reader losing translation outright is a worse
+      // regression than a weaker one.
+      languages: [
+        'zh', 'en', 'fr', 'pt', 'es', 'ja', 'tr', 'ru', 'ar', 'ko', 'th',
+        'it', 'de', 'vi', 'ms', 'id', 'tl', 'hi', 'pl', 'cs', 'nl', 'km',
+        'my', 'fa', 'gu', 'ur', 'te', 'mr', 'he', 'bn', 'ta', 'uk', 'bo',
+        'kk', 'mn', 'ug',
+      ],
     ),
     // The one everything can run, and what a device of unknown size gets: see
     // [DeviceCapability], where every failure resolves downward.

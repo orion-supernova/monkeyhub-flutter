@@ -13459,6 +13459,24 @@ abstract class AppLocalizations {
   /// **'Needs {size} of memory'**
   String companionBrainNeedsMemory(String size);
 
+  /// One line under "Sebastian Sr." on his storage shelf, saying what the bigger brain buys.
+  ///
+  /// In en, this message translates to:
+  /// **'Sharper translations'**
+  String get sebastianTierSeniorDetail;
+
+  /// One line under "Sebastian Jr." on his storage shelf, saying what the smaller brain is for.
+  ///
+  /// In en, this message translates to:
+  /// **'Runs on any phone'**
+  String get sebastianTierJuniorDetail;
+
+  /// Shown under a language in Sebastian's picker that his current brain does not officially support.
+  ///
+  /// In en, this message translates to:
+  /// **'Not one of his languages — expect rough results'**
+  String get sebastianLanguageUnlisted;
+
   /// Status line under a companion's name in the Companions list, when nothing has been downloaded for them.
   ///
   /// In en, this message translates to:

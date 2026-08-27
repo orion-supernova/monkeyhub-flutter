@@ -8012,6 +8012,15 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get sebastianTierSeniorDetail => 'ترجمات أدق';
+
+  @override
+  String get sebastianTierJuniorDetail => 'يعمل على أي هاتف';
+
+  @override
+  String get sebastianLanguageUnlisted => 'ليست من لغاته — توقع نتائج تقريبية';
+
+  @override
   String get companionStatusNotInstalled => 'غير مثبّت';
 
   @override

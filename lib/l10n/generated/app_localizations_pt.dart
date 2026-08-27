@@ -8001,6 +8001,16 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get sebastianTierSeniorDetail => 'Traduções mais precisas';
+
+  @override
+  String get sebastianTierJuniorDetail => 'Funciona em qualquer telemóvel';
+
+  @override
+  String get sebastianLanguageUnlisted =>
+      'Não é uma das línguas dele — resultados imprecisos';
+
+  @override
   String get companionStatusNotInstalled => 'Não instalado';
 
   @override
@@ -16247,6 +16257,16 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String companionBrainNeedsMemory(String size) {
     return 'Precisa de $size de memória';
   }
+
+  @override
+  String get sebastianTierSeniorDetail => 'Traduções mais precisas';
+
+  @override
+  String get sebastianTierJuniorDetail => 'Funciona em qualquer celular';
+
+  @override
+  String get sebastianLanguageUnlisted =>
+      'Não é um dos idiomas dele — resultados imprecisos';
 
   @override
   String get companionStatusNotInstalled => 'Não instalado';

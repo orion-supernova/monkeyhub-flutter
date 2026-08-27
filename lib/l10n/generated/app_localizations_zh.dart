@@ -7508,6 +7508,15 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get sebastianTierSeniorDetail => '更精准的翻译';
+
+  @override
+  String get sebastianTierJuniorDetail => '任何手机都能运行';
+
+  @override
+  String get sebastianLanguageUnlisted => '不在他的语言范围内 — 结果可能粗糙';
+
+  @override
   String get companionStatusNotInstalled => '未安装';
 
   @override

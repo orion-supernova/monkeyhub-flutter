@@ -7994,6 +7994,16 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get sebastianTierSeniorDetail => 'Traducciones más precisas';
+
+  @override
+  String get sebastianTierJuniorDetail => 'Funciona en cualquier teléfono';
+
+  @override
+  String get sebastianLanguageUnlisted =>
+      'No es uno de sus idiomas: los resultados serán toscos';
+
+  @override
   String get companionStatusNotInstalled => 'No instalado';
 
   @override

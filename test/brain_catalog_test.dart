@@ -114,14 +114,14 @@ void main() {
     /// rows are named for what the choice is about; Sebastian's is not — the
     /// device decides — so his rows are named for who they are: one companion,
     /// with more or less of him on the phone.
-    test('the fallback is JR and everything above it is SR', () {
+    test('the fallback is Jr. and everything above it is Sr.', () {
       expect(
         sebastianTierName(BrainCatalog.sebastianFallback),
-        'Sebastian JR',
+        'Sebastian Jr.',
       );
       for (final brain in BrainCatalog.sebastianBrains) {
         if (brain.id == BrainCatalog.sebastianFallback.id) continue;
-        expect(sebastianTierName(brain), 'Sebastian SR', reason: brain.id);
+        expect(sebastianTierName(brain), 'Sebastian Sr.', reason: brain.id);
       }
     });
 

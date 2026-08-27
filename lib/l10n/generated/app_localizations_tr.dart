@@ -7875,6 +7875,16 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String get sebastianTierSeniorDetail => 'Daha iyi çeviriler';
+
+  @override
+  String get sebastianTierJuniorDetail => 'Her telefonda çalışır';
+
+  @override
+  String get sebastianLanguageUnlisted =>
+      'Onun dillerinden biri değil — sonuç kaba olabilir';
+
+  @override
   String get companionStatusNotInstalled => 'Kurulu değil';
 
   @override

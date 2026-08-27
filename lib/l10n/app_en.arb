@@ -9124,6 +9124,9 @@
   },
   "companionUnsupportedPlatform": "Companions aren't available in this version of the app yet.",
   "companionBrainNeedsMemory": "Needs {size} of memory",
+  "sebastianTierSeniorDetail": "Sharper translations",
+  "sebastianTierJuniorDetail": "Runs on any phone",
+  "sebastianLanguageUnlisted": "Not one of his languages — expect rough results",
   "@companionUnsupportedPlatform": {
     "description": "Shown where a companion would be offered on a platform that cannot run one (currently web)."
   },
@@ -9134,6 +9137,15 @@
         "type": "String"
       }
     }
+  },
+  "@sebastianTierSeniorDetail": {
+    "description": "One line under \"Sebastian Sr.\" on his storage shelf, saying what the bigger brain buys."
+  },
+  "@sebastianTierJuniorDetail": {
+    "description": "One line under \"Sebastian Jr.\" on his storage shelf, saying what the smaller brain is for."
+  },
+  "@sebastianLanguageUnlisted": {
+    "description": "Shown under a language in Sebastian's picker that his current brain does not officially support."
   },
   "companionStatusNotInstalled": "Not installed",
   "@companionStatusNotInstalled": {

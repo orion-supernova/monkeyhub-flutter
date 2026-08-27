@@ -8043,6 +8043,16 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get sebastianTierSeniorDetail => 'Traductions plus fines';
+
+  @override
+  String get sebastianTierJuniorDetail => 'Fonctionne sur tout téléphone';
+
+  @override
+  String get sebastianLanguageUnlisted =>
+      'Pas une de ses langues — résultats approximatifs';
+
+  @override
   String get companionStatusNotInstalled => 'Non installé';
 
   @override
