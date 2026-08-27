@@ -7763,4 +7763,57 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get interactionRefused => 'That didn\'t go through.';
+
+  @override
+  String get messageReceiptsScreenTitle => 'SEEN BY';
+
+  @override
+  String messageReceiptsSummary(Object read, Object total) {
+    return '$read of $total read';
+  }
+
+  @override
+  String get messageReceiptsEmptyState => 'nobody else is in this room yet';
+
+  @override
+  String get messageReceiptsSectionRead => 'READ';
+
+  @override
+  String get messageReceiptsSectionDelivered => 'DELIVERED';
+
+  @override
+  String get messageReceiptsSectionSent => 'SENT';
+
+  @override
+  String get messageReceiptsSectionHidden => 'NO RECEIPTS';
+
+  @override
+  String get messageReceiptsStateHidden => 'not shared';
+
+  @override
+  String get messageReceiptsStateWaiting => 'waiting';
+
+  @override
+  String messageReceiptsSemanticRead(Object day, Object name, Object time) {
+    return '$name read this $day at $time';
+  }
+
+  @override
+  String messageReceiptsSemanticDelivered(
+    Object day,
+    Object name,
+    Object time,
+  ) {
+    return '$name received this $day at $time';
+  }
+
+  @override
+  String messageReceiptsSemanticSent(Object name) {
+    return '$name hasn’t received this yet';
+  }
+
+  @override
+  String messageReceiptsSemanticHidden(Object name) {
+    return '$name doesn’t share read receipts';
+  }
 }

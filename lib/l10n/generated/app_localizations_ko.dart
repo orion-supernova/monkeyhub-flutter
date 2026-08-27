@@ -7485,4 +7485,57 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get interactionRefused => '처리되지 않았어요.';
+
+  @override
+  String get messageReceiptsScreenTitle => '읽은 사람';
+
+  @override
+  String messageReceiptsSummary(Object read, Object total) {
+    return '$total명 중 $read명 읽음';
+  }
+
+  @override
+  String get messageReceiptsEmptyState => '이 방에는 아직 다른 사람이 없습니다';
+
+  @override
+  String get messageReceiptsSectionRead => '읽음';
+
+  @override
+  String get messageReceiptsSectionDelivered => '전달됨';
+
+  @override
+  String get messageReceiptsSectionSent => '보냄';
+
+  @override
+  String get messageReceiptsSectionHidden => '확인 없음';
+
+  @override
+  String get messageReceiptsStateHidden => '공유 안 함';
+
+  @override
+  String get messageReceiptsStateWaiting => '대기 중';
+
+  @override
+  String messageReceiptsSemanticRead(Object day, Object name, Object time) {
+    return '$name님이 $day $time에 읽었습니다';
+  }
+
+  @override
+  String messageReceiptsSemanticDelivered(
+    Object day,
+    Object name,
+    Object time,
+  ) {
+    return '$name님이 $day $time에 받았습니다';
+  }
+
+  @override
+  String messageReceiptsSemanticSent(Object name) {
+    return '$name님이 아직 받지 못했습니다';
+  }
+
+  @override
+  String messageReceiptsSemanticHidden(Object name) {
+    return '$name님은 읽음 확인을 공유하지 않습니다';
+  }
 }

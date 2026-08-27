@@ -2182,5 +2182,18 @@
   "interactionComposeErrorWhen": "اختر متى تبدأ.",
   "interactionComposeErrorEnd": "يجب أن تكون النهاية بعد البداية.",
   "interactionSendFailed": "لم يُرسل.",
-  "interactionRefused": "لم يُسجَّل."
+  "interactionRefused": "لم يُسجَّل.",
+  "messageReceiptsScreenTitle": "من قرأها",
+  "messageReceiptsSummary": "قرأها {read} من {total}",
+  "messageReceiptsEmptyState": "لا يوجد أحد آخر في هذه الغرفة بعد",
+  "messageReceiptsSectionRead": "مقروءة",
+  "messageReceiptsSectionDelivered": "تم التسليم",
+  "messageReceiptsSectionSent": "أُرسلت",
+  "messageReceiptsSectionHidden": "لا توجد إيصالات",
+  "messageReceiptsStateHidden": "غير مُشارَك",
+  "messageReceiptsStateWaiting": "في الانتظار",
+  "messageReceiptsSemanticRead": "قرأها {name} {day} في {time}",
+  "messageReceiptsSemanticDelivered": "استلمها {name} {day} في {time}",
+  "messageReceiptsSemanticSent": "لم يستلمها {name} بعد",
+  "messageReceiptsSemanticHidden": "{name} لا يشارك إيصالات القراءة"
 }

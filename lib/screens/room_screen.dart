@@ -52,6 +52,7 @@ import '../data/ui_selection_store.dart';
 import '../platform.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
+import 'message_receipts_screen.dart';
 import 'room_items.dart';
 import 'view_once_viewer.dart';
 import '../theme/theme_scope.dart';
@@ -90,6 +91,7 @@ import '../widgets/typing_indicator.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/room_gallery_scope.dart';
 import '../widgets/steady_hero.dart';
+import '../widgets/swipe_to_receipts.dart';
 import '../widgets/swipe_to_reply.dart';
 import '../widgets/thread_overlay.dart';
 import '../widgets/user_avatar.dart';
@@ -3828,13 +3830,45 @@ class _RoomScreenState extends State<RoomScreen>
                 final row = AnimatedSwitcher(
                   duration: theme.motionMed,
                   switchInCurve: theme.motionEntrance,
-                  child: SwipeToReply(
-                    key: ValueKey('sw_${m.id}'),
-                    // A swipe that armed a reply mid-selection would put a
-                    // composer card under a bar that has no composer.
-                    enabled: canReply && !selecting,
-                    onReplyTriggered: () => _armReply(m, haptic: false),
-                    child: bubble,
+                  // The two pulls share this bubble and share its gesture
+                  // arena: reply toward the end edge, receipts toward the
+                  // start. Each recognizer gives up inside the first few
+                  // pixels of the other's direction, which is what lets both
+                  // sit here without a combined widget that would have to
+                  // re-tune the reply spring.
+                  child: SwipeToReceipts(
+                    key: ValueKey('rc_${m.id}'),
+                    // Your own message, actually on the server, in a room
+                    // that has someone else in it. Receipts on a send that
+                    // hasn't landed would be a list of people who could not
+                    // possibly have read it, and the selection bar owns the
+                    // horizontal while it is up.
+                    enabled: isMine &&
+                        !isPending &&
+                        !selecting &&
+                        m.status == MessageStatus.sent &&
+                        m.type != MessageType.system,
+                    pageBuilder: (_) => MessageReceiptsScreen(
+                      repo: widget.repo,
+                      api: widget.api,
+                      roomId: room.id,
+                      messageId: m.id,
+                      fallbackMessage: m,
+                      currentUserId: me,
+                      // Read through, not snapshotted: the roster is a live
+                      // subscription and this screen outlives any one frame
+                      // of it.
+                      roster: () => _members.values.toList(),
+                      onOpenProfile: _openProfile,
+                    ),
+                    child: SwipeToReply(
+                      key: ValueKey('sw_${m.id}'),
+                      // A swipe that armed a reply mid-selection would put a
+                      // composer card under a bar that has no composer.
+                      enabled: canReply && !selecting,
+                      onReplyTriggered: () => _armReply(m, haptic: false),
+                      child: bubble,
+                    ),
                   ),
                 );
                 return _trackedDate(

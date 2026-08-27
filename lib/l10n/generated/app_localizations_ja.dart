@@ -7464,4 +7464,57 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get interactionRefused => '反映されませんでした。';
+
+  @override
+  String get messageReceiptsScreenTitle => '既読者';
+
+  @override
+  String messageReceiptsSummary(Object read, Object total) {
+    return '$total 人中 $read 人が既読';
+  }
+
+  @override
+  String get messageReceiptsEmptyState => 'このルームにはまだ他に誰もいません';
+
+  @override
+  String get messageReceiptsSectionRead => '既読';
+
+  @override
+  String get messageReceiptsSectionDelivered => '配信済み';
+
+  @override
+  String get messageReceiptsSectionSent => '送信済み';
+
+  @override
+  String get messageReceiptsSectionHidden => '受信確認なし';
+
+  @override
+  String get messageReceiptsStateHidden => '非公開';
+
+  @override
+  String get messageReceiptsStateWaiting => '未配信';
+
+  @override
+  String messageReceiptsSemanticRead(Object day, Object name, Object time) {
+    return '$name が $day $time に既読';
+  }
+
+  @override
+  String messageReceiptsSemanticDelivered(
+    Object day,
+    Object name,
+    Object time,
+  ) {
+    return '$name が $day $time に受信';
+  }
+
+  @override
+  String messageReceiptsSemanticSent(Object name) {
+    return '$name はまだ受信していません';
+  }
+
+  @override
+  String messageReceiptsSemanticHidden(Object name) {
+    return '$name は既読通知を共有していません';
+  }
 }

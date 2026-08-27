@@ -7378,4 +7378,57 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get interactionRefused => '没有生效。';
+
+  @override
+  String get messageReceiptsScreenTitle => '已读成员';
+
+  @override
+  String messageReceiptsSummary(Object read, Object total) {
+    return '$total 人中 $read 人已读';
+  }
+
+  @override
+  String get messageReceiptsEmptyState => '这个房间里还没有其他人';
+
+  @override
+  String get messageReceiptsSectionRead => '已读';
+
+  @override
+  String get messageReceiptsSectionDelivered => '已送达';
+
+  @override
+  String get messageReceiptsSectionSent => '已发送';
+
+  @override
+  String get messageReceiptsSectionHidden => '无回执';
+
+  @override
+  String get messageReceiptsStateHidden => '未共享';
+
+  @override
+  String get messageReceiptsStateWaiting => '等待中';
+
+  @override
+  String messageReceiptsSemanticRead(Object day, Object name, Object time) {
+    return '$name 于 $day $time 已读';
+  }
+
+  @override
+  String messageReceiptsSemanticDelivered(
+    Object day,
+    Object name,
+    Object time,
+  ) {
+    return '$name 于 $day $time 收到';
+  }
+
+  @override
+  String messageReceiptsSemanticSent(Object name) {
+    return '$name 尚未收到';
+  }
+
+  @override
+  String messageReceiptsSemanticHidden(Object name) {
+    return '$name 未共享已读回执';
+  }
 }

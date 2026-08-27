@@ -7877,4 +7877,57 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get interactionRefused => 'لم يُسجَّل.';
+
+  @override
+  String get messageReceiptsScreenTitle => 'من قرأها';
+
+  @override
+  String messageReceiptsSummary(Object read, Object total) {
+    return 'قرأها $read من $total';
+  }
+
+  @override
+  String get messageReceiptsEmptyState => 'لا يوجد أحد آخر في هذه الغرفة بعد';
+
+  @override
+  String get messageReceiptsSectionRead => 'مقروءة';
+
+  @override
+  String get messageReceiptsSectionDelivered => 'تم التسليم';
+
+  @override
+  String get messageReceiptsSectionSent => 'أُرسلت';
+
+  @override
+  String get messageReceiptsSectionHidden => 'لا توجد إيصالات';
+
+  @override
+  String get messageReceiptsStateHidden => 'غير مُشارَك';
+
+  @override
+  String get messageReceiptsStateWaiting => 'في الانتظار';
+
+  @override
+  String messageReceiptsSemanticRead(Object day, Object name, Object time) {
+    return 'قرأها $name $day في $time';
+  }
+
+  @override
+  String messageReceiptsSemanticDelivered(
+    Object day,
+    Object name,
+    Object time,
+  ) {
+    return 'استلمها $name $day في $time';
+  }
+
+  @override
+  String messageReceiptsSemanticSent(Object name) {
+    return 'لم يستلمها $name بعد';
+  }
+
+  @override
+  String messageReceiptsSemanticHidden(Object name) {
+    return '$name لا يشارك إيصالات القراءة';
+  }
 }

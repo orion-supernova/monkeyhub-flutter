@@ -2182,5 +2182,18 @@
   "interactionComposeErrorWhen": "चुनो कि यह कब शुरू होगा।",
   "interactionComposeErrorEnd": "अंत, शुरुआत के बाद होना चाहिए।",
   "interactionSendFailed": "यह भेजा नहीं गया।",
-  "interactionRefused": "यह दर्ज नहीं हुआ।"
+  "interactionRefused": "यह दर्ज नहीं हुआ।",
+  "messageReceiptsScreenTitle": "किसने देखा",
+  "messageReceiptsSummary": "{total} में से {read} ने पढ़ा",
+  "messageReceiptsEmptyState": "इस रूम में अभी कोई और नहीं है",
+  "messageReceiptsSectionRead": "पढ़ा गया",
+  "messageReceiptsSectionDelivered": "पहुँचा",
+  "messageReceiptsSectionSent": "भेजा गया",
+  "messageReceiptsSectionHidden": "कोई रसीद नहीं",
+  "messageReceiptsStateHidden": "साझा नहीं",
+  "messageReceiptsStateWaiting": "प्रतीक्षा में",
+  "messageReceiptsSemanticRead": "{name} ने इसे {day} को {time} बजे पढ़ा",
+  "messageReceiptsSemanticDelivered": "{name} को यह {day} को {time} बजे मिला",
+  "messageReceiptsSemanticSent": "{name} को यह अभी तक नहीं मिला",
+  "messageReceiptsSemanticHidden": "{name} पढ़ने की रसीदें साझा नहीं करते"
 }

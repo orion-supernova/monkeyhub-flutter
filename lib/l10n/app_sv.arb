@@ -2182,5 +2182,18 @@
   "interactionComposeErrorWhen": "Välj när den börjar.",
   "interactionComposeErrorEnd": "Slutet måste komma efter starten.",
   "interactionSendFailed": "Det skickades inte.",
-  "interactionRefused": "Det gick inte igenom."
+  "interactionRefused": "Det gick inte igenom.",
+  "messageReceiptsScreenTitle": "SETT AV",
+  "messageReceiptsSummary": "{read} av {total} har läst",
+  "messageReceiptsEmptyState": "det finns ingen annan i det här rummet än",
+  "messageReceiptsSectionRead": "LÄST",
+  "messageReceiptsSectionDelivered": "LEVERERAT",
+  "messageReceiptsSectionSent": "SKICKAT",
+  "messageReceiptsSectionHidden": "INGEN KVITTENS",
+  "messageReceiptsStateHidden": "delas inte",
+  "messageReceiptsStateWaiting": "väntar",
+  "messageReceiptsSemanticRead": "{name} läste det här {day} kl. {time}",
+  "messageReceiptsSemanticDelivered": "{name} fick det här {day} kl. {time}",
+  "messageReceiptsSemanticSent": "{name} har inte fått det här än",
+  "messageReceiptsSemanticHidden": "{name} delar inte läskvitton"
 }

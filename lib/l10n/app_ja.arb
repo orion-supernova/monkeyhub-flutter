@@ -2182,5 +2182,18 @@
   "interactionComposeErrorWhen": "いつ始まるか選んでください。",
   "interactionComposeErrorEnd": "終了は開始より後にしてください。",
   "interactionSendFailed": "送れませんでした。",
-  "interactionRefused": "反映されませんでした。"
+  "interactionRefused": "反映されませんでした。",
+  "messageReceiptsScreenTitle": "既読者",
+  "messageReceiptsSummary": "{total} 人中 {read} 人が既読",
+  "messageReceiptsEmptyState": "このルームにはまだ他に誰もいません",
+  "messageReceiptsSectionRead": "既読",
+  "messageReceiptsSectionDelivered": "配信済み",
+  "messageReceiptsSectionSent": "送信済み",
+  "messageReceiptsSectionHidden": "受信確認なし",
+  "messageReceiptsStateHidden": "非公開",
+  "messageReceiptsStateWaiting": "未配信",
+  "messageReceiptsSemanticRead": "{name} が {day} {time} に既読",
+  "messageReceiptsSemanticDelivered": "{name} が {day} {time} に受信",
+  "messageReceiptsSemanticSent": "{name} はまだ受信していません",
+  "messageReceiptsSemanticHidden": "{name} は既読通知を共有していません"
 }

@@ -2182,5 +2182,18 @@
   "interactionComposeErrorWhen": "Choisis quand ça commence.",
   "interactionComposeErrorEnd": "La fin doit venir après le début.",
   "interactionSendFailed": "Ça n'est pas parti.",
-  "interactionRefused": "Ça n'a pas été pris en compte."
+  "interactionRefused": "Ça n'a pas été pris en compte.",
+  "messageReceiptsScreenTitle": "VU PAR",
+  "messageReceiptsSummary": "{read} sur {total} l’ont lu",
+  "messageReceiptsEmptyState": "il n’y a encore personne d’autre dans ce salon",
+  "messageReceiptsSectionRead": "LU",
+  "messageReceiptsSectionDelivered": "REMIS",
+  "messageReceiptsSectionSent": "ENVOYÉ",
+  "messageReceiptsSectionHidden": "AUCUN ACCUSÉ",
+  "messageReceiptsStateHidden": "non partagé",
+  "messageReceiptsStateWaiting": "en attente",
+  "messageReceiptsSemanticRead": "{name} l’a lu {day} à {time}",
+  "messageReceiptsSemanticDelivered": "{name} l’a reçu {day} à {time}",
+  "messageReceiptsSemanticSent": "{name} ne l’a pas encore reçu",
+  "messageReceiptsSemanticHidden": "{name} ne partage pas les accusés de lecture"
 }

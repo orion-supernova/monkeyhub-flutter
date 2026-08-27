@@ -2182,5 +2182,18 @@
   "interactionComposeErrorWhen": "选择开始的时间。",
   "interactionComposeErrorEnd": "结束时间要在开始之后。",
   "interactionSendFailed": "没有发送成功。",
-  "interactionRefused": "没有生效。"
+  "interactionRefused": "没有生效。",
+  "messageReceiptsScreenTitle": "已读成员",
+  "messageReceiptsSummary": "{total} 人中 {read} 人已读",
+  "messageReceiptsEmptyState": "这个房间里还没有其他人",
+  "messageReceiptsSectionRead": "已读",
+  "messageReceiptsSectionDelivered": "已送达",
+  "messageReceiptsSectionSent": "已发送",
+  "messageReceiptsSectionHidden": "无回执",
+  "messageReceiptsStateHidden": "未共享",
+  "messageReceiptsStateWaiting": "等待中",
+  "messageReceiptsSemanticRead": "{name} 于 {day} {time} 已读",
+  "messageReceiptsSemanticDelivered": "{name} 于 {day} {time} 收到",
+  "messageReceiptsSemanticSent": "{name} 尚未收到",
+  "messageReceiptsSemanticHidden": "{name} 未共享已读回执"
 }

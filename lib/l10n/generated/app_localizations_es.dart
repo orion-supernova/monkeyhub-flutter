@@ -7854,4 +7854,58 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get interactionRefused => 'No se pudo registrar.';
+
+  @override
+  String get messageReceiptsScreenTitle => 'VISTO POR';
+
+  @override
+  String messageReceiptsSummary(Object read, Object total) {
+    return '$read de $total lo han leído';
+  }
+
+  @override
+  String get messageReceiptsEmptyState =>
+      'todavía no hay nadie más en esta sala';
+
+  @override
+  String get messageReceiptsSectionRead => 'LEÍDO';
+
+  @override
+  String get messageReceiptsSectionDelivered => 'ENTREGADO';
+
+  @override
+  String get messageReceiptsSectionSent => 'ENVIADO';
+
+  @override
+  String get messageReceiptsSectionHidden => 'SIN CONFIRMACIÓN';
+
+  @override
+  String get messageReceiptsStateHidden => 'no se comparte';
+
+  @override
+  String get messageReceiptsStateWaiting => 'en espera';
+
+  @override
+  String messageReceiptsSemanticRead(Object day, Object name, Object time) {
+    return '$name lo leyó el $day a las $time';
+  }
+
+  @override
+  String messageReceiptsSemanticDelivered(
+    Object day,
+    Object name,
+    Object time,
+  ) {
+    return '$name lo recibió el $day a las $time';
+  }
+
+  @override
+  String messageReceiptsSemanticSent(Object name) {
+    return '$name todavía no lo ha recibido';
+  }
+
+  @override
+  String messageReceiptsSemanticHidden(Object name) {
+    return '$name no comparte confirmaciones de lectura';
+  }
 }

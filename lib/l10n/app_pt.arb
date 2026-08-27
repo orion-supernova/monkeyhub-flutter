@@ -2182,5 +2182,18 @@
   "interactionComposeErrorWhen": "Escolhe quando começa.",
   "interactionComposeErrorEnd": "O fim tem de vir depois do início.",
   "interactionSendFailed": "Não foi enviado.",
-  "interactionRefused": "Não foi registado."
+  "interactionRefused": "Não foi registado.",
+  "messageReceiptsScreenTitle": "VISTO POR",
+  "messageReceiptsSummary": "{read} de {total} leram",
+  "messageReceiptsEmptyState": "ainda não há mais ninguém nesta sala",
+  "messageReceiptsSectionRead": "LIDO",
+  "messageReceiptsSectionDelivered": "ENTREGUE",
+  "messageReceiptsSectionSent": "ENVIADO",
+  "messageReceiptsSectionHidden": "SEM RECIBO",
+  "messageReceiptsStateHidden": "não partilhado",
+  "messageReceiptsStateWaiting": "à espera",
+  "messageReceiptsSemanticRead": "{name} leu isto {day} às {time}",
+  "messageReceiptsSemanticDelivered": "{name} recebeu isto {day} às {time}",
+  "messageReceiptsSemanticSent": "{name} ainda não recebeu isto",
+  "messageReceiptsSemanticHidden": "{name} não partilha recibos de leitura"
 }
