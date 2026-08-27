@@ -102,22 +102,32 @@ void main() {
       expiresAt: expiresAt,
     );
 
-    Widget host(Widget child, {bool calm = false}) => MediaQuery(
-      data: MediaQueryData(disableAnimations: calm),
-      child: MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: ThemeScope(
-          controller: ThemeController(BasicTheme.midnight()),
-          child: Scaffold(
-            body: Align(
-              alignment: Alignment.topLeft,
-              child: SizedBox(width: 500, child: child),
+    // A real window size, because a bubble's max width is a fraction of it
+    // and `MediaQueryData()` alone reports zero. At zero the transcript row
+    // gives the bubble a tight zero width, and a RenderFlex that size skips
+    // painting altogether — which is a bubble that measures but never draws,
+    // and a test that cannot tell.
+    Widget host(Widget child, {bool calm = false, double width = 500}) {
+      return MediaQuery(
+        data: MediaQueryData(
+          size: const Size(800, 600),
+          disableAnimations: calm,
+        ),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: ThemeScope(
+            controller: ThemeController(BasicTheme.midnight()),
+            child: Scaffold(
+              body: Align(
+                alignment: Alignment.topLeft,
+                child: SizedBox(width: width, child: child),
+              ),
             ),
           ),
         ),
-      ),
-    );
+      );
+    }
 
     Widget bubble(ChatMessage m) => MessageBubble(
       message: m,
@@ -175,7 +185,10 @@ void main() {
           FormattingEntity(start: 0, end: 2, type: FormattingType.spoiler),
         ],
       ))));
-      await tester.pumpAndSettle();
+      // A spoiler shimmers for as long as it is on screen, so this never
+      // settles. A fixed span is plenty: the shape of the tree is decided on
+      // the first frame.
+      await tester.pump(const Duration(seconds: 1));
       expect(find.byType(JumboEmojiBubble), findsNothing);
       expect(find.byType(LinkifiedText), findsOneWidget);
     });
@@ -213,6 +226,44 @@ void main() {
       await tester.pump();
       expect(find.byType(JumboEmojiBubble), findsOneWidget);
       expect(tester.binding.transientCallbackCount, 0);
+    });
+
+    testWidgets('a glyph the font draws whole is drawn at its natural size',
+        (tester) async {
+      await tester.pumpWidget(host(const JumboEmojiBubble(
+        identity: 'whole-1',
+        clusters: ['🎉'],
+        isMine: false,
+      )));
+      await tester.pumpAndSettle();
+      // The tightened line box at the one-glyph size, unscaled. The guard the
+      // next test exercises has to cost the ordinary message nothing.
+      final glyph = tester.getRect(find.text('🎉'));
+      expect(glyph.height, closeTo(JumboEmojiBubble.glyphSize(1) * 1.12, 1));
+    });
+
+    testWidgets('a cluster the font cannot compose scales down to the bubble',
+        (tester) async {
+      // The test font composes nothing, so a ZWJ family is drawn as its
+      // pieces side by side — several glyphs wide, which is exactly how a
+      // platform whose emoji font predates the sequence draws it. That run is
+      // wider than a narrow bubble, and it has to fit rather than overflow.
+      await tester.pumpWidget(host(
+        const JumboEmojiBubble(
+          identity: 'pieces-1',
+          clusters: ['👨‍👩‍👧‍👦'],
+          isMine: false,
+        ),
+        width: 120,
+      ));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      final box = tester.getRect(find.byType(JumboEmojiBubble));
+      final glyph = tester.getRect(find.text('👨‍👩‍👧‍👦'));
+      expect(glyph.left, greaterThanOrEqualTo(box.left - 0.01));
+      expect(glyph.right, lessThanOrEqualTo(box.right + 0.01));
+      // …and it is the glyph that gave way, not the bubble.
+      expect(glyph.height, lessThan(50));
     });
 
     // Never `pumpAndSettle` past this point: a heart's beat never settles, so

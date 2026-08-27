@@ -398,7 +398,7 @@ class _JumboEmojiBubbleState extends State<JumboEmojiBubble>
         ],
       ],
     );
-    if (!_hearted) return row;
+    if (!_hearted) return _fit(row);
 
     final tints = [
       for (var i = 0; i < count; i++)
@@ -409,7 +409,7 @@ class _JumboEmojiBubbleState extends State<JumboEmojiBubble>
     // where the effect lives. The motes emerge from behind the heart rather
     // than appearing on top of it, and `Clip.none` is what permits that; no
     // ancestor between here and the transcript's own viewport clips.
-    return Stack(
+    return _fit(Stack(
       clipBehavior: Clip.none,
       alignment: Alignment.center,
       children: [
@@ -441,8 +441,26 @@ class _JumboEmojiBubbleState extends State<JumboEmojiBubble>
         ),
         row,
       ],
-    );
+    ));
   }
+
+  /// Never wider than the bubble.
+  ///
+  /// The sizes in [JumboEmojiBubble.glyphSize] are chosen so three glyphs fit
+  /// the bubble's max width on the narrowest phone, and a composed emoji is
+  /// close to square — so for every message that renders the way it was
+  /// typed this is exactly [content] at scale 1, with no layer of its own.
+  ///
+  /// It exists for the cluster the platform font cannot compose. A family or
+  /// a flag on an OS whose emoji font predates the sequence — or on a
+  /// simulator runtime whose emoji font is broken outright, as iOS 26.3's is —
+  /// falls apart into its pieces, each drawn as a tofu box, and one such
+  /// cluster is four or five glyphs wide. The row lays its children out
+  /// unbounded, so that run would spill past the bubble's edge. Scaling it
+  /// down is the least-bad answer: the message *is* those boxes, and a smaller
+  /// row of them still reads, where a clipped one would not.
+  static Widget _fit(Widget content) =>
+      FittedBox(fit: BoxFit.scaleDown, child: content);
 
   /// Starts the loop on the phase that puts its next thump exactly where the
   /// burst leaves the glyph — so the hearts are thrown BY the beat rather than
