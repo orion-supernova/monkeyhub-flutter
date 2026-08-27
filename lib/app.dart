@@ -953,8 +953,23 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     // teardown and rebuild on a connection that had nothing wrong with it. That
     // is the same reasoning that already makes `inactive` count as foreground
     // above; web just needs it applied one state further.
+    //
+    // Desktop is switched off for the same reason, and now has to be. Closing
+    // the window on macOS no longer quits the app — it hides it
+    // (macos/Runner/MainFlutterWindow.swift), because macOS has no push and
+    // this process IS the delivery path. Flutter reports that as `hidden`, so
+    // the old mapping parked the recovery loop for exactly the hours the app is
+    // most on its own: a socket that wedges while the window is away would then
+    // sit unrepaired until the person came back and looked — which is the
+    // silent-missed-messages failure this whole change exists to remove. The
+    // premise doesn't hold here anyway: a hidden Mac window is not a suspended
+    // process, its timers keep running and its socket stays open.
+    //
+    // Machine sleep is still covered. `setForeground(true)` with no transition
+    // falls through to the tick-gap check, which measures a freeze from our own
+    // timer rather than from anything the OS says — see [setForeground].
     _health.setForeground(
-      kIsWeb ||
+      isWebOrDesktop ||
           state == AppLifecycleState.resumed ||
           state == AppLifecycleState.inactive,
     );

@@ -52,4 +52,39 @@ class MainFlutterWindow: NSWindow {
 
     super.awakeFromNib()
   }
+
+  /// The red close button hides the window instead of closing it.
+  ///
+  /// Closing would tear down the `FlutterViewController` — and with it the
+  /// engine, the Dart isolate and the Convex socket — which on macOS is the
+  /// whole delivery path: there is no push on this platform to pick up the
+  /// slack (see `MessageAlerts`, lib/push/message_alerts.dart). The window is
+  /// therefore never actually closed; ⌘Q is what ends the session.
+  ///
+  /// Hiding, not minimising, on purpose: a hidden window leaves no window-list
+  /// entry to be confused by, and comes back instantly and fully rendered from
+  /// the Dock (`AppDelegate.applicationShouldHandleReopen`). Flutter reports
+  /// `AppLifecycleState.hidden` for it, which is exactly the `away` presence
+  /// this state deserves — the person is reachable, just not looking.
+  override func performClose(_ sender: Any?) {
+    // Full screen has to be left first. Ordering a full-screen window out
+    // strands its Space: the display stays on an empty black desktop the user
+    // has to swipe out of, with no window left to explain why.
+    guard styleMask.contains(.fullScreen) else {
+      orderOut(sender)
+      return
+    }
+    var token: NSObjectProtocol?
+    token = NotificationCenter.default.addObserver(
+      forName: NSWindow.didExitFullScreenNotification,
+      object: self,
+      queue: .main
+    ) { [weak self] _ in
+      if let token = token {
+        NotificationCenter.default.removeObserver(token)
+      }
+      self?.orderOut(nil)
+    }
+    toggleFullScreen(sender)
+  }
 }
