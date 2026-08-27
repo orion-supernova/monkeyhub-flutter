@@ -12,6 +12,8 @@ import 'package:flutter/material.dart';
 import '../../companions/brain_manager.dart';
 import '../../companions/brain_spec.dart';
 import '../../companions/companion.dart';
+import '../../companions/sebastian.dart';
+import '../../data/settings_store.dart';
 import '../../keyboard/focusable_tap.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../theme/app_theme.dart';
@@ -140,6 +142,133 @@ String marloweTierName(AppLocalizations l10n, BrainSpec brain) =>
       'qwen3.5-4b-int4' => l10n.marloweBrainTierDeep,
       _ => brain.label,
     };
+
+/// What the companions cost, in the only unit anyone cares about.
+///
+/// Counts a shared brain once — a spec on two shelves is one file on disk, so a
+/// naive sum would report 656 MB for 328 MB. See [BrainManager.installedBytes].
+///
+/// Lives here rather than on a screen because the Settings section that lists
+/// the companions is now the place that prints it, and the number belongs to
+/// the group rather than to either resident.
+class CompanionStorageLine extends StatelessWidget {
+  const CompanionStorageLine({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final bytes = BrainManager.instance.installedBytes;
+    return Row(
+      children: [
+        Icon(Icons.sd_storage_outlined, size: 14, color: theme.inkMuted),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            bytes == 0
+                ? l10n.companionStorageEmpty
+                : l10n.companionStorageUsed(companionByteLabel(bytes)),
+            style: theme.caption.copyWith(color: theme.inkMuted),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Bytes as the number an OS storage screen would show.
+///
+/// Binary megabytes, so "328 MB" here and "328 MB" in iOS Settings are the same
+/// file. Shared because four surfaces print it — the storage line, the download
+/// strip, the status line and [BrainSpec.sizeLabel] — and four roundings are
+/// how the same download comes to be 328 MB in one place and 344 MB in another.
+String companionByteLabel(int bytes) {
+  const mib = 1024 * 1024;
+  if (bytes >= 1024 * mib) {
+    return '${(bytes / (1024 * mib)).toStringAsFixed(1)} GB';
+  }
+  return '${(bytes / mib).round()} MB';
+}
+
+/// The one line that says what a companion is currently doing, or what is
+/// stopping it.
+///
+/// Shared rather than per-screen because it is now asked in two places at once
+/// — the Settings section and whatever screen you open from it — and two
+/// answers to "is Sebastian on?" that could disagree is a bug with no symptom
+/// until somebody notices the two disagreeing. It used to be exactly that:
+/// `_CompanionsScreenState._sebastianStatus` and the settings screen's own
+/// `_companionsLabel` were separate implementations of the same question.
+///
+/// Ordered by what is BLOCKING first, then by what is happening. A download in
+/// flight outranks everything, including "off": it is the only state with a
+/// number that moves, and a row that said "Off" while 300 MB were arriving
+/// would be describing the setting rather than the device.
+String companionStatusLine(Companion companion, AppLocalizations l10n) {
+  // The short form, not [AppLocalizations.companionUnsupportedPlatform]: this
+  // is a right-hand value column, and the long sentence belongs on the screen
+  // that has room to explain.
+  if (!Sebastian.instance.isAvailable) {
+    return l10n.settingsScreenCompanionsUnavailable;
+  }
+
+  // Whichever of this companion's brains is moving right now. Sebastian has
+  // exactly one; Marlowe has three and only ever installs one at a time.
+  for (final brain in BrainCatalog.forCompanion(companion)) {
+    final state = BrainManager.instance.stateOf(brain);
+    if (state.status == BrainStatus.downloading ||
+        state.status == BrainStatus.queued) {
+      return l10n.settingsScreenCompanionsDownloading(
+        (state.fraction * 100).round(),
+      );
+    }
+    if (state.status == BrainStatus.paused) {
+      return l10n.companionInstallPausedAt(
+        companionByteLabel(state.receivedBytes),
+        companionByteLabel(state.totalBytes),
+      );
+    }
+  }
+
+  return switch (companion) {
+    Companion.sebastian => _sebastianStatus(l10n),
+    Companion.marlowe => _marloweStatus(l10n),
+  };
+}
+
+String _sebastianStatus(AppLocalizations l10n) {
+  final s = Sebastian.instance;
+  if (!s.isInstalled) return l10n.companionStatusNotInstalled;
+  if (!s.isEnabled) return l10n.companionStatusOff;
+  return l10n.companionStatusTranslatingInto(s.targetLanguage.autonym);
+}
+
+/// Names the brain Marlowe would actually load rather than counting the ones on
+/// disk. "2 downloads ready" answers a question nobody asked; what somebody
+/// glancing at this row wants to know is which of the three is doing the
+/// thinking.
+String _marloweStatus(AppLocalizations l10n) {
+  final active = activeMarloweBrain();
+  if (active == null) return l10n.companionStatusNoBrain;
+  return l10n.companionStatusUsingBrain(marloweTierName(l10n, active));
+}
+
+/// The brain Marlowe would load right now: the stored choice if it is on disk,
+/// else the first installed row of the shelf.
+///
+/// Shared with `MarloweScreen` so the shelf's badge and every status line that
+/// names a tier resolve the same way. Two resolutions of "which brain is
+/// active" is how a screen ends up badging one row and describing another.
+BrainSpec? activeMarloweBrain() {
+  final chosen = BrainCatalog.byId(SettingsStore.instance.marloweBrainId);
+  if (chosen != null && BrainManager.instance.isInstalled(chosen)) {
+    return chosen;
+  }
+  for (final b in BrainCatalog.marloweBrains) {
+    if (BrainManager.instance.isInstalled(b)) return b;
+  }
+  return null;
+}
 
 /// Companions other than [self] whose shelf also lists [brain].
 ///

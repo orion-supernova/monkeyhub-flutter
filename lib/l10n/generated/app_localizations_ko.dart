@@ -4417,6 +4417,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsScreenSectionChat => '채팅';
 
   @override
+  String get settingsScreenSectionCompanions => '동반자';
+
+  @override
   String get settingsScreenSectionGeneral => '일반';
 
   @override
@@ -7784,9 +7787,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get roomScreenTranslateRoomOfferAction => '전체 번역';
-
-  @override
-  String get settingsScreenRowCompanions => '동반자';
 
   @override
   String get settingsScreenCompanionsOff => '꺼짐';

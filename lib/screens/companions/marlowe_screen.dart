@@ -69,16 +69,11 @@ class _MarloweScreenState extends State<MarloweScreen> {
   /// catalog, so a user who installs exactly one brain never has to also
   /// select it. Nothing installed resolves to null, which is what the empty
   /// state reads.
-  BrainSpec? get _active {
-    final chosen = BrainCatalog.byId(SettingsStore.instance.marloweBrainId);
-    if (chosen != null && BrainManager.instance.isInstalled(chosen)) {
-      return chosen;
-    }
-    for (final b in BrainCatalog.marloweBrains) {
-      if (BrainManager.instance.isInstalled(b)) return b;
-    }
-    return null;
-  }
+  ///
+  /// Delegates rather than repeating the resolution: the Settings status line
+  /// names the same tier, and a second copy of "which one is active" is how a
+  /// screen ends up badging one row while describing another.
+  BrainSpec? get _active => activeMarloweBrain();
 
   Future<void> _remove(BrainSpec brain) async {
     final l10n = AppLocalizations.of(context);

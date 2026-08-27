@@ -7775,6 +7775,12 @@ abstract class AppLocalizations {
   /// **'CHAT'**
   String get settingsScreenSectionChat;
 
+  /// Header for the Settings section listing the on-device companions (Sebastian, Marlowe). Rendered as written, so match the capitalisation of the other section headers.
+  ///
+  /// In en, this message translates to:
+  /// **'COMPANIONS'**
+  String get settingsScreenSectionCompanions;
+
   /// All-caps section header grouping the Language row and the Check for Updates row.
   ///
   /// In en, this message translates to:
@@ -13722,12 +13728,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'TRANSLATE ALL'**
   String get roomScreenTranslateRoomOfferAction;
-
-  /// All-caps row label in Settings > Chat that opens the Companions screen.
-  ///
-  /// In en, this message translates to:
-  /// **'COMPANIONS'**
-  String get settingsScreenRowCompanions;
 
   /// Value column of the Companions settings row when no companion is active.
   ///

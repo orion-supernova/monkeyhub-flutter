@@ -4348,6 +4348,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsScreenSectionChat => '聊天';
 
   @override
+  String get settingsScreenSectionCompanions => '伙伴';
+
+  @override
   String get settingsScreenSectionGeneral => '通用';
 
   @override
@@ -7673,9 +7676,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get roomScreenTranslateRoomOfferAction => '全部翻译';
-
-  @override
-  String get settingsScreenRowCompanions => '伙伴';
 
   @override
   String get settingsScreenCompanionsOff => '已关闭';

@@ -4575,6 +4575,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get settingsScreenSectionChat => 'चैट';
 
   @override
+  String get settingsScreenSectionCompanions => 'साथी';
+
+  @override
   String get settingsScreenSectionGeneral => 'सामान्य';
 
   @override
@@ -8088,9 +8091,6 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get roomScreenTranslateRoomOfferAction => 'सब अनुवाद करें';
-
-  @override
-  String get settingsScreenRowCompanions => 'साथी';
 
   @override
   String get settingsScreenCompanionsOff => 'बंद';

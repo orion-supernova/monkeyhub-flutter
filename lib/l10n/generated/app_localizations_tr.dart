@@ -4533,6 +4533,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get settingsScreenSectionChat => 'SOHBET';
 
   @override
+  String get settingsScreenSectionCompanions => 'YARDIMCILAR';
+
+  @override
   String get settingsScreenSectionGeneral => 'GENEL';
 
   @override
@@ -8045,9 +8048,6 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get roomScreenTranslateRoomOfferAction => 'HEPSİNİ ÇEVİR';
-
-  @override
-  String get settingsScreenRowCompanions => 'YARDIMCILAR';
 
   @override
   String get settingsScreenCompanionsOff => 'Kapalı';

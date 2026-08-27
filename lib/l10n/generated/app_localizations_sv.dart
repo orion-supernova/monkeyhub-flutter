@@ -4585,6 +4585,9 @@ class AppLocalizationsSv extends AppLocalizations {
   String get settingsScreenSectionChat => 'CHATT';
 
   @override
+  String get settingsScreenSectionCompanions => 'FÖLJESLAGARE';
+
+  @override
   String get settingsScreenSectionGeneral => 'ALLMÄNT';
 
   @override
@@ -8105,9 +8108,6 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get roomScreenTranslateRoomOfferAction => 'ÖVERSÄTT ALLT';
-
-  @override
-  String get settingsScreenRowCompanions => 'FÖLJESLAGARE';
 
   @override
   String get settingsScreenCompanionsOff => 'Av';

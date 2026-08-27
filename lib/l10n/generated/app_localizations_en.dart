@@ -4553,6 +4553,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsScreenSectionChat => 'CHAT';
 
   @override
+  String get settingsScreenSectionCompanions => 'COMPANIONS';
+
+  @override
   String get settingsScreenSectionGeneral => 'GENERAL';
 
   @override
@@ -8071,9 +8074,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get roomScreenTranslateRoomOfferAction => 'TRANSLATE ALL';
-
-  @override
-  String get settingsScreenRowCompanions => 'COMPANIONS';
 
   @override
   String get settingsScreenCompanionsOff => 'Off';

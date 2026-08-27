@@ -4403,6 +4403,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsScreenSectionChat => 'チャット';
 
   @override
+  String get settingsScreenSectionCompanions => 'コンパニオン';
+
+  @override
   String get settingsScreenSectionGeneral => '一般';
 
   @override
@@ -7762,9 +7765,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get roomScreenTranslateRoomOfferAction => 'すべて翻訳';
-
-  @override
-  String get settingsScreenRowCompanions => 'コンパニオン';
 
   @override
   String get settingsScreenCompanionsOff => 'オフ';

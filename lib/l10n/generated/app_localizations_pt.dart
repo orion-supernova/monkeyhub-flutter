@@ -4612,6 +4612,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsScreenSectionChat => 'CONVERSAS';
 
   @override
+  String get settingsScreenSectionCompanions => 'COMPANHEIROS';
+
+  @override
   String get settingsScreenSectionGeneral => 'GERAL';
 
   @override
@@ -8173,9 +8176,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get roomScreenTranslateRoomOfferAction => 'TRADUZIR TUDO';
-
-  @override
-  String get settingsScreenRowCompanions => 'COMPANHEIROS';
 
   @override
   String get settingsScreenCompanionsOff => 'Desligado';
@@ -12857,6 +12857,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get settingsScreenSectionChat => 'CHAT';
 
   @override
+  String get settingsScreenSectionCompanions => 'COMPANHEIROS';
+
+  @override
   String get settingsScreenSectionGeneral => 'GERAL';
 
   @override
@@ -16416,9 +16419,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get roomScreenTranslateRoomOfferAction => 'TRADUZIR TUDO';
-
-  @override
-  String get settingsScreenRowCompanions => 'COMPANHEIROS';
 
   @override
   String get settingsScreenCompanionsOff => 'Desligado';

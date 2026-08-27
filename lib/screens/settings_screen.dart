@@ -8,7 +8,7 @@ import '../backend/server_store.dart';
 import '../calls/call_models.dart' show VideoQualityTier;
 import '../data/chat_repository.dart';
 import '../companions/brain_manager.dart';
-import '../companions/sebastian.dart';
+import '../companions/companion.dart';
 import '../data/settings_store.dart';
 import 'navigation/scroll_memory.dart';
 import '../data/ui_selection_store.dart';
@@ -36,7 +36,10 @@ import '../widgets/recovery_banner.dart';
 import '../widgets/user_avatar.dart';
 import 'bubble_style_screen.dart';
 import 'chat_style_screen.dart';
-import 'companions/companions_screen.dart';
+import 'companions/companion_page.dart'
+    show CompanionStorageLine, companionStatusLine;
+import 'companions/marlowe_screen.dart';
+import 'companions/sebastian_screen.dart';
 import 'diagnostics_screen.dart';
 import 'glass_screen.dart';
 import 'language_screen.dart';
@@ -319,40 +322,6 @@ class _SettingsScreenState extends State<SettingsScreen>
     }
   }
 
-  /// The value column for the Companions row.
-  ///
-  /// Answers "is anything here doing anything", in priority order, rather than
-  /// counting residents — two names in a settings row's right-hand column is
-  /// noise, and what somebody glancing at it wants to know is whether the
-  /// feature is live.
-  String _companionsLabel(AppLocalizations l10n) {
-    final sebastian = Sebastian.instance;
-    if (!sebastian.isAvailable) return l10n.settingsScreenCompanionsUnavailable;
-
-    // A running download outranks everything else this row could say. It is
-    // the only ambient sign anywhere in the app that several hundred megabytes
-    // are moving, and without it somebody who closed the install sheet has no
-    // way to tell whether it is still going — or any route back to the screen
-    // that would say. The percentage is what makes it read as PROGRESS rather
-    // than as a state that might be stuck.
-    final downloading = BrainManager.instance.activeInstall;
-    if (downloading != null) {
-      return l10n.settingsScreenCompanionsDownloading(
-        (downloading.fraction * 100).round(),
-      );
-    }
-    // A paused download is still hundreds of megabytes half-written, and this
-    // row is one of the two places that will admit it exists — the other being
-    // the global banner, which is where the user probably came from.
-    if (BrainManager.instance.hasPausedDownload) {
-      return l10n.companionInstallPause;
-    }
-
-    if (sebastian.isReady) {
-      return sebastian.targetLanguage.autonym;
-    }
-    return l10n.settingsScreenCompanionsOff;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -644,6 +613,47 @@ class _SettingsScreenState extends State<SettingsScreen>
                   ),
                 ),
 
+                // Its own section, above CHAT rather than inside it.
+                //
+                // A companion is not a rendering preference. It is a resident
+                // that costs hundreds of megabytes of the user's disk, runs a
+                // language model on their handset, and can be switched off —
+                // which is a category of setting, not a flavour of bubble.
+                const SizedBox(height: 28),
+                _SectionHeader(label: l10n.settingsScreenSectionCompanions),
+                const SizedBox(height: 12),
+                // One row per resident, rather than one row for the group.
+                //
+                // This used to be a single COMPANIONS row inside CHAT, argued
+                // for on the grounds that a companion only changes how a
+                // conversation reads. That stopped being true: there are two of
+                // them, they cost between 328 MB and 2.6 GB of the user's disk,
+                // and the row behind the row was a hub that did nothing this
+                // section does not now do itself. Naming them here is also the
+                // only version that lets the right-hand column say something
+                // specific — "Translating into Türkçe" beats "On".
+                _CompanionRow(
+                  companion: Companion.sebastian,
+                  selected: _isOpen('sebastian'),
+                  onTap: () => openSettingsDetail(
+                    context,
+                    key: 'sebastian',
+                    builder: (_) => const SebastianScreen(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _CompanionRow(
+                  companion: Companion.marlowe,
+                  selected: _isOpen('marlowe'),
+                  onTap: () => openSettingsDetail(
+                    context,
+                    key: 'marlowe',
+                    builder: (_) => const MarloweScreen(),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const CompanionStorageLine(),
+
                 // What used to be LAYOUT, minus the two rows that were never
                 // about layout. Everything left answers one question — how a
                 // conversation renders — so the header says so.
@@ -711,26 +721,6 @@ class _SettingsScreenState extends State<SettingsScreen>
                     context,
                     key: 'speakerColors',
                     builder: (_) => const SpeakerColorScreen(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                // In CHAT rather than in a section of its own. A companion is
-                // not a category of app-wide setting the way Appearance is —
-                // what Sebastian actually does is change how a conversation
-                // reads, which is the question every other row here answers.
-                _DisclosureRow(
-                  label: l10n.settingsScreenRowCompanions,
-                  value: _companionsLabel(l10n),
-                  selected: _isOpen('companions'),
-                  leading: Icon(
-                    Icons.auto_awesome_outlined,
-                    size: 16,
-                    color: theme.inkSoft,
-                  ),
-                  onTap: () => openSettingsDetail(
-                    context,
-                    key: 'companions',
-                    builder: (_) => const CompanionsScreen(),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -921,6 +911,57 @@ class _DisclosureRow extends StatelessWidget {
 /// rebuild when [ServerStore] changes, and everything else on this screen is
 /// driven off [SettingsStore]. It borrows the disclosure row's exact geometry
 /// so it still reads as one of the list.
+/// One resident, in the shape every other row on this screen uses.
+///
+/// A [_DisclosureRow] rather than a control of its own, so the Companions
+/// section reads as part of Settings rather than as a widget someone dropped
+/// into it. Two things it does NOT take from the caller, on purpose:
+///
+///  * the LABEL, which is the companion's name. Proper nouns are the same in
+///    every locale (see [Companion.displayName]) — a name that changed language
+///    when the UI did would stop being a name.
+///  * the VALUE, which comes from [companionStatusLine]. The alternative was a
+///    string computed at the call site, and this screen has already had one of
+///    those disagree with the screen it opened.
+///
+/// The leading glyph is the monogram, not an icon. This row used to wear
+/// `Icons.auto_awesome_outlined`, which is the one thing `CompanionMark`'s own
+/// doc comment asks nobody to do: every icon that reads as "AI" — sparkles, a
+/// brain, a robot — says the opposite of what a companion is for.
+class _CompanionRow extends StatelessWidget {
+  const _CompanionRow({
+    required this.companion,
+    required this.onTap,
+    this.selected = false,
+  });
+
+  final Companion companion;
+  final VoidCallback onTap;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return _DisclosureRow(
+      // Upper-cased to match its siblings, all of which arrive from the ARB
+      // already shouting ("CHAT LIST", "LANGUAGE"). A proper noun set in caps
+      // is still the same name — it is a typographic treatment, and the
+      // alternative is the one mixed-case label in a column of capitals.
+      label: companion.displayName.toUpperCase(),
+      value: companionStatusLine(companion, AppLocalizations.of(context)),
+      selected: selected,
+      leading: CompanionMark(
+        companion: companion,
+        size: 16,
+        // Follows the row's own selection, like the icon it replaces: the
+        // leading glyph is chrome here, not the accent moment.
+        foreground: selected ? theme.accent : theme.inkSoft,
+      ),
+      onTap: onTap,
+    );
+  }
+}
+
 class _ServerRow extends StatelessWidget {
   const _ServerRow({required this.selected});
   final bool selected;

@@ -5106,6 +5106,10 @@
   "@settingsScreenSectionChat": {
     "description": "All-caps section header grouping the Chat List/Chat Style/Bubble Style/Reply Style rows."
   },
+  "settingsScreenSectionCompanions": "COMPANIONS",
+  "@settingsScreenSectionCompanions": {
+    "description": "Header for the Settings section listing the on-device companions (Sebastian, Marlowe). Rendered as written, so match the capitalisation of the other section headers."
+  },
   "settingsScreenSectionGeneral": "GENERAL",
   "@settingsScreenSectionGeneral": {
     "description": "All-caps section header grouping the Language row and the Check for Updates row."
@@ -9305,10 +9309,6 @@
   "roomScreenTranslateRoomOfferAction": "TRANSLATE ALL",
   "@roomScreenTranslateRoomOfferAction": {
     "description": "All-caps SnackBar action that accepts the offer to translate the whole chat."
-  },
-  "settingsScreenRowCompanions": "COMPANIONS",
-  "@settingsScreenRowCompanions": {
-    "description": "All-caps row label in Settings > Chat that opens the Companions screen."
   },
   "settingsScreenCompanionsOff": "Off",
   "@settingsScreenCompanionsOff": {
