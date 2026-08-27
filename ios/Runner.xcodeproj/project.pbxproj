@@ -65,7 +65,6 @@
 		8B2D0E0ABE9BACF7C71ED0C7 /* mh_monkey_hmm@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 985863383B8D8B7840D5B50D /* mh_monkey_hmm@2x.png */; };
 		8C202CA67F3573C34AF6BAA6 /* ShareSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED43A34CB098ED7AEA1D8814 /* ShareSession.swift */; };
 		8EC46B2A87DCB654E83E014F /* ShareGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E0D8D3874595EEDDE2C8E2 /* ShareGroup.swift */; };
-		C0FFEE1122334455667788A1 /* ShareGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E0D8D3874595EEDDE2C8E2 /* ShareGroup.swift */; };
 		90CE3BCC1065626B64AA28DC /* bio_organic@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 235A840859265BD45FB4037D /* bio_organic@3x.png */; };
 		97A46C33D081F79311AB759E /* deep_ocean@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7FADE5A06EF55EA2A6787367 /* deep_ocean@3x.png */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
@@ -82,6 +81,7 @@
 		B8F7A5FEF99EDD784E35F001 /* deep_ocean83.5x83.5@2x~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = 87364D8A75E54A05A218351A /* deep_ocean83.5x83.5@2x~ipad.png */; };
 		BABD62ADA3C6F03C2185198F /* deep_ocean76x76@2x~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = 9A2013E2B5961189D2F3B675 /* deep_ocean76x76@2x~ipad.png */; };
 		BC89071C939CAA6F20BF0B0A /* basic_rose76x76@2x~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = 3A68F93982385A7E0D7DB247 /* basic_rose76x76@2x~ipad.png */; };
+		C0FFEE1122334455667788A1 /* ShareGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E0D8D3874595EEDDE2C8E2 /* ShareGroup.swift */; };
 		C152835024A0AE5782D36950 /* vault_noir83.5x83.5@2x~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = B8B8F533B2FEB474FB9481D3 /* vault_noir83.5x83.5@2x~ipad.png */; };
 		C152D53F4DDF37202121568C /* ShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 997664DAB7606A0B0932B31C /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C3355EF773D235F837746D20 /* mh_monkey_hiking76x76@2x~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = 4036B109D6B5214DB2724883 /* mh_monkey_hiking76x76@2x~ipad.png */; };

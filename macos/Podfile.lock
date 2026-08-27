@@ -19,6 +19,8 @@ PODS:
     - FlutterMacOS
   - convex_flutter (0.0.1):
     - FlutterMacOS
+  - device_info_plus (0.0.1):
+    - FlutterMacOS
   - emoji_picker_flutter (0.0.1):
     - FlutterMacOS
   - file_selector_macos (0.0.1):
@@ -103,6 +105,7 @@ DEPENDENCIES:
   - audio_session (from `Flutter/ephemeral/.symlinks/plugins/audio_session/macos`)
   - connectivity_plus (from `Flutter/ephemeral/.symlinks/plugins/connectivity_plus/macos`)
   - convex_flutter (from `Flutter/ephemeral/.symlinks/plugins/convex_flutter/macos`)
+  - device_info_plus (from `Flutter/ephemeral/.symlinks/plugins/device_info_plus/macos`)
   - emoji_picker_flutter (from `Flutter/ephemeral/.symlinks/plugins/emoji_picker_flutter/macos`)
   - file_selector_macos (from `Flutter/ephemeral/.symlinks/plugins/file_selector_macos/macos`)
   - flutter_gemma (from `Flutter/ephemeral/.symlinks/plugins/flutter_gemma/macos`)
@@ -145,6 +148,8 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/connectivity_plus/macos
   convex_flutter:
     :path: Flutter/ephemeral/.symlinks/plugins/convex_flutter/macos
+  device_info_plus:
+    :path: Flutter/ephemeral/.symlinks/plugins/device_info_plus/macos
   emoji_picker_flutter:
     :path: Flutter/ephemeral/.symlinks/plugins/emoji_picker_flutter/macos
   file_selector_macos:
@@ -193,6 +198,7 @@ SPEC CHECKSUMS:
   audio_session: eaca2512cf2b39212d724f35d11f46180ad3a33e
   connectivity_plus: 4adf20a405e25b42b9c9f87feff8f4b6fde18a4e
   convex_flutter: a9d12846e80c8a2238282775fa9eb9c906efcea4
+  device_info_plus: 4fb280989f669696856f8b129e4a5e3cd6c48f76
   emoji_picker_flutter: 51ca408e289d84d1e460016b2a28721ec754fcf7
   file_selector_macos: 9e9e068e90ebee155097d00e89ae91edb2374db7
   flutter_gemma: d7e34f8a36886f546fc38f5d93d7782ab89fba77
