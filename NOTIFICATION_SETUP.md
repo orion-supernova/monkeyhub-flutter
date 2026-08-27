@@ -18,8 +18,19 @@ remains below needs console access and can't be done from the repo.
 | Daily games nudge (`backend/convex/dailyNudge.ts`) | The once-a-day "you haven't played today" reminder | APNs on topic `<bundle>` | FCM data-only, channel `mh_games` | — (deliberately) |
 | Convex realtime subscription | In-app ringing while the app is open | ✓ | ✓ | ✓ |
 
-Three things are worth internalising:
+Four things are worth internalising:
 
+- **A PushKit `taken` is a backstop, never the first word.** iOS demands that
+  every VoIP push reports an incoming call; a `taken` that reaches a phone with
+  no card left to end therefore has to report a placeholder and end it, which
+  current iOS renders as a one-second incoming "Call" that rings and vanishes.
+  So the realtime signal is what dismisses a live app's card, and every native
+  `taken` is scheduled `calls.TAKEN_PUSH_GRACE_MS` later (`scheduleTakenPush`)
+  so the app can report the card gone (`calls:ackNativeDismissed`, from
+  `CallService`) and be skipped. A killed process never acks and still gets
+  the push. On `end` the PushKit leg is dropped outright (`iosVoip: false`)
+  unless the peer is the callee of a call that was still ringing — the one
+  state where a card can sit in a process the signal cannot reach.
 - **iOS holds two different APNs tokens on two different topics.** The PushKit
   token rings the phone; the ordinary token draws banners. Sending one on the
   other's topic returns `400 DeviceTokenNotForTopic`, and the dead-token sweep

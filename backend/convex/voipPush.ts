@@ -186,6 +186,14 @@ export const sendVoipTaken = internalAction({
       v.literal("ended"),
       v.literal("stuck"),
     ),
+    // `false` drops the APNs/PushKit leg and keeps FCM. Set by
+    // `calls.endCallImpl` when every iOS card for this call is known to
+    // live in a process that gets the realtime signal — there a VoIP push
+    // cannot dismiss anything, and PushKit's report-every-push contract
+    // turns it into a one-second phantom "Call" ring (see the comment at
+    // the call site). Absent means true: every other sender may be
+    // clearing a card in a killed process, which only PushKit can reach.
+    iosVoip: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     // Annotated at the USE site, not just on the query.
@@ -206,11 +214,26 @@ export const sendVoipTaken = internalAction({
     // excluded every Android handset: their ringer was never dismissed after
     // the call was answered elsewhere, and CallFcmService.handleTaken (which
     // exists solely to service this push) was dead code.
-    const targets = devices.filter(
-      (d) =>
-        (d.voipToken || d.fcmToken) && d.deviceId !== args.excludeDeviceId,
+    //
+    // Devices that already acked their card gone (`calls.ackNativeDismissed`
+    // during the scheduling grace — see `calls.TAKEN_PUSH_GRACE_MS`) have
+    // nothing for this push to end, and on iOS a `taken` with nothing to end
+    // is a phantom ring. Skip them.
+    const dismissedIds: string[] = await ctx.runQuery(
+      internal.calls.dismissedDevicesInternal,
+      { callId: args.callId },
     );
-    if (targets.length === 0) return;
+    const targets = selectTakenTargets(devices, {
+      excludeDeviceId: args.excludeDeviceId,
+      iosVoip: args.iosVoip ?? true,
+      dismissed: new Set(dismissedIds),
+    });
+    if (targets.length === 0) {
+      console.log(
+        `sendVoipTaken: nothing to dismiss for call ${args.callId} (${args.reason}) — every device excluded or acked`,
+      );
+      return;
+    }
     const payload = {
       kind: "taken",
       callId: args.callId.toString(),
@@ -221,6 +244,32 @@ export const sendVoipTaken = internalAction({
     );
   },
 });
+
+/**
+ * Which of [devices] a `taken` push goes to. Pure, so the selection rules
+ * are unit-testable without a push transport:
+ *   - never the device that settled the call (`excludeDeviceId`);
+ *   - never a device that acked its card already gone (`dismissed`);
+ *   - with `iosVoip: false` the PushKit leg is stripped off the DEVICE row
+ *     rather than checked inside pushToDevice — the row is what a
+ *     transient-failure retry (`retryPushToDevice`) is scheduled with, so
+ *     stripping it here is what makes the retry honour the decision too;
+ *   - and only rows that still have a channel left after all that.
+ */
+export function selectTakenTargets(
+  devices: DeviceRow[],
+  opts: {
+    excludeDeviceId: string | null | undefined;
+    iosVoip: boolean;
+    dismissed: ReadonlySet<string>;
+  },
+): DeviceRow[] {
+  return devices
+    .filter((d) => d.deviceId !== opts.excludeDeviceId)
+    .filter((d) => !opts.dismissed.has(d.deviceId))
+    .map((d) => (opts.iosVoip ? d : { ...d, voipToken: undefined }))
+    .filter((d) => d.voipToken || d.fcmToken);
+}
 
 /**
  * One push destination, in the two shapes `_loadUserDevices` can produce:
@@ -289,6 +338,22 @@ export const retryPushToDevice = internalAction({
       if (status !== "ringing") {
         console.log(
           `retryPushToDevice: invite for ${callId} no longer ringing (${status ?? "gone"}) — skipping retry`,
+        );
+        return null;
+      }
+    }
+    // A `taken` retry is always safe to send — unless the device acked its
+    // card gone in the meantime, in which case it is the phantom ring
+    // `sendVoipTaken` just avoided. Same check, two seconds later.
+    if (kind === "taken" && callId) {
+      const dismissedIds: string[] = await ctx.runQuery(
+        internal.calls.dismissedDevicesInternal,
+        { callId: callId as Id<"calls"> },
+      );
+      const deviceId = (device as DeviceRow).deviceId;
+      if (dismissedIds.includes(deviceId)) {
+        console.log(
+          `retryPushToDevice: taken for ${callId} — device ${deviceId} acked dismissal, skipping retry`,
         );
         return null;
       }

@@ -6,7 +6,7 @@ import {
 import { action, mutation, query } from "./functions";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
-import type { Doc } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { childMayReach, childPolicyOf } from "./childGuard";
 import { assertNoSystemAccount } from "./systemAccount";
 import { lensFor } from "./visibility";
@@ -19,6 +19,37 @@ const CALL_RING_TIMEOUT_MS = 30 * 1000; // missed after 30s un-answered
 // never fired); `initiate`'s busy check reaps it inline rather than
 // refusing with BUSY. Twice the ring timeout, well before gcStuckRinging.
 const BUSY_RINGING_STALE_MS = 60 * 1000;
+
+// Every terminal transition chases its realtime signal with a native `taken`
+// push, so a card in a KILLED process — the invite VoIP push rang it and its
+// subscription never attached — still gets dismissed. A LIVE process
+// dismisses its own card from the signal within a few hundred milliseconds
+// and then has nothing left for the push to end; on iOS a PushKit push with
+// nothing to end must still report a call, which surfaces as a one-second
+// phantom "Call" that rings and vanishes (AppDelegate.reportAndEndCall).
+// So the push waits this long first, and `voipPush.sendVoipTaken` skips every
+// device that acked its dismissal (`ackNativeDismissed`) in the meantime. A
+// dead process pays the grace on top of its ring; a live one never sees the
+// push. Sized for the slow path — signal delivery, the native end-call
+// round-trip and the ack mutation on a loaded backend — not the typical one.
+export const TAKEN_PUSH_GRACE_MS = 3000;
+
+type TakenPushArgs = {
+  callId: Id<"calls">;
+  targetUserId: Id<"users">;
+  excludeDeviceId: string | null;
+  reason: "accepted" | "rejected" | "cancelled" | "timeout" | "ended" | "stuck";
+  iosVoip?: boolean;
+};
+
+// The one way a native `taken` push gets scheduled — see TAKEN_PUSH_GRACE_MS.
+async function scheduleTakenPush(ctx: any, args: TakenPushArgs) {
+  await ctx.scheduler.runAfter(
+    TAKEN_PUSH_GRACE_MS,
+    internal.voipPush.sendVoipTaken,
+    args,
+  );
+}
 
 async function isPairBlocked(
   ctx: any,
@@ -46,15 +77,20 @@ async function isPairBlocked(
 // one whose staleness the gate misread as "online" for up to 3 minutes.
 // These were the ONLY two gated paths (accept/reject/expire/gc always
 // pushed) — precisely the cancel-leaves-stale-CallKit report. The cost of
-// always sending is a report-then-immediately-end blip only on a device
-// that has no card left in-process; `reportCallEndedElsewhere` dismisses
-// cleanly whenever the mapping exists.
+// always sending is a report-then-immediately-end on a device that has no
+// card left in-process — which turned out NOT to be invisible: iOS shows it
+// as a one-second phantom "Call". That is what the scheduling grace, the
+// dismissal ack and `iosVoip` below are for (see TAKEN_PUSH_GRACE_MS);
+// `reportCallEndedElsewhere` dismisses cleanly whenever a card is live.
 
 // Shared terminal transition: mark ended, notify the peer over realtime
 // (`bye`) AND native push (`taken`), purge everything else. Used by `end`,
 // by `cancel` when it loses the race to an accept, and by the busy-check
 // reaper in `initiate`.
 async function endCallImpl(ctx: any, call: any, byUserId: any) {
+  // Read BEFORE the patch below flips it: this is the state the peer's
+  // native card is in, and it decides whether a VoIP push can help it.
+  const wasRinging = call.status === "ringing";
   await ctx.db.patch(call._id, {
     status: "ended",
     endedAt: Date.now(),
@@ -63,6 +99,7 @@ async function endCallImpl(ctx: any, call: any, byUserId: any) {
     call.callerId.toString() === byUserId.toString()
       ? call.calleeId
       : call.callerId;
+  const peerIsCallee = peer.toString() === call.calleeId.toString();
   const sigId = await ctx.db.insert("callSignals", {
     callId: call._id,
     fromUserId: byUserId,
@@ -77,11 +114,29 @@ async function endCallImpl(ctx: any, call: any, byUserId: any) {
   // this, a peer whose app is backgrounded/killed never learns the call
   // ended — the realtime `bye` above only reaches a live subscription —
   // and their native call UI is orphaned "active" indefinitely.
-  await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
+  //
+  // The PushKit leg is sent ONLY when the peer is the callee of a call that
+  // was still ringing — the one case where an iOS card can outlive the app
+  // that showed it (the invite VoIP push rings a killed process, whose
+  // subscription never attaches). Everywhere else the card belongs to a
+  // live process that receives the `bye` above and dismisses it itself:
+  //   - the peer of an ACTIVE call is mid-WebRTC, which keeps the process
+  //     (and its subscription) alive, and CallKit drops the card with the
+  //     process if that ever dies;
+  //   - a CALLER never gets an invite push at all — their outbound card
+  //     exists only inside the process that placed the call.
+  // A VoIP push landing on an iOS device with no card left for this call
+  // has exactly one effect: PushKit's every-push-must-report contract makes
+  // AppDelegate report-and-end a placeholder call, which iOS renders as a
+  // one-second incoming "Call" that rings and vanishes — a phantom on
+  // EVERY remote hangup. FCM keeps going regardless (Android's handleTaken
+  // is a no-op for a card it never showed).
+  await scheduleTakenPush(ctx, {
     callId: call._id,
     targetUserId: peer,
     excludeDeviceId: null,
     reason: "ended",
+    iosVoip: peerIsCallee && wasRinging,
   });
 }
 
@@ -116,7 +171,7 @@ async function expireRingingImpl(ctx: any, call: any) {
   await purgeCallSignals(ctx, call._id, [sigToCallee, sigToCaller]);
   // Dismiss the callee's native CallKit ringer on timeout — the realtime
   // "cancel" signal above can't reach a locked/killed device.
-  await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
+  await scheduleTakenPush(ctx, {
     callId: call._id,
     targetUserId: call.calleeId,
     excludeDeviceId: null,
@@ -148,7 +203,7 @@ async function reapActiveCall(ctx: any, call: any) {
       createdAt: Date.now(),
       consumed: false,
     });
-    await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
+    await scheduleTakenPush(ctx, {
       callId: call._id,
       targetUserId: toUserId,
       excludeDeviceId: null,
@@ -437,7 +492,7 @@ export const accept = mutation({
     // For killed-iOS siblings (subscription not alive), fan a PushKit
     // payload with kind="taken" so CallKit can dismiss with
     // .answeredElsewhere. The accepting device is excluded.
-    await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
+    await scheduleTakenPush(ctx, {
       callId,
       targetUserId: call.calleeId,
       excludeDeviceId: acceptingDeviceId ?? null,
@@ -492,7 +547,7 @@ export const reject = mutation({
       consumed: false,
     });
     await purgeCallSignals(ctx, callId, [sigToCaller, sigToCallee]);
-    await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
+    await scheduleTakenPush(ctx, {
       callId,
       targetUserId: call.calleeId,
       excludeDeviceId: acceptingDeviceId ?? null,
@@ -545,7 +600,7 @@ export const cancel = mutation({
     // under a CallKit card reports `inactive`, which writes no presence at
     // all — the gate misread exactly the device it existed for. Fan to ALL
     // callee devices (no exclude).
-    await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
+    await scheduleTakenPush(ctx, {
       callId,
       targetUserId: call.calleeId,
       excludeDeviceId: null,
@@ -1074,7 +1129,7 @@ export const gcStuckRinging = internalMutation({
         consumed: false,
       });
       // Clear any native CallKit ringer still up on a locked/killed callee.
-      await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
+      await scheduleTakenPush(ctx, {
         callId: call._id,
         targetUserId: call.calleeId,
         excludeDeviceId: null,
@@ -1181,5 +1236,45 @@ export const callStatusInternal = internalQuery({
   handler: async (ctx, { callId }) => {
     const call = await ctx.db.get(callId);
     return call?.status ?? null;
+  },
+});
+
+// ────────────────────── native-card dismissal acks ──────────────────────
+
+// A device reports that its native call card for [callId] is gone — it ended
+// the card itself from the realtime terminal signal (or never showed one).
+// Recorded so the grace-delayed `taken` push (`scheduleTakenPush`) leaves
+// that device alone; see TAKEN_PUSH_GRACE_MS for why that matters on iOS.
+// Idempotent, and a GC'd row is fine: there is nothing left to push about.
+export const ackNativeDismissed = mutation({
+  args: {
+    callId: v.id("calls"),
+    userId: v.id("users"),
+    deviceId: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, { callId, userId, deviceId }) => {
+    const call = await ctx.db.get(callId);
+    if (!call) return null;
+    const u = userId.toString();
+    if (call.callerId.toString() !== u && call.calleeId.toString() !== u) {
+      throw new Error("NOT_A_PARTICIPANT");
+    }
+    const acked = call.dismissedDeviceIds ?? [];
+    if (acked.includes(deviceId)) return null;
+    await ctx.db.patch(callId, { dismissedDeviceIds: [...acked, deviceId] });
+    return null;
+  },
+});
+
+// Internal, no participant check: the device ids `ackNativeDismissed` has
+// recorded for a call, for `voipPush.sendVoipTaken` (and its retry) to skip.
+// Empty once the row is GC'd — by then every push for it has long expired.
+export const dismissedDevicesInternal = internalQuery({
+  args: { callId: v.id("calls") },
+  returns: v.array(v.string()),
+  handler: async (ctx, { callId }) => {
+    const call = await ctx.db.get(callId);
+    return call?.dismissedDeviceIds ?? [];
   },
 });

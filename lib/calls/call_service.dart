@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform;
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
@@ -78,6 +79,25 @@ class CallService extends ChangeNotifier {
   /// the mic release behind it.
   @visibleForTesting
   Duration endNativeTimeout = const Duration(seconds: 2);
+
+  /// Base cadence of the in-call heartbeat ([_startHeartbeat]) and the
+  /// random extra added to every beat. Both peers start beating the instant
+  /// their PC connects — the same instant, to within a round-trip — and on
+  /// a fixed period they stayed phase-locked for the whole call: every beat
+  /// landed as two writes to the same `calls` row inside one OCC window,
+  /// and the backend retried one of them on EVERY cycle (`calls.js:heartbeat`
+  /// "Optimistic concurrency control failed", three a minute per call).
+  /// Per-beat jitter breaks the lock. `gcStuckActive` tolerates 3 minutes
+  /// of silence, so the worst-case gap here (interval + jitter) is nowhere
+  /// near it.
+  @visibleForTesting
+  Duration heartbeatInterval = const Duration(seconds: 20);
+  @visibleForTesting
+  Duration heartbeatJitter = const Duration(seconds: 4);
+
+  /// Source of the jitter; seedable so a test can pin the schedule.
+  @visibleForTesting
+  math.Random heartbeatRng = math.Random();
 
   /// Real mobile hardware, where flutter_webrtc's native `Helper` audio APIs
   /// (setSpeakerphoneOn, switchCamera) exist. On web/desktop those channels
@@ -1177,7 +1197,9 @@ class CallService extends ChangeNotifier {
       // after a fast cancel purged the `invite` row (so no session was ever
       // created here). Mirrors the no-session fallback `taken` already has.
       if (kind == 'bye' || kind == 'reject' || kind == 'cancel') {
-        unawaited(NativeCallHandler.instance.endNative(callId));
+        unawaited(NativeCallHandler.instance
+            .endNative(callId)
+            .then((_) => _ackNativeDismissed(callId)));
       }
       return;
     }
@@ -1305,6 +1327,7 @@ class CallService extends ChangeNotifier {
         // (e.g. CallKit from a PushKit invite that landed before the
         // subscription delivered the invite signal).
         await NativeCallHandler.instance.endNative(callId);
+        _ackNativeDismissed(callId);
         return;
       }
       if (s.status != CallStatus.incomingRinging || _acceptedNatively) {
@@ -2184,23 +2207,80 @@ class CallService extends ChangeNotifier {
     _heartbeatTimer?.cancel();
     final me = _userId;
     if (me == null) return;
-    _heartbeatTimer = Timer.periodic(const Duration(seconds: 20), (_) {
-      unawaited(() async {
-        try {
-          final res = await api.heartbeat(callId: callId, userId: me);
-          if (res == 'not-in-call' &&
-              _session?.callId == callId &&
-              inCall) {
-            debugPrint(
-              'CallService: heartbeat says not-in-call — tearing down',
-            );
-            await _teardown(CallStatus.ended);
-          }
-        } catch (e) {
-          debugPrint('CallService heartbeat failed: $e');
-        }
-      }());
-    });
+    // One-shot timers chained by hand rather than `Timer.periodic`, so the
+    // delay is re-drawn for every beat (see [heartbeatJitter]). Cancelling
+    // `_heartbeatTimer` — [_teardown], [_disposePc], or a fresh
+    // [_startHeartbeat] on reconnect — drops the whole chain: the pending
+    // timer is the only thing that would arm the next one.
+    void beat() {
+      _heartbeatTimer = Timer(
+        heartbeatDelay(heartbeatInterval, heartbeatJitter, heartbeatRng),
+        () {
+          unawaited(() async {
+            try {
+              final res = await api.heartbeat(callId: callId, userId: me);
+              if (res == 'not-in-call' &&
+                  _session?.callId == callId &&
+                  inCall) {
+                debugPrint(
+                  'CallService: heartbeat says not-in-call — tearing down',
+                );
+                await _teardown(CallStatus.ended);
+              }
+            } catch (e) {
+              debugPrint('CallService heartbeat failed: $e');
+            }
+          }());
+          beat();
+        },
+      );
+    }
+
+    beat();
+  }
+
+  /// After the native card for [callId] is gone from THIS device, say so:
+  /// `calls:ackNativeDismissed`. Every terminal transition schedules a
+  /// native `taken` push after a short grace so a card in a KILLED process
+  /// still gets dismissed; a device that acks inside that grace is skipped.
+  /// That matters on iOS, where a PushKit `taken` with no card left to end
+  /// has to report a placeholder call — a one-second phantom "Call" that
+  /// rings and vanishes. Best effort and fire-and-forget: a late or lost
+  /// ack only means the push goes out the way it always did. Mobile only —
+  /// nothing else shows a native card, and the backend never pushes to the
+  /// simulator anyway.
+  void _ackNativeDismissed(String callId) {
+    final me = _userId;
+    final dev = _deviceId;
+    if (!_isMobile || me == null || dev == null) return;
+    try {
+      unawaited(api
+          .ackNativeDismissed(callId: callId, userId: me, deviceId: dev)
+          .catchError((Object e) {
+        debugPrint('CallService: ackNativeDismissed failed: $e');
+      }));
+    } catch (e) {
+      debugPrint('CallService: ackNativeDismissed failed: $e');
+    }
+  }
+
+  /// Test seam for [_startHeartbeat]: the beat is otherwise only reachable
+  /// by driving a PeerConnection to Connected, which drags stats polling and
+  /// the native audio-route plugin into a unit test.
+  @visibleForTesting
+  void debugStartHeartbeat(String callId) => _startHeartbeat(callId);
+
+  /// [interval] plus a uniformly random extra in `[0, jitter)` at
+  /// millisecond resolution — every beat draws its own.
+  @visibleForTesting
+  static Duration heartbeatDelay(
+    Duration interval,
+    Duration jitter,
+    math.Random rng,
+  ) {
+    final jitterMs = jitter.inMilliseconds;
+    if (jitterMs <= 0) return interval;
+    return interval + Duration(milliseconds: rng.nextInt(jitterMs));
   }
 
   /// [notifyBackend] is set ONLY by the locally-detected abandonment paths
@@ -2242,7 +2322,10 @@ class CallService extends ChangeNotifier {
         await NativeCallHandler.instance
             .endNative(s.callId)
             .timeout(endNativeTimeout);
+        _ackNativeDismissed(s.callId);
       } catch (e) {
+        // No ack on failure: the card may still be up, and the backend's
+        // `taken` push is the one thing left that can clear it.
         debugPrint('CallService._teardown: endNative failed: $e');
       }
     }

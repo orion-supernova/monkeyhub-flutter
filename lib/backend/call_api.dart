@@ -88,6 +88,23 @@ class CallApi {
     return res?.toString();
   }
 
+  /// This device no longer shows a native card (CallKit/ConnectionService)
+  /// for [callId]. Every terminal transition schedules a native `taken` push
+  /// after a short grace so a card in a KILLED process still gets dismissed;
+  /// a device that acks inside that grace is skipped — which on iOS is the
+  /// difference between nothing and a one-second phantom "Call".
+  Future<void> ackNativeDismissed({
+    required String callId,
+    required String userId,
+    required String deviceId,
+  }) async {
+    await _cv.mutation('calls:ackNativeDismissed', {
+      'callId': callId,
+      'userId': userId,
+      'deviceId': deviceId,
+    });
+  }
+
   Future<void> sendCallSignal({
     required String callId,
     required String fromUserId,
