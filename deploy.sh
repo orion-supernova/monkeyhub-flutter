@@ -89,6 +89,19 @@ ACTION=""          # "" | infra | rollback-web | set-min-supported
 SET_MIN_CHANNEL=""
 SET_MIN_VERSION=""
 
+# Per-platform stage sets, space-separated. Empty = "whatever --<platform> or the
+# picker asked for", resolved to the full pipeline once DEPLOY_* is final (see
+# "stage defaults" below). --<platform>-<stage> flags APPEND to these instead of
+# replacing, so e.g. `--ios-export --ios-upload` composes into "export upload"
+# and skips only the build+archive stage — this is how a failed-then-retried
+# upload resumes without rebuilding. iOS/macOS: archive → export → upload.
+# Android/web: build → upload.
+IOS_STAGES=""
+MACOS_STAGES=""
+ANDROID_STAGES=""
+WEB_STAGES=""
+has_stage() { case " $1 " in *" $2 "*) return 0 ;; *) return 1 ;; esac; }
+
 print_help() {
     cat <<EOF
 Usage: ./deploy.sh [flags]
@@ -117,7 +130,27 @@ Standalone actions (run alone and exit):
                         channel's published version untouched. <version> may
                         be "clear" to lift the requirement. Channels:
                         ios-testflight, macos-testflight, android-play,
-                        android-apk, web.
+                        android-apk, web. Also reachable from the interactive
+                        picker by pressing 'f'.
+
+Per-platform stages: each platform's pipeline is independent stages that can be
+run on their own — most useful to resume after a partial failure (e.g. iOS
+archived fine but the App Store Connect upload timed out) without redoing the
+earlier, already-successful, expensive stages. Combine flags to run more than
+one stage (e.g. --ios-export --ios-upload); a bare --ios/--macos/--android/--web
+still runs every stage, same as always.
+  iOS:      --ios-archive   --ios-export   --ios-upload
+  macOS:    --macos-archive --macos-export --macos-upload
+  Android:  --android-build --android-upload
+  Web:      --web-build     --web-upload
+A stage-only run that skips its platform's first stage leaves the version bump
+and 'flutter clean' out too — it's shipping whatever is already built, so the
+version must match what's actually in that build.
+
+Platforms are independent: if one fails, the rest still run (iOS failing
+doesn't stop Android/web/macOS or the git commit for whatever did ship). The
+script exits non-zero at the end if anything failed, so CI/scripts still see
+it — check the per-platform summary at the end for what to retry.
 
 Behavior flags:
   --skip-version-bump   Re-ship the same version.
@@ -135,8 +168,16 @@ while [[ $# -gt 0 ]]; do
         --no-upload)         RUN_UPLOAD=false ;;
         --no-git)            RUN_GIT=false ;;
         --ios)               DEPLOY_IOS=true;  PLATFORM_ARGS=true ;;
+        --ios-archive)        DEPLOY_IOS=true; PLATFORM_ARGS=true; IOS_STAGES="$IOS_STAGES archive" ;;
+        --ios-export)         DEPLOY_IOS=true; PLATFORM_ARGS=true; IOS_STAGES="$IOS_STAGES export" ;;
+        --ios-upload)         DEPLOY_IOS=true; PLATFORM_ARGS=true; IOS_STAGES="$IOS_STAGES upload" ;;
         --macos)             DEPLOY_MACOS=true; PLATFORM_ARGS=true ;;
+        --macos-archive)      DEPLOY_MACOS=true; PLATFORM_ARGS=true; MACOS_STAGES="$MACOS_STAGES archive" ;;
+        --macos-export)       DEPLOY_MACOS=true; PLATFORM_ARGS=true; MACOS_STAGES="$MACOS_STAGES export" ;;
+        --macos-upload)       DEPLOY_MACOS=true; PLATFORM_ARGS=true; MACOS_STAGES="$MACOS_STAGES upload" ;;
         --android)           DEPLOY_ANDROID=true; PLATFORM_ARGS=true ;;
+        --android-build)      DEPLOY_ANDROID=true; PLATFORM_ARGS=true; ANDROID_STAGES="$ANDROID_STAGES build" ;;
+        --android-upload)     DEPLOY_ANDROID=true; PLATFORM_ARGS=true; ANDROID_STAGES="$ANDROID_STAGES upload" ;;
         # Kept so the old muscle memory and any saved command still work —
         # Play is now the only Android target, so this says what it always did.
         --android=play)      DEPLOY_ANDROID=true; PLATFORM_ARGS=true ;;
@@ -148,6 +189,8 @@ while [[ $# -gt 0 ]]; do
             exit 1
             ;;
         --web)               DEPLOY_WEB=true; PLATFORM_ARGS=true ;;
+        --web-build)          DEPLOY_WEB=true; PLATFORM_ARGS=true; WEB_STAGES="$WEB_STAGES build" ;;
+        --web-upload)         DEPLOY_WEB=true; PLATFORM_ARGS=true; WEB_STAGES="$WEB_STAGES upload" ;;
         --site)              DEPLOY_SITE=true; PLATFORM_ARGS=true ;;
         --all)               DEPLOY_IOS=true; DEPLOY_ANDROID=true; DEPLOY_WEB=true
                              DEPLOY_SITE=true; PLATFORM_ARGS=true ;;
@@ -262,27 +305,40 @@ push_infra() {
 }
 
 
+# Reads back a channel's currently published version, or fails (nothing on
+# stdout) if the channel has never been published to. Shared by
+# set_min_supported (so a force-update never clobbers `version`, a required
+# arg on releases:publish) and the picker's 'f' flow (so "require whatever's
+# already live" needs no typing).
+channel_current_version() {   # $1 = channel
+    local current
+    current=$(cd backend && npx convex run releases:latest "{\"channel\":\"$1\"}" 2>/dev/null)
+    [ -z "$current" ] || [ "$current" = "null" ] && return 1
+    echo "$current" | jq -r '.version'
+}
+
 # Force-updates an already-shipped channel without a new build. `version` is a
 # required arg on releases:publish (see backend/convex/releases.ts), so this
-# reads back the channel's current row via releases:latest first and republishes
-# it unchanged — only minSupported moves. "clear" sends null to lift the gate;
-# anything else is set as the new minSupported string.
+# reads back the channel's current version first and republishes it unchanged —
+# only minSupported moves. "clear" sends null to lift the gate; anything else
+# is set as the new minSupported string. Returns rather than exits — the
+# --set-min-supported CLI action exits on a false return itself; the picker's
+# 'f' flow instead falls back to its checklist so a failure doesn't kill the
+# whole interactive session.
 set_min_supported() {   # $1 = channel, $2 = version, or "clear"
     local channel="$1"
     local min="$2"
     if [ -z "$channel" ] || [ -z "$min" ]; then
         echo "❌ Usage: --set-min-supported <channel> <version|clear>"
-        exit 1
-    fi
-    local current
-    current=$(cd backend && npx convex run releases:latest "{\"channel\":\"$channel\"}" 2>/dev/null)
-    if [ -z "$current" ] || [ "$current" = "null" ]; then
-        echo "❌ No published release found for channel '$channel' — nothing to gate."
-        echo "   Channels: ios-testflight, macos-testflight, android-play, android-apk, web."
-        exit 1
+        return 1
     fi
     local version
-    version=$(echo "$current" | jq -r '.version')
+    version=$(channel_current_version "$channel")
+    if [ -z "$version" ]; then
+        echo "❌ No published release found for channel '$channel' — nothing to gate."
+        echo "   Channels: ios-testflight, macos-testflight, android-play, android-apk, web."
+        return 1
+    fi
     local payload
     if [ "$min" = "clear" ]; then
         payload=$(jq -nc --arg channel "$channel" --arg version "$version" \
@@ -300,59 +356,272 @@ set_min_supported() {   # $1 = channel, $2 = version, or "clear"
     else
         echo "❌ Failed to update $channel. Retry with:"
         echo "     (cd backend && npx convex run releases:publish $(printf '%s' "$payload" | jq -Rr @sh))"
-        exit 1
+        return 1
     fi
 }
 
 case "$ACTION" in
     rollback-web)      rollback_web; exit 0 ;;
     infra)              push_infra;   exit 0 ;;
-    set-min-supported)  set_min_supported "$SET_MIN_CHANNEL" "$SET_MIN_VERSION"; exit 0 ;;
+    set-min-supported)  set_min_supported "$SET_MIN_CHANNEL" "$SET_MIN_VERSION" || exit 1; exit 0 ;;
 esac
 
 # ----- interactive platform picker -----
+# Shared by pick_platforms and pick_stage_menu below. Reads one logical
+# keypress from fd 3 into KEY_KIND (PLAIN/UP/DOWN/ESC) and, for PLAIN,
+# KEY_CHAR.
+#
+# macOS's stock /bin/bash is 3.2, which has no fractional `read -t` timeout —
+# distinguishing a bare Esc from the start of an arrow-key escape sequence
+# ("Esc [ A") needs a full second's wait for a second byte that, for a bare
+# Esc, never comes. A real keypress typed quickly right after Esc can land
+# inside that second, and naively discarding whatever the lookahead read
+# picked up would silently eat it — most noticeably when Esc cancels a
+# pick_stage_menu sub-menu (Tab, or 'f') and the very next key is meant for
+# the checklist underneath. $?, not just an empty variable, is what tells a
+# genuine timeout (nothing arrived) apart from "Enter arrived, and happens to
+# read as empty" — read -n1 strips Enter to "", same as a timeout leaves the
+# variable, so only the exit status disambiguates them.
+#
+# The rescued byte is parked in PENDING_KEY_FILE and replayed by the next
+# read_key call — via a file, not a variable, because pick_stage_menu is
+# invoked as `choice=$(pick_stage_menu ...)`, a command substitution
+# subshell, so a variable it set could never reach the caller. $$ is stable
+# across that subshell (bash keeps it as the invoking shell's PID, not the
+# subshell's), so every read_key call — inside or outside pick_stage_menu —
+# agrees on the same path.
+PENDING_KEY_FILE="${TMPDIR:-/tmp}/.monkeyhub_deploy_pending_key.$$"
+rm -f "$PENDING_KEY_FILE" 2>/dev/null
+read_key() {
+    local key esc2 esc2_rc esc3 esc3_rc pending
+    if [ -f "$PENDING_KEY_FILE" ]; then
+        pending=$(cat "$PENDING_KEY_FILE")
+        rm -f "$PENDING_KEY_FILE"
+        [ "$pending" = "__ENTER__" ] && key="" || key="$pending"
+    else
+        IFS= read -rsn1 -u3 key
+    fi
+    if [ "$key" = $'\x1b' ]; then
+        IFS= read -rsn1 -t 1 -u3 esc2; esc2_rc=$?
+        if [ $esc2_rc -ne 0 ]; then
+            KEY_KIND=ESC; return
+        fi
+        if [ "$esc2" = "[" ]; then
+            IFS= read -rsn1 -t 1 -u3 esc3; esc3_rc=$?
+            if [ $esc3_rc -ne 0 ]; then
+                KEY_KIND=ESC; return
+            fi
+            case "$esc3" in
+                A) KEY_KIND=UP; return ;;
+                B) KEY_KIND=DOWN; return ;;
+                *) KEY_KIND=ESC
+                   [ -n "$esc3" ] && printf '%s' "$esc3" > "$PENDING_KEY_FILE"
+                   return ;;
+            esac
+        elif [ -z "$esc2" ]; then
+            printf '%s' "__ENTER__" > "$PENDING_KEY_FILE"
+            KEY_KIND=ESC
+            return
+        else
+            printf '%s' "$esc2" > "$PENDING_KEY_FILE"
+            KEY_KIND=ESC
+            return
+        fi
+    fi
+    KEY_KIND=PLAIN
+    KEY_CHAR="$key"
+}
+
+# Single-select sub-menu opened by pressing Tab on an iOS/macOS/Android/Web row
+# in pick_platforms below — scopes that platform to one stage (see "Per-platform
+# stages" in -h) without leaving the picker. Prints the chosen token to stdout
+# for the caller to capture via $(...); every interactive redraw below is
+# therefore sent to stderr instead, since anything on stdout here would be
+# swallowed into that capture rather than reaching the terminal. $1 = title,
+# then "token:option label" pairs. Returns 1 with no output on Esc (cancel).
+pick_stage_menu() {
+    local title="$1"; shift
+    local tokens=() opts=() pair
+    for pair in "$@"; do
+        tokens+=("${pair%%:*}")
+        opts+=("${pair#*:}")
+    done
+    local n=${#opts[@]} sel=0 i arrow cancelled=false
+    {
+        printf "    %s — pick a stage  (↑/↓ move · enter choose · esc cancel)\033[K\n" "$title"
+        while true; do
+            for i in $(seq 0 $((n - 1))); do
+                [ "$i" = "$sel" ] && arrow="❯" || arrow=" "
+                printf "      %s %s\033[K\n" "$arrow" "${opts[$i]}"
+            done
+            read_key
+            case "$KEY_KIND" in
+                UP)   sel=$(( (sel + n - 1) % n )) ;;
+                DOWN) sel=$(( (sel + 1) % n )) ;;
+                ESC)  cancelled=true; break ;;
+                PLAIN) [ -z "$KEY_CHAR" ] && break ;;  # enter
+            esac
+            tput cuu $n 2>/dev/null
+        done
+        # Erase everything this menu drew (title + n options) and leave the
+        # cursor exactly where it was before the menu opened.
+        tput cuu $((n + 1)) 2>/dev/null
+        for i in $(seq 0 $n); do printf "\033[K\n"; done
+        tput cuu $((n + 1)) 2>/dev/null
+    } 1>&2
+    [ "$cancelled" = true ] && return 1
+    echo "${tokens[$sel]}"
+}
+
 # Checkbox menu on the controlling terminal. Only used when the caller gave no
 # platform flags and we actually have a TTY to talk to.
 pick_platforms() {
     local labels=("Convex backend" "iOS  → App Store Connect"
                   "macOS → App Store Connect"
                   "Android → Google Play (internal track)"
-                  "Web  → $WEB_URL" "Site → $SITE_URL  (pages only, no build)")
-    # Menu starts on Convex + iOS only. Unlike --all (which ships everything),
-    # the picker leaves the rest unticked so a bare Enter stays cheap. macOS
-    # defaults off too — it's a new, unproven pipeline (see --macos in -h).
-    local selected=(1 1 0 0 0 0)
+                  "Web  → $WEB_URL" "Site → $SITE_URL  (pages only, no build)"
+                  "Bump version (patch)")
+    # Menu starts on Convex only. Unlike --all (which ships everything), the
+    # picker leaves the rest unticked so a bare Enter stays cheap and a stray
+    # Enter can't kick off an App Store / Play upload by accident.
+    local selected=(1 0 0 0 0 0 0)
     # Honor explicit --no-convex / --macos / --web / --site even in interactive mode.
     [ "$RUN_CONVEX" = false ] && selected[0]=0
     [ "$DEPLOY_MACOS" = true ] && selected[2]=1
     [ "$DEPLOY_WEB" = true ] && selected[4]=1
     [ "$DEPLOY_SITE" = true ] && selected[5]=1
-    local cursor=0 count=6 key rest i marker arrow
+    # "Bump version" only does anything once an app platform ships (see
+    # "Version bump only makes sense..." below) — a Convex- or Site-only run
+    # would show it pre-checked for no reason. It defaults on the moment
+    # iOS/macOS/Android is (matching --skip-version-bump's own default: bump
+    # unless told not to) and off again the moment none of them are, tracked
+    # live as those three rows get toggled — see the space-key handling below.
+    # --skip-version-bump always wins, even over a pre-set --macos.
+    if [ "$SKIP_VERSION_BUMP" != true ]; then
+        { [ "${selected[1]}" = 1 ] || [ "${selected[2]}" = 1 ] || [ "${selected[3]}" = 1 ]; } \
+            && selected[6]=1
+    fi
+    local prev_any_app=false
+    { [ "${selected[1]}" = 1 ] || [ "${selected[2]}" = 1 ] || [ "${selected[3]}" = 1 ]; } \
+        && prev_any_app=true
+    local cursor=0 count=7 extra=2 i marker arrow label
+    # Per-platform stage override, set via Tab. Empty = full pipeline. Threaded
+    # into IOS_STAGES etc. below once Enter is pressed — see "stage defaults".
+    local pstage_ios="" pstage_macos="" pstage_android="" pstage_web=""
 
     exec 3</dev/tty
     tput civis 2>/dev/null || true
-    echo "Select what to deploy  (↑/↓ move · space toggle · enter go)"
+    echo "Select what to deploy  (↑/↓ move · space toggle · enter go · tab stage · f force-update)"
     while true; do
+        local skip_erase=false
         for i in $(seq 0 $((count - 1))); do
             [ "${selected[$i]}" = 1 ] && marker="◉" || marker="◯"
             [ "$i" = "$cursor" ] && arrow="❯" || arrow=" "
-            printf "  %s %s %s\033[K\n" "$arrow" "$marker" "${labels[$i]}"
-        done
-        IFS= read -rsn1 -u3 key
-        if [ "$key" = $'\x1b' ]; then
-            # -t 1: a bare ESC press must not hang (macOS bash 3.2 has no
-            # fractional read timeouts).
-            IFS= read -rsn2 -t 1 -u3 rest || rest=""
-            case "$rest" in
-                "[A") cursor=$(( (cursor + count - 1) % count )) ;;
-                "[B") cursor=$(( (cursor + 1) % count )) ;;
+            label="${labels[$i]}"
+            case "$i" in
+                1) [ -n "$pstage_ios" ]     && label="$label  [$pstage_ios]" ;;
+                2) [ -n "$pstage_macos" ]   && label="$label  [$pstage_macos]" ;;
+                3) [ -n "$pstage_android" ] && label="$label  [$pstage_android]" ;;
+                4) [ -n "$pstage_web" ]     && label="$label  [$pstage_web]" ;;
             esac
-        elif [ "$key" = " " ]; then
+            printf "  %s %s %s\033[K\n" "$arrow" "$marker" "$label"
+        done
+        printf "\n  [f] Force-update a channel (edit minSupported)…\033[K\n"
+        read_key
+        if [ "$KEY_KIND" = "UP" ]; then
+            cursor=$(( (cursor + count - 1) % count ))
+        elif [ "$KEY_KIND" = "DOWN" ]; then
+            cursor=$(( (cursor + 1) % count ))
+        elif [ "$KEY_KIND" = "ESC" ]; then
+            :  # bare Esc on the checklist itself is a no-op
+        elif [ "$KEY_KIND" = "PLAIN" ] && [ "$KEY_CHAR" = " " ]; then
             selected[$cursor]=$(( 1 - selected[$cursor] ))
-        elif [ -z "$key" ]; then  # enter
+            case "$cursor" in
+                1|2|3)
+                    local any_app=false
+                    { [ "${selected[1]}" = 1 ] || [ "${selected[2]}" = 1 ] || [ "${selected[3]}" = 1 ]; } \
+                        && any_app=true
+                    if [ "$any_app" = true ] && [ "$prev_any_app" = false ]; then
+                        selected[6]=1  # first app platform checked — default the bump back on
+                    elif [ "$any_app" = false ]; then
+                        selected[6]=0  # no app platform left — bump would be a no-op
+                    fi
+                    prev_any_app=$any_app
+                    ;;
+            esac
+        elif [ "$KEY_KIND" = "PLAIN" ] && [ "$KEY_CHAR" = $'\t' ]; then
+            local choice rc=1
+            case "$cursor" in
+                1) choice=$(pick_stage_menu "iOS" "full:Full pipeline" "archive:Archive only" \
+                                "export:Export only" "upload:Upload only"); rc=$? ;;
+                2) choice=$(pick_stage_menu "macOS" "full:Full pipeline" "archive:Archive only" \
+                                "export:Export only" "upload:Upload only"); rc=$? ;;
+                3) choice=$(pick_stage_menu "Android" "full:Full pipeline" "build:Build only" \
+                                "upload:Upload only"); rc=$? ;;
+                4) choice=$(pick_stage_menu "Web" "full:Full pipeline" "build:Build only" \
+                                "upload:Upload only"); rc=$? ;;
+            esac
+            if [ "$rc" = 0 ]; then
+                [ "$choice" = "full" ] && choice=""
+                case "$cursor" in
+                    1) pstage_ios="$choice";     selected[1]=1 ;;
+                    2) pstage_macos="$choice";   selected[2]=1 ;;
+                    3) pstage_android="$choice"; selected[3]=1 ;;
+                    4) pstage_web="$choice";     selected[4]=1 ;;
+                esac
+            fi
+        elif [ "$KEY_KIND" = "PLAIN" ] && { [ "$KEY_CHAR" = "f" ] || [ "$KEY_CHAR" = "F" ]; }; then
+            # Both steps below are pick_stage_menu, so Esc at either one cancels
+            # straight back to this checklist — nothing is printed and nothing
+            # needs erasing (pick_stage_menu always cleans up after itself,
+            # success or cancel). Only a completed force-update leaves output on
+            # screen, which is deliberate: skip_erase leaves it visible above the
+            # redrawn checklist instead of scrolling it away unread.
+            local fu_channel fu_current fu_action fu_version rc
+            fu_channel=$(pick_stage_menu "Force-update which channel?" \
+                "ios-testflight:iOS · TestFlight" "macos-testflight:macOS · TestFlight" \
+                "android-play:Android · Play" "android-apk:Android · sideloaded APK" \
+                "web:Web"); rc=$?
+            if [ "$rc" = 0 ]; then
+                fu_current=$(channel_current_version "$fu_channel")
+                if [ -z "$fu_current" ]; then
+                    echo "  ⚠️  No published release for $fu_channel yet — nothing to force."
+                    skip_erase=true
+                else
+                    fu_action=$(pick_stage_menu "Force-update $fu_channel (latest: $fu_current)" \
+                        "same:Require $fu_current — forces everyone below it to update now" \
+                        "custom:Type a different minimum version" \
+                        "clear:Clear the requirement"); rc=$?
+                    if [ "$rc" = 0 ]; then
+                        case "$fu_action" in
+                            same)   set_min_supported "$fu_channel" "$fu_current"; skip_erase=true ;;
+                            clear)  set_min_supported "$fu_channel" "clear"; skip_erase=true ;;
+                            custom)
+                                tput cnorm 2>/dev/null || true
+                                IFS= read -rp "  Minimum supported version for $fu_channel (blank cancels): " \
+                                    -u3 fu_version
+                                tput civis 2>/dev/null || true
+                                if [ -n "$fu_version" ]; then
+                                    set_min_supported "$fu_channel" "$fu_version"
+                                    skip_erase=true
+                                else
+                                    # Cancelled — erase the prompt line so the
+                                    # trailing tput cuu below (which assumes the
+                                    # cursor is exactly count+extra lines below
+                                    # the checklist) stays correct.
+                                    tput cuu 1 2>/dev/null
+                                    printf "\033[K\n"
+                                    tput cuu 1 2>/dev/null
+                                fi
+                                ;;
+                        esac
+                    fi
+                fi
+            fi
+        elif [ "$KEY_KIND" = "PLAIN" ] && [ -z "$KEY_CHAR" ]; then  # enter
             break
         fi
-        tput cuu $count 2>/dev/null
+        [ "$skip_erase" = false ] && tput cuu $((count + extra)) 2>/dev/null
     done
     tput cnorm 2>/dev/null || true
     exec 3<&-
@@ -363,6 +632,11 @@ pick_platforms() {
     DEPLOY_ANDROID=$([ "${selected[3]}" = 1 ] && echo true || echo false)
     DEPLOY_WEB=$([ "${selected[4]}" = 1 ] && echo true || echo false)
     DEPLOY_SITE=$([ "${selected[5]}" = 1 ] && echo true || echo false)
+    SKIP_VERSION_BUMP=$([ "${selected[6]}" = 1 ] && echo false || echo true)
+    [ -n "$pstage_ios" ]     && IOS_STAGES="$pstage_ios"
+    [ -n "$pstage_macos" ]   && MACOS_STAGES="$pstage_macos"
+    [ -n "$pstage_android" ] && ANDROID_STAGES="$pstage_android"
+    [ -n "$pstage_web" ]     && WEB_STAGES="$pstage_web"
 
     if [ "$RUN_CONVEX" = false ] && [ "$DEPLOY_IOS" = false ] && [ "$DEPLOY_MACOS" = false ] \
        && [ "$DEPLOY_ANDROID" = false ] && [ "$DEPLOY_WEB" = false ] && [ "$DEPLOY_SITE" = false ]; then
@@ -395,6 +669,42 @@ if [ "$DEPLOY_IOS" = false ] && [ "$DEPLOY_ANDROID" = false ] && [ "$DEPLOY_MACO
     SKIP_VERSION_BUMP=true
 fi
 
+# ----- stage defaults -----
+# DEPLOY_X=true with no stage flags/picker choice means the full pipeline.
+[ "$DEPLOY_IOS" = true ]     && [ -z "$IOS_STAGES" ]     && IOS_STAGES="archive export upload"
+[ "$DEPLOY_MACOS" = true ]   && [ -z "$MACOS_STAGES" ]   && MACOS_STAGES="archive export upload"
+[ "$DEPLOY_ANDROID" = true ] && [ -z "$ANDROID_STAGES" ] && ANDROID_STAGES="build upload"
+[ "$DEPLOY_WEB" = true ]     && [ -z "$WEB_STAGES" ]     && WEB_STAGES="build upload"
+
+# A platform whose stage set skips its own first stage (archive/build) is
+# resuming from an artifact a previous run already produced — 'flutter clean'
+# would delete that artifact out from under it, and a fresh version bump would
+# no longer match what's actually baked into it. NEEDS_FLUTTER_BUILD gates the
+# shared "flutter clean && pub get" prep step below; NEEDS_ARTIFACT_REUSE, if
+# true for ANY platform this run, disables 'flutter clean' and the version
+# bump for the WHOLE run — simpler and safer than tracking it per platform when
+# 'flutter clean' would nuke every platform's build/ output at once regardless
+# of which one asked for it.
+NEEDS_FLUTTER_BUILD=false
+NEEDS_ARTIFACT_REUSE=false
+if [ "$DEPLOY_IOS" = true ]; then
+    has_stage "$IOS_STAGES" archive && NEEDS_FLUTTER_BUILD=true || NEEDS_ARTIFACT_REUSE=true
+fi
+if [ "$DEPLOY_MACOS" = true ]; then
+    has_stage "$MACOS_STAGES" archive && NEEDS_FLUTTER_BUILD=true || NEEDS_ARTIFACT_REUSE=true
+fi
+if [ "$DEPLOY_ANDROID" = true ]; then
+    has_stage "$ANDROID_STAGES" build && NEEDS_FLUTTER_BUILD=true || NEEDS_ARTIFACT_REUSE=true
+fi
+if [ "$DEPLOY_WEB" = true ]; then
+    has_stage "$WEB_STAGES" build && NEEDS_FLUTTER_BUILD=true || NEEDS_ARTIFACT_REUSE=true
+fi
+if [ "$NEEDS_ARTIFACT_REUSE" = true ] && [ "$SKIP_VERSION_BUMP" = false ]; then
+    echo "⏭️  Skipping version bump — a stage-only platform is reusing a previous"
+    echo "    build/ output, so the version must match what's already baked into it."
+    SKIP_VERSION_BUMP=true
+fi
+
 # Anything that publishes to the VM also refreshes the pages, because both of
 # them print the current version in their footer. Left to a separate flag that
 # footer would quietly rot one deploy at a time — and a stale version on the
@@ -406,18 +716,26 @@ if [ "$RUN_UPLOAD" = true ] && [ "$DEPLOY_WEB" = true ]; then
     DEPLOY_SITE=true
 fi
 
+# Stages shown only when they're a strict subset of the platform's full
+# pipeline — the everyday case (nothing/full selected) stays quiet.
+stage_note() {   # $1 = stages string, $2 = full stages string
+    [ "$1" = "$2" ] && return
+    echo " [${1// /,}]"
+}
+
 echo ""
 echo "🐵 MonkeyHub deploy"
 echo "  • Convex deploy:    $([ "$RUN_CONVEX" = true ] && echo yes || echo no)"
 echo "  • Version bump:     $([ "$SKIP_VERSION_BUMP" = false ] && echo yes || echo no)"
-echo "  • iOS build:        $([ "$DEPLOY_IOS" = true ] && echo yes || echo no)"
-echo "  • macOS build:      $([ "$DEPLOY_MACOS" = true ] && echo yes || echo no)"
-echo "  • Android build:    $([ "$DEPLOY_ANDROID" = true ] && echo "yes (AAB → Play)" || echo no)"
-echo "  • Web build:        $([ "$DEPLOY_WEB" = true ] && echo yes || echo no)"
+echo "  • iOS build:        $([ "$DEPLOY_IOS" = true ] && echo yes || echo no)$([ "$DEPLOY_IOS" = true ] && stage_note "$IOS_STAGES" "archive export upload")"
+echo "  • macOS build:      $([ "$DEPLOY_MACOS" = true ] && echo yes || echo no)$([ "$DEPLOY_MACOS" = true ] && stage_note "$MACOS_STAGES" "archive export upload")"
+echo "  • Android build:    $([ "$DEPLOY_ANDROID" = true ] && echo "yes (AAB → Play)" || echo no)$([ "$DEPLOY_ANDROID" = true ] && stage_note "$ANDROID_STAGES" "build upload")"
+echo "  • Web build:        $([ "$DEPLOY_WEB" = true ] && echo yes || echo no)$([ "$DEPLOY_WEB" = true ] && stage_note "$WEB_STAGES" "build upload")"
 echo "  • Landing/downloads:$([ "$DEPLOY_SITE" = true ] && echo " yes" || echo " no")"
 echo "  • Upload/publish:   $([ "$RUN_UPLOAD" = true ] && echo yes || echo no)"
 echo "  • Git commit/push:  $([ "$RUN_GIT" = true ] && echo yes || echo no)"
 [ "$DRY_RUN" = true ] && echo "  • Mode: DRY (no side effects)"
+[ "$NEEDS_ARTIFACT_REUSE" = true ] && echo "  • Reusing build/ output from a previous run for at least one platform"
 echo ""
 
 # ----- spinner helpers -----
@@ -434,10 +752,22 @@ echo ""
 # wrong: 1.3.79 is already live on TestFlight, so the *next* run must bump
 # past it, not re-mint and re-upload the same version. Once any platform's
 # publish_release call fires this run, the bump is no longer reversible.
+#
+# Platforms are isolated from each other (see run_with_spinner below): one
+# failing does not stop the rest, so DEPLOY_COMPLETE is no longer "the script
+# reached the end without dying" — it's set from ANY_STEP_FAILED right before
+# the git step, once every requested platform has actually been attempted.
 VERSION_BUMP_APPLIED=false
 PREVIOUS_VERSION=""
 DEPLOY_COMPLETE=false
 SHIPPED_SOMETHING=false
+ANY_STEP_FAILED=false
+CONVEX_STATUS="skip"
+IOS_STATUS="skip"
+MACOS_STATUS="skip"
+ANDROID_STATUS="skip"
+WEB_STATUS="skip"
+SITE_STATUS="skip"
 function finish {
     local rc=$?
     tput cnorm 2>/dev/null || true
@@ -473,6 +803,11 @@ spinner() {
     tput cnorm 2>/dev/null || true
 }
 
+# Returns the step's exit code rather than exiting the script — platforms are
+# isolated (see the finish()/ANY_STEP_FAILED comment above), so a failure here
+# must only stop the CALLING platform's function (via its own `|| return 1`ing
+# each call site), not the whole run. Every call site is responsible for that
+# guard; this just stops pretending the step succeeded.
 run_with_spinner() {
     local description="$1"
     shift
@@ -486,8 +821,8 @@ run_with_spinner() {
         echo "  ✅ $description"
     else
         echo "  ❌ $description failed (exit $exit_code)"
-        exit $exit_code
     fi
+    return $exit_code
 }
 
 # Load a dotenv file into the environment without running values through bash
@@ -766,9 +1101,13 @@ validate_environment
 
 # ----- Convex deploy -----
 # IMPORTANT: must run from backend/ — MonkeyHub's convex/ lives there.
-if [ "$RUN_CONVEX" = true ]; then
-    # Retried, because this step fails transiently and takes the whole run with
-    # it — including iOS/Android builds already queued behind it.
+# Isolated like every platform below (see run_with_spinner): a failed backend
+# push does not stop the app builds that follow — they would just run against
+# whatever backend is already live — but it still marks the run as failed
+# overall via ANY_STEP_FAILED.
+run_convex() {
+    # Retried, because this step fails transiently and would otherwise take
+    # every platform in the run down with it.
     #
     # The observed failure is the backend answering evaluate_push with
     # "Function execution timed out (maximum duration: 1s)" plus a Node TLS
@@ -802,7 +1141,7 @@ if [ "$RUN_CONVEX" = true ]; then
         fi
         (cd backend && npm run --silent typecheck)
     }
-    run_with_spinner "Typechecking Convex functions" convex_typecheck
+    run_with_spinner "Typechecking Convex functions" convex_typecheck || return 1
 
     convex_deploy() {
         local attempt=1
@@ -819,7 +1158,17 @@ if [ "$RUN_CONVEX" = true ]; then
             sleep 10
         done
     }
-    run_with_spinner "Deploying Convex backend" convex_deploy
+    run_with_spinner "Deploying Convex backend" convex_deploy || return 1
+    return 0
+}
+if [ "$RUN_CONVEX" = true ]; then
+    if run_convex; then
+        CONVEX_STATUS="ok"
+    else
+        CONVEX_STATUS="failed"
+        ANY_STEP_FAILED=true
+        echo "  ⚠️  Convex deploy failed — continuing with the rest of the run."
+    fi
 fi
 
 # ----- Android crash-symbol archive -----
@@ -1066,17 +1415,29 @@ deploy_site() {
 if [ "$DEPLOY_IOS" = false ] && [ "$DEPLOY_MACOS" = false ] && [ "$DEPLOY_ANDROID" = false ] \
    && [ "$DEPLOY_WEB" = false ] && [ "$DEPLOY_SITE" = false ]; then
     echo ""
+    if [ "$ANY_STEP_FAILED" = true ]; then
+        echo "❌ Backend-only deploy failed"
+        exit 1
+    fi
     echo "✨ Backend-only deploy complete"
     exit 0
 fi
 
 # ----- Flutter prep -----
 # Skipped for a pages-only run: `--site` ships HTML, and a clean + pub get would
-# turn a five-second deploy into a two-minute one for nothing.
-if [ "$DEPLOY_IOS" = true ] || [ "$DEPLOY_MACOS" = true ] || [ "$DEPLOY_ANDROID" = true ] \
-   || [ "$DEPLOY_WEB" = true ]; then
-    run_with_spinner "Flutter clean" flutter clean
-    run_with_spinner "Flutter pub get" flutter pub get
+# turn a five-second deploy into a two-minute one for nothing. Also skipped —
+# clean only, pub get still runs — when NEEDS_ARTIFACT_REUSE (a stage-only
+# platform is resuming from an earlier run's build/ output): 'flutter clean'
+# would delete exactly the archive/IPA/AAB/web build it's trying to reuse,
+# regardless of which platform asked for the reuse.
+if [ "$NEEDS_FLUTTER_BUILD" = true ]; then
+    if [ "$NEEDS_ARTIFACT_REUSE" = true ]; then
+        echo "⏭️  Skipping 'flutter clean' — reusing build/ output from a previous run."
+        run_with_spinner "Flutter pub get" flutter pub get || { echo "❌ Flutter pub get failed."; exit 1; }
+    else
+        run_with_spinner "Flutter clean" flutter clean || { echo "❌ Flutter clean failed."; exit 1; }
+        run_with_spinner "Flutter pub get" flutter pub get || { echo "❌ Flutter pub get failed."; exit 1; }
+    fi
 fi
 
 # ----- Version bump -----
@@ -1112,93 +1473,130 @@ DISPLAY_VERSION="${NEW_VERSION%%+*}"
 STAMP_DATE=$(date '+%b %d, %Y')
 
 # ----- iOS build -----
+# Three independent stages (see IOS_STAGES / "stage defaults" above): archive
+# (pods + flutter build + xcodebuild archive), export (IPA from the archive),
+# upload (altool + publish_release). A stage-only invocation resumes using
+# whatever the previous stage already left on disk — that's the whole point of
+# splitting these apart: an ASC upload that times out shouldn't cost a re-archive.
 IOS_BUILD_TIME=0
-if [ "$DEPLOY_IOS" = true ]; then
+IPA_PATH=""
+run_ios() {
+    local do_archive=false do_export=false do_upload=false
+    has_stage "$IOS_STAGES" archive && do_archive=true
+    has_stage "$IOS_STAGES" export && do_export=true
+    has_stage "$IOS_STAGES" upload && do_upload=true
     IOS_START_TIME=$(date +%s)
-    echo "🍎 Starting iOS build..."
 
-    echo "  • CocoaPods install"
-    # Three escalating attempts, because the ways this fails need different
-    # remedies — and each one is safe to reach for only after the cheaper one
-    # has been tried:
-    #   1. plain install    — the everyday case, uses the existing Podfile.lock.
-    #   2. --repo-update    — the spec repo is too old to see a pod version a
-    #                         freshly bumped plugin asks for.
-    #   3. drop the lock    — Podfile.lock pins a transitive version the bumped
-    #                         plugin no longer accepts (e.g. flutter_webrtc 1.4.0
-    #                         wanting WebRTC-SDK 144.7559.09 against a lock
-    #                         pinning .01). No amount of repo-updating resolves
-    #                         that; the stale pin itself has to go. Safe because
-    #                         every version this project deliberately controls is
-    #                         pinned in the Podfile, not the lock.
-    pod_install_with_retries ios || exit 1
+    if [ "$do_archive" = true ]; then
+        echo "🍎 iOS: archive"
+        echo "  • CocoaPods install"
+        # Three escalating attempts, because the ways this fails need different
+        # remedies — and each one is safe to reach for only after the cheaper one
+        # has been tried:
+        #   1. plain install    — the everyday case, uses the existing Podfile.lock.
+        #   2. --repo-update    — the spec repo is too old to see a pod version a
+        #                         freshly bumped plugin asks for.
+        #   3. drop the lock    — Podfile.lock pins a transitive version the bumped
+        #                         plugin no longer accepts (e.g. flutter_webrtc 1.4.0
+        #                         wanting WebRTC-SDK 144.7559.09 against a lock
+        #                         pinning .01). No amount of repo-updating resolves
+        #                         that; the stale pin itself has to go. Safe because
+        #                         every version this project deliberately controls is
+        #                         pinned in the Podfile, not the lock.
+        pod_install_with_retries ios || return 1
 
-    # Refreshes Generated.xcconfig with the current pubspec version. Runtime
-    # keys ride along via the bundled env.local asset — no --dart-define needed.
-    #
-    # Note there's deliberately no --dart-define=MH_CHANNEL here, unlike the
-    # Android and web builds. This ONE binary serves both TestFlight and (later)
-    # the App Store, so any channel stamped into it would be wrong for half its
-    # users. iOS is the case where runtime detection is strictly better: the app
-    # reads its own receipt at launch (package_info_plus installerStore →
-    # com.apple.testflight vs com.apple) and resolves its own channel. See
-    # lib/update/release_channel.dart.
-    run_with_spinner "Building Flutter for iOS (release)" \
-        flutter build ios --release --no-codesign
+        # Refreshes Generated.xcconfig with the current pubspec version. Runtime
+        # keys ride along via the bundled env.local asset — no --dart-define needed.
+        #
+        # Note there's deliberately no --dart-define=MH_CHANNEL here, unlike the
+        # Android and web builds. This ONE binary serves both TestFlight and (later)
+        # the App Store, so any channel stamped into it would be wrong for half its
+        # users. iOS is the case where runtime detection is strictly better: the app
+        # reads its own receipt at launch (package_info_plus installerStore →
+        # com.apple.testflight vs com.apple) and resolves its own channel. See
+        # lib/update/release_channel.dart.
+        run_with_spinner "Building Flutter for iOS (release)" \
+            flutter build ios --release --no-codesign || return 1
 
-    # -authenticationKey* lets xcodebuild fetch the Distribution cert +
-    # provisioning profile via the ASC API — works with no Xcode account.
-    run_with_spinner "Creating Xcode archive" \
-        xcodebuild -workspace ios/Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -archivePath build/Runner.xcarchive \
-            archive \
-            -destination 'generic/platform=iOS' \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$P8_FILE_PATH" \
-            -authenticationKeyID "$APP_STORE_CONNECT_KEY_ID" \
-            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
-
-    run_with_spinner "Exporting IPA" \
-        env PATH="/usr/bin:$PATH" xcodebuild -exportArchive \
-            -archivePath build/Runner.xcarchive \
-            -exportPath build/ios \
-            -exportOptionsPlist ios/ExportOptions.plist \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$P8_FILE_PATH" \
-            -authenticationKeyID "$APP_STORE_CONNECT_KEY_ID" \
-            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
-
-    # The IPA is named after CFBundleName, not PRODUCT_NAME, so glob for it.
-    IPA_PATH="$(find build/ios -maxdepth 1 -type f -name '*.ipa' | head -n 1)"
-    if [ -z "$IPA_PATH" ] || [ ! -f "$IPA_PATH" ]; then
-        echo "❌ No .ipa found in build/ios/ after export"
-        ls -la build/ios/ || true
-        exit 1
+        # -authenticationKey* lets xcodebuild fetch the Distribution cert +
+        # provisioning profile via the ASC API — works with no Xcode account.
+        run_with_spinner "Creating Xcode archive" \
+            xcodebuild -workspace ios/Runner.xcworkspace \
+                -scheme Runner \
+                -configuration Release \
+                -archivePath build/Runner.xcarchive \
+                archive \
+                -destination 'generic/platform=iOS' \
+                -allowProvisioningUpdates \
+                -authenticationKeyPath "$P8_FILE_PATH" \
+                -authenticationKeyID "$APP_STORE_CONNECT_KEY_ID" \
+                -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID" || return 1
     fi
-    echo "  ✅ IPA at $IPA_PATH"
 
-    if [ "$RUN_UPLOAD" = true ]; then
-        run_with_spinner "Uploading to App Store Connect" \
-            xcrun altool --upload-app \
-                --type ios \
-                --file "$IPA_PATH" \
-                --apiKey "$APP_STORE_CONNECT_KEY_ID" \
-                --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" \
-                --apiKeyPath "$P8_FILE_PATH"
+    if [ "$do_export" = true ]; then
+        if [ ! -d build/Runner.xcarchive ]; then
+            echo "❌ No archive at build/Runner.xcarchive — run --ios-archive (or --ios) first."
+            return 1
+        fi
+        run_with_spinner "Exporting IPA" \
+            env PATH="/usr/bin:$PATH" xcodebuild -exportArchive \
+                -archivePath build/Runner.xcarchive \
+                -exportPath build/ios \
+                -exportOptionsPlist ios/ExportOptions.plist \
+                -allowProvisioningUpdates \
+                -authenticationKeyPath "$P8_FILE_PATH" \
+                -authenticationKeyID "$APP_STORE_CONNECT_KEY_ID" \
+                -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID" || return 1
 
-        # TestFlight only. An ASC upload is not a released App Store version, so
-        # the ios-appstore row stays where it is until a build is actually
-        # approved for sale — see DEPLOY.md for the one-liner that moves it.
-        publish_release ios-testflight
-        SHIPPED_SOMETHING=true
-    else
-        echo "⏭️  Skipping App Store Connect upload (--no-upload)"
+        # The IPA is named after CFBundleName, not PRODUCT_NAME, so glob for it.
+        IPA_PATH="$(find build/ios -maxdepth 1 -type f -name '*.ipa' | head -n 1)"
+        if [ -z "$IPA_PATH" ] || [ ! -f "$IPA_PATH" ]; then
+            echo "❌ No .ipa found in build/ios/ after export"
+            ls -la build/ios/ || true
+            return 1
+        fi
+        echo "  ✅ IPA at $IPA_PATH"
+    fi
+
+    if [ "$do_upload" = true ]; then
+        if [ -z "$IPA_PATH" ] || [ ! -f "$IPA_PATH" ]; then
+            IPA_PATH="$(find build/ios -maxdepth 1 -type f -name '*.ipa' | head -n 1)"
+        fi
+        if [ -z "$IPA_PATH" ] || [ ! -f "$IPA_PATH" ]; then
+            echo "❌ No .ipa found in build/ios/ — run --ios-export (or --ios-archive, or --ios) first."
+            return 1
+        fi
+        if [ "$RUN_UPLOAD" = true ]; then
+            run_with_spinner "Uploading to App Store Connect" \
+                xcrun altool --upload-app \
+                    --type ios \
+                    --file "$IPA_PATH" \
+                    --apiKey "$APP_STORE_CONNECT_KEY_ID" \
+                    --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" \
+                    --apiKeyPath "$P8_FILE_PATH" || return 1
+
+            # TestFlight only. An ASC upload is not a released App Store version, so
+            # the ios-appstore row stays where it is until a build is actually
+            # approved for sale — see DEPLOY.md for the one-liner that moves it.
+            publish_release ios-testflight
+            SHIPPED_SOMETHING=true
+        else
+            echo "⏭️  Skipping App Store Connect upload (--no-upload)"
+        fi
     fi
 
     IOS_END_TIME=$(date +%s)
     IOS_BUILD_TIME=$((IOS_END_TIME - IOS_START_TIME))
+    return 0
+}
+if [ "$DEPLOY_IOS" = true ]; then
+    if run_ios; then
+        IOS_STATUS="ok"
+    else
+        IOS_STATUS="failed"
+        ANY_STEP_FAILED=true
+        echo "  ⚠️  iOS failed — continuing with the rest of the run."
+    fi
 fi
 
 # ----- macOS build -----
@@ -1223,124 +1621,178 @@ fi
 # resolves its own certificate via -allowProvisioningUpdates + the ASC key —
 # the same mechanism that already works for iOS.
 MACOS_BUILD_TIME=0
-if [ "$DEPLOY_MACOS" = true ]; then
+PKG_PATH=""
+run_macos() {
+    local do_archive=false do_export=false do_upload=false
+    has_stage "$MACOS_STAGES" archive && do_archive=true
+    has_stage "$MACOS_STAGES" export && do_export=true
+    has_stage "$MACOS_STAGES" upload && do_upload=true
     MACOS_START_TIME=$(date +%s)
-    echo "🖥️  Starting macOS build..."
 
-    echo "  • CocoaPods install"
-    pod_install_with_retries macos || exit 1
+    if [ "$do_archive" = true ]; then
+        echo "🖥️  macOS: archive"
+        echo "  • CocoaPods install"
+        pod_install_with_retries macos || return 1
 
-    run_with_spinner "Configuring Flutter for macOS (release)" \
-        flutter build macos --release --config-only --dart-define=MH_CHANNEL=macos-testflight
+        run_with_spinner "Configuring Flutter for macOS (release)" \
+            flutter build macos --release --config-only --dart-define=MH_CHANNEL=macos-testflight || return 1
 
-    run_with_spinner "Creating Xcode archive" \
-        xcodebuild -workspace macos/Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -archivePath build/Runner-macOS.xcarchive \
-            archive \
-            -destination 'generic/platform=macOS' \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$P8_FILE_PATH" \
-            -authenticationKeyID "$APP_STORE_CONNECT_KEY_ID" \
-            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
-
-    run_with_spinner "Exporting installer package" \
-        env PATH="/usr/bin:$PATH" xcodebuild -exportArchive \
-            -archivePath build/Runner-macOS.xcarchive \
-            -exportPath build/macos-export \
-            -exportOptionsPlist macos/ExportOptions.plist \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$P8_FILE_PATH" \
-            -authenticationKeyID "$APP_STORE_CONNECT_KEY_ID" \
-            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
-
-    PKG_PATH="$(find build/macos-export -maxdepth 1 -type f -name '*.pkg' | head -n 1)"
-    if [ -z "$PKG_PATH" ] || [ ! -f "$PKG_PATH" ]; then
-        echo "❌ No .pkg found in build/macos-export/ after export"
-        ls -la build/macos-export/ || true
-        exit 1
+        run_with_spinner "Creating Xcode archive" \
+            xcodebuild -workspace macos/Runner.xcworkspace \
+                -scheme Runner \
+                -configuration Release \
+                -archivePath build/Runner-macOS.xcarchive \
+                archive \
+                -destination 'generic/platform=macOS' \
+                -allowProvisioningUpdates \
+                -authenticationKeyPath "$P8_FILE_PATH" \
+                -authenticationKeyID "$APP_STORE_CONNECT_KEY_ID" \
+                -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID" || return 1
     fi
-    echo "  ✅ Package at $PKG_PATH"
 
-    if [ "$RUN_UPLOAD" = true ]; then
-        run_with_spinner "Uploading to App Store Connect" \
-            xcrun altool --upload-app \
-                --type macos \
-                --file "$PKG_PATH" \
-                --apiKey "$APP_STORE_CONNECT_KEY_ID" \
-                --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" \
-                --apiKeyPath "$P8_FILE_PATH"
+    if [ "$do_export" = true ]; then
+        if [ ! -d build/Runner-macOS.xcarchive ]; then
+            echo "❌ No archive at build/Runner-macOS.xcarchive — run --macos-archive (or --macos) first."
+            return 1
+        fi
+        run_with_spinner "Exporting installer package" \
+            env PATH="/usr/bin:$PATH" xcodebuild -exportArchive \
+                -archivePath build/Runner-macOS.xcarchive \
+                -exportPath build/macos-export \
+                -exportOptionsPlist macos/ExportOptions.plist \
+                -allowProvisioningUpdates \
+                -authenticationKeyPath "$P8_FILE_PATH" \
+                -authenticationKeyID "$APP_STORE_CONNECT_KEY_ID" \
+                -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID" || return 1
 
-        publish_release macos-testflight
-        SHIPPED_SOMETHING=true
-    else
-        echo "⏭️  Skipping App Store Connect upload (--no-upload)"
+        PKG_PATH="$(find build/macos-export -maxdepth 1 -type f -name '*.pkg' | head -n 1)"
+        if [ -z "$PKG_PATH" ] || [ ! -f "$PKG_PATH" ]; then
+            echo "❌ No .pkg found in build/macos-export/ after export"
+            ls -la build/macos-export/ || true
+            return 1
+        fi
+        echo "  ✅ Package at $PKG_PATH"
+    fi
+
+    if [ "$do_upload" = true ]; then
+        if [ -z "$PKG_PATH" ] || [ ! -f "$PKG_PATH" ]; then
+            PKG_PATH="$(find build/macos-export -maxdepth 1 -type f -name '*.pkg' | head -n 1)"
+        fi
+        if [ -z "$PKG_PATH" ] || [ ! -f "$PKG_PATH" ]; then
+            echo "❌ No .pkg found in build/macos-export/ — run --macos-export (or --macos-archive, or --macos) first."
+            return 1
+        fi
+        if [ "$RUN_UPLOAD" = true ]; then
+            run_with_spinner "Uploading to App Store Connect" \
+                xcrun altool --upload-app \
+                    --type macos \
+                    --file "$PKG_PATH" \
+                    --apiKey "$APP_STORE_CONNECT_KEY_ID" \
+                    --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" \
+                    --apiKeyPath "$P8_FILE_PATH" || return 1
+
+            publish_release macos-testflight
+            SHIPPED_SOMETHING=true
+        else
+            echo "⏭️  Skipping App Store Connect upload (--no-upload)"
+        fi
     fi
 
     MACOS_END_TIME=$(date +%s)
     MACOS_BUILD_TIME=$((MACOS_END_TIME - MACOS_START_TIME))
+    return 0
+}
+if [ "$DEPLOY_MACOS" = true ]; then
+    if run_macos; then
+        MACOS_STATUS="ok"
+    else
+        MACOS_STATUS="failed"
+        ANY_STEP_FAILED=true
+        echo "  ⚠️  macOS failed — continuing with the rest of the run."
+    fi
 fi
 
 # ----- Android build -----
+# Two independent stages: build (produces the AAB) and upload (fastlane supply
+# + publish_release, for both the Play row and the android-apk sideloader row).
+# --android-upload resumes a failed Play upload from the already-built AAB
+# without repeating the Flutter compile.
 ANDROID_BUILD_TIME=0
-AAB_PATH=""
-if [ "$DEPLOY_ANDROID" = true ]; then
+AAB_PATH="build/app/outputs/bundle/release/app-release.aab"
+run_android() {
+    local do_build=false do_upload=false
+    has_stage "$ANDROID_STAGES" build && do_build=true
+    has_stage "$ANDROID_STAGES" upload && do_upload=true
     ANDROID_START_TIME=$(date +%s)
 
-    echo "🤖 Starting Android build (AAB → Google Play)..."
-    run_with_spinner "Building Flutter app bundle (release)" \
-        flutter build appbundle --release --dart-define=MH_CHANNEL=android-play
+    if [ "$do_build" = true ]; then
+        echo "🤖 Android: build (AAB)"
+        run_with_spinner "Building Flutter app bundle (release)" \
+            flutter build appbundle --release --dart-define=MH_CHANNEL=android-play || return 1
 
-    AAB_PATH="build/app/outputs/bundle/release/app-release.aab"
-    if [ ! -f "$AAB_PATH" ]; then
-        echo "❌ No AAB at $AAB_PATH after build"
-        exit 1
+        if [ ! -f "$AAB_PATH" ]; then
+            echo "❌ No AAB at $AAB_PATH after build"
+            return 1
+        fi
+        echo "  ✅ AAB at $AAB_PATH"
+
+        archive_android_symbols "$DISPLAY_VERSION"
     fi
-    echo "  ✅ AAB at $AAB_PATH"
 
-    archive_android_symbols "$DISPLAY_VERSION"
+    if [ "$do_upload" = true ]; then
+        if [ ! -f "$AAB_PATH" ]; then
+            echo "❌ No AAB at $AAB_PATH — run --android-build (or --android) first."
+            return 1
+        fi
+        # Automated upload needs a verified Play account, the app created in
+        # Play Console, a linked service account (PLAY_SERVICE_ACCOUNT_JSON in
+        # .env.local) and fastlane. Until then we hand over the AAB.
+        if [ "$RUN_UPLOAD" = true ] && [ -n "${PLAY_SERVICE_ACCOUNT_JSON:-}" ] && command -v fastlane >/dev/null 2>&1; then
+            run_with_spinner "Uploading to Google Play (internal track)" \
+                fastlane supply \
+                    --package_name "$ANDROID_PACKAGE" \
+                    --aab "$AAB_PATH" \
+                    --track internal \
+                    --json_key "$PLAY_SERVICE_ACCOUNT_JSON" \
+                    --skip_upload_metadata --skip_upload_images --skip_upload_screenshots || return 1
+            publish_release android-play
+            SHIPPED_SOMETHING=true
 
-    # Automated upload needs a verified Play account, the app created in
-    # Play Console, a linked service account (PLAY_SERVICE_ACCOUNT_JSON in
-    # .env.local) and fastlane. Until then we hand over the AAB.
-    if [ "$RUN_UPLOAD" = true ] && [ -n "${PLAY_SERVICE_ACCOUNT_JSON:-}" ] && command -v fastlane >/dev/null 2>&1; then
-        run_with_spinner "Uploading to Google Play (internal track)" \
-            fastlane supply \
-                --package_name "$ANDROID_PACKAGE" \
-                --aab "$AAB_PATH" \
-                --track internal \
-                --json_key "$PLAY_SERVICE_ACCOUNT_JSON" \
-                --skip_upload_metadata --skip_upload_images --skip_upload_screenshots
-        # run_with_spinner exits on failure, so reaching here means the
-        # internal track has the build.
-        publish_release android-play
-        SHIPPED_SOMETHING=true
-
-        # …and tell the sideloaders, who are a separate audience with a separate
-        # problem. Their APK stamped MH_CHANNEL=android-apk at build time, and
-        # that define beats installerStore forever, so they will ask about this
-        # channel for as long as that copy is installed. It is the only line of
-        # communication we have with them.
-        #
-        # Re-announced on EVERY Play release rather than set once, because
-        # update_checker.dart bails when the installed version is >= the
-        # published one — a frozen row goes quiet the moment someone's build
-        # catches up with it.
-        #
-        # Not mandatory (no minSupported): the way out costs them a re-install
-        # and, while the track is invite-only, an invite they may not have.
-        # Locking them out of the app before that is a trap, not a prompt.
-        publish_release android-apk "$HOSTING_URL/" "$APK_MIGRATION_NOTE"
-    else
-        echo "⏭️  No automated Play upload (needs PLAY_SERVICE_ACCOUNT_JSON in"
-        echo "    .env.local + fastlane + a verified Play account — see DEPLOY.md)."
-        echo "    Upload manually: Play Console → MonkeyHub → Internal testing →"
-        echo "    Create release → drop in $AAB_PATH"
+            # …and tell the sideloaders, who are a separate audience with a separate
+            # problem. Their APK stamped MH_CHANNEL=android-apk at build time, and
+            # that define beats installerStore forever, so they will ask about this
+            # channel for as long as that copy is installed. It is the only line of
+            # communication we have with them.
+            #
+            # Re-announced on EVERY Play release rather than set once, because
+            # update_checker.dart bails when the installed version is >= the
+            # published one — a frozen row goes quiet the moment someone's build
+            # catches up with it.
+            #
+            # Not mandatory (no minSupported): the way out costs them a re-install
+            # and, while the track is invite-only, an invite they may not have.
+            # Locking them out of the app before that is a trap, not a prompt.
+            publish_release android-apk "$HOSTING_URL/" "$APK_MIGRATION_NOTE"
+        else
+            echo "⏭️  No automated Play upload (needs PLAY_SERVICE_ACCOUNT_JSON in"
+            echo "    .env.local + fastlane + a verified Play account — see DEPLOY.md)."
+            echo "    Upload manually: Play Console → MonkeyHub → Internal testing →"
+            echo "    Create release → drop in $AAB_PATH"
+        fi
     fi
 
     ANDROID_END_TIME=$(date +%s)
     ANDROID_BUILD_TIME=$((ANDROID_END_TIME - ANDROID_START_TIME))
+    return 0
+}
+if [ "$DEPLOY_ANDROID" = true ]; then
+    if run_android; then
+        ANDROID_STATUS="ok"
+    else
+        ANDROID_STATUS="failed"
+        ANY_STEP_FAILED=true
+        echo "  ⚠️  Android failed — continuing with the rest of the run."
+    fi
 fi
 
 # ----- Web build (--web, or as part of --all) -----
@@ -1363,101 +1815,138 @@ fi
 # does not stop the compile, which is why the dry run stays on: it is now a
 # report about a build we actually make.
 WEB_BUILD_TIME=0
-if [ "$DEPLOY_WEB" = true ]; then
+# Swap a whole directory rather than rsync over the live one. Syncing in place
+# serves a mix of two builds for as long as it takes, and a failed sync leaves
+# it that way with nothing to go back to. Here the visitor sees the old build
+# until a single rename, then the new one — and the build it replaced stays
+# put for --rollback-web.
+upload_web() {
+    vm_ensure_dirs || return 1
+    # Hardlinks: seeding the staging copy costs no disk and no time, and
+    # rsync then only sends what actually changed.
+    vm_ssh "set -e
+            rm -rf $VM_WEB_DIR.staging
+            cp -al $VM_WEB_DIR $VM_WEB_DIR.staging" || return 1
+    rsync -a --delete -e "ssh $VM_SSH_OPTS" \
+        build/web/ "$VM_USER@$VM_HOST:$VM_WEB_DIR.staging/" || return 1
+    vm_ssh "set -e
+            rm -rf $VM_WEB_DIR.prev
+            mv $VM_WEB_DIR $VM_WEB_DIR.prev
+            mv $VM_WEB_DIR.staging $VM_WEB_DIR" || return 1
+}
+run_web() {
+    local do_build=false do_upload=false
+    has_stage "$WEB_STAGES" build && do_build=true
+    has_stage "$WEB_STAGES" upload && do_upload=true
     WEB_START_TIME=$(date +%s)
-    echo "🌐 Starting web build..."
-    run_with_spinner "Building Flutter web (release, wasm)" \
-        flutter build web --wasm --release --base-href /web/ --dart-define=MH_CHANNEL=web
 
-    if [ ! -f "build/web/main.dart.js" ] && [ ! -f "build/web/flutter_bootstrap.js" ]; then
-        echo "❌ No web build output at build/web/"
-        exit 1
-    fi
+    if [ "$do_build" = true ]; then
+        echo "🌐 Web: build"
+        run_with_spinner "Building Flutter web (release, wasm)" \
+            flutter build web --wasm --release --base-href /web/ --dart-define=MH_CHANNEL=web || return 1
 
-    # A --wasm build that stops emitting WasmGC still produces a complete,
-    # working JS-only site, so the regression is invisible: same deploy, same
-    # green ticks, silently the slower build from then on. Warn rather than
-    # exit — the JS build is fine to ship, it just is not what was asked for.
-    if [ ! -f "build/web/main.dart.wasm" ]; then
-        echo "  ⚠️  --wasm emitted no main.dart.wasm. Shipping the dart2js build."
-        echo '     Check "flutter build web --wasm" output for a new hard blocker.'
-    fi
-
-    if [ "$RUN_UPLOAD" = true ]; then
-        # Swap a whole directory rather than rsync over the live one. Syncing in
-        # place serves a mix of two builds for as long as it takes, and a failed
-        # sync leaves it that way with nothing to go back to. Here the visitor
-        # sees the old build until a single rename, then the new one — and the
-        # build it replaced stays put for --rollback-web.
-        upload_web() {
-            vm_ensure_dirs || return 1
-            # Hardlinks: seeding the staging copy costs no disk and no time, and
-            # rsync then only sends what actually changed.
-            vm_ssh "set -e
-                    rm -rf $VM_WEB_DIR.staging
-                    cp -al $VM_WEB_DIR $VM_WEB_DIR.staging" || return 1
-            rsync -a --delete -e "ssh $VM_SSH_OPTS" \
-                build/web/ "$VM_USER@$VM_HOST:$VM_WEB_DIR.staging/" || return 1
-            vm_ssh "set -e
-                    rm -rf $VM_WEB_DIR.prev
-                    mv $VM_WEB_DIR $VM_WEB_DIR.prev
-                    mv $VM_WEB_DIR.staging $VM_WEB_DIR" || return 1
-        }
-        if upload_web; then
-            echo "  ✅ Web app at $WEB_URL"
-            # WasmGC streaming-instantiates, which the browser only does for an
-            # `application/wasm` response — anything else and it falls back to
-            # the JS build without surfacing an error. nginx has shipped that
-            # mapping since 1.21, so this normally passes; it is here because
-            # when it does not, everything still looks perfectly fine.
-            if [ -f "build/web/main.dart.wasm" ]; then
-                wasm_ct=$(curl -fsSI "${WEB_URL}main.dart.wasm" 2>/dev/null \
-                    | tr -d '\r' \
-                    | awk -F': ' 'tolower($1) == "content-type" { print tolower($2) }')
-                case "$wasm_ct" in
-                    application/wasm*)
-                        echo "  ✅ Serving main.dart.wasm as application/wasm" ;;
-                    "")
-                        echo "  ⚠️  Could not read the Content-Type of main.dart.wasm." ;;
-                    *)
-                        echo "  ⚠️  main.dart.wasm serves as '$wasm_ct', not application/wasm."
-                        echo "     Browsers will silently run the JS build instead. Add to nginx:"
-                        echo "       types { application/wasm wasm; }" ;;
-                esac
-            fi
-            # A tab left open for days keeps running the build it loaded, so a
-            # long-lived session still needs telling. The prompt reloads rather
-            # than navigating anywhere.
-            publish_release web
-            SHIPPED_SOMETHING=true
-        else
-            echo "❌ Web upload to $VM_USER@$VM_HOST failed."
-            echo "   The live build is untouched — the swap only happens after"
-            echo "   the sync succeeds. Retry: ./deploy.sh --web --skip-version-bump --no-convex"
-            exit 1
+        if [ ! -f "build/web/main.dart.js" ] && [ ! -f "build/web/flutter_bootstrap.js" ]; then
+            echo "❌ No web build output at build/web/"
+            return 1
         fi
-    else
-        echo "⏭️  Skipping web upload (--no-upload). Build in build/web/."
+
+        # A --wasm build that stops emitting WasmGC still produces a complete,
+        # working JS-only site, so the regression is invisible: same deploy, same
+        # green ticks, silently the slower build from then on. Warn rather than
+        # exit — the JS build is fine to ship, it just is not what was asked for.
+        if [ ! -f "build/web/main.dart.wasm" ]; then
+            echo "  ⚠️  --wasm emitted no main.dart.wasm. Shipping the dart2js build."
+            echo '     Check "flutter build web --wasm" output for a new hard blocker.'
+        fi
+    fi
+
+    if [ "$do_upload" = true ]; then
+        if [ ! -f "build/web/main.dart.js" ] && [ ! -f "build/web/flutter_bootstrap.js" ]; then
+            echo "❌ No web build output at build/web/ — run --web-build (or --web) first."
+            return 1
+        fi
+        if [ "$RUN_UPLOAD" = true ]; then
+            if upload_web; then
+                echo "  ✅ Web app at $WEB_URL"
+                # WasmGC streaming-instantiates, which the browser only does for an
+                # `application/wasm` response — anything else and it falls back to
+                # the JS build without surfacing an error. nginx has shipped that
+                # mapping since 1.21, so this normally passes; it is here because
+                # when it does not, everything still looks perfectly fine.
+                if [ -f "build/web/main.dart.wasm" ]; then
+                    wasm_ct=$(curl -fsSI "${WEB_URL}main.dart.wasm" 2>/dev/null \
+                        | tr -d '\r' \
+                        | awk -F': ' 'tolower($1) == "content-type" { print tolower($2) }')
+                    case "$wasm_ct" in
+                        application/wasm*)
+                            echo "  ✅ Serving main.dart.wasm as application/wasm" ;;
+                        "")
+                            echo "  ⚠️  Could not read the Content-Type of main.dart.wasm." ;;
+                        *)
+                            echo "  ⚠️  main.dart.wasm serves as '$wasm_ct', not application/wasm."
+                            echo "     Browsers will silently run the JS build instead. Add to nginx:"
+                            echo "       types { application/wasm wasm; }" ;;
+                    esac
+                fi
+                # A tab left open for days keeps running the build it loaded, so a
+                # long-lived session still needs telling. The prompt reloads rather
+                # than navigating anywhere.
+                publish_release web
+                SHIPPED_SOMETHING=true
+            else
+                echo "❌ Web upload to $VM_USER@$VM_HOST failed."
+                echo "   The live build is untouched — the swap only happens after"
+                echo "   the sync succeeds. Retry with:   ./deploy.sh --web-upload"
+                return 1
+            fi
+        else
+            echo "⏭️  Skipping web upload (--no-upload). Build in build/web/."
+        fi
     fi
 
     WEB_END_TIME=$(date +%s)
     WEB_BUILD_TIME=$((WEB_END_TIME - WEB_START_TIME))
+    return 0
+}
+if [ "$DEPLOY_WEB" = true ]; then
+    if run_web; then
+        WEB_STATUS="ok"
+    else
+        WEB_STATUS="failed"
+        ANY_STEP_FAILED=true
+        echo "  ⚠️  Web failed — continuing with the rest of the run."
+    fi
 fi
 
 # ----- Landing + downloads pages -----
 # Last, so the downloads page renders from a manifest that already includes
-# anything this run just shipped.
-if [ "$DEPLOY_SITE" = true ]; then
+# anything this run just shipped. Isolated like every platform above: a failed
+# page publish shouldn't cost the git commit for builds that DID ship.
+run_site() {
     if ! deploy_site; then
         echo "   Retry with:   ./deploy.sh --site"
-        exit 1
+        return 1
+    fi
+    return 0
+}
+if [ "$DEPLOY_SITE" = true ]; then
+    if run_site; then
+        SITE_STATUS="ok"
+    else
+        SITE_STATUS="failed"
+        ANY_STEP_FAILED=true
+        echo "  ⚠️  Site publish failed — continuing with the rest of the run."
     fi
 fi
 
 # ----- Git -----
-# Every build and upload is done by this point, so the bumped version has really
-# shipped — the EXIT trap must stop treating it as revertible.
-DEPLOY_COMPLETE=true
+# Every platform has now been attempted (isolated failures included — see
+# run_with_spinner/ANY_STEP_FAILED above), so the version bump's fate is
+# decided: DEPLOY_COMPLETE=true unless something failed, matching what it
+# meant before platforms were isolated (the run reached its natural end
+# without an early abort). The EXIT trap uses this, together with
+# SHIPPED_SOMETHING, to decide whether to revert pubspec.yaml.
+DEPLOY_COMPLETE=$([ "$ANY_STEP_FAILED" = false ] && echo true || echo false)
 if [ "$RUN_GIT" = true ] && [ "$SKIP_VERSION_BUMP" = false ]; then
     echo "🔄 Git commit + push..."
     if [ -n "$(git status --porcelain pubspec.yaml)" ]; then
@@ -1487,30 +1976,61 @@ fi
 SCRIPT_END_TIME=$(date +%s)
 TOTAL_TIME=$((SCRIPT_END_TIME - SCRIPT_START_TIME))
 
+status_icon() { case "$1" in ok) echo "✅" ;; failed) echo "❌" ;; *) echo "⏭️ " ;; esac; }
+
 echo ""
-echo "✨ Deploy complete"
+if [ "$ANY_STEP_FAILED" = true ]; then
+    echo "⚠️  Deploy finished with failures — see ❌ lines above and below"
+else
+    echo "✨ Deploy complete"
+fi
 echo "  📱 Version:        $NEW_VERSION"
+[ "$RUN_CONVEX" = true ] && echo "  $(status_icon "$CONVEX_STATUS") Convex:            $CONVEX_STATUS"
 if [ "$DEPLOY_IOS" = true ]; then
-    [ "$RUN_UPLOAD" = true ]  && echo "  🍎 iOS:            App Store Connect (TestFlight shows the build in a few minutes)"
-    [ "$RUN_UPLOAD" = false ] && echo "  🍎 iOS IPA:        $IPA_PATH"
+    if [ "$IOS_STATUS" = ok ] && [ "$RUN_UPLOAD" = true ]; then
+        echo "  ✅ iOS:            App Store Connect (TestFlight shows the build in a few minutes)"
+    elif [ "$IOS_STATUS" = ok ]; then
+        echo "  ✅ iOS IPA:        $IPA_PATH"
+    else
+        echo "  ❌ iOS:            failed — retry with --ios-archive / --ios-export / --ios-upload"
+    fi
 fi
 if [ "$DEPLOY_MACOS" = true ]; then
-    [ "$RUN_UPLOAD" = true ]  && echo "  🖥️  macOS:          App Store Connect (TestFlight shows the build in a few minutes)"
-    [ "$RUN_UPLOAD" = false ] && echo "  🖥️  macOS package:  $PKG_PATH"
+    if [ "$MACOS_STATUS" = ok ] && [ "$RUN_UPLOAD" = true ]; then
+        echo "  ✅ macOS:          App Store Connect (TestFlight shows the build in a few minutes)"
+    elif [ "$MACOS_STATUS" = ok ]; then
+        echo "  ✅ macOS package:  $PKG_PATH"
+    else
+        echo "  ❌ macOS:          failed — retry with --macos-archive / --macos-export / --macos-upload"
+    fi
 fi
 if [ "$DEPLOY_ANDROID" = true ]; then
-    echo "  🤖 Android AAB:    $AAB_PATH"
-    [ "$RUN_UPLOAD" = true ] && echo "     → Play internal track; sideloaders pointed at $HOSTING_URL/"
+    if [ "$ANDROID_STATUS" = ok ]; then
+        echo "  ✅ Android AAB:    $AAB_PATH"
+        [ "$RUN_UPLOAD" = true ] && echo "     → Play internal track; sideloaders pointed at $HOSTING_URL/"
+    else
+        echo "  ❌ Android:        failed — retry with --android-build / --android-upload"
+    fi
 fi
 if [ "$DEPLOY_WEB" = true ]; then
-    [ "$RUN_UPLOAD" = true ]  && echo "  🌐 Web:            $WEB_URL"
-    [ "$RUN_UPLOAD" = false ] && echo "  🌐 Web build:      build/web/"
+    if [ "$WEB_STATUS" = ok ] && [ "$RUN_UPLOAD" = true ]; then
+        echo "  ✅ Web:            $WEB_URL"
+    elif [ "$WEB_STATUS" = ok ]; then
+        echo "  ✅ Web build:      build/web/"
+    else
+        echo "  ❌ Web:            failed — retry with --web-build / --web-upload"
+    fi
 fi
 if [ "$DEPLOY_SITE" = true ]; then
-    [ "$RUN_UPLOAD" = true ]  && echo "  🏠 Landing page:   $SITE_URL"
-    [ "$RUN_UPLOAD" = false ] && echo "  🏠 Pages:          hosting/public/"
+    if [ "$SITE_STATUS" = ok ] && [ "$RUN_UPLOAD" = true ]; then
+        echo "  ✅ Landing page:   $SITE_URL"
+    elif [ "$SITE_STATUS" = ok ]; then
+        echo "  ✅ Pages:          hosting/public/"
+    else
+        echo "  ❌ Site:           failed — retry with --site"
+    fi
 fi
-[ "$DEPLOY_WEB" = true ] && [ "$RUN_UPLOAD" = true ] && \
+[ "$DEPLOY_WEB" = true ] && [ "$WEB_STATUS" = ok ] && [ "$RUN_UPLOAD" = true ] && \
     echo "     ↩︎  Undo the web deploy with:  ./deploy.sh --rollback-web"
 echo ""
 echo "⏱️  Timing:"
@@ -1519,3 +2039,9 @@ echo "⏱️  Timing:"
 [ "$DEPLOY_ANDROID" = true ] && echo "  🤖 Android build:  ${ANDROID_BUILD_TIME}s"
 [ "$DEPLOY_WEB" = true ]     && echo "  🌐 Web build:      ${WEB_BUILD_TIME}s"
 echo "  📊 Total:          ${TOTAL_TIME}s"
+
+# Non-zero here is what makes ANY_STEP_FAILED visible to CI/scripts and to the
+# EXIT trap above (which decides whether to revert the version bump).
+if [ "$ANY_STEP_FAILED" = true ]; then
+    exit 1
+fi

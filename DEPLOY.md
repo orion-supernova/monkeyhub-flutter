@@ -4,16 +4,35 @@
 in a terminal to get the interactive picker:
 
 ```
-Select what to deploy  (↑/↓ move · space toggle · enter go)
+Select what to deploy  (↑/↓ move · space toggle · enter go · tab stage · f force-update)
   ❯ ◉ Convex backend
-    ◉ iOS  → App Store Connect
+    ◯ iOS  → App Store Connect
     ◯ macOS → App Store Connect (TestFlight)
     ◯ Android → Google Play (internal track)
+    ◯ Web  → https://monkeyhub.walhallaa.com/web/
+    ◯ Site → https://monkeyhub.walhallaa.com  (pages only, no build)
+    ◯ Bump version (patch)
+
+  [f] Force-update a channel (edit minSupported)…
 ```
 
-Space toggles, enter ships. Android means one thing now: an AAB to the Play
-internal testing track. The self-hosted APK is retired — see
-[Retired: the APK](#retired-the-apk).
+Space toggles, enter ships. Only Convex starts checked — shipping an app is
+opt-in, so a stray Enter can't kick off an App Store / Play upload. "Bump
+version" tracks iOS/macOS/Android live: it only does anything once an app is
+shipping, so it checks itself the moment the first of those three is checked
+(matching `--skip-version-bump`'s own default — bump unless told not to) and
+unchecks itself again the moment none of them are, rather than sitting checked
+for a Convex- or Site-only run where it would be a no-op. Toggle it by hand at
+any point to override for that run (e.g. re-ship the same version). Tab on the
+iOS/macOS/Android/Web row opens a one-off sub-menu to scope that platform to a
+single stage (see [Per-platform stages](#per-platform-stages) below) instead of
+its full pipeline — picking one also checks that row; Esc cancels back to the
+checklist with no change. `f` walks through the same kind of sub-menu to
+force-update a channel (pick the channel, then "require whatever's already
+live" is one keystroke — no version to type unless you want a different one);
+Esc at any step backs out to the checklist too, same as Tab. Android means one
+thing now: an AAB to the Play internal testing track. The self-hosted APK is
+retired — see [Retired: the APK](#retired-the-apk).
 
 ## Moving traffic between the two backends
 
@@ -107,12 +126,40 @@ flag and nothing else.
 | `--convex-only` | Backend only (no builds, no version bump) |
 | `--no-convex` / `--no-upload` / `--no-git` / `--skip-version-bump` / `--dry` | Same as before |
 
+### Per-platform stages
+
+Each app platform's pipeline is independent stages, runnable on their own —
+mainly to resume after a partial failure (iOS archives fine but the ASC upload
+times out) without repeating the earlier, expensive stages:
+
+| Platform | Stages |
+|---|---|
+| iOS | `--ios-archive` → `--ios-export` → `--ios-upload` |
+| macOS | `--macos-archive` → `--macos-export` → `--macos-upload` |
+| Android | `--android-build` → `--android-upload` |
+| Web | `--web-build` → `--web-upload` |
+
+Combine flags to run more than one stage (`--ios-export --ios-upload`); a bare
+`--ios`/`--macos`/`--android`/`--web` still runs every stage. A stage-only run
+that skips its platform's first stage also skips `flutter clean` and the
+version bump — it's shipping whatever is already on disk, so the version has
+to match what's actually built into it.
+
+### Platform isolation
+
+Platforms run independently: if one fails, the rest still run — iOS failing
+doesn't stop Android/web/macOS, or the git commit for whatever *did* ship.
+`deploy.sh` exits non-zero at the end if anything failed (so CI still sees
+it), and prints a per-platform ✅/❌ summary with which `--<platform>-<stage>`
+flag to retry.
+
 Standalone actions — they run alone and exit:
 
 | Flag | Effect |
 |---|---|
 | `--rollback-web` | Put the previous web build back. Swaps, so running it twice undoes it |
 | `--infra` | Install `hosting/caddy-monkeyhub.conf` on the VM: validates the whole config first, reloads only if it passes |
+| `--set-min-supported <channel> <version\|clear>` | Force-update a channel — see [Manual commands](#manual-commands). Also reachable from the interactive picker via `f` |
 
 Any deploy that publishes to the VM also refreshes the two pages, because both
 print the current version in their footer. Left to a separate flag that footer
