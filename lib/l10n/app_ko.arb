@@ -2182,5 +2182,18 @@
   "interactionComposeErrorWhen": "언제 시작하는지 골라 주세요.",
   "interactionComposeErrorEnd": "종료는 시작보다 뒤여야 해요.",
   "interactionSendFailed": "보내지 못했어요.",
-  "interactionRefused": "처리되지 않았어요."
+  "interactionRefused": "처리되지 않았어요.",
+  "messageReceiptsScreenTitle": "읽은 사람",
+  "messageReceiptsSummary": "{total}명 중 {read}명 읽음",
+  "messageReceiptsEmptyState": "이 방에는 아직 다른 사람이 없습니다",
+  "messageReceiptsSectionRead": "읽음",
+  "messageReceiptsSectionDelivered": "전달됨",
+  "messageReceiptsSectionSent": "보냄",
+  "messageReceiptsSectionHidden": "확인 없음",
+  "messageReceiptsStateHidden": "공유 안 함",
+  "messageReceiptsStateWaiting": "대기 중",
+  "messageReceiptsSemanticRead": "{name}님이 {day} {time}에 읽었습니다",
+  "messageReceiptsSemanticDelivered": "{name}님이 {day} {time}에 받았습니다",
+  "messageReceiptsSemanticSent": "{name}님이 아직 받지 못했습니다",
+  "messageReceiptsSemanticHidden": "{name}님은 읽음 확인을 공유하지 않습니다"
 }

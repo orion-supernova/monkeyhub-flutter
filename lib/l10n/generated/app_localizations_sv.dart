@@ -7793,4 +7793,58 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get interactionRefused => 'Det gick inte igenom.';
+
+  @override
+  String get messageReceiptsScreenTitle => 'SETT AV';
+
+  @override
+  String messageReceiptsSummary(Object read, Object total) {
+    return '$read av $total har läst';
+  }
+
+  @override
+  String get messageReceiptsEmptyState =>
+      'det finns ingen annan i det här rummet än';
+
+  @override
+  String get messageReceiptsSectionRead => 'LÄST';
+
+  @override
+  String get messageReceiptsSectionDelivered => 'LEVERERAT';
+
+  @override
+  String get messageReceiptsSectionSent => 'SKICKAT';
+
+  @override
+  String get messageReceiptsSectionHidden => 'INGEN KVITTENS';
+
+  @override
+  String get messageReceiptsStateHidden => 'delas inte';
+
+  @override
+  String get messageReceiptsStateWaiting => 'väntar';
+
+  @override
+  String messageReceiptsSemanticRead(Object day, Object name, Object time) {
+    return '$name läste det här $day kl. $time';
+  }
+
+  @override
+  String messageReceiptsSemanticDelivered(
+    Object day,
+    Object name,
+    Object time,
+  ) {
+    return '$name fick det här $day kl. $time';
+  }
+
+  @override
+  String messageReceiptsSemanticSent(Object name) {
+    return '$name har inte fått det här än';
+  }
+
+  @override
+  String messageReceiptsSemanticHidden(Object name) {
+    return '$name delar inte läskvitton';
+  }
 }

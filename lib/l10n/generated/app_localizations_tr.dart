@@ -7739,4 +7739,57 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get interactionRefused => 'İşlenemedi.';
+
+  @override
+  String get messageReceiptsScreenTitle => 'GÖRENLER';
+
+  @override
+  String messageReceiptsSummary(Object read, Object total) {
+    return '$total kişiden $read kişi okudu';
+  }
+
+  @override
+  String get messageReceiptsEmptyState => 'bu odada henüz başka kimse yok';
+
+  @override
+  String get messageReceiptsSectionRead => 'OKUNDU';
+
+  @override
+  String get messageReceiptsSectionDelivered => 'İLETİLDİ';
+
+  @override
+  String get messageReceiptsSectionSent => 'GÖNDERİLDİ';
+
+  @override
+  String get messageReceiptsSectionHidden => 'BİLGİ YOK';
+
+  @override
+  String get messageReceiptsStateHidden => 'paylaşılmıyor';
+
+  @override
+  String get messageReceiptsStateWaiting => 'bekliyor';
+
+  @override
+  String messageReceiptsSemanticRead(Object day, Object name, Object time) {
+    return '$name bunu $day saat $time itibarıyla okudu';
+  }
+
+  @override
+  String messageReceiptsSemanticDelivered(
+    Object day,
+    Object name,
+    Object time,
+  ) {
+    return '$name bunu $day saat $time itibarıyla aldı';
+  }
+
+  @override
+  String messageReceiptsSemanticSent(Object name) {
+    return '$name bunu henüz almadı';
+  }
+
+  @override
+  String messageReceiptsSemanticHidden(Object name) {
+    return '$name okundu bilgisi paylaşmıyor';
+  }
 }

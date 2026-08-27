@@ -7861,6 +7861,60 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get interactionRefused => 'Não foi registado.';
+
+  @override
+  String get messageReceiptsScreenTitle => 'VISTO POR';
+
+  @override
+  String messageReceiptsSummary(Object read, Object total) {
+    return '$read de $total leram';
+  }
+
+  @override
+  String get messageReceiptsEmptyState =>
+      'ainda não há mais ninguém nesta sala';
+
+  @override
+  String get messageReceiptsSectionRead => 'LIDO';
+
+  @override
+  String get messageReceiptsSectionDelivered => 'ENTREGUE';
+
+  @override
+  String get messageReceiptsSectionSent => 'ENVIADO';
+
+  @override
+  String get messageReceiptsSectionHidden => 'SEM RECIBO';
+
+  @override
+  String get messageReceiptsStateHidden => 'não partilhado';
+
+  @override
+  String get messageReceiptsStateWaiting => 'à espera';
+
+  @override
+  String messageReceiptsSemanticRead(Object day, Object name, Object time) {
+    return '$name leu isto $day às $time';
+  }
+
+  @override
+  String messageReceiptsSemanticDelivered(
+    Object day,
+    Object name,
+    Object time,
+  ) {
+    return '$name recebeu isto $day às $time';
+  }
+
+  @override
+  String messageReceiptsSemanticSent(Object name) {
+    return '$name ainda não recebeu isto';
+  }
+
+  @override
+  String messageReceiptsSemanticHidden(Object name) {
+    return '$name não partilha recibos de leitura';
+  }
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -15716,4 +15770,58 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get interactionRefused => 'Não foi registrado.';
+
+  @override
+  String get messageReceiptsScreenTitle => 'VISTO POR';
+
+  @override
+  String messageReceiptsSummary(Object read, Object total) {
+    return '$read de $total leram';
+  }
+
+  @override
+  String get messageReceiptsEmptyState =>
+      'ainda não há mais ninguém nesta sala';
+
+  @override
+  String get messageReceiptsSectionRead => 'LIDO';
+
+  @override
+  String get messageReceiptsSectionDelivered => 'ENTREGUE';
+
+  @override
+  String get messageReceiptsSectionSent => 'ENVIADO';
+
+  @override
+  String get messageReceiptsSectionHidden => 'SEM CONFIRMAÇÃO';
+
+  @override
+  String get messageReceiptsStateHidden => 'não compartilhado';
+
+  @override
+  String get messageReceiptsStateWaiting => 'aguardando';
+
+  @override
+  String messageReceiptsSemanticRead(Object day, Object name, Object time) {
+    return '$name leu isto $day às $time';
+  }
+
+  @override
+  String messageReceiptsSemanticDelivered(
+    Object day,
+    Object name,
+    Object time,
+  ) {
+    return '$name recebeu isto $day às $time';
+  }
+
+  @override
+  String messageReceiptsSemanticSent(Object name) {
+    return '$name ainda não recebeu isto';
+  }
+
+  @override
+  String messageReceiptsSemanticHidden(Object name) {
+    return '$name não compartilha confirmações de leitura';
+  }
 }

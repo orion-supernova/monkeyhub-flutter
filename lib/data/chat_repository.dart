@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
 
@@ -359,6 +360,31 @@ class ChatRepository extends ChangeNotifier {
   /// `lastSeen` level is the control that governs this one, and it is applied
   /// server-side in `messages:getReadState`.
   DateTime? get latestOthersDeliveredAt => _latestOthers(_activeDeliveredState);
+
+  /// Every member's read cursor for the open room, keyed by user id.
+  ///
+  /// The per-person form of [latestOthersReadAt], for the one surface that
+  /// asks who rather than whether — the receipts screen behind a bubble's
+  /// swipe. Same subscription, same rows, no extra query: this map is already
+  /// live for the room the reader is in, and a caller folding over it costs a
+  /// map walk.
+  ///
+  /// A member missing from BOTH this and [roomDeliveredCursors] is withholding
+  /// receipts (`visibility.seen`), which is not the same as being behind — see
+  /// `messages:getReadState`, which drops such a row rather than zeroing it.
+  ///
+  /// Deliberately NOT gated on the local `viewReadReceipts` preference, unlike
+  /// [latestOthersReadAt]. That preference is spelled "see the SEEN mark on
+  /// your own messages" and governs a passive indicator the reader never asked
+  /// for; a screen you drag onto the display is the asking.
+  Map<String, DateTime> get roomReadCursors =>
+      UnmodifiableMapView(_activeReadState);
+
+  /// Every member's delivery cursor for the open room. The companion to
+  /// [roomReadCursors]; the two are separate maps for the reason
+  /// [_activeDeliveredState] gives.
+  Map<String, DateTime> get roomDeliveredCursors =>
+      UnmodifiableMapView(_activeDeliveredState);
 
   DateTime? _latestOthers(Map<String, DateTime> cursors) {
     final me = _userId;

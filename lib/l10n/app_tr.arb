@@ -2182,5 +2182,18 @@
   "interactionComposeErrorWhen": "Ne zaman başladığını seç.",
   "interactionComposeErrorEnd": "Bitiş, başlangıçtan sonra olmalı.",
   "interactionSendFailed": "Gönderilemedi.",
-  "interactionRefused": "İşlenemedi."
+  "interactionRefused": "İşlenemedi.",
+  "messageReceiptsScreenTitle": "GÖRENLER",
+  "messageReceiptsSummary": "{total} kişiden {read} kişi okudu",
+  "messageReceiptsEmptyState": "bu odada henüz başka kimse yok",
+  "messageReceiptsSectionRead": "OKUNDU",
+  "messageReceiptsSectionDelivered": "İLETİLDİ",
+  "messageReceiptsSectionSent": "GÖNDERİLDİ",
+  "messageReceiptsSectionHidden": "BİLGİ YOK",
+  "messageReceiptsStateHidden": "paylaşılmıyor",
+  "messageReceiptsStateWaiting": "bekliyor",
+  "messageReceiptsSemanticRead": "{name} bunu {day} saat {time} itibarıyla okudu",
+  "messageReceiptsSemanticDelivered": "{name} bunu {day} saat {time} itibarıyla aldı",
+  "messageReceiptsSemanticSent": "{name} bunu henüz almadı",
+  "messageReceiptsSemanticHidden": "{name} okundu bilgisi paylaşmıyor"
 }

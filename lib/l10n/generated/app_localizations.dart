@@ -13248,6 +13248,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That didn\'t go through.'**
   String get interactionRefused;
+
+  /// All-caps title of the read-receipts screen, dragged in from the side of your own chat bubble; it lists who has read that message.
+  ///
+  /// In en, this message translates to:
+  /// **'SEEN BY'**
+  String get messageReceiptsScreenTitle;
+
+  /// Line under the message on the read-receipts screen. {read} is how many other members have read it, {total} is how many other members the room has.
+  ///
+  /// In en, this message translates to:
+  /// **'{read} of {total} read'**
+  String messageReceiptsSummary(Object read, Object total);
+
+  /// Shown on the read-receipts screen for a room whose only member is the reader, so there is nobody a receipt could come from.
+  ///
+  /// In en, this message translates to:
+  /// **'nobody else is in this room yet'**
+  String get messageReceiptsEmptyState;
+
+  /// All-caps section heading on the read-receipts screen over the people who have read the message.
+  ///
+  /// In en, this message translates to:
+  /// **'READ'**
+  String get messageReceiptsSectionRead;
+
+  /// All-caps section heading on the read-receipts screen over the people whose device has the message but who have not read it.
+  ///
+  /// In en, this message translates to:
+  /// **'DELIVERED'**
+  String get messageReceiptsSectionDelivered;
+
+  /// All-caps section heading on the read-receipts screen over the people the message has not reached yet.
+  ///
+  /// In en, this message translates to:
+  /// **'SENT'**
+  String get messageReceiptsSectionSent;
+
+  /// All-caps section heading on the read-receipts screen over the people who have turned SEND READ RECEIPTS off, so nothing can be said about them either way.
+  ///
+  /// In en, this message translates to:
+  /// **'NO RECEIPTS'**
+  String get messageReceiptsSectionHidden;
+
+  /// Shown in place of a timestamp on the read-receipts screen for someone who does not share read receipts.
+  ///
+  /// In en, this message translates to:
+  /// **'not shared'**
+  String get messageReceiptsStateHidden;
+
+  /// Shown in place of a timestamp on the read-receipts screen for someone the message has not reached yet.
+  ///
+  /// In en, this message translates to:
+  /// **'waiting'**
+  String get messageReceiptsStateWaiting;
+
+  /// Screen-reader label for one row of the read-receipts screen. {name} is the person, {day} is a day label such as TODAY, {time} is a 24h clock time.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} read this {day} at {time}'**
+  String messageReceiptsSemanticRead(Object day, Object name, Object time);
+
+  /// Screen-reader label for a read-receipts row whose message has arrived on the person's device but has not been read. {name} is the person, {day} is a day label, {time} is a 24h clock time.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} received this {day} at {time}'**
+  String messageReceiptsSemanticDelivered(Object day, Object name, Object time);
+
+  /// Screen-reader label for a read-receipts row whose message has not reached the person yet. {name} is the person.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} hasn’t received this yet'**
+  String messageReceiptsSemanticSent(Object name);
+
+  /// Screen-reader label for a read-receipts row for someone who does not share read receipts. {name} is the person.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} doesn’t share read receipts'**
+  String messageReceiptsSemanticHidden(Object name);
 }
 
 class _AppLocalizationsDelegate

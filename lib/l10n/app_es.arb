@@ -2182,5 +2182,18 @@
   "interactionComposeErrorWhen": "Elige cuándo empieza.",
   "interactionComposeErrorEnd": "El final tiene que ir después del inicio.",
   "interactionSendFailed": "No se envió.",
-  "interactionRefused": "No se pudo registrar."
+  "interactionRefused": "No se pudo registrar.",
+  "messageReceiptsScreenTitle": "VISTO POR",
+  "messageReceiptsSummary": "{read} de {total} lo han leído",
+  "messageReceiptsEmptyState": "todavía no hay nadie más en esta sala",
+  "messageReceiptsSectionRead": "LEÍDO",
+  "messageReceiptsSectionDelivered": "ENTREGADO",
+  "messageReceiptsSectionSent": "ENVIADO",
+  "messageReceiptsSectionHidden": "SIN CONFIRMACIÓN",
+  "messageReceiptsStateHidden": "no se comparte",
+  "messageReceiptsStateWaiting": "en espera",
+  "messageReceiptsSemanticRead": "{name} lo leyó el {day} a las {time}",
+  "messageReceiptsSemanticDelivered": "{name} lo recibió el {day} a las {time}",
+  "messageReceiptsSemanticSent": "{name} todavía no lo ha recibido",
+  "messageReceiptsSemanticHidden": "{name} no comparte confirmaciones de lectura"
 }

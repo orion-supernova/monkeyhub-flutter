@@ -7782,4 +7782,57 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get interactionRefused => 'यह दर्ज नहीं हुआ।';
+
+  @override
+  String get messageReceiptsScreenTitle => 'किसने देखा';
+
+  @override
+  String messageReceiptsSummary(Object read, Object total) {
+    return '$total में से $read ने पढ़ा';
+  }
+
+  @override
+  String get messageReceiptsEmptyState => 'इस रूम में अभी कोई और नहीं है';
+
+  @override
+  String get messageReceiptsSectionRead => 'पढ़ा गया';
+
+  @override
+  String get messageReceiptsSectionDelivered => 'पहुँचा';
+
+  @override
+  String get messageReceiptsSectionSent => 'भेजा गया';
+
+  @override
+  String get messageReceiptsSectionHidden => 'कोई रसीद नहीं';
+
+  @override
+  String get messageReceiptsStateHidden => 'साझा नहीं';
+
+  @override
+  String get messageReceiptsStateWaiting => 'प्रतीक्षा में';
+
+  @override
+  String messageReceiptsSemanticRead(Object day, Object name, Object time) {
+    return '$name ने इसे $day को $time बजे पढ़ा';
+  }
+
+  @override
+  String messageReceiptsSemanticDelivered(
+    Object day,
+    Object name,
+    Object time,
+  ) {
+    return '$name को यह $day को $time बजे मिला';
+  }
+
+  @override
+  String messageReceiptsSemanticSent(Object name) {
+    return '$name को यह अभी तक नहीं मिला';
+  }
+
+  @override
+  String messageReceiptsSemanticHidden(Object name) {
+    return '$name पढ़ने की रसीदें साझा नहीं करते';
+  }
 }

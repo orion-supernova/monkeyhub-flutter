@@ -15,10 +15,14 @@ import '../theme/theme_scope.dart';
 /// lifts, while the bubble springs home in parallel. Releasing before
 /// threshold snaps back without triggering.
 ///
-/// Right-only and universal across sender/receiver bubbles — matches the
-/// dominant reply gesture pattern. The gesture ignores drags whose start
-/// point lies within 24px of the screen-left edge so it doesn't fight the
-/// iOS system back-swipe.
+/// Universal across sender/receiver bubbles — matches the dominant reply
+/// gesture pattern. The pull runs toward the END edge: right under LTR, left
+/// under RTL, where the whole layout is mirrored and a rightward pull would
+/// read backwards. `swipe_to_receipts.dart` takes the START edge, which is how
+/// the two share a bubble without sharing a direction in either script.
+///
+/// The gesture ignores drags whose start point lies within 24px of the edge
+/// the platform's own back-swipe comes from, so it doesn't fight it.
 class SwipeToReply extends StatefulWidget {
   const SwipeToReply({
     super.key,
@@ -74,10 +78,20 @@ class _SwipeToReplyState extends State<SwipeToReply>
     return pulled * (1 - pulled / (width * 2.5)).clamp(0.0, 1.0);
   }
 
+  /// Which way the pull runs: +1 toward the right, -1 toward the left. The end
+  /// edge in this script, which is the direction a reply is dragged.
+  double get _sign =>
+      Directionality.of(context) == TextDirection.rtl ? -1.0 : 1.0;
+
   void _onStart(DragStartDetails d) {
-    // Avoid stealing the iOS edge-back gesture: ignore drags whose origin
-    // is within the leftmost 24 logical px of the screen.
-    if (d.globalPosition.dx < 24) {
+    // Avoid stealing the platform edge-back gesture: ignore drags whose origin
+    // is within 24 logical px of the edge it starts from — the left of the
+    // screen under LTR, the right under RTL, where the system mirrors it too.
+    final fromLeft = d.globalPosition.dx;
+    final edge = _sign > 0
+        ? fromLeft
+        : MediaQuery.sizeOf(context).width - fromLeft;
+    if (edge < 24) {
       _dragging = false;
       return;
     }
@@ -89,7 +103,9 @@ class _SwipeToReplyState extends State<SwipeToReply>
 
   void _onUpdate(DragUpdateDetails d) {
     if (!_dragging) return;
-    final dx = d.primaryDelta ?? 0;
+    // Measured toward the end edge, so `_drag` counts up the same way in both
+    // scripts and everything downstream of it stays direction-agnostic.
+    final dx = (d.primaryDelta ?? 0) * _sign;
     final next = (_drag + dx).clamp(0.0, double.infinity);
     if (next == _drag) return;
     if (!_crossed && next >= _kThreshold) {
@@ -155,18 +171,21 @@ class _SwipeToReplyState extends State<SwipeToReply>
   Widget build(BuildContext context) {
     if (!widget.enabled) return widget.child;
     final theme = ThemeScope.of(context);
+    final direction = Directionality.of(context);
+    final sign = direction == TextDirection.rtl ? -1.0 : 1.0;
     final screenWidth = MediaQuery.sizeOf(context).width;
-    final displayedX = _rubberBand(_drag, screenWidth);
+    final displayedX = _rubberBand(_drag, screenWidth) * sign;
     final reveal = (_drag / _kThreshold).clamp(0.0, 1.0);
 
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        // Reveal arrow on the left edge — slides into view as the bubble
-        // translates right. Sized to a comfortable thumb target so the user
-        // perceives "this is the action" rather than a passive decoration.
-        Positioned(
-          left: 4,
+        // Reveal arrow on the start edge — slides into view as the bubble
+        // translates away from it. Sized to a comfortable thumb target so the
+        // user perceives "this is the action" rather than a passive decoration.
+        Positioned.directional(
+          textDirection: direction,
+          start: 4,
           top: 0,
           bottom: 0,
           child: IgnorePointer(
@@ -188,7 +207,9 @@ class _SwipeToReplyState extends State<SwipeToReply>
                       ),
                     ),
                     child: Icon(
-                      CupertinoIcons.arrowshape_turn_up_left,
+                      direction == TextDirection.rtl
+                          ? CupertinoIcons.arrowshape_turn_up_right
+                          : CupertinoIcons.arrowshape_turn_up_left,
                       size: 18,
                       color: theme.accent,
                     ),
@@ -217,6 +238,7 @@ class _SwipeToReplyState extends State<SwipeToReply>
                 () => _HorizontalRightDragRecognizer(),
                 (instance) {
                   instance
+                    ..sign = sign
                     ..dragStartBehavior = DragStartBehavior.down
                     ..onStart = _onStart
                     ..onUpdate = _onUpdate
@@ -234,11 +256,16 @@ class _SwipeToReplyState extends State<SwipeToReply>
   }
 }
 
-/// Horizontal drag recognizer that rejects net-leftward gestures. Letting
-/// the framework's standard [HorizontalDragGestureRecognizer] see leftward
-/// drags would let them claim the arena, blocking valid right swipes that
-/// started with a small jitter.
+/// Horizontal drag recognizer that rejects gestures running net-AGAINST the
+/// reply pull. Letting the framework's standard
+/// [HorizontalDragGestureRecognizer] see those would let them claim the arena,
+/// blocking valid reply swipes that started with a small jitter — and, since
+/// `swipe_to_receipts.dart` puts its own recognizer in the same arena on an
+/// outgoing bubble, blocking the receipts pull outright.
 class _HorizontalRightDragRecognizer extends HorizontalDragGestureRecognizer {
+  /// Which way the reply pull runs: +1 rightward (LTR), -1 leftward (RTL).
+  double sign = 1;
+
   double _accum = 0;
   bool _bailed = false;
   bool _won = false;
@@ -269,9 +296,9 @@ class _HorizontalRightDragRecognizer extends HorizontalDragGestureRecognizer {
     // parked off-screen forever with no snap-back pending.
     if (!_won && event is PointerMoveEvent) {
       _accum += event.delta.dx;
-      if (_accum < -8) {
-        // Net-leftward motion — bail out so vertical scroll / other gestures
-        // can claim the arena cleanly.
+      if (_accum * sign < -8) {
+        // Net motion against the pull — bail out so vertical scroll, the
+        // receipts pull, or another gesture can claim the arena cleanly.
         _bailed = true;
         resolve(GestureDisposition.rejected);
         return;
