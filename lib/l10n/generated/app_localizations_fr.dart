@@ -8038,6 +8038,11 @@ class AppLocalizationsFr extends AppLocalizations {
       'Les compagnons ne sont pas encore disponibles dans cette version de l\'app.';
 
   @override
+  String companionBrainNeedsMemory(String size) {
+    return 'Nécessite $size de mémoire';
+  }
+
+  @override
   String get companionStatusNotInstalled => 'Non installé';
 
   @override

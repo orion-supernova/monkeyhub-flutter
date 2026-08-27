@@ -2217,6 +2217,7 @@
   "companionInstallFailedStorage": "Det finns inte tillräckligt med utrymme på enheten. Frigör lite och försök igen.",
   "companionInstallFailedUnknown": "Nedladdningen kunde inte slutföras.",
   "companionUnsupportedPlatform": "Följeslagare är inte tillgängliga i den här versionen av appen än.",
+  "companionBrainNeedsMemory": "Kräver {size} minne",
   "companionStatusNotInstalled": "Inte installerad",
   "companionStatusOff": "Av",
   "companionStatusTranslatingInto": "Översätter till {language}",

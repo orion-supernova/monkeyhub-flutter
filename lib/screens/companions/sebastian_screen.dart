@@ -13,6 +13,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../companions/brain_manager.dart';
+import '../../companions/brain_spec.dart';
 import '../../companions/companion.dart';
 import '../../companions/sebastian.dart';
 import '../../companions/translation/language.dart';
@@ -154,15 +155,33 @@ class _SebastianScreenState extends State<SebastianScreen> {
           ),
           const SizedBox(height: 24),
           CompanionSectionLabel(l10n.companionSectionStorage),
-          BrainRow(
-            brain: _sebastian.brain,
-            // His own name, and nothing else — no tier, no model. This row
-            // exists to say how much disk he takes and to offer to remove him.
-            name: _companion.displayName,
-            sharedWith: otherCompanionsUsing(_sebastian.brain, _companion),
-            detail: l10n.sebastianBrainDetail(_sebastian.brain.sizeLabel),
-            onRemove: _remove,
-          ),
+          // BOTH rows, including one this device cannot run.
+          //
+          // Still not a picker — see [Companion.brainsAreUserChosen]; there is
+          // nothing here to select and the device has already decided. It is a
+          // statement. A shelf that quietly omitted the bigger brain would
+          // leave somebody on the smaller one with no idea a better one exists
+          // or why they are not being offered it, which reads as the feature
+          // being worse than it is rather than as their phone being smaller
+          // than it needs. "Needs 4 GB of memory" is something a person can
+          // check against their own handset.
+          for (final brain in BrainCatalog.sebastianBrains)
+            BrainRow(
+              brain: brain,
+              name: sebastianTierName(brain),
+              sharedWith: otherCompanionsUsing(brain, _companion),
+              // "On this device" is only true of the one that is. For the
+              // other row the size is the whole story, and claiming otherwise
+              // would be the row lying about what is on the phone.
+              detail: BrainManager.instance.isInstalled(brain)
+                  ? l10n.sebastianBrainDetail(brain.sizeLabel)
+                  : brain.sizeLabel,
+              unavailableReason: brainUnavailableReason(brain, l10n),
+              // Only the one he is actually running can be removed. Offering it
+              // on a row that is not installed would be a button with nothing
+              // behind it.
+              onRemove: brain.id == _sebastian.brain.id ? _remove : null,
+            ),
           _CacheLine(theme: theme, l10n: l10n, onCleared: _onChange),
         ],
       ],

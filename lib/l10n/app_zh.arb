@@ -2217,6 +2217,7 @@
   "companionInstallFailedStorage": "这台设备的空间不足。请清理一些空间后重试。",
   "companionInstallFailedUnknown": "下载未能完成。",
   "companionUnsupportedPlatform": "此版本的应用暂不支持伙伴功能。",
+  "companionBrainNeedsMemory": "需要 {size} 内存",
   "companionStatusNotInstalled": "未安装",
   "companionStatusOff": "已关闭",
   "companionStatusTranslatingInto": "正在翻译成{language}",

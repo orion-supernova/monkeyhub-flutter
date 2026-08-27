@@ -7928,6 +7928,11 @@ class AppLocalizationsSv extends AppLocalizations {
       'Följeslagare är inte tillgängliga i den här versionen av appen än.';
 
   @override
+  String companionBrainNeedsMemory(String size) {
+    return 'Kräver $size minne';
+  }
+
+  @override
   String get companionStatusNotInstalled => 'Inte installerad';
 
   @override

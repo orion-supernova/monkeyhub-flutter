@@ -8,6 +8,7 @@ import 'package:monkeyhub/companions/brain_spec.dart';
 import 'package:monkeyhub/companions/brain_store.dart';
 import 'package:monkeyhub/companions/companion.dart';
 import 'package:monkeyhub/companions/device_capability.dart';
+import 'package:monkeyhub/screens/companions/companion_page.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
@@ -105,6 +106,35 @@ void main() {
     test('file names are unique', () {
       final names = BrainCatalog.all.map((b) => b.fileName).toList();
       expect(names.toSet().length, names.length);
+    });
+  });
+
+  group('what the two rows are called', () {
+    /// SR and JR rather than a tier ladder. Marlowe's shelf is a choice and its
+    /// rows are named for what the choice is about; Sebastian's is not — the
+    /// device decides — so his rows are named for who they are: one companion,
+    /// with more or less of him on the phone.
+    test('the fallback is JR and everything above it is SR', () {
+      expect(
+        sebastianTierName(BrainCatalog.sebastianFallback),
+        'Sebastian JR',
+      );
+      for (final brain in BrainCatalog.sebastianBrains) {
+        if (brain.id == BrainCatalog.sebastianFallback.id) continue;
+        expect(sebastianTierName(brain), 'Sebastian SR', reason: brain.id);
+      }
+    });
+
+    /// Names, not labels. Routing these through l10n would have a name change
+    /// language when the UI did, which is the argument
+    /// [Companion.displayName] already makes.
+    test('and they carry his name', () {
+      for (final brain in BrainCatalog.sebastianBrains) {
+        expect(
+          sebastianTierName(brain),
+          startsWith(Companion.sebastian.displayName),
+        );
+      }
     });
   });
 

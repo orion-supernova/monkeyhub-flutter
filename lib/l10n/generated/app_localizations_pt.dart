@@ -7996,6 +7996,11 @@ class AppLocalizationsPt extends AppLocalizations {
       'Os companheiros ainda não estão disponíveis nesta versão da app.';
 
   @override
+  String companionBrainNeedsMemory(String size) {
+    return 'Precisa de $size de memória';
+  }
+
+  @override
   String get companionStatusNotInstalled => 'Não instalado';
 
   @override
@@ -16237,6 +16242,11 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get companionUnsupportedPlatform =>
       'Os companheiros ainda não estão disponíveis nesta versão do app.';
+
+  @override
+  String companionBrainNeedsMemory(String size) {
+    return 'Precisa de $size de memória';
+  }
 
   @override
   String get companionStatusNotInstalled => 'Não instalado';

@@ -7592,6 +7592,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get companionUnsupportedPlatform => 'このバージョンのアプリではコンパニオンはまだ利用できません。';
 
   @override
+  String companionBrainNeedsMemory(String size) {
+    return '$size のメモリが必要です';
+  }
+
+  @override
   String get companionStatusNotInstalled => '未インストール';
 
   @override

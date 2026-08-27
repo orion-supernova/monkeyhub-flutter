@@ -2217,6 +2217,7 @@
   "companionInstallFailedStorage": "この端末の空き容量が足りません。空きを作ってもう一度お試しください。",
   "companionInstallFailedUnknown": "ダウンロードを完了できませんでした。",
   "companionUnsupportedPlatform": "このバージョンのアプリではコンパニオンはまだ利用できません。",
+  "companionBrainNeedsMemory": "{size} のメモリが必要です",
   "companionStatusNotInstalled": "未インストール",
   "companionStatusOff": "オフ",
   "companionStatusTranslatingInto": "{language}に翻訳中",

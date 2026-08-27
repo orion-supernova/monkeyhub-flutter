@@ -2217,6 +2217,7 @@
   "companionInstallFailedStorage": "Bu cihazda yeterli alan yok. Biraz yer açıp tekrar dene.",
   "companionInstallFailedUnknown": "İndirme tamamlanamadı.",
   "companionUnsupportedPlatform": "Yardımcılar uygulamanın bu sürümünde henüz kullanılamıyor.",
+  "companionBrainNeedsMemory": "{size} bellek gerekiyor",
   "companionStatusNotInstalled": "Kurulu değil",
   "companionStatusOff": "Kapalı",
   "companionStatusTranslatingInto": "{language} diline çeviriyor",

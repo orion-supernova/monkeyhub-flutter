@@ -2217,6 +2217,7 @@
   "companionInstallFailedStorage": "Não há espaço suficiente neste dispositivo. Libere um pouco e tente de novo.",
   "companionInstallFailedUnknown": "O download não foi concluído.",
   "companionUnsupportedPlatform": "Os companheiros ainda não estão disponíveis nesta versão do app.",
+  "companionBrainNeedsMemory": "Precisa de {size} de memória",
   "companionStatusNotInstalled": "Não instalado",
   "companionStatusOff": "Desligado",
   "companionStatusTranslatingInto": "A traduzir para {language}",

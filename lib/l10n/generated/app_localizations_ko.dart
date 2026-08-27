@@ -7613,6 +7613,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get companionUnsupportedPlatform => '이 버전의 앱에서는 동반자를 아직 사용할 수 없습니다.';
 
   @override
+  String companionBrainNeedsMemory(String size) {
+    return '$size 메모리가 필요합니다';
+  }
+
+  @override
   String get companionStatusNotInstalled => '설치되지 않음';
 
   @override

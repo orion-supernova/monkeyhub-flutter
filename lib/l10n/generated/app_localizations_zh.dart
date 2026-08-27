@@ -7503,6 +7503,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get companionUnsupportedPlatform => '此版本的应用暂不支持伙伴功能。';
 
   @override
+  String companionBrainNeedsMemory(String size) {
+    return '需要 $size 内存';
+  }
+
+  @override
   String get companionStatusNotInstalled => '未安装';
 
   @override

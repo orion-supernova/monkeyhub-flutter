@@ -7895,6 +7895,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Companions aren\'t available in this version of the app yet.';
 
   @override
+  String companionBrainNeedsMemory(String size) {
+    return 'Needs $size of memory';
+  }
+
+  @override
   String get companionStatusNotInstalled => 'Not installed';
 
   @override

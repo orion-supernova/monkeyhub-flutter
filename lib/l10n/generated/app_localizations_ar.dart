@@ -8007,6 +8007,11 @@ class AppLocalizationsAr extends AppLocalizations {
       'الرفاق غير متوفرين بعد في هذا الإصدار من التطبيق.';
 
   @override
+  String companionBrainNeedsMemory(String size) {
+    return 'يتطلب $size من الذاكرة';
+  }
+
+  @override
   String get companionStatusNotInstalled => 'غير مثبّت';
 
   @override

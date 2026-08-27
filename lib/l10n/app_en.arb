@@ -9123,8 +9123,17 @@
     "description": "Error shown when a companion download failed for an unknown reason."
   },
   "companionUnsupportedPlatform": "Companions aren't available in this version of the app yet.",
+  "companionBrainNeedsMemory": "Needs {size} of memory",
   "@companionUnsupportedPlatform": {
     "description": "Shown where a companion would be offered on a platform that cannot run one (currently web)."
+  },
+  "@companionBrainNeedsMemory": {
+    "description": "Shown on a companion brain row that this device cannot run, in place of the download size. {size} is a memory figure like \"4 GB\".",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
   },
   "companionStatusNotInstalled": "Not installed",
   "@companionStatusNotInstalled": {

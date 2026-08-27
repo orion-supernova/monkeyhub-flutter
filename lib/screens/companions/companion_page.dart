@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import '../../companions/brain_manager.dart';
 import '../../companions/brain_spec.dart';
 import '../../companions/companion.dart';
+import '../../companions/device_capability.dart';
 import '../../companions/sebastian.dart';
 import '../../data/settings_store.dart';
 import '../../keyboard/focusable_tap.dart';
@@ -270,6 +271,33 @@ BrainSpec? activeMarloweBrain() {
   return null;
 }
 
+/// What to call one of Sebastian's two brains.
+///
+/// SR and JR rather than a tier ladder or a model name. Marlowe's shelf is a
+/// choice the user makes and its rows are named for what the choice is about
+/// (Swift, Balanced, Deep); Sebastian's is not a choice — the device decides —
+/// so his rows are named for who they are. He is one companion, and these are
+/// the same person with more or less of him on the phone.
+///
+/// Not routed through l10n, for the same reason [Companion.displayName] is not:
+/// a name that changed language when the UI did would stop being a name.
+String sebastianTierName(BrainSpec brain) =>
+    brain.id == BrainCatalog.sebastianFallback.id
+        ? 'Sebastian JR'
+        : 'Sebastian SR';
+
+/// Why this device cannot run [brain], or null when it can.
+///
+/// Names the requirement rather than the verdict. "Needs 4 GB of memory" is
+/// something a person can check against their own phone and act on next time;
+/// "unavailable" is a door with no handle.
+String? brainUnavailableReason(BrainSpec brain, AppLocalizations l10n) {
+  if (DeviceCapability.instance.canRun(brain)) return null;
+  final need = brain.minRamMb;
+  if (need == null) return l10n.companionUnsupportedPlatform;
+  return l10n.companionBrainNeedsMemory(companionByteLabel(need * 1024 * 1024));
+}
+
 /// Companions other than [self] whose shelf also lists [brain].
 ///
 /// Empty with today's catalog — the shelves deliberately no longer overlap,
@@ -303,6 +331,7 @@ class BrainRow extends StatelessWidget {
     this.onSelect,
     this.onRemove,
     this.sharedWith = const [],
+    this.unavailableReason,
   });
 
   final BrainSpec brain;
@@ -316,6 +345,17 @@ class BrainRow extends StatelessWidget {
 
   /// Null hides the remove affordance.
   final VoidCallback? onRemove;
+
+  /// Why this device cannot run these weights, or null when it can.
+  ///
+  /// Shown rather than hidden, deliberately. A shelf that silently omitted the
+  /// better brain would leave somebody on the smaller one with no idea a better
+  /// one exists, or why they are not being offered it — and "my phone cannot
+  /// hold it" is a perfectly good answer that they are entitled to.
+  ///
+  /// It dims the row and replaces the install action: there is nothing to press
+  /// and offering a button that could only fail would be worse than saying so.
+  final String? unavailableReason;
 
   /// Other companions that also use these weights, from
   /// [otherCompanionsUsing]. Non-empty draws a line saying so, because a
@@ -333,15 +373,18 @@ class BrainRow extends StatelessWidget {
         final manager = BrainManager.instance;
         final state = manager.stateOf(brain);
         final isSelected = selected ?? false;
+        final unavailable = unavailableReason != null;
 
         return GestureDetector(
-          onTap: state.status == BrainStatus.installed ? onSelect : null,
+          onTap: !unavailable && state.status == BrainStatus.installed
+              ? onSelect
+              : null,
           behavior: HitTestBehavior.opaque,
           child: Container(
             margin: const EdgeInsets.only(bottom: 10),
             padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
             decoration: BoxDecoration(
-              color: isSelected
+              color: isSelected && !unavailable
                   ? theme.accent.withValues(alpha: 0.12)
                   : theme.surface,
               border: Border.all(
@@ -373,7 +416,10 @@ class BrainRow extends StatelessWidget {
                               Flexible(
                                 child: Text(
                                   name,
-                                  style: theme.bodyEmph,
+                                  style: unavailable
+                                      ? theme.bodyEmph
+                                          .copyWith(color: theme.inkMuted)
+                                      : theme.bodyEmph,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
@@ -392,7 +438,11 @@ class BrainRow extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            detail,
+                            // The reason instead of the size. What this row is
+                            // for, on a device that cannot run it, is saying
+                            // why — the download figure is answering a
+                            // question nobody can act on.
+                            unavailableReason ?? detail,
                             style: theme.caption
                                 .copyWith(color: theme.inkMuted),
                           ),
@@ -400,13 +450,16 @@ class BrainRow extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    _Trailing(
-                      theme: theme,
-                      l10n: l10n,
-                      brain: brain,
-                      state: state,
-                      onRemove: onRemove,
-                    ),
+                    if (unavailable)
+                      Icon(Icons.block, size: 16, color: theme.inkMuted)
+                    else
+                      _Trailing(
+                        theme: theme,
+                        l10n: l10n,
+                        brain: brain,
+                        state: state,
+                        onRemove: onRemove,
+                      ),
                   ],
                 ),
                 if (sharedWith.isNotEmpty &&

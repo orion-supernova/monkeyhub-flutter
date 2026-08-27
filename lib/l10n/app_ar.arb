@@ -2217,6 +2217,7 @@
   "companionInstallFailedStorage": "لا توجد مساحة كافية على هذا الجهاز. أفرغ بعض المساحة وحاول مجددًا.",
   "companionInstallFailedUnknown": "تعذّر إكمال التنزيل.",
   "companionUnsupportedPlatform": "الرفاق غير متوفرين بعد في هذا الإصدار من التطبيق.",
+  "companionBrainNeedsMemory": "يتطلب {size} من الذاكرة",
   "companionStatusNotInstalled": "غير مثبّت",
   "companionStatusOff": "مُعطّل",
   "companionStatusTranslatingInto": "يترجم إلى {language}",

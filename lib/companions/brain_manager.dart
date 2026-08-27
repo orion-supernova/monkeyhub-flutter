@@ -36,6 +36,7 @@ import 'package:flutter/foundation.dart';
 import 'brain_download.dart';
 import 'brain_gateway.dart';
 import 'brain_spec.dart';
+import 'device_capability.dart';
 import 'brain_store.dart';
 
 /// Where one brain is in its life.
@@ -181,6 +182,15 @@ class BrainManager extends ChangeNotifier {
     final future = () async {
       try {
         if (!BrainGateway.instance.isSupported) return;
+        // AWAITED, and that ordering is the whole point. Sebastian's shelf is
+        // walked best-first and gated on physical RAM, so a machine that has
+        // not been sized yet resolves to the small brain — correct as a default
+        // and wrong as an answer. `main.dart` fires this off unawaited at boot;
+        // here is where anything that is about to READ the shelf waits for it.
+        //
+        // Cheap and memoised: the second caller awaits the first call rather
+        // than asking the platform again.
+        await DeviceCapability.instance.prime();
         // Before anything is counted, and on every refresh rather than once
         // behind a version flag. A brain this build has retired is not absent,
         // not installed and not paused — it is a file nothing in the catalog

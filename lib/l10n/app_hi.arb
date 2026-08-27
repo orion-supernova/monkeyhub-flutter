@@ -2217,6 +2217,7 @@
   "companionInstallFailedStorage": "इस डिवाइस में पर्याप्त जगह नहीं है। कुछ जगह खाली करके फिर कोशिश करें।",
   "companionInstallFailedUnknown": "डाउनलोड पूरा नहीं हो सका।",
   "companionUnsupportedPlatform": "ऐप के इस वर्शन में साथी अभी उपलब्ध नहीं हैं।",
+  "companionBrainNeedsMemory": "{size} मेमोरी चाहिए",
   "companionStatusNotInstalled": "इंस्टॉल नहीं है",
   "companionStatusOff": "बंद",
   "companionStatusTranslatingInto": "{language} में अनुवाद कर रहा है",

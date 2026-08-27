@@ -7913,6 +7913,11 @@ class AppLocalizationsHi extends AppLocalizations {
       'ऐप के इस वर्शन में साथी अभी उपलब्ध नहीं हैं।';
 
   @override
+  String companionBrainNeedsMemory(String size) {
+    return '$size मेमोरी चाहिए';
+  }
+
+  @override
   String get companionStatusNotInstalled => 'इंस्टॉल नहीं है';
 
   @override

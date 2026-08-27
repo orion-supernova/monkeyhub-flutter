@@ -13453,6 +13453,12 @@ abstract class AppLocalizations {
   /// **'Companions aren\'t available in this version of the app yet.'**
   String get companionUnsupportedPlatform;
 
+  /// Shown on a companion brain row that this device cannot run, in place of the download size. {size} is a memory figure like "4 GB".
+  ///
+  /// In en, this message translates to:
+  /// **'Needs {size} of memory'**
+  String companionBrainNeedsMemory(String size);
+
   /// Status line under a companion's name in the Companions list, when nothing has been downloaded for them.
   ///
   /// In en, this message translates to:

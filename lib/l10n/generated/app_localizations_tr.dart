@@ -7870,6 +7870,11 @@ class AppLocalizationsTr extends AppLocalizations {
       'Yardımcılar uygulamanın bu sürümünde henüz kullanılamıyor.';
 
   @override
+  String companionBrainNeedsMemory(String size) {
+    return '$size bellek gerekiyor';
+  }
+
+  @override
   String get companionStatusNotInstalled => 'Kurulu değil';
 
   @override
