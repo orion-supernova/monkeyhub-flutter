@@ -8100,4 +8100,23 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get companionInstallFailedIntegrity =>
       'İndirilen dosya bu sürümün beklediğiyle eşleşmedi. Baştan başlanıyor.';
+
+  @override
+  String companionBannerDownloading(
+    Object name,
+    Object received,
+    Object total,
+  ) {
+    return '$name · $total / $received';
+  }
+
+  @override
+  String companionBannerPaused(Object name, Object received, Object total) {
+    return '$name duraklatıldı · $total / $received';
+  }
+
+  @override
+  String translationSlabWakingUp(Object name) {
+    return '$name uyanıyor…';
+  }
 }

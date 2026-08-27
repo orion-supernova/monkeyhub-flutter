@@ -8126,4 +8126,23 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get companionInstallFailedIntegrity =>
       'The downloaded file didn\'t match what this version expects. Starting over.';
+
+  @override
+  String companionBannerDownloading(
+    Object name,
+    Object received,
+    Object total,
+  ) {
+    return '$name · $received of $total';
+  }
+
+  @override
+  String companionBannerPaused(Object name, Object received, Object total) {
+    return '$name paused · $received of $total';
+  }
+
+  @override
+  String translationSlabWakingUp(Object name) {
+    return '$name is waking up…';
+  }
 }

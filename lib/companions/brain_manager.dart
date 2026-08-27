@@ -145,6 +145,13 @@ class BrainManager extends ChangeNotifier {
     return state != null && state.isBusy ? state : null;
   }
 
+  /// Whether any brain has bytes on disk and is not being fetched.
+  ///
+  /// Read by the ambient indicators, which have to surface a paused download
+  /// as well as a running one — it is the paused one that gets forgotten.
+  bool get hasPausedDownload => _states.values
+      .any((s) => s.status == BrainStatus.paused && s.receivedBytes > 0);
+
   /// What the UI should draw for [spec].
   BrainState stateOf(BrainSpec spec) => _states[spec.id] ?? BrainState.absent;
 

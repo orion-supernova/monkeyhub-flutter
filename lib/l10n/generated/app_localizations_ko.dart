@@ -7839,4 +7839,23 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get companionInstallFailedIntegrity =>
       '내려받은 파일이 이 버전이 기대하는 것과 다릅니다. 처음부터 다시 시작합니다.';
+
+  @override
+  String companionBannerDownloading(
+    Object name,
+    Object received,
+    Object total,
+  ) {
+    return '$name · $total 중 $received';
+  }
+
+  @override
+  String companionBannerPaused(Object name, Object received, Object total) {
+    return '$name 일시정지 · $total 중 $received';
+  }
+
+  @override
+  String translationSlabWakingUp(Object name) {
+    return '$name 깨어나는 중…';
+  }
 }

@@ -2275,5 +2275,8 @@
   "companionInstallResume": "Reprendre",
   "companionInstallDiscard": "Abandonner",
   "companionInstallPausedAt": "Suspendu · {received} sur {total}",
-  "companionInstallFailedIntegrity": "Le fichier téléchargé ne correspond pas à ce que cette version attend. Reprise depuis le début."
+  "companionInstallFailedIntegrity": "Le fichier téléchargé ne correspond pas à ce que cette version attend. Reprise depuis le début.",
+  "companionBannerDownloading": "{name} · {received} sur {total}",
+  "companionBannerPaused": "{name} suspendu · {received} sur {total}",
+  "translationSlabWakingUp": "{name} se réveille…"
 }

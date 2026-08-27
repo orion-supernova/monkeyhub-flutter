@@ -13806,6 +13806,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The downloaded file didn\'t match what this version expects. Starting over.'**
   String get companionInstallFailedIntegrity;
+
+  /// Global top banner while a companion model downloads. {name} is the companion's name; {received} and {total} are already-formatted sizes, e.g. '104 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} · {received} of {total}'**
+  String companionBannerDownloading(Object name, Object received, Object total);
+
+  /// Global top banner while a companion download is paused. Same placeholders as companionBannerDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} paused · {received} of {total}'**
+  String companionBannerPaused(Object name, Object received, Object total);
+
+  /// Shown inside a message bubble while the on-device model is loading for the first time this session, which takes far longer than a translation. {name} is the companion's name.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is waking up…'**
+  String translationSlabWakingUp(Object name);
 }
 
 class _AppLocalizationsDelegate

@@ -2275,5 +2275,8 @@
   "companionInstallResume": "Retomar",
   "companionInstallDiscard": "Descartar",
   "companionInstallPausedAt": "Em pausa · {received} de {total}",
-  "companionInstallFailedIntegrity": "O ficheiro transferido não corresponde ao que esta versão espera. A começar de novo."
+  "companionInstallFailedIntegrity": "O ficheiro transferido não corresponde ao que esta versão espera. A começar de novo.",
+  "companionBannerDownloading": "{name} · {received} de {total}",
+  "companionBannerPaused": "{name} em pausa · {received} de {total}",
+  "translationSlabWakingUp": "O {name} está a acordar…"
 }

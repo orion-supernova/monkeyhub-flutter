@@ -49,6 +49,13 @@ enum TranslationState {
   /// Waiting for the worker. The bubble shows a resting shimmer.
   queued,
 
+  /// The brain is being loaded. Its own state because of how long it takes:
+  /// mapping the weights and initialising the accelerator is a ONE-OFF
+  /// ~27 seconds on a phone, against well under a second for the translation
+  /// that follows. Shown with the same anonymous bar, those two are
+  /// indistinguishable, and the first translation of a session looks broken.
+  warmingUp,
+
   /// Tokens are arriving. [TranslationHandle.text] grows.
   streaming,
 
@@ -138,7 +145,8 @@ class TranslationHandle extends ChangeNotifier {
     if (sourceLanguage != null) _sourceLanguage = sourceLanguage;
     // A stream that produced partial text and then failed must not leave that
     // half-sentence on screen looking like a translation.
-    if (state == TranslationState.failed || state == TranslationState.sameLanguage) {
+    if (state == TranslationState.failed ||
+        state == TranslationState.sameLanguage) {
       _finalText = null;
       _buffer.clear();
     }
@@ -352,6 +360,7 @@ class Sebastian extends ChangeNotifier {
         !h.showingOriginal &&
         (h.state == TranslationState.done ||
             h.state == TranslationState.streaming ||
+            h.state == TranslationState.warmingUp ||
             h.state == TranslationState.queued);
   }
 
@@ -774,6 +783,14 @@ class Sebastian extends ChangeNotifier {
     }
 
     // ── 3. Ask.
+    //
+    // Announced before `open`, not after: this is where the 27 seconds go, and
+    // a bubble that says nothing for that long has already lost the reader.
+    // Only when the brain is not already resident — the second translation of
+    // a session must not claim to be waking anyone up.
+    if (BrainGateway.instance.residentBrain?.id != brain.id) {
+      handle._finish(TranslationState.warmingUp, sourceLanguage: detected);
+    }
     final loaded = await BrainGateway.instance.open(brain);
     if (loaded == null) {
       handle._finish(TranslationState.failed);

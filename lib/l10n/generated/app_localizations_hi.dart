@@ -8143,4 +8143,23 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get companionInstallFailedIntegrity =>
       'डाउनलोड की गई फ़ाइल इस वर्शन की अपेक्षा से मेल नहीं खाती। फिर से शुरू किया जा रहा है।';
+
+  @override
+  String companionBannerDownloading(
+    Object name,
+    Object received,
+    Object total,
+  ) {
+    return '$name · $total में से $received';
+  }
+
+  @override
+  String companionBannerPaused(Object name, Object received, Object total) {
+    return '$name रुका हुआ · $total में से $received';
+  }
+
+  @override
+  String translationSlabWakingUp(Object name) {
+    return '$name जाग रहा है…';
+  }
 }

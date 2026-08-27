@@ -2275,5 +2275,8 @@
   "companionInstallResume": "Reanudar",
   "companionInstallDiscard": "Descartar",
   "companionInstallPausedAt": "En pausa · {received} de {total}",
-  "companionInstallFailedIntegrity": "El archivo descargado no coincide con lo que espera esta versión. Se empezará de nuevo."
+  "companionInstallFailedIntegrity": "El archivo descargado no coincide con lo que espera esta versión. Se empezará de nuevo.",
+  "companionBannerDownloading": "{name} · {received} de {total}",
+  "companionBannerPaused": "{name} en pausa · {received} de {total}",
+  "translationSlabWakingUp": "{name} está despertando…"
 }

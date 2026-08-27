@@ -8244,4 +8244,23 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get companionInstallFailedIntegrity =>
       'الملف الذي جرى تنزيله لا يطابق ما يتوقعه هذا الإصدار. سيبدأ من جديد.';
+
+  @override
+  String companionBannerDownloading(
+    Object name,
+    Object received,
+    Object total,
+  ) {
+    return '$name · $received من $total';
+  }
+
+  @override
+  String companionBannerPaused(Object name, Object received, Object total) {
+    return '$name متوقف مؤقتًا · $received من $total';
+  }
+
+  @override
+  String translationSlabWakingUp(Object name) {
+    return '$name يستيقظ…';
+  }
 }

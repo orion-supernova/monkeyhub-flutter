@@ -7727,4 +7727,23 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get companionInstallFailedIntegrity => '下载的文件与此版本预期的不符，将重新开始。';
+
+  @override
+  String companionBannerDownloading(
+    Object name,
+    Object received,
+    Object total,
+  ) {
+    return '$name · $received / $total';
+  }
+
+  @override
+  String companionBannerPaused(Object name, Object received, Object total) {
+    return '$name 已暂停 · $received / $total';
+  }
+
+  @override
+  String translationSlabWakingUp(Object name) {
+    return '$name 正在唤醒…';
+  }
 }

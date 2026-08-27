@@ -2275,5 +2275,8 @@
   "companionInstallResume": "再開",
   "companionInstallDiscard": "破棄",
   "companionInstallPausedAt": "一時停止 · {total} 中 {received}",
-  "companionInstallFailedIntegrity": "ダウンロードしたファイルがこのバージョンの想定と一致しません。最初からやり直します。"
+  "companionInstallFailedIntegrity": "ダウンロードしたファイルがこのバージョンの想定と一致しません。最初からやり直します。",
+  "companionBannerDownloading": "{name} · {total} 中 {received}",
+  "companionBannerPaused": "{name} 一時停止 · {total} 中 {received}",
+  "translationSlabWakingUp": "{name} が起きています…"
 }

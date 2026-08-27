@@ -2275,5 +2275,8 @@
   "companionInstallResume": "继续",
   "companionInstallDiscard": "丢弃",
   "companionInstallPausedAt": "已暂停 · {received} / {total}",
-  "companionInstallFailedIntegrity": "下载的文件与此版本预期的不符，将重新开始。"
+  "companionInstallFailedIntegrity": "下载的文件与此版本预期的不符，将重新开始。",
+  "companionBannerDownloading": "{name} · {received} / {total}",
+  "companionBannerPaused": "{name} 已暂停 · {received} / {total}",
+  "translationSlabWakingUp": "{name} 正在唤醒…"
 }

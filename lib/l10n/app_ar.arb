@@ -2275,5 +2275,8 @@
   "companionInstallResume": "استئناف",
   "companionInstallDiscard": "تجاهل",
   "companionInstallPausedAt": "متوقف مؤقتًا · {received} من {total}",
-  "companionInstallFailedIntegrity": "الملف الذي جرى تنزيله لا يطابق ما يتوقعه هذا الإصدار. سيبدأ من جديد."
+  "companionInstallFailedIntegrity": "الملف الذي جرى تنزيله لا يطابق ما يتوقعه هذا الإصدار. سيبدأ من جديد.",
+  "companionBannerDownloading": "{name} · {received} من {total}",
+  "companionBannerPaused": "{name} متوقف مؤقتًا · {received} من {total}",
+  "translationSlabWakingUp": "{name} يستيقظ…"
 }

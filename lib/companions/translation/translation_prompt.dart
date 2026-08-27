@@ -116,6 +116,19 @@ abstract final class TranslationPrompt {
     if (strayThink >= 0) out = out.substring(0, strayThink);
     out = out.replaceAll('</think>', '');
 
+    // ── 1b. Chat-template control tokens.
+    //
+    // On iOS the `.litertlm` engine applies the chat template MANUALLY rather
+    // than inside the SDK, so ChatML's markers are part of the decoded stream
+    // rather than something the runtime swallowed. A device found
+    // `<|endoftext|>` sitting in a translated bubble.
+    //
+    // Matched by SHAPE — `<|…|>` — rather than by listing the ones seen so
+    // far, because the list is a property of whichever model is loaded and
+    // this catches Gemma's and Llama's too. Real prose does not contain the
+    // sequence, so there is nothing to protect.
+    out = out.replaceAll(_controlToken, '');
+
     // ── 2. The fence, if it came back with the answer.
     out = out.replaceAll('<<<', '').replaceAll('>>>', '');
 
@@ -176,6 +189,22 @@ abstract final class TranslationPrompt {
     // reported the same way, by the caller comparing this against the source.
     return out;
   }
+
+  /// Anything a chat template uses to mark a turn.
+  ///
+  /// `<|im_start|>`, `<|im_end|>`, `<|endoftext|>` (ChatML / Qwen),
+  /// `<start_of_turn>`, `<end_of_turn>` (Gemma), `<s>`, `</s>`, `[INST]`,
+  /// `[/INST]` (Llama-family), and the bare `[endoftext]` some tokenizers
+  /// decode to. Alternation rather than one clever pattern, so each family is
+  /// legible and removable on its own.
+  static final RegExp _controlToken = RegExp(
+    r'<\|[^|>]*\|>'
+    r'|<\/?s>'
+    r'|<\/?(?:start|end)_of_turn>'
+    r'|\[\/?INST\]'
+    r'|\[\/?endoftext\]',
+    caseSensitive: false,
+  );
 
   static final RegExp _thinkBlock =
       RegExp(r'<think>[\s\S]*?</think>', caseSensitive: false);

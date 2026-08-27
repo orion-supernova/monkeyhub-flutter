@@ -75,6 +75,7 @@ import 'theme/theme_scope.dart';
 import 'update/update_checker.dart';
 import 'widgets/app_brand_mark.dart';
 import 'widgets/capture_shield.dart';
+import 'widgets/companion_download_banner.dart';
 import 'widgets/connection_banner.dart';
 import 'widgets/self_host_badge.dart';
 import 'widgets/share_target_sheet.dart';
@@ -1657,6 +1658,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               ConnectionBanner(health: _health),
+                                              // Stays until a companion
+                                              // download reaches an end state.
+                                              // Zero height with none running,
+                                              // like its neighbours here.
+                                              const CompanionDownloadBanner(),
                                               // Global "Move call here" pill — shows when an
                                               // active call exists on another of my devices.
                                               // Tap to handoff.

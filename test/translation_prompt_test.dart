@@ -61,6 +61,27 @@ void main() {
       );
     });
 
+    /// Found on a device, not by reading. On iOS the `.litertlm` engine applies
+    /// the chat template MANUALLY rather than inside the SDK, so ChatML's turn
+    /// markers are part of the decoded stream — and `<|endoftext|>` was being
+    /// rendered as text inside a translated bubble.
+    test('chat-template control tokens', () {
+      expect(clean('Günaydın, nasılsın?<|endoftext|>'), 'Günaydın, nasılsın?');
+      expect(clean('<|im_start|>Günaydın<|im_end|>'), 'Günaydın');
+      expect(clean('Günaydın[endoftext]'), 'Günaydın');
+      // Other families, since the pattern is matched by shape rather than by
+      // a list of the ones seen so far.
+      expect(clean('<start_of_turn>Günaydın<end_of_turn>'), 'Günaydın');
+      expect(clean('<s>Günaydın</s>'), 'Günaydın');
+      expect(clean('[INST]Günaydın[/INST]'), 'Günaydın');
+    });
+
+    /// The counterpart risk: real text that merely contains angle brackets.
+    test('leaves ordinary punctuation alone', () {
+      expect(clean('5 < 7 ve 9 > 3'), '5 < 7 ve 9 > 3');
+      expect(clean('a <-> b'), 'a <-> b');
+    });
+
     test('the fence from the prompt', () {
       expect(clean('<<<\nGünaydın, nasılsın?\n>>>'), 'Günaydın, nasılsın?');
     });

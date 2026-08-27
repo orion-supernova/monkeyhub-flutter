@@ -8228,6 +8228,25 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get companionInstallFailedIntegrity =>
       'O ficheiro transferido não corresponde ao que esta versão espera. A começar de novo.';
+
+  @override
+  String companionBannerDownloading(
+    Object name,
+    Object received,
+    Object total,
+  ) {
+    return '$name · $received de $total';
+  }
+
+  @override
+  String companionBannerPaused(Object name, Object received, Object total) {
+    return '$name em pausa · $received de $total';
+  }
+
+  @override
+  String translationSlabWakingUp(Object name) {
+    return 'O $name está a acordar…';
+  }
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -16449,4 +16468,23 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get companionInstallFailedIntegrity =>
       'O arquivo baixado não corresponde ao que esta versão espera. Começando de novo.';
+
+  @override
+  String companionBannerDownloading(
+    Object name,
+    Object received,
+    Object total,
+  ) {
+    return '$name · $received de $total';
+  }
+
+  @override
+  String companionBannerPaused(Object name, Object received, Object total) {
+    return '$name pausado · $received de $total';
+  }
+
+  @override
+  String translationSlabWakingUp(Object name) {
+    return '$name está acordando…';
+  }
 }

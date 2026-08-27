@@ -8269,4 +8269,23 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get companionInstallFailedIntegrity =>
       'Le fichier téléchargé ne correspond pas à ce que cette version attend. Reprise depuis le début.';
+
+  @override
+  String companionBannerDownloading(
+    Object name,
+    Object received,
+    Object total,
+  ) {
+    return '$name · $received sur $total';
+  }
+
+  @override
+  String companionBannerPaused(Object name, Object received, Object total) {
+    return '$name suspendu · $received sur $total';
+  }
+
+  @override
+  String translationSlabWakingUp(Object name) {
+    return '$name se réveille…';
+  }
 }

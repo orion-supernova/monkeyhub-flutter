@@ -2275,5 +2275,8 @@
   "companionInstallResume": "Återuppta",
   "companionInstallDiscard": "Kasta",
   "companionInstallPausedAt": "Pausad · {received} av {total}",
-  "companionInstallFailedIntegrity": "Den nedladdade filen matchade inte vad den här versionen väntar sig. Börjar om."
+  "companionInstallFailedIntegrity": "Den nedladdade filen matchade inte vad den här versionen väntar sig. Börjar om.",
+  "companionBannerDownloading": "{name} · {received} av {total}",
+  "companionBannerPaused": "{name} pausad · {received} av {total}",
+  "translationSlabWakingUp": "{name} vaknar…"
 }

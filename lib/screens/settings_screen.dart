@@ -341,6 +341,12 @@ class _SettingsScreenState extends State<SettingsScreen>
         (downloading.fraction * 100).round(),
       );
     }
+    // A paused download is still hundreds of megabytes half-written, and this
+    // row is one of the two places that will admit it exists — the other being
+    // the global banner, which is where the user probably came from.
+    if (BrainManager.instance.hasPausedDownload) {
+      return l10n.companionInstallPause;
+    }
 
     if (sebastian.isReady) {
       return sebastian.targetLanguage.autonym;

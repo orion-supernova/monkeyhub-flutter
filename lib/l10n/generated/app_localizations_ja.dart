@@ -7817,4 +7817,23 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get companionInstallFailedIntegrity =>
       'ダウンロードしたファイルがこのバージョンの想定と一致しません。最初からやり直します。';
+
+  @override
+  String companionBannerDownloading(
+    Object name,
+    Object received,
+    Object total,
+  ) {
+    return '$name · $total 中 $received';
+  }
+
+  @override
+  String companionBannerPaused(Object name, Object received, Object total) {
+    return '$name 一時停止 · $total 中 $received';
+  }
+
+  @override
+  String translationSlabWakingUp(Object name) {
+    return '$name が起きています…';
+  }
 }

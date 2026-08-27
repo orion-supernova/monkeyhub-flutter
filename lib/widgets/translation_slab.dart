@@ -44,6 +44,25 @@ import '../theme/theme_scope.dart';
 ///
 /// Listening to [Sebastian] directly instead would have been one subscription
 /// and would have rebuilt every visible bubble on every room-progress tick.
+/// Marks a subtree as a STILL PHOTOGRAPH of a bubble rather than the live one.
+///
+/// The action menu lifts a copy of the pressed bubble into an overlay and
+/// force-sizes it to the rect the real one occupied at press time. Anything in
+/// that copy which keeps changing will therefore overflow — which is exactly
+/// what a translation streaming in did, by 8.9 points.
+///
+/// Inside this scope [MessageTranslation] renders what it has and stops
+/// listening, so the preview is the size it was measured at.
+class FrozenBubble extends InheritedWidget {
+  const FrozenBubble({super.key, required super.child});
+
+  static bool of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<FrozenBubble>() != null;
+
+  @override
+  bool updateShouldNotify(FrozenBubble oldWidget) => false;
+}
+
 class MessageTranslation extends StatelessWidget {
   const MessageTranslation({
     super.key,
@@ -72,6 +91,9 @@ class MessageTranslation extends StatelessWidget {
         return TranslationSlab(
           handle: handle,
           isMine: isMine,
+          // A lifted preview must not resize under the overlay that measured
+          // it. See [FrozenBubble].
+          frozen: FrozenBubble.of(context),
           onToggleOriginal: () => Sebastian.instance.showOriginal(message),
           onRetry: () => Sebastian.instance.translate(message),
         );
@@ -87,7 +109,11 @@ class TranslationSlab extends StatelessWidget {
     required this.isMine,
     required this.onToggleOriginal,
     required this.onRetry,
+    this.frozen = false,
   });
+
+  /// Render once and stop listening — see [FrozenBubble].
+  final bool frozen;
 
   /// The one notifier this widget listens to. Deliberately passed in rather
   /// than looked up from [Sebastian] here: the point of the per-text handle is
@@ -102,8 +128,11 @@ class TranslationSlab extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final motion = MotionScope.of(context);
+    // `always` rather than `handle` when frozen: the builder still runs once,
+    // so the preview shows whatever was on screen at press time, and never
+    // again.
     return AnimatedBuilder(
-      animation: handle,
+      animation: frozen ? const AlwaysStoppedAnimation<double>(0) : handle,
       builder: (context, _) {
         // The reader flipped back to the original. Nothing here at all — not a
         // collapsed slab, not a stub — so a bubble showing its original is
@@ -149,6 +178,19 @@ class TranslationSlab extends StatelessWidget {
     switch (handle.state) {
       case TranslationState.queued:
         return _WaitingLine(theme: theme, isMine: isMine, motion: motion);
+
+      case TranslationState.warmingUp:
+        // Named rather than left as another anonymous bar. Loading the weights
+        // and starting the accelerator is a one-off ~27 seconds on a phone,
+        // against well under a second for the translation after it — and half
+        // a minute of unexplained shimmer is how a working feature gets
+        // reported as broken.
+        return _WaitingLine(
+          theme: theme,
+          isMine: isMine,
+          motion: motion,
+          label: l10n.translationSlabWakingUp(Companion.sebastian.displayName),
+        );
 
       case TranslationState.failed:
         return _FailedLine(theme: theme, isMine: isMine, onRetry: onRetry);
@@ -228,11 +270,16 @@ class _WaitingLine extends StatefulWidget {
     required this.theme,
     required this.isMine,
     required this.motion,
+    this.label,
   });
 
   final AppTheme theme;
   final bool isMine;
   final MotionScope motion;
+
+  /// Words instead of a bar. Null for an ordinary wait, which is short enough
+  /// that a sentence would be noise; set for the one that is not.
+  final String? label;
 
   @override
   State<_WaitingLine> createState() => _WaitingLineState();
@@ -266,14 +313,22 @@ class _WaitingLineState extends State<_WaitingLine>
   Widget build(BuildContext context) {
     final ink = widget.isMine ? widget.theme.accentInk : widget.theme.ink;
     final ctrl = _ctrl;
-    final bar = Container(
-      height: 9,
-      width: 132,
-      decoration: BoxDecoration(
-        color: ink.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(4),
-      ),
-    );
+    final label = widget.label;
+    final Widget bar = label == null
+        ? Container(
+            height: 9,
+            width: 132,
+            decoration: BoxDecoration(
+              color: ink.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          )
+        : Text(
+            label,
+            style: widget.theme.caption.copyWith(
+              color: ink.withValues(alpha: 0.75),
+            ),
+          );
     if (ctrl == null) return bar;
     return FadeTransition(
       // Never fades all the way out. A bar that disappears reads as finished;

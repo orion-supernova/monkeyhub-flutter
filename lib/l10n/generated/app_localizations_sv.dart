@@ -8160,4 +8160,23 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get companionInstallFailedIntegrity =>
       'Den nedladdade filen matchade inte vad den här versionen väntar sig. Börjar om.';
+
+  @override
+  String companionBannerDownloading(
+    Object name,
+    Object received,
+    Object total,
+  ) {
+    return '$name · $received av $total';
+  }
+
+  @override
+  String companionBannerPaused(Object name, Object received, Object total) {
+    return '$name pausad · $received av $total';
+  }
+
+  @override
+  String translationSlabWakingUp(Object name) {
+    return '$name vaknar…';
+  }
 }

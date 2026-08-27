@@ -13,6 +13,7 @@ import '../theme/layout.dart';
 import '../keyboard/overlay_modal_scope.dart';
 import '../theme/theme_scope.dart';
 import 'glass_surface.dart';
+import 'translation_slab.dart' show FrozenBubble;
 
 /// Actions surfaced by [showMessageActionMenu] (reactions are handled
 /// separately via [MessageActionResult.emoji] / `.fullPicker`).
@@ -441,12 +442,19 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
             t: curved,
             rect: bubble,
             isMine: widget.isMine,
-            child: widget.metrics == null
-                ? widget.bubbleBuilder(context)
-                : ChatMetricsScope(
-                    metrics: widget.metrics!,
-                    child: Builder(builder: widget.bubbleBuilder),
-                  ),
+            // A still photograph, not a live bubble. `_LiftedBubble` forces
+            // this into the rect the real one occupied at press time, so
+            // anything inside that keeps changing overflows it — which a
+            // translation streaming in underneath did, by 8.9 points. See
+            // [FrozenBubble].
+            child: FrozenBubble(
+              child: widget.metrics == null
+                  ? Builder(builder: widget.bubbleBuilder)
+                  : ChatMetricsScope(
+                      metrics: widget.metrics!,
+                      child: Builder(builder: widget.bubbleBuilder),
+                    ),
+            ),
           ),
         Positioned(
           top: pillTop,

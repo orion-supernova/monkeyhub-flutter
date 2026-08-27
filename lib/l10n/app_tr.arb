@@ -2275,5 +2275,8 @@
   "companionInstallResume": "Devam et",
   "companionInstallDiscard": "Sil",
   "companionInstallPausedAt": "Duraklatıldı · {total} / {received}",
-  "companionInstallFailedIntegrity": "İndirilen dosya bu sürümün beklediğiyle eşleşmedi. Baştan başlanıyor."
+  "companionInstallFailedIntegrity": "İndirilen dosya bu sürümün beklediğiyle eşleşmedi. Baştan başlanıyor.",
+  "companionBannerDownloading": "{name} · {total} / {received}",
+  "companionBannerPaused": "{name} duraklatıldı · {total} / {received}",
+  "translationSlabWakingUp": "{name} uyanıyor…"
 }
