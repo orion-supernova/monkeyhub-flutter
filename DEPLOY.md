@@ -13,7 +13,7 @@ Select what to deploy  (↑/↓ move · space toggle · enter go · tab stage ·
     ◯ Site → https://monkeyhub.walhallaa.com  (pages only, no build)
     ◯ Bump version (patch)
 
-  [f] Force-update a channel (edit minSupported)…
+  [f] Force-update channels (edit minSupported)…
 ```
 
 Space toggles, enter ships. Only Convex starts checked — shipping an app is
@@ -28,8 +28,13 @@ iOS/macOS/Android/Web row opens a one-off sub-menu to scope that platform to a
 single stage (see [Per-platform stages](#per-platform-stages) below) instead of
 its full pipeline — picking one also checks that row; Esc cancels back to the
 checklist with no change. `f` walks through the same kind of sub-menu to
-force-update a channel (pick the channel, then "require whatever's already
-live" is one keystroke — no version to type unless you want a different one);
+force-update channels, except its first step is a checklist of its own: space
+ticks a channel, `a` ticks all of them (and unticks them again once they all
+are), and everything ticked gets the same treatment in one pass. Then "require
+whatever's already live" is one keystroke — no version to type unless you want
+a different one — and with several channels ticked each keeps its *own* latest
+version rather than being flattened onto one number. A ticked channel that has
+never been published to is dropped with a warning instead of failing the batch.
 Esc at any step backs out to the checklist too, same as Tab. Android means one
 thing now: an AAB to the Play internal testing track. The self-hosted APK is
 retired — see [Retired: the APK](#retired-the-apk).
@@ -249,6 +254,10 @@ Clear it again with `clear` (sends `minSupported: null`):
 ./deploy.sh --set-min-supported android-play clear
 # npx convex run releases:publish '{"channel":"android-play","version":"1.3.30","minSupported":null}'
 ```
+
+The flag takes one channel. To do several at once, use the picker's `f` menu
+instead — it applies the same choice ("require each channel's own latest", a
+typed version, or clear) across everything you tick.
 
 Not on `android-apk` while the Play track is invite-only — see
 [Retired: the APK](#retired-the-apk).

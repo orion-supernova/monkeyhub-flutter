@@ -130,8 +130,8 @@ Standalone actions (run alone and exit):
                         channel's published version untouched. <version> may
                         be "clear" to lift the requirement. Channels:
                         ios-testflight, macos-testflight, android-play,
-                        android-apk, web. Also reachable from the interactive
-                        picker by pressing 'f'.
+                        android-apk, web. One channel per run; press 'f' in the
+                        interactive picker to tick several at once.
 
 Per-platform stages: each platform's pipeline is independent stages that can be
 run on their own — most useful to resume after a partial failure (e.g. iOS
@@ -448,7 +448,7 @@ pick_stage_menu() {
     done
     local n=${#opts[@]} sel=0 i arrow cancelled=false
     {
-        printf "    %s — pick a stage  (↑/↓ move · enter choose · esc cancel)\033[K\n" "$title"
+        printf "    %s  (↑/↓ move · enter choose · esc cancel)\033[K\n" "$title"
         while true; do
             for i in $(seq 0 $((n - 1))); do
                 [ "$i" = "$sel" ] && arrow="❯" || arrow=" "
@@ -471,6 +471,69 @@ pick_stage_menu() {
     } 1>&2
     [ "$cancelled" = true ] && return 1
     echo "${tokens[$sel]}"
+}
+
+# Checkbox sibling of pick_stage_menu, used by the picker's 'f' flow so one
+# force-update can cover several channels in a single pass. Same draw/erase
+# discipline and the same stderr-only redraw (stdout belongs to the caller's
+# $(...) capture); prints the ticked tokens space-separated. Returns 1 with no
+# output on Esc *and* on Enter with nothing ticked — both mean "never mind",
+# and the caller has no reason to tell them apart.
+pick_multi_menu() {
+    local title="$1"; shift
+    local tokens=() opts=() pair
+    for pair in "$@"; do
+        tokens+=("${pair%%:*}")
+        opts+=("${pair#*:}")
+    done
+    local n=${#opts[@]} sel=0 i arrow marker all_on cancelled=false out=""
+    local checked=()
+    for i in $(seq 0 $((n - 1))); do checked[$i]=0; done
+    {
+        printf "    %s  (↑/↓ · space toggle · a all · enter go · esc)\033[K\n" "$title"
+        while true; do
+            for i in $(seq 0 $((n - 1))); do
+                [ "$i" = "$sel" ] && arrow="❯" || arrow=" "
+                [ "${checked[$i]}" = 1 ] && marker="◉" || marker="◯"
+                printf "      %s %s %s\033[K\n" "$arrow" "$marker" "${opts[$i]}"
+            done
+            read_key
+            case "$KEY_KIND" in
+                UP)   sel=$(( (sel + n - 1) % n )) ;;
+                DOWN) sel=$(( (sel + 1) % n )) ;;
+                ESC)  cancelled=true; break ;;
+                PLAIN)
+                    case "$KEY_CHAR" in
+                        " ") checked[$sel]=$(( 1 - checked[$sel] )) ;;
+                        # One key for both halves of "all": 'a' ticks everything,
+                        # and unticks everything once it is already all ticked.
+                        a|A)
+                            all_on=true
+                            for i in $(seq 0 $((n - 1))); do
+                                [ "${checked[$i]}" = 1 ] || { all_on=false; break; }
+                            done
+                            for i in $(seq 0 $((n - 1))); do
+                                [ "$all_on" = true ] && checked[$i]=0 || checked[$i]=1
+                            done
+                            ;;
+                        "") break ;;  # enter
+                    esac
+                    ;;
+            esac
+            tput cuu $n 2>/dev/null
+        done
+        # Erase everything this menu drew (title + n options) and leave the
+        # cursor exactly where it was before the menu opened.
+        tput cuu $((n + 1)) 2>/dev/null
+        for i in $(seq 0 $n); do printf "\033[K\n"; done
+        tput cuu $((n + 1)) 2>/dev/null
+    } 1>&2
+    [ "$cancelled" = true ] && return 1
+    for i in $(seq 0 $((n - 1))); do
+        [ "${checked[$i]}" = 1 ] && out="$out ${tokens[$i]}"
+    done
+    [ -z "$out" ] && return 1
+    echo "${out# }"
 }
 
 # Checkbox menu on the controlling terminal. Only used when the caller gave no
@@ -526,7 +589,7 @@ pick_platforms() {
             esac
             printf "  %s %s %s\033[K\n" "$arrow" "$marker" "$label"
         done
-        printf "\n  [f] Force-update a channel (edit minSupported)…\033[K\n"
+        printf "\n  [f] Force-update channels (edit minSupported)…\033[K\n"
         read_key
         if [ "$KEY_KIND" = "UP" ]; then
             cursor=$(( (cursor + count - 1) % count ))
@@ -552,14 +615,16 @@ pick_platforms() {
         elif [ "$KEY_KIND" = "PLAIN" ] && [ "$KEY_CHAR" = $'\t' ]; then
             local choice rc=1
             case "$cursor" in
-                1) choice=$(pick_stage_menu "iOS" "full:Full pipeline" "archive:Archive only" \
-                                "export:Export only" "upload:Upload only"); rc=$? ;;
-                2) choice=$(pick_stage_menu "macOS" "full:Full pipeline" "archive:Archive only" \
-                                "export:Export only" "upload:Upload only"); rc=$? ;;
-                3) choice=$(pick_stage_menu "Android" "full:Full pipeline" "build:Build only" \
+                1) choice=$(pick_stage_menu "iOS — pick a stage" "full:Full pipeline" \
+                                "archive:Archive only" "export:Export only" \
                                 "upload:Upload only"); rc=$? ;;
-                4) choice=$(pick_stage_menu "Web" "full:Full pipeline" "build:Build only" \
+                2) choice=$(pick_stage_menu "macOS — pick a stage" "full:Full pipeline" \
+                                "archive:Archive only" "export:Export only" \
                                 "upload:Upload only"); rc=$? ;;
+                3) choice=$(pick_stage_menu "Android — pick a stage" "full:Full pipeline" \
+                                "build:Build only" "upload:Upload only"); rc=$? ;;
+                4) choice=$(pick_stage_menu "Web — pick a stage" "full:Full pipeline" \
+                                "build:Build only" "upload:Upload only"); rc=$? ;;
             esac
             if [ "$rc" = 0 ]; then
                 [ "$choice" = "full" ] && choice=""
@@ -571,38 +636,79 @@ pick_platforms() {
                 esac
             fi
         elif [ "$KEY_KIND" = "PLAIN" ] && { [ "$KEY_CHAR" = "f" ] || [ "$KEY_CHAR" = "F" ]; }; then
-            # Both steps below are pick_stage_menu, so Esc at either one cancels
+            # Both steps below are a pick_*_menu, so Esc at either one cancels
             # straight back to this checklist — nothing is printed and nothing
-            # needs erasing (pick_stage_menu always cleans up after itself,
-            # success or cancel). Only a completed force-update leaves output on
-            # screen, which is deliberate: skip_erase leaves it visible above the
-            # redrawn checklist instead of scrolling it away unread.
-            local fu_channel fu_current fu_action fu_version rc
-            fu_channel=$(pick_stage_menu "Force-update which channel?" \
+            # needs erasing (both menus always clean up after themselves,
+            # success or cancel). Only a completed force-update — or a channel
+            # that had to be dropped — leaves output on screen, which is
+            # deliberate: skip_erase leaves it visible above the redrawn
+            # checklist instead of scrolling it away unread.
+            local fu_channels fu_current fu_action fu_version rc c
+            local fu_ok=() fu_ver=() fu_dropped="" fu_n fu_title fu_same fu_label
+            fu_channels=$(pick_multi_menu "Force-update which channels?" \
                 "ios-testflight:iOS · TestFlight" "macos-testflight:macOS · TestFlight" \
                 "android-play:Android · Play" "android-apk:Android · sideloaded APK" \
                 "web:Web"); rc=$?
             if [ "$rc" = 0 ]; then
-                fu_current=$(channel_current_version "$fu_channel")
-                if [ -z "$fu_current" ]; then
-                    echo "  ⚠️  No published release for $fu_channel yet — nothing to force."
+                # A `releases:latest` round-trip per ticked channel, so say so
+                # rather than sit there looking hung. The line is erased again
+                # (cursor left at its column 0) before anything else prints.
+                printf "  ⏳ Reading current versions…\033[K\n"
+                for c in $fu_channels; do
+                    fu_current=$(channel_current_version "$c")
+                    if [ -z "$fu_current" ]; then
+                        # Never published to, so there is no `version` to
+                        # republish and nothing to gate — drop that one channel
+                        # instead of failing the whole batch.
+                        fu_dropped="$fu_dropped $c"
+                    else
+                        fu_ok+=("$c")
+                        fu_ver+=("$fu_current")
+                    fi
+                done
+                tput cuu 1 2>/dev/null
+                printf "\033[K"
+                for c in $fu_dropped; do
+                    echo "  ⚠️  No published release for $c yet — nothing to force."
                     skip_erase=true
-                else
-                    fu_action=$(pick_stage_menu "Force-update $fu_channel (latest: $fu_current)" \
-                        "same:Require $fu_current — forces everyone below it to update now" \
+                done
+                fu_n=${#fu_ok[@]}
+                if [ "$fu_n" -gt 0 ]; then
+                    if [ "$fu_n" = 1 ]; then
+                        fu_label="${fu_ok[0]}"
+                        fu_same="Require ${fu_ver[0]} — forces everyone below it to update now"
+                    else
+                        fu_label="$fu_n channels"
+                        fu_same="Require each channel's latest — forces everyone below it to update now"
+                    fi
+                    fu_title="Force-update $fu_label"
+                    fu_action=$(pick_stage_menu "$fu_title" \
+                        "same:$fu_same" \
                         "custom:Type a different minimum version" \
                         "clear:Clear the requirement"); rc=$?
                     if [ "$rc" = 0 ]; then
                         case "$fu_action" in
-                            same)   set_min_supported "$fu_channel" "$fu_current"; skip_erase=true ;;
-                            clear)  set_min_supported "$fu_channel" "clear"; skip_erase=true ;;
+                            # "same" is per channel — each keeps its own latest,
+                            # which is the whole point of ticking several at once.
+                            same)
+                                for i in $(seq 0 $((fu_n - 1))); do
+                                    set_min_supported "${fu_ok[$i]}" "${fu_ver[$i]}"
+                                done
+                                skip_erase=true ;;
+                            clear)
+                                for c in "${fu_ok[@]}"; do
+                                    set_min_supported "$c" "clear"
+                                done
+                                skip_erase=true ;;
                             custom)
                                 tput cnorm 2>/dev/null || true
-                                IFS= read -rp "  Minimum supported version for $fu_channel (blank cancels): " \
+                                IFS= read -rp "  Minimum supported version for $fu_label (blank cancels): " \
                                     -u3 fu_version
                                 tput civis 2>/dev/null || true
                                 if [ -n "$fu_version" ]; then
-                                    set_min_supported "$fu_channel" "$fu_version"
+                                    for c in "${fu_ok[@]}"; do
+                                        set_min_supported "$c" "$fu_version"
+                                    done
                                     skip_erase=true
                                 else
                                     # Cancelled — erase the prompt line so the
