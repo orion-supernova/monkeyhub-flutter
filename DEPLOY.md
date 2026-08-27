@@ -523,3 +523,39 @@ page. If it's missing, the archive/export steps still succeed — it's the
 `xcrun altool --upload-app` step that will reject it, and the fix is that ASC
 click, not a new app. Not part of `--all` yet; ship it with an explicit
 `--macos` until that first upload is confirmed working end to end.
+
+## The backend's memory on the VM
+
+The Oracle box has 956 MB and the Convex backend's default caches are sized for
+a fleet (~1.5 GB between them), so left alone it swaps most of itself out to
+the boot volume and every query pages itself back in before it can run. The
+symptoms are one-row mutations blowing the 1 s user-time limit, `Restarting
+Isolate user_timeout` bursts in `docker logs termio-backend`, and journald's
+"Under memory pressure, flushing caches". Chat feels slow for everyone at once.
+
+`hosting/termio-docker-compose.yaml` is the compose file that runs the backend,
+with the caps that fit it in RAM and the dashboard made opt-in; it is installed
+by `./hosting/tune-termio-vm.sh apply`, which also enables zram (compressed
+swap in RAM, ahead of the swapfile) and recreates the backend container. That
+recreate is **about six minutes of outage** on this disk — the backend re-reads
+the whole database while bootstrapping before it listens — so pick a quiet
+stretch, and expect the first `npx convex deploy` afterwards to need one retry
+(the cold bundle analysis trips a 4 s limit). `./hosting/tune-termio-vm.sh`
+with no argument reports where the box stands and changes nothing. Read it
+right: the backend's `VmSwap` stays around 1 GB even when healthy — that is a
+cold heap left over from bootstrap, never touched again — so the numbers that
+mean something are its `VmRSS`, the memory-pressure line, and whether
+`docker logs termio-backend` has stopped saying `Restarting Isolate
+user_timeout`. One more thing status shows: zram's real fill. If `swapon`
+says zram0 is full while `zramctl` says it holds a few MB, a thrash has
+clogged its slot table and swap is silently going to disk again —
+`./hosting/tune-termio-vm.sh reset-zram` fixes that in seconds. Edit the
+compose file in the repo, not on the box — same rule as the Caddy config.
+
+The dashboard is no longer always on. For a session of it, on the box, from
+`~/convex-instances/termio-backend/self-hosted/docker`:
+
+```
+docker compose --profile dashboard up -d dashboard
+docker compose stop dashboard          # when done
+```

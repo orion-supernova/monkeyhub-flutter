@@ -1,0 +1,108 @@
+# The Convex backend on the Oracle VM — installed to
+#   ~/convex-instances/termio-backend/self-hosted/docker/docker-compose.yaml
+# by hosting/tune-termio-vm.sh. Edit it HERE, not on the box: an edit made
+# there is lost on the next install and exists in no history (the same rule as
+# hosting/caddy-monkeyhub.conf).
+#
+# ── Why the backend carries memory caps (2026-08-27) ─────────────────────────
+#
+# The box has 956 MB. The backend's DEFAULT cache budget alone is ~1.5 GB
+# (index cache 512 MiB + module code cache 500 MB + module cache 250 MB + UDF
+# result cache 100 MiB + source maps 100 MB), so left alone it grew to a
+# 1.35 GB working set — of which 1.27 GB lived in swap on the boot volume,
+# with 89 MB actually resident. Every query then paged its working set back in
+# from disk before it could run: one-row mutations (`users:heartbeat`) blew the
+# 1 s user-time limit, `listUserRooms` timed out in bursts, isolates restarted
+# and reloaded their modules cold, and journald logged "Under memory pressure,
+# flushing caches" in the middle of a two-person chat. That is what "slow"
+# was.
+#
+# Names and defaults come from crates/common/src/knobs.rs in
+# get-convex/convex-backend; every one is read from the environment at start,
+# and the log says "Overriding X to Y from environment" for each one it
+# recognises — grep `docker logs termio-backend` for that after a recreate.
+#
+# What the first apply (2026-08-27, image built 2026-03-10) actually found:
+#
+#   * INDEX_CACHE_SIZE and SOURCE_MAP_CACHE_MAX_SIZE_BYTES do not exist in
+#     that build (the binary has no such strings); they are kept below for
+#     the day the image is upgraded and cost nothing until then.
+#   * The ~1 GB that sits in swap is ONE cold glibc `[heap]` region with a
+#     few MB resident — allocated while bootstrapping (the six-minute
+#     "Bootstrapping table metadata…" pass reads the whole database) and
+#     never touched again. It costs nothing at steady state; it costs the
+#     restart. Don't read VmSwap alone as "still broken" — read the backend's
+#     VmRSS, /proc/pressure/memory, and whether the log has stopped saying
+#     "Restarting Isolate user_timeout".
+#   * A recreate is a six-minute outage on this disk, not the 15 s a warm
+#     restart would be. Budget for it.
+#
+# Restoring a snapshot brings back DATA; functions still arrive by
+# `npx convex deploy` — see DEPLOY.md.
+name: termio
+services:
+  backend:
+    container_name: termio-backend
+    restart: always
+    image: ghcr.io/get-convex/convex-backend:latest
+    ports:
+      - "3212:3210"
+      - "3213:3211"
+    environment:
+      - CONVEX_CLOUD_ORIGIN=https://termio-api.walhallaa.com
+      - CONVEX_SITE_ORIGIN=https://termio-api.walhallaa.com
+      # Shared index cache. 512 MiB by default — the single largest item, and
+      # for one deployment with a 500 MB SQLite file the hot set is a fraction
+      # of this. Evictions fall through to SQLite, which the page cache serves
+      # from RAM now that there is RAM.
+      - INDEX_CACHE_SIZE=100000000
+      # Compiled-module caches. Sized for a fleet; this box runs one bundle of
+      # a few MB, plus whatever old versions linger until evicted.
+      - FUNRUN_CODE_CACHE_SIZE=50000000
+      - FUNRUN_MODULE_CACHE_SIZE=50000000
+      - FUNRUN_INDEX_CACHE_SIZE=25000000
+      - SOURCE_MAP_CACHE_MAX_SIZE_BYTES=10000000
+      # Query-result cache: what makes re-subscribing to an unchanged query
+      # free. Worth keeping, at a third of its default.
+      - UDF_CACHE_MAX_SIZE=33554432
+      # Recent-writes log used to refresh subscriptions without re-reading;
+      # the window it needs is seconds of chat, not 50 MiB of it.
+      - WRITE_LOG_SOFT_MAX_SIZE_BYTES=16777216
+      # In-memory function execution log for the dashboard's log view.
+      - MAX_UDF_EXECUTION=200
+      # A function that spends >1 s in JS is killed and its isolate restarted,
+      # and under memory pressure a cold isolate is the slowest thing on the
+      # box — the restart storms in the logs were this feeding itself. 3 s
+      # breaks the loop; nothing here legitimately runs anywhere near it.
+      - DATABASE_UDF_USER_TIMEOUT_SECONDS=3
+      # `npx convex deploy` loads the pushed bundle in a fresh isolate to list
+      # its functions, under this limit. The first push after a recreate hit
+      # the 4 s default cold ("Function execution timed out (maximum duration:
+      # 4s)") and went through on the retry. Until this is in effect, that
+      # retry is the workaround.
+      - ISOLATE_ANALYZE_USER_TIMEOUT_SECONDS=10
+    depends_on:
+      etcd:
+        condition: service_healthy
+  dashboard:
+    container_name: termio-dashboard
+    # Opt-in since 2026-08-27: a Next.js server idling at ~150 MB on a 956 MB
+    # box, for a page opened a few times a month — and whose own system
+    # queries were timing out alongside everyone else's. Bring it up when you
+    # need it and take it down after:
+    #   docker compose --profile dashboard up -d dashboard
+    #   docker compose stop dashboard
+    # (from the compose directory on the VM; tune-termio-vm.sh prints both.)
+    profiles: ["dashboard"]
+    restart: "no"
+    image: ghcr.io/get-convex/convex-dashboard:latest
+    ports:
+      - "6792:6791"
+    environment:
+      - NEXT_PUBLIC_DEPLOYMENT_URL=https://termio-api.walhallaa.com
+  etcd:
+    container_name: termio-etcd
+    restart: always
+    image: quay.io/coreos/etcd:v3.5.11
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
