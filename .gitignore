@@ -81,3 +81,9 @@ android/.kotlin/sessions/
 /hosting/public/
 /.firebase/
 firebase-debug.log
+
+# graphify: generated knowledge-graph output (1GB+, regenerate with `graphify update .`)
+# Tracked snapshots of graph.json were purged from history 2026-08-27; keep them out.
+/graphify-out/*
+!/graphify-out/GRAPH_REPORT.md
+/backend/graphify-out/
