@@ -1884,6 +1884,10 @@ export default defineSchema({
     // stale value as an abandoned call (crash, dead battery, OS jetsam) that
     // neither side ever explicitly ended.
     lastHeartbeatAt: v.optional(v.number()),
+    // Devices that reported their native call card (CallKit /
+    // ConnectionService) for this call gone — `ackNativeDismissed`. The
+    // grace-delayed `taken` push skips them (see `scheduleTakenPush`).
+    dismissedDeviceIds: v.optional(v.array(v.string())),
   })
     .index("by_callee_status", ["calleeId", "status"])
     .index("by_caller_status", ["callerId", "status"])

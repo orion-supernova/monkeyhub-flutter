@@ -3,6 +3,7 @@ import UIKit
 import UserNotifications
 import PushKit
 import CallKit
+import CryptoKit
 import AVKit
 import AVFoundation
 import CoreLocation
@@ -112,6 +113,14 @@ import flutter_callkit_incoming
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    // Debug-only: pins `derivedCallUuid` to the vector
+    // test/call_native_uuid_test.dart pins for the Dart and Kotlin
+    // derivations. A drift here would not crash anything — a `taken` push
+    // would just silently stop finding outbound cards again.
+    assert(
+      Self.derivedCallUuid("hello").uuidString == "5D41402A-BC4B-3A76-B971-9D911017C592",
+      "derivedCallUuid drifted from NativeCallHandler.derivedUuid"
+    )
     // Start Dart immediately, headless if need be. On a background VoIP
     // launch this is what makes flutter_callkit_incoming register (its
     // sharedInstance is set inside GeneratedPluginRegistrant.register) so
@@ -346,7 +355,8 @@ import flutter_callkit_incoming
     // satisfy Apple's "every push reports an incoming call" contract —
     // reportCallEndedElsewhere does that via the foregroundReportProvider.
     if kind == "taken" {
-      NSLog("[voip] taken push — answered elsewhere callId=\(convexCallId)")
+      let reason = (dict["reason"] as? String) ?? "?"
+      NSLog("[voip] taken push — callId=\(convexCallId) reason=\(reason)")
       reportCallEndedElsewhere(convexCallId: convexCallId)
       completion()
       return
@@ -507,6 +517,23 @@ import flutter_callkit_incoming
       plugin.saveEndCall(uuid.uuidString, 4)
       return
     }
+    // The card this device placed ITSELF. An outbound call never gets an
+    // invite push, so it is never in `callKitUuidByCallId`; Dart showed it
+    // under the id it derives from the callId (see derivedCallUuid). Without
+    // this branch a `taken` for a live outgoing call fell through to the
+    // escape hatch below and flashed a phantom incoming "Call" over the real
+    // card. `.remoteEnded` (reason 2): the other side hung up on us.
+    if !convexCallId.isEmpty,
+       let plugin = SwiftFlutterCallkitIncomingPlugin.sharedInstance {
+      let derived = Self.derivedCallUuid(convexCallId).uuidString
+      if plugin.activeCalls().contains(where: {
+        ($0["id"] as? String)?.uppercased() == derived.uppercased()
+      }) {
+        NSLog("[voip] taken push — ending outbound card \(derived) for \(convexCallId)")
+        plugin.saveEndCall(derived, 2)
+        return
+      }
+    }
     // A fallback-provider card may be ringing for this call instead.
     if let entry = fallbackCallIdByUuid.first(where: { $0.value == convexCallId }) {
       fallbackCallIdByUuid.removeValue(forKey: entry.key)
@@ -518,8 +545,33 @@ import flutter_callkit_incoming
       return
     }
     // No CallKit session to target — Apple still wants a compliant
-    // report-and-end for this push. Use the existing escape hatch.
+    // report-and-end for this push. Use the existing escape hatch. NOTE:
+    // this is NOT invisible. On current iOS the placeholder call shows as a
+    // one-second incoming "Call" that rings and vanishes, so the backend
+    // only sends a PushKit `taken` where a card may sit in a killed process
+    // (`calls.endCallImpl`, `iosVoip`) — reaching here should be rare.
+    NSLog("[voip] taken push — no card for \(convexCallId); report-and-end placeholder")
     reportAndEndCall(callerName: "Call")
+  }
+
+  // The native id Dart mints for a call it shows itself —
+  // `NativeCallHandler.derivedUuid`, a port of
+  // `java.util.UUID.nameUUIDFromBytes` (MD5 of the callId with the
+  // version-3 and IETF-variant bits patched in), which
+  // `CallFcmService.uuidForCallId` computes on Android. On iOS that is the
+  // OUTBOUND card (`showOutgoing`); invite pushes mint a random UUID and
+  // record it in `callKitUuidByCallId` instead. test/call_native_uuid_test.dart
+  // pins the vectors all three derivations must agree on; the sanity check
+  // in `application(_:didFinishLaunchingWithOptions:)` asserts this one in
+  // debug builds.
+  static func derivedCallUuid(_ callId: String) -> UUID {
+    var b = Array(Insecure.MD5.hash(data: Data(callId.utf8)))
+    b[6] = (b[6] & 0x0f) | 0x30 // version 3 (name-based, MD5)
+    b[8] = (b[8] & 0x3f) | 0x80 // IETF variant
+    return UUID(uuid: (
+      b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7],
+      b[8], b[9], b[10], b[11], b[12], b[13], b[14], b[15]
+    ))
   }
 
   // PushKit contract escape hatch: when we don't want to show CallKit
