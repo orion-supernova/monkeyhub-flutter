@@ -77,6 +77,23 @@ export const sendVoip = internalAction({
     roomId: v.id("rooms"),
   },
   handler: async (ctx, args) => {
+    // Ring-path guard. This action is scheduled `runAfter(0)` at initiate with
+    // every payload field precomputed, so it can execute AFTER a fast cancel /
+    // sibling-accept / reject has already flipped the row terminal — and
+    // nothing between the schedule and here re-reads it. Ringing a device for
+    // a call that is already over is the "ghost ring": a native card that
+    // appears then gets dismissed a beat later by the chasing `taken` push.
+    // Re-confirm the call is still ringing before waking anyone.
+    const status: string | null = await ctx.runQuery(
+      internal.calls.callStatusInternal,
+      { callId: args.callId },
+    );
+    if (status !== "ringing") {
+      console.log(
+        `sendVoip: call ${args.callId} no longer ringing (${status ?? "gone"}) — skipping invite`,
+      );
+      return;
+    }
     // Annotated at the USE site, not just on the query.
     //
     // `internal` is typed from `fullApi`, which includes `typeof voipPush` —
@@ -256,9 +273,30 @@ export const retryPushToDevice = internalAction({
   },
   returns: v.null(),
   handler: async (ctx, { userId, device, payload }) => {
+    // Ring-path guard, mirroring `sendVoip`: an invite retry fires ~2s after
+    // the first attempt, easily long enough to cross a cancel/accept. Re-ring
+    // only if the call is still ringing. `taken` retries are exempt — a
+    // dismissal is always safe (and wanted) to re-send. If the guard skips,
+    // the original invite either never delivered (nothing to dismiss) or the
+    // terminal `taken` push already cleared the card.
+    const kind = (payload as { kind?: string })?.kind;
+    const callId = (payload as { callId?: string })?.callId;
+    if (kind === "invite" && callId) {
+      const status: string | null = await ctx.runQuery(
+        internal.calls.callStatusInternal,
+        { callId: callId as Id<"calls"> },
+      );
+      if (status !== "ringing") {
+        console.log(
+          `retryPushToDevice: invite for ${callId} no longer ringing (${status ?? "gone"}) — skipping retry`,
+        );
+        return null;
+      }
+    }
     await pushToDevice(ctx, userId, device as DeviceRow, payload, {
       isRetry: true,
     });
+    return null;
   },
 });
 
@@ -383,6 +421,13 @@ async function sendApnsVoip(
   // dismissal must chase a reconnecting device longer, or its CallKit ringer
   // lingers as a ghost.
   const expirationSeconds = payload.kind === "taken" ? 60 : 30;
+  // Collapse the invite and its own `taken` onto ONE APNs id (the callId), so
+  // that when a device is briefly unreachable APNs keeps only the LATEST push
+  // for the call: a `taken` posted while the invite is still pending overwrites
+  // it, and the device never rings a call that is already over. Live delivery
+  // is unaffected (nothing to coalesce). Distinct calls keep distinct ids.
+  const collapseId =
+    typeof payload.callId === "string" ? payload.callId : undefined;
   await apnsPost(ctx, {
     token: voipToken,
     env: apnsEnv,
@@ -390,6 +435,7 @@ async function sendApnsVoip(
     pushType: "voip",
     priority: "10",
     expiration: Math.floor(Date.now() / 1000) + expirationSeconds,
+    collapseId,
     // A PushKit payload has no `aps` — the whole body is ours.
     body: payload,
   });
@@ -400,9 +446,21 @@ async function sendFcmData(
   fcmToken: string,
   payload: Record<string, unknown>,
 ): Promise<void> {
+  // Same coalescing as the APNs side: key the invite and its `taken` to one
+  // `collapse_key` (the callId) so FCM, when the handset is in Doze/offline
+  // with both queued, delivers only the latest — a `taken` supersedes the
+  // still-queued invite and the phone never full-screen-rings a dead call on
+  // reconnect. FCM caps distinct collapse keys at 4, but only PENDING messages
+  // count, so per-call keys are fine.
+  const collapseKey =
+    typeof payload.callId === "string" ? payload.callId : undefined;
   await fcmPost(ctx, {
     token: fcmToken,
     data: stringifyValues(payload),
-    android: { priority: "high", ttl: "60s" },
+    android: {
+      priority: "high",
+      ttl: "60s",
+      ...(collapseKey ? { collapse_key: collapseKey } : {}),
+    },
   });
 }

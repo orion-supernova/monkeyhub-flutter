@@ -971,6 +971,16 @@ class GroupCallService extends ChangeNotifier {
 
   Future<void> toggleSpeaker() async {
     speakerOn = !speakerOn;
+    // Rewrite the iOS audio CATEGORY/MODE first, not just the route — mirrors
+    // the 1:1 [CallService.toggleSpeaker]. `defaultToSpeaker` lives in
+    // flutter_webrtc's process-wide RTCAudioSessionConfiguration singleton and
+    // `setSpeakerphoneOn` only overrides the current output port without
+    // clearing that bit, so a group call switched to the earpiece snapped back
+    // to the loudspeaker on the next session reconfigure. And the `videoChat`
+    // mode force-sets `defaultToSpeaker` on its own (see
+    // [applyIosCallAudioConfig]), so for a group VIDEO call this rewrite is
+    // what lets the earpiece be reached at all. No-op off iOS.
+    await applyIosCallAudioConfig(_mediaKind, speakerOn: speakerOn);
     await applyCallAudioRoute(speaker: speakerOn);
     notifyListeners();
   }

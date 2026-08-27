@@ -258,6 +258,19 @@ Future<void> preferH264Codec(RTCPeerConnection pc) async {
 /// reactivation regardless of whether the user had switched to the earpiece,
 /// and the next activation silently routed back to the loudspeaker even
 /// though `speakerOn` (and the UI toggle) still correctly read false.
+///
+/// The MODE is gated on [speakerOn] for the same reason, and this is the
+/// subtler half of the bug: `AVAudioSessionModeVideoChat` carries a DOCUMENTED
+/// side effect — it force-sets `AVAudioSessionCategoryOptionDefaultToSpeaker`
+/// (and `allowBluetoothHFP`) on its own, regardless of the category options
+/// passed above. `setAppleAudioConfiguration` applies the mode LAST, so a
+/// `kind == video`-only mode re-added the speaker bit that the option-gating
+/// had just cleared — a video call could therefore NEVER reach the earpiece,
+/// no matter what the toggle said. `voiceChat` mode has no such side effect
+/// and is route-compatible with the receiver, so use it whenever the earpiece
+/// is wanted. Voice calls were always `voiceChat`; only video-on-earpiece
+/// changes. (`videoChat` stays for video-on-speaker, where the speaker is
+/// exactly the route we want.)
 Future<void> applyIosCallAudioConfig(
   CallMediaKind kind, {
   required bool speakerOn,
@@ -271,7 +284,7 @@ Future<void> applyIosCallAudioConfig(
         AppleAudioCategoryOption.allowBluetoothA2DP,
         if (speakerOn) AppleAudioCategoryOption.defaultToSpeaker,
       },
-      appleAudioMode: kind == CallMediaKind.video
+      appleAudioMode: (kind == CallMediaKind.video && speakerOn)
           ? AppleAudioMode.videoChat
           : AppleAudioMode.voiceChat,
     ));
