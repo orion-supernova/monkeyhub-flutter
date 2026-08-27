@@ -558,3 +558,51 @@ export const clearLegacyFcmTokenInternal = internalMutation({
     await ctx.db.patch(userId, { fcmToken: undefined });
   },
 });
+
+/**
+ * How long a device may go unseen before its row is reaped.
+ *
+ * Every sign-out path already deletes its own row inline — [clearDeviceToken]
+ * and [removeOtherDevices] both do — so this sweep only ever catches the ones
+ * that never landed: an app killed before the request completed, an
+ * uninstall or a browser tab closed without running any unload path, or a
+ * row written before that inline cleanup shipped at all.
+ *
+ * Longer than `dailyNudge.ACTIVE_WINDOW_DAYS` (30) on purpose — that window
+ * decides "still worth nudging", a decision that costs nothing to get wrong
+ * for a quiet device. Deleting the row is not costless in the same way: it
+ * drops the device from the "Devices" screen and the active-call handoff
+ * pill, so the cutoff stays well clear of anyone who merely opens the app
+ * infrequently.
+ */
+const STALE_DEVICE_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+
+/** Rows reaped per tick, like every other bounded sweep in this backend. */
+const STALE_DEVICE_PAGE = 200;
+
+/**
+ * Reap `userDevices` rows nobody has used in [STALE_DEVICE_RETENTION_MS].
+ *
+ * Ranged over `by_last_seen`, which `upsertDevice` refreshes on every login,
+ * resume, and token upload — the "future stale-device sweep" that comment
+ * already named. A device still in use never approaches the cutoff, so this
+ * is a backstop for abandoned rows, not a guess at who stopped playing.
+ *
+ * Bounded per run for the same reason `sessionCore.gcRevokedSessions` is: a
+ * deleted row leaves the range immediately, so a normal tick costs one index
+ * probe and a backlog only ever costs a longer tail, never a function that
+ * blows past Convex's per-call limits.
+ */
+export const gcStaleDevices = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const cutoff = Date.now() - STALE_DEVICE_RETENTION_MS;
+    const stale = await ctx.db
+      .query("userDevices")
+      .withIndex("by_last_seen", (q) => q.lt("lastSeenAt", cutoff))
+      .take(STALE_DEVICE_PAGE);
+    for (const row of stale) {
+      await ctx.db.delete(row._id);
+    }
+  },
+});
