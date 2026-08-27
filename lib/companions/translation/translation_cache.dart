@@ -75,7 +75,9 @@ class TranslationCache {
   ///     which were reaching bubbles as text on the iOS `.litertlm` path.
   /// 3 — rejects token soup, after a GPU backend the simulator cannot service
   ///     returned random tokens across four writing systems.
-  static const int _version = 3;
+  /// 4 — asks Qwen3 not to think (`/no_think`), strips control tokens that came
+  ///     back mangled, and refuses anything still carrying markup.
+  static const int _version = 4;
 
   static const Duration _writeDebounce = Duration(seconds: 2);
 

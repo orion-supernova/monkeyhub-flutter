@@ -76,6 +76,23 @@ void main() {
       expect(clean('[INST]Günaydın[/INST]'), 'Günaydın');
     });
 
+    /// The exact shape a CPU run produced: the SAME marker decoded three
+    /// different broken ways, none of them well-formed. A pattern that
+    /// insisted on `<|…|>` caught none of them.
+    test('control tokens that came back mangled', () {
+      expect(clean('<|channel >thought Merhaba'), 'Merhaba');
+      expect(clean('Merhaba<channel|>'), 'Merhaba');
+      expect(clean('<| channel>thought Merhaba'), 'Merhaba');
+    });
+
+    /// No stripper can be trusted to have seen every mangling, so anything
+    /// still carrying markup after cleanup is refused rather than rendered.
+    test('markup that survives cleanup is refused', () {
+      expect(TranslationPrompt.looksLikeMarkup('Merhaba <|foo'), isTrue);
+      expect(TranslationPrompt.looksLikeMarkup('Merhaba nasılsın'), isFalse);
+      expect(TranslationPrompt.looksLikeMarkup('5 < 7 ve 9 > 3'), isFalse);
+    });
+
     /// The counterpart risk: real text that merely contains angle brackets.
     test('leaves ordinary punctuation alone', () {
       expect(clean('5 < 7 ve 9 > 3'), '5 < 7 ve 9 > 3');
@@ -198,6 +215,22 @@ void main() {
     /// The model is far better at "translate into Turkish" than at "translate
     /// into Türkçe" — its training data names languages in English, even when
     /// the UI does not.
+    /// `enableThinking: false` is a runtime flag that a real run watched this
+    /// build ignore, returning a chain-of-thought preamble instead of a
+    /// translation. `/no_think` is part of the turn, so it arrives whatever
+    /// the runtime did with the flag.
+    test('asks Qwen3 not to think, in the turn itself', () {
+      expect(
+        TranslationPrompt.build('hello', turkish, family: BrainFamily.qwen3),
+        contains('/no_think'),
+      );
+      // Not a Gemma switch; sending it there would just be noise in the prompt.
+      expect(
+        TranslationPrompt.build('hello', turkish, family: BrainFamily.gemma),
+        isNot(contains('/no_think')),
+      );
+    });
+
     test('names the target language in English, not its autonym', () {
       final built = TranslationPrompt.build('hello', turkish);
       expect(built, contains('Turkish'));

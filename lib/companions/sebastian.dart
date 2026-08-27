@@ -826,6 +826,13 @@ class Sebastian extends ChangeNotifier {
       }
     }
 
+    // Markup that survived cleanup is not language. See
+    // [TranslationPrompt.looksLikeMarkup] — no stripper can be trusted to have
+    // seen every way a runtime can mangle a control token, so the last word
+    // goes to a check that does not try to.
+    if (result != null && TranslationPrompt.looksLikeMarkup(result)) {
+      result = null;
+    }
     if (result == null) {
       handle._finish(TranslationState.failed);
       return;
@@ -884,7 +891,7 @@ class Sebastian extends ChangeNotifier {
       final piece = chunks[i];
       final raw = StringBuffer();
       await for (final token in loaded.generate(
-        TranslationPrompt.build(piece, target),
+        TranslationPrompt.build(piece, target, family: brain.family),
         systemInstruction: system,
         // Generous next to the input, because some language pairs genuinely
         // expand — and a cap that truncates mid-sentence produces a confident

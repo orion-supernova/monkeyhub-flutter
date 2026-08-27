@@ -66,14 +66,29 @@ abstract final class TranslationPrompt {
   /// 3. **It ends on a cue.** `Turkish:` on its own line puts the model one
   ///    token away from the answer, which is the cheapest anti-preamble
   ///    measure available and by a distance the most effective.
-  static String build(String text, TranslationLanguage target) {
+  static String build(
+    String text,
+    TranslationLanguage target, {
+    BrainFamily family = BrainFamily.qwen3,
+  }) {
     final lang = target.englishName;
     // A message containing the fence would end it early and hand the rest of
     // itself to the model as instructions. Neutralised by breaking up the run
     // rather than dropping it, so the visible text is not silently altered in
     // the rare case the model echoes some of it back.
     final safe = text.replaceAll('>>>', '> >>').replaceAll('<<<', '< <<');
-    return 'Translate the text between <<< and >>> into $lang.\n'
+    // Qwen3's documented soft switch for its reasoning mode.
+    //
+    // `enableThinking: false` is a RUNTIME flag, honoured by whichever engine
+    // happens to be loaded — and a real run watched this build think anyway,
+    // returning "Okay, let's tackle…" wrapped in turn markers instead of a
+    // translation. `/no_think` is part of the turn, so it reaches the model
+    // whatever the runtime did with the flag.
+    //
+    // Belt and braces on purpose: the flag stays set too. Neither is reliable
+    // enough alone to put in front of a user.
+    final noThink = family == BrainFamily.qwen3 ? ' /no_think' : '';
+    return 'Translate the text between <<< and >>> into $lang.$noThink\n'
         '<<<\n'
         '$safe\n'
         '>>>\n'
@@ -128,6 +143,11 @@ abstract final class TranslationPrompt {
     // this catches Gemma's and Llama's too. Real prose does not contain the
     // sequence, so there is nothing to protect.
     out = out.replaceAll(_controlToken, '');
+    // AFTER the brackets, not before: this is the marker's trailing word, and
+    // until the bracketed part in front of it is gone it is not at the start
+    // of anything. Anchored to a line start so an ordinary "thought" inside a
+    // translated sentence is untouched.
+    out = out.replaceAll(_channelThought, '');
 
     // ── 2. The fence, if it came back with the answer.
     out = out.replaceAll('<<<', '').replaceAll('>>>', '');
@@ -198,13 +218,26 @@ abstract final class TranslationPrompt {
   /// decode to. Alternation rather than one clever pattern, so each family is
   /// legible and removable on its own.
   static final RegExp _controlToken = RegExp(
-    r'<\|[^|>]*\|>'
+    // Any angle-bracketed run containing a pipe. Deliberately loose, because
+    // a real run produced the SAME token decoded three different broken ways:
+    // `<|channel >`, `<channel|>`, `<| channel>`. A pattern that insisted on
+    // the well-formed `<|…|>` caught none of them.
+    //
+    // Safe despite the looseness: ordinary text does not put a pipe between
+    // angle brackets. `5 < 7 ve 9 > 3` has none and survives.
+    r'<[^<>]*\|[^<>]*>'
     r'|<\/?s>'
     r'|<\/?(?:start|end)_of_turn>'
     r'|\[\/?INST\]'
     r'|\[\/?endoftext\]',
     caseSensitive: false,
   );
+
+  /// The marker's trailing word, left behind once the bracketed part is
+  /// stripped: `<|channel >thought` becomes `thought`. Anchored to a line
+  /// start so an ordinary "thought" inside a sentence is untouched.
+  static final RegExp _channelThought =
+      RegExp(r'^\s*thought\b', multiLine: true, caseSensitive: false);
 
   static final RegExp _thinkBlock =
       RegExp(r'<think>[\s\S]*?</think>', caseSensitive: false);
@@ -221,6 +254,15 @@ abstract final class TranslationPrompt {
   /// The target language's English name is included because the prompt's own
   /// closing cue is exactly `Turkish:` — echoing it back is the single most
   /// common thing to strip.
+  /// Whether [text] still carries chat-template markup after cleanup.
+  ///
+  /// The stripper below handles every mangling seen so far; this exists
+  /// because "so far" is not a guarantee. A translation that still contains
+  /// `<|` or `|>` is markup, not language, and rendering it costs more trust
+  /// than refusing it does.
+  static bool looksLikeMarkup(String text) =>
+      text.contains('<|') || text.contains('|>');
+
   static List<String> _labelsFor(TranslationLanguage? target) => [
         if (target != null) target.englishName.toLowerCase(),
         'translation',
