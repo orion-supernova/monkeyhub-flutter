@@ -282,6 +282,19 @@ class CallService extends ChangeNotifier {
   bool _acceptedNatively = false;
   bool get acceptedNatively => _acceptedNatively;
 
+  /// Re-entrancy guard for [acceptIncoming], holding the callId currently
+  /// being accepted (null when idle). A CallKit accept event and the
+  /// resume-triggered `replayColdStartCalls` can both fire `acceptIncoming`
+  /// for the same live session, and the `incomingRinging` status check inside
+  /// stays true until the very last line — so two runs could otherwise race
+  /// `createAnswer`/`acceptCall`, with one ending the other's (possibly
+  /// already-active) call. Scoped to the callId, NOT a bare bool: if an accept
+  /// for call A wedges on a dead socket and A is torn down, a fresh incoming
+  /// call B must still be answerable — a bool would drop B until A's
+  /// round-trip finally resolved. The finally only clears its own callId, so a
+  /// late-resolving A can't wipe B's guard.
+  String? _acceptingCallId;
+
   /// The call the latch was set for, when the caller knew it. Lets the
   /// watchdog dismiss precisely that card instead of every card on the device.
   String? _latchedAcceptCallId;
@@ -304,11 +317,24 @@ class CallService extends ChangeNotifier {
 
   void _armAcceptWatchdog() {
     _acceptWatchdog?.cancel();
-    _acceptWatchdog = Timer(const Duration(seconds: 10), () async {
+    // 20s, not 10s: this only has to rescue a native accept whose OFFER never
+    // arrives, and on a cold start (killed app woken by the VoIP push) the
+    // offer can take many seconds to land — boot, keychain deviceId, auth, the
+    // signaling subscription, then delivery. Ten seconds routinely expired
+    // before a perfectly healthy offer arrived and false-killed the call as
+    // "Call unavailable". [acceptIncoming] cancels this the moment it starts
+    // real work, so a slow-but-progressing accept never reaches here.
+    _acceptWatchdog = Timer(const Duration(seconds: 20), () async {
       if (!_acceptedNatively) return;
       final s = _session;
-      final stuck =
-          _pc == null || s == null || s.status == CallStatus.incomingRinging;
+      // Stuck ONLY when no offer ever arrived (no PC) while still ringing, or
+      // there is no session at all. A hydrated session with a live PC (offer
+      // arrived, accept in flight) is NOT stuck — the old standalone
+      // `status == incomingRinging` term fired even then, since acceptIncoming
+      // keeps that status until its very last line, and tore down a healthy
+      // in-progress accept.
+      final stuck = s == null ||
+          (_pc == null && s.status == CallStatus.incomingRinging);
       if (!stuck) return;
       debugPrint(
         'CallService: accept watchdog tripped — no offer arrived, '
@@ -554,9 +580,44 @@ class CallService extends ChangeNotifier {
       return;
     }
 
+    // In-flight guard — see [_acceptingCallId]. A CallKit accept event and a
+    // resume-triggered replay can both land here for the same live session;
+    // block only a concurrent accept of the SAME call.
+    if (_acceptingCallId == s.callId) return;
+    _acceptingCallId = s.callId;
+    // We have a real offer + PC and are proceeding, so the accept watchdog has
+    // done its only job (rescue a native accept whose offer never came). Stop
+    // it NOW: left armed it treats this healthy-but-slow accept — status stays
+    // `incomingRinging` until the very last line below — as "stuck" at the 20s
+    // mark and tears the call down as "Call unavailable" (the rings-but-can't-
+    // answer report), and its `notifyBackend` end could kill a row that
+    // `acceptCall` had just flipped to `active`.
+    _acceptWatchdog?.cancel();
+    _acceptWatchdog = null;
     try {
-      await _attachLocalMedia(s.mediaKind);
+      // Claim the call on the backend FIRST, before the slower media/SDP work.
+      // The server rings for only 30s; the old order paid getUserMedia +
+      // createAnswer + setLocalDescription (0.5–3s) BEFORE this, so a tap late
+      // in the ring window landed the accept AFTER expiry and came back
+      // "not-ringing" — killing a call the user really did answer. Claiming
+      // first shrinks that race to a single round-trip.
+      final disposition = await api.acceptCall(
+        callId: s.callId,
+        userId: me,
+        acceptingDeviceId: _deviceId,
+      );
+      if (disposition == 'not-ringing') {
+        // The call was already settled elsewhere — timed out, cancelled, or a
+        // sibling device took it — before our accept landed. Tear down LOCALLY
+        // and DON'T notify the backend: a bare `endCall()` here fires
+        // `calls:end`, which the backend honors even on an `active` row, so a
+        // sibling that just won the accept would have its live call ended by
+        // this loser. `_teardown` leaves the backend row alone.
+        await _teardown(CallStatus.ended);
+        return;
+      }
 
+      await _attachLocalMedia(s.mediaKind);
       final answer = await pc.createAnswer({});
       await pc.setLocalDescription(answer);
       debugPrint(
@@ -564,19 +625,6 @@ class CallService extends ChangeNotifier {
         'sdpLen=${answer.sdp?.length ?? 0}',
       );
 
-      final disposition = await api.acceptCall(
-        callId: s.callId,
-        userId: me,
-        acceptingDeviceId: _deviceId,
-      );
-      if (disposition == 'not-ringing') {
-        // The call was already settled elsewhere — timed out, cancelled, or
-        // a sibling device took it — before our accept landed on the
-        // backend. Not a real failure, just late: tear down quietly instead
-        // of surfacing "Could not start call".
-        await endCall();
-        return;
-      }
       await api.sendCallSignal(
         callId: s.callId,
         fromUserId: me,
@@ -586,8 +634,21 @@ class CallService extends ChangeNotifier {
         payload: jsonEncode({'sdp': answer.sdp, 'type': answer.type}),
       );
 
-      _session = s.copyWith(status: CallStatus.connecting);
-      _acceptWatchdog?.cancel();
+      // Re-validate before promoting. The awaits above can outlive a teardown
+      // (caller cancel auto-converted to end, a `bye`, the watchdog) plus the
+      // 400ms terminal hold, and writing `connecting` onto a stale/terminal
+      // session resurrects a zombie call — status connecting, PC disposed —
+      // that then blocks every future call with "Already in a call" until a
+      // manual hang-up.
+      final cur = _session;
+      if (cur == null ||
+          cur.callId != s.callId ||
+          cur.status == CallStatus.ended ||
+          cur.status == CallStatus.failed ||
+          cur.status == CallStatus.handedOff) {
+        return;
+      }
+      _session = cur.copyWith(status: CallStatus.connecting);
       notifyListeners();
     } catch (e, st) {
       if (e is MediaSupersededException) {
@@ -598,6 +659,10 @@ class CallService extends ChangeNotifier {
       }
       debugPrint('CallService.acceptIncoming failed: $e\n$st');
       await endCall(errorMessage: 'Could not start call');
+    } finally {
+      // Clear only if it's still ours — a late-resolving wedged accept must
+      // not wipe the guard a newer call's accept has since taken.
+      if (_acceptingCallId == s.callId) _acceptingCallId = null;
     }
   }
 
@@ -973,7 +1038,13 @@ class CallService extends ChangeNotifier {
       // Freshness gate: the backend rings for 30s, so any invite older than
       // that (server-stamped createdAt) is a stale row re-delivered after an
       // app restart — its call is terminal and must not re-ring as a ghost.
-      if (_isStaleSignal(signal)) {
+      // BUT never drop a signal for a call the user has already accepted
+      // natively (`_latchedAcceptCallId`): the gate compares a server timestamp
+      // to the DEVICE clock, so a device running >45s fast marks every fresh
+      // invite/offer stale and never hydrates — the phone rings (native push
+      // needs no gate) but Accept can never connect. An active accept latch is
+      // proof this call is real regardless of what the clock says.
+      if (_isStaleSignal(signal) && _latchedAcceptCallId != callId) {
         debugPrint('CallService: dropping stale invite callId=$callId');
         return;
       }
@@ -1066,8 +1137,13 @@ class CallService extends ChangeNotifier {
     // one if no invite was delivered (older caller / delivery race).
     if (kind == 'offer') {
       // Same freshness gate as `invite`, but only for the session-CREATING
-      // path — an offer hydrating an already-ringing session is fine.
-      if (_session == null && _isStaleSignal(signal)) {
+      // path — an offer hydrating an already-ringing session is fine. Also
+      // bypassed for a natively-accepted call (see the invite gate): this is
+      // the exact signal a clock-skewed device needs to hydrate the call it
+      // just accepted, and dropping it strands the accept forever.
+      if (_session == null &&
+          _isStaleSignal(signal) &&
+          _latchedAcceptCallId != callId) {
         debugPrint('CallService: dropping stale offer callId=$callId');
         return;
       }

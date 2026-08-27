@@ -1,4 +1,8 @@
-import { internalAction, internalMutation } from "./_generated/server";
+import {
+  internalAction,
+  internalMutation,
+  internalQuery,
+} from "./_generated/server";
 import { action, mutation, query } from "./functions";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
@@ -920,6 +924,20 @@ export const sendCallPush = internalAction({
     ctx,
     { callId, calleeId, callerId, callerName, callerAvatarUrl, type, roomId },
   ) => {
+    // Ring-path guard: this rescue is scheduled from `voipPush.sendVoip` only
+    // after every native push failed, which can be a second or more after
+    // initiate — long enough for a cancel/accept/reject to have ended the
+    // call. Don't alert about a call that is no longer ringing.
+    const status: string | null = await ctx.runQuery(
+      internal.calls.callStatusInternal,
+      { callId },
+    );
+    if (status !== "ringing") {
+      console.log(
+        `sendCallPush: call ${callId} no longer ringing (${status ?? "gone"}) — skipping alert`,
+      );
+      return;
+    }
     const verb = type === "video" ? "Video call" : "Voice call";
     await ctx.runAction(internal.push.sendAlert, {
       userIds: [calleeId],
@@ -1144,5 +1162,24 @@ export const getCallStatus = query({
       return null;
     }
     return { status: call.status };
+  },
+});
+
+// Internal, no participant check: read a call's status so the fire-and-forget
+// VoIP push actions (`voipPush.sendVoip`, its retry, and the alert rescue) can
+// re-confirm the call is still `ringing` before they RING a device. Those
+// actions are scheduled `runAfter(0)` at initiate with every payload field
+// precomputed, so they can execute AFTER a fast cancel/accept/reject has
+// already flipped the row terminal — and nothing between the schedule and the
+// send re-reads it. The result is the "ghost ring": a native card that appears
+// for a call that is already over, then gets dismissed a beat later by the
+// chasing `taken` push. Guarding the ring path on this closes the window.
+// Returns the status string, or null when the row is gone (GC'd).
+export const callStatusInternal = internalQuery({
+  args: { callId: v.id("calls") },
+  returns: v.union(v.null(), v.string()),
+  handler: async (ctx, { callId }) => {
+    const call = await ctx.db.get(callId);
+    return call?.status ?? null;
   },
 });
