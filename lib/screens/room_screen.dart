@@ -78,6 +78,7 @@ import '../widgets/composer_edit_card.dart';
 import '../widgets/composer_reply_card.dart';
 import '../widgets/mention_picker.dart';
 import '../widgets/photo_mosaic.dart' show mosaicHeroTag;
+import '../widgets/companion_strip.dart' show kCompanionStripHeight;
 import '../widgets/pinned_banner.dart';
 import '../widgets/pinned_list_sheet.dart';
 import '../widgets/mention_text_controller.dart';
@@ -3329,7 +3330,16 @@ class _RoomScreenState extends State<RoomScreen>
     // widening it for the banner would have lifted the transcript's bottom
     // padding too and left a gap above the composer.
     final pins = widget.repo.pinsFor(room.id);
-    final topChromeH = 60.0 + (pins.isEmpty ? 0.0 : kPinnedBannerHeight);
+    // The translate strip grows the top chrome exactly the way the pin banner
+    // does, and for the same reason: in this style it FLOATS over a
+    // `Positioned.fill` transcript, so nothing else holds the first message
+    // clear of it. It went unreserved while it was a full-bleed bar, which put
+    // it on top of the oldest visible bubble whenever a room was translating.
+    final translating = Sebastian.instance.isRoomTranslating(room.id) &&
+        Sebastian.instance.isReady;
+    final topChromeH = 60.0 +
+        (pins.isEmpty ? 0.0 : kPinnedBannerHeight) +
+        (translating ? kCompanionStripHeight : 0.0);
     // The scheduled pill grows only the BOTTOM chrome — the exact case the
     // split above exists for. In the classic style the composer stack sits in a
     // real Column above an `Expanded` transcript, so a pill pushes the list and
@@ -3403,9 +3413,14 @@ class _RoomScreenState extends State<RoomScreen>
                       onOpenList: () => _openPinList(room),
                       glass: true,
                     ),
+                    // Frosted for the same reason the pinned strip above it
+                    // is: square corners under a rounded glass header were the
+                    // one piece of chrome in this style not speaking its
+                    // language.
                     RoomTranslateBar(
                       roomId: room.id,
                       onStop: () => Sebastian.instance.stopRoom(room.id),
+                      glass: true,
                     ),
                   ],
                 ),

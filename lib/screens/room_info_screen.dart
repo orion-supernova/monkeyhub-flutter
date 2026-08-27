@@ -2197,11 +2197,11 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
 
   /// The room-wide translation switch.
   ///
-  /// Deliberately built as a plain row rather than through
-  /// [RoomTranslateToggle]: that widget is shaped for the flat action list it
-  /// was written for, and this screen's rows have their own chrome. What the
-  /// two share is the four-state logic, which lives in [Sebastian] where both
-  /// can read it.
+  /// A plain row rather than a shared control: this screen's rows have their
+  /// own chrome, and the only thing a second caller would share is the
+  /// four-state logic, which lives in [Sebastian] where anyone can read it.
+  /// There WAS a `RoomTranslateToggle` written for a flat action list that no
+  /// longer exists; it sat unused for long enough to be deleted.
   Widget _translateRow(AppTheme theme, ChatRoom r) {
     final l10n = AppLocalizations.of(context);
     final sebastian = Sebastian.instance;
