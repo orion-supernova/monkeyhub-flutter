@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../backend/chat_api.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../media/media_aspect_cache.dart';
 import '../models/chat_message.dart';
 import '../models/enums.dart';
 import '../theme/theme_scope.dart';
@@ -52,7 +53,9 @@ class MediaPagerScreen extends StatefulWidget {
     required this.initialIndex,
     required this.api,
     this.onShowInChat,
+    this.onPageChanged,
     this.heroTagFor,
+    this.sourceDecodeWidth,
   });
 
   final List<ChatMessage> items;
@@ -62,6 +65,26 @@ class MediaPagerScreen extends StatefulWidget {
   /// Pops the pager and asks the room to travel to this message. Null when
   /// there is nothing to travel back to.
   final void Function(ChatMessage message)? onShowInChat;
+
+  /// Reports the picture the reader has settled on, every time that changes.
+  ///
+  /// The route underneath uses it to keep the thumbnail for the current
+  /// photograph laid out, so the flight home has somewhere to land. Swiping is
+  /// how a reader ends up looking at a picture whose thumbnail is nowhere near
+  /// the screen any more, and a Hero whose destination is not in the tree does
+  /// not fail — it silently degrades to a cross-fade, which is the one thing
+  /// this whole screen is built not to do.
+  final void Function(ChatMessage message)? onPageChanged;
+
+  /// The decode width, in device pixels, of the thumbnail this was opened from.
+  ///
+  /// A photograph is decoded at the size of the box it is painted into, so the
+  /// fullscreen copy is a DIFFERENT `ImageCache` entry from the thumbnail that
+  /// was just tapped — and the flight lands before that entry exists. Pinned to
+  /// the thumbnail's the opening page paints from a decode that is already
+  /// resident, and the sharp one is fetched once the picture has come to rest.
+  /// See [RemoteImage.placeholderDecodeWidth].
+  final int? sourceDecodeWidth;
 
   /// The [Hero] tag the picture for a message flies from and back to.
   ///
@@ -84,7 +107,9 @@ class MediaPagerScreen extends StatefulWidget {
     required int initialIndex,
     required ChatApi api,
     void Function(ChatMessage message)? onShowInChat,
+    void Function(ChatMessage message)? onPageChanged,
     Object Function(ChatMessage message)? heroTagFor,
+    int? sourceDecodeWidth,
   }) {
     return Navigator.of(context, rootNavigator: true).push<int>(
       PageRouteBuilder<int>(
@@ -100,7 +125,9 @@ class MediaPagerScreen extends StatefulWidget {
           initialIndex: initialIndex,
           api: api,
           onShowInChat: onShowInChat,
+          onPageChanged: onPageChanged,
           heroTagFor: heroTagFor,
+          sourceDecodeWidth: sourceDecodeWidth,
         ),
         transitionsBuilder: (_, anim, _, child) =>
             FadeTransition(opacity: anim, child: child),
@@ -112,7 +139,8 @@ class MediaPagerScreen extends StatefulWidget {
   State<MediaPagerScreen> createState() => _MediaPagerScreenState();
 }
 
-class _MediaPagerScreenState extends State<MediaPagerScreen> {
+class _MediaPagerScreenState extends State<MediaPagerScreen>
+    with RouteLanding {
   late final PageController _pager;
   late int _index;
 
@@ -250,13 +278,16 @@ class _MediaPagerScreenState extends State<MediaPagerScreen> {
                 ? const NeverScrollableScrollPhysics()
                 : const PageScrollPhysics(),
             itemCount: widget.items.length,
-            onPageChanged: (i) => setState(() {
-              _index = i;
-              // Belt and braces. A zoomed page cannot be swiped away, so this
-              // should already be false — but a stuck `true` would leave the
-              // gallery unswipeable with nothing on screen to explain why.
-              _zoomed = false;
-            }),
+            onPageChanged: (i) {
+              setState(() {
+                _index = i;
+                // Belt and braces. A zoomed page cannot be swiped away, so this
+                // should already be false — but a stuck `true` would leave the
+                // gallery unswipeable with nothing on screen to explain why.
+                _zoomed = false;
+              });
+              widget.onPageChanged?.call(widget.items[i]);
+            },
             itemBuilder: (_, i) => HeroMode(
               // Neighbours stay built; only the visible one may fly. See the
               // class comment.
@@ -265,6 +296,13 @@ class _MediaPagerScreenState extends State<MediaPagerScreen> {
                 message: widget.items[i],
                 api: widget.api,
                 heroTag: _heroTag(widget.items[i]),
+                // Only the page the flight actually opened on. The rest were
+                // never a thumbnail on the route below, so there is no warm
+                // decode of theirs to defer to, and offering one would only
+                // pin them to a resolution they never had.
+                sourceDecodeWidth:
+                    i == widget.initialIndex ? widget.sourceDecodeWidth : null,
+                landed: landed,
                 drag: _drag,
                 onDismiss: _close,
                 onToggleChrome: () => setState(() => _chrome = !_chrome),
@@ -430,6 +468,8 @@ class _Page extends StatelessWidget {
     required this.message,
     required this.api,
     required this.heroTag,
+    required this.sourceDecodeWidth,
+    required this.landed,
     required this.drag,
     required this.onDismiss,
     required this.onToggleChrome,
@@ -439,6 +479,17 @@ class _Page extends StatelessWidget {
   final ChatMessage message;
   final ChatApi api;
   final Object heroTag;
+
+  /// See [MediaPagerScreen.sourceDecodeWidth]. Null on every page but the one
+  /// the gallery opened on.
+  final int? sourceDecodeWidth;
+
+  /// Whether the opening flight has finished — see [RouteLanding]. The
+  /// full-resolution decode is held back until it has, so the megabytes it
+  /// costs are not spent in competition with the one moment the picture is
+  /// moving.
+  final bool landed;
+
   final ValueNotifier<Offset> drag;
   final VoidCallback onDismiss;
   final VoidCallback onToggleChrome;
@@ -467,17 +518,44 @@ class _Page extends StatelessWidget {
       );
     }
 
+    final image = RemoteImage(
+      storageId: id,
+      api: api,
+      fit: BoxFit.contain,
+      placeholderDecodeWidth: sourceDecodeWidth,
+      decodeWidth: landed ? null : sourceDecodeWidth,
+    );
     return PhotoDismissArea(
       drag: drag,
       onDismiss: onDismiss,
       onTap: onToggleChrome,
       onZoomChanged: onZoomChanged,
       maxScale: 4,
-      child: mediaFlight(
-        heroTag,
-        RemoteImage(storageId: id, api: api, fit: BoxFit.contain),
-      ),
+      child: mediaFlight(heroTag, _shaped(image)),
     );
+  }
+
+  /// Pins the picture's box to its own shape, when the shape is known.
+  ///
+  /// Without it the hero's destination is the whole screen, because that is
+  /// what a `contain` image with no intrinsic size yet measures — so a flight
+  /// blows the thumbnail up to the full frame and the photograph then drops
+  /// into its letterbox a frame later. [PhotoDismissArea] centres what it is
+  /// given under loose constraints, so this settles at the largest rect of
+  /// that ratio which fits: exactly where the decoded picture would have
+  /// landed anyway, one frame earlier and without the jump.
+  ///
+  /// The sender usually tells us the shape, and [MediaAspectCache] remembers
+  /// the ones who did not from the last time this device drew the thumbnail.
+  /// When neither knows, the old full-screen destination is still the honest
+  /// answer — there is nothing to pin it to.
+  Widget _shaped(Widget image) {
+    final aspect =
+        message.mediaAspectRatio ?? MediaAspectCache.instance.peek(
+          message.mediaStorageId ?? '',
+        );
+    if (aspect == null || !aspect.isFinite || aspect <= 0) return image;
+    return AspectRatio(aspectRatio: aspect, child: image);
   }
 }
 

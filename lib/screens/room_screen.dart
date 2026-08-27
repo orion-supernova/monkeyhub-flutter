@@ -74,6 +74,7 @@ import '../widgets/location_share_sheet.dart';
 import '../widgets/composer_edit_card.dart';
 import '../widgets/composer_reply_card.dart';
 import '../widgets/mention_picker.dart';
+import '../widgets/photo_mosaic.dart' show mosaicHeroTag;
 import '../widgets/pinned_banner.dart';
 import '../widgets/pinned_list_sheet.dart';
 import '../widgets/mention_text_controller.dart';
@@ -288,6 +289,9 @@ class _RoomScreenState extends State<RoomScreen>
   List<RoomItem>? _revSource;
   List<RoomItem> _revItems = const [];
   Map<String, int> _rowIndexOf = const {};
+  // An album's photographs → the message its row stands for. Empty for every
+  // message that is its own row, which is nearly all of them.
+  Map<String, String> _rowOwnerOf = const {};
   // Memo for the item pass. _ticker rebuilds at 5Hz whether or not anything
   // changed, and messagesFor() hands back the same list instance while no
   // sends are pending, so identity is a cheap and correct cache key.
@@ -508,6 +512,7 @@ class _RoomScreenState extends State<RoomScreen>
     if (identical(chronological, _revSource)) return _revItems;
     final rev = chronological.reversed.toList();
     final index = <String, int>{};
+    final owner = <String, String>{};
     for (var i = 0; i < rev.length; i++) {
       final item = rev[i];
       if (item is MessageItem) {
@@ -517,14 +522,32 @@ class _RoomScreenState extends State<RoomScreen>
         // has somewhere to land.
         for (final p in item.album) {
           index[p.id] = i;
+          // And the row's own id alongside it, because an index is not enough
+          // on its own: `_dateTracks` is keyed by the id of the message the ROW
+          // stands for, so a lookup under the third picture's id finds no
+          // render box and every caller that wants one — the jump's landing
+          // context, the action menu's anchor — silently falls back to a
+          // guess. An album is the only row in the transcript that draws
+          // messages other than its own, so it is the only place these two
+          // ids come apart.
+          owner[p.id] = item.message.id;
         }
       }
     }
     _revSource = chronological;
     _revItems = rev;
     _rowIndexOf = index;
+    _rowOwnerOf = owner;
     return rev;
   }
+
+  /// The row that draws [messageId], for the maps keyed by row rather than by
+  /// message. Itself for everything that is its own row.
+  String _rowOwner(String messageId) => _rowOwnerOf[messageId] ?? messageId;
+
+  /// The render box for the row that draws [messageId], if it is laid out.
+  BuildContext? _rowContextOf(String messageId) =>
+      _dateTracks['m_${_rowOwner(messageId)}']?.key.currentContext;
 
   void _onScroll() {
     if (!_scroll.hasClients) return;
@@ -1521,6 +1544,14 @@ class _RoomScreenState extends State<RoomScreen>
   /// is also how the back pill returns, and a return trip that pushed its own
   /// origin would leave the two ends bouncing off each other forever.
   Future<void> _jumpToMessage(String messageId, {required ChatMessage from}) async {
+    // A trip to where the reader already is still pulses — being SHOWN the
+    // message is the whole point of the gallery's SHOW IN CHAT even when it has
+    // not moved — but it must not push a back pill, which would offer to return
+    // them to the message they are looking at.
+    if (messageId == from.id) {
+      await _travelTo(messageId, from: from);
+      return;
+    }
     if (await _travelTo(messageId, from: from)) _jumpBack.push(from);
   }
 
@@ -1603,7 +1634,7 @@ class _RoomScreenState extends State<RoomScreen>
       // Re-read every hop: a message arriving mid-jump shifts every index.
       targetIndex: () => _rowIndexOf[messageId],
       itemCount: () => _revItems.length,
-      targetContext: () => _dateTracks['m_$messageId']?.key.currentContext,
+      targetContext: () => _rowContextOf(messageId),
       probes: _mountedRowProbes,
       alignment: 0.3,
     );
@@ -2431,7 +2462,10 @@ class _RoomScreenState extends State<RoomScreen>
   /// already declines an armed view-once photo — a burn-on-open picture is not
   /// something you swipe past — and anything with no storage id, which is what
   /// a failed or still-running upload looks like.
-  Future<void> _openGallery(ChatMessage m) async {
+  Future<void> _openGallery(
+    ChatMessage m, {
+    required int sourceDecodeWidth,
+  }) async {
     final media = [
       for (final x in widget.repo.timelineFor(widget.roomId))
         if (messageBelongsIn(x, RoomContentTab.media)) x,
@@ -2446,12 +2480,23 @@ class _RoomScreenState extends State<RoomScreen>
         context,
         storageId: id,
         api: widget.api,
-        heroTag: bubbleMediaHeroTag(m),
+        heroTag: _transcriptHeroTag(m),
+        thumbnailDecodeWidth: sourceDecodeWidth,
       );
       return;
     }
 
-    await MediaPagerScreen.open(
+    // Where SHOW IN CHAT asked to be taken, filled in by the button and acted
+    // on below rather than there. Travelling from inside the callback means
+    // scrolling the transcript on the same frame the pager starts its exit,
+    // and the Hero flying home reads its destination's rect once, at take-off
+    // — so the picture flies to where the thumbnail *was* and blinks out over
+    // whatever has scrolled into that spot. Waiting for the route to finish
+    // costs the reader nothing they can perceive and is the difference between
+    // a landing and a glitch.
+    ChatMessage? travelTo;
+
+    final landed = await MediaPagerScreen.open(
       context,
       items: media,
       initialIndex: start,
@@ -2459,14 +2504,89 @@ class _RoomScreenState extends State<RoomScreen>
       // The transcript's tags, not the shared-content grid's. Without this the
       // gallery would fly from a hero nothing in this route carries, and every
       // open would degrade to a cross-fade.
-      heroTagFor: bubbleMediaHeroTag,
+      heroTagFor: _transcriptHeroTag,
+      sourceDecodeWidth: sourceDecodeWidth,
+      onPageChanged: _alignTranscriptTo,
       onShowInChat: (msg) {
+        travelTo = msg;
         // Pop the pager (a root-navigator route) before travelling, or the
         // transcript would scroll along behind a fullscreen photograph.
         Navigator.of(context, rootNavigator: true).pop();
-        _jumpToMessage(msg.id, from: m);
       },
     );
+    if (!mounted) return;
+    final target = travelTo;
+    if (target != null) {
+      await _jumpToMessage(target.id, from: m);
+      return;
+    }
+    // Closed by hand, on a photograph the reader swiped to. `onPageChanged`
+    // has already put its row under the flight; this is the belt to that
+    // braces, for the case where the swipe and the close landed in one frame.
+    if (landed != null && landed != start) _alignTranscriptTo(media[landed]);
+  }
+
+  /// The [Hero] tag [m]'s picture wears in THIS transcript.
+  ///
+  /// A photograph is drawn one of two ways depending on what it arrived with —
+  /// as its own bubble, or as one tile of an album — and the two carry
+  /// deliberately different tags. The gallery is handed messages rather than
+  /// widgets, so it has to be told which; guessing wrong is not an error
+  /// anywhere, it is a tag that matches no hero in the route, and the open
+  /// degrades silently to a cross-fade. That is exactly what every photo in an
+  /// album used to do.
+  Object _transcriptHeroTag(ChatMessage m) =>
+      _rowOwnerOf.containsKey(m.id) ? mosaicHeroTag(m) : bubbleMediaHeroTag(m);
+
+  /// Brings the row that draws [m] into the transcript, silently, while the
+  /// gallery is open over it.
+  ///
+  /// The gallery is a transparent route over a black scrim, so none of this is
+  /// visible — and that is the point. A reader who swipes eight photographs
+  /// deep is looking at a picture whose thumbnail may be a thousand rows away;
+  /// closing there gives the returning Hero no destination in the tree, and a
+  /// Hero with no destination does not complain, it cross-fades. Keeping the
+  /// current picture's row laid out is what lets every close fly home, and it
+  /// leaves the reader looking at the photograph they were looking at rather
+  /// than the one they opened.
+  ///
+  /// Serialized on purpose. [snapToIndex] walks the list in hops and re-reads
+  /// the position between them, so two of them running at once fight over the
+  /// same controller; a fast swipe through a set fires one of these per page.
+  /// Only the newest target is worth arriving at, so a request made while one
+  /// is running replaces it rather than queuing behind it.
+  String? _alignTarget;
+  bool _aligning = false;
+
+  Future<void> _alignTranscriptTo(ChatMessage m) async {
+    _alignTarget = m.id;
+    if (_aligning) return;
+    _aligning = true;
+    try {
+      while (mounted && _alignTarget != null) {
+        final id = _alignTarget!;
+        if (_rowIndexOf[id] == null) break;
+        await snapToIndex(
+          controller: _scroll,
+          targetIndex: () => _rowIndexOf[id],
+          itemCount: () => _revItems.length,
+          targetContext: () => _rowContextOf(id),
+          probes: _mountedRowProbes,
+          // Where a jump uses 0.3 to put the message under the reader's eyes:
+          // this one is not being read, it is being made available to land on,
+          // and centring gives the flight the most room on either side.
+          alignment: 0.5,
+          // Nobody can see this happen — the gallery is over it. An animated
+          // scroll would only mean the row is still moving when the picture
+          // arrives.
+          settle: Duration.zero,
+        );
+        if (_alignTarget == id) _alignTarget = null;
+      }
+    } finally {
+      _aligning = false;
+      _alignTarget = null;
+    }
   }
 
   /// Spends this viewer's one look at a view-once photo and shows it.
@@ -2869,6 +2989,7 @@ class _RoomScreenState extends State<RoomScreen>
       _revSource = null;
       _revItems = const [];
       _rowIndexOf = const {};
+      _rowOwnerOf = const {};
     } else {
       final built = _buildItems(room, messages);
       _hiddenMessageIds = built.hidden;
@@ -3455,9 +3576,21 @@ class _RoomScreenState extends State<RoomScreen>
                 Future<void> onRetrySend() =>
                     widget.repo.retryPending(m.id);
                 void onDiscardSend() => widget.repo.discardPending(m.id);
-                final highlightT = (_highlightedMessageId == m.id)
-                    ? _highlightCtrl.value
-                    : 0.0;
+                // A row's pulse is not always about the row's own message. An
+                // album draws several, and the id a jump landed on is any one
+                // of them — comparing against `m.id` alone (which is the LAST
+                // photograph of a block) meant a trip to the second picture of
+                // five arrived, scrolled, and then pulsed nothing at all.
+                final highlightedId = _highlightedMessageId;
+                final albumHighlightId = highlightedId == null
+                    ? null
+                    : (messageItem.album.any((p) => p.id == highlightedId)
+                        ? highlightedId
+                        : null);
+                final highlightT =
+                    (highlightedId == m.id || albumHighlightId != null)
+                        ? _highlightCtrl.value
+                        : 0.0;
                 /// The action menu for ONE message of this row.
                 ///
                 /// Parameterised because a row is not always one message. An
@@ -3473,8 +3606,8 @@ class _RoomScreenState extends State<RoomScreen>
                   HapticFeedback.mediumImpact();
                   FocusManager.instance.primaryFocus?.unfocus();
                   final messenger = ScaffoldMessenger.of(context);
-                  final anchor =
-                      anchorKey ?? _dateTracks['m_${target.id}']?.key;
+                  final anchor = anchorKey ??
+                      _dateTracks['m_${_rowOwner(target.id)}']?.key;
                   if (anchor == null) return;
                   final result = await showMessageActionMenu(
                     context: context,
@@ -3808,6 +3941,11 @@ class _RoomScreenState extends State<RoomScreen>
                         onRetrySend: sendFailed ? onRetrySend : null,
                         onDiscardSend: sendFailed ? onDiscardSend : null,
                         album: messageItem.album,
+                        // The block does not pulse when one of its pictures
+                        // does. "One of these ten" is not the answer the trip
+                        // was for — see [PhotoMosaic.highlightedPhotoId].
+                        albumHighlightId: albumHighlightId,
+                        albumHighlightT: highlightT,
                         // Pending-ness is per tile here, not per row: a block
                         // can be half landed, and the confirmed half has a
                         // menu even while the rest is still going up.

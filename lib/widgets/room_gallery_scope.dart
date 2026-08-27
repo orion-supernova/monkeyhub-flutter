@@ -30,7 +30,15 @@ class RoomGalleryScope extends InheritedWidget {
   ///
   /// A future rather than a plain callback so the bubble can keep its stamp out
   /// of the way for exactly as long as its picture is away — see `_ImageTile`.
-  final Future<void> Function(ChatMessage message) openGallery;
+  ///
+  /// [sourceDecodeWidth] is what the thumbnail under the finger has its picture
+  /// decoded at, in device pixels. The gallery flies that decode and lands on
+  /// it, so it has to be the caller's real one and not an estimate — the tiles
+  /// of an album are three different sizes, and a lone photo's tile is a fourth.
+  final Future<void> Function(
+    ChatMessage message, {
+    required int sourceDecodeWidth,
+  }) openGallery;
 
   /// Read WITHOUT registering a dependency, because every caller reads this in
   /// a tap handler rather than in a build. A `dependOnInheritedWidgetOfExactType`

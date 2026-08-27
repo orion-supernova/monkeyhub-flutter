@@ -23,10 +23,12 @@ import '../screens/fullscreen_video_viewer.dart';
 import '../services/link_opener.dart';
 import 'audio_message.dart';
 import 'file_message.dart';
+import 'highlight_pulse.dart';
 import 'link_confirm_sheet.dart';
 import 'link_preview_card.dart';
 import 'jumbo_emoji.dart';
 import 'linkified_text.dart';
+import 'media_flight.dart';
 import 'interaction_bubble.dart';
 import 'location_bubble.dart';
 import 'text_runs.dart';
@@ -82,6 +84,8 @@ class MessageBubble extends StatelessWidget {
     this.onAlbumTileLongPress,
     this.onAlbumReactionTap,
     this.onAlbumReactionLongPress,
+    this.albumHighlightId,
+    this.albumHighlightT = 0,
     this.interaction,
     this.interactionActions = InteractionActions.none,
   });
@@ -108,7 +112,8 @@ class MessageBubble extends StatelessWidget {
 
   /// Opens one photograph of [album] fullscreen. Null falls back to the
   /// gallery scope, exactly as a lone photo's tile does.
-  final void Function(ChatMessage m)? onAlbumOpen;
+  final Future<void> Function(ChatMessage m,
+      {required int sourceDecodeWidth})? onAlbumOpen;
 
   /// The tile under the finger and the key of its rect, for the action menu.
   /// The row's own [onLongPress] is about [message]; inside an album the
@@ -117,6 +122,13 @@ class MessageBubble extends StatelessWidget {
 
   final void Function(ChatMessage m, String emoji)? onAlbumReactionTap;
   final void Function(ChatMessage m, String emoji)? onAlbumReactionLongPress;
+
+  /// Which photograph of [album] a jump has landed on, and how far into its
+  /// pulse it is. Non-null moves the pulse OFF the block and onto that one
+  /// tile — see [PhotoMosaic.highlightedPhotoId] — because a halo around ten
+  /// photographs does not answer the question the trip was asking.
+  final String? albumHighlightId;
+  final double albumHighlightT;
 
   /// Spends this viewer's one look at a view-once photo and shows it. Null
   /// leaves the sealed tile inert.
@@ -261,8 +273,10 @@ class MessageBubble extends StatelessWidget {
     // distorting the bubble's natural radius or background.
     final bubble = ConstrainedBox(
       constraints: BoxConstraints(maxWidth: maxWidth),
-      child: _HighlightPulse(
-        t: highlightT,
+      child: HighlightPulse(
+        // Stood down while one of this row's pictures is carrying the pulse:
+        // two of them at once would ring the block AND the tile inside it.
+        t: albumHighlightId == null ? highlightT : 0.0,
         shape: pulseShapeFor(
           theme: theme,
           message: message,
@@ -433,6 +447,8 @@ class MessageBubble extends StatelessWidget {
       onAlbumTileLongPress: onAlbumTileLongPress,
       onAlbumReactionTap: onAlbumReactionTap,
       onAlbumReactionLongPress: onAlbumReactionLongPress,
+      albumHighlightId: albumHighlightId,
+      albumHighlightT: albumHighlightT,
       interaction: interaction,
       interactionActions: interactionActions,
     );
@@ -625,7 +641,7 @@ class EphemeralMessageBubble extends StatelessWidget {
 
     final innerBubble = ConstrainedBox(
       constraints: BoxConstraints(maxWidth: maxWidth),
-      child: _HighlightPulse(
+      child: HighlightPulse(
         t: highlightT,
         shape: pulseShapeFor(
           theme: theme,
@@ -1156,10 +1172,17 @@ Widget buildMessageContent({
   /// as the last of them. Two or more turns the photo case into a mosaic;
   /// anything less leaves it the single tile it has always been.
   List<ChatMessage> album = const [],
-  void Function(ChatMessage m)? onAlbumOpen,
+  Future<void> Function(ChatMessage m, {required int sourceDecodeWidth})?
+      onAlbumOpen,
   void Function(ChatMessage m, GlobalKey anchor)? onAlbumTileLongPress,
   void Function(ChatMessage m, String emoji)? onAlbumReactionTap,
   void Function(ChatMessage m, String emoji)? onAlbumReactionLongPress,
+
+  /// Which photograph of [album] a jump has landed on, and how far into its
+  /// pulse it is. Null on the block a jump did not aim at — see
+  /// [PhotoMosaic.highlightedPhotoId].
+  String? albumHighlightId,
+  double albumHighlightT = 0,
 
   /// The body of a poll, checklist or event — see [InteractionBubble]. Null on
   /// every other type, and also on an interactive one whose body has not
@@ -1242,23 +1265,18 @@ Widget buildMessageContent({
       // the stamp, because the block's bottom-right corner is a tile's corner
       // rather than this message's own tile.
       if (album.length > 1) {
-        return StampedMedia(
-          tile: PhotoMosaic(
-            photos: album,
-            api: api,
-            width: imageSize,
-            radius: mediaRadius,
-            currentUserId: currentUserId ?? '',
-            // The gallery scope is the same fallback a lone photo's tile
-            // takes when no caller handed it an opener.
-            onOpen: onAlbumOpen ??
-                (m) {
-                  RoomGalleryScope.maybeOf(context)?.openGallery(m);
-                },
-            onTileLongPress: onAlbumTileLongPress,
-            onReactionTap: onAlbumReactionTap,
-            onReactionLongPress: onAlbumReactionLongPress,
-          ),
+        return _AlbumTile(
+          photos: album,
+          api: api,
+          width: imageSize,
+          radius: mediaRadius,
+          currentUserId: currentUserId ?? '',
+          onOpen: onAlbumOpen,
+          onTileLongPress: onAlbumTileLongPress,
+          onReactionTap: onAlbumReactionTap,
+          onReactionLongPress: onAlbumReactionLongPress,
+          highlightedPhotoId: albumHighlightId,
+          highlightT: albumHighlightT,
           stamp: stampFor(StampTone.onMedia),
         );
       }
@@ -2121,6 +2139,88 @@ class _ImageTile extends StatefulWidget {
   State<_ImageTile> createState() => _ImageTileState();
 }
 
+/// A run of photographs as one block, with the row's stamp on it.
+///
+/// Its own widget for the one reason [_ImageTile] is: the stamp is a sibling of
+/// the pictures rather than part of them, so while one of them is away being
+/// looked at fullscreen the stamp would otherwise hang in the air over the hole
+/// it left. A block's stamp sits in its bottom-trailing corner, which is a
+/// TILE's corner — the very tile most likely to be the one that just flew.
+class _AlbumTile extends StatefulWidget {
+  const _AlbumTile({
+    required this.photos,
+    required this.api,
+    required this.width,
+    required this.radius,
+    required this.currentUserId,
+    required this.onOpen,
+    required this.onTileLongPress,
+    required this.onReactionTap,
+    required this.onReactionLongPress,
+    required this.highlightedPhotoId,
+    required this.highlightT,
+    required this.stamp,
+  });
+
+  final List<ChatMessage> photos;
+  final ChatApi api;
+  final double width;
+  final BorderRadius radius;
+  final String currentUserId;
+  final Future<void> Function(ChatMessage m,
+      {required int sourceDecodeWidth})? onOpen;
+  final void Function(ChatMessage m, GlobalKey anchor)? onTileLongPress;
+  final void Function(ChatMessage m, String emoji)? onReactionTap;
+  final void Function(ChatMessage m, String emoji)? onReactionLongPress;
+  final String? highlightedPhotoId;
+  final double highlightT;
+  final MessageStamp? stamp;
+
+  @override
+  State<_AlbumTile> createState() => _AlbumTileState();
+}
+
+class _AlbumTileState extends State<_AlbumTile> {
+  /// True for the length of a fullscreen round trip, exactly as in
+  /// [_ImageTileState].
+  bool _viewing = false;
+
+  Future<void> _open(ChatMessage m, {required int sourceDecodeWidth}) async {
+    // The gallery scope is the same fallback a lone photo's tile takes when no
+    // caller handed it an opener.
+    final open = widget.onOpen ??
+        RoomGalleryScope.maybeOf(context)?.openGallery;
+    if (open == null) return;
+    final trip = open(m, sourceDecodeWidth: sourceDecodeWidth);
+    setState(() => _viewing = true);
+    try {
+      await trip;
+    } finally {
+      if (mounted) setState(() => _viewing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StampedMedia(
+      tile: PhotoMosaic(
+        photos: widget.photos,
+        api: widget.api,
+        width: widget.width,
+        radius: widget.radius,
+        currentUserId: widget.currentUserId,
+        onOpen: _open,
+        onTileLongPress: widget.onTileLongPress,
+        onReactionTap: widget.onReactionTap,
+        onReactionLongPress: widget.onReactionLongPress,
+        highlightedPhotoId: widget.highlightedPhotoId,
+        highlightT: widget.highlightT,
+      ),
+      stamp: _viewing ? null : widget.stamp,
+    );
+  }
+}
+
 /// The [Hero] tag the transcript's bubble for [message] flies under.
 ///
 /// Public and shared because the fullscreen gallery has to build the SAME
@@ -2181,10 +2281,14 @@ class _ImageTileState extends State<_ImageTile> {
   /// duration — see [_viewing].
   Future<void> _openViewer() async {
     final gallery = RoomGalleryScope.maybeOf(context);
+    // The decode this tile is already painting from. Handed over both ways —
+    // the gallery has no way to work it out, and without it the picture it
+    // flies is a decode nobody has asked for yet, which is a shimmer.
+    final decode = thumbnailDecodeWidth(context, widget.width);
     setState(() => _viewing = true);
     try {
       if (gallery != null) {
-        await gallery.openGallery(widget.message);
+        await gallery.openGallery(widget.message, sourceDecodeWidth: decode);
         return;
       }
       await FullscreenImageViewer.open(
@@ -2200,7 +2304,7 @@ class _ImageTileState extends State<_ImageTile> {
         // The tile's decode is already warm, so the viewer can open on it
         // immediately rather than shimmering while the full-resolution decode
         // lands.
-        thumbnailDecodeWidth: thumbnailDecodeWidth(context, widget.width),
+        thumbnailDecodeWidth: decode,
       );
     } finally {
       if (mounted) setState(() => _viewing = false);
@@ -2225,7 +2329,25 @@ class _ImageTileState extends State<_ImageTile> {
       onTap: _openViewer,
       child: StampedMedia(
         tile: widget.useHero
-            ? SteadyHero(tag: _heroTag, child: remote)
+            ? SteadyHero(
+                tag: _heroTag,
+                // The tile settles what the flight looks like, in both
+                // directions — see [mediaFlightShuttle]. It matters less here
+                // than on an album's hard square crop, because a lone tile is
+                // laid out at the picture's own ratio and so has little crop to
+                // animate; the corners and the warm decode are the whole of it.
+                flightShuttleBuilder: mediaFlightShuttle(
+                  image: RemoteImage(
+                    storageId: widget.storageId,
+                    api: widget.api,
+                    borderRadius: BorderRadius.zero,
+                    decodeWidth:
+                        thumbnailDecodeWidth(context, widget.width),
+                  ),
+                  radius: widget.radius,
+                ),
+                child: remote,
+              )
             : remote,
         stamp: _viewing ? null : widget.stamp,
       ),
@@ -2871,90 +2993,6 @@ ShapeBorder pulseShapeFor({
   );
 }
 
-/// One-shot accent halo pulse around a bubble. Drives off a 0..1 progress
-/// value (typically a controller in 0..1 over ~1s) and maps it through
-/// `sin(t*pi)` so the pulse blooms then settles in a single rise-fall arc.
-class _HighlightPulse extends StatelessWidget {
-  const _HighlightPulse({
-    required this.t,
-    required this.shape,
-    required this.child,
-  });
-  final double t;
-
-  /// The bubble's own outline, so the halo and the border pulse hug the tail
-  /// instead of cutting across it.
-  final ShapeBorder shape;
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    if (t <= 0) return child;
-    final theme = ThemeScope.of(context);
-    final tCurve = math.sin(t * math.pi).clamp(0.0, 1.0);
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        // Accent glow halo sitting behind the bubble.
-        Positioned.fill(
-          child: IgnorePointer(
-            child: DecoratedBox(
-              decoration: ShapeDecoration(
-                shape: shape,
-                shadows: [
-                  BoxShadow(
-                    color: theme.accent.withValues(alpha: 0.55 * tCurve),
-                    blurRadius: 28 * tCurve,
-                    spreadRadius: 4 * tCurve,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        child,
-        // Accent border pulse on top so the highlight reads even when the
-        // halo is occluded by overlapping bubbles below in the stack.
-        Positioned.fill(
-          child: IgnorePointer(
-            child: CustomPaint(
-              painter: _PulseOutline(
-                shape: shape,
-                color: theme.accent.withValues(alpha: 0.55 * tCurve),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Strokes [shape]'s outline. A `ShapeDecoration` would paint the shape's own
-/// [BorderSide] — which is the theme's hairline, not this pulse — so the
-/// highlight draws its own stroke over the same path.
-class _PulseOutline extends CustomPainter {
-  const _PulseOutline({required this.shape, required this.color});
-
-  final ShapeBorder shape;
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawPath(
-      shape.getOuterPath(Offset.zero & size),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2
-        ..color = color,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_PulseOutline old) =>
-      old.shape != shape || old.color != color;
-}
 
 /// The external timestamp row, kept for the two message shapes that have no
 /// bubble of their own to sit in — see [messageStampsInline]. Same cluster the

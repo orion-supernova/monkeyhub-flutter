@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
+import '../widgets/media_flight.dart';
 import '../widgets/photo_dismiss_area.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/route_landing.dart';
@@ -258,16 +259,8 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
     return AspectRatio(aspectRatio: aspect, child: image);
   }
 
-  /// Paints the picture `cover` inside whatever rect the flight is currently at.
-  ///
-  /// This is what makes an open and a close continuous. The thumbnail crops to
-  /// fill its box and the fullscreen view shows the whole frame, so the two ends
-  /// disagree about the crop — and a shuttle that paints `contain`, as this one
-  /// used to, letterboxes the picture inside the small end and then snaps to the
-  /// thumbnail's fill when it lands. `cover` reproduces the thumbnail's crop at
-  /// the small end, and at the big end the rect already has the picture's own
-  /// ratio, where `cover` and `contain` are the same thing. The crop animates
-  /// instead of cutting.
+  /// The picture as [mediaFlightShuttle] wants it: `cover`, un-rounded, and at a
+  /// decode that is already resident.
   Widget _flightImage() => RemoteImage(
         storageId: widget.storageId,
         api: widget.api,
@@ -298,36 +291,15 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
         child: image,
       );
     }
-    final from = widget.heroRadius;
-    // Built here rather than inside the shuttle builder so a flight inflates one
-    // image widget instead of standing up a fresh one — and its decode is the
-    // one this route already has warm.
-    final flight = _flightImage();
     return SteadyHero(
       tag: tag,
-      flightShuttleBuilder: (_, animation, _, _, _) {
-        // Un-round the source shape across the flight. Without this a rounded
-        // thumbnail snaps to square corners at whichever endpoint the shuttle
-        // happens to render, which is the single most obvious tell that a
-        // flight is a cut and not a movement.
-        final tween = BorderRadiusTween(
-          begin: from ?? BorderRadius.zero,
-          end: BorderRadius.zero,
-        );
-        final curved = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeInOut,
-        );
-        return AnimatedBuilder(
-          animation: curved,
-          builder: (_, child) => ClipRRect(
-            clipBehavior: Clip.antiAlias,
-            borderRadius: tween.evaluate(curved) ?? BorderRadius.zero,
-            child: child,
-          ),
-          child: flight,
-        );
-      },
+      // Built here rather than inside the shuttle builder so a flight inflates
+      // one image widget instead of standing up a fresh one — and its decode is
+      // the one this route already has warm.
+      flightShuttleBuilder: mediaFlightShuttle(
+        image: _flightImage(),
+        radius: widget.heroRadius ?? BorderRadius.zero,
+      ),
       child: image,
     );
   }

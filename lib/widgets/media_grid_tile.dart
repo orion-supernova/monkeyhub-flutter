@@ -9,6 +9,7 @@ import '../models/enums.dart';
 import '../screens/room_items.dart' show formatClockDuration;
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'media_flight.dart';
 import 'remote_image.dart';
 import 'steady_hero.dart';
 
@@ -103,6 +104,23 @@ class MediaGridTile extends StatelessWidget {
             // rather than snapping — the destination has the same glyph.
             SteadyHero(
               tag: roomMediaHeroTag(message.id),
+              // The tile settles what the flight looks like rather than leaving
+              // it to the gallery, because the crop and the warm decode are
+              // both known here and nowhere else. A grid tile is a hard square
+              // crop of a picture that is almost never square, and Flutter's
+              // default shuttle would paint the gallery's `contain` — which
+              // letterboxes the photograph inside the small end of the flight
+              // and then snaps to this crop on landing.
+              flightShuttleBuilder: imageId == null
+                  ? null
+                  : mediaFlightShuttle(
+                      image: RemoteImage(
+                        storageId: imageId,
+                        api: api,
+                        fit: BoxFit.cover,
+                        decodeWidth: decodeWidth,
+                      ),
+                    ),
               child: imageId != null
                   ? RemoteImage(
                       storageId: imageId,

@@ -6,6 +6,8 @@ import '../models/pending_upload.dart';
 import '../screens/fullscreen_image_viewer.dart' show thumbnailDecodeWidth;
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'highlight_pulse.dart';
+import 'media_flight.dart';
 import 'reaction_bubble.dart';
 import 'remote_image.dart';
 import 'steady_hero.dart';
@@ -46,6 +48,111 @@ List<int> mosaicRows(int count) => switch (count) {
 /// stack of two beside it — rather than the rows of [mosaicRows].
 bool mosaicFeatured(int count) => count == 3;
 
+/// The row plan [count] photographs are ACTUALLY drawn with — [mosaicRows]
+/// with its last row trimmed to what is left.
+///
+/// The plans cover every count up to the album cap exactly, so the trim only
+/// fires for a run the cap split; a short final row is a better answer than a
+/// row of two drawn as a row of three. Pulled out of the layout because a
+/// tile's corners are a function of the same plan, and a block whose corners
+/// are rounded off a different plan from the one it was laid out with rounds
+/// the wrong tiles.
+List<int> mosaicRowPlan(int count) {
+  final plan = mosaicRows(count);
+  var total = 0;
+  for (final perRow in plan) {
+    total += perRow;
+  }
+  // The common path, and the one every real album takes: the plans cover every
+  // count up to the cap exactly, so the const list goes back untouched. This is
+  // called per tile per build on a list that rebuilds with the transcript, and
+  // a block of ten allocating twenty throwaway lists a frame is a cost with
+  // nothing to show for it.
+  if (total == count) return plan;
+
+  final out = <int>[];
+  var next = 0;
+  for (final perRow in plan) {
+    if (next >= count) break;
+    final take = perRow.clamp(1, count - next);
+    out.add(take);
+    next += take;
+  }
+  return out;
+}
+
+/// The width the [index]th tile of a [count]-photograph block is laid out at,
+/// for a block [width] wide.
+///
+/// Only ever used to pick a decode size — the rows hand tiles exact
+/// constraints. But it has to be the width the tile REALLY decoded at, because
+/// that is the `ImageCache` key the fullscreen view reuses both as the picture
+/// it flies and as its arrival backdrop; a value that merely approximates it
+/// misses the cache, and then the flight animates a shimmer.
+///
+/// Width, not side, in the one place where those differ. Every tile of a row
+/// layout is square, but the featured layout's pair are a hair wider than they
+/// are tall — the column beside the big tile takes the arithmetic remainder so
+/// the row cannot overflow by a rounding error. Decoding those two to their
+/// height would leave them upscaled across their whole width, and — worse —
+/// would be a decode the flight then could not find.
+double mosaicTileSide(int count, double width, int index) {
+  if (mosaicFeatured(count)) {
+    final big = (width - kMosaicGap) * _featuredFraction;
+    return index == 0 ? big : width - big - kMosaicGap;
+  }
+  var next = 0;
+  for (final take in mosaicRowPlan(count)) {
+    if (index < next + take) {
+      return (width - (take - 1) * kMosaicGap) / take;
+    }
+    next += take;
+  }
+  return width;
+}
+
+/// Which of the [index]th tile's corners are rounded, given the block's own
+/// [outer] radius.
+///
+/// At rest this is redundant: the block is clipped once as one shape, so a tile
+/// drawn square under a rounded clip already looks rounded. It stops being
+/// redundant the moment the tile leaves. A picture flying to fullscreen is
+/// lifted out of that clip, so with no corners of its own it snaps square on
+/// the frame it takes off and square again where it lands — which is the tell
+/// that turns a movement back into a cut. See [mediaFlightShuttle].
+BorderRadius mosaicTileRadius(int count, BorderRadius outer, int index) {
+  var tl = false, tr = false, bl = false, br = false;
+  if (mosaicFeatured(count)) {
+    // One large tile, two stacked beside it: the big one owns the whole
+    // leading edge, and the pair take one trailing corner each.
+    tl = bl = index == 0;
+    tr = index == 1;
+    br = index == 2;
+  } else {
+    final plan = mosaicRowPlan(count);
+    var next = 0;
+    for (var row = 0; row < plan.length; row++) {
+      final take = plan[row];
+      if (index < next + take) {
+        final first = index == next;
+        final last = index == next + take - 1;
+        tl = first && row == 0;
+        tr = last && row == 0;
+        bl = first && row == plan.length - 1;
+        br = last && row == plan.length - 1;
+        break;
+      }
+      next += take;
+    }
+  }
+  return BorderRadius.only(
+    topLeft: tl ? outer.topLeft : Radius.zero,
+    topRight: tr ? outer.topRight : Radius.zero,
+    bottomLeft: bl ? outer.bottomLeft : Radius.zero,
+    bottomRight: br ? outer.bottomRight : Radius.zero,
+  );
+}
+
 /// How much of the width the large tile takes in the featured layout. The rest,
 /// less one gap, is the column of two beside it. Tuned so the pair reads as a
 /// deliberate stack rather than as two off-cuts: much past this and they are
@@ -80,6 +187,8 @@ class PhotoMosaic extends StatefulWidget {
     this.onTileLongPress,
     this.onReactionTap,
     this.onReactionLongPress,
+    this.highlightedPhotoId,
+    this.highlightT = 0,
   });
 
   /// Oldest first — reading order, which is also the order they were sent in.
@@ -98,7 +207,15 @@ class PhotoMosaic extends StatefulWidget {
   final String currentUserId;
 
   /// Opens this photograph fullscreen.
-  final void Function(ChatMessage m) onOpen;
+  ///
+  /// [sourceDecodeWidth] is the width, in device pixels, the tile under the
+  /// finger has its picture decoded at. The fullscreen view needs it twice
+  /// over — as the picture it flies, and as the backdrop it lands on — and the
+  /// tile is the only thing that knows it: an album's tiles are three
+  /// different sizes depending on how many photographs came with them. See
+  /// [mosaicTileSide].
+  final void Function(ChatMessage m, {required int sourceDecodeWidth})
+      onOpen;
 
   /// The message under the finger, and the key of the tile it was on — the
   /// action menu anchors its lifted preview to that rect, and a mosaic has no
@@ -107,6 +224,17 @@ class PhotoMosaic extends StatefulWidget {
 
   final void Function(ChatMessage m, String emoji)? onReactionTap;
   final void Function(ChatMessage m, String emoji)? onReactionLongPress;
+
+  /// The one photograph a jump has landed on, pulsing under [highlightT].
+  ///
+  /// One tile, not the block. A reply tether or a gallery's SHOW IN CHAT names
+  /// a message, and in a run of ten pictures "one of these" is not an answer —
+  /// the whole point of the trip was to be shown WHICH. Null on every row that
+  /// nothing is currently pointing at, which is nearly all of them.
+  final String? highlightedPhotoId;
+
+  /// 0..1 progress of that pulse. See [highlightPulseCurve].
+  final double highlightT;
 
   @override
   State<PhotoMosaic> createState() => _PhotoMosaicState();
@@ -144,16 +272,23 @@ class _PhotoMosaicState extends State<PhotoMosaic> {
     );
   }
 
-  /// [side] is what the tile will actually be laid out at — the row hands it
-  /// exact constraints, so this is only used to pick a decode size.
-  Widget _tile(AppTheme theme, ChatMessage m, double side) => _MosaicTile(
+  /// [index] is the photograph's place in the block, which is what its size
+  /// and its corners are both derived from — see [mosaicTileSide] and
+  /// [mosaicTileRadius].
+  Widget _tile(AppTheme theme, int index) {
+    final m = widget.photos[index];
+    final count = widget.photos.length;
+    return _MosaicTile(
         anchor: _anchorFor(m.id),
         message: m,
         api: widget.api,
         theme: theme,
-        side: side,
+        side: mosaicTileSide(count, widget.width, index),
+        radius: mosaicTileRadius(count, widget.radius, index),
+        highlightT:
+            m.id == widget.highlightedPhotoId ? widget.highlightT : 0.0,
         currentUserId: widget.currentUserId,
-        onOpen: () => widget.onOpen(m),
+        onOpen: (w) => widget.onOpen(m, sourceDecodeWidth: w),
         onLongPress: widget.onTileLongPress == null
             ? null
             : () => widget.onTileLongPress!(m, _anchorFor(m.id)),
@@ -164,20 +299,19 @@ class _PhotoMosaicState extends State<PhotoMosaic> {
             ? null
             : (emoji) => widget.onReactionLongPress!(m, emoji),
       );
+  }
 
   /// One large tile, two stacked beside it. The large one leads on both sides
   /// of the conversation: mirroring it would put the album's first photograph
   /// at the reader's right on their own messages and at their left on everyone
   /// else's, and reading order is not a property of who sent it.
   Widget _featured(AppTheme theme) {
-    final photos = widget.photos;
-    final big = (widget.width - kMosaicGap) * _featuredFraction;
-    final small = (big - kMosaicGap) / 2;
+    final big = mosaicTileSide(widget.photos.length, widget.width, 0);
     return SizedBox(
       height: big,
       child: Row(
         children: [
-          SizedBox(width: big, child: _tile(theme, photos[0], big)),
+          SizedBox(width: big, child: _tile(theme, 0)),
           const SizedBox(width: kMosaicGap),
           // Expanded rather than the arithmetic remainder: the two must add up
           // to the block's width to the last subpixel, and a Row that overflows
@@ -186,9 +320,9 @@ class _PhotoMosaicState extends State<PhotoMosaic> {
           Expanded(
             child: Column(
               children: [
-                Expanded(child: _tile(theme, photos[1], small)),
+                Expanded(child: _tile(theme, 1)),
                 const SizedBox(height: kMosaicGap),
-                Expanded(child: _tile(theme, photos[2], small)),
+                Expanded(child: _tile(theme, 2)),
               ],
             ),
           ),
@@ -198,25 +332,18 @@ class _PhotoMosaicState extends State<PhotoMosaic> {
   }
 
   Widget _rows(AppTheme theme) {
-    final photos = widget.photos;
-    final plan = mosaicRows(photos.length);
+    final count = widget.photos.length;
     final rows = <Widget>[];
     var next = 0;
-    for (final perRow in plan) {
-      if (next >= photos.length) break;
-      // The last row takes what is left rather than what the plan asked for.
-      // The plans cover every count up to the album cap exactly, so this only
-      // fires for a run the cap split — and a short final row is a better
-      // answer than a row of two drawn as a row of three.
-      final take = perRow.clamp(1, photos.length - next);
-      final side = (widget.width - (take - 1) * kMosaicGap) / take;
+    for (final take in mosaicRowPlan(count)) {
+      final side = mosaicTileSide(count, widget.width, next);
       rows.add(SizedBox(
         height: side,
         child: Row(
           children: [
             for (var k = 0; k < take; k++) ...[
               if (k > 0) const SizedBox(width: kMosaicGap),
-              Expanded(child: _tile(theme, photos[next + k], side)),
+              Expanded(child: _tile(theme, next + k)),
             ],
           ],
         ),
@@ -256,6 +383,8 @@ class _MosaicTile extends StatelessWidget {
     required this.api,
     required this.theme,
     required this.side,
+    required this.radius,
+    required this.highlightT,
     required this.currentUserId,
     required this.onOpen,
     this.onLongPress,
@@ -272,8 +401,18 @@ class _MosaicTile extends StatelessWidget {
   /// the box — the row hands down tight constraints for that.
   final double side;
 
+  /// This tile's own share of the block's corners. Nothing to do with how it is
+  /// drawn at rest — see [mosaicTileRadius].
+  final BorderRadius radius;
+
+  /// 0..1 progress of the jump pulse, 0 on every tile a jump did not land on.
+  final double highlightT;
+
   final String currentUserId;
-  final VoidCallback onOpen;
+
+  /// Takes the decode width the picture is resident at — see
+  /// [PhotoMosaic.onOpen].
+  final void Function(int sourceDecodeWidth) onOpen;
   final VoidCallback? onLongPress;
   final void Function(String emoji)? onReactionTap;
   final void Function(String emoji)? onReactionLongPress;
@@ -282,6 +421,7 @@ class _MosaicTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final upload = message.upload;
     final storageId = message.mediaStorageId;
+    final decodeWidth = thumbnailDecodeWidth(context, side);
     final Widget picture;
     if (upload != null) {
       // Ahead of the storage id for the reason the single-photo bubble puts it
@@ -290,15 +430,29 @@ class _MosaicTile extends StatelessWidget {
       // just finished sending.
       picture = _UploadingTile(upload: upload);
     } else if (storageId != null) {
+      Widget image({required BorderRadius borderRadius}) => RemoteImage(
+            storageId: storageId,
+            api: api,
+            borderRadius: borderRadius,
+            decodeWidth: decodeWidth,
+          );
       picture = SteadyHero(
         tag: mosaicHeroTag(message),
-        child: RemoteImage(
-          storageId: storageId,
-          api: api,
+        // The tile owns the flight's appearance rather than leaving it to the
+        // fullscreen view, because everything a flight needs to look right is
+        // known HERE and nowhere else: this crop, this corner, and above all
+        // this decode, which is the one already on screen and therefore the
+        // one that can be painted without waiting. Handing it over also settles
+        // it for both directions at once — Flutter resolves the destination's
+        // shuttle first, and the destination is this tile on the way home.
+        flightShuttleBuilder: mediaFlightShuttle(
+          image: image(borderRadius: BorderRadius.zero),
+          radius: radius,
+        ),
+        child: image(
           // The block is clipped as one shape, so a tile that rounded itself
           // would cut four notches out of the middle of it.
           borderRadius: BorderRadius.zero,
-          decodeWidth: thumbnailDecodeWidth(context, side),
         ),
       );
     } else {
@@ -315,7 +469,7 @@ class _MosaicTile extends StatelessWidget {
     return KeyedSubtree(
       key: anchor,
       child: GestureDetector(
-        onTap: onOpen,
+        onTap: () => onOpen(decodeWidth),
         onLongPress: onLongPress,
         // Right-click reaches the same menu, matching how the bubble already
         // treats a secondary tap.
@@ -339,7 +493,41 @@ class _MosaicTile extends StatelessWidget {
                   onShowReactors: onReactionLongPress,
                 ),
               ),
+            if (highlightT > 0) _TilePulse(theme: theme, t: highlightT),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The jump pulse, over one photograph of a block.
+///
+/// A wash and an inset stroke rather than the halo a bubble gets. A bubble
+/// pulses by glowing into the margin beside it; a tile has no margin — its
+/// neighbours are other photographs, drawn by sibling widgets that paint after
+/// it, so a glow would spill under half of them and over the other half. Ink on
+/// the picture itself is the only mark a tile can make that reads the same
+/// wherever in the block it happens to sit.
+class _TilePulse extends StatelessWidget {
+  const _TilePulse({required this.theme, required this.t});
+
+  final AppTheme theme;
+  final double t;
+
+  @override
+  Widget build(BuildContext context) {
+    final curve = highlightPulseCurve(t);
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: theme.accent.withValues(alpha: 0.28 * curve),
+            border: Border.all(
+              color: theme.accent.withValues(alpha: 0.9 * curve),
+              width: 2,
+            ),
+          ),
         ),
       ),
     );

@@ -243,19 +243,39 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
     final start = media.indexWhere((x) => x.id == m.id);
     if (start < 0) return;
 
+    // Filled in by SHOW IN CHAT and acted on below rather than there: this
+    // screen answers by popping ITSELF, and popping two routes on the frame the
+    // pager starts its exit leaves the picture flying home to a grid that is
+    // already on its way out. See `RoomScreen._openGallery`, which defers for
+    // the same reason.
+    ChatMessage? handBack;
+
     final landed = await MediaPagerScreen.open(
       context,
       items: media,
       initialIndex: start,
       api: widget.api,
+      sourceDecodeWidth: _tileDecodeWidth(),
+      onPageChanged: (msg) {
+        final i = media.indexWhere((x) => x.id == msg.id);
+        // Keeps the tile the reader has swiped to laid out, so the closing
+        // flight has a destination however deep into the set they went.
+        if (i >= 0) _revealInGrid(i);
+      },
       onShowInChat: (msg) {
+        handBack = msg;
         // Pop the pager (a root-navigator route) before handing the message
         // back, or the transcript would animate in behind it.
         Navigator.of(context, rootNavigator: true).pop();
-        _showInChat(msg);
       },
     );
-    if (!mounted || landed == null || landed == start) return;
+    if (!mounted) return;
+    final target = handBack;
+    if (target != null) {
+      _showInChat(target);
+      return;
+    }
+    if (landed == null || landed == start) return;
     _revealInGrid(landed);
   }
 
@@ -625,12 +645,23 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
     };
   }
 
+  /// The decode width, in device pixels, every tile in the grid is painted at.
+  ///
+  /// Read by the grid to size its decodes and by [_openPager] to tell the
+  /// gallery which decode is already resident — the same number both times, on
+  /// purpose. Two ways of working it out is how the gallery ends up asking the
+  /// `ImageCache` for an entry that was never made and flying a shimmer.
+  int _tileDecodeWidth() {
+    final width = MediaQuery.sizeOf(context).width;
+    final tileWidth = width / _gridColumns(width);
+    return (tileWidth * MediaQuery.devicePixelRatioOf(context)).round();
+  }
+
   Widget _mediaGrid(AppTheme theme, double bottomPad) {
     final items = _c.items;
     final width = MediaQuery.sizeOf(context).width;
     final columns = _gridColumns(width);
-    final tileWidth = width / columns;
-    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final decodeWidth = _tileDecodeWidth();
 
     return GridView.builder(
       controller: _scroll,
@@ -649,7 +680,7 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
           api: widget.api,
           selected: _selection.contains(m.id),
           selecting: _selection.active,
-          decodeWidth: (tileWidth * dpr).round(),
+          decodeWidth: decodeWidth,
           onTap: () => _openMessage(m),
           onLongPress: () {
             HapticFeedback.selectionClick();

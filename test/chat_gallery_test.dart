@@ -71,7 +71,8 @@ void main() {
     await tester.pumpWidget(
       host(
         RoomGalleryScope(
-          openGallery: (message) async => asked = message,
+          openGallery: (message, {required sourceDecodeWidth}) async =>
+              asked = message,
           child: bubble(m),
         ),
       ),
