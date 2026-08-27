@@ -36,12 +36,12 @@ class BrainSpec {
     required this.family,
     required this.contextTokens,
     required this.license,
+    this.minRamMb,
   });
 
   /// Stable key. Persisted in settings (Marlowe's chosen brain) and used as the
   /// dedup key when two companions want the same weights — see
-  /// [BrainCatalog.sebastianBrain], which is also the first row of Marlowe's
-  /// shelf, so installing one gives the other a brain for free.
+  /// [BrainCatalog.companionsUsing], which is the one place sharing is decided.
   final String id;
 
   /// What Marlowe's shelf calls it. NOT shown for Sebastian anywhere — see
@@ -112,6 +112,17 @@ class BrainSpec {
   /// licences; this is here so that stays checkable rather than remembered.
   final String license;
 
+  /// Physical RAM this brain wants before anyone should try to load it, or null
+  /// for one every supported device can carry.
+  ///
+  /// Not a download check — that is [sizeBytes] against free disk. This is
+  /// about what happens AFTER: weights are mapped resident alongside a chat
+  /// transcript and its images, and a device that cannot hold both does not
+  /// degrade, it gets its app terminated by the platform. Read by
+  /// [DeviceCapability.canRun], which answers false whenever the machine is
+  /// unknown.
+  final int? minRamMb;
+
   /// The model's actual name, for the one line of small print that admits it.
   ///
   /// Derived rather than stored: the file name already carries it, and two
@@ -167,11 +178,15 @@ enum BrainFamily {
 
 /// The shelf.
 abstract final class BrainCatalog {
-  /// Sebastian's brain, and the only one he will ever load.
+  /// Sebastian's shelf, BEST FIRST.
   ///
-  /// Qwen2-0.5B-Instruct at int8, 617 MB.
+  /// Two rows and no picker. Which one runs is decided by the device — see
+  /// [DeviceCapability] — because "how much model can this handset hold" is a
+  /// real question with a knowable answer, and it is not one the person who
+  /// wanted a translated bubble should be asked. See
+  /// [Companion.brainsAreUserChosen]: he is installed, not configured.
   ///
-  /// ── Why this is not Qwen3, which it used to be ────────────────────────
+  /// ── Why neither of these is Qwen3, which he shipped on ────────────────
   ///
   /// Qwen3-0.6B was chosen for multilingual coverage at 328 MB, and that
   /// argument was correct. What it missed is that Qwen3 is a hybrid REASONING
@@ -186,38 +201,63 @@ abstract final class BrainCatalog {
   /// stripper, and the strippers worked, and the next shape arrived. That is
   /// what fighting a model's nature looks like.
   ///
-  /// Qwen2 has no reasoning mode at all. There is no thinking to suppress, no
-  /// `/no_think` to hope is honoured, and no channel markers — the failure
-  /// class is gone rather than filtered. It is an older and individually weaker
-  /// model, and it is the right one: a slightly clumsier translation that
-  /// always arrives beats a better one that arrives four times out of five.
-  ///
-  /// ── Why not Qwen2.5, which is better still ────────────────────────────
-  ///
-  /// Because it does not exist in the format this app can load.
-  /// `litert-community/Qwen2.5-0.5B-Instruct` ships `.task` only — MediaPipe —
-  /// and the engine here is LiteRT-LM for the reason written in the pubspec.
-  /// The 1.5B does ship `.litertlm`, at 1.49 GB, which is four and a half times
-  /// this download for a translator inside a chat app.
-  ///
-  /// The cost of the move is honest: 617 MB against 328. It is still inside
-  /// "smaller than a couple of podcasts", which is the ceiling this feature has
-  /// always been sized against.
-  static const BrainSpec sebastianBrain = BrainSpec(
-    id: 'qwen2-0.5b-instruct',
-    // Never rendered — Sebastian's screen shows his own name, not a tier. It
-    // is a debug fallback, so it says what this brain is FOR rather than
-    // borrowing a tier name from Marlowe's ladder.
-    label: 'Translator',
-    fileName: 'Qwen2_0.5B_Instruct.litertlm',
-    url: 'https://huggingface.co/litert-community/Qwen2-0.5B-Instruct/'
-        'resolve/main/Qwen2_0.5B_Instruct.litertlm',
-    sizeBytes: 647377840,
-    sha256: '0f01cc004b8eb62b92ba6be85ed05a248ba0d2f78af94c4949b313eccfb4c157',
-    family: BrainFamily.qwen2,
-    contextTokens: 2048,
-    license: 'Apache 2.0',
-  );
+  /// Both rows below are Qwen2.x Instruct: no reasoning mode to suppress, no
+  /// `/no_think` to hope is honoured, no channel markers. The failure class is
+  /// gone rather than filtered. Both are ChatML, which `ModelType.qwen` handles
+  /// — and that matters more than it sounds on iOS, where `.litertlm` applies
+  /// the chat template MANUALLY and a family the plugin does not recognise is
+  /// exactly how a device ends up rendering control tokens as text.
+  static const List<BrainSpec> sebastianBrains = [
+    // The good one. 1.5B translates markedly better than 0.5B — enough that it
+    // is worth 1.5 GB and a memory floor on the devices that can take it.
+    //
+    // q8 rather than f32, which is the same weights at 6.2 GB. There is no int4
+    // build of this one; if litert-community ships one it would be the obvious
+    // row to replace this with, at roughly half the disk.
+    BrainSpec(
+      id: 'qwen2.5-1.5b-instruct',
+      label: 'Translator',
+      fileName: 'Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv4096.litertlm',
+      url: 'https://huggingface.co/litert-community/Qwen2.5-1.5B-Instruct/'
+          'resolve/main/'
+          'Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv4096.litertlm',
+      sizeBytes: 1597931520,
+      sha256: 'faa60663b333290c1496c499828b21d3e3254a788cacd8cce917ce0f761a2dc9',
+      family: BrainFamily.qwen2,
+      contextTokens: 2048,
+      license: 'Apache 2.0',
+      // 1.5 GB of weights resident, beside a transcript and its images. Four
+      // gigabytes is the floor a sibling project runs this exact model behind
+      // in production; below it the platform starts killing the app, which the
+      // user experiences as a crash and cannot connect to a model they were
+      // never asked about.
+      minRamMb: 4096,
+    ),
+    // The one everything can run. Also what a device of unknown size gets: see
+    // [DeviceCapability], where every failure resolves downward.
+    //
+    // Qwen2 rather than Qwen2.5 at this size for a boring reason —
+    // `litert-community/Qwen2.5-0.5B-Instruct` ships `.task` only, which is
+    // MediaPipe, and the engine here is LiteRT-LM (see the pubspec).
+    BrainSpec(
+      id: 'qwen2-0.5b-instruct',
+      // Never rendered — Sebastian's screen shows his own name, not a tier.
+      label: 'Translator',
+      fileName: 'Qwen2_0.5B_Instruct.litertlm',
+      url: 'https://huggingface.co/litert-community/Qwen2-0.5B-Instruct/'
+          'resolve/main/Qwen2_0.5B_Instruct.litertlm',
+      sizeBytes: 647377840,
+      sha256: '0f01cc004b8eb62b92ba6be85ed05a248ba0d2f78af94c4949b313eccfb4c157',
+      family: BrainFamily.qwen2,
+      contextTokens: 2048,
+      license: 'Apache 2.0',
+      minRamMb: 2048,
+    ),
+  ];
+
+  /// The row every supported device can carry, and the answer whenever the
+  /// machine cannot be sized. Last, because the shelf is ordered best-first.
+  static BrainSpec get sebastianFallback => sebastianBrains.last;
 
   /// Marlowe's shelf, smallest first.
   ///
@@ -322,7 +362,7 @@ abstract final class BrainCatalog {
   /// the UI never renders it as a list.
   static List<BrainSpec> forCompanion(Companion companion) =>
       switch (companion) {
-        Companion.sebastian => const [sebastianBrain],
+        Companion.sebastian => sebastianBrains,
         Companion.marlowe => marloweBrains,
       };
 }

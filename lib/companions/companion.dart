@@ -68,7 +68,8 @@ enum Companion {
   /// Whether the brain shelf is the user's to arrange.
   ///
   /// False for Sebastian, and that is the design rather than an omission: his
-  /// brain is chosen for him (see [BrainCatalog.sebastianBrain]) and never
+  /// brain is chosen for him — by the DEVICE, from
+  /// [BrainCatalog.sebastianBrains] via [DeviceCapability] — and never
   /// named on screen. True for Marlowe, whose whole detail screen is the shelf.
   bool get brainsAreUserChosen => this == Companion.marlowe;
 

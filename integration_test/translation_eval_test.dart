@@ -2,11 +2,12 @@
 ///
 /// ── What it is for ─────────────────────────────────────────────────────────
 ///
-/// Sebastian runs Qwen3-0.6B, which is a hybrid REASONING model — close to the
+/// Sebastian's shelf is two rows and the device picks one, so "is the model any
+/// good" is now a question with two answers and no way to tell them apart by
+/// reading. He shipped on Qwen3-0.6B, a hybrid REASONING model — close to the
 /// worst family available for a task whose whole requirement is "emit the
-/// answer and nothing else". It was chosen for its multilingual coverage at
-/// 328 MB, which is a real argument, and it may still be the right choice. The
-/// point of this file is that the question stops being answered by argument.
+/// answer and nothing else" — and moving off it was argued rather than
+/// measured. The point of this file is that the next such move is not.
 ///
 /// It runs the shipped pipeline over `test/fixtures/translation_golden.json`
 /// and prints pass rate, preamble-leak rate, wrong-language rate, first-try
@@ -19,9 +20,11 @@
 ///
 ///     flutter test integration_test/translation_eval_test.dart -d <device>
 ///
-/// It needs Sebastian's brain already on the device and will skip loudly
-/// otherwise — downloading 328 MB from inside a test is not a thing a test
-/// should do to somebody's connection.
+/// It runs whichever brain this device actually resolves to — see
+/// [Sebastian.brain] — so the number describes the machine it was taken on. It
+/// needs that brain already installed and skips loudly otherwise: pulling a
+/// gigabyte and a half from inside a test is not a thing to do to somebody's
+/// connection.
 ///
 /// It is NOT part of `flutter test`. The contract this feature has to keep is
 /// asserted without a model in `test/translation_contract_test.dart`, which is
@@ -33,7 +36,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:monkeyhub/companions/brain_gateway.dart';
-import 'package:monkeyhub/companions/brain_spec.dart';
 import 'package:monkeyhub/companions/sebastian.dart';
 import 'package:monkeyhub/companions/translation/language.dart';
 
@@ -43,7 +45,10 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('golden set', (tester) async {
-    final brain = BrainCatalog.sebastianBrain;
+    // Whatever this device resolves to, not a fixed row: on a 4 GB phone that
+    // is the 1.5B and on a smaller one the 0.5B, and a benchmark that always
+    // measured the fallback would report the wrong model's numbers.
+    final brain = Sebastian.instance.brain;
 
     if (!await BrainGateway.instance.isInstalled(brain)) {
       // Not a failure. The brain is a 328 MB download the user opted into, and

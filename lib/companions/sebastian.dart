@@ -40,6 +40,7 @@ import '../models/enums.dart';
 import 'brain_gateway.dart';
 import 'brain_manager.dart';
 import 'brain_spec.dart';
+import 'device_capability.dart';
 import 'translation/language.dart';
 import 'translation/language_detector.dart';
 import 'translation/translation_cache.dart';
@@ -194,8 +195,33 @@ class Sebastian extends ChangeNotifier {
   Sebastian._();
   static final Sebastian instance = Sebastian._();
 
-  /// The brain he loads. Fixed — see [Companion.brainsAreUserChosen].
-  BrainSpec get brain => BrainCatalog.sebastianBrain;
+  /// The brain he loads.
+  ///
+  /// Not fixed any more, and still not a choice — see
+  /// [Companion.brainsAreUserChosen]. [BrainCatalog.sebastianBrains] is ordered
+  /// best-first and this walks it in two passes:
+  ///
+  ///  1. the best row this DEVICE can carry that is already INSTALLED, so
+  ///     somebody who has a brain on disk goes on using it and is never asked
+  ///     to re-download a gigabyte because their next phone was bigger;
+  ///  2. failing that, the best row the device can carry at all — which is what
+  ///     the install sheet offers and what its size line quotes.
+  ///
+  /// Falls through to [BrainCatalog.sebastianFallback] when the machine cannot
+  /// be sized, which every supported device can run. See [DeviceCapability] for
+  /// why unknown resolves downward rather than optimistically.
+  BrainSpec get brain {
+    final affordable = [
+      for (final b in BrainCatalog.sebastianBrains)
+        if (DeviceCapability.instance.canRun(b)) b,
+    ];
+    final shelf =
+        affordable.isEmpty ? [BrainCatalog.sebastianFallback] : affordable;
+    for (final b in shelf) {
+      if (BrainManager.instance.isInstalled(b)) return b;
+    }
+    return shelf.first;
+  }
 
   // ─────────────────────────── availability ───────────────────────────
 

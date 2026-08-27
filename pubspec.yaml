@@ -253,6 +253,16 @@ dependencies:
   flutter_gemma: ^1.6.5
   flutter_gemma_litertlm: ^1.5.3
 
+  # Physical RAM, and nothing else. Sebastian's shelf is ordered best-first and
+  # the device takes the best row it can carry (see `DeviceCapability`): a 1.5B
+  # model translates markedly better than a 0.5B one and wants roughly four
+  # gigabytes to sit in beside a chat app, which is not a question the user
+  # should be asked and not a guess this app should make.
+  #
+  # Every failure resolves DOWNWARD to the small brain, so an unreadable
+  # platform costs a slightly worse translation rather than a crash.
+  device_info_plus: ^13.2.0
+
   flutter_localizations:
     sdk: flutter
 

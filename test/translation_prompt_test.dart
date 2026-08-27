@@ -295,7 +295,7 @@ void main() {
     /// its second half missing looks exactly like a successful translation,
     /// which makes it the worst failure this feature has available.
     test('leaves anything that fits in one piece', () {
-      final limit = TranslationPrompt.chunkLimitFor(BrainCatalog.sebastianBrain);
+      final limit = TranslationPrompt.chunkLimitFor(BrainCatalog.sebastianFallback);
       expect(limit, greaterThan(200));
       expect(TranslationPrompt.chunk('short message', limit), ['short message']);
     });
@@ -304,7 +304,7 @@ void main() {
     /// front of the input — so a budget that forgot to reserve room for the
     /// prompt would produce a half-translation that looks like a whole one.
     test('reserves room for the prompt itself, examples included', () {
-      final brain = BrainCatalog.sebastianBrain;
+      final brain = BrainCatalog.sebastianFallback;
       final measured = TranslationPrompt.chunkLimitFor(brain, turkish);
       final blind = TranslationPrompt.chunkLimitFor(brain);
 

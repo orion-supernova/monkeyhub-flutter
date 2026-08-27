@@ -150,7 +150,7 @@ abstract final class TranslationPrompt {
     // Sent to Qwen3 ONLY. A model with no reasoning mode has nothing to switch
     // off, and the token is then just an odd instruction sitting in the turn
     // for a small model to wonder about. Sebastian no longer runs one — see
-    // [BrainCatalog.sebastianBrain] — but Marlowe's shelf still does.
+    // [BrainCatalog.sebastianBrains] — but Marlowe's shelf still does.
     final noThink = family == BrainFamily.qwen3 ? ' /no_think' : '';
 
     final head = terse

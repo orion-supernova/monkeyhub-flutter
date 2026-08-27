@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/companions/brain_spec.dart';
 import 'package:monkeyhub/companions/brain_store.dart';
 import 'package:monkeyhub/companions/companion.dart';
+import 'package:monkeyhub/companions/device_capability.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
@@ -30,13 +31,34 @@ void main() {
     /// better translator will find that the strongest small multilingual models
     /// are mostly reasoning models, and the reason not to take one is written
     /// nowhere the compiler can see.
-    test('Sebastian runs a model with no reasoning mode', () {
-      expect(
-        BrainCatalog.sebastianBrain.family,
-        isNot(BrainFamily.qwen3),
-        reason: 'a hybrid-reasoning model cannot be talked out of narrating '
-            'itself — see BrainCatalog.sebastianBrain',
-      );
+    test('no brain Sebastian can load has a reasoning mode', () {
+      for (final brain in BrainCatalog.sebastianBrains) {
+        expect(
+          brain.family,
+          isNot(BrainFamily.qwen3),
+          reason: 'a hybrid-reasoning model cannot be talked out of narrating '
+              'itself — see BrainCatalog.sebastianBrains (${brain.id})',
+        );
+      }
+    });
+
+    /// The shelf is walked best-first and the device takes the first row it can
+    /// carry, so the ORDER is the policy. Stated as a test because a list
+    /// literal has no other way to say which end is which.
+    test('his shelf is ordered best first', () {
+      final sizes = [for (final b in BrainCatalog.sebastianBrains) b.sizeBytes];
+      expect(sizes, orderedEquals(sizes.toList()..sort((a, b) => b - a)));
+      expect(BrainCatalog.sebastianFallback, BrainCatalog.sebastianBrains.last);
+    });
+
+    /// The fallback is what a device of unknown size gets, so it cannot itself
+    /// be gated behind more memory than anything else on the shelf.
+    test('the fallback asks for as little as anything on the shelf', () {
+      final floors = [
+        for (final b in BrainCatalog.sebastianBrains) b.minRamMb ?? 0,
+      ];
+      expect(BrainCatalog.sebastianFallback.minRamMb ?? 0,
+          floors.reduce((a, b) => a < b ? a : b));
     });
 
     /// The engine registered in `BrainGateway` is LiteRT-LM, and handing it a
@@ -83,6 +105,69 @@ void main() {
     test('file names are unique', () {
       final names = BrainCatalog.all.map((b) => b.fileName).toList();
       expect(names.toSet().length, names.length);
+    });
+  });
+
+  group('which brain this device gets', () {
+    tearDown(() => DeviceCapability.instance.setRamForTest(null));
+
+    /// The whole point of the gate. A phone that cannot hold 1.5 GB of weights
+    /// beside a chat transcript does not degrade — the platform terminates the
+    /// app, which the user experiences as a crash and cannot connect to a model
+    /// they were never asked about.
+    test('a small device is not offered a brain it cannot hold', () {
+      DeviceCapability.instance.setRamForTest(2048);
+      final big = BrainCatalog.sebastianBrains.first;
+      expect(DeviceCapability.instance.canRun(big), isFalse);
+      expect(
+        DeviceCapability.instance.canRun(BrainCatalog.sebastianFallback),
+        isTrue,
+      );
+    });
+
+    test('a large device is', () {
+      DeviceCapability.instance.setRamForTest(8192);
+      for (final brain in BrainCatalog.sebastianBrains) {
+        expect(DeviceCapability.instance.canRun(brain), isTrue,
+            reason: brain.id);
+      }
+    });
+
+    /// Unknown resolves DOWNWARD, and that direction is the whole safety
+    /// argument: an unreadable platform costs a slightly worse translation
+    /// rather than a crash.
+    test('an unsizeable device is treated as the smallest one', () {
+      DeviceCapability.instance.setRamForTest(null);
+      expect(
+        DeviceCapability.instance.canRun(BrainCatalog.sebastianBrains.first),
+        isFalse,
+      );
+    });
+
+    /// Exactly at the floor counts as meeting it. Stated because `>` and `>=`
+    /// are one character apart and the difference is a whole tier of phones.
+    test('a device exactly at the floor meets it', () {
+      final big = BrainCatalog.sebastianBrains.first;
+      DeviceCapability.instance.setRamForTest(big.minRamMb);
+      expect(DeviceCapability.instance.canRun(big), isTrue);
+    });
+
+    /// A brain with no stated floor is one every supported device can carry,
+    /// and must not be gated by a machine this cannot size.
+    test('a brain with no floor runs anywhere, even unsized', () {
+      DeviceCapability.instance.setRamForTest(null);
+      const unbounded = BrainSpec(
+        id: 'x',
+        label: 'x',
+        fileName: 'x.litertlm',
+        url: 'https://example.com/x.litertlm',
+        sizeBytes: 1,
+        sha256: 'x',
+        family: BrainFamily.qwen2,
+        contextTokens: 1024,
+        license: 'Apache 2.0',
+      );
+      expect(DeviceCapability.instance.canRun(unbounded), isTrue);
     });
   });
 
@@ -162,7 +247,7 @@ void main() {
     /// Mixed, which is the real upgrade: the new brain half-downloaded beside
     /// the old one it replaces.
     test('keeps the new brain while reclaiming the old', () async {
-      final live = BrainCatalog.sebastianBrain.fileName;
+      final live = BrainCatalog.sebastianFallback.fileName;
       await place('$live.part', 4096);
       await place('Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm', 2048);
 

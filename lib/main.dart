@@ -9,6 +9,7 @@ import 'backend/server_directory.dart';
 import 'backend/server_store.dart';
 import 'calls/native_call_handler.dart';
 import 'companions/brain_manager.dart';
+import 'companions/device_capability.dart';
 import 'data/settings_store.dart';
 import 'diagnostics/diag_boot.dart';
 import 'media/file_url_cache.dart';
@@ -108,6 +109,14 @@ Future<void> main() async {
         .catchError((Object e) {
           debugPrint('PushManager.initialize: $e');
         });
+
+    // How much machine there is, before anything asks which brain Sebastian
+    // runs — his shelf is ordered best-first and the device takes the best row
+    // it can carry. Not awaited for the same reason the refresh below is not:
+    // an unanswered query resolves DOWNWARD to the brain every device can run
+    // (see `DeviceCapability`), so the worst a slow probe costs is a first
+    // translation on the smaller model.
+    DeviceCapability.instance.prime();
 
     // Asks the disk which companion brains are installed. Not awaited, and
     // deliberately not gated on whether any companion is switched on: the
