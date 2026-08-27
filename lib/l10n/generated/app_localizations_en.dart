@@ -7832,11 +7832,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Sebastian reads a message written in another language and tells you what it says — here on your phone, with nothing sent anywhere.';
 
   @override
-  String get companionVeraTagline => 'General help';
+  String get companionMarloweTagline => 'General help';
 
   @override
-  String get companionVeraBlurb =>
-      'Vera is the companion for everything that isn\'t translation. Choose what she thinks with now, and her skills will arrive around it.';
+  String get companionMarloweBlurb =>
+      'Marlowe handles everything that isn\'t translation. Pick a brain now, and the skills will arrive around it.';
 
   @override
   String get companionAssuranceOnDevice => 'Runs entirely on this device';
@@ -7985,24 +7985,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sebastianCacheClear => 'Clear';
 
   @override
-  String get veraSkillsComingSoon =>
-      'Vera can\'t do anything yet — her skills are still on the way. What you can do now is get a brain ready for her, so she is waiting when they land.';
+  String get marloweSkillsComingSoon =>
+      'Marlowe can\'t do anything yet — the skills are still on the way. What you can do now is get a brain ready, so nothing is waiting on a download when they land.';
 
   @override
-  String get veraBrainsSection => 'BRAIN';
+  String get marloweBrainsSection => 'BRAIN';
 
   @override
-  String get veraBrainsCaption =>
+  String get marloweBrainsCaption =>
       'Bigger thinks better and answers slower. You can keep more than one and switch between them.';
 
   @override
-  String get veraBrainTierSwift => 'Swift';
+  String get marloweBrainTierSwift => 'Swift';
 
   @override
-  String get veraBrainTierBalanced => 'Balanced';
+  String get marloweBrainTierBalanced => 'Balanced';
 
   @override
-  String get veraBrainTierDeep => 'Deep';
+  String get marloweBrainTierDeep => 'Deep';
 
   @override
   String get translationSlabShowOriginal => 'Show original';
@@ -8090,4 +8090,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String companionBrainSharedWarning(Object name) {
     return '$name uses the same download and will lose it too.';
   }
+
+  @override
+  String get companionBrainInUse => 'IN USE';
+
+  @override
+  String companionStatusUsingBrain(Object name) {
+    return 'Using $name';
+  }
+
+  @override
+  String companionInstallContinuesInBackground(Object name) {
+    return '$name keeps downloading — Settings › Companions';
+  }
+
+  @override
+  String settingsScreenCompanionsDownloading(Object percent) {
+    return 'Downloading · $percent%';
+  }
+
+  @override
+  String get companionInstallPause => 'Pause';
+
+  @override
+  String get companionInstallResume => 'Resume';
+
+  @override
+  String get companionInstallDiscard => 'Discard';
+
+  @override
+  String companionInstallPausedAt(Object received, Object total) {
+    return 'Paused · $received of $total';
+  }
+
+  @override
+  String get companionInstallFailedIntegrity =>
+      'The downloaded file didn\'t match what this version expects. Starting over.';
 }

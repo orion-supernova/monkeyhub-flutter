@@ -318,6 +318,17 @@ dev_dependencies:
   # suite whose whole value is that it does not have any.
   fake_async: ^1.3.3
 
+  # Transitively present via path_provider; declared explicitly because
+  # `test/brain_download_test.dart` implements `PathProviderPlatform` directly.
+  # That test drives a real download against a loopback server, and every path
+  # it touches comes from `BrainStore` — which would throw on its first lookup
+  # under `flutter test`, where path_provider has no platform implementation.
+  path_provider_platform_interface: ^2.1.0
+
+  # Needed with it: `MockPlatformInterfaceMixin` is what lets a test double
+  # satisfy the `PlatformInterface` token check without being a real plugin.
+  plugin_platform_interface: ^2.1.0
+
   # Transitively present via image_picker; declared explicitly because
   # `test/photo_picking_test.dart` implements `ImagePickerPlatform` directly.
   # The subject of that test is what the wrapper does when the OS picker

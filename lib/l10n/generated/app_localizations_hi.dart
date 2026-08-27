@@ -7851,11 +7851,11 @@ class AppLocalizationsHi extends AppLocalizations {
       'Sebastian किसी दूसरी भाषा में लिखा संदेश पढ़ता है और आपको बताता है कि उसमें क्या लिखा है — यहीं आपके फ़ोन पर, बिना कुछ कहीं भेजे।';
 
   @override
-  String get companionVeraTagline => 'सामान्य मदद';
+  String get companionMarloweTagline => 'सामान्य मदद';
 
   @override
-  String get companionVeraBlurb =>
-      'अनुवाद के अलावा हर चीज़ के लिए Vera है। अभी चुन लीजिए कि वह किससे सोचेगी; उसके कौशल उसके आसपास आते जाएँगे।';
+  String get companionMarloweBlurb =>
+      'अनुवाद के अलावा हर चीज़ Marlowe संभालता है। अभी एक दिमाग चुन लीजिए, कौशल उसके आसपास आते जाएँगे।';
 
   @override
   String get companionAssuranceOnDevice => 'पूरी तरह इसी डिवाइस पर चलता है';
@@ -8003,24 +8003,24 @@ class AppLocalizationsHi extends AppLocalizations {
   String get sebastianCacheClear => 'साफ़ करें';
 
   @override
-  String get veraSkillsComingSoon =>
-      'Vera अभी कुछ नहीं कर सकती — उसके कौशल अभी रास्ते में हैं। अभी आप इतना कर सकते हैं कि उसके लिए एक दिमाग तैयार रखें, ताकि जब वे आएँ तो वह पहले से तैयार हो।';
+  String get marloweSkillsComingSoon =>
+      'Marlowe अभी कुछ नहीं कर सकता — कौशल अभी रास्ते में हैं। अभी आप इतना कर सकते हैं कि एक दिमाग तैयार रखें, ताकि जब वे आएँ तो किसी डाउनलोड का इंतज़ार न करना पड़े।';
 
   @override
-  String get veraBrainsSection => 'दिमाग';
+  String get marloweBrainsSection => 'दिमाग';
 
   @override
-  String get veraBrainsCaption =>
+  String get marloweBrainsCaption =>
       'जितना बड़ा, उतना बेहतर सोचता है और उतना ही धीमे जवाब देता है। आप एक से ज़्यादा रख सकते हैं और बदल सकते हैं।';
 
   @override
-  String get veraBrainTierSwift => 'तेज़';
+  String get marloweBrainTierSwift => 'तेज़';
 
   @override
-  String get veraBrainTierBalanced => 'संतुलित';
+  String get marloweBrainTierBalanced => 'संतुलित';
 
   @override
-  String get veraBrainTierDeep => 'गहरा';
+  String get marloweBrainTierDeep => 'गहरा';
 
   @override
   String get translationSlabShowOriginal => 'मूल दिखाएँ';
@@ -8107,4 +8107,40 @@ class AppLocalizationsHi extends AppLocalizations {
   String companionBrainSharedWarning(Object name) {
     return '$name भी यही डाउनलोड उपयोग करता है और इसे खो देगा।';
   }
+
+  @override
+  String get companionBrainInUse => 'उपयोग में';
+
+  @override
+  String companionStatusUsingBrain(Object name) {
+    return '$name का उपयोग';
+  }
+
+  @override
+  String companionInstallContinuesInBackground(Object name) {
+    return '$name डाउनलोड होता रहेगा — सेटिंग्स › साथी';
+  }
+
+  @override
+  String settingsScreenCompanionsDownloading(Object percent) {
+    return 'डाउनलोड हो रहा है · $percent%';
+  }
+
+  @override
+  String get companionInstallPause => 'रोकें';
+
+  @override
+  String get companionInstallResume => 'जारी रखें';
+
+  @override
+  String get companionInstallDiscard => 'हटाएँ';
+
+  @override
+  String companionInstallPausedAt(Object received, Object total) {
+    return 'रुका हुआ · $total में से $received';
+  }
+
+  @override
+  String get companionInstallFailedIntegrity =>
+      'डाउनलोड की गई फ़ाइल इस वर्शन की अपेक्षा से मेल नहीं खाती। फिर से शुरू किया जा रहा है।';
 }

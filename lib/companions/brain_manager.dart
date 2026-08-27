@@ -1,55 +1,81 @@
 /// What every install-related pixel in the app reads from.
 ///
 /// One [ChangeNotifier] for the whole shelf rather than one per brain: an
-/// install is a global event as much as a local one — Vera's shelf has to grey
-/// out its other rows while a download runs (two concurrent multi-hundred-
-/// megabyte fetches on a phone is not a feature), Settings has to show the
-/// total on disk, and Sebastian's install sheet has to notice when the brain
-/// he needs arrived because the user installed Vera first.
+/// install is a global event as much as a local one — Marlowe's shelf has to
+/// grey out its other rows while a download runs (two concurrent
+/// multi-hundred-megabyte fetches on a phone is not a feature), Settings shows
+/// the running percentage, and a companion's own screen has to notice when the
+/// brain it needs arrived because the user started it from somewhere else.
+///
+/// ── Stopping and starting ──────────────────────────────────────────────────
+///
+/// A download here is measured in hundreds of megabytes and tens of minutes,
+/// which makes "stop for now" an ordinary thing to want rather than an edge
+/// case — a train tunnel, a battery warning, a metered connection, a phone
+/// that got put down. So the state machine treats it as one:
+///
+///     absent ──install──▶ queued ──▶ downloading ⇄ paused
+///                                        │             │
+///                                        ├──▶ installed
+///                                        └──▶ failed ──retry──▶ …
+///
+/// [pause] keeps every byte. [cancel] throws them away — that is the whole
+/// difference between the two, and it is why they are separate verbs instead
+/// of one "stop".
+///
+/// Crucially, PAUSED IS NOT AN IN-MEMORY STATE. It is a `.part` file on disk
+/// with a note beside it, so a download interrupted by the process being killed
+/// is in exactly the same state as one the user paused deliberately, and
+/// [refresh] finds both. See [BrainStore] and [BrainDownload].
 library;
 
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import 'brain_download.dart';
 import 'brain_gateway.dart';
 import 'brain_spec.dart';
+import 'brain_store.dart';
 
 /// Where one brain is in its life.
 enum BrainStatus {
-  /// Not on disk, nothing happening.
+  /// Nothing on disk, nothing happening.
   absent,
 
-  /// Asked for, waiting for the one download slot. Only reachable when
-  /// another install is already running.
+  /// Asked for, waiting for the one download slot. Only reachable when another
+  /// install is already running.
   queued,
 
   downloading,
 
-  /// On disk and loadable.
+  /// Stopped with bytes kept. Reached by [BrainManager.pause], and also by
+  /// simply finding a `.part` file at startup — a download the OS interrupted
+  /// looks identical to one the user paused, because it is.
+  paused,
+
+  /// On disk, full length, and loadable.
   installed,
 
   /// The last attempt ended badly and the user has not acknowledged it.
-  /// Carries a [BrainInstallFailure] on [BrainState.failure].
   failed,
 }
 
 /// Why an install ended badly, in the terms the UI has different words for.
-///
-/// Classified here rather than at the widget, because the classification is a
-/// judgement about an exception object and that is not a thing a build method
-/// should be doing.
 enum BrainInstallFailure {
-  /// No route to the CDN, or it died mid-stream. The overwhelmingly common
-  /// one, and the only one where "try again" is honest advice.
+  /// No route to the CDN, or it died mid-stream. The common one, and the only
+  /// one where "try again" is honest advice — and now the cheapest, because
+  /// trying again resumes rather than restarts.
   network,
 
-  /// The device said no. Distinguished because retrying is pointless until the
-  /// user does something, and what they should do is specific.
+  /// The device said no.
   storage,
 
-  /// Anything else — a 403 on a repo that turned out to be gated, a corrupt
-  /// download, a runtime that refused the file.
+  /// The bytes are not the bytes this build expects: a length or a digest that
+  /// disagrees with [BrainSpec]. Retrying IS worth offering, but only because
+  /// the partial has already been discarded — see [BrainDownload].
+  integrity,
+
   unknown,
 }
 
@@ -64,6 +90,10 @@ class BrainState {
   });
 
   final BrainStatus status;
+
+  /// Bytes on disk. Meaningful while [BrainStatus.downloading] AND while
+  /// [BrainStatus.paused] — a paused row says "104 MB of 328 MB", which is the
+  /// number that makes resuming feel like continuing rather than restarting.
   final int receivedBytes;
   final int totalBytes;
   final BrainInstallFailure? failure;
@@ -71,7 +101,10 @@ class BrainState {
   bool get isBusy =>
       status == BrainStatus.downloading || status == BrainStatus.queued;
 
-  /// 0…1. Zero while queued, which is correct — nothing has been received.
+  /// Whether there are bytes worth keeping — what the UI asks to decide
+  /// between offering RESUME and offering INSTALL.
+  bool get isResumable => status == BrainStatus.paused && receivedBytes > 0;
+
   double get fraction =>
       totalBytes <= 0 ? 0 : (receivedBytes / totalBytes).clamp(0.0, 1.0);
 
@@ -89,54 +122,52 @@ class BrainManager extends ChangeNotifier {
   /// [install].
   String? _activeInstallId;
 
+  /// The live download, so [pause] and [cancel] have something to talk to.
+  BrainDownload? _active;
+
   /// Ids waiting for the slot, in the order they were asked for.
   final List<String> _waiting = [];
-
-  /// Fires to cancel whichever install is running.
-  Completer<void>? _cancel;
 
   Future<void>? _refresh;
 
   /// True while any brain is downloading or waiting to.
   bool get isInstallingAny => _activeInstallId != null;
 
-  /// What the UI should draw for [spec].
+  /// The state of the download that is actually running, or null.
   ///
-  /// Returns [BrainState.absent] for a brain nobody has asked about yet, which
-  /// is also what it returns on an unsupported platform — the shelf is drawn
-  /// there, disabled, rather than hidden, so a desktop user who wonders where
-  /// the feature went gets an answer instead of a gap.
+  /// Exposed for the ambient indicator in Settings, which needs a percentage
+  /// and does not care which brain it belongs to — at most one runs at a time,
+  /// so "the download" is unambiguous.
+  BrainState? get activeInstall {
+    final id = _activeInstallId;
+    if (id == null) return null;
+    final state = _states[id];
+    return state != null && state.isBusy ? state : null;
+  }
+
+  /// What the UI should draw for [spec].
   BrainState stateOf(BrainSpec spec) => _states[spec.id] ?? BrainState.absent;
 
   bool isInstalled(BrainSpec spec) =>
       stateOf(spec).status == BrainStatus.installed;
 
-  /// Whether every brain [companion] needs is ready. For Sebastian that is his
-  /// one brain; for Vera it is whether she has ANY, since her shelf is a choice
-  /// rather than a requirement.
   bool isReady(BrainSpec? spec) => spec != null && isInstalled(spec);
 
-  /// Total bytes the companions occupy, counting a shared brain once.
+  /// Total bytes the companions occupy.
   ///
-  /// Reads [BrainSpec.sizeBytes] rather than stat-ing the files: the number is
-  /// wanted synchronously in a build method, it is exact (the catalog carries
-  /// measured content-lengths), and a brain that is installed is by definition
-  /// the size the catalog says it is.
-  int get installedBytes {
-    var total = 0;
-    for (final b in BrainCatalog.all) {
-      if (isInstalled(b)) total += b.sizeBytes;
-    }
-    return total;
-  }
+  /// Read from the FILESYSTEM rather than summed from [BrainSpec.sizeBytes],
+  /// which is what makes a half-finished download count. A user looking at
+  /// this number is deciding whether to free space, and 900 MB of paused
+  /// partial is 900 MB whatever the catalog thinks it will eventually be.
+  int get installedBytes => _bytesUsed;
+  int _bytesUsed = 0;
 
   /// Reconciles the in-memory table with what is actually on disk.
   ///
-  /// Called on first paint of anything that shows install state. Memoised while
-  /// in flight so three widgets appearing in the same frame ask the plugin
-  /// once, but NOT memoised afterwards: an uninstall elsewhere, or an install
-  /// that finished while a screen was closed, has to be visible on the next
-  /// open.
+  /// This is also the resume-after-death path: a `.part` file left by a
+  /// process the OS killed is indistinguishable from one the user paused, so
+  /// both come back as [BrainStatus.paused] with their byte count intact and
+  /// the row offers to continue.
   Future<void> refresh() {
     final existing = _refresh;
     if (existing != null) return existing;
@@ -145,13 +176,24 @@ class BrainManager extends ChangeNotifier {
         if (!BrainGateway.instance.isSupported) return;
         for (final spec in BrainCatalog.all) {
           // Never overwrite a live download's state with a disk probe — the
-          // file is half-written and `isInstalled` says no, which would snap a
-          // progress arc back to "Install".
+          // file is half-written, so `isInstalled` says no, which would snap a
+          // running progress bar back to "Install".
           if (stateOf(spec).isBusy) continue;
-          final present = await BrainGateway.instance.isInstalled(spec);
-          _states[spec.id] =
-              present ? BrainState.installed : BrainState.absent;
+
+          if (await BrainStore.instance.isInstalled(spec)) {
+            _states[spec.id] = BrainState.installed;
+            continue;
+          }
+          final onDisk = await BrainStore.instance.bytesOnDisk(spec);
+          _states[spec.id] = onDisk > 0
+              ? BrainState(
+                  status: BrainStatus.paused,
+                  receivedBytes: onDisk,
+                  totalBytes: spec.sizeBytes,
+                )
+              : BrainState.absent;
         }
+        _bytesUsed = await BrainStore.instance.bytesUsed();
         notifyListeners();
       } finally {
         _refresh = null;
@@ -161,13 +203,17 @@ class BrainManager extends ChangeNotifier {
     return future;
   }
 
-  /// Starts (or queues) a download.
+  /// Starts a download, or continues a paused one.
   ///
-  /// Serialised across the whole shelf on purpose. Two brains downloading at
-  /// once on a phone means both crawl, the progress UI stops meaning anything,
-  /// and the peak disk requirement is the sum rather than the max — on a device
-  /// that may not have room for the sum. The second request waits, visibly, as
-  /// [BrainStatus.queued].
+  /// One verb for both, because from the caller's side they are the same
+  /// request — "get me this brain" — and from the downloader's side the only
+  /// difference is a starting offset it works out from the disk. A separate
+  /// `resume` that did something subtly different is how the two paths drift.
+  ///
+  /// Serialised across the whole shelf. Two brains downloading at once on a
+  /// phone means both crawl, the progress UI stops meaning anything, and the
+  /// peak disk requirement is the sum rather than the max — on a device that
+  /// may not have room for the sum.
   Future<void> install(BrainSpec spec) async {
     if (!BrainGateway.instance.isSupported) return;
     final current = stateOf(spec);
@@ -175,112 +221,170 @@ class BrainManager extends ChangeNotifier {
 
     if (_activeInstallId != null) {
       if (!_waiting.contains(spec.id)) _waiting.add(spec.id);
-      _set(spec.id, const BrainState(status: BrainStatus.queued));
+      _set(
+        spec.id,
+        BrainState(
+          status: BrainStatus.queued,
+          // Carried through the queue so a paused download that is waiting for
+          // the slot still shows what it already has, instead of reading as if
+          // it were starting from nothing.
+          receivedBytes: current.receivedBytes,
+          totalBytes: spec.sizeBytes,
+        ),
+      );
       return;
     }
 
     await _run(spec);
   }
 
+  /// Stops the running download and KEEPS the bytes.
+  ///
+  /// No-op on a brain that is not the one running — including one merely
+  /// queued, which is [cancel]'s business since it has nothing to keep.
+  void pause(BrainSpec spec) {
+    if (_activeInstallId != spec.id) return;
+    _active?.pause();
+  }
+
+  /// Stops and throws the bytes away.
+  ///
+  /// Deletes the partial and the resume note, so the next attempt starts from
+  /// zero. This is the destructive one; [pause] is the other.
+  void cancel(BrainSpec spec) {
+    if (_activeInstallId == spec.id) {
+      _active?.cancel();
+      return;
+    }
+    if (_waiting.remove(spec.id)) {
+      // Never ran, so there is nothing to abort — but there may be bytes from
+      // an earlier attempt, and CANCEL means the user wants them gone.
+      unawaited(_discardAndForget(spec));
+    } else if (stateOf(spec).status == BrainStatus.paused) {
+      unawaited(_discardAndForget(spec));
+    }
+  }
+
+  Future<void> _discardAndForget(BrainSpec spec) async {
+    await BrainStore.instance.delete(spec);
+    _bytesUsed = await BrainStore.instance.bytesUsed();
+    _set(spec.id, BrainState.absent);
+  }
+
   Future<void> _run(BrainSpec spec) async {
     _activeInstallId = spec.id;
     _waiting.remove(spec.id);
-    final cancel = _cancel = Completer<void>();
+    final download = _active = BrainDownload(spec);
+
     _set(
       spec.id,
       BrainState(
         status: BrainStatus.downloading,
+        receivedBytes: stateOf(spec).receivedBytes,
         totalBytes: spec.sizeBytes,
       ),
     );
 
+    var lastReceived = stateOf(spec).receivedBytes;
     try {
-      await for (final p in BrainGateway.instance
-          .install(spec, cancel: cancel.future)) {
+      await for (final p in download.start()) {
+        lastReceived = p.received;
         _set(
           spec.id,
           BrainState(
             status: BrainStatus.downloading,
-            receivedBytes: p.receivedBytes,
-            totalBytes: p.totalBytes,
+            receivedBytes: p.received,
+            totalBytes: p.total,
           ),
         );
       }
       _set(spec.id, BrainState.installed);
-    } on BrainInstallCancelled {
-      // Silent, and back to absent. The user pressed cancel; they know.
-      _set(spec.id, BrainState.absent);
-    } catch (e) {
+    } on DownloadPaused {
+      // Bytes kept. The row now offers to continue, and says how far it got.
       _set(
         spec.id,
-        BrainState(status: BrainStatus.failed, failure: _classify(e)),
+        BrainState(
+          status: BrainStatus.paused,
+          receivedBytes: await BrainStore.instance.bytesOnDisk(spec),
+          totalBytes: spec.sizeBytes,
+        ),
+      );
+    } on DownloadCancelled {
+      // Silent, and back to absent. The user pressed cancel; they know.
+      _set(spec.id, BrainState.absent);
+    } on DownloadException catch (e) {
+      _set(
+        spec.id,
+        BrainState(
+          status: BrainStatus.failed,
+          receivedBytes: lastReceived,
+          totalBytes: spec.sizeBytes,
+          failure: switch (e.failure) {
+            DownloadFailure.network => BrainInstallFailure.network,
+            DownloadFailure.storage => BrainInstallFailure.storage,
+            DownloadFailure.integrity => BrainInstallFailure.integrity,
+            DownloadFailure.unknown => BrainInstallFailure.unknown,
+          },
+        ),
+      );
+    } catch (e) {
+      debugPrint('BrainManager: unclassified install failure: $e');
+      _set(
+        spec.id,
+        const BrainState(
+          status: BrainStatus.failed,
+          failure: BrainInstallFailure.unknown,
+        ),
       );
     } finally {
       _activeInstallId = null;
-      if (!cancel.isCompleted) cancel.complete();
-      _cancel = null;
-      // Hand the slot on. Skips anything the user cancelled out of the queue
-      // while this one ran.
-      while (_waiting.isNotEmpty) {
-        final next = BrainCatalog.byId(_waiting.first);
-        _waiting.removeAt(0);
-        if (next != null && stateOf(next).status == BrainStatus.queued) {
-          unawaited(_run(next));
-          break;
-        }
+      _active = null;
+      _bytesUsed = await BrainStore.instance.bytesUsed();
+      notifyListeners();
+      _startNextWaiting();
+    }
+  }
+
+  /// Hands the slot on, skipping anything the user pulled out of the queue
+  /// while this one ran.
+  void _startNextWaiting() {
+    while (_waiting.isNotEmpty) {
+      final next = BrainCatalog.byId(_waiting.first);
+      _waiting.removeAt(0);
+      if (next != null && stateOf(next).status == BrainStatus.queued) {
+        unawaited(_run(next));
+        return;
       }
     }
   }
 
-  /// Stops the running install, or removes a queued one from the line.
-  void cancel(BrainSpec spec) {
-    if (_activeInstallId == spec.id) {
-      _cancel?.complete();
-      return;
-    }
-    if (_waiting.remove(spec.id)) _set(spec.id, BrainState.absent);
+  /// Clears a [BrainStatus.failed] row back to whatever the disk says.
+  ///
+  /// Goes through [refresh] rather than straight to `absent`, because a failed
+  /// download usually still has its bytes — a dropped connection keeps them —
+  /// and snapping the row to "Install · 328 MB" would throw away the one thing
+  /// that makes the retry cheap.
+  Future<void> acknowledgeFailure(BrainSpec spec) async {
+    if (stateOf(spec).status != BrainStatus.failed) return;
+    _states.remove(spec.id);
+    await refresh();
   }
 
-  /// Clears a [BrainStatus.failed] back to [BrainStatus.absent] so the row
-  /// offers its install button again. Called when the user dismisses the
-  /// error, not automatically — an error that vanishes on its own is an error
-  /// nobody read.
-  void acknowledgeFailure(BrainSpec spec) {
-    if (stateOf(spec).status == BrainStatus.failed) {
-      _set(spec.id, BrainState.absent);
-    }
-  }
-
-  /// Deletes the weights.
+  /// Deletes the weights, and anything left of a download.
   ///
   /// No confirmation here — that belongs to the screen, which is where the
   /// sentence explaining what is about to be lost can be written.
   Future<void> uninstall(BrainSpec spec) async {
+    if (_activeInstallId == spec.id) {
+      _active?.cancel();
+    }
     await BrainGateway.instance.uninstall(spec);
+    _bytesUsed = await BrainStore.instance.bytesUsed();
     _set(spec.id, BrainState.absent);
   }
 
   void _set(String id, BrainState state) {
     _states[id] = state;
     notifyListeners();
-  }
-
-  BrainInstallFailure _classify(Object error) {
-    final s = error.toString().toLowerCase();
-    if (s.contains('space') ||
-        s.contains('enospc') ||
-        s.contains('disk') ||
-        s.contains('storage')) {
-      return BrainInstallFailure.storage;
-    }
-    if (s.contains('socket') ||
-        s.contains('network') ||
-        s.contains('connection') ||
-        s.contains('timeout') ||
-        s.contains('handshake') ||
-        s.contains('host')) {
-      return BrainInstallFailure.network;
-    }
-    return BrainInstallFailure.unknown;
   }
 }

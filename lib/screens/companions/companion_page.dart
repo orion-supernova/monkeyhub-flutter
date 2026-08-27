@@ -1,7 +1,7 @@
 /// Chrome and parts shared by the three Companions screens.
 ///
 /// Extracted rather than duplicated because the brain row in particular is
-/// genuinely the same control in two places with different framing: on Vera's
+/// genuinely the same control in two places with different framing: on Marlowe's
 /// shelf it is one of several and carries a tier name; on Sebastian's screen it
 /// is the only one and carries his. A second copy of its five-state install
 /// machine would drift from this one within a release.
@@ -121,13 +121,33 @@ class CompanionSectionLabel extends StatelessWidget {
   }
 }
 
+/// The human tier name for one of Marlowe's brains.
+///
+/// Shared rather than private to the shelf, because the Companions hub now
+/// prints it too — and a hub that called the same download something different
+/// from the screen behind it would be worse than a hub that said nothing.
+///
+/// Switched on the id rather than read from [BrainSpec.label], because the
+/// label is a constant in a Dart file and this string is on screen. A shelf
+/// reading "Swift / Balanced / Deep" inside a Turkish UI would be the only
+/// untranslated text in the app that is not a proper noun. Falls back to the
+/// raw label for a brain added to the catalog without a matching string —
+/// visible, English, and obviously a gap, which is what a fallback should be.
+String marloweTierName(AppLocalizations l10n, BrainSpec brain) =>
+    switch (brain.id) {
+      'qwen3-1.7b-int4' => l10n.marloweBrainTierSwift,
+      'gemma-4-e2b' => l10n.marloweBrainTierBalanced,
+      'qwen3.5-4b-int4' => l10n.marloweBrainTierDeep,
+      _ => brain.label,
+    };
+
 /// Companions other than [self] whose shelf also lists [brain].
 ///
 /// Empty with today's catalog — the shelves deliberately no longer overlap,
-/// see [BrainCatalog.veraBrains]. It is wired anyway because the failure it
+/// see [BrainCatalog.marloweBrains]. It is wired anyway because the failure it
 /// prevents is silent: before this existed, removing Sebastian from HIS screen
-/// deleted a brain Vera was set to think with, and nothing on either screen
-/// said the two were the same file on disk. Vera's screen guarded it and
+/// deleted a brain Marlowe was set to think with, and nothing on either screen
+/// said the two were the same file on disk. Marlowe's screen guarded it and
 /// Sebastian's did not, which is the worst shape a guard can have.
 ///
 /// Any future overlap now surfaces the same way on both sides: a note on the
@@ -141,7 +161,7 @@ List<Companion> otherCompanionsUsing(BrainSpec brain, Companion self) => [
 ///
 /// [name] and [detail] are supplied by the caller rather than read off the
 /// spec, because the two callers describe the same object completely
-/// differently: Vera's shelf names the tier and prints the model's real name
+/// differently: Marlowe's shelf names the tier and prints the model's real name
 /// underneath; Sebastian's screen says only how much disk he is using. See the
 /// note on `Companion.brainsAreUserChosen`.
 class BrainRow extends StatelessWidget {
@@ -219,7 +239,28 @@ class BrainRow extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(name, style: theme.bodyEmph),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  name,
+                                  style: theme.bodyEmph,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              // Beside the NAME rather than in the trailing
+                              // slot, which belongs to the action. A badge
+                              // that sat where REMOVE sits would be a label
+                              // in a column of buttons, and would push the
+                              // one affordance the row has off the edge on a
+                              // narrow screen.
+                              if (isSelected &&
+                                  state.status == BrainStatus.installed) ...[
+                                const SizedBox(width: 8),
+                                _InUseBadge(theme: theme, label: l10n.companionBrainInUse),
+                              ],
+                            ],
+                          ),
                           const SizedBox(height: 2),
                           Text(
                             detail,
@@ -258,9 +299,41 @@ class BrainRow extends StatelessWidget {
                     ],
                   ),
                 ],
-                if (state.status == BrainStatus.downloading) ...[
+                if (state.status == BrainStatus.downloading ||
+                    state.status == BrainStatus.paused) ...[
                   const SizedBox(height: 12),
                   _ProgressLine(theme: theme, fraction: state.fraction),
+                ],
+                if (state.status == BrainStatus.paused) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l10n.companionInstallPausedAt(
+                            _mib(state.receivedBytes),
+                            _mib(state.totalBytes),
+                          ),
+                          style: theme.caption.copyWith(color: theme.inkMuted),
+                        ),
+                      ),
+                      // The destructive option, offered only HERE — beside the
+                      // number it destroys. On a running download it would be
+                      // an invitation to lose progress by mis-tapping.
+                      GestureDetector(
+                        onTap: () => BrainManager.instance.cancel(brain),
+                        behavior: HitTestBehavior.opaque,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 8),
+                          child: Text(
+                            l10n.companionInstallDiscard,
+                            style: theme.caption.copyWith(color: theme.danger),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
                 if (state.status == BrainStatus.failed) ...[
                   const SizedBox(height: 10),
@@ -270,6 +343,8 @@ class BrainRow extends StatelessWidget {
                         l10n.companionInstallFailedStorage,
                       BrainInstallFailure.network =>
                         l10n.companionInstallFailedNetwork,
+                      BrainInstallFailure.integrity =>
+                        l10n.companionInstallFailedIntegrity,
                       _ => l10n.companionInstallFailedUnknown,
                     },
                     style: theme.caption.copyWith(color: theme.danger),
@@ -283,6 +358,9 @@ class BrainRow extends StatelessWidget {
     );
   }
 }
+
+/// Whole binary megabytes, matching every OS storage screen.
+String _mib(int bytes) => '${(bytes / (1024 * 1024)).round()} MB';
 
 class _Trailing extends StatelessWidget {
   const _Trailing({
@@ -315,6 +393,16 @@ class _Trailing extends StatelessWidget {
         );
 
       case BrainStatus.downloading:
+        // PAUSE, not cancel. A running download's primary affordance should be
+        // the reversible one — cancel is still reachable, from the paused
+        // state, where the consequence ("throw away 104 MB") is legible
+        // because the number is on screen next to it.
+        return _SmallAction(
+          theme: theme,
+          label: l10n.companionInstallPause,
+          onTap: () => manager.pause(brain),
+        );
+
       case BrainStatus.queued:
         return _SmallAction(
           theme: theme,
@@ -322,13 +410,21 @@ class _Trailing extends StatelessWidget {
           onTap: () => manager.cancel(brain),
         );
 
+      case BrainStatus.paused:
+        return _SmallAction(
+          theme: theme,
+          label: l10n.companionInstallResume,
+          onTap: manager.isInstallingAny ? null : () => manager.install(brain),
+          leading: Icons.play_arrow,
+        );
+
       case BrainStatus.failed:
         return _SmallAction(
           theme: theme,
           label: l10n.companionInstallRetry,
-          onTap: () {
-            manager.acknowledgeFailure(brain);
-            manager.install(brain);
+          onTap: () async {
+            await manager.acknowledgeFailure(brain);
+            await manager.install(brain);
           },
         );
 
@@ -398,6 +494,37 @@ class _SmallAction extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The all-caps chip on the row that is actually running.
+///
+/// Same shape and register as `LanguageScreen`'s ACTIVE badge, deliberately —
+/// this is the identical question ("which of these is live?") and answering it
+/// two different ways in two settings screens is how an app stops feeling like
+/// one app.
+class _InUseBadge extends StatelessWidget {
+  const _InUseBadge({required this.theme, required this.label});
+
+  final AppTheme theme;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: theme.accent,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: theme.monoTiny.copyWith(
+          color: theme.accentInk,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );

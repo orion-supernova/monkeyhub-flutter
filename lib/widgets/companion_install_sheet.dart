@@ -13,7 +13,16 @@
 /// whether to let Sebastian translate their messages does not benefit from any
 /// of it, and every one of those words moves the sheet from "meet someone" to
 /// "configure something". The one place the technical name does appear is
-/// Vera's shelf, in small type, for the reader who goes looking.
+/// Marlowe's shelf, in small type, for the reader who goes looking.
+///
+/// ── Sheet, panel, screen ───────────────────────────────────────────────────
+///
+/// [CompanionInstallPanel] is the part that installs. [showCompanionInstallSheet]
+/// is that panel plus an introduction — the right shape when the user tapped
+/// TRANSLATE on a bubble and has never heard of Sebastian. The companion's own
+/// settings screen embeds the panel BARE, because that screen has already shown
+/// the portrait, the name and the blurb; opening the sheet on top of it showed
+/// every one of them a second time.
 library;
 
 import 'dart:math' as math;
@@ -29,6 +38,7 @@ import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
+import 'app_toast.dart';
 
 /// Offers to install [companion]'s brain, and stays open until it is done.
 ///
@@ -47,30 +57,117 @@ Future<bool> showCompanionInstallSheet(
     context,
     builder: (_) => _CompanionInstallSheet(companion: companion, brain: brain),
   );
-  return result ?? BrainManager.instance.isInstalled(brain);
+  final installed = result ?? BrainManager.instance.isInstalled(brain);
+
+  // Dismissing the sheet does not stop the download — `BrainManager` owns it
+  // and this sheet only ever watched. But a panel vanishing the instant you
+  // swipe it away looks precisely like a cancel, and the user is left unsure
+  // whether several hundred megabytes are still moving.
+  //
+  // So the one moment the question actually gets asked is the moment it gets
+  // answered, and the answer names where to go and look.
+  if (!installed &&
+      BrainManager.instance.stateOf(brain).isBusy &&
+      context.mounted) {
+    showAppToast(
+      context,
+      AppLocalizations.of(context)
+          .companionInstallContinuesInBackground(companion.displayName),
+    );
+  }
+  return installed;
 }
 
-class _CompanionInstallSheet extends StatefulWidget {
+class _CompanionInstallSheet extends StatelessWidget {
   const _CompanionInstallSheet({required this.companion, required this.brain});
 
   final Companion companion;
   final BrainSpec brain;
 
   @override
-  State<_CompanionInstallSheet> createState() => _CompanionInstallSheetState();
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Container(
+      decoration: theme.sheetDecoration(),
+      padding: const EdgeInsets.fromLTRB(22, 18, 22, 26),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: theme.inkMuted.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 22),
+            CompanionInstallPanel(
+              companion: companion,
+              brain: brain,
+              // The introduction, which is the entire reason this is a sheet
+              // and not just the panel. Off on the settings screen, which has
+              // already made it.
+              showIdentity: true,
+              // Closing the sheet once the brain has landed, after a beat long
+              // enough for the ring to be seen completing. A several-minute
+              // download that ends in a flicker reads as a failure.
+              onInstalled: () => Navigator.of(context).maybePop(true),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-class _CompanionInstallSheetState extends State<_CompanionInstallSheet> {
+/// The part that installs: hero ring, the three assurances, and whatever
+/// action the current state affords.
+///
+/// Stateful only to hold its [BrainManager] subscription — every byte of state
+/// it renders belongs to the manager, which is what lets the sheet and the
+/// settings screen show the same download at the same time without either
+/// owning it.
+class CompanionInstallPanel extends StatefulWidget {
+  const CompanionInstallPanel({
+    super.key,
+    required this.companion,
+    required this.brain,
+    this.showIdentity = false,
+    this.onInstalled,
+  });
+
+  final Companion companion;
+  final BrainSpec brain;
+
+  /// Draws the mark, the name and the blurb above the action. True in the
+  /// sheet, where the user may be meeting this companion for the first time;
+  /// false on the companion's own screen, which has said all of it already.
+  final bool showIdentity;
+
+  /// Fired once the brain is installed. The sheet closes itself with it; the
+  /// settings screen passes null, because it has somewhere to stay.
+  final VoidCallback? onInstalled;
+
+  @override
+  State<CompanionInstallPanel> createState() => _CompanionInstallPanelState();
+}
+
+class _CompanionInstallPanelState extends State<CompanionInstallPanel> {
   BrainManager get _manager => BrainManager.instance;
 
   @override
   void initState() {
     super.initState();
     _manager.addListener(_onManager);
-    // The sheet can be opened onto a brain whose real state nobody has checked
-    // yet — the tap that opened it may be the first time this session that
-    // anything asked. Refresh rather than assume absent, or a user with the
-    // brain already on disk is offered a download they have made.
+    // The panel can be opened onto a brain whose real state nobody has checked
+    // yet. Refresh rather than assume absent, or a user who already has it is
+    // offered a download they have made.
     _manager.refresh();
   }
 
@@ -83,12 +180,10 @@ class _CompanionInstallSheetState extends State<_CompanionInstallSheet> {
   void _onManager() {
     if (!mounted) return;
     setState(() {});
-    // Close on success, after a beat long enough for the ring to finish and be
-    // seen completing. Closing the instant the last byte lands makes a
-    // several-minute download end in a flicker.
-    if (_manager.isInstalled(widget.brain)) {
+    final done = widget.onInstalled;
+    if (done != null && _manager.isInstalled(widget.brain)) {
       Future.delayed(const Duration(milliseconds: 650), () {
-        if (mounted) Navigator.of(context).maybePop(true);
+        if (mounted) done();
       });
     }
   }
@@ -101,75 +196,60 @@ class _CompanionInstallSheetState extends State<_CompanionInstallSheet> {
     final state = _manager.stateOf(widget.brain);
     final installed = state.status == BrainStatus.installed;
 
-    return Container(
-      decoration: theme.sheetDecoration(),
-      padding: const EdgeInsets.fromLTRB(22, 18, 22, 26),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _grabber(theme),
-            const SizedBox(height: 22),
-            Center(
-              child: _Hero(
-                companion: widget.companion,
-                theme: theme,
-                motion: motion,
-                progress: state.isBusy ? state.fraction : (installed ? 1 : null),
-              ),
-            ),
-            const SizedBox(height: 18),
-            Center(
-              child: Text(
-                widget.companion.displayName,
-                style: theme.displayMedium,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              widget.companion.blurb(l10n),
-              textAlign: TextAlign.center,
-              style: theme.body.copyWith(color: theme.inkSoft),
-            ),
-            const SizedBox(height: 22),
-            // The three facts. Present in every state including mid-download,
-            // because the download is exactly when somebody wonders what they
-            // agreed to.
-            _Assurance(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (widget.showIdentity) ...[
+          Center(
+            child: _Hero(
+              companion: widget.companion,
               theme: theme,
-              icon: Icons.phone_iphone,
-              label: l10n.companionAssuranceOnDevice,
+              motion: motion,
+              progress: state.isBusy ? state.fraction : (installed ? 1 : null),
             ),
-            _Assurance(
-              theme: theme,
-              icon: Icons.lock_outline,
-              label: l10n.companionAssurancePrivate,
-            ),
-            _Assurance(
-              theme: theme,
-              icon: Icons.wifi_off,
-              label: l10n.companionAssuranceOffline,
-            ),
-            const SizedBox(height: 22),
-            _action(context, theme, l10n, state),
-          ],
+          ),
+          const SizedBox(height: 18),
+          Center(
+            child:
+                Text(widget.companion.displayName, style: theme.displayMedium),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            widget.companion.blurb(l10n),
+            textAlign: TextAlign.center,
+            style: theme.body.copyWith(color: theme.inkSoft),
+          ),
+          const SizedBox(height: 22),
+        ] else if (state.isBusy || state.status == BrainStatus.paused) ...[
+          // No hero on the settings screen, so the ring has nowhere to live —
+          // a bar carries the same information in a fraction of the height,
+          // and the screen already shows who this is.
+          _ProgressBar(theme: theme, fraction: state.fraction, motion: motion),
+          const SizedBox(height: 14),
+        ],
+        // Present in every state including mid-download, because the download
+        // is exactly when somebody wonders what they agreed to.
+        _Assurance(
+          theme: theme,
+          icon: Icons.phone_iphone,
+          label: l10n.companionAssuranceOnDevice,
         ),
-      ),
+        _Assurance(
+          theme: theme,
+          icon: Icons.lock_outline,
+          label: l10n.companionAssurancePrivate,
+        ),
+        _Assurance(
+          theme: theme,
+          icon: Icons.wifi_off,
+          label: l10n.companionAssuranceOffline,
+        ),
+        const SizedBox(height: 22),
+        _action(context, theme, l10n, state),
+      ],
     );
   }
-
-  Widget _grabber(AppTheme theme) => Center(
-        child: Container(
-          width: 36,
-          height: 4,
-          decoration: BoxDecoration(
-            color: theme.inkMuted.withValues(alpha: 0.35),
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-      );
 
   Widget _action(
     BuildContext context,
@@ -213,9 +293,38 @@ class _CompanionInstallSheetState extends State<_CompanionInstallSheet> {
               ),
             ),
             const SizedBox(height: 10),
+            // PAUSE is the primary stop, because it is the reversible one.
+            // Cancel lives one step further in, on the paused state, where
+            // the amount about to be thrown away is written next to it.
             _TextButton(
               theme: theme,
-              label: l10n.companionInstallCancel,
+              label: l10n.companionInstallPause,
+              onTap: () => _manager.pause(widget.brain),
+            ),
+          ],
+        );
+
+      case BrainStatus.paused:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _StatusLine(
+              theme: theme,
+              text: l10n.companionInstallPausedAt(
+                _mib(state.receivedBytes),
+                _mib(state.totalBytes),
+              ),
+            ),
+            const SizedBox(height: 14),
+            _PrimaryButton(
+              theme: theme,
+              label: l10n.companionInstallResume,
+              onTap: () => _manager.install(widget.brain),
+            ),
+            const SizedBox(height: 4),
+            _TextButton(
+              theme: theme,
+              label: l10n.companionInstallDiscard,
               onTap: () => _manager.cancel(widget.brain),
             ),
           ],
@@ -234,9 +343,14 @@ class _CompanionInstallSheetState extends State<_CompanionInstallSheet> {
             _PrimaryButton(
               theme: theme,
               label: l10n.companionInstallRetry,
-              onTap: () {
-                _manager.acknowledgeFailure(widget.brain);
-                _manager.install(widget.brain);
+              // Awaited: acknowledging re-reads the disk, and a failed
+              // download usually still HAS its bytes — a dropped connection
+              // keeps them. Installing before that lands would start from
+              // zero and throw the resume away, which is the one thing this
+              // whole change exists to prevent.
+              onTap: () async {
+                await _manager.acknowledgeFailure(widget.brain);
+                await _manager.install(widget.brain);
               },
             ),
           ],
@@ -269,11 +383,53 @@ class _CompanionInstallSheetState extends State<_CompanionInstallSheet> {
       switch (failure) {
         BrainInstallFailure.storage => l10n.companionInstallFailedStorage,
         BrainInstallFailure.network => l10n.companionInstallFailedNetwork,
+        // Worth its own sentence rather than "couldn't finish": the bytes were
+        // received and then rejected, the partial has already been thrown
+        // away, and the retry genuinely does start clean. Saying so is the
+        // difference between a user retrying with hope and retrying with
+        // suspicion.
+        BrainInstallFailure.integrity => l10n.companionInstallFailedIntegrity,
         _ => l10n.companionInstallFailedUnknown,
       };
 
   /// Whole binary megabytes, to match what every OS storage screen reports.
   static String _mib(int bytes) => '${(bytes / (1024 * 1024)).round()} MB';
+}
+
+/// The settings screen's stand-in for the hero ring.
+class _ProgressBar extends StatelessWidget {
+  const _ProgressBar({
+    required this.theme,
+    required this.fraction,
+    required this.motion,
+  });
+
+  final AppTheme theme;
+  final double fraction;
+  final MotionScope motion;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(3),
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: fraction),
+        duration: motion.d(const Duration(milliseconds: 260)),
+        curve: motion.c(theme.motionCurve),
+        builder: (context, value, _) => Container(
+          height: 5,
+          color: theme.inkMuted.withValues(alpha: 0.18),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: FractionallySizedBox(
+              widthFactor: value.clamp(0.0, 1.0),
+              child: Container(color: theme.accent),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// The monogram, with the download drawn around it.

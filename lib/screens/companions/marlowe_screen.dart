@@ -1,25 +1,25 @@
-/// Settings › Companions › Vera.
+/// Settings › Companions › Marlowe.
 ///
 /// ── An honest shelf for someone who hasn't started work ────────────────────
 ///
-/// Vera's skills are not built yet. This screen ships anyway, and it is not a
-/// placeholder — it is the part of her that is genuinely useful before she can
+/// Marlowe's skills are not built yet. This screen ships anyway, and it is not a
+/// placeholder — it is the part of Marlowe that is genuinely useful before
 /// do anything: the shelf.
 ///
-/// The reasoning is the download. Her brains are between 328 MB and 1.9 GB;
+/// The reasoning is the download. These brains run from 932 MB to 2.6 GB;
 /// nobody wants to meet that ask at the moment they first want something from
-/// her, over whatever connection they happen to be on. Letting somebody put a
+/// them, over whatever connection they happen to be on. Letting somebody put a
 /// brain on the shelf tonight, on wi-fi, is a real thing this screen does for
 /// them today.
 ///
-/// What it must not do is pretend. The header says plainly that her skills are
-/// still arriving. There is no chat field, no "ask Vera anything", nothing
+/// What it must not do is pretend. The header says plainly that the skills are
+/// still arriving. There is no chat field, no "ask Marlowe anything", nothing
 /// that would take a tap and give nothing back.
 ///
-/// Unlike Sebastian she gets a real choice of brain, and that asymmetry is
+/// Unlike Sebastian, Marlowe gets a real choice of brain, and that asymmetry is
 /// deliberate — see [Companion.brainsAreUserChosen]. Translation has one right
 /// answer at this size; open-ended help does not, and the size/quality trade
-/// is one she cannot make on the user's behalf.
+/// is one no companion can make on the user's behalf.
 library;
 
 import 'package:flutter/material.dart';
@@ -34,15 +34,15 @@ import '../../theme/theme_scope.dart';
 import '../../widgets/destructive_sheet.dart';
 import 'companion_page.dart';
 
-class VeraScreen extends StatefulWidget {
-  const VeraScreen({super.key});
+class MarloweScreen extends StatefulWidget {
+  const MarloweScreen({super.key});
 
   @override
-  State<VeraScreen> createState() => _VeraScreenState();
+  State<MarloweScreen> createState() => _MarloweScreenState();
 }
 
-class _VeraScreenState extends State<VeraScreen> {
-  static const _companion = Companion.vera;
+class _MarloweScreenState extends State<MarloweScreen> {
+  static const _companion = Companion.marlowe;
 
   @override
   void initState() {
@@ -63,18 +63,18 @@ class _VeraScreenState extends State<VeraScreen> {
     if (mounted) setState(() {});
   }
 
-  /// Which brain she is set to think with.
+  /// Which brain Marlowe is set to think with.
   ///
   /// Falls back to the first INSTALLED one rather than to the first in the
   /// catalog, so a user who installs exactly one brain never has to also
   /// select it. Nothing installed resolves to null, which is what the empty
   /// state reads.
   BrainSpec? get _active {
-    final chosen = BrainCatalog.byId(SettingsStore.instance.veraBrainId);
+    final chosen = BrainCatalog.byId(SettingsStore.instance.marloweBrainId);
     if (chosen != null && BrainManager.instance.isInstalled(chosen)) {
       return chosen;
     }
-    for (final b in BrainCatalog.veraBrains) {
+    for (final b in BrainCatalog.marloweBrains) {
       if (BrainManager.instance.isInstalled(b)) return b;
     }
     return null;
@@ -85,7 +85,7 @@ class _VeraScreenState extends State<VeraScreen> {
     final shared = _sharedWith(brain);
     final confirmed = await showConfirmSheet(
       context,
-      headline: l10n.companionBrainRemoveTitle(_tierName(l10n, brain)),
+      headline: l10n.companionBrainRemoveTitle(marloweTierName(l10n, brain)),
       // Names whoever else is about to lose it. Appended rather than replacing
       // the size line — how much disk this frees is still the main thing being
       // asked about.
@@ -97,32 +97,14 @@ class _VeraScreenState extends State<VeraScreen> {
     );
     if (!confirmed || !mounted) return;
     await BrainManager.instance.uninstall(brain);
-    if (SettingsStore.instance.veraBrainId == brain.id) {
-      await SettingsStore.instance.setVeraBrainId(null);
+    if (SettingsStore.instance.marloweBrainId == brain.id) {
+      await SettingsStore.instance.setMarloweBrainId(null);
     }
   }
 
   /// Who else loses these weights if they go. See [otherCompanionsUsing].
   List<Companion> _sharedWith(BrainSpec brain) =>
       otherCompanionsUsing(brain, _companion);
-
-  /// The human tier name for [brain].
-  ///
-  /// Switched on the id rather than read from [BrainSpec.label], because the
-  /// label is a constant in a Dart file and this string is on screen. A shelf
-  /// reading "Swift / Balanced / Deep" inside a Turkish UI would be the only
-  /// untranslated text in the app that is not a proper noun.
-  ///
-  /// Falls back to the raw label for a brain added to the catalog without a
-  /// matching string — visible, English, and obviously a gap, which is what a
-  /// fallback should be.
-  String _tierName(AppLocalizations l10n, BrainSpec brain) =>
-      switch (brain.id) {
-        'qwen3-1.7b-int4' => l10n.veraBrainTierSwift,
-        'gemma-4-e2b' => l10n.veraBrainTierBalanced,
-        'qwen3.5-4b-int4' => l10n.veraBrainTierDeep,
-        _ => brain.label,
-      };
 
   @override
   Widget build(BuildContext context) {
@@ -160,25 +142,25 @@ class _VeraScreenState extends State<VeraScreen> {
         // two gigabytes.
         _ComingSoonNote(theme: theme, l10n: l10n),
         const SizedBox(height: 26),
-        CompanionSectionLabel(l10n.veraBrainsSection),
+        CompanionSectionLabel(l10n.marloweBrainsSection),
         Padding(
           padding: const EdgeInsets.only(bottom: 14, left: 2, right: 2),
           child: Text(
-            l10n.veraBrainsCaption,
+            l10n.marloweBrainsCaption,
             style: theme.caption.copyWith(color: theme.inkMuted),
           ),
         ),
-        for (final brain in BrainCatalog.veraBrains)
+        for (final brain in BrainCatalog.marloweBrains)
           BrainRow(
             brain: brain,
-            name: _tierName(l10n, brain),
+            name: marloweTierName(l10n, brain),
             // The one place in the app that admits what the brain really is.
             // Small type, under a human-readable tier, for the reader who
             // came looking — see the note at the top of
             // [showCompanionInstallSheet] for why it is nowhere else.
             detail: '${brain.sizeLabel} · ${brain.technicalName} · ${brain.license}',
             selected: active?.id == brain.id,
-            onSelect: () => SettingsStore.instance.setVeraBrainId(brain.id),
+            onSelect: () => SettingsStore.instance.setMarloweBrainId(brain.id),
             onRemove: () => _remove(brain),
             sharedWith: _sharedWith(brain),
           ),
@@ -209,7 +191,7 @@ class _ComingSoonNote extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              l10n.veraSkillsComingSoon,
+              l10n.marloweSkillsComingSoon,
               style: theme.caption.copyWith(color: theme.inkSoft),
             ),
           ),

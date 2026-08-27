@@ -13351,17 +13351,17 @@ abstract class AppLocalizations {
   /// **'Sebastian reads a message written in another language and tells you what it says — here on your phone, with nothing sent anywhere.'**
   String get companionSebastianBlurb;
 
-  /// One-line description of the companion Vera, shown under her name. 'Vera' is a proper noun and is never translated.
+  /// One-line description of the companion Marlowe, shown under the name. 'Marlowe' is a proper noun and is never translated. Marlowe's gender is deliberately unstated — keep the wording free of gendered pronouns and articles.
   ///
   /// In en, this message translates to:
   /// **'General help'**
-  String get companionVeraTagline;
+  String get companionMarloweTagline;
 
-  /// Longer description of Vera, shown on her detail screen. 'what she thinks with' refers to the downloadable model she runs on.
+  /// Longer description of Marlowe, shown on the detail screen. 'brain' is this app's user-facing word for the downloadable model. Marlowe's gender is deliberately unstated — keep the wording free of gendered pronouns and articles.
   ///
   /// In en, this message translates to:
-  /// **'Vera is the companion for everything that isn\'t translation. Choose what she thinks with now, and her skills will arrive around it.'**
-  String get companionVeraBlurb;
+  /// **'Marlowe handles everything that isn\'t translation. Pick a brain now, and the skills will arrive around it.'**
+  String get companionMarloweBlurb;
 
   /// First of three reassurance lines in the companion install sheet.
   ///
@@ -13465,13 +13465,13 @@ abstract class AppLocalizations {
   /// **'Translating into {language}'**
   String companionStatusTranslatingInto(Object language);
 
-  /// Status line under Vera's name when she has no downloaded model.
+  /// Status line under Marlowe's name when she has no downloaded model.
   ///
   /// In en, this message translates to:
   /// **'Nothing downloaded yet'**
   String get companionStatusNoBrain;
 
-  /// Status line under Vera's name counting how many of her downloadable models are installed.
+  /// Status line under Marlowe's name counting how many of her downloadable models are installed.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, one{1 download ready} other{{count} downloads ready}}'**
@@ -13507,7 +13507,7 @@ abstract class AppLocalizations {
   /// **'Remove'**
   String get companionBrainRemove;
 
-  /// All-caps confirm-sheet headline before deleting one of Vera's downloads. {name} is the download's tier name, e.g. 'Balanced'.
+  /// All-caps confirm-sheet headline before deleting one of Marlowe's downloads. {name} is the download's tier name, e.g. 'Balanced'.
   ///
   /// In en, this message translates to:
   /// **'REMOVE {name}?'**
@@ -13573,41 +13573,41 @@ abstract class AppLocalizations {
   /// **'Clear'**
   String get sebastianCacheClear;
 
-  /// Honest note at the top of Vera's screen explaining that she has no working features yet, only her downloadable model. 'brain' is this app's word for that model.
+  /// Honest note at the top of Marlowe's screen explaining there are no working features yet, only the downloadable model. Marlowe's gender is deliberately unstated — keep the wording free of gendered pronouns and articles.
   ///
   /// In en, this message translates to:
-  /// **'Vera can\'t do anything yet — her skills are still on the way. What you can do now is get a brain ready for her, so she is waiting when they land.'**
-  String get veraSkillsComingSoon;
+  /// **'Marlowe can\'t do anything yet — the skills are still on the way. What you can do now is get a brain ready, so nothing is waiting on a download when they land.'**
+  String get marloweSkillsComingSoon;
 
-  /// All-caps section label above Vera's list of downloadable models. 'Brain' is this app's user-facing word for a model.
+  /// All-caps section label above Marlowe's list of downloadable models. 'Brain' is this app's user-facing word for a model.
   ///
   /// In en, this message translates to:
   /// **'BRAIN'**
-  String get veraBrainsSection;
+  String get marloweBrainsSection;
 
-  /// Caption above Vera's list of downloadable models, explaining the size trade-off.
+  /// Caption above Marlowe's list of downloadable models, explaining the size trade-off.
   ///
   /// In en, this message translates to:
   /// **'Bigger thinks better and answers slower. You can keep more than one and switch between them.'**
-  String get veraBrainsCaption;
+  String get marloweBrainsCaption;
 
   /// Name of the smallest, fastest downloadable model. A quality tier, not a product name — translate it.
   ///
   /// In en, this message translates to:
   /// **'Swift'**
-  String get veraBrainTierSwift;
+  String get marloweBrainTierSwift;
 
   /// Name of the mid-sized downloadable model. A quality tier, not a product name — translate it.
   ///
   /// In en, this message translates to:
   /// **'Balanced'**
-  String get veraBrainTierBalanced;
+  String get marloweBrainTierBalanced;
 
   /// Name of the largest, most capable downloadable model. A quality tier, not a product name — translate it.
   ///
   /// In en, this message translates to:
   /// **'Deep'**
-  String get veraBrainTierDeep;
+  String get marloweBrainTierDeep;
 
   /// Tap target under a translated message that puts it back to what was actually written.
   ///
@@ -13752,6 +13752,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{name} uses the same download and will lose it too.'**
   String companionBrainSharedWarning(Object name);
+
+  /// All-caps badge on the downloaded model a companion is currently running. Mirrors the ACTIVE badge on the language picker.
+  ///
+  /// In en, this message translates to:
+  /// **'IN USE'**
+  String get companionBrainInUse;
+
+  /// Status line under a companion's name naming the downloaded model it runs on. {name} is a tier name, e.g. 'Balanced'.
+  ///
+  /// In en, this message translates to:
+  /// **'Using {name}'**
+  String companionStatusUsingBrain(Object name);
+
+  /// Toast shown when the install sheet is dismissed while a download is still running, telling the user it did not stop and where to find it. {name} is the companion's name.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} keeps downloading — Settings › Companions'**
+  String companionInstallContinuesInBackground(Object name);
+
+  /// Value column of the Companions settings row while a model is downloading. {percent} is 0-100.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading · {percent}%'**
+  String settingsScreenCompanionsDownloading(Object percent);
+
+  /// Button that stops a running companion download but keeps the bytes already received.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get companionInstallPause;
+
+  /// Button that continues a paused companion download from where it stopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get companionInstallResume;
+
+  /// Destructive action on a PAUSED download: throws away the partially downloaded bytes. Distinct from Cancel, which stops a running one.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get companionInstallDiscard;
+
+  /// Line on a paused download saying how far it got. {received} and {total} are already-formatted sizes, e.g. '104 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused · {received} of {total}'**
+  String companionInstallPausedAt(Object received, Object total);
+
+  /// Error shown when a finished download fails its length or checksum check. The partial has already been discarded, so retrying starts clean.
+  ///
+  /// In en, this message translates to:
+  /// **'The downloaded file didn\'t match what this version expects. Starting over.'**
+  String get companionInstallFailedIntegrity;
 }
 
 class _AppLocalizationsDelegate

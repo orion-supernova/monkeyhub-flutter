@@ -7931,11 +7931,11 @@ class AppLocalizationsPt extends AppLocalizations {
       'O Sebastian lê uma mensagem escrita noutra língua e diz-te o que ela diz — aqui, no teu telemóvel, sem enviar nada para lado nenhum.';
 
   @override
-  String get companionVeraTagline => 'Ajuda geral';
+  String get companionMarloweTagline => 'Ajuda geral';
 
   @override
-  String get companionVeraBlurb =>
-      'A Vera é a companheira para tudo o que não seja tradução. Escolhe agora com o que ela pensa e as capacidades dela chegarão à volta disso.';
+  String get companionMarloweBlurb =>
+      'Marlowe trata de tudo o que não seja tradução. Escolhe já um cérebro e as capacidades chegarão à volta disso.';
 
   @override
   String get companionAssuranceOnDevice =>
@@ -8086,24 +8086,24 @@ class AppLocalizationsPt extends AppLocalizations {
   String get sebastianCacheClear => 'Limpar';
 
   @override
-  String get veraSkillsComingSoon =>
-      'A Vera ainda não faz nada — as capacidades dela estão a caminho. O que podes fazer já é deixar-lhe um cérebro pronto, para que esteja à espera quando chegarem.';
+  String get marloweSkillsComingSoon =>
+      'Marlowe ainda não faz nada — as capacidades estão a caminho. O que podes fazer já é deixar um cérebro pronto, para que nada fique à espera de uma transferência quando chegarem.';
 
   @override
-  String get veraBrainsSection => 'CÉREBRO';
+  String get marloweBrainsSection => 'CÉREBRO';
 
   @override
-  String get veraBrainsCaption =>
+  String get marloweBrainsCaption =>
       'Maior pensa melhor e responde mais devagar. Podes guardar mais do que um e alternar entre eles.';
 
   @override
-  String get veraBrainTierSwift => 'Rápido';
+  String get marloweBrainTierSwift => 'Rápido';
 
   @override
-  String get veraBrainTierBalanced => 'Equilibrado';
+  String get marloweBrainTierBalanced => 'Equilibrado';
 
   @override
-  String get veraBrainTierDeep => 'Profundo';
+  String get marloweBrainTierDeep => 'Profundo';
 
   @override
   String get translationSlabShowOriginal => 'Ver original';
@@ -8192,6 +8192,42 @@ class AppLocalizationsPt extends AppLocalizations {
   String companionBrainSharedWarning(Object name) {
     return 'O $name usa a mesma transferência e também a vai perder.';
   }
+
+  @override
+  String get companionBrainInUse => 'EM USO';
+
+  @override
+  String companionStatusUsingBrain(Object name) {
+    return 'A usar $name';
+  }
+
+  @override
+  String companionInstallContinuesInBackground(Object name) {
+    return '$name continua a transferir — Definições › Companheiros';
+  }
+
+  @override
+  String settingsScreenCompanionsDownloading(Object percent) {
+    return 'A transferir · $percent%';
+  }
+
+  @override
+  String get companionInstallPause => 'Pausar';
+
+  @override
+  String get companionInstallResume => 'Retomar';
+
+  @override
+  String get companionInstallDiscard => 'Descartar';
+
+  @override
+  String companionInstallPausedAt(Object received, Object total) {
+    return 'Em pausa · $received de $total';
+  }
+
+  @override
+  String get companionInstallFailedIntegrity =>
+      'O ficheiro transferido não corresponde ao que esta versão espera. A começar de novo.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -16117,11 +16153,11 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'O Sebastian lê uma mensagem escrita em outro idioma e te diz o que ela diz — aqui, no seu celular, sem enviar nada para lugar nenhum.';
 
   @override
-  String get companionVeraTagline => 'Ajuda geral';
+  String get companionMarloweTagline => 'Ajuda geral';
 
   @override
-  String get companionVeraBlurb =>
-      'A Vera é a companheira para tudo que não for tradução. Escolha agora com o que ela pensa, e as habilidades dela vão chegar em volta disso.';
+  String get companionMarloweBlurb =>
+      'Marlowe cuida de tudo que não for tradução. Escolha um cérebro agora, e as habilidades vão chegar em volta disso.';
 
   @override
   String get companionAssuranceOnDevice =>
@@ -16271,24 +16307,24 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get sebastianCacheClear => 'Limpar';
 
   @override
-  String get veraSkillsComingSoon =>
-      'A Vera ainda não faz nada — as habilidades dela estão a caminho. O que você já pode fazer é deixar um cérebro pronto para ela, para que esteja esperando quando elas chegarem.';
+  String get marloweSkillsComingSoon =>
+      'Marlowe ainda não faz nada — as habilidades estão a caminho. O que você já pode fazer é deixar um cérebro pronto, para que nada dependa de um download quando elas chegarem.';
 
   @override
-  String get veraBrainsSection => 'CÉREBRO';
+  String get marloweBrainsSection => 'CÉREBRO';
 
   @override
-  String get veraBrainsCaption =>
+  String get marloweBrainsCaption =>
       'Maior pensa melhor e responde mais devagar. Você pode guardar mais de um e alternar entre eles.';
 
   @override
-  String get veraBrainTierSwift => 'Rápido';
+  String get marloweBrainTierSwift => 'Rápido';
 
   @override
-  String get veraBrainTierBalanced => 'Equilibrado';
+  String get marloweBrainTierBalanced => 'Equilibrado';
 
   @override
-  String get veraBrainTierDeep => 'Profundo';
+  String get marloweBrainTierDeep => 'Profundo';
 
   @override
   String get translationSlabShowOriginal => 'Ver original';
@@ -16377,4 +16413,40 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String companionBrainSharedWarning(Object name) {
     return 'A $name usa o mesmo download e também vai perdê-lo.';
   }
+
+  @override
+  String get companionBrainInUse => 'EM USO';
+
+  @override
+  String companionStatusUsingBrain(Object name) {
+    return 'Usando $name';
+  }
+
+  @override
+  String companionInstallContinuesInBackground(Object name) {
+    return '$name continua baixando — Configurações › Companheiros';
+  }
+
+  @override
+  String settingsScreenCompanionsDownloading(Object percent) {
+    return 'Baixando · $percent%';
+  }
+
+  @override
+  String get companionInstallPause => 'Pausar';
+
+  @override
+  String get companionInstallResume => 'Retomar';
+
+  @override
+  String get companionInstallDiscard => 'Descartar';
+
+  @override
+  String companionInstallPausedAt(Object received, Object total) {
+    return 'Pausado · $received de $total';
+  }
+
+  @override
+  String get companionInstallFailedIntegrity =>
+      'O arquivo baixado não corresponde ao que esta versão espera. Começando de novo.';
 }

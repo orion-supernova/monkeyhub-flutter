@@ -7446,10 +7446,10 @@ class AppLocalizationsZh extends AppLocalizations {
       'Sebastian 会读懂用其他语言写的消息，并告诉你它在说什么——就在你的手机上完成，不会把任何内容发送到别处。';
 
   @override
-  String get companionVeraTagline => '通用助手';
+  String get companionMarloweTagline => '通用助手';
 
   @override
-  String get companionVeraBlurb => 'Vera 负责翻译以外的一切。先选好她用来思考的大脑，她的能力会陆续到来。';
+  String get companionMarloweBlurb => 'Marlowe 负责翻译以外的一切。先选一个大脑，能力会陆续到来。';
 
   @override
   String get companionAssuranceOnDevice => '完全在这台设备上运行';
@@ -7589,23 +7589,23 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sebastianCacheClear => '清除';
 
   @override
-  String get veraSkillsComingSoon =>
-      'Vera 目前还什么都做不了——她的能力还在路上。你现在能做的，是先为她准备好一个大脑，等能力上线时她已经在等着了。';
+  String get marloweSkillsComingSoon =>
+      'Marlowe 目前还什么都做不了——能力还在路上。你现在能做的，是先准备好一个大脑，等能力上线时就不用再等下载了。';
 
   @override
-  String get veraBrainsSection => '大脑';
+  String get marloweBrainsSection => '大脑';
 
   @override
-  String get veraBrainsCaption => '越大思考得越好，回答也越慢。你可以保留多个并随时切换。';
+  String get marloweBrainsCaption => '越大思考得越好，回答也越慢。你可以保留多个并随时切换。';
 
   @override
-  String get veraBrainTierSwift => '轻快';
+  String get marloweBrainTierSwift => '轻快';
 
   @override
-  String get veraBrainTierBalanced => '均衡';
+  String get marloweBrainTierBalanced => '均衡';
 
   @override
-  String get veraBrainTierDeep => '深度';
+  String get marloweBrainTierDeep => '深度';
 
   @override
   String get translationSlabShowOriginal => '显示原文';
@@ -7692,4 +7692,39 @@ class AppLocalizationsZh extends AppLocalizations {
   String companionBrainSharedWarning(Object name) {
     return '$name 使用的是同一个下载，也会一并失去。';
   }
+
+  @override
+  String get companionBrainInUse => '使用中';
+
+  @override
+  String companionStatusUsingBrain(Object name) {
+    return '正在使用$name';
+  }
+
+  @override
+  String companionInstallContinuesInBackground(Object name) {
+    return '$name 仍在下载 — 设置 › 伙伴';
+  }
+
+  @override
+  String settingsScreenCompanionsDownloading(Object percent) {
+    return '下载中 · $percent%';
+  }
+
+  @override
+  String get companionInstallPause => '暂停';
+
+  @override
+  String get companionInstallResume => '继续';
+
+  @override
+  String get companionInstallDiscard => '丢弃';
+
+  @override
+  String companionInstallPausedAt(Object received, Object total) {
+    return '已暂停 · $received / $total';
+  }
+
+  @override
+  String get companionInstallFailedIntegrity => '下载的文件与此版本预期的不符，将重新开始。';
 }

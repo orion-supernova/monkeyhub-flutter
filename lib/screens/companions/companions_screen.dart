@@ -19,7 +19,7 @@ import '../../theme/app_theme.dart';
 import '../../theme/theme_scope.dart';
 import 'companion_page.dart';
 import 'sebastian_screen.dart';
-import 'vera_screen.dart';
+import 'marlowe_screen.dart';
 
 class CompanionsScreen extends StatefulWidget {
   const CompanionsScreen({super.key});
@@ -80,10 +80,10 @@ class _CompanionsScreenState extends State<CompanionsScreen> {
         ),
         const SizedBox(height: 12),
         _CompanionRow(
-          companion: Companion.vera,
-          status: _veraStatus(l10n),
+          companion: Companion.marlowe,
+          status: _marloweStatus(l10n),
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const VeraScreen()),
+            MaterialPageRoute(builder: (_) => const MarloweScreen()),
           ),
         ),
         const SizedBox(height: 26),
@@ -101,12 +101,32 @@ class _CompanionsScreenState extends State<CompanionsScreen> {
     return l10n.companionStatusTranslatingInto(s.targetLanguage.autonym);
   }
 
-  String _veraStatus(AppLocalizations l10n) {
-    final installed = BrainCatalog.veraBrains
-        .where(BrainManager.instance.isInstalled)
-        .length;
-    if (installed == 0) return l10n.companionStatusNoBrain;
-    return l10n.companionStatusBrainsReady(installed);
+  /// What the hub says under Marlowe's name.
+  ///
+  /// Names the brain that is actually loaded rather than counting the ones on
+  /// disk. "2 downloads ready" answers a question nobody asked; what somebody
+  /// glancing at this row wants to know is which of the three is doing the
+  /// thinking.
+  String _marloweStatus(AppLocalizations l10n) {
+    final active = _activeMarloweBrain;
+    if (active == null) return l10n.companionStatusNoBrain;
+    return l10n.companionStatusUsingBrain(marloweTierName(l10n, active));
+  }
+
+  /// The brain Marlowe would load right now.
+  ///
+  /// Same resolution order as `MarloweScreen._active` — the stored choice, or
+  /// else the first installed brain — so the hub and the shelf can never
+  /// disagree about which row wears the badge.
+  BrainSpec? get _activeMarloweBrain {
+    final chosen = BrainCatalog.byId(SettingsStore.instance.marloweBrainId);
+    if (chosen != null && BrainManager.instance.isInstalled(chosen)) {
+      return chosen;
+    }
+    for (final b in BrainCatalog.marloweBrains) {
+      if (BrainManager.instance.isInstalled(b)) return b;
+    }
+    return null;
   }
 }
 
@@ -172,7 +192,7 @@ class _CompanionRow extends StatelessWidget {
 
 /// What the companions cost, in the only unit anyone cares about.
 ///
-/// Counts a shared brain once — Sebastian's is the first row of Vera's shelf,
+/// Counts a shared brain once — Sebastian's is the first row of Marlowe's shelf,
 /// so a naive sum would report 656 MB for 328 MB of files. See
 /// [BrainManager.installedBytes].
 class _StorageLine extends StatelessWidget {

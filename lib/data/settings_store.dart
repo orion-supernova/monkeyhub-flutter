@@ -62,7 +62,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kSebastianEnabled = 'mh.companion.sebastian.enabled';
   static const _kTranslationTarget = 'mh.companion.sebastian.target';
   static const _kTranslatedRoomIds = 'mh.companion.sebastian.rooms';
-  static const _kVeraBrainId = 'mh.companion.vera.brain';
+  static const _kMarloweBrainId = 'mh.companion.marlowe.brain';
 
   final _storage = const FlutterSecureStorage(
     iOptions: IOSOptions(accessibility: KeychainAccessibility.unlocked),
@@ -127,7 +127,7 @@ class SettingsStore extends ChangeNotifier {
   // to Turkish should get Turkish translations without visiting this setting.
   String? _translationTarget;
   Set<String> _translatedRoomIds = {};
-  String? _veraBrainId;
+  String? _marloweBrainId;
 
   String? get themeId => _themeId;
   RoomLayout get roomLayout => _roomLayout;
@@ -296,8 +296,8 @@ class SettingsStore extends ChangeNotifier {
   /// about who you talk to there, not about one visit.
   Set<String> get translatedRoomIds => Set.unmodifiable(_translatedRoomIds);
 
-  /// Which brain Vera is set to think with, or null if she has none yet.
-  String? get veraBrainId => _veraBrainId;
+  /// Which brain Marlowe is set to think with, or null if she has none yet.
+  String? get marloweBrainId => _marloweBrainId;
 
   Future<void> load() async {
     if (_loaded) return;
@@ -428,7 +428,7 @@ class SettingsStore extends ChangeNotifier {
       _translatedRoomIds = _decodeStringSet(
         await _storage.read(key: _kTranslatedRoomIds),
       );
-      _veraBrainId = await _storage.read(key: _kVeraBrainId);
+      _marloweBrainId = await _storage.read(key: _kMarloweBrainId);
     } catch (_) {
       /* secure storage unavailable in test harness */
     }
@@ -640,14 +640,14 @@ class SettingsStore extends ChangeNotifier {
     );
   }
 
-  Future<void> setVeraBrainId(String? id) async {
-    if (_veraBrainId == id) return;
-    _veraBrainId = id;
+  Future<void> setMarloweBrainId(String? id) async {
+    if (_marloweBrainId == id) return;
+    _marloweBrainId = id;
     notifyListeners();
     if (id == null) {
-      await _storage.delete(key: _kVeraBrainId);
+      await _storage.delete(key: _kMarloweBrainId);
     } else {
-      await _storage.write(key: _kVeraBrainId, value: id);
+      await _storage.write(key: _kMarloweBrainId, value: id);
     }
   }
 
