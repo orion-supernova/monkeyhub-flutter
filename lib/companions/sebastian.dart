@@ -45,6 +45,18 @@ import 'translation/language_detector.dart';
 import 'translation/translation_cache.dart';
 import 'translation/translation_prompt.dart';
 
+/// Whether a rejected candidate is printed alongside its verdict.
+///
+/// OFF, and it must ship that way: a translation candidate is a copy of
+/// somebody's message, and printing it puts that message in logcat/syslog on a
+/// real handset. Debug builds run on real handsets too, which is why this is a
+/// constant somebody has to change on purpose rather than a `kDebugMode` check.
+///
+/// It exists because the verdict alone — `rejected (preamble)` — names the rule
+/// that fired and says nothing about what the model actually produced, and a
+/// prompt cannot be fixed from that.
+const bool kDiagnoseRejections = false;
+
 /// Where a single piece of text has got to.
 enum TranslationState {
   /// Waiting for the worker. The bubble shows a resting shimmer.
@@ -643,8 +655,15 @@ class Sebastian extends ChangeNotifier {
     final target = targetLanguage;
 
     // Free — one pass over the runes. See [LanguageDetector].
+    //
+    // Two questions, two thresholds, deliberately. `detect` answers "roughly
+    // what is this" for the caption; [LanguageDetector.isDefinitely] answers
+    // "is there nothing to do here", and that one has to be very sure. A
+    // Turkish message carrying an English phrase used to satisfy the first and
+    // was reported as already-in-English — the feature silently declining to
+    // work, which is worse than any translation it could have produced.
     final detected = LanguageDetector.detect(content);
-    if (detected == target.code) {
+    if (LanguageDetector.isDefinitely(content, target.code)) {
       handle._finish(TranslationState.sameLanguage, sourceLanguage: detected);
       return true;
     }
@@ -779,7 +798,7 @@ class Sebastian extends ChangeNotifier {
     // ── 2. Already in the right language?
     // The cheap check, and the one that carries the whole room-translate case.
     final detected = LanguageDetector.detect(job.content);
-    if (detected == target.code) {
+    if (LanguageDetector.isDefinitely(job.content, target.code)) {
       handle._finish(TranslationState.sameLanguage, sourceLanguage: detected);
       return;
     }
@@ -892,10 +911,20 @@ class Sebastian extends ChangeNotifier {
       );
       if (last == null) return candidate;
       if (kDebugMode) {
-        // The verdict, never the text: this is somebody's message, and the
+        // The verdict, never the text. This is somebody's message, and the
         // whole promise of the feature is that it does not get written down
-        // anywhere it did not have to be.
+        // anywhere it did not have to be — `BrainGateway` refuses the plugin's
+        // verbose level for the same reason.
         debugPrint('Sebastian: rung $rung rejected (${last.name})');
+        // The exception, and it is opt-in and off. A verdict alone says which
+        // rule fired and nothing about why, which is not enough to fix a
+        // prompt with — so this exists for the one situation where somebody is
+        // debugging their own build against their own messages. Flip it in a
+        // local checkout; never commit it true.
+        // ignore: dead_code
+        if (kDiagnoseRejections) {
+          debugPrint('  candidate: $candidate');
+        }
       }
     }
     return null;

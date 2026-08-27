@@ -53,7 +53,16 @@ abstract final class LanguageDetector {
   ///
   /// Cheap enough to call on every message in a transcript: one pass over the
   /// runes, then — only for Latin text — one pass over the words.
-  static String? detect(String text) {
+  ///
+  /// [minScore] and [minMargin] tune how much evidence the LATIN scorer needs
+  /// before it will name a language; the script branches below are unaffected,
+  /// because a page of Cyrillic is not a judgement call. See
+  /// [isDefinitely] for why the defaults are not right for every caller.
+  static String? detect(
+    String text, {
+    double minScore = 1.5,
+    double minMargin = 0.6,
+  }) {
     final cleaned = _strip(text);
 
     final counts = <TextScript, int>{};
@@ -132,11 +141,36 @@ abstract final class LanguageDetector {
       case TextScript.greek:
         return 'el';
       case TextScript.latin:
-        return _detectLatin(cleaned);
+        return _detectLatin(cleaned, minScore, minMargin);
       case TextScript.none:
         return null;
     }
   }
+
+  /// Whether [text] is so plainly in [languageCode] that there is nothing to
+  /// translate.
+  ///
+  /// ── Why this is not just `detect(text) == code` ────────────────────────
+  ///
+  /// Because the two questions have opposite costs. Getting "what language is
+  /// this, roughly" wrong costs a slightly wrong "translated from X" caption.
+  /// Getting "this needs no translation" wrong means the reader is shown
+  /// NOTHING and told the message was already in their language — the feature
+  /// silently declining to work, which is the single worst outcome it has
+  /// available and the one that was reported.
+  ///
+  /// It is easy to get wrong because chat is mixed. "bu how are you demek" is
+  /// a Turkish sentence carrying an English phrase; the scorer sees three
+  /// English function words and no Turkish tell, and at the default gates it
+  /// answers English with confidence. So this asks for a great deal more
+  /// evidence than [detect] does, and when the evidence is not there it says
+  /// no — which routes the message to the model, and the model handing back
+  /// text it did not change is caught downstream anyway.
+  ///
+  /// Erring towards translating is the cheap mistake, exactly as the note at
+  /// the top of this file says.
+  static bool isDefinitely(String text, String languageCode) =>
+      detect(text, minScore: 4.0, minMargin: 2.0) == languageCode;
 
   /// Whether [languageCode] is one [detect] can ever return.
   ///
@@ -266,7 +300,11 @@ abstract final class LanguageDetector {
   /// and they are what rescues the short message: "Nasılsın?" is one word and
   /// no stopword, but `ı` and `ş` do not occur together in anything but
   /// Turkish.
-  static String? _detectLatin(String cleaned) {
+  static String? _detectLatin(
+    String cleaned,
+    double minScore,
+    double minMargin,
+  ) {
     final lower = cleaned.toLowerCase();
     final scores = <String, double>{};
 
@@ -321,8 +359,8 @@ abstract final class LanguageDetector {
     // near-tie between two Romance languages resolving by rounding error.
     // Either failing means null, which means "translate it" — the cheap
     // mistake, per the note at the top of this file.
-    if (bestScore < 1.5) return null;
-    if (bestScore - runnerUp < 0.6) return null;
+    if (bestScore < minScore) return null;
+    if (bestScore - runnerUp < minMargin) return null;
     return bestLang;
   }
 

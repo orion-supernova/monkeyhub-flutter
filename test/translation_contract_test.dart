@@ -3,6 +3,7 @@ library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/companions/translation/language.dart';
+import 'package:monkeyhub/companions/translation/language_detector.dart';
 import 'package:monkeyhub/companions/translation/translation_prompt.dart';
 
 /// The gate between a model and a chat bubble.
@@ -230,8 +231,26 @@ void main() {
     /// would hide the one tell worth stopping on.
     test('is what the stop guard watches for', () {
       expect(TranslationPrompt.opensAnotherBlock('Merhaba'), isFalse);
-      expect(TranslationPrompt.opensAnotherBlock('Merhaba\n<<<\n'), isTrue);
-      expect(TranslationPrompt.opensAnotherBlock('Merhaba\n>>>'), isTrue);
+      expect(
+        TranslationPrompt.opensAnotherBlock(
+          'Merhaba, nasilsin bugun? Iyiyim tesekkurler.\n<<<\n',
+        ),
+        isTrue,
+      );
+    });
+
+    /// The guard's own guard, and it is why translation broke on a device
+    /// before this existed. A small model very often re-states the prompt
+    /// before answering it. Tripping on the FIRST fence cancelled generation
+    /// before a single useful token arrived, and the remains came back as a
+    /// length rejection: seven chunks decoded, cancelled, nothing shown.
+    test('an echo of the prompt before the answer does not stop it', () {
+      expect(TranslationPrompt.opensAnotherBlock('<<<'), isFalse);
+      expect(
+        TranslationPrompt.opensAnotherBlock('<<<\nGood morning\n>>>\n'),
+        isFalse,
+      );
+      expect(TranslationPrompt.opensAnotherBlock('Turkish:\n<<<'), isFalse);
     });
   });
 
@@ -262,6 +281,45 @@ void main() {
       expect(terse, contains('Nasılsın?'));
       expect(system, isNot(contains('Bonjour')));
       expect(system, contains('translation engine'));
+    });
+  });
+
+  group('deciding there is nothing to do', () {
+    /// Reported: a message was declared already-English and nothing was shown.
+    /// Chat is mixed - a Turkish sentence carrying an English phrase gives the
+    /// scorer three English function words and no Turkish tell - and the
+    /// verdict that costs the user everything is this one, because it renders
+    /// nothing at all.
+    test('a mixed sentence is not "already in English"', () {
+      for (final mixed in [
+        'bu how are you demek',
+        'sende autocorrect mi var',
+        'tamam ben de going to the office diyecektim',
+      ]) {
+        expect(
+          LanguageDetector.isDefinitely(mixed, 'en'),
+          isFalse,
+          reason: 'declining to translate is the expensive mistake: $mixed',
+        );
+      }
+    });
+
+    /// The counterpart. Text that really is English has to be recognised, or
+    /// every message in a reader's own language goes to the model for nothing.
+    test('but plain English still is', () {
+      expect(
+        LanguageDetector.isDefinitely(
+          'I will be there in about ten minutes, is that alright with you?',
+          'en',
+        ),
+        isTrue,
+      );
+    });
+
+    /// The looser question keeps its looser answer: this one only captions a
+    /// bubble, so being wrong is cheap.
+    test('the caption-level guess is unchanged', () {
+      expect(LanguageDetector.detect('bu how are you demek'), 'en');
     });
   });
 

@@ -597,16 +597,33 @@ abstract final class TranslationPrompt {
     return false;
   }
 
-  /// Whether the model has started a SECOND fenced block.
+  /// Whether the model has started ANOTHER fenced block, having already
+  /// answered.
   ///
   /// Checked against the raw stream rather than the cleaned text, because
   /// [sanitize] strips the fence and would hide exactly the tell worth acting
-  /// on: a model that writes `<<<` after it has already produced an answer is
-  /// not translating any more, it is inventing another exercise. Ending the
-  /// generation there saves the tokens and stops the second block being
-  /// mistaken for part of the first one's answer.
-  static bool opensAnotherBlock(String raw) =>
-      raw.contains('<<<') || raw.contains('>>>');
+  /// on: a model that writes `<<<` after it has produced an answer is not
+  /// translating any more, it is inventing another exercise.
+  ///
+  /// ── Why the content test, and not just "contains a fence" ─────────────
+  ///
+  /// Because that was the first version and it broke translation outright. A
+  /// small model very often re-states the prompt before answering it — fence,
+  /// message, cue, and only then the translation. Tripping on the first `<<<`
+  /// cancelled the generation before a single useful token had been produced,
+  /// and the truncated remains came back as a length rejection. A device log
+  /// showed it: seven chunks decoded, cancelled, rung 0 preamble, rung 1
+  /// length, nothing shown.
+  ///
+  /// So the fence only counts once something has been SAID in front of it.
+  /// An echo puts the fence at or near the start, where this stays quiet and
+  /// lets the answer arrive; a second exercise puts it after the answer, which
+  /// is the case worth stopping.
+  static bool opensAnotherBlock(String raw) {
+    final at = raw.indexOf('<<<');
+    if (at < 0) return false;
+    return raw.substring(0, at).replaceAll('>>>', '').trim().length >= 20;
+  }
 
   /// Whether the answer is confidently in a language that is not the one asked
   /// for.
