@@ -805,18 +805,75 @@ class Sebastian extends ChangeNotifier {
 
     // ── 3. Ask.
     //
-    // Announced before `open`, not after: this is where the 27 seconds go, and
-    // a bubble that says nothing for that long has already lost the reader.
-    // Only when the brain is not already resident — the second translation of
-    // a session must not claim to be waking anyone up.
+    // Twice at most. The first attempt uses whatever accelerator the runtime
+    // prefers; if what comes back is not language, the fast path is ruled out
+    // for this device and the second attempt runs on CPU. See
+    // [BrainGateway.demoteToCpu] for why this is discovered rather than
+    // declared.
+    var result = await _generate(job, handle, target, detected);
+    if (result != null &&
+        _looksLikeTokenSoup(result, source: job.content, target: target)) {
+      if (await BrainGateway.instance.demoteToCpu()) {
+        result = await _generate(job, handle, target, detected);
+        // Still soup on the CPU path — the accelerator was not the problem, and
+        // there is nothing further to try.
+        if (result != null &&
+            _looksLikeTokenSoup(result, source: job.content, target: target)) {
+          result = null;
+        }
+      } else {
+        result = null;
+      }
+    }
+
+    if (result == null) {
+      handle._finish(TranslationState.failed);
+      return;
+    }
+
+    // The model handed the text back unchanged — which the prompt explicitly
+    // asks it to do when the text is already in the target language. Reported
+    // as such rather than as a translation, so the bubble doesn't show two
+    // identical copies of the same sentence.
+    if (result.trim() == job.content.trim()) {
+      handle._finish(TranslationState.sameLanguage, sourceLanguage: detected);
+      return;
+    }
+
+    // Not written down when the message it belongs to fades — see
+    // [_Job.persist].
+    if (job.persist) {
+      TranslationCache.instance.put(job.content, target.code, result);
+    }
+    handle._finish(
+      TranslationState.done,
+      text: result,
+      sourceLanguage: detected,
+    );
+  }
+
+  /// One pass at translating [job], on whatever backend is currently in force.
+  ///
+  /// Returns null when the attempt produced nothing usable. Extracted from
+  /// [_run] so the whole thing can be repeated on a different accelerator
+  /// without duplicating the chunking, the streaming or the sanitising.
+  Future<String?> _generate(
+    _Job job,
+    TranslationHandle handle,
+    TranslationLanguage target,
+    String? detected,
+  ) async {
+    // Announced before `open`, not after: loading the weights and starting the
+    // accelerator is where the seconds go, and a bubble that says nothing for
+    // that long has already lost the reader. Only when the brain is not
+    // already resident — the second translation of a session must not claim to
+    // be waking anyone up, and a CPU retry must say so again because it
+    // reloads.
     if (BrainGateway.instance.residentBrain?.id != brain.id) {
       handle._finish(TranslationState.warmingUp, sourceLanguage: detected);
     }
     final loaded = await BrainGateway.instance.open(brain);
-    if (loaded == null) {
-      handle._finish(TranslationState.failed);
-      return;
-    }
+    if (loaded == null) return null;
 
     final limit = TranslationPrompt.chunkLimitFor(brain);
     final chunks = TranslationPrompt.chunk(job.content, limit);
@@ -837,9 +894,9 @@ class Sebastian extends ChangeNotifier {
       )) {
         raw.write(token);
         // Stream into the bubble only when the whole message is one chunk. A
-        // multi-chunk message is a rarity (a pasted article), and streaming
-        // its later pieces would reflow the bubble under a reader who is still
-        // on the earlier ones.
+        // multi-chunk message is a rarity (a pasted article), and streaming its
+        // later pieces would reflow the bubble under a reader who is still on
+        // the earlier ones.
         if (chunks.length == 1) {
           final partial = TranslationPrompt.sanitize(
             raw.toString(),
@@ -856,42 +913,13 @@ class Sebastian extends ChangeNotifier {
         source: piece,
         target: target,
       );
-      if (clean == null) {
-        handle._finish(TranslationState.failed);
-        return;
-      }
+      if (clean == null) return null;
       if (i > 0) out.write('\n');
       out.write(clean);
     }
 
     final result = out.toString().trim();
-    if (result.isEmpty) {
-      handle._finish(TranslationState.failed);
-      return;
-    }
-    if (_looksLikeTokenSoup(result, source: job.content, target: target)) {
-      handle._finish(TranslationState.failed);
-      return;
-    }
-    // The model handed the text back unchanged — which the prompt explicitly
-    // asks it to do when the text is already in the target language. Reported
-    // as such rather than as a translation, so the bubble doesn't show two
-    // identical copies of the same sentence.
-    if (result.trim() == job.content.trim()) {
-      handle._finish(TranslationState.sameLanguage, sourceLanguage: detected);
-      return;
-    }
-
-    // Not written down when the message it belongs to fades — see
-    // [_Job.persist].
-    if (job.persist) {
-      TranslationCache.instance.put(job.content, target.code, result);
-    }
-    handle._finish(
-      TranslationState.done,
-      text: result,
-      sourceLanguage: detected,
-    );
+    return result.isEmpty ? null : result;
   }
 
   /// Whether the model produced nonsense rather than a translation.

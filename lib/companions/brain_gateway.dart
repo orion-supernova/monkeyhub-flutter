@@ -16,12 +16,12 @@
 library;
 
 import 'dart:async';
-import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_gemma_litertlm/flutter_gemma_litertlm.dart';
 
+import '../data/settings_store.dart';
 import 'brain_spec.dart';
 import 'brain_store.dart';
 
@@ -279,28 +279,43 @@ class BrainGateway {
 
   /// Which accelerator to ask for, or null to let the runtime decide.
   ///
-  /// CPU on the iOS SIMULATOR, explicitly. Upstream is unambiguous that the
-  /// simulator is CPU-only there — Metal's simulator has a 256 MB
-  /// single-allocation cap — but the default is GPU, and a real run showed
-  /// `backend=gpu` being requested and honoured on a simulator, producing
-  /// random tokens across four writing systems rather than a translation.
+  /// ── Why this is discovered rather than declared ───────────────────────
   ///
-  /// That is the dangerous shape of this failure: it does not throw. Asking
-  /// for what the platform can actually service is the fix; [Sebastian]'s
-  /// output check is the net under it.
-  PreferredBackend? get _backend {
-    if (kIsWeb) return null;
-    if (Platform.isIOS && _isSimulator) return PreferredBackend.cpu;
-    return null;
-  }
+  /// The obvious version of this asks "am I on the iOS simulator?" and says
+  /// CPU if so, because upstream documents the simulator as CPU-only (Metal's
+  /// simulator has a 256 MB single-allocation cap). That was tried and it does
+  /// not work: a Flutter app process does not inherit `SIMULATOR_DEVICE_NAME`,
+  /// so the sniff returned false, GPU was used, and the output was random
+  /// tokens across four writing systems.
+  ///
+  /// Chasing a better sniff is the wrong shape of fix. A bad accelerator does
+  /// not announce itself in the environment; it announces itself in the
+  /// OUTPUT — and [Sebastian] already checks that. So this asks for the fast
+  /// path by default and gets demoted by [demoteToCpu] when the answer is not
+  /// language. That covers the simulator and every physical device where the
+  /// GPU path is broken for some other reason, which no amount of platform
+  /// detection would have.
+  PreferredBackend? get _backend =>
+      SettingsStore.instance.companionForceCpu ? PreferredBackend.cpu : null;
 
-  /// True on the iOS simulator.
+  /// Whether the fast path has already been ruled out.
+  bool get isForcedToCpu => SettingsStore.instance.companionForceCpu;
+
+  /// Drops to CPU and unloads, so the next [open] reloads on the slow path.
   ///
-  /// The environment variable is set by the simulator runtime itself, and is
-  /// the check Apple's own tooling uses. `dart:io` offers nothing better —
-  /// `Platform.isIOS` is true in both places.
-  static final bool _isSimulator =
-      !kIsWeb && Platform.environment.containsKey('SIMULATOR_DEVICE_NAME');
+  /// Returns false when already on CPU — the caller uses that to stop, rather
+  /// than retrying the same failure forever.
+  ///
+  /// The decision is PERSISTED. It is a fact about this device's accelerator,
+  /// not about this launch, and rediscovering it costs a wasted translation
+  /// every time the app starts.
+  Future<bool> demoteToCpu() async {
+    if (isForcedToCpu) return false;
+    debugPrint('BrainGateway: GPU output failed validation — falling back to CPU');
+    await SettingsStore.instance.setCompanionForceCpu(true);
+    await unload();
+    return true;
+  }
 
   /// Which chat template the runtime should apply. The mapping lives here and
   /// not on [BrainFamily] so the enum stays free of plugin types.

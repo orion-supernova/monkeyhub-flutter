@@ -63,6 +63,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kTranslationTarget = 'mh.companion.sebastian.target';
   static const _kTranslatedRoomIds = 'mh.companion.sebastian.rooms';
   static const _kMarloweBrainId = 'mh.companion.marlowe.brain';
+  static const _kCompanionForceCpu = 'mh.companion.forceCpu';
 
   final _storage = const FlutterSecureStorage(
     iOptions: IOSOptions(accessibility: KeychainAccessibility.unlocked),
@@ -128,6 +129,11 @@ class SettingsStore extends ChangeNotifier {
   String? _translationTarget;
   Set<String> _translatedRoomIds = {};
   String? _marloweBrainId;
+  // Set once, by discovery rather than by the user: see
+  // `BrainGateway.demoteToCpu`. A device whose GPU path returns nonsense will
+  // do so on every launch, and rediscovering that costs a wasted translation
+  // each time.
+  bool _companionForceCpu = false;
 
   String? get themeId => _themeId;
   RoomLayout get roomLayout => _roomLayout;
@@ -296,7 +302,14 @@ class SettingsStore extends ChangeNotifier {
   /// about who you talk to there, not about one visit.
   Set<String> get translatedRoomIds => Set.unmodifiable(_translatedRoomIds);
 
-  /// Which brain Marlowe is set to think with, or null if she has none yet.
+  /// Whether companion inference has been pinned to the CPU.
+  ///
+  /// Not a preference anybody sets. It is a conclusion the app reached about
+  /// this device's accelerator after the fast path produced something that
+  /// was not language.
+  bool get companionForceCpu => _companionForceCpu;
+
+  /// Which brain Marlowe is set to think with, or null if there is none yet.
   String? get marloweBrainId => _marloweBrainId;
 
   Future<void> load() async {
@@ -429,6 +442,8 @@ class SettingsStore extends ChangeNotifier {
         await _storage.read(key: _kTranslatedRoomIds),
       );
       _marloweBrainId = await _storage.read(key: _kMarloweBrainId);
+      _companionForceCpu =
+          (await _storage.read(key: _kCompanionForceCpu)) == 'true';
     } catch (_) {
       /* secure storage unavailable in test harness */
     }
@@ -638,6 +653,13 @@ class SettingsStore extends ChangeNotifier {
       key: _kTranslatedRoomIds,
       value: jsonEncode(_translatedRoomIds.toList()),
     );
+  }
+
+  Future<void> setCompanionForceCpu(bool v) async {
+    if (_companionForceCpu == v) return;
+    _companionForceCpu = v;
+    notifyListeners();
+    await _storage.write(key: _kCompanionForceCpu, value: v ? 'true' : 'false');
   }
 
   Future<void> setMarloweBrainId(String? id) async {
