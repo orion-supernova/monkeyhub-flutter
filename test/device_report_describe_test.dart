@@ -17,7 +17,54 @@ void main() {
           'model': 'iPhone15,3',
           'manufacturer': 'Apple',
         }),
-        'iPhone15,3 · Apple',
+        'iPhone15,3 (iPhone 14 Pro Max) · Apple',
+      );
+    });
+
+    test('appends the marketing name next to a known identifier', () {
+      // The example that started this: a raw identifier alone told nobody
+      // reading a report which handset it was.
+      expect(
+        DeviceReport.describeDevice({
+          'model': 'iPhone17,5',
+          'manufacturer': 'Apple',
+        }),
+        'iPhone17,5 (iPhone 16e) · Apple',
+      );
+    });
+
+    test(
+      'falls back to the bare identifier when the table has never heard of it',
+      () {
+        // A model newer than this build, or older than the table goes back —
+        // must still show something rather than nothing.
+        expect(
+          DeviceReport.describeDevice({
+            'model': 'iPhone99,9',
+            'manufacturer': 'Apple',
+          }),
+          'iPhone99,9 · Apple',
+        );
+      },
+    );
+
+    test('resolves a simulator model past its appended suffix', () {
+      expect(
+        DeviceReport.describeDevice({
+          'model': 'iPhone17,5 (simulator)',
+          'manufacturer': 'Apple',
+        }),
+        'iPhone17,5 (simulator) (iPhone 16e) · Apple',
+      );
+    });
+
+    test('never applies an iPhone name to a non-iPhone model string', () {
+      expect(
+        DeviceReport.describeDevice({
+          'model': 'SM-S918B',
+          'manufacturer': 'samsung',
+        }),
+        'SM-S918B · samsung',
       );
     });
 
