@@ -85,7 +85,9 @@ RUN_GIT=true
 DRY_RUN=false
 PLATFORM_ARGS=false
 # Standalone actions: they do their one job and exit, never mixed with a build.
-ACTION=""          # "" | infra | rollback-web
+ACTION=""          # "" | infra | rollback-web | set-min-supported
+SET_MIN_CHANNEL=""
+SET_MIN_VERSION=""
 
 print_help() {
     cat <<EOF
@@ -109,6 +111,13 @@ Standalone actions (run alone and exit):
   --rollback-web        Put the previous web build back. Run it twice to undo.
   --infra               Install hosting/caddy-monkeyhub.conf on the VM. Validates
                         the whole config first and won't reload if it fails.
+  --set-min-supported <channel> <version>
+                        Force-update: clients on <channel> below <version> lose
+                        the "Later" button on their update prompt. Leaves the
+                        channel's published version untouched. <version> may
+                        be "clear" to lift the requirement. Channels:
+                        ios-testflight, macos-testflight, android-play,
+                        android-apk, web.
 
 Behavior flags:
   --skip-version-bump   Re-ship the same version.
@@ -149,6 +158,12 @@ while [[ $# -gt 0 ]]; do
                              SKIP_VERSION_BUMP=true; PLATFORM_ARGS=true ;;
         --rollback-web)      ACTION="rollback-web" ;;
         --infra)             ACTION="infra" ;;
+        --set-min-supported)
+            ACTION="set-min-supported"
+            SET_MIN_CHANNEL="${2:-}"
+            SET_MIN_VERSION="${3:-}"
+            shift 2
+            ;;
         --dry)
             DRY_RUN=true
             RUN_CONVEX=false
@@ -246,9 +261,53 @@ push_infra() {
     fi
 }
 
+
+# Force-updates an already-shipped channel without a new build. `version` is a
+# required arg on releases:publish (see backend/convex/releases.ts), so this
+# reads back the channel's current row via releases:latest first and republishes
+# it unchanged — only minSupported moves. "clear" sends null to lift the gate;
+# anything else is set as the new minSupported string.
+set_min_supported() {   # $1 = channel, $2 = version, or "clear"
+    local channel="$1"
+    local min="$2"
+    if [ -z "$channel" ] || [ -z "$min" ]; then
+        echo "❌ Usage: --set-min-supported <channel> <version|clear>"
+        exit 1
+    fi
+    local current
+    current=$(cd backend && npx convex run releases:latest "{\"channel\":\"$channel\"}" 2>/dev/null)
+    if [ -z "$current" ] || [ "$current" = "null" ]; then
+        echo "❌ No published release found for channel '$channel' — nothing to gate."
+        echo "   Channels: ios-testflight, macos-testflight, android-play, android-apk, web."
+        exit 1
+    fi
+    local version
+    version=$(echo "$current" | jq -r '.version')
+    local payload
+    if [ "$min" = "clear" ]; then
+        payload=$(jq -nc --arg channel "$channel" --arg version "$version" \
+            '{channel: $channel, version: $version, minSupported: null}')
+    else
+        payload=$(jq -nc --arg channel "$channel" --arg version "$version" --arg min "$min" \
+            '{channel: $channel, version: $version, minSupported: $min}')
+    fi
+    if (cd backend && npx convex run releases:publish "$payload" >/dev/null 2>&1); then
+        if [ "$min" = "clear" ]; then
+            echo "  ✅ Cleared minSupported on $channel (still shipping $version)"
+        else
+            echo "  ✅ $channel now requires >= $min (still shipping $version) — older clients lose \"Later\""
+        fi
+    else
+        echo "❌ Failed to update $channel. Retry with:"
+        echo "     (cd backend && npx convex run releases:publish $(printf '%s' "$payload" | jq -Rr @sh))"
+        exit 1
+    fi
+}
+
 case "$ACTION" in
-    rollback-web) rollback_web; exit 0 ;;
-    infra)        push_infra;   exit 0 ;;
+    rollback-web)      rollback_web; exit 0 ;;
+    infra)              push_infra;   exit 0 ;;
+    set-min-supported)  set_min_supported "$SET_MIN_CHANNEL" "$SET_MIN_VERSION"; exit 0 ;;
 esac
 
 # ----- interactive platform picker -----

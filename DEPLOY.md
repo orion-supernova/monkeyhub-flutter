@@ -181,16 +181,26 @@ npx convex run releases:publish '{"channel":"ios-appstore","version":"1.3.30",
 Make an update mandatory (LATER disappears, the sheet can't be dismissed). Use
 only when old clients are genuinely broken — anyone below this is locked out of
 the app until they update, so it is only safe when the route out actually works
-for everyone it hits:
+for everyone it hits. `./deploy.sh --set-min-supported <channel> <version>` does
+this without a new build — it reads the channel's current row via
+`releases:latest` first so it republishes the same `version`, only moving
+`minSupported`:
+
+```sh
+./deploy.sh --set-min-supported android-play 1.3.28
+```
+
+which is equivalent to:
 
 ```sh
 npx convex run releases:publish '{"channel":"android-play","version":"1.3.30","minSupported":"1.3.28"}'
 ```
 
-Clear it again by passing `null`:
+Clear it again with `clear` (sends `minSupported: null`):
 
 ```sh
-npx convex run releases:publish '{"channel":"android-play","version":"1.3.30","minSupported":null}'
+./deploy.sh --set-min-supported android-play clear
+# npx convex run releases:publish '{"channel":"android-play","version":"1.3.30","minSupported":null}'
 ```
 
 Not on `android-apk` while the Play track is invite-only — see
