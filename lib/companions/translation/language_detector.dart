@@ -138,6 +138,26 @@ abstract final class LanguageDetector {
     }
   }
 
+  /// Whether [languageCode] is one [detect] can ever return.
+  ///
+  /// Asked before treating a disagreement as a verdict. Every one of the thirty
+  /// languages in [kTranslationLanguages] is covered today, so this answers
+  /// true for all of them — which is the point: it is derived from the tables
+  /// rather than listed, so the moment somebody adds a thirty-first target
+  /// without teaching the scorer about it, the language check quietly stops
+  /// having an opinion about that language instead of confidently rejecting
+  /// every correct translation into it.
+  static bool canDetect(String languageCode) =>
+      _detectable.contains(languageCode);
+
+  static final Set<String> _detectable = {
+    // The script branches of [detect], which need no table to fire.
+    'ja', 'zh', 'ko', 'ru', 'uk', 'ar', 'fa', 'he', 'hi', 'th', 'el',
+    // Latin languages the scorer actually models.
+    ..._letterTells.values,
+    for (final langs in _functionWords.values) ...langs,
+  };
+
   /// How many letters of each writing system [text] uses.
   ///
   /// Exposed for [Sebastian]'s sanity check on a finished translation. Counts
@@ -363,6 +383,16 @@ abstract final class LanguageDetector {
   /// a pleasant way for the table to enforce its own invariant.
   static const Map<String, List<String>> _functionWords = {
     // ── English
+    //
+    // Deliberately the longest run in this table, and not out of favouritism.
+    // English carries two jobs the others do not. It is the language a reader
+    // most often already has ("is this message already in your language?"), and
+    // — the one that forced this list to grow — it is the language an
+    // English-instructed model falls back into when it stops translating and
+    // starts explaining. A twelve-word list scored "Good morning, how are you
+    // doing today my friend?" at 1.0 against a floor of 1.5 and returned null,
+    // which the verdict in [TranslationPrompt.verify] has to read as "no
+    // opinion". A sentence that plain should not be a coin toss.
     'the': ['en'],
     'and': ['en'],
     'you': ['en'],
@@ -375,6 +405,23 @@ abstract final class LanguageDetector {
     'about': ['en'],
     'because': ['en'],
     'they': ['en'],
+    'are': ['en'],
+    'not': ['en'],
+    'but': ['en'],
+    'your': ['en'],
+    'there': ['en'],
+    'here': ['en'],
+    'how': ['en'],
+    'from': ['en'],
+    'been': ['en'],
+    'were': ['en'],
+    'going': ['en'],
+    'would': ['en'],
+    // Shared, so they vote at a fraction rather than outright. `will` is
+    // "wants" in German and `is` is the same word in Dutch; claiming either
+    // outright would make this table wrong in a way that is hard to see.
+    'will': ['en', 'de'],
+    'is': ['en', 'nl'],
     // ── Romance
     'que': ['es', 'pt', 'fr'],
     'los': ['es'],

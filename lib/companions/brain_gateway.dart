@@ -41,13 +41,20 @@ class LoadedBrain {
 
   /// One-shot generation, streamed.
   ///
-  /// Streamed rather than awaited whole for two reasons that both matter here.
-  /// The interface one: a translated bubble that fills in word by word reads as
-  /// work happening, where a spinner followed by a jump reads as a stall. The
-  /// structural one: the FFI runtime hands back a chunk at a time, and awaiting
-  /// the whole response means the UI isolate has nothing to do between the
-  /// first token and the last. Consuming the stream lets every frame in
-  /// between get drawn.
+  /// Streamed rather than awaited whole for a structural reason: the FFI
+  /// runtime hands back a chunk at a time, and awaiting the whole response
+  /// means the UI isolate has nothing to do between the first token and the
+  /// last. Consuming the stream lets every frame in between get drawn, and lets
+  /// [stopAt] end a run that has clearly gone wrong without waiting for the
+  /// token cap.
+  ///
+  /// It is NOT streamed so that a bubble can fill in word by word. That is what
+  /// it used to be for, and it was the single largest source of this feature's
+  /// worst failure: the caller sanitised the partial buffer on every token and
+  /// rendered whatever came back, so a model that opened with "Okay, the user
+  /// wants me to translate this" put those words on screen before anything
+  /// could judge them. What the caller does with the chunks is its business;
+  /// what this promises is only that they arrive as they are produced.
   ///
   /// [stopAt] is checked against the accumulated text after each chunk; when it
   /// returns true the stream is closed early. A 0.6B model told to translate
@@ -55,21 +62,36 @@ class LoadedBrain {
   /// explanation, a second attempt, a bare `</think>`. Stopping the moment the
   /// answer is complete is worth more than any amount of prompt tuning, and it
   /// gives back the tokens too.
+  ///
+  /// ── On [topK] and [temperature] ─────────────────────────────────────────
+  ///
+  /// These used to be hardcoded to `topK: 1, randomSeed: 1` with a comment
+  /// explaining that a little temperature avoids repetition loops. It does not,
+  /// at k = 1: top-k of one collapses the distribution onto the argmax before
+  /// the temperature is ever applied, so the run is fully deterministic and the
+  /// 0.2 buys nothing. That was invisible until it mattered — it meant a retry
+  /// re-ran the identical computation and reproduced the identical failure,
+  /// which is why "translate again" on a bad bubble gave back the same bad
+  /// bubble every time.
+  ///
+  /// So both are parameters now. The first pass stays greedy, because greedy is
+  /// the right sampler for a task whose answer is determined by its input. The
+  /// retry is what k > 1 exists for: a genuinely different draw.
   Stream<String> generate(
     String prompt, {
     String? systemInstruction,
     double temperature = 0.2,
+    int topK = 1,
+    double? topP,
+    int randomSeed = 1,
     int maxOutputTokens = 512,
     bool Function(String soFar)? stopAt,
   }) async* {
     final session = await _model.createSession(
-      // Low but not zero. Greedy decoding on a small quantised model has a
-      // specific failure this feature would hit constantly: it gets into a
-      // repetition loop and emits the same clause until the token cap. A
-      // little temperature is the cheapest way out of one.
       temperature: temperature,
-      topK: 1,
-      randomSeed: 1,
+      topK: topK,
+      topP: topP,
+      randomSeed: randomSeed,
       systemInstruction: systemInstruction,
       // Qwen3 emits `<think>…</think>` before answering unless this is off.
       // Left off for every family: no companion task wants a reasoning trace,
@@ -320,6 +342,10 @@ class BrainGateway {
   /// Which chat template the runtime should apply. The mapping lives here and
   /// not on [BrainFamily] so the enum stays free of plugin types.
   ModelType _modelType(BrainFamily family) => switch (family) {
+        // ChatML, and the plugin's oldest and best-worn Qwen path. Not
+        // `ModelType.qwen3`: that one carries the thinking-mode handling, which
+        // for a model with no thinking mode is at best noise in the turn.
+        BrainFamily.qwen2 => ModelType.qwen,
         BrainFamily.qwen3 => ModelType.qwen3,
         BrainFamily.gemma => ModelType.gemma4,
       };

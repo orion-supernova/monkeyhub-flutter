@@ -135,9 +135,29 @@ class BrainSpec {
 /// translated bubble that opens with the model's reasoning is a broken
 /// feature. [TranslationPrompt] switches on this.
 enum BrainFamily {
-  /// Qwen3 — Apache 2.0, and the reason Sebastian is any good: the family is
-  /// trained on 100+ languages, which is a rare property at 0.6B. Emits
-  /// thinking traces unless suppressed.
+  /// Qwen2 — Apache 2.0, ChatML, 29 languages, and — the property that matters
+  /// most here — NOT a reasoning model. It has no thinking mode to suppress,
+  /// no `<think>` block, and no harmony channel markers, so the entire class of
+  /// failure that [qwen3] has to be talked out of simply does not exist.
+  ///
+  /// The same template family a sibling project runs in production through
+  /// `ModelType.qwen`, which is worth more than it sounds on iOS: `.litertlm`
+  /// applies the chat template MANUALLY there, and a family the plugin does not
+  /// recognise is exactly how a device ends up rendering control tokens as
+  /// text.
+  qwen2,
+
+  /// Qwen3 — Apache 2.0, trained on 100+ languages, and a HYBRID REASONING
+  /// model, which is the trap. Its multilingual coverage at 0.6B is genuinely
+  /// rare and it is why Sebastian started here; its thinking mode is why he
+  /// left. `/no_think` is a soft switch and `enableThinking: false` is honoured
+  /// by the runtime rather than the weights, so neither is a guarantee — and
+  /// what a real device produced was a channel marker between every token:
+  ///
+  ///     Okay<|channel|>thought,<|channel|>thought let<|channel|>thought's…
+  ///
+  /// Kept because Marlowe's shelf still uses it, where an open-ended companion
+  /// showing its working is a feature rather than a bug.
   qwen3,
 
   /// Gemma 4 — Apache 2.0 on the litert-community bundles. No thinking
@@ -149,30 +169,52 @@ enum BrainFamily {
 abstract final class BrainCatalog {
   /// Sebastian's brain, and the only one he will ever load.
   ///
-  /// Qwen3 0.6B at int4/block-32, 328 MB. The size is the whole argument: this
-  /// is a translation feature inside a chat app, and the honest ceiling on what
-  /// a person will accept for it is "smaller than a couple of podcasts". A 1.7B
-  /// model translates better and would not get installed.
+  /// Qwen2-0.5B-Instruct at int8, 617 MB.
   ///
-  /// Qwen3 rather than the obvious Gemma 3 1B for two independent reasons.
-  /// Multilingual coverage is the first — Gemma 3 1B is heavily English-tilted
-  /// and this is a feature for people who are not reading English. The second
-  /// is decisive on its own: `litert-community/Gemma3-1B-IT` is a GATED repo.
-  /// It would put a HuggingFace account between the user and a translated
-  /// message.
+  /// ── Why this is not Qwen3, which it used to be ────────────────────────
+  ///
+  /// Qwen3-0.6B was chosen for multilingual coverage at 328 MB, and that
+  /// argument was correct. What it missed is that Qwen3 is a hybrid REASONING
+  /// model, and this is the one task where a model that likes to show its
+  /// working is disqualified: the whole requirement is "emit the translation
+  /// and nothing else".
+  ///
+  /// It was not close. Bubbles carried "Okay, I need to translate this",
+  /// `<think>` blocks the runtime flag did not suppress, and finally a decode
+  /// with a harmony channel marker between EVERY token, which reached readers
+  /// as `,thought letthought's thought tacklethought this`. Each of those got a
+  /// stripper, and the strippers worked, and the next shape arrived. That is
+  /// what fighting a model's nature looks like.
+  ///
+  /// Qwen2 has no reasoning mode at all. There is no thinking to suppress, no
+  /// `/no_think` to hope is honoured, and no channel markers — the failure
+  /// class is gone rather than filtered. It is an older and individually weaker
+  /// model, and it is the right one: a slightly clumsier translation that
+  /// always arrives beats a better one that arrives four times out of five.
+  ///
+  /// ── Why not Qwen2.5, which is better still ────────────────────────────
+  ///
+  /// Because it does not exist in the format this app can load.
+  /// `litert-community/Qwen2.5-0.5B-Instruct` ships `.task` only — MediaPipe —
+  /// and the engine here is LiteRT-LM for the reason written in the pubspec.
+  /// The 1.5B does ship `.litertlm`, at 1.49 GB, which is four and a half times
+  /// this download for a translator inside a chat app.
+  ///
+  /// The cost of the move is honest: 617 MB against 328. It is still inside
+  /// "smaller than a couple of podcasts", which is the ceiling this feature has
+  /// always been sized against.
   static const BrainSpec sebastianBrain = BrainSpec(
-    id: 'qwen3-0.6b-int4',
+    id: 'qwen2-0.5b-instruct',
     // Never rendered — Sebastian's screen shows his own name, not a tier. It
     // is a debug fallback, so it says what this brain is FOR rather than
-    // borrowing a tier name from Marlowe's ladder, where 'Swift' now means
-    // something four times the size.
+    // borrowing a tier name from Marlowe's ladder.
     label: 'Translator',
-    fileName: 'Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm',
-    url: 'https://huggingface.co/litert-community/Qwen3-0.6B/resolve/main/'
-        'Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm',
-    sizeBytes: 344437808,
-    sha256: 'e3e290109da4388d65a17510a0c66af91c8039f52d2c465868dbc43c09a776cf',
-    family: BrainFamily.qwen3,
+    fileName: 'Qwen2_0.5B_Instruct.litertlm',
+    url: 'https://huggingface.co/litert-community/Qwen2-0.5B-Instruct/'
+        'resolve/main/Qwen2_0.5B_Instruct.litertlm',
+    sizeBytes: 647377840,
+    sha256: '0f01cc004b8eb62b92ba6be85ed05a248ba0d2f78af94c4949b313eccfb4c157',
+    family: BrainFamily.qwen2,
     contextTokens: 2048,
     license: 'Apache 2.0',
   );

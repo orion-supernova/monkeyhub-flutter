@@ -181,6 +181,22 @@ class BrainManager extends ChangeNotifier {
     final future = () async {
       try {
         if (!BrainGateway.instance.isSupported) return;
+        // Before anything is counted, and on every refresh rather than once
+        // behind a version flag. A brain this build has retired is not absent,
+        // not installed and not paused — it is a file nothing in the catalog
+        // can see, while `bytesUsed` below walks the DIRECTORY and counts it.
+        // Leaving it would show the user disk they have no way to reclaim.
+        //
+        // Refresh is the right hook: it is what runs at boot (`main.dart`) and
+        // whenever a companion screen opens, which is exactly when the storage
+        // number is about to be read.
+        final freed = await BrainStore.instance.sweepUnclaimed();
+        if (freed > 0) {
+          debugPrint(
+            'BrainManager: reclaimed ${freed ~/ (1024 * 1024)} MB of weights '
+            'no brain on the shelf claims',
+          );
+        }
         for (final spec in BrainCatalog.all) {
           // Never overwrite a live download's state with a disk probe — the
           // file is half-written, so `isInstalled` says no, which would snap a

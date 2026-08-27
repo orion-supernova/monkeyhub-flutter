@@ -77,7 +77,16 @@ class TranslationCache {
   ///     returned random tokens across four writing systems.
   /// 4 — asks Qwen3 not to think (`/no_think`), strips control tokens that came
   ///     back mangled, and refuses anything still carrying markup.
-  static const int _version = 4;
+  /// 5 — a different brain and a contract. Sebastian moved off Qwen3, whose
+  ///     reasoning mode could not be reliably switched off, onto Qwen2 which
+  ///     has none; the turn carries worked examples; and nothing reaches a
+  ///     bubble without passing [TranslationPrompt.verify], with a failed
+  ///     attempt retried on a different sampler instead of re-run identically.
+  ///     Everything cached before this came from a pipeline that could and did
+  ///     write a model's reasoning into a bubble, so none of it can be trusted
+  ///     — and a user who already translated a message must not be the only
+  ///     user who never sees the fix.
+  static const int _version = 5;
 
   static const Duration _writeDebounce = Duration(seconds: 2);
 

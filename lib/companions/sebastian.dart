@@ -31,6 +31,7 @@ library;
 import 'dart:async';
 import 'dart:ui' show PlatformDispatcher;
 
+import 'package:flutter/foundation.dart' show kDebugMode, visibleForTesting;
 import 'package:flutter/widgets.dart';
 
 import '../data/settings_store.dart';
@@ -56,7 +57,11 @@ enum TranslationState {
   /// indistinguishable, and the first translation of a session looks broken.
   warmingUp,
 
-  /// Tokens are arriving. [TranslationHandle.text] grows.
+  /// Tokens are arriving, and none of them are on screen. The bubble shows the
+  /// same shimmer it shows while queued, plus the caret — the state exists so
+  /// the reader can see that work is happening, not so they can watch it.
+  /// [TranslationHandle.text] stays null until the whole answer has passed
+  /// [TranslationPrompt.verify].
   streaming,
 
   /// Finished, and [TranslationHandle.text] is the translation.
@@ -105,12 +110,17 @@ class TranslationHandle extends ChangeNotifier {
   TranslationState _state = TranslationState.queued;
   TranslationState get state => _state;
 
-  final StringBuffer _buffer = StringBuffer();
   String? _finalText;
 
-  /// What to render. Partial while [state] is [TranslationState.streaming],
-  /// final afterwards, null when there is nothing to show.
-  String? get text => _finalText ?? (_buffer.isEmpty ? null : _buffer.toString());
+  /// What to render, or null while there is nothing fit to show.
+  ///
+  /// Only ever the finished, VERIFIED translation. It used to also carry the
+  /// sanitised prefix of a generation in flight, so a bubble filled in word by
+  /// word — and that is exactly how a model's reasoning reached readers: mid
+  /// stream there is no second line yet, so [TranslationPrompt.sanitize] cannot
+  /// tell an announcement from the answer and passes it straight through. See
+  /// [Sebastian._generate].
+  String? get text => _finalText;
 
   String? _sourceLanguage;
 
@@ -123,19 +133,13 @@ class TranslationHandle extends ChangeNotifier {
   /// scrolled out of the list and rebuilt.
   bool showingOriginal = false;
 
-  /// Replaces the partial text mid-stream.
-  ///
-  /// Replace rather than append, because what the bubble shows is the
-  /// SANITISED prefix of the raw output, and sanitising is not incremental —
-  /// dropping a "Translation:" label shortens the text, and the third token
-  /// can change how the first two should be read.
-  void _setPartial(String text) {
+  /// Tokens are moving. Carries no text — see [text] — only the fact, which is
+  /// what the bubble's shimmer and caret are bound to.
+  void _markWorking(String? sourceLanguage) {
     if (_finalText != null) return;
-    if (_buffer.toString() == text) return;
+    if (sourceLanguage != null) _sourceLanguage = sourceLanguage;
+    if (_state == TranslationState.streaming) return;
     _state = TranslationState.streaming;
-    _buffer
-      ..clear()
-      ..write(text);
     notifyListeners();
   }
 
@@ -143,19 +147,18 @@ class TranslationHandle extends ChangeNotifier {
     _state = state;
     if (text != null) _finalText = text;
     if (sourceLanguage != null) _sourceLanguage = sourceLanguage;
-    // A stream that produced partial text and then failed must not leave that
-    // half-sentence on screen looking like a translation.
+    // Belt and braces: nothing unverified can be here to begin with, but a
+    // failed or already-in-this-language verdict must never leave earlier text
+    // on screen looking like an answer.
     if (state == TranslationState.failed ||
         state == TranslationState.sameLanguage) {
       _finalText = null;
-      _buffer.clear();
     }
     notifyListeners();
   }
 
   void _reset() {
     _state = TranslationState.queued;
-    _buffer.clear();
     _finalText = null;
     notifyListeners();
   }
@@ -615,28 +618,6 @@ class Sebastian extends ChangeNotifier {
   final Set<String> _onScreen = {};
   bool _flushScheduled = false;
 
-  /// Pulls what the reader can see to the front of the queue.
-  ///
-  /// Called from the transcript's scroll listener. This is the difference
-  /// between a room that translates top-to-bottom regardless of where you are
-  /// looking, and one that always seems to have already done the part you just
-  /// scrolled to.
-  void prioritise(Iterable<ChatMessage> visible) {
-    if (!isReady) return;
-    var moved = false;
-    for (final message in visible) {
-      if (!_isTranslatable(message)) continue;
-      final key = _key(message.content);
-      final job = _queues[TranslationPriority.background]!.remove(key) ??
-          _queues[TranslationPriority.nearby]!.remove(key);
-      if (job != null) {
-        _queues[TranslationPriority.visible]![key] = job;
-        moved = true;
-      }
-    }
-    if (moved) _pump();
-  }
-
   /// Answers what can be answered without waking the model, right now.
   ///
   /// ── Why this is synchronous, and why that matters ──────────────────────
@@ -803,36 +784,8 @@ class Sebastian extends ChangeNotifier {
       return;
     }
 
-    // ── 3. Ask.
-    //
-    // Twice at most. The first attempt uses whatever accelerator the runtime
-    // prefers; if what comes back is not language, the fast path is ruled out
-    // for this device and the second attempt runs on CPU. See
-    // [BrainGateway.demoteToCpu] for why this is discovered rather than
-    // declared.
-    var result = await _generate(job, handle, target, detected);
-    if (result != null &&
-        _looksLikeTokenSoup(result, source: job.content, target: target)) {
-      if (await BrainGateway.instance.demoteToCpu()) {
-        result = await _generate(job, handle, target, detected);
-        // Still soup on the CPU path — the accelerator was not the problem, and
-        // there is nothing further to try.
-        if (result != null &&
-            _looksLikeTokenSoup(result, source: job.content, target: target)) {
-          result = null;
-        }
-      } else {
-        result = null;
-      }
-    }
-
-    // Markup that survived cleanup is not language. See
-    // [TranslationPrompt.looksLikeMarkup] — no stripper can be trusted to have
-    // seen every way a runtime can mangle a control token, so the last word
-    // goes to a check that does not try to.
-    if (result != null && TranslationPrompt.looksLikeMarkup(result)) {
-      result = null;
-    }
+    // ── 3. Ask, and keep asking until something passes the contract.
+    final result = await _ask(job, handle, target, detected);
     if (result == null) {
       handle._finish(TranslationState.failed);
       return;
@@ -859,17 +812,153 @@ class Sebastian extends ChangeNotifier {
     );
   }
 
-  /// One pass at translating [job], on whatever backend is currently in force.
+  /// The retry ladder. Returns the first candidate that passes the contract,
+  /// or null when every rung has been tried.
   ///
-  /// Returns null when the attempt produced nothing usable. Extracted from
-  /// [_run] so the whole thing can be repeated on a different accelerator
-  /// without duplicating the chunking, the streaming or the sanitising.
-  Future<String?> _generate(
+  /// ── Why a ladder rather than one attempt and a shrug ───────────────────
+  ///
+  /// A 0.6B model does not reliably do only what it was told, so a single
+  /// attempt is a coin flip dressed up as a feature. What made the old version
+  /// worse than a coin flip is that the flip was WEIGHTED and then repeated:
+  /// generation was fully greedy (see [LoadedBrain.generate]), so a message
+  /// that failed failed identically every time it was asked, including when the
+  /// reader tapped "translate again".
+  ///
+  /// Three rungs, each differing from the last in a way that could plausibly
+  /// change the answer:
+  ///
+  ///  1. **Greedy, with the worked examples.** The right sampler for a task
+  ///     whose answer is determined by its input, and the prompt most likely to
+  ///     produce a bare translation.
+  ///  2. **Sampled, terse.** A different draw AND a different prompt. When the
+  ///     first pass rambles it is usually because the model latched onto the
+  ///     framing rather than the content, so the second one takes the framing
+  ///     away and stops asking for the same tokens.
+  ///  3. **CPU.** Only when the accelerator has not already been ruled out.
+  ///     Output that is not language at all is the signature of a backend the
+  ///     device cannot service — see [BrainGateway.demoteToCpu] — and no amount
+  ///     of resampling fixes that.
+  ///
+  /// The rungs are tried in order and stop at the first pass, so the common
+  /// case still costs exactly one generation.
+  Future<String?> _ask(
     _Job job,
     TranslationHandle handle,
     TranslationLanguage target,
     String? detected,
   ) async {
+    TranslationRejection? last;
+
+    for (var rung = 0; rung < _rungs.length; rung++) {
+      final settings = _rungs[rung];
+
+      // The CPU rung is not a resample, it is a different machine.
+      if (settings.demoteFirst) {
+        // Only worth demoting for a failure that looks like the accelerator.
+        // A model answering in the wrong language is answering, and it will
+        // answer just as wrongly on the CPU — where it will also take several
+        // times as long to do it.
+        if (last != TranslationRejection.tokenSoup &&
+            last != TranslationRejection.markup) {
+          return null;
+        }
+        // False when the fast path was already ruled out on a previous
+        // message, in which case there is nothing left to try.
+        if (!await BrainGateway.instance.demoteToCpu()) return null;
+      }
+
+      final candidate = await _generate(
+        job,
+        handle,
+        target,
+        detected,
+        terse: settings.terse,
+        topK: settings.topK,
+        topP: settings.topP,
+        temperature: settings.temperature,
+        randomSeed: settings.randomSeed,
+      );
+      _evalAttempts = rung + 1;
+
+      if (candidate == null) {
+        last = TranslationRejection.empty;
+        continue;
+      }
+
+      last = TranslationPrompt.verify(
+        candidate,
+        source: job.content,
+        target: target,
+      );
+      if (last == null) return candidate;
+      if (kDebugMode) {
+        // The verdict, never the text: this is somebody's message, and the
+        // whole promise of the feature is that it does not get written down
+        // anywhere it did not have to be.
+        debugPrint('Sebastian: rung $rung rejected (${last.name})');
+      }
+    }
+    return null;
+  }
+
+  /// The three attempts, in order. Each differs from the one before it in
+  /// exactly one dimension, so a failure at rung N says something about rung
+  /// N-1 rather than confounding two changes at once.
+  static const List<_Rung> _rungs = [
+    // Greedy, with the worked examples. The right sampler for a task whose
+    // answer is determined by its input.
+    _Rung(topK: 1, topP: null, temperature: 0.2, randomSeed: 1, terse: false),
+    // A genuinely different DRAW, and a shorter prompt. Top-k of 1 collapses
+    // the distribution onto the argmax, so anything narrower than this would
+    // re-run the identical computation and reproduce the identical failure —
+    // which is exactly what "translate again" used to do.
+    _Rung(topK: 40, topP: 0.9, temperature: 0.7, randomSeed: 2, terse: true),
+    // A different MACHINE, back on the prompt that works. Reached only for
+    // output that was not language at all.
+    _Rung(
+      topK: 1,
+      topP: null,
+      temperature: 0.2,
+      randomSeed: 1,
+      terse: false,
+      demoteFirst: true,
+    ),
+  ];
+
+  /// One pass at translating [job], on whatever backend is currently in force.
+  ///
+  /// Returns the sanitised candidate, or null when the attempt produced nothing
+  /// at all. It does NOT decide whether the candidate is any good — that is
+  /// [TranslationPrompt.verify]'s job, and keeping the two apart is what lets
+  /// the ladder above react to WHY something failed.
+  ///
+  /// ── Why nothing is rendered while this runs ────────────────────────────
+  ///
+  /// This used to sanitise the growing buffer after every token and push the
+  /// result into the bubble, so a translation typed itself in. It read well
+  /// when it worked and it was the direct cause of the failure everybody
+  /// actually saw: [TranslationPrompt.sanitize] can only strip an announcement
+  /// that occupies a whole line, and mid-stream there is no second line yet —
+  /// so "Okay, the user wants me to translate this…" is not a preamble the
+  /// sanitiser can recognise, it is simply the text so far, and it went to the
+  /// screen. No prefix-based contract fixes that in general, because the third
+  /// token can change how the first two should be read.
+  ///
+  /// So the bubble now shows the waiting shimmer for the whole generation and
+  /// the text arrives once, verified. Chat messages are short; the difference
+  /// is a fraction of a second, and what it buys is that nothing unvetted can
+  /// reach a reader.
+  Future<String?> _generate(
+    _Job job,
+    TranslationHandle handle,
+    TranslationLanguage target,
+    String? detected, {
+    required bool terse,
+    required int topK,
+    required double? topP,
+    required double temperature,
+    required int randomSeed,
+  }) async {
     // Announced before `open`, not after: loading the weights and starting the
     // accelerator is where the seconds go, and a bubble that says nothing for
     // that long has already lost the reader. Only when the brain is not
@@ -878,11 +967,16 @@ class Sebastian extends ChangeNotifier {
     // reloads.
     if (BrainGateway.instance.residentBrain?.id != brain.id) {
       handle._finish(TranslationState.warmingUp, sourceLanguage: detected);
+    } else {
+      // Tokens are moving even though none of them are on screen. The state is
+      // what drives the shimmer and the caret, so the bubble still reads as
+      // work happening rather than as a stall.
+      handle._markWorking(detected);
     }
     final loaded = await BrainGateway.instance.open(brain);
     if (loaded == null) return null;
 
-    final limit = TranslationPrompt.chunkLimitFor(brain);
+    final limit = TranslationPrompt.chunkLimitFor(brain, target, brain.family);
     final chunks = TranslationPrompt.chunk(job.content, limit);
     final system = TranslationPrompt.system(target);
     final out = StringBuffer();
@@ -891,8 +985,17 @@ class Sebastian extends ChangeNotifier {
       final piece = chunks[i];
       final raw = StringBuffer();
       await for (final token in loaded.generate(
-        TranslationPrompt.build(piece, target, family: brain.family),
+        TranslationPrompt.build(
+          piece,
+          target,
+          family: brain.family,
+          terse: terse,
+        ),
         systemInstruction: system,
+        temperature: temperature,
+        topK: topK,
+        topP: topP,
+        randomSeed: randomSeed,
         // Generous next to the input, because some language pairs genuinely
         // expand — and a cap that truncates mid-sentence produces a confident
         // half-translation, which is worse than a failure.
@@ -900,20 +1003,6 @@ class Sebastian extends ChangeNotifier {
         stopAt: _rambleGuard(piece),
       )) {
         raw.write(token);
-        // Stream into the bubble only when the whole message is one chunk. A
-        // multi-chunk message is a rarity (a pasted article), and streaming its
-        // later pieces would reflow the bubble under a reader who is still on
-        // the earlier ones.
-        if (chunks.length == 1) {
-          final partial = TranslationPrompt.sanitize(
-            raw.toString(),
-            source: piece,
-            target: target,
-          );
-          if (partial != null && partial.isNotEmpty) {
-            handle._setPartial(partial);
-          }
-        }
       }
       final clean = TranslationPrompt.sanitize(
         raw.toString(),
@@ -929,57 +1018,6 @@ class Sebastian extends ChangeNotifier {
     return result.isEmpty ? null : result;
   }
 
-  /// Whether the model produced nonsense rather than a translation.
-  ///
-  /// ── Why a script check, of all things ─────────────────────────────────
-  ///
-  /// A real run on the iOS simulator returned this for one line of Turkish:
-  ///
-  ///     bareshWAREmentsreshanh畔 antespunkertainment cursesantes代表性curity
-  ///
-  /// Random tokens across four writing systems. The root cause was a GPU
-  /// backend the simulator cannot service (see [BrainGateway]), but the shape
-  /// of the failure is worth catching regardless: no sampler is guaranteed
-  /// never to derail, and the cost of showing it is a user who stops trusting
-  /// every translation they are given.
-  ///
-  /// The test is narrow on purpose. It does NOT judge quality — a 0.6B model
-  /// producing a clumsy translation is exactly what was signed up for. It asks
-  /// one structural question: does the output use a writing system that
-  /// appears in neither the source nor the target language? Turkish into
-  /// English has no reason to contain Han characters, and no legitimate
-  /// translation of a message that contained none will produce some.
-  ///
-  /// Latin is always allowed, because brand names, URLs and handles ride
-  /// through every language. And the threshold is a small ABSOLUTE count
-  /// rather than a proportion: the soup above was only about three per cent
-  /// Han by character, which a percentage test would have waved through.
-  bool _looksLikeTokenSoup(
-    String output, {
-    required String source,
-    required TranslationLanguage target,
-  }) {
-    final sourceScripts = LanguageDetector.scriptCounts(source).keys.toSet();
-    final targetScript = LanguageDetector.scriptFor(target.code);
-
-    var foreign = 0;
-    LanguageDetector.scriptCounts(output).forEach((script, count) {
-      if (script == TextScript.latin) return;
-      if (script == targetScript) return;
-      if (sourceScripts.contains(script)) return;
-      // Japanese writes in two scripts at once; having asked for one, the
-      // other cannot be evidence of anything going wrong.
-      if (targetScript == TextScript.kana && script == TextScript.han) return;
-      if (targetScript == TextScript.han && script == TextScript.kana) return;
-      foreign += count;
-    });
-    return foreign > _maxForeignChars;
-  }
-
-  /// A couple of stray characters could be a real quotation. A handful is a
-  /// model that has come off the rails.
-  static const int _maxForeignChars = 2;
-
   /// Room for the translation to be longer than the original, with a floor for
   /// very short messages (where a fixed ratio would cap a three-word answer at
   /// nothing) and a ceiling so a runaway generation cannot hold the queue.
@@ -993,20 +1031,76 @@ class Sebastian extends ChangeNotifier {
   /// Worth far more than it looks. Left alone, a small model that has finished
   /// translating a one-line message will often carry on — a second attempt, a
   /// note about a word choice, occasionally an unrelated paragraph — and every
-  /// token of that is queue time the next message is waiting for. Both tests
-  /// are shaped to be impossible to trip on a genuine translation:
+  /// token of that is queue time the next message is waiting for.
+  ///
+  /// Three tests, all shaped to be impossible to trip on a genuine translation:
   ///
   ///  * a blank line, when the source had none. Chat messages that are one
   ///    paragraph translate to one paragraph.
   ///  * running well past a plausible length for the input.
+  ///  * the model starting to explain itself. This one is new, and it is the
+  ///    one that stops a reasoning model burning the entire token budget: a
+  ///    run that has produced text and then opens a `(Note:` or a `Translation:`
+  ///    has said everything it is going to say that anyone wants.
+  ///
+  /// The explanation test deliberately waits for some output first. A model that
+  /// opens with `Translation:` is about to answer; one that writes it after
+  /// forty characters is about to annotate.
   bool Function(String) _rambleGuard(String source) {
     final sourceHasBlankLine = source.contains('\n\n');
     final ceiling = (source.length * 3).clamp(160, 4000);
     return (soFar) {
       if (!sourceHasBlankLine && soFar.contains('\n\n')) return true;
-      return soFar.length > ceiling;
+      if (soFar.length > ceiling) return true;
+      return soFar.length > 40 && _annotationOpener.hasMatch(soFar);
     };
   }
+
+  /// The shapes a model uses to start talking ABOUT its answer.
+  ///
+  /// Anchored to a line start or an opening bracket so an ordinary sentence
+  /// containing "note" is untouched, and matched case-insensitively because
+  /// small models are inconsistent about capitalising their own furniture.
+  static final RegExp _annotationOpener = RegExp(
+    r'(?:^|\n)\s*(?:\(|\[)?(?:note|n\.b\.|literally|lit\.|explanation'
+    r'|translation|alternatively|or:)\b',
+    caseSensitive: false,
+    multiLine: true,
+  );
+
+  /// One translation, start to finish, with the ladder's own bookkeeping
+  /// exposed. For the golden-set benchmark and nothing else.
+  ///
+  /// Deliberately bypasses the queue and the cache. Both are correct in the app
+  /// — a cached answer is the right answer to show — and both are exactly wrong
+  /// in a benchmark, where a second run of the same corpus would score the
+  /// first run's results and report that nothing had changed. What it does NOT
+  /// bypass is [_ask]: the point of the number is that it describes the
+  /// pipeline that ships.
+  ///
+  /// Returns null text when every rung was refused, which is the same thing the
+  /// bubble shows as a failure.
+  @visibleForTesting
+  Future<({String? text, int attempts})> runOnce(
+    String text,
+    TranslationLanguage target,
+  ) async {
+    final handle = TranslationHandle._(text, null);
+    final job = _Job(key: 'eval', content: text, persist: false);
+    _evalAttempts = 0;
+    final result = await _ask(
+      job,
+      handle,
+      target,
+      LanguageDetector.detect(text),
+    );
+    return (text: result, attempts: _evalAttempts);
+  }
+
+  /// Rungs spent on the most recent [runOnce]. Only ever written by [_ask], and
+  /// only meaningful immediately after one call — this is a benchmark counter,
+  /// not state the app reads.
+  int _evalAttempts = 0;
 
   void _bumpProgress(String roomId) {
     final current = _roomProgress[roomId];
@@ -1105,4 +1199,27 @@ class _Job {
   /// is the field that actually decides whether this text fades, and it is
   /// carried by the message the caller already has.
   final bool persist;
+}
+
+/// One attempt's decoding settings. See [Sebastian._rungs].
+class _Rung {
+  const _Rung({
+    required this.topK,
+    required this.topP,
+    required this.temperature,
+    required this.randomSeed,
+    required this.terse,
+    this.demoteFirst = false,
+  });
+
+  final int topK;
+  final double? topP;
+  final double temperature;
+  final int randomSeed;
+
+  /// Drops the worked examples from the turn — see [TranslationPrompt.build].
+  final bool terse;
+
+  /// Whether to move to the CPU before this attempt.
+  final bool demoteFirst;
 }

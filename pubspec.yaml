@@ -305,6 +305,16 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
+  # Drives `integration_test/translation_eval_test.dart`, which is the only
+  # test in this repo that needs a REAL model: it runs Sebastian's brain over
+  # `test/fixtures/translation_golden.json` on a device and prints the pass
+  # rate, the preamble-leak rate and the per-pair breakdown. Everything else
+  # about translation is asserted in plain `flutter test` against recorded
+  # shapes — see `test/translation_contract_test.dart` — because a suite that
+  # needed a 328 MB download to run is a suite nobody runs.
+  integration_test:
+    sdk: flutter
+
   # Transitively present via flutter_secure_storage; declared explicitly because
   # `test/device_identity_test.dart` implements `FlutterSecureStoragePlatform`
   # directly. The package's own in-memory double ignores the `options` map, and

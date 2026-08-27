@@ -107,7 +107,81 @@ class BrainStore {
     }
   }
 
-  /// Forgets how to resume, leaving any bytes in place.
+  /// Deletes every file in the brains directory that no brain on the shelf
+  /// claims, and returns how many bytes that freed.
+  ///
+  /// ── The hole this closes ───────────────────────────────────────────────
+  ///
+  /// Retiring a brain takes it out of [BrainCatalog.all] — which is what every
+  /// screen, every install state and every delete path iterates. The weights
+  /// stop being offered and stop being attributable, and they go right on
+  /// occupying the disk. [bytesUsed] walks the DIRECTORY rather than the
+  /// catalog, so the user is even shown the number: "Companions are using
+  /// 950 MB" next to a shelf holding 617 MB of brains, and nothing anywhere to
+  /// press. Several hundred megabytes, visible and unreachable.
+  ///
+  /// It is not hypothetical. Sebastian shipped on Qwen3-0.6B and moved to Qwen2
+  /// (see [BrainCatalog.sebastianBrain]); every installed user is carrying
+  /// 328 MB of a brain this build cannot load.
+  ///
+  /// ── Why "unclaimed" and not a list of retired names ────────────────────
+  ///
+  /// A list only reclaims what somebody remembered to write down, which is the
+  /// same class of bug one level up: the release that forgets to add a name
+  /// leaves the file behind forever, and nothing fails. Claiming is derived
+  /// instead, so a brain leaving the catalog is sufficient on its own.
+  ///
+  /// Deleting unrecognised files is safe here in a way it would not be
+  /// anywhere else, and only because of where this directory is. It lives
+  /// under application-support, it is created by this class, and the only
+  /// things that ever write into it are [brainFile], [partFile] and
+  /// [resumeFile] — all three named after a [BrainSpec]. A file here that no
+  /// spec claims is, by construction, wreckage from a previous release. It is
+  /// also unusable: the engine can only be pointed at a path the catalog
+  /// supplies.
+  ///
+  /// The one thing it costs: a brain retired in one release and brought back in
+  /// the next is a fresh download rather than a file already on disk. That is
+  /// the right side to be wrong on — the alternative is charging every user
+  /// permanent storage against the chance that a model comes back.
+  ///
+  /// Never touches a live download. A spec being downloaded is in the catalog,
+  /// so its `.part` is claimed.
+  Future<int> sweepUnclaimed() async {
+    var freed = 0;
+    try {
+      final dir = await _brainsDir();
+      if (!await dir.exists()) return 0;
+
+      final claimed = <String>{
+        for (final spec in BrainCatalog.all) ...[
+          spec.fileName,
+          '${spec.fileName}.part',
+          '${spec.fileName}.resume',
+        ],
+      };
+
+      await for (final entity in dir.list()) {
+        // Files only. Nothing writes a subdirectory here, and recursing into
+        // one this class did not create is not this function's business.
+        if (entity is! File) continue;
+        final name = entity.uri.pathSegments.last;
+        if (claimed.contains(name)) continue;
+        try {
+          final size = await entity.length();
+          await entity.delete();
+          freed += size;
+        } catch (_) {
+          // A file we cannot read or cannot delete stays. It will be offered
+          // again on the next refresh, and reporting bytes that are still
+          // there would make the storage line lie.
+        }
+      }
+    } catch (_) {}
+    return freed;
+  }
+
+  /// Forgets how to resume, leaving any bytes in place.  /// Forgets how to resume, leaving any bytes in place.
   ///
   /// Used on success (there is nothing left to resume) and when a partial is
   /// discarded (the note must not outlive the bytes it describes, or the next

@@ -201,9 +201,20 @@ class TranslationSlab extends StatelessWidget {
         return const SizedBox.shrink();
 
       case TranslationState.streaming:
+        // The same shimmer as `queued`, and deliberately not a live transcript
+        // of the model. Text used to arrive here token by token; what actually
+        // reached readers was the model's own preamble, because a sanitiser
+        // cannot recognise an announcement until there is a line after it. See
+        // [TranslationHandle.text]. The shimmer is the honest version of the
+        // same signal: something is happening, and it is not ready.
+        return _WaitingLine(theme: theme, isMine: isMine, motion: motion);
+
       case TranslationState.done:
         final text = handle.text;
         if (text == null || text.isEmpty) {
+          // Unreachable: `done` is only ever set with a verified translation.
+          // Kept because a shimmer is a better thing to be wrong with than an
+          // empty slab under a hairline.
           return _WaitingLine(theme: theme, isMine: isMine, motion: motion);
         }
         return Column(
@@ -226,8 +237,6 @@ class TranslationSlab extends StatelessWidget {
               theme: theme,
               isMine: isMine,
               handle: handle,
-              streaming: handle.state == TranslationState.streaming,
-              motion: motion,
               label: l10n.translationSlabShowOriginal,
               onTap: onToggleOriginal,
             ),
@@ -401,8 +410,6 @@ class _Attribution extends StatelessWidget {
     required this.theme,
     required this.isMine,
     required this.handle,
-    required this.streaming,
-    required this.motion,
     required this.label,
     required this.onTap,
   });
@@ -410,8 +417,6 @@ class _Attribution extends StatelessWidget {
   final AppTheme theme;
   final bool isMine;
   final TranslationHandle handle;
-  final bool streaming;
-  final MotionScope motion;
   final String label;
   final VoidCallback onTap;
 
@@ -446,20 +451,18 @@ class _Attribution extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          // The toggle appears only once there is a finished translation to
-          // toggle away from. Offering it mid-stream would be offering to
-          // cancel something that is nearly done.
-          if (!streaming) ...[
-            _Dot(color: ink),
-            Text(
-              label,
-              style: theme.caption.copyWith(
-                color: theme.linkInk(isMine: isMine),
-                fontWeight: FontWeight.w600,
-              ),
+          // Unconditional now. This row only renders under a finished
+          // translation — there is no mid-stream text to attribute any more,
+          // and the blinking caret that used to stand in for the toggle went
+          // with it.
+          _Dot(color: ink),
+          Text(
+            label,
+            style: theme.caption.copyWith(
+              color: theme.linkInk(isMine: isMine),
+              fontWeight: FontWeight.w600,
             ),
-          ] else
-            _Caret(theme: theme, isMine: isMine, motion: motion),
+          ),
         ],
       ),
     );
@@ -479,57 +482,4 @@ class _Dot extends StatelessWidget {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
       );
-}
-
-/// The blinking tick that says tokens are still arriving.
-class _Caret extends StatefulWidget {
-  const _Caret({
-    required this.theme,
-    required this.isMine,
-    required this.motion,
-  });
-
-  final AppTheme theme;
-  final bool isMine;
-  final MotionScope motion;
-
-  @override
-  State<_Caret> createState() => _CaretState();
-}
-
-class _CaretState extends State<_Caret> with SingleTickerProviderStateMixin {
-  AnimationController? _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    if (!widget.motion.calm) {
-      _ctrl = AnimationController(
-        vsync: this,
-        duration: const Duration(milliseconds: 700),
-      )..repeat(reverse: true);
-    }
-  }
-
-  @override
-  void dispose() {
-    _ctrl?.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bar = Container(
-      width: 2,
-      height: 11,
-      margin: const EdgeInsets.only(left: 6),
-      color: widget.theme.linkInk(isMine: widget.isMine),
-    );
-    final ctrl = _ctrl;
-    if (ctrl == null) return bar;
-    return FadeTransition(
-      opacity: Tween<double>(begin: 0.25, end: 1).animate(ctrl),
-      child: bar,
-    );
-  }
 }
