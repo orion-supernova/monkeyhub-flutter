@@ -682,6 +682,55 @@ class ChatRepository extends ChangeNotifier {
   /// firing the mutation and seeing it come back.
   final Map<String, DateTime> _deliveryReported = {};
 
+  /// How many messages the live `messages:list` subscription holds open.
+  ///
+  /// Every send, edit, reaction or delete in this window re-runs that query
+  /// for every viewer of the room and re-sends them the WHOLE window — Convex
+  /// pushes full results, not deltas — so this number is a multiplier on the
+  /// two things the receive path is made of: the server's work per message and
+  /// the bytes each phone parses per message. It was 100. Fifty still fills
+  /// several screens on the tallest phone, and everything older arrives
+  /// through [loadOlder] on the first scroll back, exactly as messages 101+
+  /// always did. The one thing given up: a reaction on a message that has
+  /// scrolled out of the window no longer updates live — which was already
+  /// true past 100, and is the same freeze the thread overlay documents.
+  static const kLiveWindow = 50;
+
+  /// Pending `markRoomRead`, coalesced — see [_scheduleMarkRead].
+  Timer? _readDebounce;
+  ({String roomId, String userId, DateTime upTo})? _pendingRead;
+
+  /// A burst of arrivals — a sender's queue flushing, a reconnect replay —
+  /// lands as several `messages:list` fires in quick succession, and each used
+  /// to send its own `markRoomRead`. One write per burst instead; the sender's
+  /// SEEN lags by at most this, which is invisible next to the round trip.
+  static const _kReadDebounce = Duration(milliseconds: 400);
+
+  /// Queues a read receipt for [roomId] up to [upTo], the newest message this
+  /// device has on screen. Later cursors for the same room fold into the one
+  /// already queued; a different room flushes the queued one first, so a quick
+  /// room switch never loses the previous room's read.
+  void _scheduleMarkRead(String roomId, String userId, DateTime upTo) {
+    final cur = _pendingRead;
+    if (cur != null && cur.roomId != roomId) _flushMarkRead();
+    final queued = _pendingRead;
+    if (queued != null && !upTo.isAfter(queued.upTo)) upTo = queued.upTo;
+    _pendingRead = (roomId: roomId, userId: userId, upTo: upTo);
+    _readDebounce?.cancel();
+    _readDebounce = Timer(_kReadDebounce, _flushMarkRead);
+  }
+
+  void _flushMarkRead() {
+    _readDebounce?.cancel();
+    _readDebounce = null;
+    final p = _pendingRead;
+    _pendingRead = null;
+    if (p == null) return;
+    api
+        .markRoomRead(roomId: p.roomId, userId: p.userId, upTo: p.upTo)
+        .catchError((_) {});
+  }
+
   Timer? _deliveryDebounce;
 
   /// How long a burst of incoming traffic is allowed to settle before we report
@@ -839,6 +888,10 @@ class ChatRepository extends ChangeNotifier {
     _deliveryDebounce?.cancel();
     _deliveryDebounce = null;
     _deliveryReported.clear();
+    // Dropped, not flushed: the queued receipt names the account signing out.
+    _readDebounce?.cancel();
+    _readDebounce = null;
+    _pendingRead = null;
     // Stop feeding any live share. Signing out has to take the GPS with it —
     // the next account on this device must not inherit a position stream, and
     // the departing account's publisher would be writing to a message it can no
@@ -1289,7 +1342,7 @@ class ChatRepository extends ChangeNotifier {
       // view-once ledger rows and nothing else, which is deliberate: opening a
       // photo on another device refires this query here (so the bubble greys
       // out live) without refiring it for anybody else in the room.
-      {'roomId': roomId, 'limit': 100, 'viewerUserId': ?me},
+      {'roomId': roomId, 'limit': kLiveWindow, 'viewerUserId': ?me},
       onData: (data) {
         final list = (data as List?) ?? const [];
         final parsed = list
@@ -1298,8 +1351,9 @@ class ChatRepository extends ChangeNotifier {
         // Re-attach any pages the user scrolled back through. A bare
         // `_messages[roomId] = parsed` would drop them: this subscription
         // refires on every reaction add/remove too, so a single reaction
-        // used to collapse the room back to the newest 100 and — because
-        // `_exhausted` isn't reset here — permanently kill `hasMoreOlder`.
+        // used to collapse the room back to the newest [kLiveWindow] and —
+        // because `_exhausted` isn't reset here — permanently kill
+        // `hasMoreOlder`.
         _messages[roomId] = _withOlderPrefix(roomId, parsed);
         _initialLoaded.add(roomId);
         // Distinct from `_initialLoaded`: that one also flips true off a
@@ -1320,7 +1374,7 @@ class ChatRepository extends ChangeNotifier {
           final newestId = parsed.isNotEmpty ? parsed.last.id : null;
           if (newestId != null && newestId != _lastSeenNewestMsgId[roomId]) {
             _lastSeenNewestMsgId[roomId] = newestId;
-            api.markRoomRead(roomId: roomId, userId: me).catchError((_) {});
+            _scheduleMarkRead(roomId, me, parsed.last.createdAt);
             // Reading it means its notifications are spent. Done locally
             // rather than waiting for the server's silent dismiss push, which
             // is best-effort and can't reach a force-quit app at all.
@@ -1523,9 +1577,22 @@ class ChatRepository extends ChangeNotifier {
       _readStateSub = readStateSub;
     }
 
-    // Mark the room read on entry too.
+    // Mark the room read on entry too. `upTo` is whatever this device already
+    // holds — the disk cache, or the live window on re-entry — so the server
+    // can skip its own room read. Anything newer than that arrives through the
+    // subscription above and is marked from there, which is also the honest
+    // order: a message is read when it is on screen, not when the room opens.
+    // With nothing held it is omitted, and the server falls back to the room's
+    // `lastMessageTime` as it always did.
     if (me != null) {
-      api.markRoomRead(roomId: roomId, userId: me).catchError((_) {});
+      final held = _messages[roomId];
+      api
+          .markRoomRead(
+            roomId: roomId,
+            userId: me,
+            upTo: held != null && held.isNotEmpty ? held.last.createdAt : null,
+          )
+          .catchError((_) {});
       PushManager.instance.dismissRoomNotifications(roomId);
     }
     final id = _userId;
@@ -1581,6 +1648,8 @@ class ChatRepository extends ChangeNotifier {
     // room closes with live subscriptions nobody holds a handle to.
     _openGen++;
     _stopTyping();
+    // Flushed, not dropped: whatever was queued was on screen a moment ago.
+    _flushMarkRead();
     _messagesSub?.cancel();
     _activeTypingSub?.cancel();
     _readStateSub?.cancel();
@@ -1635,7 +1704,7 @@ class ChatRepository extends ChangeNotifier {
   final Set<String> _exhausted = {};
 
   /// Pages fetched by [loadOlder], kept separately from `_messages` so the
-  /// `messages:list` subscription can rebuild its 100-message live window
+  /// `messages:list` subscription can rebuild its [kLiveWindow]-message live window
   /// without discarding scrolled-back history. Oldest first. Cleared by
   /// [closeRoom] alongside `_loadingOlder` / `_exhausted`.
   final Map<String, List<ChatMessage>> _olderPrefix = {};
@@ -2471,7 +2540,7 @@ class ChatRepository extends ChangeNotifier {
   // so an overlay-owned one would go permanently dead after a socket
   // reconnect with no recovery path.
   //
-  // The honest limit: only the newest ~100 room messages are live, so thread
+  // The honest limit: only the newest [kLiveWindow] room messages are live, so thread
   // messages older than that window are frozen snapshots. That's the same
   // guarantee the room screen itself gives.
 

@@ -328,8 +328,17 @@ class _RoomScreenState extends State<RoomScreen>
     // something it renders actually changed, so ordinary typing does not
     // repaint a list that would look identical.
     _mention.addListener(_onMentionChanged);
-    _ticker = Timer.periodic(const Duration(milliseconds: 200), (_) {
-      if (mounted) setState(() => _now = DateTime.now());
+    _ticker = Timer.periodic(const Duration(milliseconds: 200), (t) {
+      if (!mounted) return;
+      // 5Hz only while a Chamber-of-Secrets countdown can be on screen: the
+      // life bar on a fading message is the one reader of `_now` that wants
+      // sub-second resolution. Everywhere else it feeds relative timestamps
+      // and a live-share "still running" check, which a 1Hz tick serves just
+      // as well — and this setState rebuilds the whole transcript, so the
+      // other four ticks a second were pure cost, paid out of the same frame
+      // budget the receive path parses a message on.
+      if (_room?.messageLifetime == null && t.tick % 5 != 0) return;
+      setState(() => _now = DateTime.now());
     });
     _highlightCtrl = AnimationController(
       vsync: this,

@@ -94,6 +94,7 @@ class _FakeApi extends Fake implements ChatApi {
   Future<void> markRoomRead({
     required String roomId,
     required String userId,
+    DateTime? upTo,
   }) async {}
 
   @override

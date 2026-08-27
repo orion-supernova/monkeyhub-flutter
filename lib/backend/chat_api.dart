@@ -1385,8 +1385,22 @@ class ChatApi {
     return _decodeMessages(res);
   }
 
-  Future<void> markRoomRead({required String roomId, required String userId}) async {
-    await _cv.mutation('messages:markRoomRead', {'roomId': roomId, 'userId': userId});
+  /// [upTo] is the `createdAt` of the newest message this device holds for the
+  /// room. Given one, the server writes it as the read cursor and skips its own
+  /// read of the room document — which is what keeps this call from colliding
+  /// with `messages:send`, whose patch of that same document was aborting and
+  /// re-running these under a fast two-way chat. See `messages.markRoomRead`.
+  /// Omitted, the server falls back to the room's `lastMessageTime` as before.
+  Future<void> markRoomRead({
+    required String roomId,
+    required String userId,
+    DateTime? upTo,
+  }) async {
+    await _cv.mutation('messages:markRoomRead', {
+      'roomId': roomId,
+      'userId': userId,
+      'upTo': ?upTo?.millisecondsSinceEpoch,
+    });
   }
 
   /// Reports that this device now HAS the room's traffic, without claiming
