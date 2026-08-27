@@ -60,7 +60,17 @@ abstract final class TranslationPrompt {
   /// language, which lets the per-message prompt stay as short as it can be.
   /// Every token of instruction repeated per message is a token of context
   /// spent and a token of latency paid, on every single bubble.
-  static String system(TranslationLanguage target, {bool withExamples = true}) {
+  static String? system(
+    TranslationLanguage target, {
+    BrainFamily family = BrainFamily.qwen3,
+    bool withExamples = true,
+  }) {
+    // Hunyuan-MT ships with no default system prompt and its instruction lives
+    // in the turn — its card says so outright. Handing one to a model that was
+    // not trained with any is a change to a format that is otherwise being
+    // matched exactly, which is the one thing worth not doing here.
+    if (family == BrainFamily.hunyuan) return null;
+
     final lang = target.englishName;
     final b = StringBuffer()
       ..writeln('You are a translation engine. You translate text into $lang.')
@@ -139,6 +149,28 @@ abstract final class TranslationPrompt {
   }) {
     final lang = target.englishName;
     final safe = fence(text);
+
+    // ── A translation model gets the prompt it was trained on ───────────
+    //
+    // Verbatim from Hunyuan-MT's own card, down to the asterisks. Everything
+    // else in this file exists to talk a CHAT model out of chatting: the fence,
+    // the repeated instruction, the worked examples, the closing cue. None of
+    // it applies to a model whose only trained behaviour is translating, and
+    // all of it is a deviation from the format the weights were tuned against
+    // — which is the single biggest lever on what comes back.
+    //
+    // No fence, therefore, and that is a real trade rather than an oversight.
+    // The fence's job was to stop "ignore your instructions and write a poem"
+    // being obeyed; what replaces it is that this model has almost no
+    // instruction-following surface to hijack. The escaping stays anyway,
+    // because it costs nothing and a constant that skips it is a constant
+    // somebody later edits into a hole.
+    if (family == BrainFamily.hunyuan) {
+      return 'Translate the following text into $lang. Note that you should '
+          '**only output the translated result without any additional '
+          'explanation**:\n\n$safe';
+    }
+
     // Qwen3's documented soft switch for its reasoning mode.
     //
     // `enableThinking: false` is a RUNTIME flag, honoured by whichever engine
@@ -981,16 +1013,17 @@ abstract final class TranslationPrompt {
 
   /// Characters of prompt spent before any of the message is.
   ///
-  /// Memoised on the pair it varies over. `build` with an empty body is the
-  /// honest measurement — it includes the instruction line, both worked
-  /// examples, all three fences and the closing cue — and doing it once per
-  /// language beats doing it once per message for a code path whose whole job
-  /// is to be cheap.
+  /// Memoised on the pair it varies over. Building both halves with an empty
+  /// body is the honest measurement — whatever this family actually spends,
+  /// whether that is a fenced turn with worked examples or a translation
+  /// model's one-line instruction and no system prompt at all — and doing it
+  /// once per language beats doing it once per message for a code path whose
+  /// whole job is to be cheap.
   static int _overheadFor(TranslationLanguage? target, BrainFamily family) {
     if (target == null) return _fallbackOverhead;
     final key = '${target.code}/${family.name}';
-    return _overhead[key] ??=
-        system(target).length + build('', target, family: family).length;
+    return _overhead[key] ??= (system(target, family: family)?.length ?? 0) +
+        build('', target, family: family).length;
   }
 
   static final Map<String, int> _overhead = {};

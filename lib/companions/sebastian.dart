@@ -1036,7 +1036,14 @@ class Sebastian extends ChangeNotifier {
     // The retry drops the examples along with the instruction line: if the
     // first pass produced an example rather than a translation, showing it the
     // same examples again is the one change guaranteed not to help.
-    final system = TranslationPrompt.system(target, withExamples: !terse);
+    //
+    // Null for a translation model, which ships without one — see
+    // [TranslationPrompt.system].
+    final system = TranslationPrompt.system(
+      target,
+      family: brain.family,
+      withExamples: !terse,
+    );
     final out = StringBuffer();
 
     for (var i = 0; i < chunks.length; i++) {

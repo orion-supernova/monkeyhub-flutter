@@ -241,7 +241,7 @@ void main() {
     test('every offered language has a full pair of examples, or none', () {
       for (final language in kTranslationLanguages) {
         final shown =
-            'you:'.allMatches(TranslationPrompt.system(language)).length;
+            'you:'.allMatches(TranslationPrompt.system(language)!).length;
         expect(shown == 0 || shown == 2, isTrue,
             reason: '${language.code} shows $shown worked answers; expected '
                 '0 (no examples) or 2 (a full pair)');
@@ -286,7 +286,7 @@ void main() {
       final built = TranslationPrompt.build('hello', turkish);
       expect(built, contains('Turkish'));
       expect(built, isNot(contains('Türkçe')));
-      expect(TranslationPrompt.system(turkish), contains('Turkish'));
+      expect(TranslationPrompt.system(turkish)!, contains('Turkish'));
     });
   });
 
@@ -311,7 +311,7 @@ void main() {
       // Whatever the budget is, a chunk of exactly that size plus everything
       // the prompt costs has to still fit the window this brain opens with.
       final window = ((brain.contextTokens * 3.5) / 2).round();
-      final overhead = TranslationPrompt.system(turkish).length +
+      final overhead = TranslationPrompt.system(turkish)!.length +
           TranslationPrompt.build('', turkish).length;
       expect(measured + overhead, lessThanOrEqualTo(window));
 
@@ -354,7 +354,7 @@ void main() {
         () {
       // The behaviour `Sebastian._run` relies on to report "nothing to do"
       // when its own detector was unsure.
-      expect(TranslationPrompt.system(english), contains('already in English'));
+      expect(TranslationPrompt.system(english)!, contains('already in English'));
     });
   });
 }

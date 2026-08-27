@@ -174,6 +174,25 @@ enum BrainFamily {
   /// Gemma 4 — Apache 2.0 on the litert-community bundles. No thinking
   /// preamble by default.
   gemma,
+
+  /// Hunyuan-MT — Apache 2.0, and not a chat model at all.
+  ///
+  /// It is a TRANSLATION model: `pipeline_tag: translation`, tuned to follow
+  /// translation instructions rather than to converse. That is the whole reason
+  /// it is here. Every failure this feature has fought — the preamble, the
+  /// reasoning trace, the label, the instruction handed back instead of obeyed
+  /// — is a chat model doing what chat models do, and each one had to be
+  /// stripped, refused or prompted away. A model that was never trained to
+  /// chat has no such surface.
+  ///
+  /// Two consequences that are not cosmetic, both handled in
+  /// [TranslationPrompt]:
+  ///
+  ///  * it has NO default system prompt, and its instruction goes in the turn;
+  ///  * it has its own instruction wording, which it was trained on. Matching
+  ///    the training format is the single biggest lever on what comes back, so
+  ///    this family does not get the fenced turn the chat families get.
+  hunyuan,
 }
 
 /// The shelf.
@@ -208,35 +227,56 @@ abstract final class BrainCatalog {
   /// the chat template MANUALLY and a family the plugin does not recognise is
   /// exactly how a device ends up rendering control tokens as text.
   static const List<BrainSpec> sebastianBrains = [
-    // The good one. 1.5B translates markedly better than 0.5B — enough that it
-    // is worth 1.5 GB and a memory floor on the devices that can take it.
+    // A translation model, not a chat model talked into behaving like one.
     //
-    // q8 rather than f32, which is the same weights at 6.2 GB. There is no int4
-    // build of this one; if litert-community ships one it would be the obvious
-    // row to replace this with, at roughly half the disk.
+    // Tencent's Hunyuan-MT at 1.8B, converted to LiteRT-LM. 33 languages,
+    // Apache 2.0, ungated. `pipeline_tag: translation` is the entire argument:
+    // every bug this feature has shipped — the preamble, the reasoning trace,
+    // the echoed example, the instruction handed back instead of obeyed — was a
+    // chat model doing what chat models do. The contract catches them and will
+    // go on catching them; this is the change that stops manufacturing them.
+    //
+    // ── The two things it costs ─────────────────────────────────────────
+    //
+    // Seven of the thirty languages this app offers are outside its published
+    // set: Swedish, Greek, Romanian, Hungarian, Danish, Finnish, Norwegian.
+    // They are NOT removed from the picker — Swedish is one of the app's own UI
+    // locales, and a Swedish reader losing translation would be a worse
+    // regression than a weaker one. Unlisted is not the same as broken, and a
+    // bad answer is refused by [TranslationPrompt.verify] rather than shown.
+    // `tool/`'s golden set is where that stops being an assumption.
+    //
+    // And flutter_gemma has no Hunyuan `ModelType`. On iOS `.litertlm` applies
+    // the chat template MANUALLY, so this family gets `ModelType.general`'s
+    // Gemma turn markers around a prompt that wants none. Survivable, and
+    // measured rather than hoped: the markers are already in `_controlToken`,
+    // and Hy-MT2's own documented usage is a PLAIN prompt with no chat template
+    // at all — so stray markers are noise around an instruction it can still
+    // read, not a format it cannot parse.
     BrainSpec(
-      id: 'qwen2.5-1.5b-instruct',
+      id: 'hy-mt2-1.8b',
       label: 'Translator',
-      fileName: 'Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv4096.litertlm',
-      url: 'https://huggingface.co/litert-community/Qwen2.5-1.5B-Instruct/'
-          'resolve/main/'
-          'Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv4096.litertlm',
-      sizeBytes: 1597931520,
-      sha256: 'faa60663b333290c1496c499828b21d3e3254a788cacd8cce917ce0f761a2dc9',
-      family: BrainFamily.qwen2,
+      fileName: 'Hy-MT2-1.8B_int8.litertlm',
+      url: 'https://huggingface.co/litert-community/Hy-MT2-1.8B/'
+          'resolve/main/Hy-MT2-1.8B_int8.litertlm',
+      sizeBytes: 1815622960,
+      sha256: '7bbd0b65d7e69c8d92b8ab3033e353536ef40c77f4dc5f4c32f2931417c13eda',
+      family: BrainFamily.hunyuan,
+      // The bundle carries a 4096 window; 2048 is what a chat message plus its
+      // translation needs several times over, and every token of unused window
+      // is memory held on a phone that is also running a chat.
       contextTokens: 2048,
       license: 'Apache 2.0',
-      // 1.5 GB of weights resident, beside a transcript and its images. Four
-      // gigabytes is the floor a sibling project runs this exact model behind
-      // in production; below it the platform starts killing the app, which the
-      // user experiences as a crash and cannot connect to a model they were
-      // never asked about.
       minRamMb: 4096,
     ),
-    // The one everything can run. Also what a device of unknown size gets: see
+    // The one everything can run, and what a device of unknown size gets: see
     // [DeviceCapability], where every failure resolves downward.
     //
-    // Qwen2 rather than Qwen2.5 at this size for a boring reason —
+    // Still a chat model, because there is no translation-tuned model at this
+    // size in this format — so it keeps the fenced turn, the worked examples
+    // and the whole contract that exists to talk a chat model out of chatting.
+    //
+    // Qwen2 rather than Qwen2.5 for a boring reason:
     // `litert-community/Qwen2.5-0.5B-Instruct` ships `.task` only, which is
     // MediaPipe, and the engine here is LiteRT-LM (see the pubspec).
     BrainSpec(

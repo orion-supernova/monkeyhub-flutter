@@ -348,5 +348,13 @@ class BrainGateway {
         BrainFamily.qwen2 => ModelType.qwen,
         BrainFamily.qwen3 => ModelType.qwen3,
         BrainFamily.gemma => ModelType.gemma4,
+        // The plugin has no Hunyuan entry, and this only matters on iOS —
+        // everywhere else `.litertlm` hands templating to the LiteRT-LM engine,
+        // which applies the bundle's own. `general` is the least wrong of the
+        // manual options: it wraps in two Gemma turn markers where
+        // `ModelType.qwen` would add four ChatML ones plus a role word, and
+        // Hy-MT2's documented usage is a plain prompt with no template at all.
+        // The markers are stripped by `TranslationPrompt._controlToken`.
+        BrainFamily.hunyuan => ModelType.general,
       };
 }

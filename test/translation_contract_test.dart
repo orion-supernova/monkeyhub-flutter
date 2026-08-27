@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:monkeyhub/companions/brain_spec.dart';
 import 'package:monkeyhub/companions/translation/language.dart';
 import 'package:monkeyhub/companions/translation/language_detector.dart';
 import 'package:monkeyhub/companions/translation/translation_prompt.dart';
@@ -361,6 +362,78 @@ void main() {
         ),
         isNull,
       );
+    });
+  });
+
+  group('a translation model gets the prompt it was trained on', () {
+    /// Verbatim from Hunyuan-MT's card, asterisks included. Matching the
+    /// training format is the single biggest lever on what comes back, so this
+    /// is asserted character-for-character rather than described.
+    test('the native instruction, and nothing this file invented', () {
+      final built = TranslationPrompt.build(
+        'Nasilsin?',
+        english,
+        family: BrainFamily.hunyuan,
+      );
+      expect(
+        built,
+        'Translate the following text into English. Note that you should '
+        '**only output the translated result without any additional '
+        'explanation**:\n\nNasilsin?',
+      );
+    });
+
+    /// Every chat-model scaffold is absent. The fence, the closing cue and the
+    /// worked examples exist to talk a CHAT model out of chatting, and each one
+    /// is a deviation from the format these weights were tuned against.
+    test('none of the chat-model scaffolding comes with it', () {
+      final built = TranslationPrompt.build(
+        'Nasilsin?',
+        english,
+        family: BrainFamily.hunyuan,
+      );
+      expect(built, isNot(contains('<<<')));
+      expect(built, isNot(contains('>>>')));
+      expect(built, isNot(contains('/no_think')));
+      expect(built.trimRight(), isNot(endsWith('English:')));
+    });
+
+    /// Its card says outright that the family ships without one. Handing a
+    /// system prompt to a model never trained with any is a change to the one
+    /// format being matched exactly.
+    test('and no system prompt at all', () {
+      expect(
+        TranslationPrompt.system(english, family: BrainFamily.hunyuan),
+        isNull,
+      );
+      expect(
+        TranslationPrompt.system(english, family: BrainFamily.qwen2),
+        isNotNull,
+      );
+    });
+
+    /// The instruction it is given names the same phrases verify watches for,
+    /// so an echo of the prompt is still caught for this family too.
+    test('but the instruction still cannot come back as an answer', () {
+      expect(
+        verdict(
+          'Translate the following text into English.',
+          source: 'Nasilsin?',
+          target: english,
+        ),
+        TranslationRejection.preamble,
+      );
+    });
+
+    /// The chat families keep every bit of it, because they still need it.
+    test('the chat families keep their scaffolding', () {
+      final built = TranslationPrompt.build(
+        'Nasilsin?',
+        english,
+        family: BrainFamily.qwen2,
+      );
+      expect(built, contains('<<<'));
+      expect(built.trimRight(), endsWith('English:'));
     });
   });
 
