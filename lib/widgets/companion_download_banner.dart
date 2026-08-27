@@ -21,11 +21,27 @@
 ///
 /// ── Where it lives ─────────────────────────────────────────────────────────
 ///
-/// The same top slot as [ConnectionBanner] and [ActiveCallPill] — a Column
-/// above the root navigator, where every child collapses to zero height when
-/// it has nothing to say. That is what makes it genuinely global rather than
-/// per-screen, and why it must be zero-height AND non-hit-testable when idle:
-/// it spans the top of every screen in the app.
+/// In `app.dart`'s root Column, directly under [SelfHostBar] — which means it
+/// participates in LAYOUT rather than floating over it: everything below shifts
+/// down by its height and nothing is covered.
+///
+/// It began life in the floating slot beside [ConnectionBanner] and
+/// [ActiveCallPill], and for those two that is the right call: a connection
+/// blip is transient, and shoving the whole app down and back for it would be
+/// worse than briefly overlapping something. This one is not transient. It
+/// reports a download that runs for minutes, sometimes tens of minutes, and an
+/// overlay that sits on top of a room header for twenty minutes is not chrome,
+/// it is an obstruction.
+///
+/// Participating in layout comes with a bargain, and it is the same one
+/// [SelfHostBar.consumesTopInset] documents: when this is the topmost bar it
+/// pads itself by the status-bar inset so the OS glyphs land on it, and in
+/// exchange `app.dart` strips `padding.top` from everything below. Both halves
+/// read [isShowing], so the two cannot disagree and the app cannot end up inset
+/// twice or not at all.
+///
+/// Still zero height when idle, and still non-hit-testable — it spans the top
+/// of every screen in the app.
 ///
 /// The chrome itself lives in [CompanionStrip], shared with the room's
 /// translate bar. Everything below is about WHICH download to report and what
@@ -38,6 +54,7 @@ import '../companions/brain_manager.dart';
 import '../companions/brain_spec.dart';
 import '../companions/companion.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../main.dart' show rootNavigatorKey;
 import '../screens/companions/companion_page.dart' show companionByteLabel;
 import '../screens/companions/marlowe_screen.dart';
 import '../screens/companions/sebastian_screen.dart';
@@ -45,7 +62,22 @@ import '../theme/theme_scope.dart';
 import 'companion_strip.dart';
 
 class CompanionDownloadBanner extends StatelessWidget {
-  const CompanionDownloadBanner({super.key});
+  const CompanionDownloadBanner({super.key, this.topInsetConsumedAbove = false});
+
+  /// Whether something above this has already covered the status-bar inset —
+  /// in practice [SelfHostBar]. Passed in rather than read here so the whole
+  /// inset bargain is decided in one place, `app.dart`, which is also the side
+  /// that has to strip `padding.top` to match.
+  final bool topInsetConsumedAbove;
+
+  /// Whether a strip is being drawn right now.
+  ///
+  /// `app.dart` reads this to decide whether to remove `padding.top` from the
+  /// subtree below. The two must agree, or the app is inset either twice or not
+  /// at all — so neither side is allowed its own copy of the condition. Exactly
+  /// the contract [SelfHostBar.consumesTopInset] states, for exactly the same
+  /// reason.
+  static bool get isShowing => _pending() != null;
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +115,10 @@ class CompanionDownloadBanner extends StatelessWidget {
     return CompanionStrip(
       visible: true,
       companion: companion,
-      safeAreaTop: true,
+      // Only when this is the topmost bar. With the self-host bar above it, the
+      // inset is already covered and padding again would leave a status-bar
+      // sized gap between the two.
+      safeAreaTop: !topInsetConsumedAbove,
       // The name and the bytes, then the percentage. The bytes are what a
       // person checks against their own sense of how big the download was; the
       // percentage is what makes it read as PROGRESS rather than as a number
@@ -112,7 +147,7 @@ class CompanionDownloadBanner extends StatelessWidget {
       onAction: () => paused
           ? BrainManager.instance.install(brain)
           : BrainManager.instance.pause(brain),
-      onTap: () => _open(context, companion),
+      onTap: () => _open(companion),
     );
   }
 
@@ -123,7 +158,7 @@ class CompanionDownloadBanner extends StatelessWidget {
   /// actively moving and falls back to the paused one. Reporting a paused
   /// download while another is running would describe the less urgent of the
   /// two.
-  (BrainSpec, BrainState)? _pending() {
+  static (BrainSpec, BrainState)? _pending() {
     final manager = BrainManager.instance;
     BrainSpec? paused;
     for (final brain in BrainCatalog.all) {
@@ -141,18 +176,36 @@ class CompanionDownloadBanner extends StatelessWidget {
   /// Whoever this brain belongs to. Companions can share one in principle —
   /// see [BrainCatalog.companionsUsing] — and naming the first is right
   /// because the banner is identifying a download, not assigning blame.
-  Companion _companionFor(BrainSpec brain) =>
+  static Companion _companionFor(BrainSpec brain) =>
       BrainCatalog.companionsUsing(brain).firstOrNull ?? Companion.sebastian;
 
   /// Opens the screen belonging to whoever is downloading.
   ///
   /// It used to open a Companions hub that sat between Settings and the two
   /// residents. That hub is gone — Settings lists them directly now — so this
-  /// goes where the hub's only useful tap went anyway, one screen sooner. Root
-  /// navigator, because this strip lives above it and there is no other
-  /// navigator in scope.
-  void _open(BuildContext context, Companion companion) {
-    Navigator.of(context, rootNavigator: true).push(
+  /// goes where the hub's only useful tap went anyway, one screen sooner.
+  ///
+  /// ── Why the key and not [Navigator.of] ────────────────────────────────
+  ///
+  /// Because there is no Navigator to find. This strip is mounted by
+  /// `MaterialApp.builder`, in a Stack whose other child IS the navigator —
+  /// so the navigator is a SIBLING, and looking up from here walks past
+  /// `MaterialApp` and finds nothing. `Navigator.of(context)` threw:
+  ///
+  ///     Navigator operation requested with a context that does not include
+  ///     a Navigator.
+  ///
+  /// `rootNavigator: true` did not help and could not: it changes WHICH
+  /// navigator is chosen once one has been found, not whether the lookup
+  /// succeeds. This is the same reason `_toastServerChange` and
+  /// `_openRequestsFromPush` in `app.dart` both reach for the key — every
+  /// caller in this slot has the same problem.
+  ///
+  /// Null-guarded rather than asserted: the key has no state before the first
+  /// frame, and a banner tapped in that window should do nothing rather than
+  /// take the app down.
+  static void _open(Companion companion) {
+    rootNavigatorKey.currentState?.push(
       MaterialPageRoute(
         builder: (_) => switch (companion) {
           Companion.sebastian => const SebastianScreen(),

@@ -37,6 +37,7 @@ import 'diagnostics/diag_log.dart';
 import 'diagnostics/metrics_watch.dart';
 import 'diagnostics/route_tracker.dart';
 import 'family/family_service.dart';
+import 'companions/brain_manager.dart';
 import 'env.dart';
 import 'keyboard/desktop_tab_traversal.dart';
 import 'auth/recovery_gate.dart';
@@ -213,6 +214,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     // status-glyph brightness the app asks for, so the whole builder has to
     // re-run when the server changes — not just the widget that draws it.
     ServerStore.instance,
+    // Same argument, same slot: the companion download strip is a layout
+    // participant, and `removeTop` below is computed from whether it is
+    // showing. The strip listens for itself and would redraw regardless; what
+    // needs this is the padding decision around it.
+    BrainManager.instance,
   ]);
 
   /// Created once so the observer list handed to MaterialApp is stable across
@@ -1587,6 +1593,12 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
               // Without this the light (riso) themes asked for dark glyphs and
               // painted them on a near-black strip.
               final serverBar = SelfHostBar.consumesTopInset;
+              // Gated on boot for the same reason the strip used to be: nothing
+              // has asked the disk what is installed yet, so there is nothing
+              // truthful to report and no height to take.
+              final companionBar = _bootstrapped &&
+                  _bootError == null &&
+                  CompanionDownloadBanner.isShowing;
               final darkStatusSurface = !isLight || serverBar;
               return AnnotatedRegion<SystemUiOverlayStyle>(
                 value: SystemUiOverlayStyle(
@@ -1637,18 +1649,40 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
                           Column(
                             children: [
                               const SelfHostBar(),
+                              // Beside the self-host bar rather than in the
+                              // floating slot below, and for the same reason
+                              // that bar is here: it reports a download that
+                              // runs for minutes, and chrome that sits on top
+                              // of a room header for twenty minutes is not
+                              // chrome. Its neighbours down there stay floating
+                              // — a connection blip is transient, and shoving
+                              // the whole app down and back for one would be
+                              // worse than briefly overlapping something.
+                              if (_bootstrapped && _bootError == null)
+                                CompanionDownloadBanner(
+                                  topInsetConsumedAbove: serverBar,
+                                ),
                               Expanded(
                                 child: MediaQuery.removePadding(
                                   context: context,
-                                  removeTop: serverBar,
+                                  // Either bar covers the status-bar strip
+                                  // itself, so leaving `padding.top` in place
+                                  // below would have every SafeArea in the app
+                                  // inset a second time.
+                                  removeTop: serverBar || companionBar,
                                   child: Stack(
                                     children: [
                                       ?child,
-                                      // One top slot, stacked vertically. These used to be two
-                                      // separate Positioned(top: 0) layers that overlapped
+                                      // One FLOATING top slot, stacked vertically. These used to
+                                      // be two separate Positioned(top: 0) layers that overlapped
                                       // whenever both were showing — which would have buried the
                                       // connection banner's retry target under the call pill.
                                       // Both children collapse to zero height when hidden.
+                                      //
+                                      // Only the transient chrome belongs here. The companion
+                                      // download strip moved up into the Column above, because it
+                                      // is neither transient nor small enough to float over a
+                                      // header for the length of a download.
                                       if (_bootstrapped && _bootError == null)
                                         Positioned(
                                           top: 0,
@@ -1658,11 +1692,6 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               ConnectionBanner(health: _health),
-                                              // Stays until a companion
-                                              // download reaches an end state.
-                                              // Zero height with none running,
-                                              // like its neighbours here.
-                                              const CompanionDownloadBanner(),
                                               // Global "Move call here" pill — shows when an
                                               // active call exists on another of my devices.
                                               // Tap to handoff.

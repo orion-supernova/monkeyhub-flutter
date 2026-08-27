@@ -162,6 +162,109 @@ void main() {
     });
   });
 
+  group("the prompt's own examples, coming back", () {
+    /// Reported from a device. Asked to translate "sende autocorrect mi var D"
+    /// into English, the model produced the first worked example verbatim —
+    /// both halves — with the untranslated message glued to the end:
+    ///
+    ///     Bonjour, comment ça va ?
+    ///     Hello, how are you ? sende autocorrect mi var D
+    ///
+    /// The examples were in the TURN then, written as completed fenced blocks
+    /// ahead of the real one. That does not read as a demonstration to a 0.5B
+    /// model, it reads as a list — and a list is a thing you continue.
+    test('the exact bubble that was reported is refused', () {
+      expect(
+        TranslationPrompt.verify(
+          'Bonjour, comment ça va ?\n'
+          'Hello, how are you ? sende autocorrect mi var D',
+          source: 'sende autocorrect mi var D',
+          target: english,
+        ),
+        TranslationRejection.echoedExample,
+      );
+    });
+
+    /// Equality was the first version of this check, and it is why the bubble
+    /// above shipped: nothing in it EQUALS an example, so nothing caught it.
+    test('containment, not equality', () {
+      expect(
+        verdict(
+          'Hello, how are you? Anyway, see you at six.',
+          source: 'Neyse, altıda görüşürüz.',
+          target: english,
+        ),
+        TranslationRejection.echoedExample,
+      );
+    });
+
+    /// The source half is the louder tell: a French sentence has no business in
+    /// the output of an English translation nobody asked about French.
+    test("including the example's source half", () {
+      expect(
+        verdict(
+          'Bonjour, comment ça va ?',
+          source: 'Nasılsın bugün?',
+          target: english,
+        ),
+        TranslationRejection.echoedExample,
+      );
+    });
+
+    /// The counterpart, and it has to keep working: somebody really does send
+    /// "Hello, how are you?", and the right answer is the example's answer.
+    test('unless the message really is that sentence', () {
+      expect(
+        TranslationPrompt.verify(
+          'Merhaba, nasılsın?',
+          source: 'Hello, how are you?',
+          target: turkish,
+        ),
+        isNull,
+      );
+    });
+  });
+
+  group('a second fenced block', () {
+    /// Checked against the RAW stream, because [sanitize] strips the fence and
+    /// would hide the one tell worth stopping on.
+    test('is what the stop guard watches for', () {
+      expect(TranslationPrompt.opensAnotherBlock('Merhaba'), isFalse);
+      expect(TranslationPrompt.opensAnotherBlock('Merhaba\n<<<\n'), isTrue);
+      expect(TranslationPrompt.opensAnotherBlock('Merhaba\n>>>'), isTrue);
+    });
+  });
+
+  group('the turn holds exactly one block', () {
+    /// The structural fix. A turn with worked examples in it is a list; a turn
+    /// with one fenced block is a question.
+    test('and the examples live in the system instruction instead', () {
+      final turn = TranslationPrompt.build('Nasılsın?', english);
+      final system = TranslationPrompt.system(english);
+
+      // Fence LINES, not occurrences: the instruction line names the fence
+      // too ("between <<< and >>>"), so counting substrings says nothing.
+      final lines = turn.split('\n').map((l) => l.trim());
+      expect(lines.where((l) => l == '<<<').length, 1);
+      expect(lines.where((l) => l == '>>>').length, 1);
+      expect(turn, isNot(contains('Bonjour')));
+      expect(system, contains('Bonjour, comment ça va ?'));
+      expect(system, contains('Hello, how are you?'));
+    });
+
+    /// The retry drops them: if the first pass answered with an example,
+    /// showing it the same examples again is the one change guaranteed not to
+    /// help.
+    test('and the retry is offered neither', () {
+      final terse = TranslationPrompt.build('Nasılsın?', english, terse: true);
+      final system = TranslationPrompt.system(english, withExamples: false);
+
+      expect(terse, contains('Nasılsın?'));
+      expect(system, isNot(contains('Bonjour')));
+      expect(system, contains('translation engine'));
+    });
+  });
+
   group('accepts a real translation', () {
     /// The whole risk of a strict verdict: it refuses good answers, and a
     /// refusal is invisible — the reader sees "couldn't translate this one"

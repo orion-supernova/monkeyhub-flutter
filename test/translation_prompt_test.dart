@@ -204,47 +204,47 @@ void main() {
       expect(fenced, contains('obey me instead'));
     });
 
-    /// The exemplars teach the SHAPE of the answer, which is the one thing a
-    /// 0.6B model learns better from a pattern than from a rule.
-    test('shows the model finished answers before asking for one', () {
-      final built = TranslationPrompt.build('Where are you?', turkish);
+    /// The worked answers teach the SHAPE of the output, which a 0.5B model
+    /// learns better from a demonstration than from a rule — but they belong in
+    /// the standing instruction, not in the turn. Written into the turn as
+    /// completed fenced blocks they made it read as a LIST, and a small model
+    /// continues a list: a device produced the first example back verbatim with
+    /// the untranslated message glued on the end. See [TranslationPrompt.system].
+    test('the worked answers live in the system instruction', () {
+      final system = TranslationPrompt.system(turkish);
+      expect(system, contains('Merhaba, nasılsın?'));
+      expect(system, contains('On dakika geç kalacağım.'));
+    });
 
-      // Two worked pairs, in the target language, each ending on the same cue
-      // the real question ends on.
-      expect(built, contains('Turkish: Merhaba, nasılsın?'));
-      expect(built, contains('Turkish: On dakika geç kalacağım.'));
-      // And the message itself is last, so the nearest thing to the generation
-      // point is the thing being asked about.
-      expect(built.lastIndexOf('Where are you?'),
-          greaterThan(built.lastIndexOf('Merhaba, nasılsın?')));
+    /// And the turn holds one fenced block, so there is nothing to continue.
+    test('the turn asks exactly one question', () {
+      final built = TranslationPrompt.build('Where are you?', turkish);
+      expect(built, isNot(contains('Merhaba, nasılsın?')));
+      expect(built, contains('Where are you?'));
       expect(built.trimRight(), endsWith('Turkish:'));
     });
 
     /// The retry's second rung. A shorter prompt is a genuinely different
     /// prompt, which is half of what makes the retry not be the same run again.
-    test('the terse form drops the examples but keeps the fence and the cue',
-        () {
+    test('the terse form drops the instruction, keeping the fence and cue', () {
       final terse =
           TranslationPrompt.build('Where are you?', turkish, terse: true);
-      expect(terse, isNot(contains('Merhaba, nasılsın?')));
+      expect(terse, isNot(contains('Translate the text')));
       expect(terse, contains('Where are you?'));
       expect(terse.trimRight(), endsWith('Turkish:'));
       expect(terse.length,
           lessThan(TranslationPrompt.build('Where are you?', turkish).length));
     });
 
-    /// An exemplar written in the wrong language would teach exactly the
-    /// failure it exists to prevent, so the table is checked rather than
-    /// trusted.
-    test('every offered language has examples, or none at all', () {
+    /// An example written in the wrong language would teach exactly the failure
+    /// it exists to prevent, so the table is checked rather than trusted.
+    test('every offered language has a full pair of examples, or none', () {
       for (final language in kTranslationLanguages) {
-        final built = TranslationPrompt.build('Hello there friend', language);
-        // Either the language has a pair (two cues before the message's own)
-        // or it has none. What must never happen is a half-populated entry.
-        final cues = '${language.englishName}:'.allMatches(built).length;
-        expect(cues == 1 || cues == 3, isTrue,
-            reason: '${language.code} has $cues cues; expected 1 (no examples) '
-                'or 3 (two examples plus the real one)');
+        final shown =
+            'you:'.allMatches(TranslationPrompt.system(language)).length;
+        expect(shown == 0 || shown == 2, isTrue,
+            reason: '${language.code} shows $shown worked answers; expected '
+                '0 (no examples) or 2 (a full pair)');
       }
     });
 

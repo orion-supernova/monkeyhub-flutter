@@ -978,7 +978,10 @@ class Sebastian extends ChangeNotifier {
 
     final limit = TranslationPrompt.chunkLimitFor(brain, target, brain.family);
     final chunks = TranslationPrompt.chunk(job.content, limit);
-    final system = TranslationPrompt.system(target);
+    // The retry drops the examples along with the instruction line: if the
+    // first pass produced an example rather than a translation, showing it the
+    // same examples again is the one change guaranteed not to help.
+    final system = TranslationPrompt.system(target, withExamples: !terse);
     final out = StringBuffer();
 
     for (var i = 0; i < chunks.length; i++) {
@@ -1052,6 +1055,11 @@ class Sebastian extends ChangeNotifier {
     return (soFar) {
       if (!sourceHasBlankLine && soFar.contains('\n\n')) return true;
       if (soFar.length > ceiling) return true;
+      // The model has started another fenced exercise instead of finishing
+      // this one. See [TranslationPrompt.opensAnotherBlock] — checked here,
+      // against the RAW stream, because the sanitiser strips the fence and
+      // would hide it.
+      if (TranslationPrompt.opensAnotherBlock(soFar)) return true;
       return soFar.length > 40 && _annotationOpener.hasMatch(soFar);
     };
   }
