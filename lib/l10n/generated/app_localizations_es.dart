@@ -7924,11 +7924,11 @@ class AppLocalizationsEs extends AppLocalizations {
       'Sebastian lee un mensaje escrito en otro idioma y te dice lo que pone — aquí, en tu teléfono, sin enviar nada a ninguna parte.';
 
   @override
-  String get companionVeraTagline => 'Ayuda general';
+  String get companionMarloweTagline => 'Ayuda general';
 
   @override
-  String get companionVeraBlurb =>
-      'Vera es la compañera para todo lo que no sea traducir. Elige ahora con qué piensa y sus habilidades irán llegando alrededor.';
+  String get companionMarloweBlurb =>
+      'Marlowe se encarga de todo lo que no sea traducir. Elige un cerebro ahora y las habilidades irán llegando alrededor.';
 
   @override
   String get companionAssuranceOnDevice =>
@@ -8079,24 +8079,24 @@ class AppLocalizationsEs extends AppLocalizations {
   String get sebastianCacheClear => 'Borrar';
 
   @override
-  String get veraSkillsComingSoon =>
-      'Vera todavía no puede hacer nada: sus habilidades están en camino. Lo que sí puedes hacer ahora es dejarle un cerebro listo, para que esté esperando cuando lleguen.';
+  String get marloweSkillsComingSoon =>
+      'Marlowe todavía no puede hacer nada: las habilidades están en camino. Lo que sí puedes hacer ahora es dejar un cerebro listo, para que nada dependa de una descarga cuando lleguen.';
 
   @override
-  String get veraBrainsSection => 'CEREBRO';
+  String get marloweBrainsSection => 'CEREBRO';
 
   @override
-  String get veraBrainsCaption =>
+  String get marloweBrainsCaption =>
       'Cuanto más grande, mejor piensa y más tarda en responder. Puedes tener varios y cambiar entre ellos.';
 
   @override
-  String get veraBrainTierSwift => 'Ligero';
+  String get marloweBrainTierSwift => 'Ligero';
 
   @override
-  String get veraBrainTierBalanced => 'Equilibrado';
+  String get marloweBrainTierBalanced => 'Equilibrado';
 
   @override
-  String get veraBrainTierDeep => 'Profundo';
+  String get marloweBrainTierDeep => 'Profundo';
 
   @override
   String get translationSlabShowOriginal => 'Ver original';
@@ -8184,4 +8184,40 @@ class AppLocalizationsEs extends AppLocalizations {
   String companionBrainSharedWarning(Object name) {
     return '$name usa la misma descarga y también la perderá.';
   }
+
+  @override
+  String get companionBrainInUse => 'EN USO';
+
+  @override
+  String companionStatusUsingBrain(Object name) {
+    return 'Usando $name';
+  }
+
+  @override
+  String companionInstallContinuesInBackground(Object name) {
+    return '$name sigue descargándose — Ajustes › Compañeros';
+  }
+
+  @override
+  String settingsScreenCompanionsDownloading(Object percent) {
+    return 'Descargando · $percent%';
+  }
+
+  @override
+  String get companionInstallPause => 'Pausar';
+
+  @override
+  String get companionInstallResume => 'Reanudar';
+
+  @override
+  String get companionInstallDiscard => 'Descartar';
+
+  @override
+  String companionInstallPausedAt(Object received, Object total) {
+    return 'En pausa · $received de $total';
+  }
+
+  @override
+  String get companionInstallFailedIntegrity =>
+      'El archivo descargado no coincide con lo que espera esta versión. Se empezará de nuevo.';
 }

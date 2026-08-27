@@ -7808,11 +7808,11 @@ class AppLocalizationsTr extends AppLocalizations {
       'Sebastian başka bir dilde yazılmış mesajı okur ve ne dediğini sana söyler — hem de burada, telefonunda; hiçbir şey hiçbir yere gönderilmeden.';
 
   @override
-  String get companionVeraTagline => 'Genel yardım';
+  String get companionMarloweTagline => 'Genel yardım';
 
   @override
-  String get companionVeraBlurb =>
-      'Vera, çeviri dışındaki her şey için olan yardımcı. Şimdi neyle düşüneceğini seç, yetenekleri de onun etrafında gelsin.';
+  String get companionMarloweBlurb =>
+      'Marlowe, çeviri dışındaki her şeyle ilgilenir. Şimdi bir beyin seç, yetenekler de onun etrafında gelsin.';
 
   @override
   String get companionAssuranceOnDevice => 'Tamamen bu cihazda çalışır';
@@ -7959,24 +7959,24 @@ class AppLocalizationsTr extends AppLocalizations {
   String get sebastianCacheClear => 'Temizle';
 
   @override
-  String get veraSkillsComingSoon =>
-      'Vera henüz bir şey yapamıyor — yetenekleri hâlâ yolda. Şimdi yapabileceğin şey ona bir beyin hazırlamak; böylece yetenekleri geldiğinde o çoktan hazır olur.';
+  String get marloweSkillsComingSoon =>
+      'Marlowe henüz bir şey yapamıyor — yetenekler hâlâ yolda. Şimdi yapabileceğin şey bir beyin hazırlamak; böylece yetenekler geldiğinde indirme beklenmiyor olur.';
 
   @override
-  String get veraBrainsSection => 'BEYİN';
+  String get marloweBrainsSection => 'BEYİN';
 
   @override
-  String get veraBrainsCaption =>
+  String get marloweBrainsCaption =>
       'Büyüğü daha iyi düşünür, daha yavaş cevap verir. Birden fazlasını tutup aralarında geçiş yapabilirsin.';
 
   @override
-  String get veraBrainTierSwift => 'Hızlı';
+  String get marloweBrainTierSwift => 'Hızlı';
 
   @override
-  String get veraBrainTierBalanced => 'Dengeli';
+  String get marloweBrainTierBalanced => 'Dengeli';
 
   @override
-  String get veraBrainTierDeep => 'Derin';
+  String get marloweBrainTierDeep => 'Derin';
 
   @override
   String get translationSlabShowOriginal => 'Orijinali göster';
@@ -8064,4 +8064,40 @@ class AppLocalizationsTr extends AppLocalizations {
   String companionBrainSharedWarning(Object name) {
     return '$name da aynı indirmeyi kullanıyor ve onu kaybedecek.';
   }
+
+  @override
+  String get companionBrainInUse => 'KULLANIMDA';
+
+  @override
+  String companionStatusUsingBrain(Object name) {
+    return '$name kullanılıyor';
+  }
+
+  @override
+  String companionInstallContinuesInBackground(Object name) {
+    return '$name indirilmeye devam ediyor — Ayarlar › Yardımcılar';
+  }
+
+  @override
+  String settingsScreenCompanionsDownloading(Object percent) {
+    return 'İndiriliyor · %$percent';
+  }
+
+  @override
+  String get companionInstallPause => 'Duraklat';
+
+  @override
+  String get companionInstallResume => 'Devam et';
+
+  @override
+  String get companionInstallDiscard => 'Sil';
+
+  @override
+  String companionInstallPausedAt(Object received, Object total) {
+    return 'Duraklatıldı · $total / $received';
+  }
+
+  @override
+  String get companionInstallFailedIntegrity =>
+      'İndirilen dosya bu sürümün beklediğiyle eşleşmedi. Baştan başlanıyor.';
 }

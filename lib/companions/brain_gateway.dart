@@ -22,27 +22,7 @@ import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_gemma_litertlm/flutter_gemma_litertlm.dart';
 
 import 'brain_spec.dart';
-
-/// How far along an install is, in the two numbers a progress UI needs.
-@immutable
-class BrainInstallProgress {
-  const BrainInstallProgress({required this.receivedBytes, required this.totalBytes});
-
-  final int receivedBytes;
-  final int totalBytes;
-
-  double get fraction =>
-      totalBytes <= 0 ? 0 : (receivedBytes / totalBytes).clamp(0.0, 1.0);
-}
-
-/// Thrown by [BrainGateway.install] when the caller cancelled. Distinct from a
-/// failure because the UI treats them oppositely: a cancel returns the sheet to
-/// its resting state without a word, a failure has something to say.
-class BrainInstallCancelled implements Exception {
-  const BrainInstallCancelled();
-  @override
-  String toString() => 'BrainInstallCancelled';
-}
+import 'brain_store.dart';
 
 /// A loaded brain, ready to be asked something. Obtained from
 /// [BrainGateway.open] and valid until [BrainGateway.unload].
@@ -170,79 +150,37 @@ class BrainGateway {
   }
 
   /// Whether [spec]'s weights are already on disk.
-  Future<bool> isInstalled(BrainSpec spec) async {
-    if (!isSupported) return false;
+  ///
+  /// Asks [BrainStore], not the plugin. Since the download became ours (see
+  /// [BrainDownload]) the weights arrive through `ModelSource.file`, and the
+  /// plugin's own registry is a record of what it has been TOLD about rather
+  /// than of what exists — it would answer "no" for a perfectly good file
+  /// until something had introduced them, which on a cold start is exactly
+  /// when the question gets asked.
+  ///
+  /// The file existing at its full length is the definition, and it is a
+  /// definition nothing can fake: partials live under a different name and are
+  /// promoted by an atomic rename.
+  Future<bool> isInstalled(BrainSpec spec) =>
+      isSupported ? BrainStore.instance.isInstalled(spec) : Future.value(false);
+
+  /// Makes an already-downloaded [spec] loadable.
+  ///
+  /// Not a download — [BrainDownload] does that, and by the time this runs the
+  /// bytes are on disk and their digest has been checked. All this does is
+  /// introduce the file to the runtime.
+  ///
+  /// Idempotent, and cheap enough to call on every [open].
+  Future<void> _register(BrainSpec spec) async {
     await ensureInitialized();
-    try {
-      return await FlutterGemma.isModelInstalled(spec.fileName);
-    } catch (_) {
-      return false;
-    }
-  }
-
-  /// Downloads [spec], reporting bytes as they land.
-  ///
-  /// Progress arrives from the plugin as a percentage; it is multiplied back
-  /// out against [BrainSpec.sizeBytes] here so the UI can say "104 MB of
-  /// 328 MB" as well as draw an arc. That is the right trade: the byte count
-  /// is the number a person can sanity-check against their storage, and a
-  /// percentage derived from a size we already know exactly loses nothing.
-  ///
-  /// Throws [BrainInstallCancelled] if [cancel] fires, and rethrows anything
-  /// else — a 403 on a repo that turned out to be gated, a disk-full, a dead
-  /// network — for [BrainManager] to classify.
-  Stream<BrainInstallProgress> install(
-    BrainSpec spec, {
-    required Future<void> cancel,
-  }) {
-    final controller = StreamController<BrainInstallProgress>();
-    final token = CancelToken();
-    // Fire-and-forget: cancellation races the install, and whichever lands
-    // first wins. `unawaited` rather than a stored subscription because the
-    // future completes at most once and the token ignores a second cancel.
-    unawaited(cancel.then((_) => token.cancel('User cancelled')).catchError((_) {}));
-
-    () async {
-      try {
-        await ensureInitialized();
-        await FlutterGemma.installModel(
-          modelType: _modelType(spec.family),
-          // Never defaults to `.task` here. The default IS `.task`, and an
-          // omitted argument would route a `.litertlm` file to MediaPipe —
-          // which this app does not even build — and fail at load time, after
-          // the download.
-          fileType: ModelFileType.litertlm,
-        )
-            .fromNetwork(spec.url)
-            .withProgress((percent) {
-              if (controller.isClosed) return;
-              controller.add(BrainInstallProgress(
-                receivedBytes: (spec.sizeBytes * (percent / 100)).round(),
-                totalBytes: spec.sizeBytes,
-              ));
-            })
-            .withCancelToken(token)
-            .install();
-        if (!controller.isClosed) {
-          controller.add(BrainInstallProgress(
-            receivedBytes: spec.sizeBytes,
-            totalBytes: spec.sizeBytes,
-          ));
-        }
-      } catch (e) {
-        if (!controller.isClosed) {
-          controller.addError(
-            token.isCancelled || CancelToken.isCancel(e)
-                ? const BrainInstallCancelled()
-                : e,
-          );
-        }
-      } finally {
-        await controller.close();
-      }
-    }();
-
-    return controller.stream;
+    final file = await BrainStore.instance.brainFile(spec);
+    await FlutterGemma.installModel(
+      modelType: _modelType(spec.family),
+      // Never defaults to `.task` here. The default IS `.task`, and an omitted
+      // argument would route a `.litertlm` file to MediaPipe — which this app
+      // does not even build — and fail at load time.
+      fileType: ModelFileType.litertlm,
+    ).fromFile(file.path).install();
   }
 
   /// Loads [spec] and returns something that can be asked a question.
@@ -267,16 +205,12 @@ class BrainGateway {
     if (!await isInstalled(spec)) return null;
 
     try {
-      // Re-running the install builder is how the active model gets switched:
-      // upstream documents `install()` as idempotent — already-installed
-      // weights skip the download and the spec is simply made active. Doing it
-      // this way rather than hand-constructing an `InferenceModelSpec` for
-      // `setActiveModel` keeps one code path responsible for how a spec is
-      // shaped, so the two can't disagree about a file name.
-      await FlutterGemma.installModel(
-        modelType: _modelType(spec.family),
-        fileType: ModelFileType.litertlm,
-      ).fromNetwork(spec.url).install();
+      // Points the runtime at our file and makes it the active model. Doing
+      // it through the install builder rather than hand-constructing an
+      // `InferenceModelSpec` for `setActiveModel` keeps one code path
+      // responsible for how a spec is shaped, so the two cannot disagree
+      // about a file name.
+      await _register(spec);
 
       final model = await FlutterGemma.getActiveModel(
         maxTokens: spec.contextTokens,
@@ -313,12 +247,22 @@ class BrainGateway {
   /// looks like a hardware fault.
   Future<void> uninstall(BrainSpec spec) async {
     if (!isSupported) return;
-    await ensureInitialized();
     if (_loaded?.spec.id == spec.id) await unload();
+
+    // Our file, our deletion. `FlutterGemma.uninstallModel` explicitly does
+    // NOT delete the bytes behind a `FileSource` — reasonably, since those are
+    // usually a file the user picked and did not ask anyone to throw away.
+    // Ours is not; leaving it would mean Remove freed nothing at all.
+    await BrainStore.instance.delete(spec);
+
+    // Then the plugin's own bookkeeping, so a stale active-model identity
+    // cannot point at a path that no longer exists. Best-effort: the bytes are
+    // already gone, which is what the user asked for.
     try {
+      await ensureInitialized();
       await FlutterGemma.uninstallModel(spec.fileName);
     } catch (e) {
-      debugPrint('BrainGateway.uninstall(${spec.id}) failed: $e');
+      debugPrint('BrainGateway.uninstall(${spec.id}) registry cleanup: $e');
     }
   }
 

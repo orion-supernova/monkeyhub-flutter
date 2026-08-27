@@ -56,12 +56,6 @@ class _SebastianScreenState extends State<SebastianScreen> {
 
   Sebastian get _sebastian => Sebastian.instance;
 
-  Future<void> _install() => showCompanionInstallSheet(
-        context,
-        companion: _companion,
-        brain: _sebastian.brain,
-      );
-
   Future<void> _setEnabled(bool on) async {
     await SettingsStore.instance.setSebastianEnabled(on);
     if (!on) {
@@ -84,7 +78,7 @@ class _SebastianScreenState extends State<SebastianScreen> {
 
   Future<void> _remove() async {
     final l10n = AppLocalizations.of(context);
-    // The guard Vera's screen has always had, which this one was missing —
+    // The guard Marlowe's screen has always had, which this one was missing —
     // deleting from here used to be able to take a brain another companion
     // was set to think with, silently. See [otherCompanionsUsing].
     final shared = otherCompanionsUsing(_sebastian.brain, _companion);
@@ -128,11 +122,14 @@ class _SebastianScreenState extends State<SebastianScreen> {
             ],
           )
         else if (!installed)
-          _InstallPrompt(
-            theme: theme,
-            l10n: l10n,
-            size: _sebastian.brain.sizeLabel,
-            onTap: _install,
+          // The panel, NOT the sheet. This screen has already drawn the
+          // portrait and the blurb directly above; opening the sheet here
+          // showed the reader his name, his face and his three assurances a
+          // second time, stacked on the first. See the header of
+          // `companion_install_sheet.dart`.
+          CompanionInstallPanel(
+            companion: _companion,
+            brain: _sebastian.brain,
           )
         else ...[
           CompanionSectionLabel(l10n.companionSectionGeneral),
@@ -204,40 +201,6 @@ class _Portrait extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _InstallPrompt extends StatelessWidget {
-  const _InstallPrompt({
-    required this.theme,
-    required this.l10n,
-    required this.size,
-    required this.onTap,
-  });
-
-  final AppTheme theme;
-  final AppLocalizations l10n;
-  final String size;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        height: 50,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: theme.accent,
-          borderRadius: BorderRadius.circular(theme.radiusMd),
-        ),
-        child: Text(
-          l10n.companionInstallAction(size),
-          style: theme.bodyEmph.copyWith(color: theme.accentInk),
-        ),
-      ),
     );
   }
 }

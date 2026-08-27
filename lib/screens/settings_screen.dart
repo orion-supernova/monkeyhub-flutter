@@ -7,6 +7,7 @@ import '../backend/server_directory.dart';
 import '../backend/server_store.dart';
 import '../calls/call_models.dart' show VideoQualityTier;
 import '../data/chat_repository.dart';
+import '../companions/brain_manager.dart';
 import '../companions/sebastian.dart';
 import '../data/settings_store.dart';
 import 'navigation/scroll_memory.dart';
@@ -112,6 +113,11 @@ class _SettingsScreenState extends State<SettingsScreen>
     // Rebuild when the desktop settings pane's selection changes so the active
     // row highlights.
     UiSelectionStore.instance.addListener(_onSettings);
+    // The Companions row shows live download progress, and this is what makes
+    // the percentage move. Without it the row renders whatever the figure was
+    // when the screen opened and then sits there, which reads as a stalled
+    // download rather than a stale label.
+    BrainManager.instance.addListener(_onSettings);
     // The approvals badge should be right whenever this screen is opened.
     widget.family.refresh();
     _loadMe();
@@ -123,6 +129,7 @@ class _SettingsScreenState extends State<SettingsScreen>
     widget.family.removeListener(_onSettings);
     widget.auth.removeListener(_onAuth);
     UiSelectionStore.instance.removeListener(_onSettings);
+    BrainManager.instance.removeListener(_onSettings);
     _scroll.dispose();
     super.dispose();
   }
@@ -321,6 +328,20 @@ class _SettingsScreenState extends State<SettingsScreen>
   String _companionsLabel(AppLocalizations l10n) {
     final sebastian = Sebastian.instance;
     if (!sebastian.isAvailable) return l10n.settingsScreenCompanionsUnavailable;
+
+    // A running download outranks everything else this row could say. It is
+    // the only ambient sign anywhere in the app that several hundred megabytes
+    // are moving, and without it somebody who closed the install sheet has no
+    // way to tell whether it is still going — or any route back to the screen
+    // that would say. The percentage is what makes it read as PROGRESS rather
+    // than as a state that might be stuck.
+    final downloading = BrainManager.instance.activeInstall;
+    if (downloading != null) {
+      return l10n.settingsScreenCompanionsDownloading(
+        (downloading.fraction * 100).round(),
+      );
+    }
+
     if (sebastian.isReady) {
       return sebastian.targetLanguage.autonym;
     }

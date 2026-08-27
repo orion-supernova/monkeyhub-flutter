@@ -7553,11 +7553,11 @@ class AppLocalizationsKo extends AppLocalizations {
       'Sebastian은 다른 언어로 쓰인 메시지를 읽고 무슨 뜻인지 알려줍니다 — 이 휴대폰 안에서, 아무것도 밖으로 보내지 않고요.';
 
   @override
-  String get companionVeraTagline => '일반 도우미';
+  String get companionMarloweTagline => '일반 도우미';
 
   @override
-  String get companionVeraBlurb =>
-      'Vera는 번역 외의 모든 것을 맡는 동반자입니다. 지금은 무엇으로 생각할지만 고르면, 기능은 그 주위로 하나씩 도착합니다.';
+  String get companionMarloweBlurb =>
+      'Marlowe는 번역 외의 모든 것을 맡습니다. 지금 두뇌를 하나 고르면, 기능은 그 주위로 하나씩 도착합니다.';
 
   @override
   String get companionAssuranceOnDevice => '전부 이 기기에서 실행됩니다';
@@ -7699,24 +7699,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get sebastianCacheClear => '지우기';
 
   @override
-  String get veraSkillsComingSoon =>
-      'Vera는 아직 아무것도 하지 못합니다 — 기능이 준비되는 중이에요. 지금 할 수 있는 일은 그녀에게 두뇌를 미리 준비해 두는 것, 그러면 기능이 도착했을 때 이미 기다리고 있을 겁니다.';
+  String get marloweSkillsComingSoon =>
+      'Marlowe는 아직 아무것도 하지 못합니다 — 기능이 준비되는 중이에요. 지금 할 수 있는 일은 두뇌를 미리 준비해 두는 것, 그러면 기능이 도착했을 때 다운로드를 기다릴 일이 없습니다.';
 
   @override
-  String get veraBrainsSection => '두뇌';
+  String get marloweBrainsSection => '두뇌';
 
   @override
-  String get veraBrainsCaption =>
+  String get marloweBrainsCaption =>
       '클수록 더 잘 생각하고 더 느리게 답합니다. 여러 개를 두고 바꿔 쓸 수 있습니다.';
 
   @override
-  String get veraBrainTierSwift => '가벼움';
+  String get marloweBrainTierSwift => '가벼움';
 
   @override
-  String get veraBrainTierBalanced => '균형';
+  String get marloweBrainTierBalanced => '균형';
 
   @override
-  String get veraBrainTierDeep => '깊이';
+  String get marloweBrainTierDeep => '깊이';
 
   @override
   String get translationSlabShowOriginal => '원문 보기';
@@ -7803,4 +7803,40 @@ class AppLocalizationsKo extends AppLocalizations {
   String companionBrainSharedWarning(Object name) {
     return '$name도 같은 다운로드를 사용하고 있어 함께 사라집니다.';
   }
+
+  @override
+  String get companionBrainInUse => '사용 중';
+
+  @override
+  String companionStatusUsingBrain(Object name) {
+    return '$name 사용 중';
+  }
+
+  @override
+  String companionInstallContinuesInBackground(Object name) {
+    return '$name 다운로드가 계속됩니다 — 설정 › 동반자';
+  }
+
+  @override
+  String settingsScreenCompanionsDownloading(Object percent) {
+    return '다운로드 중 · $percent%';
+  }
+
+  @override
+  String get companionInstallPause => '일시정지';
+
+  @override
+  String get companionInstallResume => '이어받기';
+
+  @override
+  String get companionInstallDiscard => '버리기';
+
+  @override
+  String companionInstallPausedAt(Object received, Object total) {
+    return '일시정지 · $total 중 $received';
+  }
+
+  @override
+  String get companionInstallFailedIntegrity =>
+      '내려받은 파일이 이 버전이 기대하는 것과 다릅니다. 처음부터 다시 시작합니다.';
 }

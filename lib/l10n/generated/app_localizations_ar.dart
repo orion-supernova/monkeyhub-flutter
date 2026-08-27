@@ -7946,11 +7946,11 @@ class AppLocalizationsAr extends AppLocalizations {
       'يقرأ Sebastian رسالة مكتوبة بلغة أخرى ويخبرك بما تقوله — هنا على هاتفك، دون إرسال أي شيء إلى أي مكان.';
 
   @override
-  String get companionVeraTagline => 'مساعدة عامة';
+  String get companionMarloweTagline => 'مساعدة عامة';
 
   @override
-  String get companionVeraBlurb =>
-      'Vera هي الرفيقة لكل ما ليس ترجمة. اختر الآن ما تفكّر به، وستأتي مهاراتها لاحقًا.';
+  String get companionMarloweBlurb =>
+      'يتولّى Marlowe كل ما ليس ترجمة. اختر عقلًا الآن، وستأتي المهارات لاحقًا.';
 
   @override
   String get companionAssuranceOnDevice => 'يعمل بالكامل على هذا الجهاز';
@@ -8104,24 +8104,24 @@ class AppLocalizationsAr extends AppLocalizations {
   String get sebastianCacheClear => 'مسح';
 
   @override
-  String get veraSkillsComingSoon =>
-      'لا تستطيع Vera فعل شيء بعد — مهاراتها في الطريق. ما يمكنك فعله الآن هو تجهيز عقل لها، لتكون مستعدة حين تصل.';
+  String get marloweSkillsComingSoon =>
+      'لا يستطيع Marlowe فعل شيء بعد — المهارات في الطريق. ما يمكنك فعله الآن هو تجهيز عقل، حتى لا ينتظر شيء تنزيلًا حين تصل.';
 
   @override
-  String get veraBrainsSection => 'العقل';
+  String get marloweBrainsSection => 'العقل';
 
   @override
-  String get veraBrainsCaption =>
+  String get marloweBrainsCaption =>
       'الأكبر يفكّر بشكل أفضل ويجيب ببطء أكثر. يمكنك الاحتفاظ بأكثر من واحد والتبديل بينها.';
 
   @override
-  String get veraBrainTierSwift => 'سريع';
+  String get marloweBrainTierSwift => 'سريع';
 
   @override
-  String get veraBrainTierBalanced => 'متوازن';
+  String get marloweBrainTierBalanced => 'متوازن';
 
   @override
-  String get veraBrainTierDeep => 'عميق';
+  String get marloweBrainTierDeep => 'عميق';
 
   @override
   String get translationSlabShowOriginal => 'عرض الأصل';
@@ -8208,4 +8208,40 @@ class AppLocalizationsAr extends AppLocalizations {
   String companionBrainSharedWarning(Object name) {
     return 'يستخدم $name التنزيل نفسه وسيفقده أيضًا.';
   }
+
+  @override
+  String get companionBrainInUse => 'قيد الاستخدام';
+
+  @override
+  String companionStatusUsingBrain(Object name) {
+    return 'يستخدم $name';
+  }
+
+  @override
+  String companionInstallContinuesInBackground(Object name) {
+    return 'يستمر تنزيل $name — الإعدادات › الرفاق';
+  }
+
+  @override
+  String settingsScreenCompanionsDownloading(Object percent) {
+    return 'جارٍ التنزيل · $percent٪';
+  }
+
+  @override
+  String get companionInstallPause => 'إيقاف مؤقت';
+
+  @override
+  String get companionInstallResume => 'استئناف';
+
+  @override
+  String get companionInstallDiscard => 'تجاهل';
+
+  @override
+  String companionInstallPausedAt(Object received, Object total) {
+    return 'متوقف مؤقتًا · $received من $total';
+  }
+
+  @override
+  String get companionInstallFailedIntegrity =>
+      'الملف الذي جرى تنزيله لا يطابق ما يتوقعه هذا الإصدار. سيبدأ من جديد.';
 }

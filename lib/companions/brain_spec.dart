@@ -32,18 +32,19 @@ class BrainSpec {
     required this.fileName,
     required this.url,
     required this.sizeBytes,
+    required this.sha256,
     required this.family,
     required this.contextTokens,
     required this.license,
   });
 
-  /// Stable key. Persisted in settings (Vera's chosen brain) and used as the
+  /// Stable key. Persisted in settings (Marlowe's chosen brain) and used as the
   /// dedup key when two companions want the same weights — see
-  /// [BrainCatalog.sebastianBrain], which is also the first row of Vera's
-  /// shelf, so installing him gives her a brain for free and vice versa.
+  /// [BrainCatalog.sebastianBrain], which is also the first row of Marlowe's
+  /// shelf, so installing one gives the other a brain for free.
   final String id;
 
-  /// What Vera's shelf calls it. NOT shown for Sebastian anywhere — see
+  /// What Marlowe's shelf calls it. NOT shown for Sebastian anywhere — see
   /// [Companion.brainsAreUserChosen].
   ///
   /// A plain human tier ("Swift", "Balanced", "Deep") rather than the model's
@@ -78,6 +79,22 @@ class BrainSpec {
   /// the free-space precheck. A rounded-down guess turns a refusal we could
   /// have made politely into a disk-full failure 90% of the way through.
   final int sizeBytes;
+
+  /// SHA-256 of the finished file, lower-case hex.
+  ///
+  /// Taken from HuggingFace's git-lfs `oid`, which IS the content digest — not
+  /// from the HTTP `ETag`, which for these files is a different hash of
+  /// something else entirely (measured: the CDN returns
+  /// `02cf17…` where the lfs oid is `e3e290…`). Pinning it here rather than
+  /// trusting a header at runtime is the point: it is a claim this build
+  /// makes about what it expects, checkable against a file the network
+  /// produced.
+  ///
+  /// [BrainDownload] verifies it once, after the last byte. That is the only
+  /// check that catches a resume which reconnected at the wrong offset —
+  /// right length, wrong contents — and it is what makes a download resumed
+  /// across three sessions as trustworthy as one taken in a single sitting.
+  final String sha256;
 
   /// Which prompt dialect to speak. See [BrainFamily].
   final BrainFamily family;
@@ -147,21 +164,22 @@ abstract final class BrainCatalog {
     id: 'qwen3-0.6b-int4',
     // Never rendered — Sebastian's screen shows his own name, not a tier. It
     // is a debug fallback, so it says what this brain is FOR rather than
-    // borrowing a tier name from Vera's ladder, where 'Swift' now means
+    // borrowing a tier name from Marlowe's ladder, where 'Swift' now means
     // something four times the size.
     label: 'Translator',
     fileName: 'Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm',
     url: 'https://huggingface.co/litert-community/Qwen3-0.6B/resolve/main/'
         'Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm',
     sizeBytes: 344437808,
+    sha256: 'e3e290109da4388d65a17510a0c66af91c8039f52d2c465868dbc43c09a776cf',
     family: BrainFamily.qwen3,
     contextTokens: 2048,
     license: 'Apache 2.0',
   );
 
-  /// Vera's shelf, smallest first.
+  /// Marlowe's shelf, smallest first.
   ///
-  /// ── Why her floor is 1.7B and not Sebastian's 0.6B ────────────────────
+  /// ── Why this floor is 1.7B and not Sebastian's 0.6B ───────────────────
   ///
   /// This shelf used to open with Sebastian's own brain, so that installing
   /// either companion gave the other one free. It was a tidy trick and it was
@@ -171,16 +189,16 @@ abstract final class BrainCatalog {
   /// TRANSLATION because translation is a constrained task — the answer is
   /// determined by the input, and the model is transforming rather than
   /// deciding. Open-ended assistance is the opposite: at 0.6B it invents
-  /// things confidently, and shipping that as Vera's entry tier would mean her
+  /// things confidently, and shipping that as Marlowe's entry tier would mean the
   /// first impression is of a companion who makes things up. A tier nobody
   /// should pick is not a tier.
   ///
   /// The second reason is that the sharing was invisible. Installing Sebastian
-  /// silently ticked a row on Vera's shelf; removing him from HIS screen
-  /// silently took her brain away. Nothing on either screen said the two were
+  /// silently ticked a row on Marlowe's shelf; removing him from HIS screen
+  /// silently took that brain away. Nothing on either screen said the two were
   /// the same file. See [companionsUsing], which is what any future overlap
   /// has to go through.
-  static const List<BrainSpec> veraBrains = [
+  static const List<BrainSpec> marloweBrains = [
     BrainSpec(
       id: 'qwen3-1.7b-int4',
       label: 'Swift',
@@ -188,6 +206,7 @@ abstract final class BrainCatalog {
       url: 'https://huggingface.co/litert-community/Qwen3-1.7B/resolve/main/'
           'Qwen3-1.7B_dynamic_wi4b32_afp32.litertlm',
       sizeBytes: 977184032,
+    sha256: '2eeffef7b51bc3e1225ea69fe7aa5f417397934b56a5b6c20cc068d6fd2c918b',
       family: BrainFamily.qwen3,
       contextTokens: 4096,
       license: 'Apache 2.0',
@@ -203,6 +222,7 @@ abstract final class BrainCatalog {
       url: 'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/'
           'resolve/main/gemma-4-E2B-it-gpu.litertlm',
       sizeBytes: 2008432640,
+    sha256: 'a53a59001894c58e6bdb5b9b227709f91a2e3e556baa7d85acf9c55402ba5cf5',
       family: BrainFamily.gemma,
       contextTokens: 4096,
       license: 'Apache 2.0',
@@ -214,6 +234,7 @@ abstract final class BrainCatalog {
       url: 'https://huggingface.co/litert-community/Qwen3.5-4B/resolve/main/'
           'Qwen3.5-4B_mixed_int4.litertlm',
       sizeBytes: 2754365536,
+    sha256: '176b5a2b6c20bde7739fba98e653a04f5d5b4a753a4b9dd0ff529aba7c35be99',
       family: BrainFamily.qwen3,
       contextTokens: 4096,
       license: 'Apache 2.0',
@@ -260,6 +281,6 @@ abstract final class BrainCatalog {
   static List<BrainSpec> forCompanion(Companion companion) =>
       switch (companion) {
         Companion.sebastian => const [sebastianBrain],
-        Companion.vera => veraBrains,
+        Companion.marlowe => marloweBrains,
       };
 }

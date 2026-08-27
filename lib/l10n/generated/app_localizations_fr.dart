@@ -7972,11 +7972,11 @@ class AppLocalizationsFr extends AppLocalizations {
       'Sebastian lit un message écrit dans une autre langue et te dit ce qu\'il raconte — ici, sur ton téléphone, sans que rien ne soit envoyé nulle part.';
 
   @override
-  String get companionVeraTagline => 'Aide générale';
+  String get companionMarloweTagline => 'Aide générale';
 
   @override
-  String get companionVeraBlurb =>
-      'Vera est la compagne pour tout ce qui n\'est pas de la traduction. Choisis dès maintenant ce avec quoi elle réfléchit ; ses compétences arriveront ensuite.';
+  String get companionMarloweBlurb =>
+      'Marlowe s\'occupe de tout ce qui n\'est pas de la traduction. Choisis un cerveau dès maintenant ; les compétences arriveront ensuite.';
 
   @override
   String get companionAssuranceOnDevice =>
@@ -8128,24 +8128,24 @@ class AppLocalizationsFr extends AppLocalizations {
   String get sebastianCacheClear => 'Effacer';
 
   @override
-  String get veraSkillsComingSoon =>
-      'Vera ne sait encore rien faire — ses compétences arrivent. Ce que tu peux faire dès maintenant, c\'est lui préparer un cerveau, pour qu\'elle soit prête le jour où elles arrivent.';
+  String get marloweSkillsComingSoon =>
+      'Marlowe ne sait encore rien faire — les compétences arrivent. Ce que tu peux faire dès maintenant, c\'est préparer un cerveau, pour que rien n\'attende un téléchargement le jour où elles arrivent.';
 
   @override
-  String get veraBrainsSection => 'CERVEAU';
+  String get marloweBrainsSection => 'CERVEAU';
 
   @override
-  String get veraBrainsCaption =>
+  String get marloweBrainsCaption =>
       'Plus il est grand, mieux il réfléchit et plus il met de temps à répondre. Tu peux en garder plusieurs et passer de l’un à l’autre.';
 
   @override
-  String get veraBrainTierSwift => 'Rapide';
+  String get marloweBrainTierSwift => 'Rapide';
 
   @override
-  String get veraBrainTierBalanced => 'Équilibré';
+  String get marloweBrainTierBalanced => 'Équilibré';
 
   @override
-  String get veraBrainTierDeep => 'Approfondi';
+  String get marloweBrainTierDeep => 'Approfondi';
 
   @override
   String get translationSlabShowOriginal => 'Voir l\'original';
@@ -8233,4 +8233,40 @@ class AppLocalizationsFr extends AppLocalizations {
   String companionBrainSharedWarning(Object name) {
     return '$name utilise le même téléchargement et le perdra aussi.';
   }
+
+  @override
+  String get companionBrainInUse => 'ACTIF';
+
+  @override
+  String companionStatusUsingBrain(Object name) {
+    return 'Utilise $name';
+  }
+
+  @override
+  String companionInstallContinuesInBackground(Object name) {
+    return 'Le téléchargement de $name continue — Réglages › Compagnons';
+  }
+
+  @override
+  String settingsScreenCompanionsDownloading(Object percent) {
+    return 'Téléchargement · $percent %';
+  }
+
+  @override
+  String get companionInstallPause => 'Suspendre';
+
+  @override
+  String get companionInstallResume => 'Reprendre';
+
+  @override
+  String get companionInstallDiscard => 'Abandonner';
+
+  @override
+  String companionInstallPausedAt(Object received, Object total) {
+    return 'Suspendu · $received sur $total';
+  }
+
+  @override
+  String get companionInstallFailedIntegrity =>
+      'Le fichier téléchargé ne correspond pas à ce que cette version attend. Reprise depuis le début.';
 }

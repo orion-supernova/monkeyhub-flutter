@@ -9,7 +9,7 @@
 /// message stops being private the moment it leaves the handset.
 ///
 /// So the user never meets a model picker, a quantisation, or the words
-/// "LiteRT-LM". They meet Sebastian, who reads languages, and Vera, who will
+/// "LiteRT-LM". They meet Sebastian, who reads languages, and Marlowe, who will
 /// learn to do more. What each of them needs in order to think is
 /// [BrainSpec]'s business, and it is deliberately not on screen for Sebastian
 /// at all — see [Companion.brainsAreUserChosen].
@@ -38,22 +38,22 @@ enum Companion {
   /// real one once the task is open-ended, and unlike translation it is a
   /// trade the user can actually feel.
   ///
-  /// Her skills are still arriving; what ships today is her brain shelf. That
+  /// His skills are still arriving; what ships today is his brain shelf. That
   /// is honest rather than empty: a 932 MB download is something you want to
-  /// have started before you need it, and her detail screen says exactly that
+  /// have started before you need it, and his detail screen says exactly that
   /// rather than implying a chat window exists.
-  vera;
+  marlowe;
 
   /// Persisted key. Never derived from [name] at the call site so a future
   /// rename is a one-line migration here instead of silent data loss.
   String get id => switch (this) {
         Companion.sebastian => 'sebastian',
-        Companion.vera => 'vera',
+        Companion.marlowe => 'marlowe',
       };
 
   static Companion? parse(String? s) => switch (s) {
         'sebastian' => Companion.sebastian,
-        'vera' => Companion.vera,
+        'marlowe' => Companion.marlowe,
         _ => null,
       };
 
@@ -62,27 +62,27 @@ enum Companion {
   /// language when the UI did would stop being a name.
   String get displayName => switch (this) {
         Companion.sebastian => 'Sebastian',
-        Companion.vera => 'Vera',
+        Companion.marlowe => 'Marlowe',
       };
 
   /// Whether the brain shelf is the user's to arrange.
   ///
   /// False for Sebastian, and that is the design rather than an omission: his
   /// brain is chosen for him (see [BrainCatalog.sebastianBrain]) and never
-  /// named on screen. True for Vera, whose whole detail screen is the shelf.
-  bool get brainsAreUserChosen => this == Companion.vera;
+  /// named on screen. True for Marlowe, whose whole detail screen is the shelf.
+  bool get brainsAreUserChosen => this == Companion.marlowe;
 
   /// One line under the name in Settings › Companions.
   String tagline(AppLocalizations l10n) => switch (this) {
         Companion.sebastian => l10n.companionSebastianTagline,
-        Companion.vera => l10n.companionVeraTagline,
+        Companion.marlowe => l10n.companionMarloweTagline,
       };
 
   /// The longer pitch, shown on the detail screen and at the top of the
   /// install sheet.
   String blurb(AppLocalizations l10n) => switch (this) {
         Companion.sebastian => l10n.companionSebastianBlurb,
-        Companion.vera => l10n.companionVeraBlurb,
+        Companion.marlowe => l10n.companionMarloweBlurb,
       };
 }
 
