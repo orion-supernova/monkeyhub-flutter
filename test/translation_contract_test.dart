@@ -323,6 +323,47 @@ void main() {
     });
   });
 
+  group('the instruction, handed back instead of obeyed', () {
+    /// Reported from a device, for the two-word message "islam yapamiyor".
+    /// It has no label, no colon, no conversational opener and no first
+    /// person - it is not an announcement ABOUT the answer, it is the question
+    /// restated, so it walked past every rule the contract had.
+    test('the exact bubble that was reported is refused', () {
+      expect(
+        TranslationPrompt.verify(
+          'The translation of the text between ""',
+          source: 'islam yapamiyor',
+          target: english,
+        ),
+        TranslationRejection.preamble,
+      );
+    });
+
+    test('and the other shapes the same prompt can produce', () {
+      for (final echo in [
+        'Translate the following text into Turkish.',
+        'The text between <<< and >>> is now translated.',
+        'Output only the translated text.',
+        'Here is the translated result',
+      ]) {
+        expect(verdict(echo, target: english), isNotNull, reason: echo);
+      }
+    });
+
+    /// The counterpart, and the reason these are phrases rather than words:
+    /// somebody really does talk about translation.
+    test('but a message that is genuinely about translating is not', () {
+      expect(
+        verdict(
+          'Bu kitabin cevirisi cok iyiymis, sence de oyle degil mi',
+          source: 'I heard this book has a really good translation, right?',
+          target: turkish,
+        ),
+        isNull,
+      );
+    });
+  });
+
   group('accepts a real translation', () {
     /// The whole risk of a strict verdict: it refuses good answers, and a
     /// refusal is invisible — the reader sees "couldn't translate this one"

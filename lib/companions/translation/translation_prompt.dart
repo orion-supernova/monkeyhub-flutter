@@ -520,11 +520,39 @@ abstract final class TranslationPrompt {
       // sections, which is not a translation of a one-line message.
       if (lower.contains('$label:')) return true;
     }
+    // The instruction, handed back instead of obeyed. A device produced
+    //
+    //     The translation of the text between ""
+    //
+    // for a two-word message: no label, no colon, no opener, no first person —
+    // it walked past every rule above because it is not an announcement about
+    // the answer, it IS the question restated. Matched against phrases that
+    // only exist in this file's own prompt, so a translation can only trip it
+    // by being about translating text between markers.
+    for (final echo in _instructionEchoes) {
+      if (lower.contains(echo)) return true;
+    }
+
     // A first-person announcement, which is the shape a reasoning model
     // produces when the thinking is not wrapped in tags at all — the exact
     // string a real device put in a bubble.
     return _firstPersonAside.hasMatch(lower);
   }
+
+  /// Fragments of the prompt itself. If one comes back, the model restated the
+  /// task rather than doing it.
+  ///
+  /// Deliberately phrases rather than words: "translation" alone is a word
+  /// somebody might legitimately send, while "the text between" is a clause
+  /// that exists in this file and essentially nowhere in a chat message.
+  static const List<String> _instructionEchoes = [
+    'text between',
+    'translation of the text',
+    'the following text',
+    'without any additional explanation',
+    'translated result',
+    'output only the translated',
+  ];
 
   /// Conversational filler that only ever opens a response.
   static const List<String> _openers = [
@@ -545,6 +573,7 @@ abstract final class TranslationPrompt {
     'the user',
     'first,',
     'to translate',
+    'the translation',
     'note:',
     'translating',
   ];
