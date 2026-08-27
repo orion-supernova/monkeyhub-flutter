@@ -168,16 +168,16 @@ while [[ $# -gt 0 ]]; do
         --no-upload)         RUN_UPLOAD=false ;;
         --no-git)            RUN_GIT=false ;;
         --ios)               DEPLOY_IOS=true;  PLATFORM_ARGS=true ;;
-        --ios-archive)        DEPLOY_IOS=true; PLATFORM_ARGS=true; IOS_STAGES="$IOS_STAGES archive" ;;
-        --ios-export)         DEPLOY_IOS=true; PLATFORM_ARGS=true; IOS_STAGES="$IOS_STAGES export" ;;
-        --ios-upload)         DEPLOY_IOS=true; PLATFORM_ARGS=true; IOS_STAGES="$IOS_STAGES upload" ;;
+        --ios-archive)        DEPLOY_IOS=true; PLATFORM_ARGS=true; IOS_STAGES="${IOS_STAGES:+$IOS_STAGES }archive" ;;
+        --ios-export)         DEPLOY_IOS=true; PLATFORM_ARGS=true; IOS_STAGES="${IOS_STAGES:+$IOS_STAGES }export" ;;
+        --ios-upload)         DEPLOY_IOS=true; PLATFORM_ARGS=true; IOS_STAGES="${IOS_STAGES:+$IOS_STAGES }upload" ;;
         --macos)             DEPLOY_MACOS=true; PLATFORM_ARGS=true ;;
-        --macos-archive)      DEPLOY_MACOS=true; PLATFORM_ARGS=true; MACOS_STAGES="$MACOS_STAGES archive" ;;
-        --macos-export)       DEPLOY_MACOS=true; PLATFORM_ARGS=true; MACOS_STAGES="$MACOS_STAGES export" ;;
-        --macos-upload)       DEPLOY_MACOS=true; PLATFORM_ARGS=true; MACOS_STAGES="$MACOS_STAGES upload" ;;
+        --macos-archive)      DEPLOY_MACOS=true; PLATFORM_ARGS=true; MACOS_STAGES="${MACOS_STAGES:+$MACOS_STAGES }archive" ;;
+        --macos-export)       DEPLOY_MACOS=true; PLATFORM_ARGS=true; MACOS_STAGES="${MACOS_STAGES:+$MACOS_STAGES }export" ;;
+        --macos-upload)       DEPLOY_MACOS=true; PLATFORM_ARGS=true; MACOS_STAGES="${MACOS_STAGES:+$MACOS_STAGES }upload" ;;
         --android)           DEPLOY_ANDROID=true; PLATFORM_ARGS=true ;;
-        --android-build)      DEPLOY_ANDROID=true; PLATFORM_ARGS=true; ANDROID_STAGES="$ANDROID_STAGES build" ;;
-        --android-upload)     DEPLOY_ANDROID=true; PLATFORM_ARGS=true; ANDROID_STAGES="$ANDROID_STAGES upload" ;;
+        --android-build)      DEPLOY_ANDROID=true; PLATFORM_ARGS=true; ANDROID_STAGES="${ANDROID_STAGES:+$ANDROID_STAGES }build" ;;
+        --android-upload)     DEPLOY_ANDROID=true; PLATFORM_ARGS=true; ANDROID_STAGES="${ANDROID_STAGES:+$ANDROID_STAGES }upload" ;;
         # Kept so the old muscle memory and any saved command still work —
         # Play is now the only Android target, so this says what it always did.
         --android=play)      DEPLOY_ANDROID=true; PLATFORM_ARGS=true ;;
@@ -189,8 +189,8 @@ while [[ $# -gt 0 ]]; do
             exit 1
             ;;
         --web)               DEPLOY_WEB=true; PLATFORM_ARGS=true ;;
-        --web-build)          DEPLOY_WEB=true; PLATFORM_ARGS=true; WEB_STAGES="$WEB_STAGES build" ;;
-        --web-upload)         DEPLOY_WEB=true; PLATFORM_ARGS=true; WEB_STAGES="$WEB_STAGES upload" ;;
+        --web-build)          DEPLOY_WEB=true; PLATFORM_ARGS=true; WEB_STAGES="${WEB_STAGES:+$WEB_STAGES }build" ;;
+        --web-upload)         DEPLOY_WEB=true; PLATFORM_ARGS=true; WEB_STAGES="${WEB_STAGES:+$WEB_STAGES }upload" ;;
         --site)              DEPLOY_SITE=true; PLATFORM_ARGS=true ;;
         --all)               DEPLOY_IOS=true; DEPLOY_ANDROID=true; DEPLOY_WEB=true
                              DEPLOY_SITE=true; PLATFORM_ARGS=true ;;
@@ -738,6 +738,46 @@ echo "  • Git commit/push:  $([ "$RUN_GIT" = true ] && echo yes || echo no)"
 [ "$NEEDS_ARTIFACT_REUSE" = true ] && echo "  • Reusing build/ output from a previous run for at least one platform"
 echo ""
 
+# A stage-only run that reuses a previous run's build/ output (see NEEDS_ARTIFACT_REUSE
+# above) skips the version bump and the build itself — so unlike every other
+# path through this script, there is no fresh compile to catch a stale
+# artifact before it goes out. --ios-upload run days after the archive it
+# resumes, on a build already shipped last week, would upload that same old
+# build again with nobody the wiser. Show exactly what's about to go out and
+# ask, once, before any of it touches App Store Connect / Play / the VM.
+# Non-interactive (CI, or stdin/tty absent) skips the prompt — there is nobody
+# to answer it, and a script invoking this deliberately picked these flags.
+if [ "$NEEDS_ARTIFACT_REUSE" = true ] && [ "$RUN_UPLOAD" = true ] && [ -t 0 ] && [ -e /dev/tty ]; then
+    describe_artifact() {   # $1 = dir, $2 = glob
+        local f
+        f="$(find "$1" -maxdepth 1 -type f -name "$2" 2>/dev/null | head -n 1)"
+        if [ -n "$f" ]; then
+            echo "$f — built $(date -r "$f" '+%b %d, %Y %H:%M')"
+        else
+            echo "(none found at $1/$2 — that stage will fail with a clear error)"
+        fi
+    }
+    echo "⚠️  This reuses existing build output instead of building fresh:"
+    if [ "$DEPLOY_IOS" = true ] && ! has_stage "$IOS_STAGES" archive; then
+        echo "   iOS upload:     $(describe_artifact build/ios '*.ipa')"
+    fi
+    if [ "$DEPLOY_MACOS" = true ] && ! has_stage "$MACOS_STAGES" archive; then
+        echo "   macOS upload:   $(describe_artifact build/macos-export '*.pkg')"
+    fi
+    if [ "$DEPLOY_ANDROID" = true ] && ! has_stage "$ANDROID_STAGES" build; then
+        echo "   Android upload: $(describe_artifact build/app/outputs/bundle/release '*.aab')"
+    fi
+    if [ "$DEPLOY_WEB" = true ] && ! has_stage "$WEB_STAGES" build; then
+        echo "   Web upload:     build/web/ (no single file to date-check)"
+    fi
+    echo "   Version to be announced: $(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d+ -f1)"
+    read -rp "Continue? [y/N] " confirm_reuse
+    case "$confirm_reuse" in
+        y|Y) ;;
+        *) echo "Aborted."; exit 0 ;;
+    esac
+fi
+
 # ----- spinner helpers -----
 # Restores the cursor, and undoes the version bump when a run dies partway. A
 # build number that never shipped must not stay in pubspec.yaml: the next run
@@ -1051,6 +1091,17 @@ validate_environment() {
             echo "❌ Play key not found: '$PLAY_SERVICE_ACCOUNT_JSON'"
             echo "   (from PLAY_SERVICE_ACCOUNT_JSON in .env.local)."
             echo "   Unset it to build the AAB and upload by hand instead."
+            exit 1
+        fi
+
+        # fastlane is the other half of automated upload — checked here too so
+        # a missing install fails in seconds instead of silently falling back
+        # to "upload manually" after a full AAB compile.
+        if [ "$RUN_UPLOAD" = true ] \
+           && [ -n "${PLAY_SERVICE_ACCOUNT_JSON:-}" ] && ! command -v fastlane >/dev/null 2>&1; then
+            echo "❌ fastlane not found — needed for automated Play upload."
+            echo "   Install it: brew install fastlane   (or: sudo gem install fastlane)"
+            echo "   Unset PLAY_SERVICE_ACCOUNT_JSON to build the AAB and upload by hand instead."
             exit 1
         fi
 
