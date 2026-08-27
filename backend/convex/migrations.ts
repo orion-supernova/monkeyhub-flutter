@@ -376,3 +376,110 @@ export const countDeviceTokens = internalMutation({
     return { done: true, total: t, remaining: r };
   },
 });
+
+/**
+ * One-off backfill for `messages.hasReactions` (see the field comment in
+ * schema.ts).
+ *
+ * The read path treats anything but `true` as "no reactions", and
+ * `addReaction` sets `true` from the deploy on — so the only rows that need
+ * settling are messages that ALREADY had reactions when the flag arrived.
+ * This walks the `reactions` table, not `messages`: one `ctx.db.get` per
+ * reaction row and a patch only on the first row for each message. A message
+ * with five reactions is read five times and written once. Nothing without a
+ * reaction is touched at all, which is the point — patching every message
+ * would write a fresh revision of the whole table, retained for fourteen
+ * days, on a box where the disk is already the bottleneck.
+ *
+ * Until it has run, a pre-deploy message with reactions shows none; the walk
+ * takes seconds, and every patch re-fires the transcript over that message,
+ * so they reappear on their own. Idempotent and safe to resume.
+ *
+ *     npx convex run migrations:backfillHasReactions '{}'
+ *
+ * and watch the returned/logged counts. Re-running after completion is a
+ * no-op.
+ */
+export const backfillHasReactions = internalMutation({
+  args: {
+    cursor: v.optional(v.string()),
+    batchSize: v.optional(v.number()),
+    scanned: v.optional(v.number()),
+    patched: v.optional(v.number()),
+  },
+  handler: async (ctx, { cursor, batchSize, scanned, patched }) => {
+    const numItems = Math.min(batchSize ?? 200, 500);
+    const page = await ctx.db
+      .query("reactions")
+      .paginate({ numItems, cursor: cursor ?? null });
+
+    let totalScanned = scanned ?? 0;
+    let totalPatched = patched ?? 0;
+
+    for (const r of page.page) {
+      totalScanned++;
+      const msg = await ctx.db.get(r.messageId);
+      // A reaction whose message is gone is a stray row for the delete
+      // fan-out's garbage sweep, not this one's business.
+      if (!msg || msg.hasReactions === true) continue;
+      await ctx.db.patch(msg._id, { hasReactions: true });
+      totalPatched++;
+    }
+
+    if (!page.isDone) {
+      await ctx.scheduler.runAfter(0, internal.migrations.backfillHasReactions, {
+        cursor: page.continueCursor,
+        batchSize: numItems,
+        scanned: totalScanned,
+        patched: totalPatched,
+      });
+      return { done: false, scanned: totalScanned, patched: totalPatched };
+    }
+
+    console.log(
+      `backfillHasReactions: ${totalScanned} reactions scanned, ` +
+        `${totalPatched} messages flagged`
+    );
+    return { done: true, scanned: totalScanned, patched: totalPatched };
+  },
+});
+
+/**
+ * Verification helper for the backfill: counts reaction rows whose message
+ * does not carry `hasReactions: true`. Must reach 0 and stay there.
+ *
+ *     npx convex run migrations:countMissingHasReactions '{}'
+ */
+export const countMissingHasReactions = internalMutation({
+  args: {
+    cursor: v.optional(v.string()),
+    total: v.optional(v.number()),
+    missing: v.optional(v.number()),
+  },
+  handler: async (ctx, { cursor, total, missing }) => {
+    const page = await ctx.db
+      .query("reactions")
+      .paginate({ numItems: 500, cursor: cursor ?? null });
+
+    let t = total ?? 0;
+    let m = missing ?? 0;
+    for (const r of page.page) {
+      t++;
+      const msg = await ctx.db.get(r.messageId);
+      if (msg && msg.hasReactions !== true) m++;
+    }
+
+    if (!page.isDone) {
+      await ctx.scheduler.runAfter(0, internal.migrations.countMissingHasReactions, {
+        cursor: page.continueCursor,
+        total: t,
+        missing: m,
+      });
+      return { done: false, total: t, missing: m };
+    }
+    console.log(
+      `countMissingHasReactions: ${m} of ${t} reactions sit on an unflagged message`
+    );
+    return { done: true, total: t, missing: m };
+  },
+});

@@ -29,12 +29,20 @@ export const addReaction = mutation({
       .first();
     if (existing) return existing._id;
 
-    return await ctx.db.insert("reactions", {
+    const id = await ctx.db.insert("reactions", {
       messageId,
       userId,
       emoji,
       createdAt: Date.now(),
     });
+    // Flip the read-path flag in the SAME transaction as the row — see
+    // `messages.hasReactions` in schema.ts. Only on the transition: a second
+    // reaction on the same message must not patch it again and re-fire every
+    // transcript over it for nothing.
+    if (msg.hasReactions !== true) {
+      await ctx.db.patch(messageId, { hasReactions: true });
+    }
+    return id;
   },
 });
 
@@ -52,7 +60,24 @@ export const removeReaction = mutation({
       )
       .filter((q) => q.eq(q.field("emoji"), emoji))
       .first();
-    if (existing) await ctx.db.delete(existing._id);
+    if (!existing) return;
+    await ctx.db.delete(existing._id);
+
+    // Last one out clears the flag, so the transcript queries stop looking.
+    // One extra indexed read on a remove — rare next to a `list` run, which
+    // is what the flag is saving. The read sees this transaction's own
+    // delete. A clear that is somehow missed leaves a stale `true`, which
+    // only costs reads; see schema.ts.
+    const remaining = await ctx.db
+      .query("reactions")
+      .withIndex("by_message", (q) => q.eq("messageId", messageId))
+      .first();
+    if (remaining === null) {
+      const msg = await ctx.db.get(messageId);
+      if (msg && msg.hasReactions === true) {
+        await ctx.db.patch(messageId, { hasReactions: false });
+      }
+    }
   },
 });
 

@@ -370,7 +370,16 @@ export const listUserRooms = query({
         // so counting here adds no new invalidation for the common case, while
         // a counter on roomMembers would patch N member rows per send and
         // re-fire getReadState for the whole room. See badges.ts.
-        const unread = await unreadForRoom(ctx, m.roomId, userId, m.lastReadAt);
+        // `room.lastMessageTime` lets it answer 0 without a scan for every
+        // room the viewer has already read to the end — which, on any one
+        // message, is nearly all of them. See `unreadForRoom`.
+        const unread = await unreadForRoom(
+          ctx,
+          m.roomId,
+          userId,
+          m.lastReadAt,
+          room.lastMessageTime
+        );
         return {
           ...rest,
           participantIds,

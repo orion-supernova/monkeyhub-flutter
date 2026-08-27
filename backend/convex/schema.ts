@@ -972,6 +972,32 @@ export default defineSchema({
     // dedupe lookup, which is the correct behaviour and needs no backfill.
     clientId: v.optional(v.string()),
 
+    // `true` while any `reactions` row points at this message — a cache of
+    // "`reactions.by_message` is non-empty". Set by `reactions.addReaction`
+    // in the same transaction as the row it inserts, cleared (to `false`) by
+    // `removeReaction` when the last one goes. Never written on insert: a
+    // message starts with no reactions, and absent already says so.
+    //
+    // Exists for the read path. Every transcript query (`list`, `listBefore`,
+    // `listAfter`, `listAround`, `getThreadPage`) used to do one indexed
+    // `reactions` read PER MESSAGE it returned, and `list` is a subscription
+    // that re-runs for every viewer on every send: a hundred index reads to
+    // discover, nearly every time, that nobody had reacted to anything. With
+    // the flag, `messages.reactionsFor` reads only for `true` rows and the
+    // query costs its one range scan.
+    //
+    // The invariant is one-directional on purpose: `true` means "look", and
+    // anything else means "there are none". A stale `true` (the clear-back
+    // somehow missed) is harmless — one wasted read. A missing `true` would
+    // HIDE reactions, so the flag is set in the same transaction as the
+    // reaction, and `migrations.backfillHasReactions` walks the `reactions`
+    // table once to set it on every message that already had some. That walk
+    // touches only messages with reactions — a few hundred rows, not the
+    // whole table — which is what keeps the backfill from writing a fresh
+    // revision of every message on a box where every byte of disk is paid for
+    // twice over in swap.
+    hasReactions: v.optional(v.boolean()),
+
     // ── Location sharing ────────────────────────────────────────────────────
     //
     // Two message types share these: `"location"` (one fix, frozen at send

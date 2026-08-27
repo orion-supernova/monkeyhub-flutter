@@ -140,6 +140,30 @@ export async function sanitizeViewOnce(ctx: any, msg: any, viewerUserId: any) {
   return { ...rest, viewOnceOpened: opened };
 }
 
+/**
+ * The reactions on one message, for the transcript queries.
+ *
+ * Reads `reactions.by_message` only when `msg.hasReactions` is `true`. Any
+ * other row costs nothing — and "nobody reacted" is the common case by a wide
+ * margin, which is the whole point: `list` is re-run for every viewer of a
+ * room on every message sent into it, and it used to spend a hundred index
+ * reads per run finding nothing. See the field comment in schema.ts.
+ *
+ * Reactivity is preserved, not bypassed: `addReaction` patches the message
+ * row it reacts to, and every caller here holds that row in its read set, so
+ * the first reaction on a message re-fires the query and the read happens.
+ */
+export async function reactionsFor(
+  ctx: any,
+  msg: any
+): Promise<Doc<"reactions">[]> {
+  if (msg.hasReactions !== true) return [];
+  return await ctx.db
+    .query("reactions")
+    .withIndex("by_message", (q: any) => q.eq("messageId", msg._id))
+    .collect();
+}
+
 // ── Shared-content indexing ─────────────────────────────────────────────────
 
 /**
@@ -1910,12 +1934,17 @@ export const list = query({
     // which refired four other subscriptions. The denormalized
     // `msg.senderName` is set at write time in `messages:send` so the
     // client already has the display name.
+    //
+    // Reactions come through `reactionsFor`, which reads the `reactions`
+    // table only for rows flagged as having any. This query is what every
+    // viewer of a room holds open, and it re-runs for each of them on every
+    // send, edit, reaction and delete in the window — so its per-run cost is
+    // very nearly the app's receive latency. It used to be one indexed read
+    // per message returned; it is now one range scan plus a read per message
+    // somebody actually reacted to.
     const enriched = await Promise.all(
       msgs.map(async (msg) => {
-        const reactions = await ctx.db
-          .query("reactions")
-          .withIndex("by_message", (q) => q.eq("messageId", msg._id))
-          .collect();
+        const reactions = await reactionsFor(ctx, msg);
         const safe = await sanitizeViewOnce(ctx, msg, viewerUserId);
         return { ...safe, reactions };
       })
@@ -1945,10 +1974,7 @@ export const listBefore = query({
     // there for why we never enrich with users in a reactive query.
     const enriched = await Promise.all(
       msgs.map(async (msg) => {
-        const reactions = await ctx.db
-          .query("reactions")
-          .withIndex("by_message", (q) => q.eq("messageId", msg._id))
-          .collect();
+        const reactions = await reactionsFor(ctx, msg);
         const safe = await sanitizeViewOnce(ctx, msg, viewerUserId);
         return { ...safe, reactions };
       })
@@ -1980,10 +2006,7 @@ export const listAfter = query({
     // Mirrors the no-user-doc-read pattern from `list` above.
     return await Promise.all(
       msgs.map(async (msg) => {
-        const reactions = await ctx.db
-          .query("reactions")
-          .withIndex("by_message", (q) => q.eq("messageId", msg._id))
-          .collect();
+        const reactions = await reactionsFor(ctx, msg);
         const safe = await sanitizeViewOnce(ctx, msg, viewerUserId);
         return { ...safe, reactions };
       })
@@ -2045,10 +2068,7 @@ export const listAround = query({
     // Reactions only. Do NOT read `users` here — same reason as `list`.
     const enriched = await Promise.all(
       collected.map(async (msg) => {
-        const reactions = await ctx.db
-          .query("reactions")
-          .withIndex("by_message", (q) => q.eq("messageId", msg._id))
-          .collect();
+        const reactions = await reactionsFor(ctx, msg);
         const safe = await sanitizeViewOnce(ctx, msg, viewerUserId);
         return { ...safe, reactions };
       })
@@ -2143,10 +2163,7 @@ export const getThreadPage = query({
     // Reactions only. Do NOT read `users` here — same reason as `list`.
     const enriched = await Promise.all(
       collected.map(async (msg) => {
-        const reactions = await ctx.db
-          .query("reactions")
-          .withIndex("by_message", (ix) => ix.eq("messageId", msg._id))
-          .collect();
+        const reactions = await reactionsFor(ctx, msg);
         const safe = await sanitizeViewOnce(ctx, msg, viewerUserId);
         return { ...safe, reactions };
       })
@@ -2225,10 +2242,7 @@ export const getThread = query({
     const enriched = await Promise.all(
       collected.map(async (m) => {
         const user = await ctx.db.get(m.userId);
-        const reactions = await ctx.db
-          .query("reactions")
-          .withIndex("by_message", (q) => q.eq("messageId", m._id))
-          .collect();
+        const reactions = await reactionsFor(ctx, m);
         const safe = await sanitizeViewOnce(ctx, m, undefined);
         return {
           ...safe,
@@ -2556,8 +2570,15 @@ export const recountViewOnceRecipients = internalMutation({
  * Idempotent — calling repeatedly only updates the timestamps.
  */
 export const markRoomRead = mutation({
-  args: { roomId: v.id("rooms"), userId: v.id("users") },
-  handler: async (ctx, { roomId, userId }) => {
+  args: {
+    roomId: v.id("rooms"),
+    userId: v.id("users"),
+    // `createdAt` of the newest message the client has on screen. When given
+    // it is both the guard's bar and the cursor written, and the room
+    // document is not read at all — see below for why that is the point.
+    upTo: v.optional(v.number()),
+  },
+  handler: async (ctx, { roomId, userId, upTo }) => {
     const membership = await ctx.db
       .query("roomMembers")
       .withIndex("by_room_user", (q) =>
@@ -2582,14 +2603,34 @@ export const markRoomRead = mutation({
     // `markRoomRead` already ran and already scheduled one. The reading device
     // clears its own notifications locally either way (see `ChatRepository`),
     // so nothing is left showing on the device in the user's hand.
-    const room = await ctx.db.get(roomId);
-    const newest = room?.lastMessageTime ?? 0;
+    //
+    // `upTo` is the client saying WHICH message it read, so the bar comes from
+    // the argument and the room document stays out of this transaction. That
+    // is an OCC fix, not a saved read: `send` patches the room on every
+    // message, and a `markRoomRead` that had read the room while a send was
+    // committing was thrown away and re-run from the top — in a fast two-way
+    // chat, where each arrival triggers exactly this call while the reply is
+    // already on its way, a good share of them. The server logs showed it as
+    // "Documents read from or written to the rooms table changed while this
+    // mutation was being run". Writing the message's own timestamp instead of
+    // `Date.now()` keeps every comparison as it was: unread is
+    // `createdAt > lastReadAt` (badges.ts) and SEEN is `lastReadAt >=
+    // createdAt` (room_screen.dart), and the newest message satisfies both.
+    // Clients from before the argument existed send none and take the room
+    // read as before.
+    let newest: number;
+    if (upTo !== undefined) {
+      newest = upTo;
+    } else {
+      const room = await ctx.db.get(roomId);
+      newest = room?.lastMessageTime ?? 0;
+    }
     if ((membership.lastReadAt ?? 0) >= newest) return;
 
-    const now = Date.now();
+    const cursor = upTo ?? Date.now();
     await ctx.db.patch(membership._id, {
-      lastReadAt: now,
-      lastDeliveredAt: Math.max(membership.lastDeliveredAt ?? 0, now),
+      lastReadAt: cursor,
+      lastDeliveredAt: Math.max(membership.lastDeliveredAt ?? 0, cursor),
     });
 
     // Reading the room retires its outstanding notifications. The device that

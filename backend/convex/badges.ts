@@ -41,8 +41,21 @@ export async function unreadForRoom(
   roomId: any,
   userId: any,
   lastReadAt: number | undefined | null,
+  // The room's `lastMessageTime`, when the caller already holds the room.
+  // Every path that inserts a message bumps it (`sendCore`, `forwardToRoom`,
+  // the friend-request transcript, the diagnostics log) and the delete
+  // fan-out repairs it, so a cursor at or past it proves there is nothing
+  // newer to count — and the scan below is skipped. `listUserRooms` runs this
+  // once per room the viewer is in, on every message in ANY of them; nearly
+  // all of those rooms are quiet at that moment, and this is what stops each
+  // quiet one from costing an index scan apiece every time somebody types
+  // somewhere else.
+  lastMessageTime?: number | null,
 ): Promise<{ count: number; capped: boolean; hasMention: boolean }> {
   const cursor = lastReadAt ?? 0;
+  if (lastMessageTime != null && lastMessageTime <= cursor) {
+    return { count: 0, capped: false, hasMention: false };
+  }
   const rows = await ctx.db
     .query("messages")
     .withIndex("by_room_time", (q: any) =>
@@ -106,7 +119,13 @@ export async function badgeTotalFor(
     if (resolveMute(m, now).badges) continue;
     const room = await ctx.db.get(m.roomId);
     if (!room) continue;
-    const { count } = await unreadForRoom(ctx, m.roomId, userId, m.lastReadAt);
+    const { count } = await unreadForRoom(
+      ctx,
+      m.roomId,
+      userId,
+      m.lastReadAt,
+      room.lastMessageTime,
+    );
     if (count > 0) {
       perRoom.push({ roomId: m.roomId, count });
       unread += count;
