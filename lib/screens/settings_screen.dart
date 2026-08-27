@@ -7,6 +7,7 @@ import '../backend/server_directory.dart';
 import '../backend/server_store.dart';
 import '../calls/call_models.dart' show VideoQualityTier;
 import '../data/chat_repository.dart';
+import '../companions/sebastian.dart';
 import '../data/settings_store.dart';
 import 'navigation/scroll_memory.dart';
 import '../data/ui_selection_store.dart';
@@ -34,6 +35,7 @@ import '../widgets/recovery_banner.dart';
 import '../widgets/user_avatar.dart';
 import 'bubble_style_screen.dart';
 import 'chat_style_screen.dart';
+import 'companions/companions_screen.dart';
 import 'diagnostics_screen.dart';
 import 'glass_screen.dart';
 import 'language_screen.dart';
@@ -308,6 +310,21 @@ class _SettingsScreenState extends State<SettingsScreen>
         if (monkey != null) return monkey.displayName;
         return ThemeController.byId(id).name;
     }
+  }
+
+  /// The value column for the Companions row.
+  ///
+  /// Answers "is anything here doing anything", in priority order, rather than
+  /// counting residents — two names in a settings row's right-hand column is
+  /// noise, and what somebody glancing at it wants to know is whether the
+  /// feature is live.
+  String _companionsLabel(AppLocalizations l10n) {
+    final sebastian = Sebastian.instance;
+    if (!sebastian.isAvailable) return l10n.settingsScreenCompanionsUnavailable;
+    if (sebastian.isReady) {
+      return sebastian.targetLanguage.autonym;
+    }
+    return l10n.settingsScreenCompanionsOff;
   }
 
   @override
@@ -667,6 +684,26 @@ class _SettingsScreenState extends State<SettingsScreen>
                     context,
                     key: 'speakerColors',
                     builder: (_) => const SpeakerColorScreen(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                // In CHAT rather than in a section of its own. A companion is
+                // not a category of app-wide setting the way Appearance is —
+                // what Sebastian actually does is change how a conversation
+                // reads, which is the question every other row here answers.
+                _DisclosureRow(
+                  label: l10n.settingsScreenRowCompanions,
+                  value: _companionsLabel(l10n),
+                  selected: _isOpen('companions'),
+                  leading: Icon(
+                    Icons.auto_awesome_outlined,
+                    size: 16,
+                    color: theme.inkSoft,
+                  ),
+                  onTap: () => openSettingsDetail(
+                    context,
+                    key: 'companions',
+                    builder: (_) => const CompanionsScreen(),
                   ),
                 ),
                 const SizedBox(height: 10),

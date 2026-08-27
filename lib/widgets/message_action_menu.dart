@@ -41,6 +41,21 @@ enum MessageAction {
   /// coordinates are the one thing about it worth carrying somewhere else.
   /// See [MessageCapabilities.canCopyCoordinates].
   copyCoordinates,
+
+  /// Hands the bubble to Sebastian and shows what it says underneath the
+  /// original. See `lib/companions/`.
+  ///
+  /// Offered even when he isn't installed: tapping it then opens his install
+  /// sheet and, once he has arrived, carries straight on with the translation
+  /// that was asked for. That is on purpose — this row is the main way anybody
+  /// finds out the feature exists, and hiding it until after a Settings visit
+  /// would mean nobody ever did.
+  translate,
+
+  /// Puts a translated bubble back to what was actually said. Paired with
+  /// [translate] the way [pin]/[unpin] are: exactly one of the two is ever
+  /// offered, chosen by whether a translation is currently showing.
+  showOriginal,
   pin,
   unpin,
 
@@ -111,6 +126,10 @@ Future<MessageActionResult?> showMessageActionMenu({
   bool isPinned = false,
   bool isSaved = false,
 
+  /// State, not affordance, exactly like [isPinned]: which of TRANSLATE /
+  /// SHOW ORIGINAL this bubble is currently showing.
+  bool isTranslated = false,
+
   /// A document's full filename, when this bubble is one.
   ///
   /// The row in the transcript holds the name to a single line — a document
@@ -153,6 +172,7 @@ Future<MessageActionResult?> showMessageActionMenu({
       capabilities: capabilities,
       isPinned: isPinned,
       isSaved: isSaved,
+      isTranslated: isTranslated,
       fileName: fileName,
       onResolve: (result) {
         if (!completer.isCompleted) completer.complete(result);
@@ -177,6 +197,7 @@ class _MessageActionMenuOverlay extends StatefulWidget {
     required this.capabilities,
     required this.isPinned,
     required this.isSaved,
+    required this.isTranslated,
     required this.fileName,
     required this.onResolve,
   });
@@ -191,6 +212,7 @@ class _MessageActionMenuOverlay extends StatefulWidget {
   final MessageCapabilities capabilities;
   final bool isPinned;
   final bool isSaved;
+  final bool isTranslated;
 
   /// Non-null only for a document bubble — see [showMessageActionMenu].
   final String? fileName;
@@ -298,6 +320,7 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
       capabilities: widget.capabilities,
       isPinned: widget.isPinned,
       isSaved: widget.isSaved,
+      isTranslated: widget.isTranslated,
       hasFileName: widget.fileName != null,
     );
 
@@ -889,6 +912,7 @@ List<MessageActionSpec> messageActionSpecs({
   required MessageCapabilities capabilities,
   required bool isPinned,
   required bool isSaved,
+  required bool isTranslated,
   required bool hasFileName,
 }) {
   final caps = capabilities;
@@ -952,6 +976,26 @@ List<MessageActionSpec> messageActionSpecs({
         action: MessageAction.copyCoordinates,
         icon: CupertinoIcons.doc_on_doc,
         label: l10n.messageActionMenuCopyCoordinatesLabel,
+        destructive: false,
+      ),
+    // Directly after the clipboard rows, because it belongs to the same family
+    // as COPY: all of them are "do something with the WORDS in this message"
+    // and none of them changes anything anyone else can see. Ahead of PIN,
+    // which is where the shared-state actions start.
+    if (caps.canTranslate)
+      MessageActionSpec(
+        action: isTranslated
+            ? MessageAction.showOriginal
+            : MessageAction.translate,
+        // `globe` and not `sparkles` or a robot: this app's position is that a
+        // companion is a person doing a job, not an AI feature, and the icon is
+        // where that either holds or visibly doesn't.
+        icon: isTranslated
+            ? CupertinoIcons.arrow_uturn_left
+            : CupertinoIcons.globe,
+        label: isTranslated
+            ? l10n.messageActionMenuShowOriginalLabel
+            : l10n.messageActionMenuTranslateLabel,
         destructive: false,
       ),
     // Beside COPY rather than next to the destructive pair: a pin is shared

@@ -7792,4 +7792,276 @@ class AppLocalizationsTr extends AppLocalizations {
   String messageReceiptsSemanticHidden(Object name) {
     return '$name okundu bilgisi paylaşmıyor';
   }
+
+  @override
+  String get companionsScreenTitle => 'yardımcılar.';
+
+  @override
+  String get companionsScreenSubtitle =>
+      'bu telefonda yaşayan, hiçbir yere veri göndermeyen yardımcılar';
+
+  @override
+  String get companionSebastianTagline => 'Mesajları çevirir';
+
+  @override
+  String get companionSebastianBlurb =>
+      'Sebastian başka bir dilde yazılmış mesajı okur ve ne dediğini sana söyler — hem de burada, telefonunda; hiçbir şey hiçbir yere gönderilmeden.';
+
+  @override
+  String get companionVeraTagline => 'Genel yardım';
+
+  @override
+  String get companionVeraBlurb =>
+      'Vera, çeviri dışındaki her şey için olan yardımcı. Şimdi neyle düşüneceğini seç, yetenekleri de onun etrafında gelsin.';
+
+  @override
+  String get companionAssuranceOnDevice => 'Tamamen bu cihazda çalışır';
+
+  @override
+  String get companionAssurancePrivate => 'Mesajların telefonundan hiç çıkmaz';
+
+  @override
+  String get companionAssuranceOffline => 'İnternet olmadan da çalışır';
+
+  @override
+  String companionInstallAction(Object size) {
+    return 'Kur · $size';
+  }
+
+  @override
+  String get companionInstallOneTime =>
+      'tek seferlik indirme, sen kaldırana kadar durur';
+
+  @override
+  String companionInstallProgress(Object received, Object total) {
+    return '$received / $total';
+  }
+
+  @override
+  String get companionInstallQueued => 'Diğer indirmenin bitmesi bekleniyor';
+
+  @override
+  String get companionInstallCancel => 'Vazgeç';
+
+  @override
+  String get companionInstallRetry => 'Tekrar dene';
+
+  @override
+  String companionInstallReady(Object name) {
+    return '$name hazır';
+  }
+
+  @override
+  String get companionInstallFailedNetwork =>
+      'İndirme tamamlanamadı. Bağlantını kontrol edip tekrar dene.';
+
+  @override
+  String get companionInstallFailedStorage =>
+      'Bu cihazda yeterli alan yok. Biraz yer açıp tekrar dene.';
+
+  @override
+  String get companionInstallFailedUnknown => 'İndirme tamamlanamadı.';
+
+  @override
+  String get companionUnsupportedPlatform =>
+      'Yardımcılar uygulamanın bu sürümünde henüz kullanılamıyor.';
+
+  @override
+  String get companionStatusNotInstalled => 'Kurulu değil';
+
+  @override
+  String get companionStatusOff => 'Kapalı';
+
+  @override
+  String companionStatusTranslatingInto(Object language) {
+    return '$language diline çeviriyor';
+  }
+
+  @override
+  String get companionStatusNoBrain => 'Henüz bir şey indirilmedi';
+
+  @override
+  String companionStatusBrainsReady(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count indirme hazır',
+      one: '1 indirme hazır',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get companionStorageEmpty =>
+      'Hiçbir şey indirilmedi — yardımcılar yer kaplamıyor';
+
+  @override
+  String companionStorageUsed(Object size) {
+    return 'Yardımcılar $size yer kaplıyor';
+  }
+
+  @override
+  String get companionSectionGeneral => 'GENEL';
+
+  @override
+  String get companionSectionStorage => 'DEPOLAMA';
+
+  @override
+  String get companionBrainRemove => 'Kaldır';
+
+  @override
+  String companionBrainRemoveTitle(Object name) {
+    return '$name KALDIRILSIN MI?';
+  }
+
+  @override
+  String companionRemoveTitle(Object name) {
+    return '$name KALDIRILSIN MI?';
+  }
+
+  @override
+  String companionRemoveMessage(Object size) {
+    return 'Bu $size yer açar. İstediğin zaman yeniden indirebilirsin.';
+  }
+
+  @override
+  String get companionRemoveConfirm => 'KALDIR';
+
+  @override
+  String get sebastianEnableLabel => 'Sebastian çeviri yapsın';
+
+  @override
+  String get sebastianEnableDetail => 'İndirmeyi silmeden durdurmak için kapat';
+
+  @override
+  String get sebastianLanguageSection => 'ŞU DİLE ÇEVİR';
+
+  @override
+  String get sebastianLanguageFollowApp => 'Uygulamayla aynı';
+
+  @override
+  String sebastianBrainDetail(Object size) {
+    return 'Bu cihazda · $size';
+  }
+
+  @override
+  String sebastianCacheCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count çeviri saklanıyor',
+      one: '1 çeviri saklanıyor',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get sebastianCacheClear => 'Temizle';
+
+  @override
+  String get veraSkillsComingSoon =>
+      'Vera henüz bir şey yapamıyor — yetenekleri hâlâ yolda. Şimdi yapabileceğin şey ona bir beyin hazırlamak; böylece yetenekleri geldiğinde o çoktan hazır olur.';
+
+  @override
+  String get veraBrainsSection => 'BEYİN';
+
+  @override
+  String get veraBrainsCaption =>
+      'Büyüğü daha iyi düşünür, daha yavaş cevap verir. Birden fazlasını tutup aralarında geçiş yapabilirsin.';
+
+  @override
+  String get veraBrainTierSwift => 'Hızlı';
+
+  @override
+  String get veraBrainTierBalanced => 'Dengeli';
+
+  @override
+  String get veraBrainTierDeep => 'Derin';
+
+  @override
+  String get translationSlabShowOriginal => 'Orijinali göster';
+
+  @override
+  String get translationSlabFailed => 'Bu mesaj çevrilemedi.';
+
+  @override
+  String get translationSlabRetry => 'Tekrar dene';
+
+  @override
+  String translationSlabByCompanion(Object name) {
+    return '$name çevirdi';
+  }
+
+  @override
+  String translationSlabFromLanguage(Object language) {
+    return '$language dilinden';
+  }
+
+  @override
+  String get messageActionMenuTranslateLabel => 'ÇEVİR';
+
+  @override
+  String get messageActionMenuShowOriginalLabel => 'ORİJİNALİ GÖSTER';
+
+  @override
+  String get roomTranslateTitle => 'Bu sohbeti çevir';
+
+  @override
+  String get roomTranslateStopTitle => 'Çeviriyi durdur';
+
+  @override
+  String get roomTranslateSectionLabel => 'ÇEVİRİ';
+
+  @override
+  String get roomTranslateOnRow => 'Bu sohbet çevriliyor';
+
+  @override
+  String get roomTranslateOffRow => 'Kapalı';
+
+  @override
+  String get roomTranslateNeedsSetUp => 'Sebastian\'ı kur';
+
+  @override
+  String roomTranslateWorking(Object done, Object total) {
+    return 'Sebastian çeviriyor · $done/$total';
+  }
+
+  @override
+  String roomTranslateReading(Object language) {
+    return '$language dilinde okunuyor';
+  }
+
+  @override
+  String get roomTranslateStop => 'DURDUR';
+
+  @override
+  String roomScreenAlreadyInLanguageSnack(Object language) {
+    return 'zaten $language dilinde';
+  }
+
+  @override
+  String get roomScreenTranslateRoomOffer =>
+      'sohbetin geri kalanı da çevrilsin mi?';
+
+  @override
+  String get roomScreenTranslateRoomOfferAction => 'HEPSİNİ ÇEVİR';
+
+  @override
+  String get settingsScreenRowCompanions => 'YARDIMCILAR';
+
+  @override
+  String get settingsScreenCompanionsOff => 'Kapalı';
+
+  @override
+  String get settingsScreenCompanionsUnavailable => 'Kullanılamıyor';
+
+  @override
+  String companionBrainAlsoUsedBy(Object name) {
+    return '$name da kullanıyor';
+  }
+
+  @override
+  String companionBrainSharedWarning(Object name) {
+    return '$name da aynı indirmeyi kullanıyor ve onu kaybedecek.';
+  }
 }

@@ -5,7 +5,10 @@ import 'package:image_picker/image_picker.dart';
 
 import '../backend/chat_api.dart';
 import '../backend/convex_client.dart';
+import '../companions/companion.dart';
+import '../companions/sebastian.dart';
 import '../data/chat_repository.dart';
+import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../media/image_raster.dart';
@@ -23,6 +26,7 @@ import '../models/room_content_item.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
+import '../widgets/companion_install_sheet.dart';
 import '../widgets/editable_info_row.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/mute_room_sheet.dart';
@@ -1225,6 +1229,23 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                           const SizedBox(height: 6),
                           _muteRow(theme, r),
                         ],
+                        // Beside MUTE by the argument written directly above
+                        // it: this is the other block that changes nothing for
+                        // anybody but the reader. Nobody else in the room
+                        // learns that you are reading it in another language,
+                        // and nothing leaves the device for it to happen.
+                        //
+                        // Offered on every room kind, including Saved Messages
+                        // and the system rooms — a note you left yourself in a
+                        // language you were practising is a real thing to want
+                        // translated, and there is no capability that could
+                        // sensibly refuse it.
+                        const SizedBox(height: 28),
+                        FieldLabel(
+                          AppLocalizations.of(context).roomTranslateSectionLabel,
+                        ),
+                        const SizedBox(height: 6),
+                        _translateRow(theme, r),
                         const SizedBox(height: 28),
                         // A DM has no "leave" that makes sense — it's just the
                         // two people, and leaving alone silently strands you
@@ -2172,6 +2193,119 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       if (dots.length == 4) break;
     }
     return dots;
+  }
+
+  /// The room-wide translation switch.
+  ///
+  /// Deliberately built as a plain row rather than through
+  /// [RoomTranslateToggle]: that widget is shaped for the flat action list it
+  /// was written for, and this screen's rows have their own chrome. What the
+  /// two share is the four-state logic, which lives in [Sebastian] where both
+  /// can read it.
+  Widget _translateRow(AppTheme theme, ChatRoom r) {
+    final l10n = AppLocalizations.of(context);
+    final sebastian = Sebastian.instance;
+    final on = sebastian.isRoomTranslating(r.id);
+
+    // Not supported here at all — say so and leave the row inert, the same
+    // posture `caps.canOpenPeerProfile` takes in the header. A row that looks
+    // live and does nothing is worse than one that explains itself.
+    if (!sebastian.isAvailable) {
+      return _translateRowShell(
+        theme: theme,
+        icon: Icons.translate,
+        title: l10n.roomTranslateTitle,
+        detail: l10n.companionUnsupportedPlatform,
+        active: false,
+        onTap: null,
+      );
+    }
+
+    return _translateRowShell(
+      theme: theme,
+      icon: Icons.translate,
+      title: on ? l10n.roomTranslateOnRow : l10n.roomTranslateTitle,
+      detail: on
+          ? sebastian.targetLanguage.autonym
+          : (sebastian.isReady
+              ? l10n.roomTranslateOffRow
+              : l10n.roomTranslateNeedsSetUp),
+      active: on,
+      onTap: () async {
+        if (on) {
+          Sebastian.instance.stopRoom(r.id);
+          if (mounted) setState(() {});
+          return;
+        }
+        // Not ready is not a refusal — it is the install flow, reached from
+        // here exactly as it is reached from a bubble's TRANSLATE row.
+        if (!sebastian.isInstalled) {
+          final installed = await showCompanionInstallSheet(
+            context,
+            companion: Companion.sebastian,
+            brain: sebastian.brain,
+          );
+          if (!installed || !mounted) return;
+        }
+        if (!sebastian.isEnabled) {
+          await SettingsStore.instance.setSebastianEnabled(true);
+        }
+        if (!mounted) return;
+        Sebastian.instance
+            .startRoom(r.id, widget.repo.messagesFor(widget.roomId));
+        setState(() {});
+      },
+    );
+  }
+
+  Widget _translateRowShell({
+    required AppTheme theme,
+    required IconData icon,
+    required String title,
+    required String detail,
+    required bool active,
+    required VoidCallback? onTap,
+  }) {
+    final enabled = onTap != null;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+        decoration: BoxDecoration(
+          color: theme.surface,
+          border: Border.all(
+            color: active ? theme.accent.withValues(alpha: 0.4) : theme.divider,
+          ),
+          borderRadius: BorderRadius.circular(theme.radiusMd),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: active ? theme.accent : theme.inkMuted,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: theme.body),
+                  const SizedBox(height: 2),
+                  Text(
+                    detail,
+                    style: theme.caption.copyWith(color: theme.inkMuted),
+                  ),
+                ],
+              ),
+            ),
+            if (enabled)
+              Icon(Icons.chevron_right, size: 18, color: theme.inkMuted),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _muteRow(AppTheme theme, ChatRoom r) {

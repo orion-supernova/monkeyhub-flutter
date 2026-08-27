@@ -7847,4 +7847,281 @@ class AppLocalizationsSv extends AppLocalizations {
   String messageReceiptsSemanticHidden(Object name) {
     return '$name delar inte läskvitton';
   }
+
+  @override
+  String get companionsScreenTitle => 'följeslagare.';
+
+  @override
+  String get companionsScreenSubtitle =>
+      'hjälpredor som bor i den här telefonen och aldrig skickar något vidare';
+
+  @override
+  String get companionSebastianTagline => 'Översätter meddelanden';
+
+  @override
+  String get companionSebastianBlurb =>
+      'Sebastian läser ett meddelande på ett annat språk och berättar vad det står — här i telefonen, utan att något skickas någonstans.';
+
+  @override
+  String get companionVeraTagline => 'Allmän hjälp';
+
+  @override
+  String get companionVeraBlurb =>
+      'Vera är följeslagaren för allt som inte är översättning. Välj vad hon tänker med nu, så kommer hennes färdigheter efter hand.';
+
+  @override
+  String get companionAssuranceOnDevice => 'Körs helt på den här enheten';
+
+  @override
+  String get companionAssurancePrivate =>
+      'Dina meddelanden lämnar aldrig telefonen';
+
+  @override
+  String get companionAssuranceOffline => 'Fungerar utan uppkoppling';
+
+  @override
+  String companionInstallAction(Object size) {
+    return 'Installera · $size';
+  }
+
+  @override
+  String get companionInstallOneTime =>
+      'engångsnedladdning, sparas tills du tar bort den';
+
+  @override
+  String companionInstallProgress(Object received, Object total) {
+    return '$received av $total';
+  }
+
+  @override
+  String get companionInstallQueued =>
+      'Väntar på att en annan nedladdning ska bli klar';
+
+  @override
+  String get companionInstallCancel => 'Avbryt';
+
+  @override
+  String get companionInstallRetry => 'Försök igen';
+
+  @override
+  String companionInstallReady(Object name) {
+    return '$name är redo';
+  }
+
+  @override
+  String get companionInstallFailedNetwork =>
+      'Nedladdningen kunde inte slutföras. Kontrollera anslutningen och försök igen.';
+
+  @override
+  String get companionInstallFailedStorage =>
+      'Det finns inte tillräckligt med utrymme på enheten. Frigör lite och försök igen.';
+
+  @override
+  String get companionInstallFailedUnknown =>
+      'Nedladdningen kunde inte slutföras.';
+
+  @override
+  String get companionUnsupportedPlatform =>
+      'Följeslagare är inte tillgängliga i den här versionen av appen än.';
+
+  @override
+  String get companionStatusNotInstalled => 'Inte installerad';
+
+  @override
+  String get companionStatusOff => 'Av';
+
+  @override
+  String companionStatusTranslatingInto(Object language) {
+    return 'Översätter till $language';
+  }
+
+  @override
+  String get companionStatusNoBrain => 'Inget nedladdat än';
+
+  @override
+  String companionStatusBrainsReady(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nedladdningar redo',
+      one: '1 nedladdning redo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get companionStorageEmpty =>
+      'Inget nedladdat — följeslagarna tar ingen plats';
+
+  @override
+  String companionStorageUsed(Object size) {
+    return 'Följeslagarna använder $size';
+  }
+
+  @override
+  String get companionSectionGeneral => 'ALLMÄNT';
+
+  @override
+  String get companionSectionStorage => 'LAGRING';
+
+  @override
+  String get companionBrainRemove => 'Ta bort';
+
+  @override
+  String companionBrainRemoveTitle(Object name) {
+    return 'TA BORT $name?';
+  }
+
+  @override
+  String companionRemoveTitle(Object name) {
+    return 'TA BORT $name?';
+  }
+
+  @override
+  String companionRemoveMessage(Object size) {
+    return 'Det frigör $size. Du kan ladda ner den igen när du vill.';
+  }
+
+  @override
+  String get companionRemoveConfirm => 'TA BORT';
+
+  @override
+  String get sebastianEnableLabel => 'Låt Sebastian översätta';
+
+  @override
+  String get sebastianEnableDetail =>
+      'Stäng av för att stoppa honom utan att radera nedladdningen';
+
+  @override
+  String get sebastianLanguageSection => 'ÖVERSÄTT TILL';
+
+  @override
+  String get sebastianLanguageFollowApp => 'Samma som appen';
+
+  @override
+  String sebastianBrainDetail(Object size) {
+    return 'På den här enheten · $size';
+  }
+
+  @override
+  String sebastianCacheCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count översättningar sparade',
+      one: '1 översättning sparad',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get sebastianCacheClear => 'Rensa';
+
+  @override
+  String get veraSkillsComingSoon =>
+      'Vera kan inte göra något än — hennes färdigheter är på väg. Det du kan göra nu är att ha en hjärna redo åt henne, så att hon står och väntar när de landar.';
+
+  @override
+  String get veraBrainsSection => 'HJÄRNA';
+
+  @override
+  String get veraBrainsCaption =>
+      'Större tänker bättre och svarar långsammare. Du kan behålla flera och byta mellan dem.';
+
+  @override
+  String get veraBrainTierSwift => 'Snabb';
+
+  @override
+  String get veraBrainTierBalanced => 'Balanserad';
+
+  @override
+  String get veraBrainTierDeep => 'Djup';
+
+  @override
+  String get translationSlabShowOriginal => 'Visa originalet';
+
+  @override
+  String get translationSlabFailed =>
+      'Det här meddelandet kunde inte översättas.';
+
+  @override
+  String get translationSlabRetry => 'Försök igen';
+
+  @override
+  String translationSlabByCompanion(Object name) {
+    return 'Översatt av $name';
+  }
+
+  @override
+  String translationSlabFromLanguage(Object language) {
+    return 'Från $language';
+  }
+
+  @override
+  String get messageActionMenuTranslateLabel => 'ÖVERSÄTT';
+
+  @override
+  String get messageActionMenuShowOriginalLabel => 'VISA ORIGINALET';
+
+  @override
+  String get roomTranslateTitle => 'Översätt den här chatten';
+
+  @override
+  String get roomTranslateStopTitle => 'Sluta översätta';
+
+  @override
+  String get roomTranslateSectionLabel => 'ÖVERSÄTTNING';
+
+  @override
+  String get roomTranslateOnRow => 'Översätter den här chatten';
+
+  @override
+  String get roomTranslateOffRow => 'Av';
+
+  @override
+  String get roomTranslateNeedsSetUp => 'Konfigurera Sebastian';
+
+  @override
+  String roomTranslateWorking(Object done, Object total) {
+    return 'Sebastian översätter · $done/$total';
+  }
+
+  @override
+  String roomTranslateReading(Object language) {
+    return 'Läser på $language';
+  }
+
+  @override
+  String get roomTranslateStop => 'STOPPA';
+
+  @override
+  String roomScreenAlreadyInLanguageSnack(Object language) {
+    return 'redan på $language';
+  }
+
+  @override
+  String get roomScreenTranslateRoomOffer =>
+      'översätta resten av chatten också?';
+
+  @override
+  String get roomScreenTranslateRoomOfferAction => 'ÖVERSÄTT ALLT';
+
+  @override
+  String get settingsScreenRowCompanions => 'FÖLJESLAGARE';
+
+  @override
+  String get settingsScreenCompanionsOff => 'Av';
+
+  @override
+  String get settingsScreenCompanionsUnavailable => 'Otillgängligt';
+
+  @override
+  String companionBrainAlsoUsedBy(Object name) {
+    return 'Används även av $name';
+  }
+
+  @override
+  String companionBrainSharedWarning(Object name) {
+    return '$name använder samma nedladdning och förlorar den också.';
+  }
 }

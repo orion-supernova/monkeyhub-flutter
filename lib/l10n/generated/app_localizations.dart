@@ -13326,6 +13326,432 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{name} doesn’t share read receipts'**
   String messageReceiptsSemanticHidden(Object name);
+
+  /// Lowercase screen title for Settings > Companions, matching the house style of the other settings detail screens (e.g. 'language.').
+  ///
+  /// In en, this message translates to:
+  /// **'companions.'**
+  String get companionsScreenTitle;
+
+  /// Caption under the Companions screen title. 'never phone home' means they send no data anywhere; translate the meaning, not the idiom.
+  ///
+  /// In en, this message translates to:
+  /// **'helpers that live on this phone and never phone home'**
+  String get companionsScreenSubtitle;
+
+  /// One-line description of the companion Sebastian, shown under his name. 'Sebastian' is a proper noun and is never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Translates messages'**
+  String get companionSebastianTagline;
+
+  /// Longer description of Sebastian, shown on his detail screen and in his install sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Sebastian reads a message written in another language and tells you what it says — here on your phone, with nothing sent anywhere.'**
+  String get companionSebastianBlurb;
+
+  /// One-line description of the companion Vera, shown under her name. 'Vera' is a proper noun and is never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'General help'**
+  String get companionVeraTagline;
+
+  /// Longer description of Vera, shown on her detail screen. 'what she thinks with' refers to the downloadable model she runs on.
+  ///
+  /// In en, this message translates to:
+  /// **'Vera is the companion for everything that isn\'t translation. Choose what she thinks with now, and her skills will arrive around it.'**
+  String get companionVeraBlurb;
+
+  /// First of three reassurance lines in the companion install sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Runs entirely on this device'**
+  String get companionAssuranceOnDevice;
+
+  /// Second of three reassurance lines in the companion install sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Your messages never leave your phone'**
+  String get companionAssurancePrivate;
+
+  /// Third of three reassurance lines in the companion install sheet: it works offline.
+  ///
+  /// In en, this message translates to:
+  /// **'Works with no signal'**
+  String get companionAssuranceOffline;
+
+  /// Primary button in the companion install sheet. {size} is a download size already formatted, e.g. '328 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'Install · {size}'**
+  String companionInstallAction(Object size);
+
+  /// Note under the install button explaining the download happens once.
+  ///
+  /// In en, this message translates to:
+  /// **'one-time download, kept until you remove it'**
+  String get companionInstallOneTime;
+
+  /// Download progress line. {received} and {total} are already-formatted sizes, e.g. '104 MB' and '328 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'{received} of {total}'**
+  String companionInstallProgress(Object received, Object total);
+
+  /// Shown when a companion download is queued behind another one.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for another download to finish'**
+  String get companionInstallQueued;
+
+  /// Button that stops an in-progress companion download.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get companionInstallCancel;
+
+  /// Button that retries a failed companion download.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get companionInstallRetry;
+
+  /// Shown when a companion has finished downloading. {name} is the companion's name, e.g. 'Sebastian'.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is ready'**
+  String companionInstallReady(Object name);
+
+  /// Error shown when a companion download failed for network reasons.
+  ///
+  /// In en, this message translates to:
+  /// **'The download couldn\'t finish. Check your connection and try again.'**
+  String get companionInstallFailedNetwork;
+
+  /// Error shown when a companion download failed because storage is full.
+  ///
+  /// In en, this message translates to:
+  /// **'There isn\'t enough space on this device. Free some up and try again.'**
+  String get companionInstallFailedStorage;
+
+  /// Error shown when a companion download failed for an unknown reason.
+  ///
+  /// In en, this message translates to:
+  /// **'The download couldn\'t finish.'**
+  String get companionInstallFailedUnknown;
+
+  /// Shown where a companion would be offered on a platform that cannot run one (currently web).
+  ///
+  /// In en, this message translates to:
+  /// **'Companions aren\'t available in this version of the app yet.'**
+  String get companionUnsupportedPlatform;
+
+  /// Status line under a companion's name in the Companions list, when nothing has been downloaded for them.
+  ///
+  /// In en, this message translates to:
+  /// **'Not installed'**
+  String get companionStatusNotInstalled;
+
+  /// Status line under a companion's name when they are downloaded but switched off.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get companionStatusOff;
+
+  /// Status line under Sebastian's name when he is active. {language} is a language name written in that language itself, e.g. 'Türkçe'.
+  ///
+  /// In en, this message translates to:
+  /// **'Translating into {language}'**
+  String companionStatusTranslatingInto(Object language);
+
+  /// Status line under Vera's name when she has no downloaded model.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing downloaded yet'**
+  String get companionStatusNoBrain;
+
+  /// Status line under Vera's name counting how many of her downloadable models are installed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 download ready} other{{count} downloads ready}}'**
+  String companionStatusBrainsReady(num count);
+
+  /// Storage summary at the bottom of the Companions screen when nothing is installed.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing downloaded — companions are using no space'**
+  String get companionStorageEmpty;
+
+  /// Storage summary at the bottom of the Companions screen. {size} is an already-formatted size, e.g. '1.2 GB'.
+  ///
+  /// In en, this message translates to:
+  /// **'Companions are using {size}'**
+  String companionStorageUsed(Object size);
+
+  /// All-caps section label on a companion's detail screen.
+  ///
+  /// In en, this message translates to:
+  /// **'GENERAL'**
+  String get companionSectionGeneral;
+
+  /// All-caps section label above the download/remove row on a companion's detail screen.
+  ///
+  /// In en, this message translates to:
+  /// **'STORAGE'**
+  String get companionSectionStorage;
+
+  /// Small button that deletes a downloaded companion model from the device.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get companionBrainRemove;
+
+  /// All-caps confirm-sheet headline before deleting one of Vera's downloads. {name} is the download's tier name, e.g. 'Balanced'.
+  ///
+  /// In en, this message translates to:
+  /// **'REMOVE {name}?'**
+  String companionBrainRemoveTitle(Object name);
+
+  /// All-caps confirm-sheet headline before deleting a companion's download. {name} is the companion's name, e.g. 'Sebastian'.
+  ///
+  /// In en, this message translates to:
+  /// **'REMOVE {name}?'**
+  String companionRemoveTitle(Object name);
+
+  /// Body of the confirm sheet before deleting a companion download. {size} is an already-formatted size, e.g. '328 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'This frees {size}. You can download it again at any time.'**
+  String companionRemoveMessage(Object size);
+
+  /// All-caps destructive button that confirms deleting a companion download.
+  ///
+  /// In en, this message translates to:
+  /// **'REMOVE'**
+  String get companionRemoveConfirm;
+
+  /// Label of the switch that turns Sebastian on. 'Sebastian' is a proper noun and is never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Let Sebastian translate'**
+  String get sebastianEnableLabel;
+
+  /// Explanation under the switch that turns Sebastian on and off.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off to stop him without deleting the download'**
+  String get sebastianEnableDetail;
+
+  /// All-caps section label above the target-language picker on Sebastian's screen.
+  ///
+  /// In en, this message translates to:
+  /// **'TRANSLATE INTO'**
+  String get sebastianLanguageSection;
+
+  /// First row of the target-language picker: follow whatever language the app itself is displayed in.
+  ///
+  /// In en, this message translates to:
+  /// **'Same as the app'**
+  String get sebastianLanguageFollowApp;
+
+  /// Detail line on Sebastian's storage row. {size} is an already-formatted size, e.g. '328 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'On this device · {size}'**
+  String sebastianBrainDetail(Object size);
+
+  /// Counts the translations saved on the device so they do not have to be redone.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 translation kept} other{{count} translations kept}}'**
+  String sebastianCacheCount(num count);
+
+  /// Small button that deletes the saved translations.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get sebastianCacheClear;
+
+  /// Honest note at the top of Vera's screen explaining that she has no working features yet, only her downloadable model. 'brain' is this app's word for that model.
+  ///
+  /// In en, this message translates to:
+  /// **'Vera can\'t do anything yet — her skills are still on the way. What you can do now is get a brain ready for her, so she is waiting when they land.'**
+  String get veraSkillsComingSoon;
+
+  /// All-caps section label above Vera's list of downloadable models. 'Brain' is this app's user-facing word for a model.
+  ///
+  /// In en, this message translates to:
+  /// **'BRAIN'**
+  String get veraBrainsSection;
+
+  /// Caption above Vera's list of downloadable models, explaining the size trade-off.
+  ///
+  /// In en, this message translates to:
+  /// **'Bigger thinks better and answers slower. You can keep more than one and switch between them.'**
+  String get veraBrainsCaption;
+
+  /// Name of the smallest, fastest downloadable model. A quality tier, not a product name — translate it.
+  ///
+  /// In en, this message translates to:
+  /// **'Swift'**
+  String get veraBrainTierSwift;
+
+  /// Name of the mid-sized downloadable model. A quality tier, not a product name — translate it.
+  ///
+  /// In en, this message translates to:
+  /// **'Balanced'**
+  String get veraBrainTierBalanced;
+
+  /// Name of the largest, most capable downloadable model. A quality tier, not a product name — translate it.
+  ///
+  /// In en, this message translates to:
+  /// **'Deep'**
+  String get veraBrainTierDeep;
+
+  /// Tap target under a translated message that puts it back to what was actually written.
+  ///
+  /// In en, this message translates to:
+  /// **'Show original'**
+  String get translationSlabShowOriginal;
+
+  /// Shown inside a message bubble when a translation failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t translate this one.'**
+  String get translationSlabFailed;
+
+  /// Tap target that retries a failed translation inside a message bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get translationSlabRetry;
+
+  /// Credit line under a translated message when the original language could not be identified. {name} is the companion's name, e.g. 'Sebastian'.
+  ///
+  /// In en, this message translates to:
+  /// **'Translated by {name}'**
+  String translationSlabByCompanion(Object name);
+
+  /// Credit line under a translated message naming the original language. {language} is written in that language itself, e.g. 'Türkçe'.
+  ///
+  /// In en, this message translates to:
+  /// **'From {language}'**
+  String translationSlabFromLanguage(Object language);
+
+  /// All-caps row in the message long-press menu that translates the message.
+  ///
+  /// In en, this message translates to:
+  /// **'TRANSLATE'**
+  String get messageActionMenuTranslateLabel;
+
+  /// All-caps row in the message long-press menu that hides a translation and shows what was actually written.
+  ///
+  /// In en, this message translates to:
+  /// **'SHOW ORIGINAL'**
+  String get messageActionMenuShowOriginalLabel;
+
+  /// Row in Room Info that turns on translation for every message in the chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Translate this chat'**
+  String get roomTranslateTitle;
+
+  /// Same row once translation is already on for the chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop translating'**
+  String get roomTranslateStopTitle;
+
+  /// All-caps section label above the translate-this-chat row in Room Info.
+  ///
+  /// In en, this message translates to:
+  /// **'TRANSLATION'**
+  String get roomTranslateSectionLabel;
+
+  /// Title of the Room Info translation row while it is switched on.
+  ///
+  /// In en, this message translates to:
+  /// **'Translating this chat'**
+  String get roomTranslateOnRow;
+
+  /// Detail line of the Room Info translation row while it is switched off.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get roomTranslateOffRow;
+
+  /// Detail line of the translation row when Sebastian has not been downloaded or switched on yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up Sebastian'**
+  String get roomTranslateNeedsSetUp;
+
+  /// Strip under the chat header while a whole chat is being translated. {done} and {total} are message counts.
+  ///
+  /// In en, this message translates to:
+  /// **'Sebastian is translating · {done}/{total}'**
+  String roomTranslateWorking(Object done, Object total);
+
+  /// Strip under the chat header once every message has been translated. {language} is written in that language itself, e.g. 'Türkçe'.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading in {language}'**
+  String roomTranslateReading(Object language);
+
+  /// All-caps tap target on the translation strip that turns chat translation back off.
+  ///
+  /// In en, this message translates to:
+  /// **'STOP'**
+  String get roomTranslateStop;
+
+  /// Lowercase SnackBar shown when a message tapped for translation is already in the reader's language. {language} is written in that language itself.
+  ///
+  /// In en, this message translates to:
+  /// **'already in {language}'**
+  String roomScreenAlreadyInLanguageSnack(Object language);
+
+  /// Lowercase SnackBar offering to translate the whole chat after the first single message was translated.
+  ///
+  /// In en, this message translates to:
+  /// **'translate the rest of this chat too?'**
+  String get roomScreenTranslateRoomOffer;
+
+  /// All-caps SnackBar action that accepts the offer to translate the whole chat.
+  ///
+  /// In en, this message translates to:
+  /// **'TRANSLATE ALL'**
+  String get roomScreenTranslateRoomOfferAction;
+
+  /// All-caps row label in Settings > Chat that opens the Companions screen.
+  ///
+  /// In en, this message translates to:
+  /// **'COMPANIONS'**
+  String get settingsScreenRowCompanions;
+
+  /// Value column of the Companions settings row when no companion is active.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get settingsScreenCompanionsOff;
+
+  /// Value column of the Companions settings row on a platform that cannot run one.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable'**
+  String get settingsScreenCompanionsUnavailable;
+
+  /// Line under a downloaded model saying another companion runs on the same file. {name} is that companion's name, e.g. 'Sebastian'.
+  ///
+  /// In en, this message translates to:
+  /// **'Also used by {name}'**
+  String companionBrainAlsoUsedBy(Object name);
+
+  /// Sentence appended to the remove-confirmation when another companion shares the download. {name} is that companion's name, e.g. 'Sebastian'.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} uses the same download and will lose it too.'**
+  String companionBrainSharedWarning(Object name);
 }
 
 class _AppLocalizationsDelegate

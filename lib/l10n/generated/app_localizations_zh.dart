@@ -7431,4 +7431,265 @@ class AppLocalizationsZh extends AppLocalizations {
   String messageReceiptsSemanticHidden(Object name) {
     return '$name 未共享已读回执';
   }
+
+  @override
+  String get companionsScreenTitle => '伙伴。';
+
+  @override
+  String get companionsScreenSubtitle => '住在这台手机里、从不往外传数据的小帮手';
+
+  @override
+  String get companionSebastianTagline => '翻译消息';
+
+  @override
+  String get companionSebastianBlurb =>
+      'Sebastian 会读懂用其他语言写的消息，并告诉你它在说什么——就在你的手机上完成，不会把任何内容发送到别处。';
+
+  @override
+  String get companionVeraTagline => '通用助手';
+
+  @override
+  String get companionVeraBlurb => 'Vera 负责翻译以外的一切。先选好她用来思考的大脑，她的能力会陆续到来。';
+
+  @override
+  String get companionAssuranceOnDevice => '完全在这台设备上运行';
+
+  @override
+  String get companionAssurancePrivate => '你的消息永远不会离开手机';
+
+  @override
+  String get companionAssuranceOffline => '没有网络也能用';
+
+  @override
+  String companionInstallAction(Object size) {
+    return '安装 · $size';
+  }
+
+  @override
+  String get companionInstallOneTime => '只需下载一次，除非你删除，否则一直保留';
+
+  @override
+  String companionInstallProgress(Object received, Object total) {
+    return '$received / $total';
+  }
+
+  @override
+  String get companionInstallQueued => '正在等待另一个下载完成';
+
+  @override
+  String get companionInstallCancel => '取消';
+
+  @override
+  String get companionInstallRetry => '重试';
+
+  @override
+  String companionInstallReady(Object name) {
+    return '$name 准备好了';
+  }
+
+  @override
+  String get companionInstallFailedNetwork => '下载未能完成。请检查网络连接后重试。';
+
+  @override
+  String get companionInstallFailedStorage => '这台设备的空间不足。请清理一些空间后重试。';
+
+  @override
+  String get companionInstallFailedUnknown => '下载未能完成。';
+
+  @override
+  String get companionUnsupportedPlatform => '此版本的应用暂不支持伙伴功能。';
+
+  @override
+  String get companionStatusNotInstalled => '未安装';
+
+  @override
+  String get companionStatusOff => '已关闭';
+
+  @override
+  String companionStatusTranslatingInto(Object language) {
+    return '正在翻译成$language';
+  }
+
+  @override
+  String get companionStatusNoBrain => '还没有下载任何内容';
+
+  @override
+  String companionStatusBrainsReady(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个下载已就绪',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get companionStorageEmpty => '没有下载任何内容——伙伴不占空间';
+
+  @override
+  String companionStorageUsed(Object size) {
+    return '伙伴占用 $size';
+  }
+
+  @override
+  String get companionSectionGeneral => '通用';
+
+  @override
+  String get companionSectionStorage => '存储';
+
+  @override
+  String get companionBrainRemove => '删除';
+
+  @override
+  String companionBrainRemoveTitle(Object name) {
+    return '删除$name？';
+  }
+
+  @override
+  String companionRemoveTitle(Object name) {
+    return '删除 $name？';
+  }
+
+  @override
+  String companionRemoveMessage(Object size) {
+    return '这会释放 $size。你随时可以重新下载。';
+  }
+
+  @override
+  String get companionRemoveConfirm => '删除';
+
+  @override
+  String get sebastianEnableLabel => '让 Sebastian 翻译';
+
+  @override
+  String get sebastianEnableDetail => '关闭即可停用他，同时保留已下载的内容';
+
+  @override
+  String get sebastianLanguageSection => '翻译成';
+
+  @override
+  String get sebastianLanguageFollowApp => '与应用相同';
+
+  @override
+  String sebastianBrainDetail(Object size) {
+    return '在这台设备上 · $size';
+  }
+
+  @override
+  String sebastianCacheCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已保存 $count 条翻译',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get sebastianCacheClear => '清除';
+
+  @override
+  String get veraSkillsComingSoon =>
+      'Vera 目前还什么都做不了——她的能力还在路上。你现在能做的，是先为她准备好一个大脑，等能力上线时她已经在等着了。';
+
+  @override
+  String get veraBrainsSection => '大脑';
+
+  @override
+  String get veraBrainsCaption => '越大思考得越好，回答也越慢。你可以保留多个并随时切换。';
+
+  @override
+  String get veraBrainTierSwift => '轻快';
+
+  @override
+  String get veraBrainTierBalanced => '均衡';
+
+  @override
+  String get veraBrainTierDeep => '深度';
+
+  @override
+  String get translationSlabShowOriginal => '显示原文';
+
+  @override
+  String get translationSlabFailed => '这条消息无法翻译。';
+
+  @override
+  String get translationSlabRetry => '重试';
+
+  @override
+  String translationSlabByCompanion(Object name) {
+    return '由 $name 翻译';
+  }
+
+  @override
+  String translationSlabFromLanguage(Object language) {
+    return '译自$language';
+  }
+
+  @override
+  String get messageActionMenuTranslateLabel => '翻译';
+
+  @override
+  String get messageActionMenuShowOriginalLabel => '显示原文';
+
+  @override
+  String get roomTranslateTitle => '翻译此聊天';
+
+  @override
+  String get roomTranslateStopTitle => '停止翻译';
+
+  @override
+  String get roomTranslateSectionLabel => '翻译';
+
+  @override
+  String get roomTranslateOnRow => '正在翻译此聊天';
+
+  @override
+  String get roomTranslateOffRow => '已关闭';
+
+  @override
+  String get roomTranslateNeedsSetUp => '设置 Sebastian';
+
+  @override
+  String roomTranslateWorking(Object done, Object total) {
+    return 'Sebastian 正在翻译 · $done/$total';
+  }
+
+  @override
+  String roomTranslateReading(Object language) {
+    return '以$language阅读';
+  }
+
+  @override
+  String get roomTranslateStop => '停止';
+
+  @override
+  String roomScreenAlreadyInLanguageSnack(Object language) {
+    return '已经是$language了';
+  }
+
+  @override
+  String get roomScreenTranslateRoomOffer => '要把这个聊天的其余部分也翻译了吗？';
+
+  @override
+  String get roomScreenTranslateRoomOfferAction => '全部翻译';
+
+  @override
+  String get settingsScreenRowCompanions => '伙伴';
+
+  @override
+  String get settingsScreenCompanionsOff => '已关闭';
+
+  @override
+  String get settingsScreenCompanionsUnavailable => '不可用';
+
+  @override
+  String companionBrainAlsoUsedBy(Object name) {
+    return '$name 也在使用';
+  }
+
+  @override
+  String companionBrainSharedWarning(Object name) {
+    return '$name 使用的是同一个下载，也会一并失去。';
+  }
 }

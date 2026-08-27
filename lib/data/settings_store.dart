@@ -56,6 +56,14 @@ class SettingsStore extends ChangeNotifier {
   static const _kMotionLevel = 'mh.motionLevel';
   static const _kScheduledIndicator = 'mh.schedule.indicator';
 
+  // ── Companions (lib/companions/) ───────────────────────────────────────
+  // Namespaced under `mh.companion.` so a future resident needs no new
+  // convention, and so the whole subsystem is greppable in one go.
+  static const _kSebastianEnabled = 'mh.companion.sebastian.enabled';
+  static const _kTranslationTarget = 'mh.companion.sebastian.target';
+  static const _kTranslatedRoomIds = 'mh.companion.sebastian.rooms';
+  static const _kVeraBrainId = 'mh.companion.vera.brain';
+
   final _storage = const FlutterSecureStorage(
     iOptions: IOSOptions(accessibility: KeychainAccessibility.unlocked),
   );
@@ -108,6 +116,18 @@ class SettingsStore extends ChangeNotifier {
   // Null means "follow the OS accessibility setting" — see [motionLevel].
   MotionLevel? _motionLevel;
   ScheduledIndicator _scheduledIndicator = ScheduledIndicator.pill;
+
+  // Off until asked for. Sebastian costs a 328 MB download, and a default-on
+  // feature that large would be spending someone's storage and data plan on a
+  // decision they never made. See [sebastianEnabled].
+  bool _sebastianEnabled = false;
+  // Null means "follow the app's display language" — see
+  // `Sebastian.targetLanguage`, which owns the whole fallback chain. Storing
+  // null rather than resolving it here matters: someone who switches the app
+  // to Turkish should get Turkish translations without visiting this setting.
+  String? _translationTarget;
+  Set<String> _translatedRoomIds = {};
+  String? _veraBrainId;
 
   String? get themeId => _themeId;
   RoomLayout get roomLayout => _roomLayout;
@@ -259,6 +279,26 @@ class SettingsStore extends ChangeNotifier {
   bool _loaded = false;
   bool get loaded => _loaded;
 
+  /// Whether Sebastian is switched on.
+  ///
+  /// Distinct from "installed": a user can switch him off without deleting his
+  /// brain, which is the state you want when you are on a plane and low on
+  /// battery but not ready to re-download 328 MB tomorrow.
+  bool get sebastianEnabled => _sebastianEnabled;
+
+  /// Explicit translation target, or null to follow the app's language.
+  String? get translationTarget => _translationTarget;
+
+  /// Rooms the user has switched room-wide translation on for.
+  ///
+  /// Persisted rather than per-session on purpose: a room you needed
+  /// translated yesterday is a room you need translated today — it is a fact
+  /// about who you talk to there, not about one visit.
+  Set<String> get translatedRoomIds => Set.unmodifiable(_translatedRoomIds);
+
+  /// Which brain Vera is set to think with, or null if she has none yet.
+  String? get veraBrainId => _veraBrainId;
+
   Future<void> load() async {
     if (_loaded) return;
     try {
@@ -382,6 +422,13 @@ class SettingsStore extends ChangeNotifier {
       _scheduledIndicator = ScheduledIndicator.parse(
         await _storage.read(key: _kScheduledIndicator),
       );
+      _sebastianEnabled =
+          (await _storage.read(key: _kSebastianEnabled)) == 'true';
+      _translationTarget = await _storage.read(key: _kTranslationTarget);
+      _translatedRoomIds = _decodeStringSet(
+        await _storage.read(key: _kTranslatedRoomIds),
+      );
+      _veraBrainId = await _storage.read(key: _kVeraBrainId);
     } catch (_) {
       /* secure storage unavailable in test harness */
     }
@@ -561,6 +608,47 @@ class SettingsStore extends ChangeNotifier {
     _showLinkUrls = v;
     notifyListeners();
     await _storage.write(key: _kShowLinkUrls, value: v ? 'true' : 'false');
+  }
+
+  Future<void> setSebastianEnabled(bool v) async {
+    if (_sebastianEnabled == v) return;
+    _sebastianEnabled = v;
+    notifyListeners();
+    await _storage.write(key: _kSebastianEnabled, value: v ? 'true' : 'false');
+  }
+
+  /// Sets the translation target, or clears it back to "follow the app".
+  Future<void> setTranslationTarget(String? code) async {
+    if (_translationTarget == code) return;
+    _translationTarget = code;
+    notifyListeners();
+    if (code == null) {
+      await _storage.delete(key: _kTranslationTarget);
+    } else {
+      await _storage.write(key: _kTranslationTarget, value: code);
+    }
+  }
+
+  Future<void> setRoomTranslated(String roomId, bool on) async {
+    final changed =
+        on ? _translatedRoomIds.add(roomId) : _translatedRoomIds.remove(roomId);
+    if (!changed) return;
+    notifyListeners();
+    await _storage.write(
+      key: _kTranslatedRoomIds,
+      value: jsonEncode(_translatedRoomIds.toList()),
+    );
+  }
+
+  Future<void> setVeraBrainId(String? id) async {
+    if (_veraBrainId == id) return;
+    _veraBrainId = id;
+    notifyListeners();
+    if (id == null) {
+      await _storage.delete(key: _kVeraBrainId);
+    } else {
+      await _storage.write(key: _kVeraBrainId, value: id);
+    }
   }
 
   Future<void> setPhotoHd(bool v) async {

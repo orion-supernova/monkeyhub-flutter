@@ -229,6 +229,30 @@ dependencies:
   # live_location_publisher.dart for that decision and what reversing it costs.
   geolocator: ^14.0.3
 
+  # On-device LLM inference — the engine under Companions (Sebastian, Vera).
+  # See lib/companions/ for the whole subsystem; `brain_gateway.dart` is the
+  # ONLY file in the app that imports either of these.
+  #
+  # Two packages because flutter_gemma 1.x is a core + opt-in engines: the core
+  # is plain Swift/Kotlin/Dart with no third-party native dependency at all, and
+  # each engine package brings its own runtime. We take exactly one.
+  #
+  # `flutter_gemma_litertlm` and NOT `flutter_gemma_mediapipe`, for the reason
+  # written on `mobile_scanner` below: MediaPipe is the Google ML Kit native
+  # family, whose pods ship no arm64-simulator slices and made this app
+  # unbuildable on Apple Silicon simulators. That package would pull
+  # `MediaPipeTasksGenAI` straight back in. LiteRT-LM instead delivers
+  # `libLiteRtLm` as a Native Assets CodeAsset built per-target by the package's
+  # own `hook/build.dart`, so there is no prebuilt .xcframework to be missing a
+  # slice — upstream documents the simulator explicitly (CPU there, Metal on
+  # device). It is also the only engine that covers desktop, which `.task`
+  # cannot read at all.
+  #
+  # The cost of choosing it: an iOS deployment-target floor of 15.0, and models
+  # must be `.litertlm` (never `.task`/`.bin`) — `BrainSpec.fileType` pins that.
+  flutter_gemma: ^1.6.5
+  flutter_gemma_litertlm: ^1.5.3
+
   flutter_localizations:
     sdk: flutter
 

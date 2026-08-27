@@ -9041,5 +9041,289 @@
   "messageReceiptsSemanticHidden": "{name} doesn’t share read receipts",
   "@messageReceiptsSemanticHidden": {
     "description": "Screen-reader label for a read-receipts row for someone who does not share read receipts. {name} is the person."
+  },
+  "companionsScreenTitle": "companions.",
+  "@companionsScreenTitle": {
+    "description": "Lowercase screen title for Settings > Companions, matching the house style of the other settings detail screens (e.g. 'language.')."
+  },
+  "companionsScreenSubtitle": "helpers that live on this phone and never phone home",
+  "@companionsScreenSubtitle": {
+    "description": "Caption under the Companions screen title. 'never phone home' means they send no data anywhere; translate the meaning, not the idiom."
+  },
+  "companionSebastianTagline": "Translates messages",
+  "@companionSebastianTagline": {
+    "description": "One-line description of the companion Sebastian, shown under his name. 'Sebastian' is a proper noun and is never translated."
+  },
+  "companionSebastianBlurb": "Sebastian reads a message written in another language and tells you what it says — here on your phone, with nothing sent anywhere.",
+  "@companionSebastianBlurb": {
+    "description": "Longer description of Sebastian, shown on his detail screen and in his install sheet."
+  },
+  "companionVeraTagline": "General help",
+  "@companionVeraTagline": {
+    "description": "One-line description of the companion Vera, shown under her name. 'Vera' is a proper noun and is never translated."
+  },
+  "companionVeraBlurb": "Vera is the companion for everything that isn't translation. Choose what she thinks with now, and her skills will arrive around it.",
+  "@companionVeraBlurb": {
+    "description": "Longer description of Vera, shown on her detail screen. 'what she thinks with' refers to the downloadable model she runs on."
+  },
+  "companionAssuranceOnDevice": "Runs entirely on this device",
+  "@companionAssuranceOnDevice": {
+    "description": "First of three reassurance lines in the companion install sheet."
+  },
+  "companionAssurancePrivate": "Your messages never leave your phone",
+  "@companionAssurancePrivate": {
+    "description": "Second of three reassurance lines in the companion install sheet."
+  },
+  "companionAssuranceOffline": "Works with no signal",
+  "@companionAssuranceOffline": {
+    "description": "Third of three reassurance lines in the companion install sheet: it works offline."
+  },
+  "companionInstallAction": "Install · {size}",
+  "@companionInstallAction": {
+    "description": "Primary button in the companion install sheet. {size} is a download size already formatted, e.g. '328 MB'."
+  },
+  "companionInstallOneTime": "one-time download, kept until you remove it",
+  "@companionInstallOneTime": {
+    "description": "Note under the install button explaining the download happens once."
+  },
+  "companionInstallProgress": "{received} of {total}",
+  "@companionInstallProgress": {
+    "description": "Download progress line. {received} and {total} are already-formatted sizes, e.g. '104 MB' and '328 MB'."
+  },
+  "companionInstallQueued": "Waiting for another download to finish",
+  "@companionInstallQueued": {
+    "description": "Shown when a companion download is queued behind another one."
+  },
+  "companionInstallCancel": "Cancel",
+  "@companionInstallCancel": {
+    "description": "Button that stops an in-progress companion download."
+  },
+  "companionInstallRetry": "Try again",
+  "@companionInstallRetry": {
+    "description": "Button that retries a failed companion download."
+  },
+  "companionInstallReady": "{name} is ready",
+  "@companionInstallReady": {
+    "description": "Shown when a companion has finished downloading. {name} is the companion's name, e.g. 'Sebastian'."
+  },
+  "companionInstallFailedNetwork": "The download couldn't finish. Check your connection and try again.",
+  "@companionInstallFailedNetwork": {
+    "description": "Error shown when a companion download failed for network reasons."
+  },
+  "companionInstallFailedStorage": "There isn't enough space on this device. Free some up and try again.",
+  "@companionInstallFailedStorage": {
+    "description": "Error shown when a companion download failed because storage is full."
+  },
+  "companionInstallFailedUnknown": "The download couldn't finish.",
+  "@companionInstallFailedUnknown": {
+    "description": "Error shown when a companion download failed for an unknown reason."
+  },
+  "companionUnsupportedPlatform": "Companions aren't available in this version of the app yet.",
+  "@companionUnsupportedPlatform": {
+    "description": "Shown where a companion would be offered on a platform that cannot run one (currently web)."
+  },
+  "companionStatusNotInstalled": "Not installed",
+  "@companionStatusNotInstalled": {
+    "description": "Status line under a companion's name in the Companions list, when nothing has been downloaded for them."
+  },
+  "companionStatusOff": "Off",
+  "@companionStatusOff": {
+    "description": "Status line under a companion's name when they are downloaded but switched off."
+  },
+  "companionStatusTranslatingInto": "Translating into {language}",
+  "@companionStatusTranslatingInto": {
+    "description": "Status line under Sebastian's name when he is active. {language} is a language name written in that language itself, e.g. 'Türkçe'."
+  },
+  "companionStatusNoBrain": "Nothing downloaded yet",
+  "@companionStatusNoBrain": {
+    "description": "Status line under Vera's name when she has no downloaded model."
+  },
+  "companionStatusBrainsReady": "{count, plural, one{1 download ready} other{{count} downloads ready}}",
+  "@companionStatusBrainsReady": {
+    "description": "Status line under Vera's name counting how many of her downloadable models are installed."
+  },
+  "companionStorageEmpty": "Nothing downloaded — companions are using no space",
+  "@companionStorageEmpty": {
+    "description": "Storage summary at the bottom of the Companions screen when nothing is installed."
+  },
+  "companionStorageUsed": "Companions are using {size}",
+  "@companionStorageUsed": {
+    "description": "Storage summary at the bottom of the Companions screen. {size} is an already-formatted size, e.g. '1.2 GB'."
+  },
+  "companionSectionGeneral": "GENERAL",
+  "@companionSectionGeneral": {
+    "description": "All-caps section label on a companion's detail screen."
+  },
+  "companionSectionStorage": "STORAGE",
+  "@companionSectionStorage": {
+    "description": "All-caps section label above the download/remove row on a companion's detail screen."
+  },
+  "companionBrainRemove": "Remove",
+  "@companionBrainRemove": {
+    "description": "Small button that deletes a downloaded companion model from the device."
+  },
+  "companionBrainRemoveTitle": "REMOVE {name}?",
+  "@companionBrainRemoveTitle": {
+    "description": "All-caps confirm-sheet headline before deleting one of Vera's downloads. {name} is the download's tier name, e.g. 'Balanced'."
+  },
+  "companionRemoveTitle": "REMOVE {name}?",
+  "@companionRemoveTitle": {
+    "description": "All-caps confirm-sheet headline before deleting a companion's download. {name} is the companion's name, e.g. 'Sebastian'."
+  },
+  "companionRemoveMessage": "This frees {size}. You can download it again at any time.",
+  "@companionRemoveMessage": {
+    "description": "Body of the confirm sheet before deleting a companion download. {size} is an already-formatted size, e.g. '328 MB'."
+  },
+  "companionRemoveConfirm": "REMOVE",
+  "@companionRemoveConfirm": {
+    "description": "All-caps destructive button that confirms deleting a companion download."
+  },
+  "sebastianEnableLabel": "Let Sebastian translate",
+  "@sebastianEnableLabel": {
+    "description": "Label of the switch that turns Sebastian on. 'Sebastian' is a proper noun and is never translated."
+  },
+  "sebastianEnableDetail": "Turn off to stop him without deleting the download",
+  "@sebastianEnableDetail": {
+    "description": "Explanation under the switch that turns Sebastian on and off."
+  },
+  "sebastianLanguageSection": "TRANSLATE INTO",
+  "@sebastianLanguageSection": {
+    "description": "All-caps section label above the target-language picker on Sebastian's screen."
+  },
+  "sebastianLanguageFollowApp": "Same as the app",
+  "@sebastianLanguageFollowApp": {
+    "description": "First row of the target-language picker: follow whatever language the app itself is displayed in."
+  },
+  "sebastianBrainDetail": "On this device · {size}",
+  "@sebastianBrainDetail": {
+    "description": "Detail line on Sebastian's storage row. {size} is an already-formatted size, e.g. '328 MB'."
+  },
+  "sebastianCacheCount": "{count, plural, one{1 translation kept} other{{count} translations kept}}",
+  "@sebastianCacheCount": {
+    "description": "Counts the translations saved on the device so they do not have to be redone."
+  },
+  "sebastianCacheClear": "Clear",
+  "@sebastianCacheClear": {
+    "description": "Small button that deletes the saved translations."
+  },
+  "veraSkillsComingSoon": "Vera can't do anything yet — her skills are still on the way. What you can do now is get a brain ready for her, so she is waiting when they land.",
+  "@veraSkillsComingSoon": {
+    "description": "Honest note at the top of Vera's screen explaining that she has no working features yet, only her downloadable model. 'brain' is this app's word for that model."
+  },
+  "veraBrainsSection": "BRAIN",
+  "@veraBrainsSection": {
+    "description": "All-caps section label above Vera's list of downloadable models. 'Brain' is this app's user-facing word for a model."
+  },
+  "veraBrainsCaption": "Bigger thinks better and answers slower. You can keep more than one and switch between them.",
+  "@veraBrainsCaption": {
+    "description": "Caption above Vera's list of downloadable models, explaining the size trade-off."
+  },
+  "veraBrainTierSwift": "Swift",
+  "@veraBrainTierSwift": {
+    "description": "Name of the smallest, fastest downloadable model. A quality tier, not a product name — translate it."
+  },
+  "veraBrainTierBalanced": "Balanced",
+  "@veraBrainTierBalanced": {
+    "description": "Name of the mid-sized downloadable model. A quality tier, not a product name — translate it."
+  },
+  "veraBrainTierDeep": "Deep",
+  "@veraBrainTierDeep": {
+    "description": "Name of the largest, most capable downloadable model. A quality tier, not a product name — translate it."
+  },
+  "translationSlabShowOriginal": "Show original",
+  "@translationSlabShowOriginal": {
+    "description": "Tap target under a translated message that puts it back to what was actually written."
+  },
+  "translationSlabFailed": "Couldn't translate this one.",
+  "@translationSlabFailed": {
+    "description": "Shown inside a message bubble when a translation failed."
+  },
+  "translationSlabRetry": "Try again",
+  "@translationSlabRetry": {
+    "description": "Tap target that retries a failed translation inside a message bubble."
+  },
+  "translationSlabByCompanion": "Translated by {name}",
+  "@translationSlabByCompanion": {
+    "description": "Credit line under a translated message when the original language could not be identified. {name} is the companion's name, e.g. 'Sebastian'."
+  },
+  "translationSlabFromLanguage": "From {language}",
+  "@translationSlabFromLanguage": {
+    "description": "Credit line under a translated message naming the original language. {language} is written in that language itself, e.g. 'Türkçe'."
+  },
+  "messageActionMenuTranslateLabel": "TRANSLATE",
+  "@messageActionMenuTranslateLabel": {
+    "description": "All-caps row in the message long-press menu that translates the message."
+  },
+  "messageActionMenuShowOriginalLabel": "SHOW ORIGINAL",
+  "@messageActionMenuShowOriginalLabel": {
+    "description": "All-caps row in the message long-press menu that hides a translation and shows what was actually written."
+  },
+  "roomTranslateTitle": "Translate this chat",
+  "@roomTranslateTitle": {
+    "description": "Row in Room Info that turns on translation for every message in the chat."
+  },
+  "roomTranslateStopTitle": "Stop translating",
+  "@roomTranslateStopTitle": {
+    "description": "Same row once translation is already on for the chat."
+  },
+  "roomTranslateSectionLabel": "TRANSLATION",
+  "@roomTranslateSectionLabel": {
+    "description": "All-caps section label above the translate-this-chat row in Room Info."
+  },
+  "roomTranslateOnRow": "Translating this chat",
+  "@roomTranslateOnRow": {
+    "description": "Title of the Room Info translation row while it is switched on."
+  },
+  "roomTranslateOffRow": "Off",
+  "@roomTranslateOffRow": {
+    "description": "Detail line of the Room Info translation row while it is switched off."
+  },
+  "roomTranslateNeedsSetUp": "Set up Sebastian",
+  "@roomTranslateNeedsSetUp": {
+    "description": "Detail line of the translation row when Sebastian has not been downloaded or switched on yet."
+  },
+  "roomTranslateWorking": "Sebastian is translating · {done}/{total}",
+  "@roomTranslateWorking": {
+    "description": "Strip under the chat header while a whole chat is being translated. {done} and {total} are message counts."
+  },
+  "roomTranslateReading": "Reading in {language}",
+  "@roomTranslateReading": {
+    "description": "Strip under the chat header once every message has been translated. {language} is written in that language itself, e.g. 'Türkçe'."
+  },
+  "roomTranslateStop": "STOP",
+  "@roomTranslateStop": {
+    "description": "All-caps tap target on the translation strip that turns chat translation back off."
+  },
+  "roomScreenAlreadyInLanguageSnack": "already in {language}",
+  "@roomScreenAlreadyInLanguageSnack": {
+    "description": "Lowercase SnackBar shown when a message tapped for translation is already in the reader's language. {language} is written in that language itself."
+  },
+  "roomScreenTranslateRoomOffer": "translate the rest of this chat too?",
+  "@roomScreenTranslateRoomOffer": {
+    "description": "Lowercase SnackBar offering to translate the whole chat after the first single message was translated."
+  },
+  "roomScreenTranslateRoomOfferAction": "TRANSLATE ALL",
+  "@roomScreenTranslateRoomOfferAction": {
+    "description": "All-caps SnackBar action that accepts the offer to translate the whole chat."
+  },
+  "settingsScreenRowCompanions": "COMPANIONS",
+  "@settingsScreenRowCompanions": {
+    "description": "All-caps row label in Settings > Chat that opens the Companions screen."
+  },
+  "settingsScreenCompanionsOff": "Off",
+  "@settingsScreenCompanionsOff": {
+    "description": "Value column of the Companions settings row when no companion is active."
+  },
+  "settingsScreenCompanionsUnavailable": "Unavailable",
+  "@settingsScreenCompanionsUnavailable": {
+    "description": "Value column of the Companions settings row on a platform that cannot run one."
+  },
+  "companionBrainAlsoUsedBy": "Also used by {name}",
+  "@companionBrainAlsoUsedBy": {
+    "description": "Line under a downloaded model saying another companion runs on the same file. {name} is that companion's name, e.g. 'Sebastian'."
+  },
+  "companionBrainSharedWarning": "{name} uses the same download and will lose it too.",
+  "@companionBrainSharedWarning": {
+    "description": "Sentence appended to the remove-confirmation when another companion shares the download. {name} is that companion's name, e.g. 'Sebastian'."
   }
 }

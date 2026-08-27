@@ -356,6 +356,7 @@ void main() {
         canCopy: true,
         canCopyName: true,
         canCopyCoordinates: true,
+        canTranslate: true,
         canPin: true,
         canSave: true,
         canSelect: true,
@@ -368,6 +369,7 @@ void main() {
         capabilities: all,
         isPinned: false,
         isSaved: false,
+        isTranslated: false,
         hasFileName: true,
       );
 
@@ -382,6 +384,7 @@ void main() {
         MessageAction.copy,
         MessageAction.copyName,
         MessageAction.copyCoordinates,
+        MessageAction.translate,
         MessageAction.pin,
         MessageAction.save,
         MessageAction.select,
@@ -396,5 +399,66 @@ void main() {
         reason: 'red ink is for the two rows that cannot be taken back with one tap',
       );
     });
+
+    /// TRANSLATE and SHOW ORIGINAL are one slot with two labels, exactly like
+    /// PIN/UNPIN — the affordance is [MessageCapabilities.canTranslate] and the
+    /// state is `isTranslated`. Offering both at once would be offering to
+    /// translate a message that is already translated.
+    test('translate and show-original share one slot', () async {
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      final caps = MessageCapabilities.none.copyWith(canTranslate: true);
+
+      List<MessageAction?> actionsWhen({required bool isTranslated}) =>
+          messageActionSpecs(
+            l10n: l10n,
+            capabilities: caps,
+            isPinned: false,
+            isSaved: false,
+            isTranslated: isTranslated,
+            hasFileName: false,
+          ).map((s) => s.action).toList();
+
+      expect(actionsWhen(isTranslated: false), [MessageAction.translate]);
+      expect(actionsWhen(isTranslated: true), [MessageAction.showOriginal]);
+    });
+
+    /// The row is withheld from anything whose body is not the message — a
+    /// photo's body is the photo, and a poll's prompt is a question its answers
+    /// give meaning to. It is also withheld from text with nothing in it worth
+    /// translating, which is what keeps it off "ok" and off a bubble of emoji.
+    test('translate is offered on text with words in it, and nothing else',
+        () async {
+      MessageCapabilities capsFor(ChatMessage m) => messageCapabilitiesFor(
+            message: m,
+            isMine: false,
+            room: RoomCapabilities.system,
+            roomIsEphemeral: false,
+            serverNow: DateTime.now(),
+          );
+
+      expect(capsFor(_text('this is a real sentence')).canTranslate, isTrue);
+      expect(capsFor(_text('ok')).canTranslate, isFalse);
+      expect(capsFor(_text('👍👍👍')).canTranslate, isFalse);
+      expect(
+        capsFor(_text('a caption', type: MessageType.image)).canTranslate,
+        isFalse,
+      );
+      expect(
+        capsFor(_text('which night suits everyone?', type: MessageType.poll))
+            .canTranslate,
+        isFalse,
+      );
+    });
   });
 }
+
+ChatMessage _text(String content, {MessageType type = MessageType.text}) =>
+    ChatMessage(
+      id: 'm1',
+      roomId: 'r1',
+      senderId: 'u1',
+      senderName: 'Someone',
+      content: content,
+      createdAt: DateTime.now(),
+      type: type,
+    );

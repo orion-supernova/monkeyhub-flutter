@@ -8,6 +8,7 @@ import 'app.dart';
 import 'backend/server_directory.dart';
 import 'backend/server_store.dart';
 import 'calls/native_call_handler.dart';
+import 'companions/brain_manager.dart';
 import 'data/settings_store.dart';
 import 'diagnostics/diag_boot.dart';
 import 'media/file_url_cache.dart';
@@ -107,6 +108,21 @@ Future<void> main() async {
         .catchError((Object e) {
           debugPrint('PushManager.initialize: $e');
         });
+
+    // Asks the disk which companion brains are installed. Not awaited, and
+    // deliberately not gated on whether any companion is switched on: the
+    // whole subsystem answers "is Sebastian installed" from this table, and
+    // until it has been filled in once the answer is a confident no.
+    //
+    // The visible consequence of skipping it is small and bad: the first
+    // TRANSLATE tap of a session would open the install sheet for a brain
+    // already on the device, then notice and close itself.
+    //
+    // It costs one plugin call and touches no model weights — see
+    // `BrainManager.refresh`.
+    BrainManager.instance.refresh().catchError((Object e) {
+      debugPrint('BrainManager.refresh: $e');
+    });
   }
 
   runApp(const MonkeyHubApp());

@@ -40,6 +40,7 @@ import 'remote_image.dart';
 import 'room_gallery_scope.dart';
 import 'steady_hero.dart';
 import 'reply_indicator.dart';
+import 'translation_slab.dart';
 import 'speaker_scope.dart';
 import 'user_avatar.dart';
 import 'video_message.dart';
@@ -2943,6 +2944,12 @@ class _LinkAwareBubble extends StatelessWidget {
                     insideBubble: true,
                     onTap: (u) => LinkOpener.open(context, u),
                   ),
+              // Last inside the bubble, under the previews as well as the
+              // text. The whole original message — words, links, cards — reads
+              // as one thing, and what it MEANS arrives after it. Draws
+              // nothing at all until somebody asks; see [MessageTranslation]
+              // for why it is safe to mount in every text bubble.
+              MessageTranslation(message: message, isMine: isMine),
             ],
           ),
         );

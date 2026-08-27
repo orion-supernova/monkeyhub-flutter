@@ -14,6 +14,8 @@ import '../models/chat_message.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/location_share.dart' show formatCoordinates;
+import '../companions/companion.dart';
+import '../companions/sebastian.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../screens/profile_screen.dart';
 import '../screens/room_items.dart';
@@ -31,6 +33,7 @@ import 'glass_pill.dart';
 import 'jump_back.dart';
 import 'mention_picker.dart';
 import 'mention_text_controller.dart';
+import 'companion_install_sheet.dart';
 import 'message_action_menu.dart';
 import 'interaction_bubble.dart' show InteractionActions;
 import 'interaction_respondents_sheet.dart';
@@ -530,6 +533,39 @@ class _ThreadSheetState extends State<_ThreadSheet>
     unawaited(showCaptureProblem(context, failure, onMessage: _showToast));
   }
 
+  /// TRANSLATE, from a bubble inside the thread.
+  ///
+  /// The room screen's version of this also offers to translate the whole
+  /// room; this one deliberately does not. A thread is a slice of a room the
+  /// reader opened on purpose, and answering "translate this one message" with
+  /// an offer about the room behind it changes the subject.
+  Future<void> _translate(ChatMessage m) async {
+    final sebastian = Sebastian.instance;
+    if (!sebastian.isInstalled) {
+      final ready = await showCompanionInstallSheet(
+        context,
+        companion: Companion.sebastian,
+        brain: sebastian.brain,
+      );
+      if (!ready || !mounted) return;
+    }
+    if (!sebastian.isEnabled) {
+      await SettingsStore.instance.setSebastianEnabled(true);
+      if (!mounted) return;
+    }
+    sebastian.translate(m);
+
+    // Nothing to do — the detector settled it synchronously. Reported as a
+    // toast rather than as a slab in the bubble, matching the room; see
+    // `TranslationSlab`, which draws nothing for this state.
+    final handle = sebastian.handleFor(m);
+    if (handle != null && handle.state == TranslationState.sameLanguage) {
+      if (!mounted) return;
+      _showToast(AppLocalizations.of(context)
+          .roomScreenAlreadyInLanguageSnack(sebastian.targetLanguage.autonym));
+    }
+  }
+
   void _armReply(ChatMessage m, {bool haptic = true}) {
     // The swipe path opts out — it already buzzed at the threshold, and the
     // reply now arms on release rather than 220ms later.
@@ -779,9 +815,14 @@ class _ThreadSheetState extends State<_ThreadSheet>
       context: context,
       anchorKey: anchor,
       isMine: isMine,
-      capabilities: caps,
+      // Withheld only where a companion cannot run at all — the same shape
+      // the room screen uses, and for the same reason: not being installed
+      // yet is the discovery path, not a refusal.
+      capabilities:
+          Sebastian.instance.isAvailable ? caps : caps.copyWith(canTranslate: false),
       isPinned: widget.repo.isMessagePinned(widget.roomId, m.id),
       isSaved: widget.repo.isMessageSaved(widget.roomId, m.id),
+      isTranslated: Sebastian.instance.isShowingTranslation(m),
       // Same reason as in the room: a document's row can only afford one line
       // of its name, and this is where the whole thing is legible.
       fileName: m.type == MessageType.file ? m.fileName : null,
@@ -811,6 +852,12 @@ class _ThreadSheetState extends State<_ThreadSheet>
       return;
     }
     switch (result.action!) {
+      case MessageAction.translate:
+        await _translate(m);
+        break;
+      case MessageAction.showOriginal:
+        Sebastian.instance.showOriginal(m);
+        break;
       case MessageAction.reply:
         // Stays in the thread now that there's a composer here — retarget
         // rather than dismissing to the room's composer.

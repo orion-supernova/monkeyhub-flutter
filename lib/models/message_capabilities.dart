@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import '../companions/translation/language_detector.dart';
+
 import 'chat_message.dart';
 import 'enums.dart';
 import 'room_capabilities.dart';
@@ -48,6 +50,7 @@ class MessageCapabilities {
     required this.canCopy,
     required this.canCopyName,
     required this.canCopyCoordinates,
+    required this.canTranslate,
     required this.canPin,
     required this.canSave,
     required this.canSelect,
@@ -82,6 +85,18 @@ class MessageCapabilities {
   /// the latest fix is regardless of whether the share is still running, so
   /// there is no reason for this one row alone to refuse it.
   final bool canCopyCoordinates;
+
+  /// Whether the TRANSLATE row is offered.
+  ///
+  /// A fact about the message only: it has a body made of words. Whether
+  /// Sebastian is installed, switched on, or supported on this platform is
+  /// deliberately NOT folded in here — a message is no less translatable
+  /// because nobody has downloaded him yet, and the row is how somebody
+  /// discovers he exists. The call site withholds it on a platform that
+  /// cannot run him at all, through [copyWith], the same way `ThreadOverlay`
+  /// withholds [canViewThread].
+  final bool canTranslate;
+
   final bool canPin;
   final bool canSave;
   final bool canSelect;
@@ -99,6 +114,7 @@ class MessageCapabilities {
     canCopy: false,
     canCopyName: false,
     canCopyCoordinates: false,
+    canTranslate: false,
     canPin: false,
     canSave: false,
     canSelect: false,
@@ -115,6 +131,7 @@ class MessageCapabilities {
     bool? canCopy,
     bool? canCopyName,
     bool? canCopyCoordinates,
+    bool? canTranslate,
     bool? canPin,
     bool? canSave,
     bool? canSelect,
@@ -130,6 +147,7 @@ class MessageCapabilities {
         canCopy: canCopy ?? this.canCopy,
         canCopyName: canCopyName ?? this.canCopyName,
         canCopyCoordinates: canCopyCoordinates ?? this.canCopyCoordinates,
+        canTranslate: canTranslate ?? this.canTranslate,
         canPin: canPin ?? this.canPin,
         canSave: canSave ?? this.canSave,
         canSelect: canSelect ?? this.canSelect,
@@ -217,6 +235,16 @@ MessageCapabilities messageCapabilitiesFor({
     // what folds in both the type gate and the "coordinates actually
     // present" gate a stale-cache or downgraded send can fail.
     canCopyCoordinates: message.locationShare != null,
+    // Same two text types COPY takes, and for the same reason: those are the
+    // shapes whose whole content is `message.content`. A caption is excluded
+    // with them — an image bubble's body is the image — and so is an
+    // interactive card, whose prompt is a question the answers give meaning to.
+    //
+    // `isWorthTranslating` is the cheap letter-count filter, which is what
+    // keeps TRANSLATE off "ok", "+1" and a bubble of pure emoji. Offering a row
+    // that can only report "nothing to do" is worse than not offering it.
+    canTranslate: isEditableText &&
+        LanguageDetector.isWorthTranslating(message.content),
     // An optimistic bubble has no server id to pin, and a system notice is
     // not something anyone means to keep.
     // Offered on an interactive card like anything else. A poll pinned to the

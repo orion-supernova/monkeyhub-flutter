@@ -1,0 +1,460 @@
+/// Chrome and parts shared by the three Companions screens.
+///
+/// Extracted rather than duplicated because the brain row in particular is
+/// genuinely the same control in two places with different framing: on Vera's
+/// shelf it is one of several and carries a tier name; on Sebastian's screen it
+/// is the only one and carries his. A second copy of its five-state install
+/// machine would drift from this one within a release.
+library;
+
+import 'package:flutter/material.dart';
+
+import '../../companions/brain_manager.dart';
+import '../../companions/brain_spec.dart';
+import '../../companions/companion.dart';
+import '../../keyboard/focusable_tap.dart';
+import '../../l10n/generated/app_localizations.dart';
+import '../../theme/app_theme.dart';
+import '../../theme/theme_scope.dart';
+import '../../widgets/adaptive_page_body.dart';
+
+/// The house settings-detail page: background layer, back arrow, big title,
+/// accent rule, caption, then content. Copied in shape from `LanguageScreen`
+/// and the other pickers so Companions does not read as a screen from a
+/// different app.
+class CompanionPage extends StatelessWidget {
+  const CompanionPage({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.children,
+  });
+
+  final String title;
+  final String subtitle;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          theme.backgroundLayer(context),
+          SafeArea(
+            child: AdaptivePageBody(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 40),
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.of(context).maybePop(),
+                        icon: Icon(
+                          Icons.arrow_back,
+                          color: theme.inkSoft,
+                          size: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(title, style: theme.displayMedium),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Container(width: 18, height: 1, color: theme.accent),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(subtitle, style: theme.caption)),
+                    ],
+                  ),
+                  const SizedBox(height: 28),
+                  ...children,
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A block of rows in the surface card the settings screens use.
+class CompanionCard extends StatelessWidget {
+  const CompanionCard({super.key, required this.children, this.padding});
+
+  final List<Widget> children;
+  final EdgeInsets? padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Container(
+      padding: padding ?? const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.surface,
+        border: Border.all(color: theme.divider),
+        borderRadius: BorderRadius.circular(theme.radiusMd),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
+    );
+  }
+}
+
+/// All-caps section label, matching Settings' own.
+class CompanionSectionLabel extends StatelessWidget {
+  const CompanionSectionLabel(this.label, {super.key});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12, left: 2),
+      child: Text(label.toUpperCase(), style: theme.label),
+    );
+  }
+}
+
+/// Companions other than [self] whose shelf also lists [brain].
+///
+/// Empty with today's catalog — the shelves deliberately no longer overlap,
+/// see [BrainCatalog.veraBrains]. It is wired anyway because the failure it
+/// prevents is silent: before this existed, removing Sebastian from HIS screen
+/// deleted a brain Vera was set to think with, and nothing on either screen
+/// said the two were the same file on disk. Vera's screen guarded it and
+/// Sebastian's did not, which is the worst shape a guard can have.
+///
+/// Any future overlap now surfaces the same way on both sides: a note on the
+/// row, and the other companion named in the confirm sheet.
+List<Companion> otherCompanionsUsing(BrainSpec brain, Companion self) => [
+      for (final c in BrainCatalog.companionsUsing(brain))
+        if (c != self) c,
+    ];
+
+/// One brain, with its whole install lifecycle.
+///
+/// [name] and [detail] are supplied by the caller rather than read off the
+/// spec, because the two callers describe the same object completely
+/// differently: Vera's shelf names the tier and prints the model's real name
+/// underneath; Sebastian's screen says only how much disk he is using. See the
+/// note on `Companion.brainsAreUserChosen`.
+class BrainRow extends StatelessWidget {
+  const BrainRow({
+    super.key,
+    required this.brain,
+    required this.name,
+    required this.detail,
+    this.selected,
+    this.onSelect,
+    this.onRemove,
+    this.sharedWith = const [],
+  });
+
+  final BrainSpec brain;
+  final String name;
+  final String detail;
+
+  /// Null when this row is not part of a choice — Sebastian's single brain.
+  /// Non-null renders the selection dot.
+  final bool? selected;
+  final VoidCallback? onSelect;
+
+  /// Null hides the remove affordance.
+  final VoidCallback? onRemove;
+
+  /// Other companions that also use these weights, from
+  /// [otherCompanionsUsing]. Non-empty draws a line saying so, because a
+  /// download the user thinks belongs to one companion quietly belonging to
+  /// two is exactly the thing they should not have to discover by deleting it.
+  final List<Companion> sharedWith;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    return AnimatedBuilder(
+      animation: BrainManager.instance,
+      builder: (context, _) {
+        final manager = BrainManager.instance;
+        final state = manager.stateOf(brain);
+        final isSelected = selected ?? false;
+
+        return GestureDetector(
+          onTap: state.status == BrainStatus.installed ? onSelect : null,
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? theme.accent.withValues(alpha: 0.12)
+                  : theme.surface,
+              border: Border.all(
+                color: isSelected
+                    ? theme.accent.withValues(alpha: 0.4)
+                    : theme.divider,
+              ),
+              borderRadius: BorderRadius.circular(theme.radiusMd),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    if (selected != null) ...[
+                      _SelectionDot(
+                        theme: theme,
+                        on: isSelected,
+                        dimmed: state.status != BrainStatus.installed,
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(name, style: theme.bodyEmph),
+                          const SizedBox(height: 2),
+                          Text(
+                            detail,
+                            style: theme.caption
+                                .copyWith(color: theme.inkMuted),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    _Trailing(
+                      theme: theme,
+                      l10n: l10n,
+                      brain: brain,
+                      state: state,
+                      onRemove: onRemove,
+                    ),
+                  ],
+                ),
+                if (sharedWith.isNotEmpty &&
+                    state.status == BrainStatus.installed) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.link, size: 12, color: theme.inkMuted),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          l10n.companionBrainAlsoUsedBy(
+                            sharedWith.first.displayName,
+                          ),
+                          style:
+                              theme.caption.copyWith(color: theme.inkMuted),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                if (state.status == BrainStatus.downloading) ...[
+                  const SizedBox(height: 12),
+                  _ProgressLine(theme: theme, fraction: state.fraction),
+                ],
+                if (state.status == BrainStatus.failed) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    switch (state.failure) {
+                      BrainInstallFailure.storage =>
+                        l10n.companionInstallFailedStorage,
+                      BrainInstallFailure.network =>
+                        l10n.companionInstallFailedNetwork,
+                      _ => l10n.companionInstallFailedUnknown,
+                    },
+                    style: theme.caption.copyWith(color: theme.danger),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _Trailing extends StatelessWidget {
+  const _Trailing({
+    required this.theme,
+    required this.l10n,
+    required this.brain,
+    required this.state,
+    required this.onRemove,
+  });
+
+  final AppTheme theme;
+  final AppLocalizations l10n;
+  final BrainSpec brain;
+  final BrainState state;
+  final VoidCallback? onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final manager = BrainManager.instance;
+    switch (state.status) {
+      case BrainStatus.installed:
+        if (onRemove == null) {
+          return Icon(Icons.check_circle, size: 18, color: theme.accent);
+        }
+        return _SmallAction(
+          theme: theme,
+          label: l10n.companionBrainRemove,
+          onTap: onRemove,
+          destructive: true,
+        );
+
+      case BrainStatus.downloading:
+      case BrainStatus.queued:
+        return _SmallAction(
+          theme: theme,
+          label: l10n.companionInstallCancel,
+          onTap: () => manager.cancel(brain),
+        );
+
+      case BrainStatus.failed:
+        return _SmallAction(
+          theme: theme,
+          label: l10n.companionInstallRetry,
+          onTap: () {
+            manager.acknowledgeFailure(brain);
+            manager.install(brain);
+          },
+        );
+
+      case BrainStatus.absent:
+        // Disabled, not hidden, while another brain is downloading. Hiding it
+        // would look like the row had become uninstallable; greying it says
+        // "wait your turn", which is what is actually happening. See
+        // [BrainManager.install] for why installs are serialised.
+        final busy = manager.isInstallingAny;
+        return _SmallAction(
+          theme: theme,
+          label: brain.sizeLabel,
+          onTap: busy ? null : () => manager.install(brain),
+          leading: Icons.arrow_downward,
+        );
+    }
+  }
+}
+
+class _SmallAction extends StatelessWidget {
+  const _SmallAction({
+    required this.theme,
+    required this.label,
+    required this.onTap,
+    this.leading,
+    this.destructive = false,
+  });
+
+  final AppTheme theme;
+  final String label;
+  final VoidCallback? onTap;
+  final IconData? leading;
+  final bool destructive;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    final ink = !enabled
+        ? theme.inkMuted.withValues(alpha: 0.45)
+        : (destructive ? theme.danger : theme.accent);
+    return FocusableTap(
+      onTap: onTap,
+      shape: FocusRingShape.capsule,
+      radius: 999,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: ink.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (leading != null) ...[
+                Icon(leading, size: 13, color: ink),
+                const SizedBox(width: 5),
+              ],
+              Text(
+                label,
+                style: theme.caption.copyWith(
+                  color: ink,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectionDot extends StatelessWidget {
+  const _SelectionDot({
+    required this.theme,
+    required this.on,
+    required this.dimmed,
+  });
+
+  final AppTheme theme;
+  final bool on;
+
+  /// A brain that isn't installed can't be chosen, and the dot says so rather
+  /// than looking like an option that refuses to respond.
+  final bool dimmed;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = dimmed ? theme.inkMuted.withValues(alpha: 0.4) : theme.accent;
+    return Container(
+      width: 16,
+      height: 16,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: on ? color : theme.inkMuted, width: 1.5),
+        color: on ? color : Colors.transparent,
+      ),
+      child: on ? Icon(Icons.check, size: 10, color: theme.accentInk) : null,
+    );
+  }
+}
+
+class _ProgressLine extends StatelessWidget {
+  const _ProgressLine({required this.theme, required this.fraction});
+
+  final AppTheme theme;
+  final double fraction;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(2),
+      child: Container(
+        height: 3,
+        color: theme.inkMuted.withValues(alpha: 0.18),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: FractionallySizedBox(
+            widthFactor: fraction.clamp(0.0, 1.0),
+            child: Container(color: theme.accent),
+          ),
+        ),
+      ),
+    );
+  }
+}

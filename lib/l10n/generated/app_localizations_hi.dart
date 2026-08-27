@@ -7835,4 +7835,276 @@ class AppLocalizationsHi extends AppLocalizations {
   String messageReceiptsSemanticHidden(Object name) {
     return '$name पढ़ने की रसीदें साझा नहीं करते';
   }
+
+  @override
+  String get companionsScreenTitle => 'साथी.';
+
+  @override
+  String get companionsScreenSubtitle =>
+      'मददगार जो इसी फ़ोन में रहते हैं और कुछ भी कहीं नहीं भेजते';
+
+  @override
+  String get companionSebastianTagline => 'संदेश अनुवाद करता है';
+
+  @override
+  String get companionSebastianBlurb =>
+      'Sebastian किसी दूसरी भाषा में लिखा संदेश पढ़ता है और आपको बताता है कि उसमें क्या लिखा है — यहीं आपके फ़ोन पर, बिना कुछ कहीं भेजे।';
+
+  @override
+  String get companionVeraTagline => 'सामान्य मदद';
+
+  @override
+  String get companionVeraBlurb =>
+      'अनुवाद के अलावा हर चीज़ के लिए Vera है। अभी चुन लीजिए कि वह किससे सोचेगी; उसके कौशल उसके आसपास आते जाएँगे।';
+
+  @override
+  String get companionAssuranceOnDevice => 'पूरी तरह इसी डिवाइस पर चलता है';
+
+  @override
+  String get companionAssurancePrivate =>
+      'आपके संदेश कभी फ़ोन से बाहर नहीं जाते';
+
+  @override
+  String get companionAssuranceOffline => 'बिना नेटवर्क के भी काम करता है';
+
+  @override
+  String companionInstallAction(Object size) {
+    return 'इंस्टॉल करें · $size';
+  }
+
+  @override
+  String get companionInstallOneTime => 'एक बार का डाउनलोड, हटाने तक रहेगा';
+
+  @override
+  String companionInstallProgress(Object received, Object total) {
+    return '$total में से $received';
+  }
+
+  @override
+  String get companionInstallQueued => 'दूसरे डाउनलोड के पूरा होने का इंतज़ार';
+
+  @override
+  String get companionInstallCancel => 'रद्द करें';
+
+  @override
+  String get companionInstallRetry => 'फिर कोशिश करें';
+
+  @override
+  String companionInstallReady(Object name) {
+    return '$name तैयार है';
+  }
+
+  @override
+  String get companionInstallFailedNetwork =>
+      'डाउनलोड पूरा नहीं हो सका। कनेक्शन जाँचकर फिर कोशिश करें।';
+
+  @override
+  String get companionInstallFailedStorage =>
+      'इस डिवाइस में पर्याप्त जगह नहीं है। कुछ जगह खाली करके फिर कोशिश करें।';
+
+  @override
+  String get companionInstallFailedUnknown => 'डाउनलोड पूरा नहीं हो सका।';
+
+  @override
+  String get companionUnsupportedPlatform =>
+      'ऐप के इस वर्शन में साथी अभी उपलब्ध नहीं हैं।';
+
+  @override
+  String get companionStatusNotInstalled => 'इंस्टॉल नहीं है';
+
+  @override
+  String get companionStatusOff => 'बंद';
+
+  @override
+  String companionStatusTranslatingInto(Object language) {
+    return '$language में अनुवाद कर रहा है';
+  }
+
+  @override
+  String get companionStatusNoBrain => 'अभी कुछ डाउनलोड नहीं हुआ';
+
+  @override
+  String companionStatusBrainsReady(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count डाउनलोड तैयार',
+      one: '1 डाउनलोड तैयार',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get companionStorageEmpty =>
+      'कुछ डाउनलोड नहीं हुआ — साथी कोई जगह नहीं ले रहे';
+
+  @override
+  String companionStorageUsed(Object size) {
+    return 'साथी $size जगह ले रहे हैं';
+  }
+
+  @override
+  String get companionSectionGeneral => 'सामान्य';
+
+  @override
+  String get companionSectionStorage => 'स्टोरेज';
+
+  @override
+  String get companionBrainRemove => 'हटाएँ';
+
+  @override
+  String companionBrainRemoveTitle(Object name) {
+    return '$name हटाएँ?';
+  }
+
+  @override
+  String companionRemoveTitle(Object name) {
+    return '$name को हटाएँ?';
+  }
+
+  @override
+  String companionRemoveMessage(Object size) {
+    return 'इससे $size जगह खाली होगी। आप इसे कभी भी दोबारा डाउनलोड कर सकते हैं।';
+  }
+
+  @override
+  String get companionRemoveConfirm => 'हटाएँ';
+
+  @override
+  String get sebastianEnableLabel => 'Sebastian को अनुवाद करने दें';
+
+  @override
+  String get sebastianEnableDetail =>
+      'डाउनलोड मिटाए बिना रोकने के लिए बंद करें';
+
+  @override
+  String get sebastianLanguageSection => 'इसमें अनुवाद करें';
+
+  @override
+  String get sebastianLanguageFollowApp => 'ऐप जैसी ही';
+
+  @override
+  String sebastianBrainDetail(Object size) {
+    return 'इस डिवाइस पर · $size';
+  }
+
+  @override
+  String sebastianCacheCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count अनुवाद सहेजे गए',
+      one: '1 अनुवाद सहेजा गया',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get sebastianCacheClear => 'साफ़ करें';
+
+  @override
+  String get veraSkillsComingSoon =>
+      'Vera अभी कुछ नहीं कर सकती — उसके कौशल अभी रास्ते में हैं। अभी आप इतना कर सकते हैं कि उसके लिए एक दिमाग तैयार रखें, ताकि जब वे आएँ तो वह पहले से तैयार हो।';
+
+  @override
+  String get veraBrainsSection => 'दिमाग';
+
+  @override
+  String get veraBrainsCaption =>
+      'जितना बड़ा, उतना बेहतर सोचता है और उतना ही धीमे जवाब देता है। आप एक से ज़्यादा रख सकते हैं और बदल सकते हैं।';
+
+  @override
+  String get veraBrainTierSwift => 'तेज़';
+
+  @override
+  String get veraBrainTierBalanced => 'संतुलित';
+
+  @override
+  String get veraBrainTierDeep => 'गहरा';
+
+  @override
+  String get translationSlabShowOriginal => 'मूल दिखाएँ';
+
+  @override
+  String get translationSlabFailed => 'इस संदेश का अनुवाद नहीं हो सका।';
+
+  @override
+  String get translationSlabRetry => 'फिर कोशिश करें';
+
+  @override
+  String translationSlabByCompanion(Object name) {
+    return '$name ने अनुवाद किया';
+  }
+
+  @override
+  String translationSlabFromLanguage(Object language) {
+    return '$language से';
+  }
+
+  @override
+  String get messageActionMenuTranslateLabel => 'अनुवाद करें';
+
+  @override
+  String get messageActionMenuShowOriginalLabel => 'मूल दिखाएँ';
+
+  @override
+  String get roomTranslateTitle => 'इस चैट का अनुवाद करें';
+
+  @override
+  String get roomTranslateStopTitle => 'अनुवाद रोकें';
+
+  @override
+  String get roomTranslateSectionLabel => 'अनुवाद';
+
+  @override
+  String get roomTranslateOnRow => 'इस चैट का अनुवाद हो रहा है';
+
+  @override
+  String get roomTranslateOffRow => 'बंद';
+
+  @override
+  String get roomTranslateNeedsSetUp => 'Sebastian सेट अप करें';
+
+  @override
+  String roomTranslateWorking(Object done, Object total) {
+    return 'Sebastian अनुवाद कर रहा है · $done/$total';
+  }
+
+  @override
+  String roomTranslateReading(Object language) {
+    return '$language में पढ़ रहे हैं';
+  }
+
+  @override
+  String get roomTranslateStop => 'रोकें';
+
+  @override
+  String roomScreenAlreadyInLanguageSnack(Object language) {
+    return 'पहले से ही $language में है';
+  }
+
+  @override
+  String get roomScreenTranslateRoomOffer => 'क्या बाकी चैट का भी अनुवाद करें?';
+
+  @override
+  String get roomScreenTranslateRoomOfferAction => 'सब अनुवाद करें';
+
+  @override
+  String get settingsScreenRowCompanions => 'साथी';
+
+  @override
+  String get settingsScreenCompanionsOff => 'बंद';
+
+  @override
+  String get settingsScreenCompanionsUnavailable => 'अनुपलब्ध';
+
+  @override
+  String companionBrainAlsoUsedBy(Object name) {
+    return '$name भी इसका उपयोग करता है';
+  }
+
+  @override
+  String companionBrainSharedWarning(Object name) {
+    return '$name भी यही डाउनलोड उपयोग करता है और इसे खो देगा।';
+  }
 }

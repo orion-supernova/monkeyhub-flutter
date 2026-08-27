@@ -7517,4 +7517,268 @@ class AppLocalizationsJa extends AppLocalizations {
   String messageReceiptsSemanticHidden(Object name) {
     return '$name は既読通知を共有していません';
   }
+
+  @override
+  String get companionsScreenTitle => 'コンパニオン。';
+
+  @override
+  String get companionsScreenSubtitle => 'この端末の中だけで動き、どこにも送信しない相棒たち';
+
+  @override
+  String get companionSebastianTagline => 'メッセージを翻訳します';
+
+  @override
+  String get companionSebastianBlurb =>
+      'Sebastian は別の言語で書かれたメッセージを読んで、その意味を教えてくれます — この端末の中だけで、どこにも何も送らずに。';
+
+  @override
+  String get companionVeraTagline => '汎用アシスタント';
+
+  @override
+  String get companionVeraBlurb =>
+      'Vera は翻訳以外のすべてを引き受けるコンパニオンです。まずは何で考えるかを選んでおけば、できることは後から増えていきます。';
+
+  @override
+  String get companionAssuranceOnDevice => 'すべてこの端末の中で動きます';
+
+  @override
+  String get companionAssurancePrivate => 'メッセージが端末の外に出ることはありません';
+
+  @override
+  String get companionAssuranceOffline => '通信がなくても使えます';
+
+  @override
+  String companionInstallAction(Object size) {
+    return 'インストール · $size';
+  }
+
+  @override
+  String get companionInstallOneTime => 'ダウンロードは一度だけ。削除するまで残ります';
+
+  @override
+  String companionInstallProgress(Object received, Object total) {
+    return '$total 中 $received';
+  }
+
+  @override
+  String get companionInstallQueued => '別のダウンロードの完了を待っています';
+
+  @override
+  String get companionInstallCancel => 'キャンセル';
+
+  @override
+  String get companionInstallRetry => '再試行';
+
+  @override
+  String companionInstallReady(Object name) {
+    return '$name の準備ができました';
+  }
+
+  @override
+  String get companionInstallFailedNetwork =>
+      'ダウンロードを完了できませんでした。接続を確認してもう一度お試しください。';
+
+  @override
+  String get companionInstallFailedStorage =>
+      'この端末の空き容量が足りません。空きを作ってもう一度お試しください。';
+
+  @override
+  String get companionInstallFailedUnknown => 'ダウンロードを完了できませんでした。';
+
+  @override
+  String get companionUnsupportedPlatform => 'このバージョンのアプリではコンパニオンはまだ利用できません。';
+
+  @override
+  String get companionStatusNotInstalled => '未インストール';
+
+  @override
+  String get companionStatusOff => 'オフ';
+
+  @override
+  String companionStatusTranslatingInto(Object language) {
+    return '$languageに翻訳中';
+  }
+
+  @override
+  String get companionStatusNoBrain => 'まだ何もダウンロードしていません';
+
+  @override
+  String companionStatusBrainsReady(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'ダウンロード $count 件が準備済み',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get companionStorageEmpty => '何もダウンロードしていません — コンパニオンは容量を使っていません';
+
+  @override
+  String companionStorageUsed(Object size) {
+    return 'コンパニオンが $size 使用中';
+  }
+
+  @override
+  String get companionSectionGeneral => '一般';
+
+  @override
+  String get companionSectionStorage => 'ストレージ';
+
+  @override
+  String get companionBrainRemove => '削除';
+
+  @override
+  String companionBrainRemoveTitle(Object name) {
+    return '$nameを削除しますか？';
+  }
+
+  @override
+  String companionRemoveTitle(Object name) {
+    return '$name を削除しますか？';
+  }
+
+  @override
+  String companionRemoveMessage(Object size) {
+    return '$size の空き容量ができます。いつでも再ダウンロードできます。';
+  }
+
+  @override
+  String get companionRemoveConfirm => '削除';
+
+  @override
+  String get sebastianEnableLabel => 'Sebastian に翻訳させる';
+
+  @override
+  String get sebastianEnableDetail => 'ダウンロードを消さずに止めるにはオフにします';
+
+  @override
+  String get sebastianLanguageSection => '翻訳先の言語';
+
+  @override
+  String get sebastianLanguageFollowApp => 'アプリと同じ';
+
+  @override
+  String sebastianBrainDetail(Object size) {
+    return 'この端末に保存済み · $size';
+  }
+
+  @override
+  String sebastianCacheCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '翻訳 $count 件を保存中',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get sebastianCacheClear => '消去';
+
+  @override
+  String get veraSkillsComingSoon =>
+      'Vera はまだ何もできません — できることは準備中です。いまできるのは彼女の頭脳を用意しておくこと。そうすれば、機能が届いたときにはもう待っている状態になります。';
+
+  @override
+  String get veraBrainsSection => '頭脳';
+
+  @override
+  String get veraBrainsCaption => '大きいほどよく考え、返答は遅くなります。複数を保持して切り替えられます。';
+
+  @override
+  String get veraBrainTierSwift => '軽快';
+
+  @override
+  String get veraBrainTierBalanced => 'バランス';
+
+  @override
+  String get veraBrainTierDeep => '高精度';
+
+  @override
+  String get translationSlabShowOriginal => '原文を表示';
+
+  @override
+  String get translationSlabFailed => 'このメッセージは翻訳できませんでした。';
+
+  @override
+  String get translationSlabRetry => '再試行';
+
+  @override
+  String translationSlabByCompanion(Object name) {
+    return '$name が翻訳';
+  }
+
+  @override
+  String translationSlabFromLanguage(Object language) {
+    return '$languageから';
+  }
+
+  @override
+  String get messageActionMenuTranslateLabel => '翻訳';
+
+  @override
+  String get messageActionMenuShowOriginalLabel => '原文を表示';
+
+  @override
+  String get roomTranslateTitle => 'このチャットを翻訳';
+
+  @override
+  String get roomTranslateStopTitle => '翻訳を停止';
+
+  @override
+  String get roomTranslateSectionLabel => '翻訳';
+
+  @override
+  String get roomTranslateOnRow => 'このチャットを翻訳中';
+
+  @override
+  String get roomTranslateOffRow => 'オフ';
+
+  @override
+  String get roomTranslateNeedsSetUp => 'Sebastian を設定';
+
+  @override
+  String roomTranslateWorking(Object done, Object total) {
+    return 'Sebastian が翻訳中 · $done/$total';
+  }
+
+  @override
+  String roomTranslateReading(Object language) {
+    return '$languageで読んでいます';
+  }
+
+  @override
+  String get roomTranslateStop => '停止';
+
+  @override
+  String roomScreenAlreadyInLanguageSnack(Object language) {
+    return 'すでに$languageです';
+  }
+
+  @override
+  String get roomScreenTranslateRoomOffer => 'このチャットの残りも翻訳しますか？';
+
+  @override
+  String get roomScreenTranslateRoomOfferAction => 'すべて翻訳';
+
+  @override
+  String get settingsScreenRowCompanions => 'コンパニオン';
+
+  @override
+  String get settingsScreenCompanionsOff => 'オフ';
+
+  @override
+  String get settingsScreenCompanionsUnavailable => '利用不可';
+
+  @override
+  String companionBrainAlsoUsedBy(Object name) {
+    return '$name も使用中';
+  }
+
+  @override
+  String companionBrainSharedWarning(Object name) {
+    return '$name も同じダウンロードを使っているため、一緒に失われます。';
+  }
 }

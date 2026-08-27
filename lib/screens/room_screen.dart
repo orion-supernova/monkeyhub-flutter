@@ -23,6 +23,8 @@ import '../calls/group_call_service.dart';
 import '../data/chat_repository.dart';
 import '../data/mention_session.dart';
 import '../data/room_content_selection.dart';
+import '../companions/companion.dart';
+import '../companions/sebastian.dart';
 import '../data/settings_store.dart';
 import '../data/spoiler_store.dart';
 import '../family/family_service.dart';
@@ -98,7 +100,9 @@ import '../widgets/thread_overlay.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/interaction_bubble.dart' show InteractionActions;
 import '../widgets/interaction_respondents_sheet.dart';
+import '../widgets/companion_install_sheet.dart';
 import '../widgets/message_action_menu.dart';
+import '../widgets/room_translate_bar.dart';
 import '../widgets/report_sheet.dart';
 import '../widgets/visibility_badge.dart';
 import '../share/share_intake.dart';
@@ -365,6 +369,12 @@ class _RoomScreenState extends State<RoomScreen>
     // unguarded close used to tear down the room now on screen.
     widget.repo.openRoom(widget.roomId, owner: this);
     _loadMembers();
+    // A room switched on in a previous session starts translating the moment
+    // it opens, from the disk cache first — which is why reopening a room you
+    // already read translated is instant rather than a second round of model
+    // runs. No-op on a room that is not switched on.
+    Sebastian.instance
+        .enqueueRoom(widget.roomId, widget.repo.messagesFor(widget.roomId));
     widget.repo.addListener(_onRepoChange);
     _scroll.addListener(_onScroll);
     _scrolledUp.addListener(_onBottomProximity);
@@ -763,6 +773,21 @@ class _RoomScreenState extends State<RoomScreen>
       }
     });
     _maybePushCaptureScope(room);
+    // Feeds arriving messages to Sebastian. A no-op unless this room is
+    // switched on, and it short-circuits per message on anything already
+    // handled — so the cost on an untranslated room is one set lookup.
+    //
+    // Here rather than in `build` for a hard reason: `enqueueRoom` notifies,
+    // bubbles listen, and a notify from inside build is a loop.
+    Sebastian.instance.enqueueRoom(
+      widget.roomId,
+      widget.repo.messagesFor(widget.roomId),
+      // `messagesFor`, not `timelineFor` — deliberately the live list rather
+      // than what the transcript happens to be showing. And the reconcile is
+      // withheld while a history window is open, because during that the two
+      // disagree about what "this room" means. See [Sebastian.enqueueRoom].
+      reconcile: !widget.repo.inHistoryWindow(widget.roomId),
+    );
     // An emptied transcript has no scroll offset to be away from, and it can
     // happen under the reader: an ephemeral room expires its last message
     // while they are scrolled up. _onScroll can't clear this — there is no
@@ -778,6 +803,86 @@ class _RoomScreenState extends State<RoomScreen>
       WidgetsBinding.instance.addPostFrameCallback((_) => _maybeLandOnUnread());
     }
   }
+
+  /// TRANSLATE, from a bubble's long-press menu.
+  ///
+  /// Four outcomes, and the ordering of the first three is the whole design of
+  /// the entry point: an uninstalled Sebastian does not refuse, he introduces
+  /// himself and then does the thing that was asked for.
+  Future<void> _translateMessage(
+    ChatMessage target,
+    ScaffoldMessengerState messenger,
+  ) async {
+    final sebastian = Sebastian.instance;
+
+    // Not installed → the sheet. It returns true only once his brain is
+    // actually on disk, which is what lets the translation below carry on as
+    // if nothing had interrupted it. A user who cancels the download gets
+    // silence, not an error: they just declined.
+    if (!sebastian.isInstalled) {
+      final ready = await showCompanionInstallSheet(
+        context,
+        companion: Companion.sebastian,
+        brain: sebastian.brain,
+      );
+      if (!ready || !mounted) return;
+    }
+
+    // Installed but switched off. Tapping TRANSLATE is a clearer statement of
+    // intent than the toggle in Settings is, so it counts as switching him on
+    // rather than as a reason to send someone to Settings.
+    if (!sebastian.isEnabled) {
+      await SettingsStore.instance.setSebastianEnabled(true);
+      if (!mounted) return;
+    }
+
+    sebastian.translate(target);
+
+    // Already in the reader's language. The detector answers this
+    // synchronously and long before any model runs, so by the time the menu's
+    // exit animation is done the handle is usually already settled — which is
+    // why this reads it immediately rather than waiting on anything.
+    //
+    // A toast and not a slab: this is the one state whose answer is "there was
+    // nothing to do", and a permanent note saying so under a message is a note
+    // the reader has to dismiss on every message they were curious about. See
+    // [TranslationSlab], which renders nothing for it.
+    final handle = sebastian.handleFor(target);
+    if (handle != null && handle.state == TranslationState.sameLanguage) {
+      if (!context.mounted) return;
+      messenger.showSnackBar(SnackBar(
+        content: Text(AppLocalizations.of(context)
+            .roomScreenAlreadyInLanguageSnack(
+                sebastian.targetLanguage.autonym)),
+      ));
+      return;
+    }
+
+    // First translation in a room that is not switched on: offer the room.
+    // Once per room per visit — `_offeredRoomTranslate` is state on this
+    // screen, so leaving and coming back offers it again, which is right. It
+    // is an offer rather than a prompt: no dialog, no decision to make, and it
+    // goes away by itself.
+    if (!_offeredRoomTranslate && !sebastian.isRoomTranslating(widget.roomId)) {
+      _offeredRoomTranslate = true;
+      if (!context.mounted) return;
+      final l10n = AppLocalizations.of(context);
+      messenger.showSnackBar(SnackBar(
+        content: Text(l10n.roomScreenTranslateRoomOffer),
+        action: SnackBarAction(
+          label: l10n.roomScreenTranslateRoomOfferAction,
+          onPressed: () => Sebastian.instance.startRoom(
+            widget.roomId,
+            widget.repo.messagesFor(widget.roomId),
+          ),
+        ),
+      ));
+    }
+  }
+
+  /// Whether the "translate the whole room" offer has already been made this
+  /// visit. See [_translateMessage].
+  bool _offeredRoomTranslate = false;
 
   /// Snaps the transcript to the first unread message once, as soon as its
   /// row can be located — instead of the reverse:true default of opening at
@@ -889,6 +994,20 @@ class _RoomScreenState extends State<RoomScreen>
     // last visit's peeks — and a spoiler that only stays open for a few
     // seconds in-room would be inconsistent if it survived a whole exit.
     SpoilerStore.instance.clear();
+    // Hands back the model weights when the last translating room closes.
+    //
+    // Several hundred megabytes of resident memory on a device that is also
+    // holding this app's images and, shortly, whatever the user opens next.
+    // Keeping a brain warm across the whole session is how a chat app becomes
+    // the one the OS kills first when it is backgrounded.
+    //
+    // Deliberately does NOT clear the queue or the handles: the translations
+    // stay, so walking out of a room and back in is instant. Only the weights
+    // go, and the next translation reloads them — a one-off cost paid by
+    // somebody who has just asked for one.
+    if (Sebastian.instance.isRoomTranslating(widget.roomId)) {
+      unawaited(Sebastian.instance.releaseBrain());
+    }
     ShareIntake.instance.removeListener(_takeStagedShare);
     _ticker.cancel();
     _captureController.dispose();
@@ -3084,6 +3203,14 @@ class _RoomScreenState extends State<RoomScreen>
             onTap: _onPinBannerTap,
             onOpenList: () => _openPinList(room),
           ),
+          // Zero height unless this room is switched on, so it needs no
+          // condition here — the same posture GroupCallBanner and the pinned
+          // strip above it take. Below the pins, because a pin is about the
+          // conversation and this is about how the reader is reading it.
+          RoomTranslateBar(
+            roomId: room.id,
+            onStop: () => Sebastian.instance.stopRoom(room.id),
+          ),
           Expanded(
             child: _messageBody(
               context,
@@ -3266,6 +3393,10 @@ class _RoomScreenState extends State<RoomScreen>
                       onTap: _onPinBannerTap,
                       onOpenList: () => _openPinList(room),
                       glass: true,
+                    ),
+                    RoomTranslateBar(
+                      roomId: room.id,
+                      onStop: () => Sebastian.instance.stopRoom(room.id),
                     ),
                   ],
                 ),
@@ -3618,10 +3749,22 @@ class _RoomScreenState extends State<RoomScreen>
                     // Re-read for [target] rather than reused from the row:
                     // an album's tiles are separate messages, and what may be
                     // done to one of them is a function of which one.
-                    capabilities:
-                        widget.repo.capabilitiesForMessage(target, room),
+                    // Sebastian's availability is a fact about the DEVICE,
+                    // not about this message, so it is applied here rather
+                    // than inside `messageCapabilitiesFor` — the same shape
+                    // `ThreadOverlay` uses to withhold VIEW THREAD. Note it
+                    // withholds the row only where he cannot run AT ALL; not
+                    // being installed yet still offers it, because tapping it
+                    // is how he gets installed.
+                    capabilities: Sebastian.instance.isAvailable
+                        ? widget.repo.capabilitiesForMessage(target, room)
+                        : widget.repo
+                            .capabilitiesForMessage(target, room)
+                            .copyWith(canTranslate: false),
                     isPinned: widget.repo.isMessagePinned(room.id, target.id),
                     isSaved: widget.repo.isMessageSaved(room.id, target.id),
+                    isTranslated:
+                        Sebastian.instance.isShowingTranslation(target),
                     // The transcript row holds a document's name to one line;
                     // this is where the whole thing is legible.
                     fileName:
@@ -3745,6 +3888,12 @@ class _RoomScreenState extends State<RoomScreen>
                       messenger.showSnackBar(SnackBar(
                           content: Text(AppLocalizations.of(context)
                               .locationBubbleCoordinatesCopied)));
+                      break;
+                    case MessageAction.translate:
+                      await _translateMessage(target, messenger);
+                      break;
+                    case MessageAction.showOriginal:
+                      Sebastian.instance.showOriginal(target);
                       break;
                     case MessageAction.pin:
                       final err = await widget.repo.pinMessage(room.id, target.id);
