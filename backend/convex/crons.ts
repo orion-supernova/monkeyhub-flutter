@@ -231,6 +231,21 @@ crons.interval(
   {},
 );
 
+// Reap userDevices rows nobody has used in 90 days. Every sign-out path
+// already deletes its own row inline (voipTokens.clearDeviceToken,
+// removeOtherDevices) — this is the backstop for the ones that never landed:
+// an app killed mid-request, an uninstall, a browser tab closed without
+// running any unload path, or a row written before that inline cleanup
+// shipped. `by_last_seen` is refreshed on every login, resume and token
+// upload, so a device still in use never approaches the cutoff.
+// See voipTokens.gcStaleDevices.
+crons.interval(
+  "voipTokens.gcStaleDevices",
+  { hours: 24 },
+  internal.voipTokens.gcStaleDevices,
+  {},
+);
+
 // The once-a-day "you haven't played today" nudge — the only push this backend
 // sends that nobody's action produced. Quarter-hourly, and that is not a
 // frequency: it is a resolution. Each tick asks whose wall clock reads 12:00
