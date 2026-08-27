@@ -7,6 +7,23 @@
 #                                          slot table (status shows USED ≈ full while
 #                                          DATA is a few MB). No restart — but only
 #                                          on a calm box; it refuses under pressure.
+#   ./hosting/tune-termio-vm.sh upgrade    pull a newer convex-backend image and
+#                                          recreate. Same six-minute outage as `apply`.
+#
+# ───────── why `upgrade` exists ─────────
+#
+# Two of the caps in the compose file DO NOT EXIST in the image on the box (built
+# 2026-03-10): INDEX_CACHE_SIZE and SOURCE_MAP_CACHE_MAX_SIZE_BYTES. The binary
+# has no such strings, so the backend ignores them and the shared index cache —
+# the single largest item at a 512 MiB default, on a 956 MB box — is still
+# uncapped. It is the largest unapplied win available here, and the only way to
+# collect it is a newer image. `image: …:latest` alone does not do that: compose
+# will not re-pull a tag it already has locally, which is exactly why the box has
+# been sitting on a March build.
+#
+# After it, check the log actually says the names were recognised:
+#   docker logs termio-backend 2>&1 | grep Overriding
+# INDEX_CACHE_SIZE appearing there is the whole point of the exercise.
 #
 # The diagnosis this answers is at the top of hosting/termio-docker-compose.yaml.
 # In one line: the backend's default caches are sized for a fleet, it grew to a
@@ -306,13 +323,66 @@ REMOTE
     status
 }
 
+# ───────── upgrade ─────────
+
+# Pull a current convex-backend image and recreate onto it.
+#
+# Separate from `apply` on purpose. `apply` is about THIS box's configuration
+# and is safe to re-run forever; this one changes the software, and the caps it
+# is chasing are only worth an outage when you have a quiet stretch to spend.
+#
+# The digest before and after is printed rather than the tag, because the tag
+# does not change and is precisely what made this invisible for five months.
+upgrade() {
+    require_vm
+    echo "⬆️  Upgrading the Convex backend image on $VM_HOST…"
+    echo
+    local before after
+    before=$(vm_ssh "docker inspect ghcr.io/get-convex/convex-backend:latest --format '{{index .RepoDigests 0}}'" 2>/dev/null || echo "unknown")
+    echo "1/3  Current image"
+    echo "     $before"
+
+    echo "2/3  Pulling"
+    if ! vm_ssh "cd $COMPOSE_DIR && docker compose pull backend 2>&1 | tail -3"; then
+        echo "❌ Pull failed — nothing has changed, the backend is still running."
+        exit 1
+    fi
+    after=$(vm_ssh "docker inspect ghcr.io/get-convex/convex-backend:latest --format '{{index .RepoDigests 0}}'" 2>/dev/null || echo "unknown")
+    if [ "$before" = "$after" ]; then
+        echo "     ✅ already current — nothing to do, no outage taken."
+        echo "     $after"
+        exit 0
+    fi
+    echo "     ✅ new image"
+    echo "     $after"
+    echo
+
+    echo "3/3  Recreating the backend (SIX-MINUTE outage on this disk — see the header)"
+    if ! vm_ssh "cd $COMPOSE_DIR && docker compose up -d backend 2>&1 | tail -3"; then
+        echo "❌ up failed. Roll back with:"
+        echo "   ssh … 'cd $COMPOSE_DIR && docker compose down backend'"
+        echo "   then pin the old digest in the compose file: $before"
+        exit 1
+    fi
+    echo
+    echo "Watch it come back:  ssh … 'docker logs -f termio-backend'"
+    echo "Then confirm the caps the old build ignored are recognised now:"
+    echo "    ssh … 'docker logs termio-backend 2>&1 | grep Overriding'"
+    echo "INDEX_CACHE_SIZE in that list is the win this upgrade exists for."
+    echo
+    echo "If the new build misbehaves, roll back by pinning the old digest in"
+    echo "hosting/termio-docker-compose.yaml and re-running '$0 apply':"
+    echo "    $before"
+}
+
 case "${1:-status}" in
     status) status ;;
     apply)  apply ;;
+    upgrade) upgrade ;;
     reset-zram) reset_zram ;;
     -h|--help|help)
         sed -n '2,38p' "$0" | sed 's/^# \{0,1\}//'
         ;;
     *)
-        echo "Usage: $0 [status|apply|reset-zram]"; exit 1 ;;
+        echo "Usage: $0 [status|apply|upgrade|reset-zram]"; exit 1 ;;
 esac

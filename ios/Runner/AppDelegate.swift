@@ -1167,6 +1167,18 @@ import flutter_callkit_incoming
             result([])
           }
 
+        // The raw `data` maps of chat pushes the Notification Service
+        // Extension has parked in the App Group, so a room can open already
+        // showing the message rather than asking the network for something the
+        // phone was just told. Written by a different process, possibly while
+        // this one did not exist — see ShareGroup.stagePush.
+        case "takePushInbox":
+          result(ShareGroup.takePushInbox())
+
+        case "clearPushInbox":
+          ShareGroup.clearPushInbox()
+          result(nil)
+
         default:
           result(FlutterMethodNotImplemented)
         }

@@ -257,6 +257,77 @@ class PushManager {
     }
   }
 
+  /// Take everything the native notification handlers have staged since the
+  /// last call, and empty the inbox.
+  ///
+  /// Each entry is the push's own `data` map, verbatim — the raw strings that
+  /// arrived, not a serialised message. That is deliberate: Kotlin and Swift
+  /// hold that map already and can write it without knowing anything about
+  /// `ChatMessage`, so the model's shape stays in one language. Dart is the
+  /// only side that turns it into a bubble (see
+  /// `ChatRepository.takePushedMessages`).
+  ///
+  /// Destructive by design. A stub is a stand-in for the round trip that is
+  /// about to happen, not a second store of truth — if the app dies before the
+  /// transcript lands, the stub should die with it and the next launch should
+  /// paint the cache and ask the server like always.
+  /// Stands in for the native inbox under `flutter test`, where
+  /// [_pushSupported] is false — the host is macOS or Linux — and no native
+  /// handler exists to have staged anything.
+  ///
+  /// The alternative was leaving the platform guard off so a mocked
+  /// `MethodChannel` could be reached, which would mean every room open on
+  /// desktop throwing and catching a `MissingPluginException` to answer a
+  /// question the compiler already knows. The channel's own name stays pinned
+  /// across the four languages that speak it by
+  /// test/push_payload_contract_test.dart.
+  @visibleForTesting
+  static Future<List<Map<String, String>>> Function()? debugInboxReader;
+
+  Future<List<Map<String, String>>> takePushInbox() async {
+    final stub = debugInboxReader;
+    if (stub != null) return stub();
+    // Desktop and web stage nothing — there is no native handler and no disk
+    // cache to seed. Checked rather than left to the MissingPluginException
+    // below, because this runs on every room open and an exception per open is
+    // a silly price for a question with a compile-time answer.
+    if (!_pushSupported) return const [];
+    try {
+      final rows =
+          await _notifChannel.invokeMethod<List<dynamic>>('takePushInbox');
+      return [
+        for (final raw in rows ?? const [])
+          if (raw is Map)
+            {
+              for (final e in raw.entries)
+                e.key.toString(): e.value?.toString() ?? '',
+            },
+      ];
+    } on MissingPluginException {
+      // Desktop and web — no native handler, and no disk cache to seed either.
+      return const [];
+    } catch (e) {
+      debugPrint('PushManager: takePushInbox failed: $e');
+      return const [];
+    }
+  }
+
+  /// Drop everything staged, without handing it to anyone.
+  ///
+  /// For a sign-out: the staged rows are message text belonging to the account
+  /// that is leaving, and the native side stages them under no user id at all
+  /// — it has none to stage them under.
+  Future<void> clearPushInbox() async {
+    if (!_pushSupported) return;
+    try {
+      await _notifChannel.invokeMethod('clearPushInbox');
+    } on MissingPluginException {
+      // Desktop and web — nothing stages anything there.
+    } catch (e) {
+      debugPrint('PushManager: clearPushInbox failed: $e');
+    }
+  }
+
   /// Bind this device's push tokens to a Convex userId.
   Future<void> login(String userId) async {
     _userId = userId;

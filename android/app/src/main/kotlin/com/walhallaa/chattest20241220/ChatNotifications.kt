@@ -109,6 +109,88 @@ object ChatNotifications {
         )
     }
 
+    /// Where a push's own `data` map is parked for Dart to pick up, under
+    /// `filesDir` — one file per message, named by its id.
+    ///
+    /// One file per message rather than one appended log, because several of
+    /// these can be written at once for a burst and a read-modify-write would
+    /// race itself. Naming them by message id also makes a repeat delivery
+    /// idempotent for free.
+    ///
+    /// Deliberately NOT written through Dart's `CacheStore`: that debounces a
+    /// whole-file rewrite of the room's transcript, so a native appender would
+    /// race it and truncate real history — and its directory is a path_provider
+    /// implementation detail that has no business being hard-coded here. This
+    /// side stores the RAW push map and nothing else; Dart owns what a message
+    /// is (see `ChatRepository.takePushedMessages`).
+    private const val INBOX_DIR = "push_inbox"
+
+    /// Ceiling on staged files, oldest dropped first. A device that never opens
+    /// the app again must not accumulate these forever.
+    private const val INBOX_MAX = 100
+
+    /// Park one push for Dart. Best-effort in the strongest sense: this runs
+    /// on the way to showing a notification, and nothing about it may prevent
+    /// or delay that.
+    private fun stageForSeeding(ctx: Context, data: Map<String, String>) {
+        if (data["kind"] != "message") return
+        val messageId = data["messageId"].orEmpty()
+        if (messageId.isEmpty()) return
+        try {
+            val dir = java.io.File(ctx.filesDir, INBOX_DIR)
+            if (!dir.exists() && !dir.mkdirs()) return
+            val existing = dir.listFiles()
+            if (existing != null && existing.size >= INBOX_MAX) {
+                existing.sortedBy { it.lastModified() }
+                    .take(existing.size - INBOX_MAX + 1)
+                    .forEach { it.delete() }
+            }
+            val json = org.json.JSONObject()
+            for ((k, v) in data) json.put(k, v)
+            java.io.File(dir, "$messageId.json").writeText(json.toString())
+        } catch (t: Throwable) {
+            Log.w(TAG, "could not stage push for seeding: ${t.message}")
+        }
+    }
+
+    /// Hand Dart everything staged since it last asked, and empty the inbox.
+    ///
+    /// Destructive: a stub stands in for a round trip that is about to happen,
+    /// not for the transcript itself. If the process dies before the live data
+    /// lands, these should die with it rather than come back on the next launch
+    /// as something indistinguishable from server truth.
+    fun takeInbox(ctx: Context): List<Map<String, String>> {
+        val out = mutableListOf<Map<String, String>>()
+        try {
+            val dir = java.io.File(ctx.filesDir, INBOX_DIR)
+            val files = dir.listFiles() ?: return out
+            for (f in files.sortedBy { it.lastModified() }) {
+                try {
+                    val obj = org.json.JSONObject(f.readText())
+                    val row = mutableMapOf<String, String>()
+                    for (k in obj.keys()) row[k] = obj.optString(k)
+                    out.add(row)
+                } catch (t: Throwable) {
+                    Log.w(TAG, "dropping unreadable staged push: ${t.message}")
+                }
+                f.delete()
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "could not read staged pushes: ${t.message}")
+        }
+        return out
+    }
+
+    /// Clear everything staged, without handing it to anyone.
+    ///
+    /// For a sign-out: the inbox can only ever hold pushes addressed to the
+    /// session that was live when they arrived, and that is the whole of the
+    /// account-safety story here — no recipient id needs to travel in the
+    /// payload, because ending the session empties the box.
+    fun clearInbox(ctx: Context) {
+        runCatching { java.io.File(ctx.filesDir, INBOX_DIR).deleteRecursively() }
+    }
+
     /// Longest this will block a background thread fetching the sender's
     /// avatar before giving up and posting without one. `onMessageReceived`
     /// itself is never blocked (see below) — this only bounds how late a
@@ -126,6 +208,13 @@ object ChatNotifications {
             Log.d(TAG, "suppressing $kind for active room $roomId")
             return
         }
+
+        // Below the suppression check on purpose: a room already on screen has
+        // the message from its own subscription, so seeding it would be a
+        // stub racing the truth for no gain. Everywhere else this is what lets
+        // the room open already showing the message instead of asking the
+        // network for something the phone was just told.
+        stageForSeeding(ctx, data)
 
         val avatarUrl = data["senderAvatarUrl"].orEmpty()
         if (avatarUrl.isEmpty()) {

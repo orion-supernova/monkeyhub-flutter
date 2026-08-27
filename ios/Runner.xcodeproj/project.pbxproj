@@ -65,6 +65,7 @@
 		8B2D0E0ABE9BACF7C71ED0C7 /* mh_monkey_hmm@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 985863383B8D8B7840D5B50D /* mh_monkey_hmm@2x.png */; };
 		8C202CA67F3573C34AF6BAA6 /* ShareSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED43A34CB098ED7AEA1D8814 /* ShareSession.swift */; };
 		8EC46B2A87DCB654E83E014F /* ShareGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E0D8D3874595EEDDE2C8E2 /* ShareGroup.swift */; };
+		C0FFEE1122334455667788A1 /* ShareGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E0D8D3874595EEDDE2C8E2 /* ShareGroup.swift */; };
 		90CE3BCC1065626B64AA28DC /* bio_organic@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 235A840859265BD45FB4037D /* bio_organic@3x.png */; };
 		97A46C33D081F79311AB759E /* deep_ocean@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7FADE5A06EF55EA2A6787367 /* deep_ocean@3x.png */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
@@ -880,6 +881,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				818C1EF6E5CB451186163E22 /* NotificationService.swift in Sources */,
+				C0FFEE1122334455667788A1 /* ShareGroup.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import '../backend/chat_api.dart';
 import '../backend/convex_client.dart';
+import '../diagnostics/diag_log.dart';
 import '../media/upload_service.dart';
 import '../models/chat_message.dart';
 import '../models/chat_room.dart';
@@ -17,6 +18,7 @@ import '../models/message_bookmark.dart';
 import '../models/message_capabilities.dart';
 import '../models/message_formatting.dart';
 import '../models/message_interaction.dart';
+import '../models/message_reaction.dart';
 import '../models/pending_upload.dart';
 import '../models/room_admin.dart';
 import '../models/room_capabilities.dart';
@@ -270,6 +272,25 @@ class ChatRepository extends ChangeNotifier {
   Subscription? _bookmarksSub;
   Subscription? _scheduledSub;
   Subscription? _interactionsSub;
+
+  /// How long the room's other six subscriptions wait for the transcript
+  /// before registering anyway. See [_scheduleSecondaryRoomSubscriptions].
+  ///
+  /// Long enough that a healthy backend always answers first and the deferral
+  /// is invisible; short enough that a reader on a dead connection does not
+  /// notice their typing indicator missing.
+  ///
+  /// Mutable only so a test can prove the fallback fires without sleeping for
+  /// it; nothing in the app writes it.
+  @visibleForTesting
+  static Duration secondaryFallback = const Duration(milliseconds: 600);
+
+  /// The `_openGen` whose secondary subscriptions have been registered, and the
+  /// timer that will register them if the transcript never arrives. Both are
+  /// per-open: [closeRoom] cancels the timer so a room backed out of before its
+  /// transcript landed does not register subscriptions nobody holds.
+  int? _secondaryGen;
+  Timer? _secondaryFallback;
 
   /// Pinned messages, keyed by room.
   ///
@@ -688,13 +709,31 @@ class ChatRepository extends ChangeNotifier {
   /// for every viewer of the room and re-sends them the WHOLE window — Convex
   /// pushes full results, not deltas — so this number is a multiplier on the
   /// two things the receive path is made of: the server's work per message and
-  /// the bytes each phone parses per message. It was 100. Fifty still fills
-  /// several screens on the tallest phone, and everything older arrives
-  /// through [loadOlder] on the first scroll back, exactly as messages 101+
-  /// always did. The one thing given up: a reaction on a message that has
-  /// scrolled out of the window no longer updates live — which was already
-  /// true past 100, and is the same freeze the thread overlay documents.
-  static const kLiveWindow = 50;
+  /// the bytes each phone parses per message. It was 100, then 50.
+  ///
+  /// And the multiplier is per VIEWER, with no sharing between them. Every
+  /// query in this app is wrapped by `authedQuery`, which appends a
+  /// `sessionToken` to its declared args (`backend/convex/functions.ts:114`)
+  /// before overwriting `viewerUserId` with the session-resolved id. Convex
+  /// caches a query result against (path, args), and that token is unique per
+  /// device session — so two people looking at the same room share nothing.
+  /// Total server work is therefore LINEAR in this number, and halving it
+  /// halves it.
+  ///
+  /// It also shrinks the query's READ SET, which is the part that is easy to
+  /// miss: a reaction on a message outside the window now invalidates nothing
+  /// at all, rather than costing every viewer a full re-run. Fewer bytes is the
+  /// smaller half of the win; fewer re-runs is the larger.
+  ///
+  /// Twenty-five still fills a screen and a half on the tallest phone, and
+  /// everything older arrives through [loadOlder] on the first scroll back,
+  /// exactly as messages 51+ already did. The one thing given up is unchanged
+  /// from the last cut: a reaction on a message that has scrolled out of the
+  /// window no longer updates live — the same freeze the thread overlay
+  /// documents, and now bounded by the local rendering of your OWN reactions,
+  /// deletes and edits (see [_patchMessageEverywhere]), which is what makes a
+  /// smaller window safe to take.
+  static const kLiveWindow = 25;
 
   /// Pending `markRoomRead`, coalesced — see [_scheduleMarkRead].
   Timer? _readDebounce;
@@ -849,6 +888,8 @@ class ChatRepository extends ChangeNotifier {
     _scheduledSub = null;
     _speakerColorsSub = null;
     _typingHeartbeat = null;
+    _secondaryFallback?.cancel();
+    _secondaryFallback = null;
     _activeRoomId = null;
     _openOwner = null;
     // Any open still in flight belongs to the account being signed out.
@@ -922,6 +963,9 @@ class ChatRepository extends ChangeNotifier {
     }
     _pending.clear();
     _lastSeenNewestMsgId.clear();
+    _lastLiveRaw.clear();
+    _deletedLocally.clear();
+    _pushStubs.clear();
     _typingByRoom.clear();
     _openTypingRoomId = null;
     _openTypingUsers = const [];
@@ -1230,12 +1274,57 @@ class ChatRepository extends ChangeNotifier {
 
   List<ChatMessage> messagesFor(String roomId) {
     final live = _messages[roomId] ?? const [];
+    final stubs = _pushStubs[roomId];
+    // Rare — only between a push landing and the transcript answering — so it
+    // sits ahead of the memo rather than inside it, and costs a null check on
+    // every other call.
+    if (stubs != null && stubs.isNotEmpty) {
+      final known = {
+        for (final m in live) m.id,
+        for (final m in _olderPrefix[roomId] ?? const <ChatMessage>[]) m.id,
+      };
+      final unseen = stubs.where((m) => !known.contains(m.id)).toList();
+      if (unseen.isNotEmpty) {
+        final merged = <ChatMessage>[
+          ...live,
+          ...?_pending[roomId],
+          ...unseen,
+        ]..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        return merged;
+      }
+    }
     final pend = _pending[roomId] ?? const [];
     if (pend.isEmpty) return live;
+    // Memoised on the identity of both inputs, because the room screen's item
+    // pass is memoised on the identity of THIS list (see `_buildItems`) and its
+    // ticker calls straight through here every second. Allocating a fresh
+    // merged list per call meant that memo could never hold while a send was in
+    // flight, so the whole transcript was flattened and rebuilt once a second
+    // for as long as one bubble was going up.
+    //
+    // Length is part of the key alongside identity: a pending list is mutated
+    // in place (a status flip), which changes neither identity nor — for a
+    // status flip — the set of instances the merge would produce. An append
+    // does change it, and shows up as a length change.
+    if (identical(live, _mergedLiveSource) &&
+        identical(pend, _mergedPendingSource) &&
+        pend.length == _mergedPendingLength) {
+      return _mergedResult!;
+    }
     final merged = [...live, ...pend];
     merged.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    _mergedLiveSource = live;
+    _mergedPendingSource = pend;
+    _mergedPendingLength = pend.length;
+    _mergedResult = merged;
     return merged;
   }
+
+  /// The inputs [messagesFor]'s last merge was built from, and its result.
+  List<ChatMessage>? _mergedLiveSource;
+  List<ChatMessage>? _mergedPendingSource;
+  int _mergedPendingLength = -1;
+  List<ChatMessage>? _mergedResult;
 
   /// Makes [roomId] the open room: drops the previous room's subscriptions,
   /// loads its transcript, and registers messages / read-state / typing.
@@ -1265,6 +1354,7 @@ class ChatRepository extends ChangeNotifier {
       _stopTyping();
     }
     final gen = ++_openGen;
+    DiagLog.roomOpen('open', roomId);
     _activeRoomId = roomId;
     _messagesSub?.cancel();
     _activeTypingSub?.cancel();
@@ -1305,6 +1395,12 @@ class ChatRepository extends ChangeNotifier {
     // the old one-shot `listMessages` fetch below removed the await that
     // used to guarantee this for free.
     await Future<void>.value();
+    // Ahead of the disk read on purpose: a tap IS the launch, so whatever the
+    // notification handler staged is the newest thing this device knows and
+    // belongs on the first frame — before the cache, which by definition
+    // predates it, and long before the network.
+    await takePushedMessages();
+    if (gen != _openGen) return;
     // Hydrate from disk first for an instant render.
     if (me != null && (_messages[roomId] == null || _messages[roomId]!.isEmpty)) {
       try {
@@ -1312,7 +1408,17 @@ class ChatRepository extends ChangeNotifier {
         if (cached.isNotEmpty) {
           _messages[roomId] = cached;
           _initialLoaded.add(roomId);
+          // How stale the first painted frame is. Read against the
+          // `messages:list` `first` event that follows: the gap between them is
+          // how long the reader sat looking at this snapshot.
+          DiagLog.roomOpen(
+            'cache',
+            '${cached.length} msgs, newest '
+            '${DateTime.now().difference(cached.last.createdAt).inSeconds}s old',
+          );
           notifyListeners();
+        } else {
+          DiagLog.roomOpen('cache', 'empty');
         }
       } catch (_) {}
     }
@@ -1325,6 +1431,12 @@ class ChatRepository extends ChangeNotifier {
     // Prime the dedup baseline with whatever we already have (cache, if any),
     // so the live subscription's first fire only trips `markRoomRead` when it
     // carries a message genuinely newer than what's already on screen.
+    //
+    // `_messages` and NOT `messagesFor`, which is the difference between a
+    // working read cursor and a message that is never marked read: a push stub
+    // is on screen but unconfirmed, and priming from one would make the first
+    // live delivery look like it carried nothing new, so `markRoomRead` would
+    // never fire for the very message the reader came here to read.
     _lastSeenNewestMsgId[roomId] = _messages[roomId]?.isNotEmpty == true
         ? _messages[roomId]!.last.id
         : null;
@@ -1345,9 +1457,7 @@ class ChatRepository extends ChangeNotifier {
       {'roomId': roomId, 'limit': kLiveWindow, 'viewerUserId': ?me},
       onData: (data) {
         final list = (data as List?) ?? const [];
-        final parsed = list
-            .map((e) => ChatMessage.fromJson((e as Map).cast<String, dynamic>()))
-            .toList();
+        final parsed = _parseLiveWindow(roomId, list);
         // Re-attach any pages the user scrolled back through. A bare
         // `_messages[roomId] = parsed` would drop them: this subscription
         // refires on every reaction add/remove too, so a single reaction
@@ -1364,6 +1474,20 @@ class ChatRepository extends ChangeNotifier {
         // needs this stronger signal, or it gives up mid-race against the
         // live data that would have answered it.
         _liveMessagesLoaded.add(roomId);
+        // The server has spoken, so the stand-ins go — all of them, not just
+        // the ones this window happens to contain. Trying to keep the rest
+        // would mean keeping a message the server has since deleted, or one
+        // that fell off the back of a window fifty newer messages have pushed
+        // past, and no rule that tells those apart is worth its own bugs.
+        // `_maybeLandOnUnread` already owns putting the reader in the right
+        // place when a backlog lands.
+        if (_pushStubs.remove(roomId) != null) {
+          _mergedResult = null;
+        }
+        // The transcript is on screen, so the furniture around it can go and
+        // ask for itself now. Idempotent — this fires again on every reaction
+        // and edit, and only the first one through the gate registers.
+        _startSecondaryRoomSubscriptions(roomId, gen, me);
         _reconcilePending(roomId);
         if (me != null) {
           CacheStore.instance.scheduleSaveMessages(me, roomId, parsed);
@@ -1399,11 +1523,63 @@ class ChatRepository extends ChangeNotifier {
     // spinning forever on a device that opens a never-cached room offline.
     _initialLoaded.add(roomId);
 
+    // Everything below the transcript is now deferred behind it — see
+    // [_scheduleSecondaryRoomSubscriptions]. These six used to be issued in the
+    // same breath as `messages:list` and then race it on a backend that answers
+    // one query at a time, so the one the reader is actually waiting for queued
+    // behind pins, bookmarks and a scheduled-message list nobody is looking at
+    // yet.
+    _scheduleSecondaryRoomSubscriptions(roomId, gen, me);
+  }
+
+  /// Hold the room's non-transcript subscriptions until the transcript lands.
+  ///
+  /// `messages:list` is the only query anybody is waiting on when a room opens:
+  /// until it answers there is nothing on screen but a disk snapshot that
+  /// predates whatever the reader came here to see. The other six —
+  /// pins, interactions, bookmarks, scheduled messages, read state, typing —
+  /// paint furniture around a transcript that is not there yet, and on a
+  /// resource-constrained backend every one of them is a query competing with
+  /// the one that matters.
+  ///
+  /// So they are gated: whichever comes first, the transcript's own first
+  /// delivery or [secondaryFallback]. The fallback is not a nicety — a room
+  /// opened offline, or one whose subscription never answers, must still get
+  /// its typing indicator and its read state rather than waiting forever on a
+  /// signal that is not coming.
+  void _scheduleSecondaryRoomSubscriptions(String roomId, int gen, String? me) {
+    _secondaryFallback?.cancel();
+    _secondaryFallback = Timer(
+      secondaryFallback,
+      () => _startSecondaryRoomSubscriptions(roomId, gen, me),
+    );
+  }
+
+  /// Open the gate. Idempotent per open: the transcript's first delivery and
+  /// the fallback timer both call this, and a transcript that fires again a
+  /// moment later (a reaction, an edit) must not register a second set.
+  void _startSecondaryRoomSubscriptions(String roomId, int gen, String? me) {
+    if (gen != _openGen) return;
+    if (_secondaryGen == gen) return;
+    _secondaryGen = gen;
+    _secondaryFallback?.cancel();
+    _secondaryFallback = null;
+    unawaited(_registerSecondaryRoomSubscriptions(roomId, gen, me));
+  }
+
+  /// The deferred half of [openRoom]. Every registration keeps the same `gen`
+  /// guard it had when it lived inline — a superseded open still cancels its
+  /// handle rather than publishing it.
+  Future<void> _registerSecondaryRoomSubscriptions(
+    String roomId,
+    int gen,
+    String? me,
+  ) async {
     // Pinned messages. Registered here rather than by the room screen so the
     // `gen` guard and `SubscriptionRegistry`'s reconnect rebinding cover it for
     // free, exactly like the three around it.
     //
-    // No paired one-shot fetch, unlike `messages:list` above: the banner is
+    // No paired one-shot fetch, unlike `messages:list` in [openRoom]: the banner is
     // zero-height until this lands, and the list is `reverse: true`, so a
     // reader sitting at the newest message sees nothing move when it arrives.
     final pinsSub = await cv.subscribe(
@@ -1580,7 +1756,7 @@ class ChatRepository extends ChangeNotifier {
     // Mark the room read on entry too. `upTo` is whatever this device already
     // holds — the disk cache, or the live window on re-entry — so the server
     // can skip its own room read. Anything newer than that arrives through the
-    // subscription above and is marked from there, which is also the honest
+    // subscription in [openRoom] and is marked from there, which is also the honest
     // order: a message is read when it is on screen, not when the room opens.
     // With nothing held it is omitted, and the server falls back to the room's
     // `lastMessageTime` as it always did.
@@ -1657,6 +1833,10 @@ class ChatRepository extends ChangeNotifier {
     _bookmarksSub?.cancel();
     _scheduledSub?.cancel();
     _interactionsSub?.cancel();
+    // The `_openGen` bump above already makes a late firing a no-op; this stops
+    // it holding the closure for the rest of the fallback window.
+    _secondaryFallback?.cancel();
+    _secondaryFallback = null;
     _messagesSub = null;
     _activeTypingSub = null;
     _readStateSub = null;
@@ -1673,6 +1853,13 @@ class ChatRepository extends ChangeNotifier {
     _loadingOlder.clear();
     _exhausted.clear();
     _olderPrefix.clear();
+    // Both are per-open caches of the live window: the raw rows the reuse check
+    // in [_parseLiveWindow] compares against, and the deletes it is still
+    // hiding. Re-entering the room re-delivers the window from scratch, so
+    // carrying either across would compare against a stale snapshot.
+    _lastLiveRaw.clear();
+    _deletedLocally.clear();
+    _pushStubs.clear();
     // The asked-for set, but NOT `_interactions` itself: the tallies are kept
     // exactly as `_pins` and `_messages` are, so re-entering the room paints a
     // complete card instantly instead of a poll with no bars. The ask-set goes
@@ -3142,10 +3329,97 @@ class ChatRepository extends ChangeNotifier {
     return e;
   }
 
+  /// Apply [transform] to [messageId] wherever this room holds a copy of it,
+  /// returning the rows that were replaced so the caller can put them back.
+  ///
+  /// The same `ChatMessage` can sit in FOUR lists at once — the live window,
+  /// the retained older pages, a detached history window, and the outgoing
+  /// queue — and they are separate `List`s holding the same instances. So
+  /// patching one by index, which is what every caller here used to do, leaves
+  /// the other three on the old value; `_withOlderPrefix` then splices a stale
+  /// copy back in front of the fresh one on the very next subscription fire and
+  /// the edit the user just made visibly reverts. That was a real bug in
+  /// [editMessage] before this existed.
+  ///
+  /// A null return from [transform] removes the row instead of replacing it,
+  /// which is how a delete renders before the server has confirmed it.
+  ///
+  /// Returns a per-list undo record. Empty means nothing here held the message,
+  /// which is not an error — it may have scrolled out of every window.
+  List<_MessagePatch> _patchMessageEverywhere(
+    String roomId,
+    String messageId,
+    ChatMessage? Function(ChatMessage) transform,
+  ) {
+    final undo = <_MessagePatch>[];
+    for (final list in [
+      _messages[roomId],
+      _olderPrefix[roomId],
+      _historyWindow[roomId],
+      _pending[roomId],
+    ]) {
+      if (list == null) continue;
+      final i = list.indexWhere((m) => m.id == messageId);
+      if (i < 0) continue;
+      final before = list[i];
+      final after = transform(before);
+      if (after == null) {
+        list.removeAt(i);
+      } else {
+        list[i] = after;
+      }
+      undo.add(_MessagePatch(list, i, before, removed: after == null));
+    }
+    return undo;
+  }
+
+  /// Put back what [_patchMessageEverywhere] changed, newest list first so an
+  /// index recorded before a removal is still the right one to re-insert at.
+  void _revertMessagePatches(List<_MessagePatch> patches) {
+    for (final p in patches.reversed) {
+      if (p.removed) {
+        p.list.insert(p.index.clamp(0, p.list.length), p.before);
+      } else if (p.index < p.list.length && p.list[p.index].id == p.before.id) {
+        // Only if the subscription has not already replaced this row: whatever
+        // it delivered IS the authoritative state, and overwriting it with our
+        // snapshot would resurrect the thing the server just corrected.
+        p.list[p.index] = p.before;
+      }
+    }
+  }
+
+  /// Removes the message locally first, then asks the server.
+  ///
+  /// It used to be three lines with no local removal at all, so a deleted
+  /// bubble sat on screen — looking undeleted — until `messages:list` refired.
+  /// That is a whole server round trip on a backend that can take seconds to
+  /// answer, spent staring at the thing you just asked to be gone. The server
+  /// remains the authority: a refusal puts the bubble back, and the refire that
+  /// follows a success is a no-op because the row is already gone.
   Future<void> deleteMessage(String messageId) async {
     final id = _userId;
     if (id == null) return;
-    await api.deleteMessage(messageId: messageId, userId: id);
+    final roomId = _activeRoomId;
+    final undo = roomId == null
+        ? const <_MessagePatch>[]
+        : _patchMessageEverywhere(roomId, messageId, (_) => null);
+    if (roomId != null) {
+      // Held until the server stops sending the row. Removing it from the lists
+      // is not enough on its own: this subscription refires on anything that
+      // touches the window, and a delivery that arrives before the delete has
+      // landed still carries the row — which would put the bubble back for a
+      // round trip. See [_parseLiveWindow].
+      (_deletedLocally[roomId] ??= <String>{}).add(messageId);
+    }
+    if (undo.isNotEmpty) notifyListeners();
+    try {
+      await api.deleteMessage(messageId: messageId, userId: id);
+    } catch (_) {
+      if (roomId != null) _deletedLocally[roomId]?.remove(messageId);
+      _revertMessagePatches(undo);
+      if (undo.isNotEmpty) notifyListeners();
+      rethrow;
+    }
   }
 
   // ───────────── editing ─────────────
@@ -3202,22 +3476,28 @@ class ChatRepository extends ChangeNotifier {
     final id = _userId;
     if (id == null) return null;
 
-    // Patch the live copy in place, remembering how to undo it. The list
-    // entry is swapped for a copy rather than mutated so the revert is one
-    // assignment of the untouched original.
-    final list = _messages[roomId];
-    final idx = list?.indexWhere((m) => m.id == message.id) ?? -1;
-    final ChatMessage? snapshot = idx >= 0 ? list![idx] : null;
-    if (snapshot != null) {
-      list![idx] = snapshot.copyWith(
+    // Patch every copy, remembering how to undo it. The entry is swapped for a
+    // copy rather than mutated so the revert is one assignment of the untouched
+    // original.
+    //
+    // EVERY copy, not just the live window's, and that is the whole reason
+    // [_patchMessageEverywhere] exists: `_olderPrefix` holds the same instances
+    // in a different list, so patching by index here used to leave the old one
+    // sitting in the prefix, and the next subscription fire spliced it back in
+    // front via `_withOlderPrefix` — an edit to a message you had scrolled back
+    // to reverted itself a moment later.
+    final undo = _patchMessageEverywhere(
+      roomId,
+      message.id,
+      (m) => m.copyWith(
         content: content,
         edited: true,
         mentions: mentions,
         mentionsEveryone: mentionsEveryone,
         formatting: formatting,
-      );
-      notifyListeners();
-    }
+      ),
+    );
+    if (undo.isNotEmpty) notifyListeners();
 
     final err = await api.editMessage(
       messageId: message.id,
@@ -3227,16 +3507,13 @@ class ChatRepository extends ChangeNotifier {
       mentionsEveryone: mentionsEveryone,
       formatting: formatting,
     );
-    if (err != null && snapshot != null) {
-      // Refused: put the original back — unless the subscription has already
-      // replaced the whole list, in which case whatever it delivered IS the
-      // authoritative state and overwriting it would resurrect the failure.
-      final cur = _messages[roomId];
-      final curIdx = cur?.indexWhere((m) => m.id == message.id) ?? -1;
-      if (curIdx >= 0 && cur![curIdx].edited && !snapshot.edited) {
-        cur[curIdx] = snapshot;
-        notifyListeners();
-      }
+    if (err != null && undo.isNotEmpty) {
+      // Refused: put the originals back. [_revertMessagePatches] skips any list
+      // the subscription has already replaced under us, for the reason the old
+      // inline version guarded by hand — whatever it delivered IS the
+      // authoritative state, and overwriting it would resurrect the failure.
+      _revertMessagePatches(undo);
+      notifyListeners();
     }
     return err;
   }
@@ -3805,29 +4082,272 @@ class ChatRepository extends ChangeNotifier {
 
   // ───────────── reactions ─────────────
 
+  /// Adds or removes this viewer's [emoji] on [messageId], on screen first.
+  ///
+  /// This used to be server-first: decide add-vs-remove from the cached row,
+  /// fire the mutation, and swallow the result because "the live subscription
+  /// will reconcile". It does — eventually. Until then a double-tap produced
+  /// nothing at all, and a second tap re-read the same unchanged row, decided
+  /// `mineExists` was still false, and re-added. On a backend that can take a
+  /// second or more to answer, the feature reads as broken.
+  ///
+  /// The optimistic row is applied everywhere the message is held (see
+  /// [_patchMessageEverywhere]) and reverted if the mutation throws. The
+  /// subscription echo that follows a success is identical to what is already
+  /// on screen, so it lands as a no-op rather than a second repaint.
   Future<void> toggleReaction({
     required String messageId,
     required String emoji,
   }) async {
     final id = _userId;
     if (id == null) return;
-    // Determine current state from cached message.
-    bool mineExists = false;
-    for (final list in _messages.values) {
-      for (final m in list) {
-        if (m.id == messageId) {
-          mineExists = m.reactions.any((r) => r.userId == id && r.emoji == emoji);
-          break;
-        }
-      }
-    }
+    final roomId = _activeRoomId;
+    // Read the CURRENT state from the row we are about to patch, not from a
+    // scan of every room: after the patch below the answer changes, and the
+    // mutation has to be chosen from the state the user tapped on.
+    final held = roomId == null ? null : _findMessage(roomId, messageId);
+    final mineExists =
+        held?.reactions.any((r) => r.userId == id && r.emoji == emoji) ?? false;
+
+    final undo = roomId == null
+        ? const <_MessagePatch>[]
+        : _patchMessageEverywhere(roomId, messageId, (m) {
+            final next = [...m.reactions];
+            if (mineExists) {
+              next.removeWhere((r) => r.userId == id && r.emoji == emoji);
+            } else {
+              next.add(MessageReaction(
+                // Provisional, and replaced by the server's own row on the
+                // next fire. Prefixed like the optimistic message ids so
+                // anything keying off it can tell it apart from a real one.
+                id: 'tmp_${messageId}_${id}_$emoji',
+                messageId: messageId,
+                userId: id,
+                emoji: emoji,
+                createdAt: DateTime.now(),
+              ));
+            }
+            return m.copyWith(reactions: next);
+          });
+    if (undo.isNotEmpty) notifyListeners();
+
     try {
       if (mineExists) {
         await api.removeReaction(messageId: messageId, userId: id, emoji: emoji);
       } else {
         await api.addReaction(messageId: messageId, userId: id, emoji: emoji);
       }
-    } catch (_) {/* swallow — live subscription will reconcile */}
+    } catch (_) {
+      // Put it back rather than leaving the optimistic row to be corrected by
+      // the next delivery — on the failure that matters here nothing was
+      // written, so nothing invalidates and no delivery is coming.
+      _revertMessagePatches(undo);
+      if (undo.isNotEmpty) notifyListeners();
+    }
+  }
+
+  /// Messages this device learned about from a push and has not yet seen on
+  /// the wire, per room.
+  ///
+  /// Held apart from [_pending], and that separation is load-bearing rather
+  /// than tidy. `_pending` means "something THIS device is trying to send":
+  /// [flushPending] walks it on every reconnect and re-posts anything still at
+  /// `pending`/`error`, so a received message parked there would make the
+  /// RECIPIENT re-send the sender's message from their own account. It is also
+  /// why [reconcilesWith] cannot be borrowed for these — its first branch is
+  /// `if (live.clientId != null) return live.clientId == pending.id`, and every
+  /// message from a modern client carries a `clientId`, so a stub would compare
+  /// a Convex document id against a client-minted uuid, never match, and render
+  /// as a permanent duplicate. Stubs carry the server's own id, so their rule
+  /// is one line: drop them when the transcript arrives.
+  final Map<String, List<ChatMessage>> _pushStubs = {};
+
+  /// The raw rows the last `messages:list` delivery carried, per room, keyed by
+  /// message id. Compared against the next delivery so an unchanged row can
+  /// keep the object it already has — see [_parseLiveWindow].
+  final Map<String, Map<String, Map<String, dynamic>>> _lastLiveRaw = {};
+
+  /// Ids this device has deleted optimistically and the server has not yet
+  /// confirmed. See [_parseLiveWindow] for why they have to be held.
+  final Map<String, Set<String>> _deletedLocally = {};
+
+  /// Take whatever the native notification handlers staged and turn it into
+  /// provisional bubbles, so a room opened from a notification is already
+  /// showing the message that caused it.
+  ///
+  /// The push has carried the text all along — `notifications.ts` puts
+  /// `messageId`, `senderName`, `content` and `type` in its `data` map — it
+  /// simply had nowhere to go. Without this, tapping a banner paints a disk
+  /// cache that predates the very message you tapped and then waits on the
+  /// network to be told something the phone already knew.
+  ///
+  /// Text only, and only `plain` text at that. The `content` key is the room
+  /// PREVIEW, so for anything else it is a glyph label — `"📷 Image"`,
+  /// `"📊 <question>"` — and a stub built from one would be a photo bubble
+  /// pointing at nothing or a poll card with no options. And a message
+  /// carrying formatting, mentions or a reply tether would appear bare and
+  /// then RE-LAY-OUT when the real row arrived, which is worse than a moment
+  /// of nothing. `rooms:getMemberIds` decides `plain` server-side.
+  Future<void> takePushedMessages() async {
+    final me = _userId;
+    if (me == null) return;
+    final rows = await PushManager.instance.takePushInbox();
+    if (rows.isEmpty) return;
+    // Matches KIND_TTL_SECONDS.message on the backend: past it the push itself
+    // would no longer be delivered, so a stub that old is a leftover from a
+    // long-offline stretch rather than news. Without this a device that stopped
+    // opening some rooms would carry their stubs for the rest of the session.
+    final stale = DateTime.now().subtract(const Duration(hours: 24));
+    var added = false;
+    for (final data in rows) {
+      final stub = _stubFromPush(data);
+      if (stub == null) continue;
+      if (stub.createdAt.isBefore(stale)) continue;
+      final list = _pushStubs[stub.roomId] ??= [];
+      if (list.any((m) => m.id == stub.id)) continue;
+      list.add(stub);
+      added = true;
+    }
+    if (added) {
+      // The stub path in [messagesFor] sits ahead of the memo, so nothing there
+      // is stale — but a merged list built a moment ago is, and it is the one
+      // the room screen's item pass is memoised on.
+      _mergedResult = null;
+      notifyListeners();
+    }
+  }
+
+  /// One push `data` map as a provisional message, or null if it is not
+  /// something that can honestly be drawn from a notification.
+  ChatMessage? _stubFromPush(Map<String, String> data) {
+    if (data['kind'] != 'message') return null;
+    if (data['type'] != 'text') return null;
+    if (data['plain'] != 'true') return null;
+    final id = data['messageId'];
+    final roomId = data['roomId'];
+    final senderId = data['senderId'];
+    final at = int.tryParse(data['createdAt'] ?? '');
+    // `createdAt` is the one field with no safe default: a stub without it
+    // cannot be ordered, and inventing one would sort the bubble against a
+    // clock nobody else is using. A native binary older than the server that
+    // sends it simply seeds nothing, which is the pre-existing behaviour.
+    if (id == null || roomId == null || senderId == null || at == null) {
+      return null;
+    }
+    if (id.isEmpty || roomId.isEmpty) return null;
+    return ChatMessage(
+      id: id,
+      roomId: roomId,
+      senderId: senderId,
+      senderName: data['senderName'] ?? '',
+      content: data['content'] ?? '',
+      createdAt: DateTime.fromMillisecondsSinceEpoch(at),
+    );
+  }
+
+  /// Turn a `messages:list` payload into messages, keeping the instance we
+  /// already hold for every row that did not change.
+  ///
+  /// Convex re-sends the WHOLE window on every change, so a single arriving
+  /// message used to mean [kLiveWindow] `fromJson` calls and a transcript in
+  /// which every row was a new object — which makes every row's props look
+  /// changed, misses the item-pass memo in `RoomScreen`, and rebuilds the
+  /// entire visible list to show one new bubble. Comparing the raw maps and
+  /// reusing the unchanged ones turns that back into "one row is new".
+  ///
+  /// Compared as raw JSON rather than by giving [ChatMessage] a value
+  /// `operator ==`: it has some forty fields, four of them non-final and one a
+  /// mutable list, so a value `hashCode` would change under any in-place
+  /// mutation and quietly corrupt every `Map` and `Set` holding one.
+  ///
+  /// Reusing an instance also preserves an optimistic local patch of it (see
+  /// [_patchMessageEverywhere]) for as long as the server's own row is
+  /// unchanged — which is the behaviour you want: a refire triggered by
+  /// somebody else's reaction should not flicker your own un-acked edit back to
+  /// its old text. The moment the server's row does change, it is re-parsed and
+  /// the server wins.
+  List<ChatMessage> _parseLiveWindow(String roomId, List<dynamic> rows) {
+    final prevRaw = _lastLiveRaw[roomId];
+    final prevById = <String, ChatMessage>{
+      for (final m in _messages[roomId] ?? const <ChatMessage>[]) m.id: m,
+    };
+    final tombstones = _deletedLocally[roomId];
+    final nextRaw = <String, Map<String, dynamic>>{};
+    // Every id this delivery carried, tombstoned ones included — see the
+    // tombstone cleanup at the end.
+    final sent = <String>{};
+    final out = <ChatMessage>[];
+    for (final e in rows) {
+      if (e is! Map) continue;
+      final raw = e.cast<String, dynamic>();
+      final id = (raw['_id'] ?? raw['id']).toString();
+      // Recorded before the tombstone check, not after: this is "what the
+      // server sent", which is exactly the question the cleanup below asks. A
+      // hidden row is still a row the server sent, and dropping its tombstone
+      // here would un-hide it on the very next delivery.
+      sent.add(id);
+      // Still carrying a row we have already taken off screen: the delete is in
+      // flight and this delivery was triggered by something else entirely.
+      // Re-parsing it here would resurrect the bubble for one round trip.
+      if (tombstones != null && tombstones.contains(id)) continue;
+      nextRaw[id] = raw;
+      final before = prevById[id];
+      if (before != null &&
+          prevRaw != null &&
+          _jsonEquals(prevRaw[id], raw)) {
+        out.add(before);
+        continue;
+      }
+      out.add(ChatMessage.fromJson(raw));
+    }
+    // Anything the server no longer sends has been deleted for real, so the
+    // tombstone has done its job and must not outlive it — otherwise an id the
+    // server later reuses (or a room reopened) would be invisible.
+    if (tombstones != null) {
+      tombstones.removeWhere((id) => !sent.contains(id));
+      if (tombstones.isEmpty) _deletedLocally.remove(roomId);
+    }
+    _lastLiveRaw[roomId] = nextRaw;
+    return out;
+  }
+
+  /// Structural equality for decoded JSON — maps, lists and scalars.
+  ///
+  /// Hand-rolled rather than `DeepCollectionEquality`, to avoid taking a
+  /// dependency on `package:collection` for one function on a hot path.
+  static bool _jsonEquals(Object? a, Object? b) {
+    if (identical(a, b)) return true;
+    if (a is Map && b is Map) {
+      if (a.length != b.length) return false;
+      for (final k in a.keys) {
+        if (!b.containsKey(k) || !_jsonEquals(a[k], b[k])) return false;
+      }
+      return true;
+    }
+    if (a is List && b is List) {
+      if (a.length != b.length) return false;
+      for (var i = 0; i < a.length; i++) {
+        if (!_jsonEquals(a[i], b[i])) return false;
+      }
+      return true;
+    }
+    return a == b;
+  }
+
+  /// The room's copy of [messageId] from whichever list holds it, or null.
+  ChatMessage? _findMessage(String roomId, String messageId) {
+    for (final list in [
+      _messages[roomId],
+      _olderPrefix[roomId],
+      _historyWindow[roomId],
+      _pending[roomId],
+    ]) {
+      if (list == null) continue;
+      for (final m in list) {
+        if (m.id == messageId) return m;
+      }
+    }
+    return null;
   }
 
   // ───────────── friends + direct requests ─────────────
@@ -3993,4 +4513,21 @@ class ChatRepository extends ChangeNotifier {
       await _postMessage(roomId, m);
     }
   }
+}
+
+/// One list's worth of undo for [ChatRepository._patchMessageEverywhere].
+///
+/// A class rather than a record because it carries a live `List` reference and
+/// is meant to be read back in one place only; naming the fields is what makes
+/// [ChatRepository._revertMessagePatches] legible.
+class _MessagePatch {
+  _MessagePatch(this.list, this.index, this.before, {required this.removed});
+
+  final List<ChatMessage> list;
+  final int index;
+  final ChatMessage before;
+
+  /// Whether the patch took the row out, as opposed to replacing it. Decides
+  /// between `insert` and an assignment on the way back.
+  final bool removed;
 }

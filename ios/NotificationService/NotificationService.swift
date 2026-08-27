@@ -58,6 +58,28 @@ class NotificationService: UNNotificationServiceExtension {
 
     let info = original.userInfo
     let kind = info["kind"] as? String ?? ""
+
+    // FIRST, ahead of every guard and every network call below.
+    //
+    // This file's governing rule has always been that a face must never cost
+    // the message; the seed now sits under the same rule. A `return` on the
+    // guard below, an avatar host that hangs until
+    // `serviceExtensionTimeWillExpire` fires, this process being killed
+    // outright — none of them may cost the recipient the one thing that makes
+    // the room open instantly. It is a small local write with no network in
+    // it, so there is no reason for it to be anywhere else.
+    //
+    // The RAW payload, verbatim: this side does not know what a message is and
+    // has no business learning. `ChatRepository.takePushedMessages` decides
+    // what can honestly be drawn from it — text only, and only unformatted
+    // text — and that judgement stays in one language.
+    if kind == "message" {
+      ShareGroup.stagePush(info.reduce(into: [String: String]()) { out, entry in
+        guard let key = entry.key as? String, key != "aps" else { return }
+        out[key] = "\(entry.value)"
+      })
+    }
+
     let senderName = (info["senderName"] as? String)
       ?? (info["callerName"] as? String)
       ?? (info["starterName"] as? String)

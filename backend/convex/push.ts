@@ -163,21 +163,27 @@ export function buildApnsBody(spec: AlertSpec): Record<string, unknown> {
     // just gets swallowed. See ios/Runner/*.entitlements.
     aps["interruption-level"] = "time-sensitive";
   }
-  // Wakes the Notification Service Extension, which swaps the app icon for the
-  // sender's face — see ios/NotificationService/NotificationService.swift.
+  // Wakes the Notification Service Extension — see
+  // ios/NotificationService/NotificationService.swift. It does two jobs now:
+  // swaps the app icon for the sender's face, and writes the message into the
+  // App Group inbox so the room can open already showing it.
   //
-  // Set ONLY when there is a face to draw. `mutable-content` launches a second
-  // process on the recipient's phone before anything is shown; spending that on
-  // a sender with no avatar buys a notification identical to the one that would
-  // have rendered without it. The extension still has to cope with arriving and
-  // finding nothing usable — a deleted avatar, a dead host — but that should be
-  // the exception rather than every push.
+  // It used to be set ONLY when there was a face to draw, on the grounds that
+  // `mutable-content` launches a second process before anything is shown and
+  // spending that on a sender with no avatar bought a notification identical
+  // to the one that would have rendered anyway. That reasoning was right and
+  // is now out of date: for a chat message the launch also buys the seed, and
+  // the seed is worth far more than the face — it is the difference between
+  // tapping a notification into a room that is already showing the message and
+  // tapping into one that has to go and ask for it. The face remains the only
+  // reason for every OTHER kind.
   //
   // `spec.data` is the MERGED map (see `sendAlert`, which spreads the per-user
   // override over the shared data), so a recipient whose view of the sender's
-  // `visibility.avatar` hides it has no `senderAvatarUrl` here and never pays
-  // for the launch. The privacy gate and the battery gate are the same line.
-  if (spec.data.senderAvatarUrl) {
+  // `visibility.avatar` hides it has no `senderAvatarUrl` here — and for a
+  // non-message kind still never pays for the launch. The privacy gate and the
+  // battery gate remain the same line for those.
+  if (spec.kind === "message" || spec.data.senderAvatarUrl) {
     aps["mutable-content"] = 1;
   }
   return { aps, ...spec.data };

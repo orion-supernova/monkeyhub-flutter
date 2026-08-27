@@ -262,6 +262,12 @@ class ConvexBackend implements ConnectionProbe {
   late final SubscriptionRegistry _registry = SubscriptionRegistry(
     bind: _bindSubscription,
     cancel: (h) => (h as cv.SubscriptionHandle).cancel(),
+    // The room transcript goes to the front of the queue after a forced socket
+    // rebuild. Named here, at construction, rather than exposed as a setter:
+    // every test fake of this class would otherwise have to implement one, and
+    // this is a fixed property of the app rather than something a caller tunes.
+    // See [SubscriptionRegistry.bindFirst] for why order matters at all.
+    bindFirst: const {'messages:list'},
   );
 
   Future<Subscription> subscribe(
@@ -315,12 +321,22 @@ class ConvexBackend implements ConnectionProbe {
     // DiagLog.subUpdate) — fifteen live subscriptions handing over full
     // documents would bury every other category in the timeline.
     final corr = DiagLog.subOpen(name, args);
+    // How long the screen behind this subscription had nothing to show. Only
+    // the first delivery is timed: every one after it is the server telling us
+    // something changed, which is not a wait anybody sat through.
+    final sinceOpen = Stopwatch()..start();
+    var awaitingFirst = true;
     return await _c.subscribe(
       name: name,
       args: args,
       onUpdate: (raw) {
         try {
           final decoded = _decode(raw);
+          if (awaitingFirst) {
+            awaitingFirst = false;
+            DiagLog.subFirstData(corr, name, sinceOpen.elapsedMilliseconds);
+            sinceOpen.stop();
+          }
           DiagLog.subUpdate(corr, name, decoded);
           onData(decoded);
         } catch (e) {

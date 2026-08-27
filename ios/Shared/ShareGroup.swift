@@ -60,8 +60,113 @@ enum ShareGroup {
   /// budget copying a two-gigabyte video the composer would refuse anyway.
   static let maxUploadBytes: Int64 = 20 * 1024 * 1024
 
+  /// Where the Notification Service Extension parks an arriving chat message
+  /// for the app to pick up — one file per message, named by its id.
+  ///
+  /// A second, unrelated inbox alongside [inboxName], and deliberately so: that
+  /// one carries shares INTO the app and is a multi-file staging area with a
+  /// manifest; this one carries a single small JSON per message and is read and
+  /// emptied in one pass.
+  ///
+  /// One file per message rather than one appended log, because iOS can run
+  /// several extension instances at once for a burst and a read-modify-write
+  /// would race itself. Naming by message id makes a repeat delivery idempotent
+  /// for free.
+  static let pushInboxName = "PushInbox"
+
+  /// Ceiling on parked files, oldest dropped first — a device that never opens
+  /// the app again must not accumulate these forever.
+  static let pushInboxMax = 100
+
   static var containerURL: URL? {
     FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: identifier)
+  }
+
+  /// The push inbox, created if it does not exist. Nil only when the App Group
+  /// is missing from this binary's entitlements or its provisioning profile.
+  static func pushInboxURL(create: Bool = false) -> URL? {
+    guard let container = containerURL else { return nil }
+    let url = container.appendingPathComponent(pushInboxName, isDirectory: true)
+    if create {
+      try? FileManager.default.createDirectory(
+        at: url, withIntermediateDirectories: true
+      )
+    }
+    return url
+  }
+
+  /// Park one push's own `data` map, verbatim.
+  ///
+  /// The RAW map and nothing else: this side does not know what a message is,
+  /// and should not — `ChatRepository.takePushedMessages` owns that, in one
+  /// language. Best-effort in the strongest sense, since the caller is on its
+  /// way to showing a notification and nothing here may prevent or delay that.
+  static func stagePush(_ data: [String: String]) {
+    guard let messageId = data["messageId"], !messageId.isEmpty else { return }
+    guard let dir = pushInboxURL(create: true) else {
+      NSLog("[push] no App Group container — is \(identifier) provisioned on this target?")
+      return
+    }
+    let fm = FileManager.default
+    if let existing = try? fm.contentsOfDirectory(
+      at: dir, includingPropertiesForKeys: [.contentModificationDateKey]
+    ), existing.count >= pushInboxMax {
+      let oldest = existing.sorted {
+        let a = (try? $0.resourceValues(forKeys: [.contentModificationDateKey]))?
+          .contentModificationDate ?? .distantPast
+        let b = (try? $1.resourceValues(forKeys: [.contentModificationDateKey]))?
+          .contentModificationDate ?? .distantPast
+        return a < b
+      }
+      for url in oldest.prefix(existing.count - pushInboxMax + 1) {
+        try? fm.removeItem(at: url)
+      }
+    }
+    guard let json = try? JSONSerialization.data(withJSONObject: data) else { return }
+    try? json.write(
+      to: dir.appendingPathComponent("\(messageId).json"), options: .atomic
+    )
+  }
+
+  /// Hand the app everything parked since it last asked, and empty the inbox.
+  ///
+  /// Destructive: a stub stands in for a round trip that is about to happen,
+  /// not for the transcript. If the process dies before the live data lands,
+  /// these should die with it rather than come back on the next launch as
+  /// something indistinguishable from server truth.
+  static func takePushInbox() -> [[String: String]] {
+    guard let dir = pushInboxURL() else { return [] }
+    let fm = FileManager.default
+    guard let files = try? fm.contentsOfDirectory(
+      at: dir, includingPropertiesForKeys: [.contentModificationDateKey]
+    ) else { return [] }
+    let ordered = files.sorted {
+      let a = (try? $0.resourceValues(forKeys: [.contentModificationDateKey]))?
+        .contentModificationDate ?? .distantPast
+      let b = (try? $1.resourceValues(forKeys: [.contentModificationDateKey]))?
+        .contentModificationDate ?? .distantPast
+      return a < b
+    }
+    var out: [[String: String]] = []
+    for url in ordered {
+      if let data = try? Data(contentsOf: url),
+         let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+        out.append(obj.compactMapValues { "\($0)" })
+      }
+      try? fm.removeItem(at: url)
+    }
+    return out
+  }
+
+  /// Empty the push inbox without handing it to anyone.
+  ///
+  /// For a sign-out. The inbox can only ever hold pushes addressed to the
+  /// session that was live when they arrived, which is the whole of the
+  /// account-safety story — no recipient id has to travel in the payload,
+  /// because ending the session empties the box.
+  static func clearPushInbox() {
+    guard let dir = pushInboxURL() else { return }
+    try? FileManager.default.removeItem(at: dir)
   }
 
   /// The inbox, created if it does not exist. Nil only when the App Group is

@@ -40,6 +40,10 @@ class _FakeCv extends Fake implements ConvexBackend {
   final List<_FakeSub> issued = [];
   final Map<String, Completer<void>> gates = {};
 
+  /// When true the transcript subscription is registered but never delivers —
+  /// a room opened offline, or one whose query the backend never answers.
+  bool silentTranscript = false;
+
   @override
   Future<Subscription> subscribe(
     String name,
@@ -51,6 +55,13 @@ class _FakeCv extends Fake implements ConvexBackend {
     if (gate != null) await gate.future;
     final sub = _FakeSub('$name/${args['roomId'] ?? '-'}');
     issued.add(sub);
+    // The transcript answers, the way a real backend does for an empty room.
+    // `openRoom` holds the pins subscription until it has (see
+    // `_scheduleSecondaryRoomSubscriptions`), so a fake that never delivered
+    // would leave every assertion here looking at an unregistered pins sub.
+    if (name == 'messages:list' && !silentTranscript) {
+      unawaited(Future<void>.delayed(Duration.zero, () => onData(const [])));
+    }
     return sub;
   }
 
@@ -152,6 +163,11 @@ void main() {
   group('registration', () {
     test('opening a room subscribes to its pins', () async {
       await repo.openRoom('a', owner: screenA);
+      // Not synchronously with the open any more: the pins wait for the
+      // transcript's first delivery, so the room the reader is waiting on is
+      // not queued behind furniture. The fake delivers on the next turn of the
+      // loop, which is what this pump is for.
+      await _pump();
       expect(pinSubsFor('a'), hasLength(1));
       expect(pinSubsFor('a').single.cancelled, isFalse);
     });
@@ -205,6 +221,7 @@ void main() {
 
     test('closing the room cancels the pins sub', () async {
       await repo.openRoom('a', owner: screenA);
+      await _pump();
       expect(pinSubsFor('a').single.cancelled, isFalse);
 
       repo.closeRoom(screenA);
@@ -212,9 +229,38 @@ void main() {
       expect(pinSubsFor('a').single.cancelled, isTrue);
     });
 
+    test(
+      'a transcript that never answers still gets its pins, on the fallback',
+      () async {
+        // The whole reason the gate has a timer behind it. A room opened
+        // offline, or one whose query the backend simply never answers, must
+        // still end up with its pins, its read state and its typing indicator
+        // rather than waiting forever on a signal that is not coming.
+        cv.silentTranscript = true;
+        ChatRepository.secondaryFallback = const Duration(milliseconds: 10);
+        addTearDown(() {
+          ChatRepository.secondaryFallback = const Duration(milliseconds: 600);
+        });
+
+        await repo.openRoom('a', owner: screenA);
+        await _pump();
+        expect(
+          pinSubsFor('a'),
+          isEmpty,
+          reason: 'nothing has answered yet, so nothing should be registered',
+        );
+
+        await Future<void>.delayed(const Duration(milliseconds: 30));
+        await _pump();
+        expect(pinSubsFor('a'), hasLength(1));
+      },
+    );
+
     test('switching rooms cancels the old room\'s pins sub', () async {
       await repo.openRoom('a', owner: screenA);
+      await _pump();
       await repo.openRoom('b', owner: screenB);
+      await _pump();
 
       expect(pinSubsFor('a').single.cancelled, isTrue);
       expect(pinSubsFor('b').single.cancelled, isFalse);

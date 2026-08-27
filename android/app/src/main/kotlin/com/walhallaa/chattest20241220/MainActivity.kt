@@ -416,6 +416,17 @@ class MainActivity : FlutterActivity() {
                         pendingNotifEvents.clear()
                         result.success(events)
                     }
+                    // The raw `data` maps of chat pushes this device has shown
+                    // a notification for, so a room can open already showing
+                    // the message instead of asking the network for it. Staged
+                    // by ChatNotifications on a process that may since have
+                    // died; see its INBOX_DIR doc for why it is files rather
+                    // than memory.
+                    "takePushInbox" -> result.success(ChatNotifications.takeInbox(this))
+                    "clearPushInbox" -> {
+                        ChatNotifications.clearInbox(this)
+                        result.success(null)
+                    }
                     // iOS answers this from its cached APNs token; Android's
                     // equivalent lives on monkeyhub/fcm. Answering null keeps
                     // one Dart code path for both.

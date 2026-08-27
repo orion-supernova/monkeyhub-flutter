@@ -6,6 +6,7 @@ import '../backend/chat_api.dart';
 import '../data/cache_store.dart';
 import '../models/family.dart';
 import '../push/device_identity.dart';
+import '../push/push_manager.dart';
 import 'session_guard.dart';
 import 'session_store.dart';
 import 'social_sign_in.dart';
@@ -373,6 +374,10 @@ class AuthService extends ChangeNotifier {
     _session = null;
     _needsPhraseRotation = false;
     _pendingRotationPassword = null;
+    // Same reasoning as in [_afterSignOut], and needed separately because this
+    // path does not go through it — a revoked session leaves the same staged
+    // message text behind as a chosen sign-out does.
+    unawaited(PushManager.instance.clearPushInbox());
     notifyListeners();
   }
 
@@ -384,6 +389,13 @@ class AuthService extends ChangeNotifier {
   /// user should ever wait on. Failures are logged, not surfaced: by the time
   /// this runs the person is already signed out of this device.
   Future<void> _afterSignOut(String userId) async {
+    // Ahead of the network calls: it is a local delete, and what it drops is
+    // message text belonging to the account that has just left. The native
+    // handlers stage a push under no user id at all — they cannot know one —
+    // so emptying the box on the way out IS the account boundary. It holds
+    // because a push can only ever have arrived for the session that was live
+    // when it did, and ending that session is exactly what runs this.
+    await PushManager.instance.clearPushInbox();
     try {
       await _api.logout(userId: userId);
     } catch (e) {

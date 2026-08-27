@@ -29,6 +29,14 @@ void main() {
   // The Notification Service Extension, which redraws a banner with the
   // sender's face. A fifth reader of the same flat map, in a fourth language.
   const iosNse = 'ios/NotificationService/NotificationService.swift';
+  // The App Group helper both iOS binaries share. It parks an arriving chat
+  // message for the app to pick up, and files it under its message id.
+  const iosShared = 'ios/Shared/ShareGroup.swift';
+  // The Dart end of the seed. The native handlers forward the `data` map
+  // wholesale and read almost none of it, so this is the file that actually
+  // has to know these key names — which is exactly the asymmetry that makes a
+  // grep the right check.
+  const dartRepo = 'lib/data/chat_repository.dart';
   const calls = 'backend/convex/calls.ts';
   const groupCalls = 'backend/convex/groupCalls.ts';
 
@@ -58,7 +66,11 @@ void main() {
     // identifier: the identifier is assigned by iOS from apns-collapse-id and
     // is not a value we control, whereas this one is. Drop it from the message
     // payload and deleting a message stops clearing its banner.
-    'messageId': [backend, senders, ios],
+    //
+    // It also names the file each platform stages an arriving message in, which
+    // is what makes a repeat delivery idempotent for free — hence the two
+    // seeding readers alongside the three dismissal ones.
+    'messageId': [backend, senders, ios, androidRender, iosShared],
     // Absolute unread count. Rides as data on the silent push because a
     // background APNs payload may not carry aps.badge.
     'badge': [backend, ios],
@@ -82,6 +94,17 @@ void main() {
     // the banner — it silently costs the sender's name on the one platform
     // that renders the notification from an intent rather than from the title.
     'senderName': [senders, iosNse],
+    // The message's own server-minted `createdAt`, which is what lets a room
+    // opened from a notification show the message BEFORE the network answers
+    // (`ChatRepository.takePushedMessages`). It is the one field a stub cannot
+    // be built without — nothing else says where the bubble goes — so losing
+    // it does not corrupt anything, it silently turns the whole seed off.
+    'createdAt': [senders, dartRepo],
+    // Whether the message is simple enough to seed at all: no formatting, no
+    // mentions, no reply tether, none of which fit in a push and all of which
+    // would make the bubble RE-LAY-OUT when the real row landed. Decided
+    // server-side in rooms.ts off the row it already holds.
+    'plain': [senders, dartRepo],
   };
 
   contract.forEach((key, consumers) {
@@ -95,6 +118,33 @@ void main() {
               'silently stopped handling it',
         );
       });
+    }
+  });
+
+  group('the seeding channel', () {
+    // `monkeyhub/notifications` carries one more method now: the app asking
+    // the platform for chat messages its notification handler already staged,
+    // so a room can open showing them instead of asking the network for
+    // something the phone was told minutes ago.
+    //
+    // Pinned here rather than by a mocked channel in a repository test,
+    // because a mock proves only that Dart calls what the mock answers. The
+    // failure this guards is a native side that stops recognising the name —
+    // which no Dart test can see, and which shows up as the feature simply not
+    // working on one platform.
+    const dartCaller = 'lib/push/push_manager.dart';
+    for (final method in ['takePushInbox', 'clearPushInbox']) {
+      for (final path in [dartCaller, androidActivity, ios]) {
+        test('"$method" is known to $path', () {
+          expect(
+            source(path).contains(method),
+            isTrue,
+            reason: 'the notification channel method "$method" is not '
+                'mentioned in $path — push seeding is silently dead on that '
+                'platform',
+          );
+        });
+      }
     }
   });
 
@@ -253,22 +303,36 @@ void main() {
       }
     });
 
-    test('mutable-content is set only when there is an avatar to draw', () {
+    test('mutable-content is set for a chat message, or for a face', () {
       // `mutable-content` launches the Notification Service Extension on the
-      // recipient's phone. Setting it unconditionally would spend that on every
-      // push, including the ones whose sender has no avatar and the ones whose
-      // recipient is not allowed to see it — where the extension can only hand
-      // back the banner it was given.
+      // recipient's phone, and the extension does two jobs: it redraws the
+      // banner with the sender's face, and it parks the message in the App
+      // Group so the room can open already showing it.
+      //
+      // So the gate is an OR, and each half stands on its own:
+      //
+      //  * `kind === "message"` — the seed. This is the load-bearing half, and
+      //    the one with no other signal when it regresses: drop it and every
+      //    iOS notification tap silently goes back to opening a room that has
+      //    to ask the network for a message the phone was already told.
+      //  * an avatar — the face, and the ONLY reason for every other kind.
+      //    Still gated on `senderAvatarUrl` being present, which is also what
+      //    gates it on the recipient being allowed to see the face at all
+      //    (resolved per-recipient in rooms.ts), so a launch is never spent on
+      //    a push that could only hand back the banner it was given.
       final src = source(backend);
-      expect(src.contains('mutable-content'), isTrue);
       final at = src.indexOf('aps["mutable-content"]');
       expect(at, greaterThan(-1),
           reason: 'mutable-content moved — update this test');
-      final guard = src.lastIndexOf('if (spec.data.senderAvatarUrl)', at);
+      final guard = src.lastIndexOf(
+        'if (spec.kind === "message" || spec.data.senderAvatarUrl)',
+        at,
+      );
       expect(guard, greaterThan(-1),
-          reason: 'mutable-content must be gated on senderAvatarUrl being '
-              'present, which is also what gates it on the recipient being '
-              'allowed to see the face at all');
+          reason: 'mutable-content must be gated on the message kind OR a '
+              'visible avatar. Losing the message half turns off push seeding '
+              'on iOS with no other symptom; losing the avatar half spends an '
+              'extension launch on every push in the app');
     });
 
     test('Android is sent data-only, never a notification block', () {

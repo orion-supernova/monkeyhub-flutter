@@ -663,9 +663,22 @@ export const getMemberIds = internalQuery({
     ctx,
     { roomId, excludeUserId, messageId, resolvePushContext },
   ) => {
+    // Two fields ride out on the row this already fetches, so the push can
+    // carry enough for the recipient to render the message before the network
+    // answers (see `_pushStubs` in lib/data/chat_repository.dart). No extra
+    // read: the `get` below was already here purely to answer `exists`.
+    let createdAt: number | undefined;
+    let plain = false;
     if (messageId !== undefined) {
       const msg = await ctx.db.get(messageId);
       if (!msg) return { exists: false, members: [] };
+      createdAt = msg.createdAt;
+      // Formatting, mentions and a reply tether do not fit in a push, and a
+      // bubble that gained any of them a moment after it appeared would
+      // RE-LAY-OUT rather than just repaint. So a message carrying one is
+      // announced as it always was and simply is not seeded.
+      plain =
+        !msg.formatting?.length && !msg.mentions?.length && !msg.replyToId;
     }
     const memberRows = await ctx.db
       .query("roomMembers")
@@ -729,7 +742,15 @@ export const getMemberIds = internalQuery({
       });
     }
 
-    return { exists: true, isGroup, roomName, senderAvatarUrl, members };
+    return {
+      exists: true,
+      isGroup,
+      roomName,
+      senderAvatarUrl,
+      createdAt,
+      plain,
+      members,
+    };
   },
 });
 

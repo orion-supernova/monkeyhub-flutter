@@ -150,6 +150,31 @@ class DiagLog {
     return seq;
   }
 
+  /// How long a subscription waited for its FIRST payload — i.e. how long the
+  /// screen behind it had nothing to show.
+  ///
+  /// Separate from [subUpdate], which is a `trace` and says nothing about
+  /// duration, because this is the one subscription number anybody profiling a
+  /// room open actually wants: `messages:list` opening and then not answering
+  /// is the whole of the felt wait, and it is indistinguishable in the timeline
+  /// from a subscription that answered instantly and had nothing to say.
+  ///
+  /// Warns on the same 3 s boundary as [apiEnd], so a slow first delivery and a
+  /// slow query sort the same way when reading a capture.
+  static void subFirstData(int? corr, String name, int ms) {
+    if (!enabled || corr == null) return;
+    _buf.add(
+      cat: DiagCat.subscription,
+      sev: ms > 3000 ? DiagSev.warn : DiagSev.info,
+      event: 'first',
+      name: name,
+      corrId: '$corr',
+      durationMs: ms,
+      ok: true,
+      screen: currentScreen,
+    );
+  }
+
   /// Subscription payloads are deliberately NOT recorded — only their shape and
   /// timing. Fifteen live subscriptions delivering full documents would bury
   /// every other event in the timeline, and for this bug the useful fact is
@@ -234,6 +259,20 @@ class DiagLog {
     cat: DiagCat.connection,
     sev: sev ?? DiagSev.info,
     event: event,
+    detail: detail,
+  );
+
+  /// The moments a room open passes through, so the felt wait can be read off
+  /// the timeline as elapsed time between them rather than inferred.
+  ///
+  /// The sequence worth reading is `open` → `cache` (what the reader sees on
+  /// the first frame, and how stale it is) → the `messages:list` `first` event
+  /// from [subFirstData] (when the server finally answered). The gap between
+  /// the last two IS the complaint.
+  static void roomOpen(String event, String detail) => add(
+    cat: DiagCat.nav,
+    sev: DiagSev.info,
+    event: 'room $event',
     detail: detail,
   );
 

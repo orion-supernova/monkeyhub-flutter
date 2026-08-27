@@ -766,9 +766,64 @@ class _RoomScreenState extends State<RoomScreen>
     return parts.join(';');
   }
 
+  /// Message ids this screen has already drawn, and the newest `createdAt`
+  /// among them. Together they answer "is this row an arrival, or is it just
+  /// scrolling into view?" — which is the whole question, because
+  /// `ListView.builder` builds a row for the first time every time it scrolls
+  /// past, and animating on that would make the transcript shimmer.
+  final Set<String> _drawnMessageIds = {};
+  DateTime? _newestDrawnAt;
+
+  /// The ids currently playing their entrance. Small and short-lived: an id
+  /// enters on the delivery that carried it and leaves one animation later.
+  final Set<String> _arriving = {};
+  Timer? _arrivalClear;
+
+  /// Spot messages that were not here a moment ago, so the transcript can grow
+  /// them in rather than snap them into place.
+  ///
+  /// Convex re-sends the whole live window on every change, so "what is new"
+  /// cannot be read off the delivery — every row arrives every time. It has to
+  /// be diffed against what this screen has already drawn.
+  ///
+  /// Two things deliberately do NOT animate. The first paint of a room, which
+  /// would otherwise play the entire transcript in on open; and anything older
+  /// than the newest row already drawn, which is how a page from [loadOlder]
+  /// is told apart from an arrival — it is scrolled-to content, not news.
+  void _noteArrivals(List<ChatMessage> current) {
+    if (current.isEmpty) return;
+    if (_drawnMessageIds.isEmpty) {
+      for (final m in current) {
+        _drawnMessageIds.add(m.id);
+      }
+      _newestDrawnAt = current.last.createdAt;
+      return;
+    }
+    final was = _newestDrawnAt;
+    final fresh = <String>[];
+    for (final m in current) {
+      if (!_drawnMessageIds.add(m.id)) continue;
+      if (was == null || m.createdAt.isAfter(was)) fresh.add(m.id);
+    }
+    if (current.last.createdAt.isAfter(was ?? current.last.createdAt)) {
+      _newestDrawnAt = current.last.createdAt;
+    }
+    if (fresh.isEmpty) return;
+    _arriving.addAll(fresh);
+    // One timer for the whole burst rather than one per message: a batch that
+    // lands together should finish together, and the set is only a hint to the
+    // builder — leaving an id in it a few ms too long costs nothing.
+    _arrivalClear?.cancel();
+    _arrivalClear = Timer(const Duration(milliseconds: 400), () {
+      if (!mounted) return;
+      setState(_arriving.clear);
+    });
+  }
+
   void _onRepoChange() {
     if (!mounted) return;
     final room = widget.repo.roomById(widget.roomId);
+    _noteArrivals(widget.repo.timelineFor(widget.roomId));
     // A pin lands through the repository like everything else, so this is where
     // a colour picked in room info reaches the transcript. Gated on the
     // signature because this handler runs on every repository notification and
@@ -1028,6 +1083,7 @@ class _RoomScreenState extends State<RoomScreen>
     _composerFocus.dispose();
     _highlightCtrl.dispose();
     _hideTimer?.cancel();
+    _arrivalClear?.cancel();
     _scroll.removeListener(_onScroll);
     _scroll.dispose();
     _scrolledUp.removeListener(_onBottomProximity);
@@ -4185,7 +4241,17 @@ class _RoomScreenState extends State<RoomScreen>
                     ),
                   ),
                 );
-                return _trackedDate(
+                return _ArrivingRow(
+                  // Only a message that was not on screen a moment ago plays
+                  // an entrance; see [_noteArrivals]. Everything else — a row
+                  // scrolled back into view, a page of older history, a
+                  // re-render after a reaction — draws at full size on the
+                  // first frame, as it always did.
+                  key: ValueKey('arrive_${m.id}'),
+                  animate: _arriving.contains(m.id),
+                  duration: theme.motionMed,
+                  curve: theme.motionEntrance,
+                  child: _trackedDate(
                   stableId: 'm_${m.id}',
                   label: humanDay(DateTime(m.createdAt.year, m.createdAt.month, m.createdAt.day)),
                   isDivider: false,
@@ -4207,6 +4273,7 @@ class _RoomScreenState extends State<RoomScreen>
                           child: row,
                         )
                       : row,
+                  ),
                 );
               },
                   ),
@@ -5360,3 +5427,78 @@ class _RoomAvatar extends StatelessWidget {
   }
 }
 
+
+/// Grows a newly-arrived transcript row into place instead of snapping it in.
+///
+/// Before this the list had no insertion animation of any kind — the only
+/// animated thing touching a row was an `AnimatedSwitcher` keyed on the message
+/// id, which by construction animates content changing *within* a row and never
+/// the row appearing. So a message that landed while you were reading simply
+/// blinked into existence and shoved the transcript, which is the "it just
+/// jumps" half of feeling slow.
+///
+/// Under the list's `reverse: true` an arrival is index 0 — the bottom — so
+/// growing its height from zero reads as the bubble rising into place, and the
+/// rows above it are pushed by exactly the amount they were going to move
+/// anyway, over 200ms instead of over one frame.
+///
+/// [animate] is false for every row that is merely being built — scrolled back
+/// into view, rebuilt after a reaction, part of a page of older history — and
+/// those return the child untouched, allocating nothing.
+class _ArrivingRow extends StatefulWidget {
+  const _ArrivingRow({
+    super.key,
+    required this.animate,
+    required this.duration,
+    required this.curve,
+    required this.child,
+  });
+
+  final bool animate;
+  final Duration duration;
+  final Curve curve;
+  final Widget child;
+
+  @override
+  State<_ArrivingRow> createState() => _ArrivingRowState();
+}
+
+class _ArrivingRowState extends State<_ArrivingRow>
+    with SingleTickerProviderStateMixin {
+  AnimationController? _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.animate) {
+      _ctrl = AnimationController(vsync: this, duration: widget.duration)
+        ..forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ctrl = _ctrl;
+    // Nothing to play, or it has finished: hand back the child itself so a
+    // settled transcript carries no extra layout or opacity layer per row.
+    if (ctrl == null || ctrl.isCompleted) return widget.child;
+    final t = CurvedAnimation(parent: ctrl, curve: widget.curve);
+    return AnimatedBuilder(
+      animation: t,
+      // Built once and reused across every frame of the animation — the row
+      // beneath is the expensive part and none of it depends on `t`.
+      child: widget.child,
+      builder: (context, child) => Align(
+        alignment: Alignment.topCenter,
+        heightFactor: t.value,
+        child: Opacity(opacity: t.value, child: child),
+      ),
+    );
+  }
+}

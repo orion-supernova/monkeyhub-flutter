@@ -72,6 +72,7 @@ class SubscriptionRegistry {
     required SubBinder bind,
     required SubCanceller cancel,
     Duration healDelay = const Duration(seconds: 1),
+    this.bindFirst = const {},
   })  : _bind = bind,
         _cancel = cancel,
         _healDelay = healDelay;
@@ -116,15 +117,39 @@ class SubscriptionRegistry {
     return entry;
   }
 
+  /// Query names to re-bind ahead of everything else after a transport
+  /// rebuild.
+  ///
+  /// Concurrent is not the same as simultaneous. The binds below all start in
+  /// list order and queue into the transport in that order, and the backend
+  /// answers them roughly in the order it receives them — so on a resumed app
+  /// the one query the user is actually staring at can land behind a dozen
+  /// they will never look at. Naming it here moves it to the front of that
+  /// queue and costs nothing when the list is empty.
+  ///
+  /// Supplied at construction by the owner that knows which query that is (see
+  /// `ConvexBackend`); this class deliberately knows no query names of its own.
+  final Set<String> bindFirst;
+
   /// Re-register every live entry that is not already on [generation].
   ///
   /// Called after a transport rebuild. Binds run concurrently: they are
   /// independent, and serialising ~15 of them is precisely the dead time this
-  /// whole change set exists to remove.
+  /// whole change set exists to remove. [bindFirst] reorders them without
+  /// serialising anything.
   Future<void> rebindAll(int generation) async {
     _generation = generation;
-    final stale =
-        _live.where((e) => !e._cancelled && e._gen != generation).toList();
+    final due = _live.where((e) => !e._cancelled && e._gen != generation);
+    // Partitioned rather than sorted, which keeps it stable for free: `_live`
+    // iterates in registration order, so entries of equal priority hold the
+    // order they were registered in — which for a room is the order they
+    // matter in.
+    final stale = bindFirst.isEmpty
+        ? due.toList()
+        : [
+            ...due.where((e) => bindFirst.contains(e._name)),
+            ...due.where((e) => !bindFirst.contains(e._name)),
+          ];
     await Future.wait(stale.map((e) => e._bindOnce(generation)));
   }
 

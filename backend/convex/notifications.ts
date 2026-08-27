@@ -77,6 +77,8 @@ export const sendMessagePush = internalAction({
       isGroup,
       roomName,
       senderAvatarUrl,
+      createdAt,
+      plain,
     }: {
       exists: boolean;
       members: Array<{
@@ -88,6 +90,8 @@ export const sendMessagePush = internalAction({
       isGroup?: boolean;
       roomName?: string;
       senderAvatarUrl?: string | null;
+      createdAt?: number;
+      plain?: boolean;
     } = await ctx.runQuery(internal.rooms.getMemberIds, {
       roomId,
       excludeUserId: senderId,
@@ -249,6 +253,15 @@ export const sendMessagePush = internalAction({
         type,
         mention: "false",
         isGroup: isGroup ? "true" : "false",
+        // The message's own server-minted timestamp, so a recipient can put a
+        // push-seeded bubble in the right place before the transcript arrives.
+        // NOT `Date.now()` here and NOT `sentAt` below: those are when the
+        // notification was assembled, and seeding off either would sort the
+        // bubble against a clock nobody else is using.
+        ...(createdAt !== undefined ? { createdAt: String(createdAt) } : {}),
+        // Whether the message is simple enough to seed at all. See
+        // `rooms:getMemberIds`, which decides it off the row it already holds.
+        ...(plain ? { plain: "true" } : {}),
         // Duplicated off `subtitle` for Android/web, which have no `aps.alert`
         // to read it from — see ChatNotifications.kt / mh-push-sw.js.
         ...(isGroup && roomName ? { roomName } : {}),

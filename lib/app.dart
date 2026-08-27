@@ -1024,6 +1024,13 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       });
     }
     if (state == AppLifecycleState.resumed) {
+      // Immediately, and deliberately NOT behind the 500 ms stagger below: a
+      // message that arrived while we were away is already on the device, in
+      // the notification handler's inbox, and this is a disk read with no
+      // network in it. Coming back to a room that is already open should show
+      // it now rather than after the socket has finished waking up.
+      unawaited(_repo.takePushedMessages());
+
       // No retry kicked from here. [setForeground] above already did it, and it
       // is the better-informed of the two: it knows how long we were away, and
       // past a threshold that means "rebuild the socket" rather than "probe it".

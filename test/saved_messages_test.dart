@@ -59,6 +59,13 @@ class _FakeCv extends Fake implements ConvexBackend {
     args[label] = params;
     final sub = _FakeSub(label);
     issued.add(sub);
+    // The transcript answers, the way a real backend does for an empty room.
+    // `openRoom` holds the room's other subscriptions — bookmarks among them —
+    // until it has, so a fake that never delivered left them unregistered and
+    // every assertion below looking at an empty list.
+    if (name == 'messages:list') {
+      unawaited(Future<void>.delayed(Duration.zero, () => onData(const [])));
+    }
     return sub;
   }
 
