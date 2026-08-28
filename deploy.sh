@@ -52,6 +52,16 @@ ANDROID_PACKAGE="com.walhallaa.chattest20241220"
 VM_HOST="${VM_HOST:-79.76.54.204}"
 VM_USER="${VM_USER:-ubuntu}"
 VM_SSH_KEY="${VM_SSH_KEY:-$HOME/Documents/BelesMakinem/ssh-key-2024-12-04-2.key}"
+
+# ----- the home server -----
+# The second Convex deployment, primary since the 2026-08-28 migration. Reached
+# over Tailscale rather than the 192.168.68.107 LAN address, so a deploy works
+# from anywhere and not only from inside the house. It needs no SSH key here —
+# it goes through the agent — and no admin key on disk: the key is minted
+# inside the container per run. See hosting/migrate-to-homeserver.sh.
+HOMESERVER_URL="${HOMESERVER_URL:-https://monkeyhub-homeserver-api.walhallaa.com}"
+HOMESERVER_SSH="${HOMESERVER_SSH:-muratcankoc@100.104.73.75}"
+HOMESERVER_CONTAINER="${HOMESERVER_CONTAINER:-termio-clone-backend}"
 VM_SITE_DIR="/srv/monkeyhub/site"
 VM_DL_DIR="/srv/monkeyhub/downloads"
 VM_WEB_DIR="/srv/monkeyhub/web"
@@ -75,6 +85,13 @@ DL_MANIFEST="$VM_DL_DIR/artifacts.json"
 # ----- flags -----
 SKIP_VERSION_BUMP=false
 RUN_CONVEX=""      # ""=undecided (menu/default), true/false once resolved
+# A Convex deploy lands on BOTH deployments, not just the one serving traffic.
+# Since the 2026-08-28 migration the home server is primary and the VPS is a
+# warm standby we may switch back to, and a standby running last fortnight's
+# functions is not a standby — it is an outage with a DNS record. Set false
+# (or --no-homeserver) when the home server is unreachable and you accept the
+# drift; deploy.sh says so loudly in the summary either way.
+RUN_HOMESERVER=true
 DEPLOY_IOS=""
 DEPLOY_MACOS=false # --macos: App Store Connect. NOT in --all yet.
 DEPLOY_ANDROID=""
@@ -119,6 +136,8 @@ Platform flags (any of these skips the picker):
   --all                 Convex + iOS + Android + web + site.
   --convex-only         Backend only — no builds, no version bump.
   --no-convex           Skip 'npx convex deploy'.
+  --no-homeserver       Push Convex to the VPS only, not the home server.
+                        Leaves the two backends running different code.
 
 Standalone actions (run alone and exit):
   --rollback-web        Put the previous web build back. Run it twice to undo.
@@ -165,6 +184,7 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --skip-version-bump) SKIP_VERSION_BUMP=true ;;
         --no-convex)         RUN_CONVEX=false ;;
+        --no-homeserver)     RUN_HOMESERVER=false ;;
         --no-upload)         RUN_UPLOAD=false ;;
         --no-git)            RUN_GIT=false ;;
         --ios)               DEPLOY_IOS=true;  PLATFORM_ARGS=true ;;
@@ -1300,22 +1320,66 @@ run_convex() {
     }
     run_with_spinner "Typechecking Convex functions" convex_typecheck || return 1
 
-    convex_deploy() {
-        local attempt=1
+    # One push to whatever deployment the environment currently points at,
+    # retried. $1 only names the target for the log.
+    convex_push() {
+        local label="$1" attempt=1
         while true; do
             if (cd backend && npx convex deploy); then
                 return 0
             fi
             if [ "$attempt" -ge 3 ]; then
-                echo "   convex deploy failed $attempt times — not transient." >&2
+                echo "   convex deploy to $label failed $attempt times — not transient." >&2
                 return 1
             fi
-            echo "   convex deploy attempt $attempt failed; retrying in 10s…" >&2
+            echo "   convex deploy to $label attempt $attempt failed; retrying in 10s…" >&2
             attempt=$((attempt + 1))
             sleep 10
         done
     }
-    run_with_spinner "Deploying Convex backend" convex_deploy || return 1
+
+    # The VPS: the default target, straight out of backend/.env.local. Nothing
+    # to override, which is what keeps this the one that cannot be misaddressed.
+    convex_deploy() { convex_push "the VPS"; }
+
+    # The home server. Its admin key is minted over SSH per run and never
+    # written to disk — there is no source checkout on that box and there does
+    # not need to be. (Since the migration its data is a byte-copy of the VPS's,
+    # so the two instances share a secret and the VPS key would in fact work
+    # here; minting anyway is what keeps this correct if they ever diverge.)
+    #
+    # A subshell with real exports, not `VAR=x func`: bash leaves the latter's
+    # assignments visible after the call for a function, and a stray
+    # CONVEX_SELF_HOSTED_URL pointing at the home server is exactly the kind of
+    # thing that makes the NEXT deploy in this script go somewhere surprising.
+    convex_deploy_homeserver() {
+        local key
+        key="$(ssh -o BatchMode=yes -o ConnectTimeout=15 -n "$HOMESERVER_SSH" \
+                   "docker exec $HOMESERVER_CONTAINER ./generate_admin_key.sh 2>/dev/null | tail -1" 2>/dev/null)"
+        if [ -z "$key" ]; then
+            echo "   Could not mint an admin key on $HOMESERVER_SSH." >&2
+            echo "   Is the box up and Tailscale connected? Re-run with --no-homeserver" >&2
+            echo "   to push to the VPS alone and accept the drift." >&2
+            return 1
+        fi
+        (
+            export CONVEX_SELF_HOSTED_URL="$HOMESERVER_URL"
+            export CONVEX_SELF_HOSTED_ADMIN_KEY="$key"
+            convex_push "the home server"
+        )
+    }
+
+    # Order is deliberate: the STANDBY first, the box serving traffic second.
+    # Same reasoning switchServer.sh uses when it writes the directive row to
+    # the destination before the source — whichever way you later flip, the
+    # place you are flipping to already has the newer code. Since the home
+    # server is primary today, that means the VPS goes first.
+    run_with_spinner "Deploying Convex backend → VPS" convex_deploy || return 1
+    if [ "$RUN_HOMESERVER" = true ]; then
+        run_with_spinner "Deploying Convex backend → home server" convex_deploy_homeserver || return 1
+    else
+        echo "  ⚠️  --no-homeserver: the home server keeps its current functions." >&2
+    fi
     return 0
 }
 if [ "$RUN_CONVEX" = true ]; then

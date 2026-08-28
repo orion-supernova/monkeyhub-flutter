@@ -66,16 +66,36 @@ VPS on a timer instead. See `backend/convex/serverDirectory.ts` and
 
 Credentials: the VPS comes from `backend/.env.local` like everything else. The
 home server's admin key is minted over SSH per run and never stored — there is
-no source checkout on that box, and there does not need to be. **A restore
-brings back data, not functions.** After restoring a snapshot there, deploy to
-it explicitly, or it will answer `Could not find public function` for anything
-added since:
+no source checkout on that box, and there does not need to be.
+
+Both boxes are reached over Tailscale (`muratcankoc@100.104.73.75`), not the
+`192.168.68.107` LAN address this used to carry. That address only resolves
+from inside the house, so `switchServer.sh` failed with "No route to host"
+from anywhere else — which is precisely where you are standing when you need
+to move traffic off a failing box.
+
+**A deploy goes to BOTH deployments.** `./deploy.sh` pushes the VPS first and
+the home server second — standby before primary, the same order `switchServer.sh`
+writes its directive row in, so whichever way you flip later, the destination
+already has the newer code. A standby running last fortnight's functions is not
+a standby; it is an outage with a DNS record. `--no-homeserver` pushes to the
+VPS alone when the home server is down and you accept the drift.
+
+**A restore brings back data, not functions.** That warning is about *logical*
+snapshots (`npx convex export`). After restoring one, deploy explicitly or the
+box answers `Could not find public function` for anything added since. The
+manual form, still the escape hatch when deploy.sh is not what you want:
 
 ```
-key=$(ssh muratcankoc@192.168.68.107 'docker exec termio-clone-backend ./generate_admin_key.sh | tail -1')
+key=$(ssh muratcankoc@100.104.73.75 'docker exec termio-clone-backend ./generate_admin_key.sh | tail -1')
 (cd backend && CONVEX_SELF_HOSTED_URL=https://monkeyhub-homeserver-api.walhallaa.com \
    CONVEX_SELF_HOSTED_ADMIN_KEY="$key" npx convex deploy)
 ```
+
+A *file-level* copy of `/convex/data` is the other case, and it behaves the
+opposite way: the data directory holds the pushed modules as well as the rows,
+so functions travel with it. That is what `hosting/migrate-to-homeserver.sh`
+does — see [Migrating between the two boxes](#migrating-between-the-two-boxes).
 
 `SERVE_FROM` / `PRIMARY_URL` / `HOMESERVER_URL` / `SERVE_NOTE` env vars are a
 legacy fallback, read only when the row is absent. Prefer the row: env vars are
@@ -83,6 +103,73 @@ a fine way to configure a backend and a hopeless way to notify one, because a
 Convex query invalidates on the database reads it made and a query over
 `process.env` recomputes for nobody. A leftover `SERVE_FROM=homeserver` also
 sits dormant and silently reactivates if the row is ever lost.
+
+## Migrating between the two boxes
+
+`hosting/migrate-to-homeserver.sh` moves the whole deployment — rows, files and
+functions — from the Oracle VM to the home server. Run 2026-08-28.
+
+```
+./hosting/migrate-to-homeserver.sh            status: the gap, in facts. Changes nothing.
+./hosting/migrate-to-homeserver.sh prepare    compose + matching image + empty volume
+./hosting/migrate-to-homeserver.sh copy       bulk data copy while the VPS keeps serving
+./hosting/migrate-to-homeserver.sh cutover    THE WINDOW — stop, final delta, start, verify
+./hosting/migrate-to-homeserver.sh rollback   put the home server back on the old volume
+```
+
+It copies `/convex/data` at the file level rather than taking a logical
+snapshot, which is what makes it one operation instead of two: a Convex data
+directory holds the pushed modules as well as the rows, so the functions travel
+with the data and there is no "restore, then remember to deploy" step. It also
+cannot fail schema validation, because the bytes being copied are the ones the
+source is already validating against. And it is far gentler on a box at 30%
+memory pressure than walking every table through the UDF machinery.
+
+**`copy` before `cutover` is what makes the window short.** Both passes are
+rsync, so the second one only sends what changed: the 2026-08-28 run moved
+782 MB in the warm-up and then **14 MB of the 495 MB database** in the window —
+a 54× speedup, and the reason the whole outage was **163 seconds**. `copy` is
+safe to run as often as you like beforehand.
+
+**The image digests must match, and this is the one that bites.** The home
+server sat on the March build (`a08c5b76…`) while the VPS had been upgraded to
+August (`1f2044e3…`), and an older Convex backend cannot read what a newer one
+wrote: it boots, prints `backend listening on 0.0.0.0:3210`, and then fails
+every request with ``missing field `state```. `prepare` pins the matching digest
+and `cutover` greps the log for that exact string before declaring success.
+Going forward on the home server is safe in the way it was not on the VPS — the
+warning in `tune-termio-vm.sh` is about 956 MB of RAM, not about the build.
+
+**The rollback is a volume, not a backup.** The old standby's data stays in
+`termio-clone-data`, unreferenced and untouched; the migration fills a new
+named volume, `termio-prod-data`. Nothing in the new compose can reach the old
+one — but `docker volume prune` can, so prune that box with care.
+
+### What the move bought
+
+Measured on each box immediately after, with the idle-gap probe from
+`tune-termio-vm.sh` (`serverDirectory:current`, which needs no admin key):
+
+| | Oracle VM | home server |
+|---|---|---|
+| RAM | 956 MB, ~190 MB available | 7.3 GB, ~5.0 GB available |
+| memory pressure `some avg300` | 20-30% | negligible |
+| bootstrap after a recreate | ~6 min | **10 s** |
+| query after 30 s idle | 420-800 ms | **1.2 ms** |
+| disk | 45 G | 456 G |
+
+The 30-second-idle number is the one that matters: on the VM it was the working
+set being reclaimed between calls, which is what "the clock icon takes forever
+to become a tick" actually was. The home server's curve is flat.
+
+### What did not move
+
+`etcd`. The VM's compose runs a `termio-etcd` container that the backend has
+never spoken to — `docker logs termio-backend | grep -ic etcd` is `0` — costing
+20-28 MB and bursty CPU on a box with under 200 MB free. It came from an
+upstream compose template for a clustered mode this deployment does not use.
+The home server has always run without it, which is the proof it is not needed;
+`hosting/homeserver-docker-compose.yml` simply omits it.
 
 ## One host, three paths
 

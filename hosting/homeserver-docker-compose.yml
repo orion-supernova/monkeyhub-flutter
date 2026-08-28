@@ -1,0 +1,109 @@
+# The home server's Convex deployment — monkeyhub-homeserver-api.walhallaa.com.
+#
+# Lives on the box at:
+#   ~/termio-clone/docker-compose.yml   (muratcankoc@ubuntuhome)
+#
+# Managed from this repo the same way the VPS one is, so the file on the box
+# and the file in git cannot drift silently. `migrate-to-homeserver.sh status`
+# compares their checksums.
+#
+# ───────── what changed, and why ─────────
+#
+# This box is 7.3 GB and 2 vCPU with no steal, against the Oracle VM's 956 MB.
+# Almost everything in hosting/termio-docker-compose.yaml is a clamp fighting
+# for room on that smaller box, and none of it belongs here — the defaults are
+# sized for a deployment like this one. Copying the VPS's cache caps over would
+# make a box with eight times the RAM behave like the box we are leaving.
+#
+# So the caches are left at their defaults on purpose. Two settings are kept,
+# because neither is about memory:
+#
+#   DATABASE_UDF_USER_TIMEOUT_SECONDS=3
+#       A function that spends >1 s in JS is killed and its isolate restarted.
+#       The default is 1 s, and on the VPS that fed itself into restart storms.
+#       It has never fired for a legitimate function here.
+#
+#   ISOLATE_ANALYZE_USER_TIMEOUT_SECONDS=10
+#       `npx convex deploy` loads the pushed bundle in a fresh isolate to list
+#       its functions, under this limit. The 4 s default fails cold on the
+#       first push after a recreate. Deploys land on this box now, so it stays.
+#
+# No etcd service. The VPS compose runs one and the backend has never spoken to
+# it — `docker logs termio-backend | grep -ic etcd` is 0. It came from an
+# upstream compose template for a mode this deployment does not use, and it is
+# not free: 20-28 MB on a box with under 200 MB available, and `docker stats`
+# sampled it at 32%, 0.5% and 35% CPU on three consecutive checks — bursty
+# rather than idle, on two vCPUs that already see 38% steal. The clone has
+# always run without etcd, which is the proof it is not needed.
+#
+# ───────── the volume, and why it is a new name ─────────
+#
+# `termio-prod-data` is a NAMED volume holding the data copied off the VPS.
+#
+# The old clone's volume, `termio-clone-data`, is deliberately left alone and
+# unreferenced. It is the rollback: it still holds the standby as it stood on
+# 2026-08-13, and nothing in this file can touch it. Delete it only once the
+# home server has served real traffic long enough to trust — and note that
+# `docker volume prune` will take it without asking, so prune with care.
+#
+# Naming it also fixes a fragility inherited from the VPS, where /convex/data
+# lives on an ANONYMOUS volume (906c60d3…). Anonymous volumes have no name to
+# ask for, are invisible in `docker volume ls` output that means anything, and
+# are what `docker compose down -v` removes first. Production data should be
+# addressable by name.
+
+name: termio-clone
+
+services:
+  termio-clone-backend:
+    container_name: termio-clone-backend
+    # Pinned by digest, never `:latest` — compose will not re-pull a tag it
+    # already has locally, which is how a box sits on a months-old build
+    # believing it is current.
+    #
+    # This is the SAME digest the VPS runs (the 2026-08-10 build). That is not
+    # a preference, it is a requirement: the data being copied here was written
+    # by this build, and a Convex backend cannot read data a newer one wrote.
+    # Pointing this at the older a08c5b76… image the clone used to run gives a
+    # backend that boots, prints `backend listening`, and then fails every
+    # request with ``missing field `state```. See migrate-to-homeserver.sh.
+    image: ghcr.io/get-convex/convex-backend@sha256:1f2044e3eac463ac78973b136c0baf72d4ada602611d853d6f99f280e29e0a98
+    restart: unless-stopped
+    ports:
+      - "3210:3210"
+      - "3211:3211"
+    volumes:
+      - termio-prod-data:/convex/data
+    environment:
+      - CONVEX_CLOUD_ORIGIN=https://monkeyhub-homeserver-api.walhallaa.com
+      - CONVEX_SITE_ORIGIN=https://monkeyhub-homeserver-api.walhallaa.com
+      - DATABASE_UDF_USER_TIMEOUT_SECONDS=3
+      - ISOLATE_ANALYZE_USER_TIMEOUT_SECONDS=10
+
+  termio-clone-dashboard:
+    container_name: termio-clone-dashboard
+    image: ghcr.io/get-convex/convex-dashboard@sha256:da6b19b3d4202df0149d61a54deb8e56a258d7bdd6a7d186f4f1814bfc444ff5
+    restart: unless-stopped
+    ports:
+      - "6791:6791"
+    environment:
+      - NEXT_PUBLIC_DEPLOYMENT_URL=https://monkeyhub-homeserver-api.walhallaa.com
+    depends_on:
+      - termio-clone-backend
+
+  cloudflared:
+    container_name: termio-clone-cloudflared
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    user: root
+    command: tunnel --config /etc/cloudflared/config.yml run
+    volumes:
+      - ./cloudflared:/etc/cloudflared:ro
+    depends_on:
+      - termio-clone-backend
+
+volumes:
+  # Created by `migrate-to-homeserver.sh prepare`, filled by `copy`.
+  termio-prod-data:
+    name: termio-prod-data
+    external: true

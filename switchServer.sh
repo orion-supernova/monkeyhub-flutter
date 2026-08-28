@@ -42,7 +42,12 @@ set -uo pipefail
 
 readonly HS_HOST="monkeyhub-homeserver-api.walhallaa.com"
 readonly HS_URL="https://${HS_HOST}"
-readonly HS_SSH="muratcankoc@192.168.68.107"
+# Reached over Tailscale, not the LAN. The old 192.168.68.107 address only
+# resolves from inside the house, so `status` and `homeserver` both died with
+# "No route to host" from anywhere else — which is precisely where you are when
+# you need to move traffic off a failing box. Override in .env.local if the
+# address changes.
+readonly HS_SSH="${HS_SSH:-muratcankoc@100.104.73.75}"
 readonly HS_CONTAINER="termio-clone-backend"
 
 readonly ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
