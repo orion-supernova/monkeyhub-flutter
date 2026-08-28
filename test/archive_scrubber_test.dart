@@ -41,7 +41,10 @@ class _FakeFeedApi extends Fake implements FeedApi {
   }) async {
     final items = <Moment>[];
     for (var day = 1; day <= 12; day++) {
-      for (var i = 0; i < 4; i++) {
+      // Uneven on purpose: a model that only ever sees four-photo days would
+      // pass with the row count hard-coded. 1..7 photos crosses every row
+      // boundary of a three-column grid.
+      for (var i = 0; i < 1 + (day % 7); i++) {
         final at = DateTime(2026, 3, 20 - day, 12, i);
         items.add(
           Moment(
@@ -65,6 +68,15 @@ class _FakeFeedApi extends Fake implements FeedApi {
 }
 
 void main() {
+  /// Every day's dayKey, newest first — the order `_loadMore` builds them in.
+  final dayKeys = [
+    for (var day = 1; day <= 12; day++)
+      '2026-03-${(20 - day).toString().padLeft(2, '0')}',
+  ];
+
+  /// How many photos the fake puts on day [i] — mirrors the loop above.
+  int photosOnDay(int i) => 1 + ((i + 1) % 7);
+
   Future<void> open(WidgetTester tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1.0;
@@ -110,48 +122,143 @@ void main() {
     );
   });
 
+  /// The date the rail is currently showing, or null when it is not up.
+  String? pill(WidgetTester tester) {
+    final text = find.descendant(
+      of: find.byKey(archiveScrubberPillKey),
+      matching: find.byType(Text),
+    );
+    if (text.evaluate().isEmpty) return null;
+    return tester.widget<Text>(text).data;
+  }
+
   testWidgets('the day it names is the day at the top of the list', (
     tester,
   ) async {
     await open(tester);
 
-    // Somewhere in the middle, reached the ordinary way. Pumped rather than
-    // settled: the rail goes quiet 1.2s after the list stops, and settling
-    // would run that timer out and take the pill with it.
     await tester.drag(find.byType(ListView).last, const Offset(0, -900));
-    // Two frames: one for the scroll to lay out, one for the label the
-    // post-frame refresh writes after it. See `_queueDayRefresh`.
-    await tester.pump(const Duration(milliseconds: 16));
-    await tester.pump(const Duration(milliseconds: 16));
+    // ONE pump. The label is computed in the scroll callback from the offset,
+    // not walked out of render boxes after the frame, so it is already right.
+    await tester.pump();
 
-    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    final ctx = tester.element(find.byType(ArchiveScreen));
     final listTop = tester.getRect(find.byType(ListView).last).top;
 
-    // The section header that is actually at the top of the viewport — the
-    // last one that has already started by the time we reach the list's top
-    // edge. That string is what the rail is supposed to be showing.
+    // The last section header that has already crossed the list's top edge.
     String? expected;
-    for (var day = 1; day <= 12; day++) {
-      final key = '2026-03-${(20 - day).toString().padLeft(2, '0')}';
-      final label = archiveDayLabel(
-        tester.element(find.byType(ArchiveScreen)),
-        key,
-      );
-      // Scoped to the list: the rail's pill carries the same string, and an
-      // unscoped finder goes ambiguous the moment the two agree — which is the
-      // outcome this test is here to check.
+    for (final key in dayKeys) {
       final header = find.descendant(
         of: find.byType(ListView).last,
-        matching: find.text(label),
+        matching: find.text(archiveDayLabel(ctx, key)),
       );
       if (header.evaluate().isEmpty) continue;
-      if (tester.getRect(header).top - listTop <= 24) expected = label;
+      if (tester.getRect(header).top <= listTop) {
+        expected = archiveDayLabel(ctx, key);
+      }
     }
     expect(expected, isNotNull, reason: 'the test itself found no header');
+    expect(pill(tester), expected);
+  });
 
-    // Twice: once in the section header, once in the rail's pill. Before the
-    // fix the rail was still naming the first day of the archive here.
-    expect(find.text(expected!), findsNWidgets(2));
-    expect(l10n.archiveScreenTitle, isNotEmpty);
+  testWidgets('every day is exactly as tall as the maths says', (tester) async {
+    // The load-bearing test. The rail names a day from the scroll offset alone,
+    // via `archiveSectionHeight` — so the moment that arithmetic and the real
+    // layout disagree, the label is wrong everywhere and nothing else fails.
+    //
+    // Consecutive header positions rather than absolute offsets: the gap
+    // between two headers IS one section's height, and it cancels out where
+    // the text sits inside its own fixed-height row.
+    await open(tester);
+    final ctx = tester.element(find.byType(ArchiveScreen));
+    final listBox = tester.renderObject<RenderBox>(find.byType(ListView).last);
+    final inner = listBox.size.width - 20 - 28;
+    final header = archiveHeaderHeight(ctx);
+
+    double? headerTop(String key) {
+      final f = find.descendant(
+        of: find.byType(ListView).last,
+        matching: find.text(archiveDayLabel(ctx, key)),
+      );
+      if (f.evaluate().isEmpty) return null;
+      return tester.getRect(f).top + offset(tester);
+    }
+
+    var checked = 0;
+    for (var i = 0; i + 1 < dayKeys.length; i++) {
+      final a = headerTop(dayKeys[i]);
+      final b = headerTop(dayKeys[i + 1]);
+      if (a == null || b == null) {
+        // Not both laid out yet — scroll on and pick them up further down.
+        await tester.drag(find.byType(ListView).last, const Offset(0, -400));
+        await tester.pump();
+        continue;
+      }
+      expect(
+        b - a,
+        closeTo(
+          archiveSectionHeight(
+            count: photosOnDay(i),
+            width: inner,
+            headerHeight: header,
+          ),
+          0.5,
+        ),
+        reason: 'day $i (${dayKeys[i]}) is not the height the maths predicts',
+      );
+      checked++;
+    }
+    expect(checked, greaterThan(4), reason: 'the test measured almost nothing');
+  });
+
+  testWidgets('the label flips exactly as a header crosses the top edge', (
+    tester,
+  ) async {
+    // The threshold you asked about. It used to switch 24pt early, because the
+    // walk counted a section as "at the top" while its header was still below
+    // the fold.
+    await open(tester);
+    final ctx = tester.element(find.byType(ArchiveScreen));
+    final listBox = tester.renderObject<RenderBox>(find.byType(ListView).last);
+    final inner = listBox.size.width - 20 - 28;
+
+    // Where the SECOND day's section begins.
+    final boundary =
+        8.0 +
+        archiveSectionHeight(
+          count: photosOnDay(0),
+          width: inner,
+          headerHeight: archiveHeaderHeight(ctx),
+        );
+
+    await tester.drag(find.byType(ListView).last, Offset(0, -(boundary - 4)));
+    await tester.pump();
+    expect(pill(tester), archiveDayLabel(ctx, dayKeys[0]));
+
+    await tester.drag(find.byType(ListView).last, const Offset(0, -8));
+    await tester.pump();
+    expect(pill(tester), archiveDayLabel(ctx, dayKeys[1]));
+  });
+
+  testWidgets('the date pill is a handle, not just a label', (tester) async {
+    // What was actually reported: the rail dragged from the thin bar, but the
+    // pill — the part that looks like a grip — painted outside the 28pt track
+    // and so was never hit-tested at all.
+    await open(tester);
+    await tester.drag(find.byType(ListView).last, const Offset(0, -600));
+    await tester.pump();
+    final before = offset(tester);
+
+    await tester.dragFrom(
+      tester.getCenter(find.byKey(archiveScrubberPillKey)),
+      const Offset(0, 200),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      offset(tester),
+      greaterThan(before),
+      reason: 'dragging the pill has to scrub',
+    );
   });
 }
