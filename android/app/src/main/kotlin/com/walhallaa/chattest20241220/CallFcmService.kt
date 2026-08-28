@@ -67,6 +67,11 @@ class CallFcmService : FirebaseMessagingService() {
         when (data["kind"]) {
             "invite" -> handleInvite(data)
             "taken" -> handleTaken(data)
+            // A group call rings exactly like a 1:1 one. The only difference
+            // is which id names the card and where an accept lands, so the
+            // two share every line below.
+            "group_invite" -> handleInvite(data, groupCallId = data["groupCallId"])
+            "group_taken" -> handleTaken(data, groupCallId = data["groupCallId"])
             "message", "approval", "call_invite", "group_call_invite",
             "daily_games" ->
                 ChatNotifications.show(this, data)
@@ -75,12 +80,20 @@ class CallFcmService : FirebaseMessagingService() {
         }
     }
 
-    private fun handleInvite(data: Map<String, String>) {
-        val callId = data["callId"] ?: return
+    /// Ring for an incoming call.
+    ///
+    /// [groupCallId] non-null marks a GROUP invite, whose id is the group
+    /// call rather than a 1:1 `calls` row. It rides into the card's `extra`
+    /// so `NativeCallHandler` knows to answer it with
+    /// `GroupCallService.joinCall` instead of `CallService.acceptIncoming` —
+    /// the two are not interchangeable and the plugin has no idea which is
+    /// which.
+    private fun handleInvite(data: Map<String, String>, groupCallId: String? = null) {
+        val callId = groupCallId ?: data["callId"] ?: return
         // Foreground app: the Convex realtime subscription rings in-app
-        // (IncomingCallScreen) within ~150ms — showing the system UI on top
-        // would double-ring. Mirrors the iOS report-and-end escape hatch
-        // (AppDelegate.swift:117-123).
+        // (IncomingCallScreen / IncomingGroupCallScreen) within ~150ms —
+        // showing the system UI on top would double-ring. Mirrors the iOS
+        // report-and-end escape hatch (AppDelegate.swift:117-123).
         if (isAppForeground()) {
             Log.d(TAG, "invite $callId while foreground — in-app path handles it")
             return
@@ -122,7 +135,12 @@ class CallFcmService : FirebaseMessagingService() {
                             "callerId" to data["callerId"],
                             "roomId" to data["roomId"],
                             "callType" to (data["callType"] ?: "audio"),
-                        ),
+                        ).apply {
+                            // PUT, not a null entry: absence is the
+                            // discriminant Dart reads, and this way a 1:1
+                            // card cannot carry the key in any form at all.
+                            if (groupCallId != null) put("groupCallId", groupCallId)
+                        },
                     )
                 )
                 FlutterCallkitIncomingPlugin.getInstance()?.showIncomingNotification(callData)
@@ -133,8 +151,11 @@ class CallFcmService : FirebaseMessagingService() {
         }
     }
 
-    private fun handleTaken(data: Map<String, String>) {
-        val callId = data["callId"] ?: return
+    /// End a ringing card. [groupCallId] non-null names a GROUP call, whose
+    /// card was raised under the id derived from it rather than from a
+    /// `calls` row — see [uuidForCallId], which both sides compute.
+    private fun handleTaken(data: Map<String, String>, groupCallId: String? = null) {
+        val callId = groupCallId ?: data["callId"] ?: return
         Handler(Looper.getMainLooper()).post {
             try {
                 ensureCallkitPlugin(this)

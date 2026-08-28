@@ -1,4 +1,8 @@
-import { internalAction, internalMutation } from "./_generated/server";
+import {
+  internalAction,
+  internalMutation,
+  internalQuery,
+} from "./_generated/server";
 import { mutation, query } from "./functions";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
@@ -87,8 +91,96 @@ async function endCallIfEmpty(ctx: any, groupCallId: any) {
   if (!call || call.status !== "active") return true;
   await ctx.db.patch(groupCallId, { status: "ended", endedAt: Date.now() });
   await purgeGroupSignals(ctx, groupCallId);
+  // Anyone whose phone is still ringing for a call that no longer exists.
+  // Their realtime subscription drops the invite on its own, but a KILLED
+  // app has no subscription — and a native card nothing can reach rings for
+  // its full minute and then posts a missed call for a call nobody is in.
+  await dismissRingers(ctx, groupCallId, "ended");
   return true;
 }
+
+/// Everyone still sitting on an unanswered invite, as of right now.
+async function stillInvited(ctx: any, groupCallId: any) {
+  const rows = await ctx.db
+    .query("groupCallParticipants")
+    .withIndex("by_call", (q: any) => q.eq("groupCallId", groupCallId))
+    .collect();
+  return rows.filter((r: any) => r.status === "invited").map((r: any) => r.userId);
+}
+
+/// Take the native ringer down on [userIds]' devices.
+///
+/// The realtime `pendingInviteForUser` subscription is what stops a LIVE app
+/// ringing, exactly as it always was. This is for the process that cannot be
+/// reached that way — a killed app whose card was raised by the push itself —
+/// and is the group twin of `calls.scheduleTakenPush`. Cheap to be wrong
+/// about: ending a card that was never shown is a no-op on both platforms.
+async function dismissRingers(
+  ctx: any,
+  groupCallId: any,
+  reason: "joined" | "declined" | "ended" | "timeout",
+  opts: { userIds?: any[]; excludeDeviceId?: string | null } = {},
+) {
+  const userIds = opts.userIds ?? (await stillInvited(ctx, groupCallId));
+  if (userIds.length === 0) return;
+  await ctx.scheduler.runAfter(0, internal.voipPush.sendGroupVoipTaken, {
+    groupCallId,
+    targetUserIds: userIds,
+    excludeDeviceId: opts.excludeDeviceId ?? null,
+    reason,
+  });
+}
+
+/// Which of [userIds] still has an unanswered invite to [groupCallId] — read
+/// at SEND time rather than at schedule time.
+///
+/// `start` precomputes the whole ring payload and schedules the push with
+/// `runAfter(0)`, so between the schedule and the send an invitee can already
+/// have joined from another device, declined, or watched the call end. Ringing
+/// a phone for a call that is over is the "ghost ring" `sendVoip` guards
+/// against for 1:1, and it is worse here: nothing else is coming to dismiss a
+/// card that should never have been raised.
+/**
+ * Stop ringing for an invite nobody answered.
+ *
+ * `pendingInviteForUser` already stops offering the invite past
+ * INVITE_RING_WINDOW_MS, which ends the ring for anyone whose app is alive to
+ * be told. A native card is not offered, it is PLACED — and iOS never takes
+ * one down on its own, because CallKit expects the caller to hang up. So
+ * without this the phone of anyone who missed a group call rings until they
+ * touch it. (Android's plugin does auto-time-out at its `duration`, so this
+ * arrives as a no-op there; sending it anyway is what keeps the two platforms
+ * describable in one sentence.)
+ *
+ * Scheduled by `start`, one per call. Anyone who joined, declined, or watched
+ * the call end has already had their card dismissed and is no longer
+ * `invited`, so this addresses exactly the people it should.
+ */
+export const _expireRingers = internalMutation({
+  args: { groupCallId: v.id("groupCalls") },
+  returns: v.null(),
+  handler: async (ctx, { groupCallId }) => {
+    await dismissRingers(ctx, groupCallId, "timeout");
+    return null;
+  },
+});
+
+export const _pendingInvitees = internalQuery({
+  args: {
+    groupCallId: v.id("groupCalls"),
+    userIds: v.array(v.id("users")),
+  },
+  handler: async (ctx, { groupCallId, userIds }) => {
+    const call = await ctx.db.get(groupCallId);
+    if (!call || call.status !== "active") return [];
+    const out: string[] = [];
+    for (const userId of userIds) {
+      const row = await participantRow(ctx, groupCallId, userId);
+      if (row?.status === "invited") out.push(userId.toString());
+    }
+    return out;
+  },
+});
 
 // ────────────────────────── lifecycle ──────────────────────────
 
@@ -237,7 +329,22 @@ export const start = mutation({
           }
         }
       }
-      await ctx.scheduler.runAfter(0, internal.groupCalls.sendGroupInvitePush, {
+      // RING, don't merely announce.
+      //
+      // This used to schedule the banner directly, and the banner was all a
+      // group invite ever produced: a backgrounded phone got a notification in
+      // the shade, a killed one got the same, and neither ever showed the
+      // full-screen incoming-call UI a 1:1 call has had all along. A call is
+      // not a message — it is worth exactly one minute of somebody's
+      // attention and worthless after that — which is the whole reason
+      // CallKit and a full-screen intent exist.
+      //
+      // `sendGroupVoip` reaches PushKit and FCM the way `sendVoip` does for
+      // 1:1, and falls back to `sendGroupInvitePush` per invitee for anyone it
+      // could not ring — a browser, a desktop, a phone whose VoIP token the
+      // dead-token sweep has cleared. So the banner is still there; it is the
+      // rescue rather than the whole feature.
+      await ctx.scheduler.runAfter(0, internal.voipPush.sendGroupVoip, {
         groupCallId,
         roomId,
         inviteeIds: invited,
@@ -246,6 +353,14 @@ export const start = mutation({
         type,
         perUser,
       });
+      // And stop ringing when the invite stops being ring-worthy. Same
+      // instant `pendingInviteForUser` stops offering it, so a live app and a
+      // killed one give up on the same call at the same moment.
+      await ctx.scheduler.runAfter(
+        INVITE_RING_WINDOW_MS,
+        internal.groupCalls._expireRingers,
+        { groupCallId },
+      );
     }
 
     return { groupCallId, existing: false };
@@ -290,6 +405,15 @@ export const join = mutation({
         lastSeenAt: now,
       });
     }
+    // Answered here, so stop the other phones in this person's pocket. Their
+    // own subscriptions would drop the invite anyway; a killed one's card
+    // would not, and would go on ringing for a call its owner is already in.
+    if (!alreadyJoined) {
+      await dismissRingers(ctx, groupCallId, "joined", {
+        userIds: [userId],
+        excludeDeviceId: deviceId ?? null,
+      });
+    }
     return { type: call.type, roomId: call.roomId };
   },
 });
@@ -324,12 +448,27 @@ export const leave = mutation({
 });
 
 export const decline = mutation({
-  args: { groupCallId: v.id("groupCalls"), userId: v.id("users") },
+  args: {
+    groupCallId: v.id("groupCalls"),
+    userId: v.id("users"),
+    /**
+     * The device that pressed decline. Its own card is already gone — it is
+     * the one that dismissed it — and a `taken` push arriving to end nothing
+     * is, on iOS, a one-second phantom "Call" that rings and vanishes (see
+     * `calls.TAKEN_PUSH_GRACE_MS` for the 1:1 version of this hazard). The
+     * SIBLING phones are the ones that still need telling.
+     */
+    deviceId: v.optional(v.string()),
+  },
   returns: v.null(),
-  handler: async (ctx, { groupCallId, userId }) => {
+  handler: async (ctx, { groupCallId, userId, deviceId }) => {
     const mine = await participantRow(ctx, groupCallId, userId);
     if (mine && mine.status === "invited") {
       await ctx.db.patch(mine._id, { status: "declined" });
+      await dismissRingers(ctx, groupCallId, "declined", {
+        userIds: [userId],
+        excludeDeviceId: deviceId ?? null,
+      });
     }
   },
 });

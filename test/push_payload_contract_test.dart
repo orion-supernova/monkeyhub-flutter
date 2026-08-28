@@ -39,6 +39,14 @@ void main() {
   const dartRepo = 'lib/data/chat_repository.dart';
   const calls = 'backend/convex/calls.ts';
   const groupCalls = 'backend/convex/groupCalls.ts';
+  // The RING transport — a different topic and a different token from the
+  // banner one in push.ts, and the sender of the two kinds a native ringer
+  // (rather than a notification) is raised from.
+  const voip = 'backend/convex/voipPush.ts';
+  // Where a native card's accept and decline are turned back into backend
+  // calls. The only reader of the ring payload that is neither iOS nor
+  // Android — it sees what both of them forward.
+  const dartNative = 'lib/calls/native_call_handler.dart';
 
   final cache = <String, String>{};
   String source(String path) => cache.putIfAbsent(path, () {
@@ -105,6 +113,18 @@ void main() {
     // would make the bubble RE-LAY-OUT when the real row landed. Decided
     // server-side in rooms.ts off the row it already holds.
     'plain': [senders, dartRepo],
+    // The GROUP RING's identity, and its discriminant.
+    //
+    // A group invite reaches the same two native ringers a 1:1 call does, and
+    // the plugin hands back one undifferentiated "the user pressed answer"
+    // for both. This key's mere PRESENCE in the card's `extra` is what tells
+    // Dart to answer with `groupCalls:join` rather than `calls:accept` — two
+    // mutations against two tables that are not interchangeable. Every writer
+    // of that `extra` and its one reader have to spell it the same way, and
+    // nothing but this test says so: a 1:1 invite omits the key rather than
+    // sending it empty, so a typo reads as "1:1" and is indistinguishable
+    // from the normal case until a group call is answered as a DM.
+    'groupCallId': [voip, ios, androidRoute, dartNative, groupCalls],
   };
 
   contract.forEach((key, consumers) {
@@ -162,6 +182,25 @@ void main() {
     for (final kind in kinds) {
       test('"$kind" is dispatched on Android', () {
         expect(source(androidRoute).contains('"$kind"'), isTrue);
+      });
+    }
+    // The two RING kinds. These do not travel through push.ts at all — they
+    // are PushKit on iOS and a data-only FCM message on Android, sent by
+    // voipPush.ts — and they are what makes a group call ring rather than
+    // merely announce itself. `group_call_invite` above is the BANNER that
+    // now serves as their rescue, and the two names are one character apart:
+    // confusing them routes a ring into the notification shade, which is
+    // exactly the bug this pair was written to end.
+    for (final kind in ['group_invite', 'group_taken']) {
+      test('"$kind" rings on both phone platforms', () {
+        expect(source(voip).contains('"$kind"'), isTrue,
+            reason: 'voipPush.ts no longer sends "$kind"');
+        expect(source(androidRoute).contains('"$kind"'), isTrue,
+            reason: 'CallFcmService no longer dispatches "$kind" — a group '
+                'call is silent on Android');
+        expect(source(ios).contains('"$kind"'), isTrue,
+            reason: 'AppDelegate no longer recognises "$kind" — a group call '
+                'either does not ring on iOS, or rings forever');
       });
     }
     test('"dismiss" is handled on every platform that receives it', () {

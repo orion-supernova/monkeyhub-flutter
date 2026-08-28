@@ -11,6 +11,7 @@ import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'call_models.dart';
 import 'call_permissions.dart';
 import 'call_service.dart';
+import 'group_call_service.dart';
 
 /// Bridges flutter_callkit_incoming (native iOS CallKit / Android
 /// ConnectionService) into [CallService]. Single global subscription
@@ -139,6 +140,15 @@ class NativeCallHandler {
     switch (event) {
       case CallEventActionCallAccept(:final callKitParams):
         _captureNativeUuidFromParams(callKitParams);
+        // Before anything that reaches for a 1:1 session: a group card has
+        // none, has never had one, and every guard below would read its
+        // absence as "ghost card" and dismiss the call the user just
+        // answered.
+        final acceptedGroupId = _groupCallIdFromParams(callKitParams);
+        if (acceptedGroupId != null) {
+          await _acceptGroupCall(acceptedGroupId);
+          break;
+        }
         final acceptedCallId = _callIdFromParams(callKitParams);
         // Ghost guard: a CallKit card can outlive its call (the caller
         // cancelled or the ring timed out while the app was locked/killed).
@@ -180,6 +190,15 @@ class NativeCallHandler {
         }
         break;
       case CallEventActionCallDecline(:final callKitParams):
+        // Same reason as the accept above: none of the 1:1 reasoning below
+        // applies to a card that never had a `calls` row behind it, and its
+        // "no session" branch would fire a `calls:reject` for an id that is
+        // not a call id.
+        final declinedGroupId = _groupCallIdFromParams(callKitParams);
+        if (declinedGroupId != null) {
+          await _declineGroupCall(declinedGroupId);
+          break;
+        }
         final declinedCallId = _callIdFromParams(callKitParams);
         final current = service.session;
         if (current != null &&
@@ -228,6 +247,16 @@ class NativeCallHandler {
         }
         break;
       case CallEventActionCallEnded(:final callKitParams):
+        // A group card ended without being answered — swiped away, or ended
+        // from the system UI. That is a decline, and it must not reach
+        // `_endNamedCall`, which arbitrates a 1:1 session this card has no
+        // relationship to and would hang up a live DM call standing beside
+        // it.
+        final endedGroupId = _groupCallIdFromParams(callKitParams);
+        if (endedGroupId != null) {
+          await _declineGroupCall(endedGroupId);
+          break;
+        }
         await _endNamedCall(
           service,
           _callIdFromParams(callKitParams),
@@ -235,6 +264,20 @@ class NativeCallHandler {
         );
         break;
       case CallEventActionCallTimeout(:final id):
+        // A group card that rang itself out. This event carries only the
+        // native id — no `extra`, so no `groupCallId` to read — so the id has
+        // to be recognised by deriving it back. Getting it wrong is not
+        // harmless: an unrecognised timeout falls through to `_endNamedCall`,
+        // which with a null callId and a RINGING session hangs that session
+        // up. So a group card ringing out beside an incoming DM call would
+        // have cancelled the DM call. See [_knownGroupCallIds] for why the
+        // held invite is not a sufficient source on its own.
+        final ringingGroupId = _groupCallForUuid(id) ??
+            _matchingHeldInvite(id);
+        if (ringingGroupId != null) {
+          await _declineGroupCall(ringingGroupId);
+          break;
+        }
         // A timeout is only ever meaningful while the call is still RINGING.
         // Past that it is spurious, and there are two ways to get one: the
         // plugin wires the incoming notification's `deleteIntent` to the
@@ -266,6 +309,14 @@ class NativeCallHandler {
         // early to capture — CallService re-asserts both.
         if (isActive) {
           unawaited(service.onNativeAudioSessionActivated());
+          // And the group call, which now raises real CallKit cards of its
+          // own and so gets this event too. The 1:1 handler above returns
+          // early when there is no 1:1 session — which is precisely the case
+          // where this one has work to do.
+          unawaited(
+            GroupCallService.maybeInstance?.onNativeAudioSessionActivated() ??
+                Future<void>.value(),
+          );
         }
         break;
       case CallEventActionCallToggleHold():
@@ -535,6 +586,137 @@ class NativeCallHandler {
     return (callId != null && callId.isNotEmpty) ? callId : null;
   }
 
+  /// Group calls this process has seen a card for, newest last.
+  ///
+  /// Exists for one event: `CallEventActionCallTimeout`, which carries the
+  /// native id and nothing else — no `extra`, so no `groupCallId`. Without a
+  /// way to recognise a group card's id, that event falls through to
+  /// `_endNamedCall`, which with a null callId and a RINGING session hangs it
+  /// up: a group card ringing itself out beside an incoming DM call would
+  /// cancel the DM call.
+  ///
+  /// The obvious source is `GroupCallService.pendingInvite`, and it is not
+  /// enough on its own — the invite stops being offered at exactly the moment
+  /// the card times out (both are INVITE_RING_WINDOW_MS), so the two race and
+  /// the guard would sometimes read null. This remembers the id past that
+  /// point.
+  ///
+  /// Bounded: a device left running for weeks must not accumulate these, and
+  /// eight is far more group calls than can be ringing at once.
+  static const int _groupMemory = 8;
+  final _knownGroupCallIds = <String>[];
+
+  void _rememberGroupCall(String groupCallId) {
+    _knownGroupCallIds.remove(groupCallId);
+    _knownGroupCallIds.add(groupCallId);
+    if (_knownGroupCallIds.length > _groupMemory) {
+      _knownGroupCallIds.removeAt(0);
+    }
+  }
+
+  /// The group call whose card carries [uuid], if this process knows of one.
+  String? _groupCallForUuid(String uuid) {
+    for (final id in _knownGroupCallIds) {
+      if (derivedUuid(id) == uuid) return id;
+    }
+    return null;
+  }
+
+  /// The invite currently in hand, if its card is the one [uuid] names.
+  ///
+  /// The second source, and the one that covers a card this process never
+  /// raised: on iOS the card comes from PushKit, and if the overlay has not
+  /// run yet — a cold launch, an invite that arrived before the widget tree
+  /// did — [_knownGroupCallIds] is empty while the subscription's invite is
+  /// not.
+  String? _matchingHeldInvite(String uuid) {
+    final held =
+        GroupCallService.maybeInstance?.pendingInvite?['groupCallId']?.toString();
+    if (held == null || held.isEmpty) return null;
+    return derivedUuid(held) == uuid ? held : null;
+  }
+
+  /// The group call this card belongs to, or null for an ordinary 1:1 one.
+  ///
+  /// The two are answered by completely different code — `joinCall` against
+  /// `groupCalls`, versus `acceptIncoming` against `calls` — and the plugin
+  /// hands us one undifferentiated "the user pressed answer". The key's mere
+  /// PRESENCE is the discriminant, written by CallFcmService.handleInvite on
+  /// Android and by the PushKit handler on iOS; a 1:1 invite omits it rather
+  /// than sending an empty one, so a typo on either side reads as "1:1" and
+  /// is caught by the group call simply not connecting, not by a group call
+  /// being accepted as a DM.
+  String? _groupCallIdFromParams(CallKitParams params) {
+    final id = params.extra?['groupCallId']?.toString();
+    return (id != null && id.isNotEmpty) ? id : null;
+  }
+
+  /// Answer a group call from its native card.
+  ///
+  /// Deliberately narrower than the 1:1 accept beside it. A group call has no
+  /// offer to wait for and no "accepted natively" latch to set: joining is a
+  /// single mutation, after which `_GroupCallOverlay` sees `inCall` flip and
+  /// pushes the call screen — the same path the in-app ringer's Join button
+  /// takes. What it shares is the ghost guard: a card can outlive its call
+  /// (everyone left while the phone was locked), and `joinCall` throwing
+  /// CALL_ENDED must take the card down rather than leave it ringing.
+  Future<void> _acceptGroupCall(String groupCallId) async {
+    final group = await _attachedGroupService();
+    if (group == null) {
+      // Nothing to join through — signed out, or the wait below ran out.
+      // Leaving the card up would ring at a call the user cannot reach.
+      debugPrint('NativeCallHandler: group accept with no GroupCallService');
+      await endNativeByCallId(groupCallId);
+      return;
+    }
+    try {
+      await group.joinCall(groupCallId);
+      // Stops the card counting down to its own 60s auto-timeout, which the
+      // plugin would otherwise fire mid-call and treat as a hang-up. The 1:1
+      // path does this from CallService once media is up; a group call has no
+      // single peer to be "connected" to, so joining IS the moment.
+      await markConnected(groupCallId);
+    } catch (e) {
+      debugPrint('NativeCallHandler: group joinCall failed: $e');
+      await endNativeByCallId(groupCallId);
+    }
+  }
+
+  /// [GroupCallService], once it knows who it is.
+  ///
+  /// Answering from a killed app is the ordinary case for a push-raised card,
+  /// not the edge one: the tap launches the process, and this event can reach
+  /// us while auth is still being restored — before `attach` has given the
+  /// service a userId to join as. Failing then would dismiss the card the user
+  /// just tapped, which reads as the app refusing the call.
+  ///
+  /// Bounded rather than indefinite: past a few seconds the honest answer is
+  /// that this device cannot join, and a ringing card that never becomes a
+  /// call is worse than one that stops.
+  Future<GroupCallService?> _attachedGroupService() async {
+    const step = Duration(milliseconds: 250);
+    const limit = Duration(seconds: 12);
+    for (var waited = Duration.zero; waited < limit; waited += step) {
+      final g = GroupCallService.maybeInstance;
+      if (g != null && g.isAttached) return g;
+      await Future<void>.delayed(step);
+    }
+    return null;
+  }
+
+  /// Decline a group call from its native card. Best-effort: the card is
+  /// coming down either way, and a failed decline costs the starter a roster
+  /// row that says "invited" until the call ends.
+  Future<void> _declineGroupCall(String groupCallId) async {
+    final group = GroupCallService.maybeInstance;
+    if (group == null) return;
+    try {
+      await group.declineInviteById(groupCallId);
+    } catch (e) {
+      debugPrint('NativeCallHandler: group decline failed: $e');
+    }
+  }
+
   /// Backend liveness probe for a call. Returns false only on a definitive
   /// "not live" answer; null means "couldn't determine" (offline, timeout,
   /// not signed in) — callers should stay lenient then and let the accept
@@ -603,7 +785,19 @@ class NativeCallHandler {
     required String callerName,
     required CallMediaKind kind,
     String? avatarUrl,
+    /// Set for a GROUP invite, where [callId] is the groupCallId. Rides into
+    /// the card's `extra` as the discriminant the accept path reads — see
+    /// [_groupCallIdFromParams]. The push-raised twin of this card
+    /// (CallFcmService.handleInvite) writes the identical key, and both
+    /// derive the same native id from the same string, so the two are one
+    /// card to the plugin rather than two.
+    String? groupCallId,
   }) async {
+    // Before the platform guard, deliberately. On iOS this whole method is a
+    // no-op — the PushKit card is already up — but the overlay still calls it
+    // for every invite, and this is the one place Dart is told a group card
+    // exists at all. See [_rememberGroupCall].
+    if (groupCallId != null) _rememberGroupCall(groupCallId);
     if (kIsWeb || !Platform.isAndroid) return;
     try {
       final active = (await FlutterCallkitIncoming.activeCalls()) as List<dynamic>;
@@ -619,7 +813,7 @@ class NativeCallHandler {
         handle: callerName,
         type: kind == CallMediaKind.video ? 1 : 0,
         duration: 60000,
-        extra: {'callId': callId},
+        extra: {'callId': callId, 'groupCallId': ?groupCallId},
         // Decided HERE, at ring time, because this is the last moment we get a
         // say. When the user taps Accept, the plugin's own broadcast receiver
         // starts a foreground service typed microphone/camera before any Dart

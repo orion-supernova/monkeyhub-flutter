@@ -14,7 +14,7 @@ remains below needs console access and can't be done from the repo.
 | Path | Carries | iOS | Android | Web |
 |---|---|---|---|---|
 | Alert push (`backend/convex/push.ts`) | Chat, approvals, call banners, silent dismiss | APNs on topic `<bundle>` → `NotificationService.swift` (only when it carries a face) → `AppDelegate.swift` | FCM data-only → `CallFcmService.kt` → `ChatNotifications.kt` | Web Push (RFC 8291) → `web/mh-push-sw.js` |
-| Ring push (`backend/convex/voipPush.ts`) | Call invite / taken | APNs VoIP on topic `<bundle>.voip` → CallKit | FCM data-only → full-screen call UI | — |
+| Ring push (`backend/convex/voipPush.ts`) | Call invite / taken, group invite / taken | APNs VoIP on topic `<bundle>.voip` → CallKit | FCM data-only → full-screen call UI | — |
 | Daily games nudge (`backend/convex/dailyNudge.ts`) | The once-a-day "you haven't played today" reminder | APNs on topic `<bundle>` | FCM data-only, channel `mh_games` | — (deliberately) |
 | Convex realtime subscription | In-app ringing while the app is open | ✓ | ✓ | ✓ |
 
@@ -43,6 +43,24 @@ Four things are worth internalising:
   forfeiting collapse, group summaries, per-room dismissal and active-room
   suppression. The cost is that a *force-stopped* app receives nothing until
   next launch — already true of the call path.
+- **A group call rings on the same wire a 1:1 call does.** It did not used to:
+  `groupCalls.start` scheduled a banner and nothing else, so an invitee whose
+  app was backgrounded or killed got a line in the notification shade while a
+  DM call to the same phone raised CallKit. It now sends `group_invite` over
+  PushKit/FCM (`voipPush.sendGroupVoip`) and falls back to the banner, per
+  invitee, only for whoever no native transport could reach — a browser, a
+  desktop, a phone whose VoIP token the dead-token sweep has cleared. Two
+  consequences worth knowing. First, **the card's id is derived, not minted**:
+  `derivedCallUuid` / `uuidForCallId` / `derivedUuid` are one function in three
+  languages over the groupCallId, because a group card can be taken down by a
+  process that never raised it (joined on another phone, declined, call ended)
+  and there is no state to hand across. Second, **iOS has nothing that ends an
+  unanswered card**, so `_expireRingers` is scheduled at
+  `INVITE_RING_WINDOW_MS` — the same instant `pendingInviteForUser` stops
+  offering the invite, so a live app and a killed one give up together.
+  `groupCallId` in the card's `extra` is what makes an accept call
+  `groupCalls:join` instead of `calls:accept`; `push_payload_contract_test.dart`
+  pins it, and a 1:1 invite omits the key rather than sending it empty.
 - **The sender's face is a per-recipient key, not a per-message one.** It rides
   the `perUser` override map because `visibility.avatar` is answered from each
   *recipient's* side, and `buildApnsBody` gates `mutable-content` on that same
@@ -295,19 +313,26 @@ Podfile's `post_install`, the same way the Share Extension is.
 
 **Two limits worth knowing before someone files them as bugs:**
 
-- **The 1:1 CallKit ringer keeps the generic silhouette.** A PushKit payload
-  never passes through a Notification Service Extension, and CallKit draws a
-  photo only for a handle that matches a real entry in the system Contacts app.
-  There is no API to hand it an arbitrary image. Android's full-screen ringer
-  *does* take an avatar (`CallFcmService.kt` passes `avatar` to
-  flutter_callkit_incoming), so the two platforms genuinely differ here. What
-  iOS does get is the `call_invite` **banner** — which `voipPush.ts` only sends
-  when the ring failed on every device — and the `group_call_invite` banner.
+- **The CallKit ringer keeps the generic silhouette, 1:1 and group alike.** A
+  PushKit payload never passes through a Notification Service Extension, and
+  CallKit draws a photo only for a handle that matches a real entry in the
+  system Contacts app. There is no API to hand it an arbitrary image. Android's
+  full-screen ringer *does* take an avatar (`CallFcmService.kt` passes `avatar`
+  to flutter_callkit_incoming, for both kinds), so the two platforms genuinely
+  differ here. What iOS does get is the `call_invite` and `group_call_invite`
+  **banners**, which `voipPush.ts` sends only when the ring failed on every
+  device.
 - **A mention's title is drawn from the intent, not from `aps.alert.title`.** So
   "X mentioned you" would be overwritten by the bare sender name. `sendMessagePush`
   puts the mention in the *subtitle* instead, which `updating(from:)` leaves
   alone; delete that and iOS silently stops distinguishing a mention from any
-  other message.
+  other message. **The subtitle itself survives `updating(from:)` intact** —
+  measured, not assumed: a harness built the same intent this extension builds
+  and read the result back as `title=<sender> subtitle=<room> body=<message>`.
+  That is why the room name on a group CHAT banner needed no fixing, and why
+  the group CALL banner did: its room name was in the *title*, which the intent
+  does overwrite. `displayName(in:)` names the person after the room for that
+  one kind.
 
 ## 2. Firebase project (Android)
 
@@ -447,6 +472,24 @@ must display something — which is why the backend never sends the silent
     At noon the banner must arrive in the app's language, and tapping it must
     land on the Feed with the games shelf open — not merely raise the app.
     Play everything, and the next day's nudge must not arrive at all.
+16. **Group call ringing**, which is the same script as step 2 with a group
+    call instead of a DM one, plus the four ways the ring has to stop. Start a
+    group call in a room whose other members are on **killed** apps: each must
+    get the full-screen ringing UI, titled with the ROOM, not a notification in
+    the shade. Then, one per run: answer on one of two phones the same account
+    owns → the other's card goes; decline → the sibling's card goes and the
+    declining phone does NOT flash a second one-second "Call"; have the starter
+    hang up while it rings → the card goes; and leave one ringing untouched for
+    a minute → it stops on its own rather than ringing until it is picked up.
+    Answering must land in the group call screen, not the DM one — and a DM
+    call ringing on the same phone at the same time must be unaffected by any
+    of it.
+17. **Avatar orientation.** Set an avatar from a photo taken in PORTRAIT on a
+    phone camera (one that has never been through the crop screen's re-encode
+    — an older account's picture is the easiest source) and send a message from
+    it. The face on the banner must be the way up it was taken, on both
+    platforms. The failure is a quarter turn, and the tell is that the same
+    picture looks correct everywhere inside the app.
 
 ## Notes
 
