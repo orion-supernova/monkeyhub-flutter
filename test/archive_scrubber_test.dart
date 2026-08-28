@@ -373,6 +373,33 @@ void main() {
     }
   });
 
+  testWidgets('the LAST day pins at the bottom, even on a short archive', (
+    tester,
+  ) async {
+    // Five days of one photo each is an archive barely taller than the screen,
+    // so the last sections have nothing below them to scroll through and their
+    // headers could never reach the top: every date after the second was
+    // unreachable, and the sticky header stopped partway down the list and
+    // stayed there. The trailing reserve is what gives the last one room to
+    // arrive.
+    await openShort(tester);
+    final ctx = tester.element(find.byType(ArchiveScreen));
+    final pos = tester
+        .widget<CustomScrollView>(find.byType(CustomScrollView))
+        .controller!
+        .position;
+
+    await scrollTo(tester, pos.maxScrollExtent);
+    await tester.pumpAndSettle();
+
+    expect(
+      pinnedDay(tester, ctx),
+      shortDays.last,
+      reason: 'the last day never reaches the top',
+    );
+    expect(activeChipDay(tester), shortDays.last.split('-').last);
+  });
+
   testWidgets('days come out chronological even when the page does not', (
     tester,
   ) async {

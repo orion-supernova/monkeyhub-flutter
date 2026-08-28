@@ -189,6 +189,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         _measureScrub();
+        _reserveTail();
         _topUp();
       });
     } catch (e) {
@@ -224,6 +225,9 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     // Pure arithmetic on the offset, so the thumb tracks the finger exactly.
     _scrubAt.value = extent <= 0 ? 0 : (pos.pixels / extent).clamp(0.0, 1.0);
     _refreshDay(pos.pixels);
+    // Cheap, and only ever calls setState when the number genuinely moves —
+    // which is when the content changed, not when the finger did.
+    _reserveTail();
   }
 
   /// Names the day the top of the viewport is currently inside.
@@ -364,6 +368,40 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     _scrubHide = Timer(const Duration(milliseconds: 1200), () {
       if (mounted && !_scrubbing) _scrubLoud.value = false;
     });
+  }
+
+  /// Blank reserved after the last day so its header can reach the top.
+  ///
+  /// **Why an archive of five days only ever showed three.** A pinned header
+  /// takes over when it reaches the top edge, and the last section cannot get
+  /// there unless there is a viewport's worth of content after it to scroll
+  /// through. On a short archive there is not: the final days sit on screen,
+  /// visible, while the top edge is still parked in the second one, so the
+  /// sticky header — and the chips and the pill reading the same answer —
+  /// stopped partway down the list and stayed there.
+  ///
+  /// This is the layout half of that, and it is what every sticky-header list
+  /// has to do: reserve enough trailing space that the last header can pin.
+  /// Derived from the framework's own numbers rather than from a model of the
+  /// content, and stored so the calculation excludes itself — otherwise adding
+  /// the space would satisfy the condition that asked for it and it would be
+  /// taken away again on the next frame.
+  double _tailReserve = 0;
+
+  void _reserveTail() {
+    if (!mounted || !_scroll.hasClients || _dayKeys.isEmpty) return;
+    final lastStart = _dayOffsets[_dayKeys.last];
+    if (lastStart == null) return;
+    final pos = _scroll.position;
+    if (pos.viewportDimension <= 0) return;
+    // Everything below the last day's header, with any reserve already in it
+    // taken back out.
+    final after =
+        pos.maxScrollExtent + pos.viewportDimension - lastStart - _tailReserve;
+    final want = pos.viewportDimension - after;
+    final next = want > 0 ? want : 0.0;
+    if ((next - _tailReserve).abs() < 0.5) return;
+    setState(() => _tailReserve = next);
   }
 
   /// Fetches the next page when the one that just landed did not fill the
@@ -615,7 +653,9 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
             },
           ),
         SliverPadding(
-          padding: EdgeInsets.only(bottom: edgeToEdgeBottom(context)),
+          padding: EdgeInsets.only(
+            bottom: edgeToEdgeBottom(context) + _tailReserve,
+          ),
           sliver: SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 24),
