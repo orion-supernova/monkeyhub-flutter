@@ -135,6 +135,18 @@ class _ServerScreenState extends State<ServerScreen> {
     final url = _check.url;
     if (url == null) return null;
     final site = normalizeServerUrl(_siteAddress.text).url;
+    // An address this app already knows keeps what it knows about it, even
+    // when it arrives by being typed rather than by a directive. Both operator
+    // deployments serve HTTP actions under `/http` and [deriveSiteUrl] cannot
+    // know that, so building this one as an ordinary self-hosted endpoint
+    // would connect the socket fine and leave every upload and every action
+    // pointed at an origin that answers nothing.
+    //
+    // Skipped the moment an override is typed: an explicit answer outranks
+    // anything inferred from the host.
+    if (site == null && KnownHosts.isManaged(url)) {
+      return KnownHosts.endpointFor(KnownHosts.roleOf(url), url: url);
+    }
     return ServerEndpoint(
       deploymentUrl: url,
       // An override equal to the derived value is not an override. Dropping it

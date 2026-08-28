@@ -525,7 +525,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       if (target.deploymentUrl == ServerStore.instance.bundledUrl) {
         await ServerStore.instance.useBundled();
       } else {
-        await ServerStore.instance.use(target);
+        // Not pinned — this is the app being sent, not a person choosing. See
+        // [ServerStore.isPinned]; the same distinction [ServerSwitch.follow]
+        // makes on the live path.
+        await ServerStore.instance.use(target, pinned: false);
       }
       return;
     }

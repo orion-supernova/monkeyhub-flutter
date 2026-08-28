@@ -88,10 +88,24 @@ class _ServerRoleSheet extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 6),
-            // The address, always. It is the fact underneath every sentence in
-            // this sheet, and the only one that lets someone check for themselves.
-            Text(store.host, style: theme.mono.copyWith(color: theme.inkMuted)),
+            // The address, for the one server whose address is the user's.
+            //
+            // It is the fact underneath every sentence here and the only one
+            // that lets someone check for themselves — but on the home server
+            // it is not their fact to check. That address is the operator's
+            // infrastructure, and specifically the name of a machine on
+            // somebody's domestic line; printing it in a sheet every user can
+            // open makes a residential endpoint trivially harvestable, and buys
+            // the reader nothing they can act on. Every other surface already
+            // withholds it (see [serverMarkLabels]); this sheet was the one
+            // place still publishing it.
+            if (!homeserver) ...[
+              const SizedBox(height: 6),
+              Text(
+                store.host,
+                style: theme.mono.copyWith(color: theme.inkMuted),
+              ),
+            ],
             const SizedBox(height: 16),
             Text(
               homeserver

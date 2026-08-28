@@ -126,6 +126,20 @@ void main() {
       expect(find.text('chat.example.com'), findsOneWidget);
     });
 
+    testWidgets("prints the operator's address when the user typed it",
+        (tester) async {
+      // Same host as the test above, opposite meaning. This install was pointed
+      // here by hand, so it is not the operator's temporary arrangement — it is
+      // the user's server, wearing the address they entered.
+      ServerStore.instance.setForTest(homeserver, pinned: true);
+      await mount(tester, scene());
+      expect(find.text('Serving from homeserver'), findsNothing);
+      expect(
+        find.text(shortHost(KnownHosts.homeserverHost, max: 28)),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('the label is not truncated at a phone width', (tester) async {
       ServerStore.instance.setForTest(homeserver);
       await mount(tester, scene());

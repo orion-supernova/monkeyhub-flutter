@@ -32,6 +32,11 @@ class ServerStore extends ChangeNotifier {
   static const _kSiteUrl = 'mh.server.siteUrl';
   static const _kRecent = 'mh.server.recent';
 
+  /// Whether the stored URL was typed in rather than followed to. Its own key
+  /// because it cannot be recovered from the URL: the address is identical
+  /// either way — see [isPinned].
+  static const _kPinned = 'mh.server.pinned';
+
   /// Same accessibility class the rest of the app's secure storage uses, so a
   /// locked handset behaves consistently. This is not a secret — a deployment
   /// URL is public by nature — but keeping one storage backend for everything
@@ -41,6 +46,7 @@ class ServerStore extends ChangeNotifier {
   );
 
   ServerEndpoint? _custom;
+  bool _pinned = false;
   List<ServerEndpoint> _recent = const [];
   bool _loaded = false;
 
@@ -57,6 +63,24 @@ class ServerStore extends ChangeNotifier {
   /// Whether this install is pointed somewhere other than the shipped default.
   /// Drives the permanent badge and the accent on the settings row.
   bool get isCustom => _custom != null;
+
+  /// Whether the user put this app on this server themselves.
+  ///
+  /// The one fact that separates "the operator moved everyone onto the home
+  /// server" from "I typed that address into the server screen", and it is not
+  /// recoverable afterwards: both end up on the same host, with the same URL,
+  /// in the same field. So it is recorded at the moment the choice is made and
+  /// stored beside the URL.
+  ///
+  /// Without it, entering a managed address by hand produced an install that
+  /// wore the operator's homeserver bar, was described everywhere as a
+  /// temporary arrangement it had not agreed to, and was moved off again by
+  /// the next directive — an install indistinguishable from one that had been
+  /// sent there, which is the opposite of what typing an address in means.
+  ///
+  /// A pin is only meaningful with a custom server: returning to the bundled
+  /// default is not a pin, it is the absence of one.
+  bool get isPinned => _pinned && _custom != null;
 
   /// The deployment the app shipped pointed at, or `''` when `env.local`
   /// carries no `CONVEX_URL`.
@@ -105,7 +129,14 @@ class ServerStore extends ChangeNotifier {
   /// while a self-hosted address is a different world with different accounts.
   /// The badge, the info sheet and [ServerSwitch] all branch on this, never on
   /// `isCustom`.
-  ServerRole get role => KnownHosts.roleOf(deploymentUrl);
+  ///
+  /// An address the user pinned is [ServerRole.selfHosted] whatever host it
+  /// names. The role answers "how did this app come to be here", and for a
+  /// pinned server the answer is "somebody chose it" — which is the same answer
+  /// as for a private box, and carries the same consequences: the address is
+  /// theirs to see, and nobody's directive moves them off it.
+  ServerRole get role =>
+      isPinned ? ServerRole.selfHosted : KnownHosts.roleOf(deploymentUrl);
 
   /// Whether this install has anything to say about which server it is on.
   ///
@@ -135,6 +166,17 @@ class ServerStore extends ChangeNotifier {
   /// settings screen; a server someone typed in themselves is theirs to see.
   bool get isSelfHosted => role == ServerRole.selfHosted;
 
+  /// Whether a published directive is allowed to move this install.
+  ///
+  /// The single condition [ServerDirectory] and [ServerSwitch.follow] ask,
+  /// rather than [KnownHosts.isManaged] on the raw URL: that answers whether
+  /// the ADDRESS is one of the two the operator runs, which stopped being the
+  /// whole question the moment a user could type one of them in.
+  ///
+  /// False on an install that has no server at all — there is nothing to be
+  /// moved from, and the empty address is nobody's deployment.
+  bool get followsDirectives => !isSelfHosted;
+
   /// Previously-used custom servers, newest first. Never contains the active
   /// one — it is shown separately — and never contains the bundled default.
   List<ServerEndpoint> get recent => List.unmodifiable(_recent);
@@ -149,6 +191,11 @@ class ServerStore extends ChangeNotifier {
           deploymentUrl: url,
           siteUrlOverride: site == null || site.isEmpty ? null : site,
         );
+        // Absent means "followed here", which is what every install written by
+        // a build older than the pin holds. That is the right reading for all
+        // but one of them: an install already sitting on a hand-typed managed
+        // address keeps behaving as it did until the address is entered again.
+        _pinned = await _storage.read(key: _kPinned) == '1';
       }
       _recent = ServerEndpoint.decodeList(await _storage.read(key: _kRecent));
     } catch (_) {
@@ -164,22 +211,53 @@ class ServerStore extends ChangeNotifier {
   /// session. [ServerSwitch] owns that sequence, and calls this in the middle
   /// of it. Calling this directly is what a rollback does — see
   /// [ServerSwitch.apply].
-  Future<void> use(ServerEndpoint endpoint) async {
-    if (_custom == endpoint) return;
+  ///
+  /// [pinned] says who decided: true for an address a person entered, false
+  /// for one the app was directed onto. It defaults to true because that is
+  /// the safe direction — a caller that forgets leaves an install nobody may
+  /// relocate, which is a smaller mistake than silently making somebody's
+  /// deliberate choice followable. Only the directive paths pass false, and
+  /// they say why where they do.
+  Future<void> use(ServerEndpoint endpoint, {bool pinned = true}) async {
+    // The pin is part of the state: arriving at the address already in force,
+    // but for a different reason, is a real change.
+    if (_custom == endpoint && _pinned == pinned) return;
     // The server being replaced earns a place in the history, so switching
     // back is one tap. The bundled default never does — it has its own card.
     final leaving = _custom;
     _custom = endpoint;
+    _pinned = pinned;
     _recent = _rememberedAfter(leaving: leaving, arriving: endpoint);
     notifyListeners();
     await _persist();
   }
 
+  /// Adopt the server already in force as the user's own choice.
+  ///
+  /// What it means to type the current address into the server screen: the app
+  /// is not going anywhere — it is already here — but it stops being here
+  /// because it was sent and starts being here because somebody said so. The
+  /// difference shows up at the next directive, which no longer applies.
+  ///
+  /// Separate from [use] because there is nothing to switch: no teardown, no
+  /// sign-out, no new socket. See [ServerSwitch.apply], which routes exactly
+  /// that case here.
+  Future<void> pin() async {
+    if (_custom == null || _pinned) return;
+    _pinned = true;
+    notifyListeners();
+    await _persist();
+  }
+
   /// Go back to the deployment the app shipped with.
+  ///
+  /// Also the way off a pin: the bundled deployment is the ordinary
+  /// arrangement, and an install on it follows directives like any other.
   Future<void> useBundled() async {
     if (_custom == null) return;
     final leaving = _custom;
     _custom = null;
+    _pinned = false;
     _recent = _rememberedAfter(leaving: leaving, arriving: null);
     notifyListeners();
     await _persist();
@@ -224,6 +302,7 @@ class ServerStore extends ChangeNotifier {
       if (c == null) {
         await _storage.delete(key: _kUrl);
         await _storage.delete(key: _kSiteUrl);
+        await _storage.delete(key: _kPinned);
       } else {
         await _storage.write(key: _kUrl, value: c.deploymentUrl);
         final site = c.siteUrlOverride;
@@ -231,6 +310,11 @@ class ServerStore extends ChangeNotifier {
           await _storage.delete(key: _kSiteUrl);
         } else {
           await _storage.write(key: _kSiteUrl, value: site);
+        }
+        if (_pinned) {
+          await _storage.write(key: _kPinned, value: '1');
+        } else {
+          await _storage.delete(key: _kPinned);
         }
       }
       await _storage.write(
@@ -253,14 +337,20 @@ class ServerStore extends ChangeNotifier {
   @visibleForTesting
   void resetForTest() {
     _custom = null;
+    _pinned = false;
     _recent = const [];
     _loaded = true;
   }
 
   /// Test seam. Sets the active custom server without touching storage.
+  ///
+  /// [pinned] defaults to false — a server arrived at, not chosen — because
+  /// that is the case every existing caller means when it hands in one of the
+  /// operator's addresses.
   @visibleForTesting
-  void setForTest(ServerEndpoint? endpoint) {
+  void setForTest(ServerEndpoint? endpoint, {bool pinned = false}) {
     _custom = endpoint;
+    _pinned = pinned;
     _loaded = true;
     notifyListeners();
   }

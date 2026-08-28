@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:monkeyhub/backend/server_directory.dart';
+import 'package:monkeyhub/backend/server_store.dart';
 
 /// The directive decides which backend an app opens its socket against, sight
 /// unseen, before anyone can object. Two properties keep that safe, and both
@@ -24,6 +25,10 @@ void main() {
 
   final primary = KnownHosts.endpointFor(ServerRole.primary);
   final homeserver = KnownHosts.endpointFor(ServerRole.homeserver);
+
+  // Every test here runs against a store on the bundled default — an install
+  // that follows directives — unless it says otherwise.
+  setUp(ServerStore.instance.resetForTest);
 
   ServerDirectory withBody(String body, {int status = 200}) =>
       ServerDirectory.forTest(
@@ -217,6 +222,34 @@ void main() {
       ).check(askUrl: 'https://chat.example.com');
       expect(called, isFalse);
       expect(target, isNull);
+    });
+
+    test('an install pinned to one of our own addresses is left alone',
+        () async {
+      // The address is the home server's, so the URL says "managed" and every
+      // check that reads the URL alone lets this through. What makes it not
+      // ours to move is who put it there: somebody typed it in, and a directive
+      // that relocated them would be overruling the person using the app.
+      ServerStore.instance.setForTest(homeserver, pinned: true);
+      var called = false;
+      final target = await ServerDirectory.forTest(
+        client: MockClient((_) async {
+          called = true;
+          return http.Response(envelope({'serve': 'primary'}), 200);
+        }),
+      ).check(askUrl: homeserver.deploymentUrl);
+      expect(called, isFalse);
+      expect(target, isNull);
+    });
+
+    test('an install FOLLOWED to the same address still comes home', () async {
+      // The other half of the pair above, and the reason the pin has to be
+      // stored rather than inferred: identical URL, opposite answer.
+      ServerStore.instance.setForTest(homeserver);
+      final target = await withBody(
+        envelope({'serve': 'primary'}),
+      ).check(askUrl: homeserver.deploymentUrl);
+      expect(target!.host, KnownHosts.primaryHost);
     });
 
     test('asks the primary first, even from the home server', () async {

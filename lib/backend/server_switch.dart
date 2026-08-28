@@ -125,14 +125,36 @@ class ServerSwitch extends ChangeNotifier {
   /// [target] must already be normalized (see [normalizeServerUrl]); passing
   /// raw user input would persist a URL the client cannot build a socket from.
   /// Pass null to return to the bundled default.
+  ///
+  /// Every route in is a person choosing, so what this writes is a PIN
+  /// ([ServerStore.isPinned]) — including when the address they typed happens
+  /// to be one of the operator's. That is the whole difference between this and
+  /// [follow], and it survives the rollback: an install put back on the server
+  /// it came from is put back on it for the same reason it was there.
   Future<ServerSwitchOutcome> apply(ServerEndpoint? target) async {
     final store = ServerStore.instance;
     final previous = store.custom;
-    if (target == previous) return ServerSwitchOutcome.unchanged;
+    final wasPinned = store.isPinned;
+    // Landing on the address already in force is only a no-op when the REASON
+    // is already the same. Someone who followed onto the home server and then
+    // typed that address in has changed something real — they are choosing to
+    // be here, and the next directive no longer moves them — so that case
+    // falls through to the pin below rather than being dismissed as "same URL".
+    final samePlace = target == previous;
+    if (samePlace && (target == null || wasPinned)) {
+      return ServerSwitchOutcome.unchanged;
+    }
     if (_busy) return ServerSwitchOutcome.unchanged;
     if (!allowed) {
       DiagLog.connection('server-switch', 'refused (supervised device)');
       return ServerSwitchOutcome.refused;
+    }
+    if (samePlace) {
+      // No teardown, no reconnect: the socket is already open on this server
+      // and the session on it is valid. Only why we are here changes.
+      await store.pin();
+      DiagLog.connection('server-switch', 'pinned ${store.host}');
+      return ServerSwitchOutcome.switched;
     }
 
     _busy = true;
@@ -177,7 +199,7 @@ class ServerSwitch extends ChangeNotifier {
       if (previous == null) {
         await store.useBundled();
       } else {
-        await store.use(previous);
+        await store.use(previous, pinned: wasPinned);
       }
       final backErr = await ConvexBackend.instance.rebind();
       if (backErr == null) {
@@ -206,13 +228,14 @@ class ServerSwitch extends ChangeNotifier {
   /// all. From the user's side it looks like a brief reconnect, which is
   /// exactly what it is.
   ///
-  /// Refuses to move a self-hosted install, in either direction: somebody who
-  /// deliberately pointed this app at their own backend is not part of this
-  /// arrangement and must not be relocated by a directive.
+  /// Refuses to move an install that is somebody's own choice, in either
+  /// direction — a private backend, or one of these two addresses that a user
+  /// pinned by typing it in. Neither is part of this arrangement, and neither
+  /// may be relocated by a directive. See [ServerStore.followsDirectives].
   Future<ServerSwitchOutcome> follow(ServerEndpoint target) async {
     final store = ServerStore.instance;
     if (_busy) return ServerSwitchOutcome.unchanged;
-    if (!KnownHosts.isManaged(store.deploymentUrl) ||
+    if (!store.followsDirectives ||
         !KnownHosts.isManaged(target.deploymentUrl)) {
       return ServerSwitchOutcome.refused;
     }
@@ -231,7 +254,9 @@ class ServerSwitch extends ChangeNotifier {
       if (target.deploymentUrl == store.bundledUrl) {
         await store.useBundled();
       } else {
-        await store.use(target);
+        // Not pinned: nobody chose this, the app was sent. It is the one thing
+        // that keeps the next directive able to bring this client home.
+        await store.use(target, pinned: false);
       }
       final err = await ConvexBackend.instance.rebind(keepSubscriptions: true);
       if (err == null) {
@@ -243,7 +268,7 @@ class ServerSwitch extends ChangeNotifier {
       if (previous == null) {
         await store.useBundled();
       } else {
-        await store.use(previous);
+        await store.use(previous, pinned: false);
       }
       final backErr = await ConvexBackend.instance.rebind(
         keepSubscriptions: true,

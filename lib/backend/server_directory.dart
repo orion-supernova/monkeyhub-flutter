@@ -83,6 +83,11 @@ class KnownHosts {
   /// False for a self-hosted address, and that is the whole point: somebody
   /// running their own backend must never be moved by a directive published on
   /// a server they chose not to use.
+  ///
+  /// A question about an ADDRESS, and therefore only half of "may this install
+  /// be moved" — one of these two addresses can also be typed in by hand, and
+  /// an install that got here that way is nobody's to relocate either. Ask
+  /// [ServerStore.followsDirectives], which is both halves.
   static bool isManaged(String url) => roleOf(url) != ServerRole.selfHosted;
 }
 
@@ -311,6 +316,11 @@ class ServerDirectory {
     // pointed this app at their own backend must never be moved by a directive
     // — least of all one published by a server they chose not to use.
     if (!KnownHosts.isManaged(askUrl)) return null;
+    // Nor is one of OUR addresses that somebody typed in. It is the same host
+    // either way, so the URL cannot tell these apart and the store is asked
+    // instead: a pinned install has been put here on purpose, and moving it
+    // would overrule the person who did it. See [ServerStore.isPinned].
+    if (ServerStore.instance.isPinned) return null;
 
     _lastCheckedAt = DateTime.now();
     final client = _injected ?? http.Client();
@@ -408,9 +418,10 @@ class ServerDirectory {
   /// deployment from the one in force — never on the first delivery confirming
   /// where we already are, which is what every client sees on every connect.
   ///
-  /// Only ever attached on a managed deployment. A self-hosted install is not
-  /// governed by anybody's directive, and subscribing there would be asking a
-  /// stranger's backend for permission to stay put.
+  /// Only ever attached on a managed deployment the app was directed onto. An
+  /// install that is somebody's own — a private box, or one of these two
+  /// addresses entered by hand — is not governed by anybody's directive, and
+  /// subscribing there would be asking for permission to stay put.
   ///
   /// Idempotent: the previous subscription is cancelled first, so this can be
   /// re-run after a reconnect or a follow without stacking listeners.
@@ -426,7 +437,7 @@ class ServerDirectory {
     // running would go on asking the operator's VPS where a install that is no
     // longer theirs to move should be.
     _syncPoll();
-    if (!KnownHosts.isManaged(ServerStore.instance.deploymentUrl)) return;
+    if (!ServerStore.instance.followsDirectives) return;
     try {
       _sub = await backend.subscribe(
         'serverDirectory:current',
@@ -488,8 +499,9 @@ class ServerDirectory {
     }
     // Also silent for an install that is not ours to move — belt and braces
     // behind the guard in [watch], because a follow leaves the subscription
-    // live and a self-host switch is one tap away on the same screen.
-    if (!KnownHosts.isManaged(current)) return;
+    // live and both ways out of being movable, a self-host switch and pinning
+    // this address, are one tap away on the same screen.
+    if (!ServerStore.instance.followsDirectives) return;
     DiagLog.connection('directory', 'live redirect to ${directive.serve.name}');
     _onRedirect?.call(target);
   }
