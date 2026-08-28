@@ -59,13 +59,19 @@ class GroupCallApi {
     });
   }
 
+  /// [deviceId] is the phone that pressed decline. The backend spares it the
+  /// dismissal push it sends to the person's other devices — its card is
+  /// already gone, and on iOS a dismissal with nothing to end is a
+  /// one-second phantom ring rather than a no-op.
   Future<void> decline({
     required String groupCallId,
     required String userId,
+    String? deviceId,
   }) async {
     await _cv.mutation('groupCalls:decline', {
       'groupCallId': groupCallId,
       'userId': userId,
+      'deviceId': ?deviceId,
     });
   }
 

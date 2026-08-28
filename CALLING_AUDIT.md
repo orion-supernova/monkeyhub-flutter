@@ -33,6 +33,20 @@
 > uncatchable from Dart. See `lib/calls/call_permissions.dart` and
 > `android/.../CallPermissions.kt`.
 
+> **Superseded, 2026-08-28:** the scope line below — "1:1 WebRTC calling" — was
+> also a description of which calls could ring, and that is no longer true.
+> GROUP calls used to reach a backgrounded or killed phone as a banner and
+> nothing else: `groupCalls.start` scheduled `sendGroupInvitePush` and there was
+> no ring path at all, which is the very symptom this whole document was opened
+> to investigate, surviving in the one place nobody looked. They now ring
+> through the same PushKit/FCM transport as a DM call
+> (`voipPush.sendGroupVoip`), the banner has become their rescue rather than
+> their whole delivery, and every "fallback to a plain notification" argument
+> below applies to them unchanged. The one structurally new part is dismissal:
+> a group card's native id is DERIVED from the groupCallId on all three sides,
+> because unlike a 1:1 card it is routinely taken down by a process that never
+> raised it. See NOTIFICATION_SETUP.md.
+
 **Scope:** 1:1 WebRTC calling and the push/wake pipeline that rings the callee.
 **Symptom under investigation:** incoming calls are supposed to ring the native UI
 (iOS CallKit / Android ConnectionService) *every time*, but they routinely "fall

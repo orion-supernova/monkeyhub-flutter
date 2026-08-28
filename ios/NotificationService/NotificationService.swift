@@ -1,4 +1,5 @@
 import Intents
+import UIKit
 import UserNotifications
 
 /// Redraws an incoming banner as a COMMUNICATION notification: the sender's
@@ -80,10 +81,7 @@ class NotificationService: UNNotificationServiceExtension {
       })
     }
 
-    let senderName = (info["senderName"] as? String)
-      ?? (info["callerName"] as? String)
-      ?? (info["starterName"] as? String)
-      ?? original.title
+    let senderName = Self.displayName(in: info, fallback: original.title)
     let rawUrl = info["senderAvatarUrl"] as? String ?? ""
 
     guard
@@ -119,7 +117,7 @@ class NotificationService: UNNotificationServiceExtension {
         return
       }
       self.deliver(
-        self.decorate(original, image: INImage(imageData: data),
+        self.decorate(original, image: Self.uprightAvatar(data),
                       senderName: senderName)
       )
     }
@@ -132,6 +130,99 @@ class NotificationService: UNNotificationServiceExtension {
     // iOS is about to show something regardless; hand it the best we have
     // rather than letting it fall back to the unmodified payload.
     if let pending { deliver(pending) }
+  }
+
+  /// Whose name this banner is titled with.
+  ///
+  /// A communication notification takes its title from the INPerson and
+  /// discards whatever `aps.alert.title` said — so this is not a fallback
+  /// chain for a missing field, it is the title, and every payload that gets
+  /// decorated has to be able to answer it.
+  ///
+  /// The group-call branch is the one that is not simply "who is talking".
+  /// `groupCalls.sendGroupInvitePush` titles that push with the ROOM
+  /// ("Design Crew") and puts the starter in the body ("Ayşe started a voice
+  /// call — tap to join"), because a group call belongs to the room rather
+  /// than to whoever happened to press the button. Naming the person after the
+  /// starter here overwrote that title with "Ayşe" and left the room named
+  /// nowhere at all, which is precisely the information a group call banner
+  /// exists to carry — you cannot decide whether to join a call without
+  /// knowing which room it is in. So for that kind the room IS the person, and
+  /// the identity below already agrees: a group invite carries no `senderId`
+  /// or `callerId`, so `decorate` already falls back to the roomId for both
+  /// the handle and the `customIdentifier`.
+  private static func displayName(
+    in info: [AnyHashable: Any],
+    fallback: String
+  ) -> String {
+    let kind = info["kind"] as? String ?? ""
+    if kind == "group_call_invite",
+       let roomName = info["roomName"] as? String,
+       !roomName.isEmpty {
+      return roomName
+    }
+    return (info["senderName"] as? String)
+      ?? (info["callerName"] as? String)
+      ?? (info["starterName"] as? String)
+      ?? fallback
+  }
+
+  /// Longest edge the face is drawn at. The banner renders it at about 40pt;
+  /// anything past this is pixels nobody sees, paid for in a redraw and in the
+  /// bytes that cross into the Intents renderer.
+  private static let avatarMaxEdge: CGFloat = 256
+
+  /// `INImage(imageData:)` with an upright picture in it.
+  ///
+  /// A camera does not rotate what its sensor saw. It writes the frame in the
+  /// sensor's own orientation and records how to turn it in an EXIF
+  /// `Orientation` tag, and every decoder is expected to honour that tag.
+  /// `INImage(imageData:)` keeps the bytes verbatim and its renderer draws the
+  /// stored pixel grid — so a portrait photograph arrives on the banner lying
+  /// on its side, a quarter turn out, while the very same file looks correct
+  /// everywhere in the app (Flutter's decoder does read the tag). That is the
+  /// whole of the "some people's avatars are rotated" report: not some people,
+  /// but every avatar whose bytes still carry an orientation other than `.up`.
+  ///
+  /// `UIImage` reads the tag. Drawing through it into a fresh context bakes
+  /// the rotation into the pixels, which is the only form Intents will handle
+  /// correctly, and is the same normalisation `pickerImageQuality` performs on
+  /// the way IN for anything uploaded since (lib/media/image_raster.dart) —
+  /// this covers the pictures that predate it, and any that arrive by another
+  /// road.
+  ///
+  /// Falls back to the raw bytes on every failure: a face drawn sideways beats
+  /// no face, and both beat no notification.
+  static func uprightAvatar(_ data: Data) -> INImage {
+    guard let decoded = UIImage(data: data),
+          decoded.size.width > 0, decoded.size.height > 0
+    else {
+      return INImage(imageData: data)
+    }
+    let longest = max(decoded.size.width, decoded.size.height)
+    // Already upright and already small: re-encoding buys nothing, and PNG is
+    // not free on a path a message is waiting behind.
+    if decoded.imageOrientation == .up && longest <= Self.avatarMaxEdge {
+      return INImage(imageData: data)
+    }
+    let k = longest > Self.avatarMaxEdge ? Self.avatarMaxEdge / longest : 1
+    let target = CGSize(
+      width: max(1, (decoded.size.width * k).rounded()),
+      height: max(1, (decoded.size.height * k).rounded())
+    )
+    let format = UIGraphicsImageRendererFormat.default()
+    // Points, not the device's scale factor: `target` is already the pixel
+    // count we want, and letting this default to 3 would triple it back.
+    format.scale = 1
+    // The crop screen exports a CIRCLE (CropShape.circle), so an avatar
+    // routinely has transparent corners. Flattening them here would put black
+    // squares behind every face on the lock screen.
+    format.opaque = false
+    let upright = UIGraphicsImageRenderer(size: target, format: format).image { _ in
+      decoded.draw(in: CGRect(origin: .zero, size: target))
+    }
+    guard let png = upright.pngData() else { return INImage(imageData: data) }
+    return INImage(imageData: png)
   }
 
   /// Hands the notification over exactly once. The download and the deadline

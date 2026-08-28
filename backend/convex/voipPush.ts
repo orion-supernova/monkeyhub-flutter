@@ -157,6 +157,161 @@ export const sendVoip = internalAction({
   },
 });
 
+/**
+ * Ring every invitee's phones for a GROUP call.
+ *
+ * The 1:1 twin above addresses one callee and one call row; this addresses a
+ * list of people and a `groupCallParticipants` row each, which is the only
+ * structural difference. Everything below the fan-out — transport choice per
+ * device, the three error classes, dead-credential clearing, the single retry
+ * — is `pushToDevice`, shared and unchanged.
+ *
+ * The card's identity is DERIVED from the groupCallId rather than minted here
+ * (`uuidForCallId` on Android, `derivedCallUuid` on iOS, `derivedUuid` in
+ * Dart — all three are UUIDv3 over the same bytes and are pinned against each
+ * other by test/call_native_uuid_test.dart). A minted id would have to be
+ * carried to whoever later needs to dismiss the card, and the process holding
+ * it is precisely the one that may not exist any more.
+ *
+ * Falls back to the ordinary banner, per invitee, for anyone no native
+ * transport could reach.
+ */
+export const sendGroupVoip = internalAction({
+  args: {
+    groupCallId: v.id("groupCalls"),
+    roomId: v.id("rooms"),
+    inviteeIds: v.array(v.id("users")),
+    starterName: v.string(),
+    roomName: v.string(),
+    type: v.string(),
+    /** `{ [inviteeId]: { data: { senderAvatarUrl } } }` — see `start`. */
+    perUser: v.optional(v.any()),
+  },
+  handler: async (ctx, args) => {
+    // Ring-path guard, exactly as `sendVoip` has: this is scheduled
+    // runAfter(0) with the payload precomputed, so it can execute after an
+    // invitee has already joined elsewhere, declined, or the call has ended.
+    const pending: string[] = await ctx.runQuery(
+      internal.groupCalls._pendingInvitees,
+      { groupCallId: args.groupCallId, userIds: args.inviteeIds },
+    );
+    if (pending.length === 0) {
+      console.log(
+        `sendGroupVoip: nobody left to ring for ${args.groupCallId} — skipping`,
+      );
+      return;
+    }
+
+    const unreached: Id<"users">[] = [];
+    await Promise.allSettled(
+      pending.map(async (raw) => {
+        const userId = raw as Id<"users">;
+        const devices: DeviceRow[] = await ctx.runQuery(
+          internal.voipPush._loadUserDevices,
+          { userId },
+        );
+        if (devices.length === 0) {
+          unreached.push(userId);
+          return;
+        }
+        const payload = {
+          kind: "group_invite",
+          groupCallId: args.groupCallId.toString(),
+          roomId: args.roomId.toString(),
+          // The ROOM is who is calling. A group call belongs to the room, not
+          // to whoever pressed the button, and the room is what the person
+          // deciding whether to answer needs to read — so it goes in the
+          // field both native ringers title their card with.
+          callerName: args.roomName,
+          callerHandle: args.roomName,
+          roomName: args.roomName,
+          starterName: args.starterName,
+          // Android's full-screen ringer renders this URL as the caller
+          // avatar (plugin `avatar` field, wired in CallFcmService). Already
+          // lens-checked against THIS invitee in `groupCalls.start`.
+          callerAvatarUrl:
+            (args.perUser ?? {})[raw]?.data?.senderAvatarUrl ?? "",
+          callType: args.type,
+        };
+        const results = await Promise.allSettled(
+          devices.map((d) => pushToDevice(ctx, userId, d, payload)),
+        );
+        if (!results.some((r) => r.status === "fulfilled" && r.value === true)) {
+          unreached.push(userId);
+        }
+      }),
+    );
+
+    if (unreached.length > 0) {
+      console.warn(
+        `sendGroupVoip: no native push delivered for ${unreached.length} invitee(s) — banner rescue`,
+      );
+      await ctx.scheduler.runAfter(
+        0,
+        internal.groupCalls.sendGroupInvitePush,
+        {
+          groupCallId: args.groupCallId,
+          roomId: args.roomId,
+          inviteeIds: unreached,
+          starterName: args.starterName,
+          roomName: args.roomName,
+          type: args.type,
+          perUser: args.perUser,
+        },
+      );
+    }
+  },
+});
+
+/**
+ * Take a group call's native ringer down on [targetUserIds]' devices.
+ *
+ * The group twin of `sendVoipTaken`, and simpler in one way that matters:
+ * there is no "answered elsewhere" to report on iOS, because a group call is
+ * not answered — it is joined, and it goes on without you. The card is ended
+ * on both platforms and the person is left with the room banner, which is the
+ * quiet join surface for exactly this case.
+ *
+ * `excludeDeviceId` spares the phone that settled the invite: its card is
+ * already gone, and on iOS a `taken` with nothing to end is a one-second
+ * phantom ring rather than a no-op.
+ */
+export const sendGroupVoipTaken = internalAction({
+  args: {
+    groupCallId: v.id("groupCalls"),
+    targetUserIds: v.array(v.id("users")),
+    excludeDeviceId: v.optional(v.union(v.string(), v.null())),
+    reason: v.union(
+      v.literal("joined"),
+      v.literal("declined"),
+      v.literal("ended"),
+      v.literal("timeout"),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const payload = {
+      kind: "group_taken",
+      groupCallId: args.groupCallId.toString(),
+      reason: args.reason,
+    };
+    await Promise.allSettled(
+      args.targetUserIds.map(async (userId) => {
+        const devices: DeviceRow[] = await ctx.runQuery(
+          internal.voipPush._loadUserDevices,
+          { userId },
+        );
+        const targets = devices.filter(
+          (d) =>
+            d.deviceId !== args.excludeDeviceId && (d.voipToken || d.fcmToken),
+        );
+        await Promise.allSettled(
+          targets.map((d) => pushToDevice(ctx, userId, d, payload)),
+        );
+      }),
+    );
+  },
+});
+
 // Sent to callee iOS devices to dismiss a ringing CallKit card with
 // `.answeredElsewhere`, even on a killed app where the in-app `taken` signal
 // can't be delivered in time. Two uses:

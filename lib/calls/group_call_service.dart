@@ -135,6 +135,14 @@ class GroupCallService extends ChangeNotifier {
   CallMediaKind _mediaKind = CallMediaKind.audio;
   CallMediaKind get mediaKind => _mediaKind;
   bool get inCall => _groupCallId != null;
+
+  /// Whether [attach] has run, i.e. whether this service knows who it is.
+  ///
+  /// Read by the native ringer: a card answered from a killed app fires its
+  /// accept while auth is still being restored, and every mutation below needs
+  /// a userId that does not exist yet. See
+  /// `NativeCallHandler._attachedGroupService`.
+  bool get isAttached => _userId != null;
   bool _ending = false;
 
   /// Set first thing in [dispose]. [leaveCall] can be mid-`await` (its own
@@ -422,15 +430,33 @@ class GroupCallService extends ChangeNotifier {
   }
 
   Future<void> declineInvite() async {
-    final me = _userId;
     final inv = pendingInvite;
-    if (me == null || inv == null) return;
-    pendingInvite = null;
-    notifyListeners();
+    if (inv == null) return;
+    await declineInviteById(inv['groupCallId'].toString());
+  }
+
+  /// Decline a specific invite, whether or not it is the one this process is
+  /// holding in [pendingInvite].
+  ///
+  /// The native ringer needs this: a card raised by the push itself, in a
+  /// process that was launched by that push, is answered or refused before
+  /// any subscription has delivered the invite it belongs to — so there is
+  /// frequently no `pendingInvite` to read the id out of. The id comes off
+  /// the card instead (`NativeCallHandler._groupCallIdFromParams`).
+  Future<void> declineInviteById(String groupCallId) async {
+    final me = _userId;
+    if (me == null) return;
+    // Only clear the held invite if it is the one being declined — a stale
+    // card for an older call must not silence the ringer for a live one.
+    if (pendingInvite?['groupCallId']?.toString() == groupCallId) {
+      pendingInvite = null;
+      notifyListeners();
+    }
     try {
       await api.decline(
-        groupCallId: inv['groupCallId'].toString(),
+        groupCallId: groupCallId,
         userId: me,
+        deviceId: _deviceId,
       );
     } catch (_) {}
   }
@@ -967,6 +993,24 @@ class GroupCallService extends ChangeNotifier {
     } catch (e) {
       debugPrint('switchCamera failed: $e');
     }
+  }
+
+  /// Re-assert this call's audio route after CallKit activated the session.
+  ///
+  /// New with the native ringer, and not optional. A group call on iOS is now
+  /// a real CallKit call, which means the plugin re-runs its own
+  /// `configureAudioSession` at ring and at answer — with mode `.default` and
+  /// no `defaultToSpeaker`, clobbering whatever [_enterCall] set. Before the
+  /// ringer existed nothing else touched the session, so nothing had to be
+  /// re-asserted; now the plugin is the last writer unless this runs.
+  ///
+  /// The 1:1 twin is `CallService.onNativeAudioSessionActivated`, which the
+  /// same plugin event reaches first — and which returns early when there is
+  /// no 1:1 session, which is exactly when this one applies.
+  Future<void> onNativeAudioSessionActivated() async {
+    if (!inCall) return;
+    await applyIosCallAudioConfig(_mediaKind, speakerOn: speakerOn);
+    await applyCallAudioRoute(speaker: speakerOn);
   }
 
   Future<void> toggleSpeaker() async {

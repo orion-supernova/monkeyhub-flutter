@@ -1336,10 +1336,12 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         // `await _repo.attach(...)` and `await PushManager.login(...)`, all
         // inside the single swallow-everything catch below. Two ways that
         // silently killed every incoming call on this device:
-        //   1. `PushManager.login` awaits OneSignal login AND the
+        //   1. `PushManager.login` awaits token registration AND the
         //      notification-permission prompt. On a cold start woken by a
         //      VoIP push, that can hang indefinitely — and everything after
-        //      it, including the entire call stack, never runs.
+        //      it, including the entire call stack, never runs. (It awaited
+        //      the push VENDOR's login when this was written; the vendor is
+        //      gone and the hazard is not.)
         //   2. Anything above throwing lands in the shared `catch (_) {}`,
         //      which logs nothing at all.
         // Either way `CallService` stayed unattached and
@@ -2284,6 +2286,21 @@ class _GroupCallOverlayState extends State<_GroupCallOverlay> {
   String? _pushedCallId;
   bool _ringerUp = false;
 
+  /// Whether this platform rings a group invite through the OS. Deliberately
+  /// the same predicate — and the same reasoning — as
+  /// [_CallOverlayState._nativeRinger]: a group call is a call, and a device
+  /// that shows CallKit for one and an in-app sheet for the other is a device
+  /// whose user cannot learn what answering a call looks like.
+  bool get _nativeRinger {
+    if (kIsWeb) return false;
+    final p = defaultTargetPlatform;
+    if (p == TargetPlatform.android) return true;
+    if (p == TargetPlatform.iOS) {
+      return !NativeCallHandler.instance.isIosSimulator;
+    }
+    return false;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -2322,7 +2339,48 @@ class _GroupCallOverlayState extends State<_GroupCallOverlay> {
     // Ring for a fresh invite — never over an active 1:1 or group call
     // (the room banner remains as the quiet join surface).
     final busyOneToOne = CallService.maybeInstance?.inCall ?? false;
-    if (svc.pendingInvite != null &&
+    final invite = svc.pendingInvite;
+    final invitedCallId = invite?['groupCallId']?.toString();
+    if (invite != null &&
+        invitedCallId != null &&
+        invitedCallId.isNotEmpty &&
+        !svc.inCall &&
+        !busyOneToOne &&
+        _nativeRinger) {
+      // This device rings through the OS, so the in-app screen must not
+      // appear — the same WhatsApp-model rule [_CallOverlay._nativeRinger]
+      // states for 1:1 calls, and for the same reason: two ringers for one
+      // call is worse than either.
+      //
+      // On Android the card is raised HERE when the app is alive, because
+      // CallFcmService deliberately skips a foreground invite (it would
+      // double-ring against exactly this path). On iOS this is a no-op —
+      // `showIncoming` returns early off-Android — because the PushKit card
+      // is already up: iOS delivers a VoIP push in the foreground too, and
+      // CallKit is required to report it.
+      //
+      // Both paths derive the card's native id from the same groupCallId, so
+      // a push that lands beside this call addresses the same card rather
+      // than stacking a second one.
+      //
+      // The cost, taken deliberately and shared with the 1:1 path: on an
+      // iPhone whose VoIP token is dead, the invite still arrives over the
+      // subscription but nothing rings — the backend's banner rescue is all
+      // there is. Checking `activeCalls()` first and falling back to the
+      // in-app sheet is the obvious repair and it is worse: the PushKit card
+      // routinely lands a beat AFTER the subscription does, so the check
+      // would usually find nothing and raise a sheet that CallKit then
+      // appears on top of. A silent rare case beats a double ringer in the
+      // common one.
+      unawaited(NativeCallHandler.instance.showIncoming(
+        callId: invitedCallId,
+        groupCallId: invitedCallId,
+        callerName: invite['roomName']?.toString() ?? 'Group call',
+        kind: CallMediaKindWire.parse(invite['type']?.toString() ?? 'audio'),
+      ));
+      return;
+    }
+    if (invite != null &&
         !svc.inCall &&
         !busyOneToOne &&
         !_ringerUp) {

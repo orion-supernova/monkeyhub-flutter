@@ -31,15 +31,24 @@ self.addEventListener('push', (event) => {
   // browser's hidden budget and earn a "site updated in the background" banner.
   if (d.kind === 'dismiss') return;
 
-  const title = d.title || 'MonkeyHub';
   // The Notification API has no third "subtitle" line the way `aps.alert`
   // does on iOS (see push.ts's `AlertSpec.subtitle`) — title and body is all
-  // Chrome renders. For a group message this puts the room name on its own
-  // line ahead of the text, the closest approximation of "SenderName / Group
-  // Name / message" that two lines can carry. Never set for a DM: `roomName`
-  // is only ever sent when `isGroup` is `"true"`.
-  const body =
-    d.isGroup === 'true' && d.roomName ? `${d.roomName}\n${d.body || ''}` : (d.body || '');
+  // Chrome renders, so the three things a group message has to say have to
+  // fit in two.
+  //
+  // The room takes the TITLE and the sender moves in front of the text, which
+  // is the shape Android's MessagingStyle produces (ChatNotifications.kt) and
+  // the one every mainstream messenger uses on this platform. The room name
+  // used to be the first line of the BODY instead, where it was rendered in
+  // the same dim type as the message and read as part of it.
+  //
+  // Never for a DM: `roomName` is only ever sent when `isGroup` is `"true"`,
+  // and there the sender's name in the title is the whole answer to "who is
+  // this from".
+  const isGroup = d.isGroup === 'true' && !!d.roomName;
+  const sender = d.senderName || d.title || '';
+  const title = (isGroup ? d.roomName : d.title) || 'MonkeyHub';
+  const body = isGroup && sender ? `${sender}: ${d.body || ''}` : (d.body || '');
   event.waitUntil(
     self.registration.showNotification(title, {
       body,

@@ -347,16 +347,29 @@ import flutter_callkit_incoming
     // accept/decline events back to Dart.
     let dict = payload.dictionaryPayload
     let kind = (dict["kind"] as? String) ?? "invite"
-    let convexCallId = (dict["callId"] as? String) ?? ""
+    // A group call's identity is its groupCallId. Everything downstream —
+    // the CallKit UUID, the `extra` Dart reads, the card a later dismissal
+    // has to find — keys off this one string, exactly as the 1:1 path keys
+    // off the callId, which is why they share a variable rather than
+    // branching twice.
+    let isGroup = kind == "group_invite" || kind == "group_taken"
+    let convexCallId = isGroup
+      ? ((dict["groupCallId"] as? String) ?? "")
+      : ((dict["callId"] as? String) ?? "")
 
     // "taken" push: a sibling device accepted/rejected this call.
     // Dismiss CallKit with `.answeredElsewhere` so the system shows the
     // correct dismissal animation instead of a silent kill. We still must
     // satisfy Apple's "every push reports an incoming call" contract —
     // reportCallEndedElsewhere does that via the foregroundReportProvider.
-    if kind == "taken" {
+    //
+    // A group's dismissal lands here too, and needs no branch of its own:
+    // its card was shown under `derivedCallUuid(groupCallId)`, which is
+    // precisely the id the "card this device placed itself" branch inside
+    // reportCallEndedElsewhere already looks for.
+    if kind == "taken" || kind == "group_taken" {
       let reason = (dict["reason"] as? String) ?? "?"
-      NSLog("[voip] taken push — callId=\(convexCallId) reason=\(reason)")
+      NSLog("[voip] \(kind) push — id=\(convexCallId) reason=\(reason)")
       reportCallEndedElsewhere(convexCallId: convexCallId)
       completion()
       return
@@ -367,7 +380,21 @@ import flutter_callkit_incoming
     // SwiftFlutterCallkitIncomingPlugin.swift, so passing our callId
     // crashes the app. Mint a proper UUID for CallKit and preserve the
     // Convex callId in `extra` for Dart-side diagnostics.
-    let callUuid = UUID()
+    //
+    // A GROUP invite is the exception: its id is DERIVED from the
+    // groupCallId, not minted. The 1:1 scheme works because the process that
+    // mints the id also records it (in memory and in UserDefaults) for the
+    // one "taken" that may follow — but a group call can be left, joined
+    // elsewhere, declined or simply end, from any of several devices, and
+    // whichever process has to take the card down is not reliably the one
+    // that raised it. Deriving means every side computes the same id from
+    // the same string with no state to carry: `uuidForCallId` in
+    // CallFcmService.kt and `derivedUuid` in native_call_handler.dart are
+    // the same function, pinned against this one by
+    // test/call_native_uuid_test.dart.
+    let callUuid = isGroup && !convexCallId.isEmpty
+      ? Self.derivedCallUuid(convexCallId)
+      : UUID()
     let callerName = (dict["callerName"] as? String) ?? "Incoming call"
     let callerHandle = (dict["callerHandle"] as? String) ?? callerName
     let callType = ((dict["callType"] as? String) == "video") ? 1 : 0
@@ -381,7 +408,12 @@ import flutter_callkit_incoming
     // Stash the CallKit UUID so a follow-up "taken" push can end this
     // specific call with `.answeredElsewhere`. Persisted too, because the
     // "taken" may land in a fresh process after this one is killed.
-    if !convexCallId.isEmpty {
+    //
+    // Skipped entirely for a group, whose id is derived rather than minted:
+    // there is nothing to remember, and writing the two UserDefaults keys
+    // would CLOBBER the pair a 1:1 invite left there — a group invite landing
+    // between a 1:1 invite and its "taken" would cost that call its dismissal.
+    if !convexCallId.isEmpty && !isGroup {
       // Prune before insert: entries used to be removed ONLY when a "taken"
       // push consumed them, so normal answer/decline/timeout left them
       // forever — unbounded growth plus stale mappings for later lookups.
@@ -405,12 +437,21 @@ import flutter_callkit_incoming
       handle: callerHandle,
       type: callType
     )
-    callData.extra = [
+    // `groupCallId` is what tells Dart which of the two accept paths this is
+    // (`GroupCallService.joinCall` vs `CallService.acceptIncoming`) — see
+    // `NativeCallHandler._groupCallIdFromParams`. Absent for a 1:1, which is
+    // the discriminant rather than a missing field.
+    var extra: [String: Any] = [
       "callId": convexCallId,
       "callerName": callerName,
       "callType": callType,
       "rawPayload": dict,
-    ] as NSDictionary
+    ]
+    if isGroup {
+      extra["groupCallId"] = convexCallId
+      extra["roomId"] = (dict["roomId"] as? String) ?? ""
+    }
+    callData.extra = extra as NSDictionary
     // Classify the CallKit audio session correctly so the plugin's own
     // configureAudioSession (which runs at ring/answer/didActivate) sets a
     // call-appropriate mode instead of .default — .videoChat also biases

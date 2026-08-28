@@ -8,11 +8,16 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.app.Person
+import androidx.core.graphics.drawable.IconCompat
+import androidx.exifinterface.media.ExifInterface
 import org.json.JSONArray
+import java.io.ByteArrayInputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -245,12 +250,90 @@ object ChatNotifications {
         conn.connectTimeout = AVATAR_FETCH_TIMEOUT_MS
         conn.readTimeout = AVATAR_FETCH_TIMEOUT_MS
         conn.doInput = true
-        return try {
+        // Read to bytes rather than decoding the stream directly: the EXIF
+        // orientation has to be read from the SAME file the pixels came from,
+        // and a socket can only be walked once.
+        val bytes = try {
             conn.connect()
             if (conn.responseCode != 200) return null
-            conn.inputStream.use { BitmapFactory.decodeStream(it) }
+            conn.inputStream.use { it.readBytes() }
         } finally {
             conn.disconnect()
+        }
+        return uprightBitmap(bytes)
+    }
+
+    /// Longest edge a face is decoded at. A large icon is drawn at ~48dp and
+    /// the whole notification has to survive a 1 MB Binder transaction; a
+    /// 12-megapixel selfie is neither needed nor affordable here.
+    private const val AVATAR_MAX_EDGE = 512
+
+    /// [bytes] decoded and turned the right way up.
+    ///
+    /// `BitmapFactory` returns the frame exactly as the sensor stored it and
+    /// never looks at the EXIF `Orientation` tag — so a portrait photograph
+    /// decodes on its side, a quarter turn out, while the same file looks
+    /// correct everywhere in the app (Flutter's decoder does read the tag).
+    /// That is the whole of the "some people's avatars are rotated" report:
+    /// not some people, but every avatar whose bytes still carry an
+    /// orientation other than NORMAL.
+    ///
+    /// The iOS twin of this is `uprightAvatar` in NotificationService.swift,
+    /// which has the identical bug for the identical reason on the identical
+    /// pictures — the two should stay legible as siblings.
+    ///
+    /// Internal rather than private: [ShareShortcuts] draws the same faces
+    /// from the same URLs into the share sheet's top row.
+    fun uprightBitmap(bytes: ByteArray): Bitmap? {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        val longest = maxOf(bounds.outWidth, bounds.outHeight)
+        if (longest <= 0) return null
+        val opts = BitmapFactory.Options().apply {
+            // Powers of two, which is the only thing inSampleSize honours
+            // exactly; anything else is rounded down to one anyway.
+            var s = 1
+            while (longest / (s * 2) >= AVATAR_MAX_EDGE) s *= 2
+            inSampleSize = s
+        }
+        val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts) ?: return null
+
+        // A file with no EXIF block at all (a PNG, or a JPEG the crop screen
+        // re-encoded) reads as NORMAL and costs one parse of the header.
+        val orientation = runCatching {
+            ByteArrayInputStream(bytes).use {
+                ExifInterface(it).getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL,
+                )
+            }
+        }.getOrDefault(ExifInterface.ORIENTATION_NORMAL)
+
+        val m = Matrix()
+        when (orientation) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> m.postRotate(90f)
+            ExifInterface.ORIENTATION_ROTATE_180 -> m.postRotate(180f)
+            ExifInterface.ORIENTATION_ROTATE_270 -> m.postRotate(270f)
+            ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> m.postScale(-1f, 1f)
+            ExifInterface.ORIENTATION_FLIP_VERTICAL -> m.postScale(1f, -1f)
+            ExifInterface.ORIENTATION_TRANSPOSE -> {
+                m.postRotate(90f)
+                m.postScale(-1f, 1f)
+            }
+            ExifInterface.ORIENTATION_TRANSVERSE -> {
+                m.postRotate(270f)
+                m.postScale(-1f, 1f)
+            }
+            // NORMAL, UNDEFINED, and anything a future tag invents.
+            else -> return decoded
+        }
+        return runCatching {
+            Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, m, true)
+                .also { if (it != decoded) decoded.recycle() }
+        }.getOrElse {
+            // Out of memory rotating it. Sideways beats faceless.
+            Log.w(TAG, "could not rotate avatar: ${it.message}")
+            decoded
         }
     }
 
@@ -280,6 +363,10 @@ object ChatNotifications {
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setAutoCancel(true)
+            // The message's own server-minted timestamp, so a burst of pushes
+            // that FCM delivered out of order still sorts by when the messages
+            // were sent. Same field the push seeds a bubble from.
+            .setWhen(data["createdAt"]?.toLongOrNull() ?: System.currentTimeMillis())
             .setContentIntent(pi)
             .setPriority(
                 if (channel == CH_GAMES) NotificationCompat.PRIORITY_DEFAULT
@@ -299,13 +386,75 @@ object ChatNotifications {
         // Sender's face, WhatsApp/Telegram-style. Most launchers/OEM skins
         // mask a large icon into a circle the same way they do a contact
         // photo; that's system chrome, not something drawn here.
+        //
+        // Set for every kind; a chat message replaces it below with the same
+        // picture hung off the Person instead, which is where MessagingStyle
+        // looks for it.
         if (avatar != null) builder.setLargeIcon(avatar)
-        // The room name under the sender's name for a GROUP message — never
-        // set for a DM, whose `roomName` push.ts deliberately omits. `setSubText`
-        // is the closest thing NotificationCompat has to iOS's `aps.alert.subtitle`:
-        // a second line rendered above the message body.
-        if (data["isGroup"] == "true") {
-            data["roomName"]?.takeIf { it.isNotEmpty() }?.let { builder.setSubText(it) }
+
+        val isGroup = data["isGroup"] == "true"
+        val roomName = data["roomName"].orEmpty()
+
+        if (kind == "message") {
+            // MessagingStyle, not BigTextStyle + setSubText.
+            //
+            // The room name USED to ride on `setSubText`, described here as
+            // "the closest thing NotificationCompat has to iOS's
+            // aps.alert.subtitle: a second line rendered above the message
+            // body". That was true on Android 6 and has not been true since
+            // Android 7 (API 24) moved subtext into the collapsed HEADER, where
+            // it renders as small grey type beside the app name — routinely
+            // truncated away entirely by OEM skins. So the answer to "which
+            // group is this?" was technically on screen and practically
+            // invisible, which is exactly how it was reported.
+            //
+            // MessagingStyle is the shape every mainstream messenger uses and
+            // the one Android is built around: the conversation title becomes
+            // the notification's TITLE, and the line under it is attributed to
+            // a Person by name rather than being bare text. It also carries
+            // the face properly — a Person's icon reaches the conversation
+            // surfaces a large icon does not.
+            //
+            // What it does NOT change is that this is still one notification
+            // per message: the tag is the messageId, because that is what
+            // makes `dismissIds` able to pull back exactly the banner whose
+            // message was deleted. A room's messages therefore stack under
+            // the group summary as they always did — each carrying one line,
+            // not a transcript.
+            val sender = Person.Builder()
+                .setName(data["senderName"].orEmpty().ifEmpty { data["title"].orEmpty() })
+                // The same key ShareShortcuts hangs its Person off, so the
+                // system can tie a donation, a shortcut and this notification
+                // together as one conversation.
+                .setKey(data["senderId"].orEmpty().ifEmpty { roomId })
+                .apply { if (avatar != null) setIcon(IconCompat.createWithBitmap(avatar)) }
+                .build()
+            // Names the local user for messages WE add to the transcript. We
+            // never add any — this notification only ever reports what somebody
+            // else said — so it is never rendered; MessagingStyle simply
+            // requires a "me" to exist.
+            val style = NotificationCompat.MessagingStyle(
+                Person.Builder().setName("").build()
+            ).addMessage(
+                body,
+                data["createdAt"]?.toLongOrNull() ?: System.currentTimeMillis(),
+                sender,
+            )
+            // Never set for a DM, whose `roomName` push.ts deliberately omits:
+            // in a two-person conversation the sender's name IS the title, and
+            // a conversation title as well would say the same thing twice.
+            if (isGroup && roomName.isNotEmpty()) {
+                style.conversationTitle = roomName
+                // Tells the system this is a room rather than a pair, which is
+                // what makes it attribute each line to its sender.
+                style.isGroupConversation = true
+            }
+            builder.setStyle(style)
+        } else if (isGroup && roomName.isNotEmpty()) {
+            // Approvals and call banners keep the plain layout — nobody is
+            // "talking" in either, and MessagingStyle would attribute a
+            // system announcement to a person. The room still gets named.
+            builder.setSubText(roomName)
         }
 
         val nm = NotificationManagerCompat.from(ctx)
@@ -313,7 +462,17 @@ object ChatNotifications {
             nm.notify(tag, ID, builder.build())
             // Android auto-bundles at four; an explicit summary bundles at two,
             // so a room's notifications collapse into one row much sooner.
-            if (roomId.isNotEmpty()) postSummary(ctx, roomId, channel)
+            if (roomId.isNotEmpty()) {
+                // What the COLLAPSED row says. A summary with no title at all
+                // renders as a bare app name with nothing under it, which is
+                // what a second message in any room used to collapse into.
+                val summaryTitle = if (isGroup && roomName.isNotEmpty()) {
+                    roomName
+                } else {
+                    data["senderName"].orEmpty().ifEmpty { data["title"].orEmpty() }
+                }
+                postSummary(ctx, roomId, channel, summaryTitle)
+            }
         } catch (se: SecurityException) {
             // POST_NOTIFICATIONS revoked between the send and now. Nothing to
             // do — the next login re-asks.
@@ -321,14 +480,20 @@ object ChatNotifications {
         }
     }
 
-    private fun postSummary(ctx: Context, roomId: String, channel: String) {
+    private fun postSummary(
+        ctx: Context,
+        roomId: String,
+        channel: String,
+        title: String = "",
+    ) {
         val summary = NotificationCompat.Builder(ctx, channel)
             .setSmallIcon(R.drawable.ic_stat_notify)
             .setGroup(roomId)
             .setGroupSummary(true)
             .setAutoCancel(true)
             .setContentIntent(contentIntent(ctx, "message", roomId))
-            .setStyle(NotificationCompat.InboxStyle())
+            .setContentTitle(title)
+            .setStyle(NotificationCompat.InboxStyle().setBigContentTitle(title))
             .build()
         runCatching {
             NotificationManagerCompat.from(ctx).notify(summaryTag(roomId), ID, summary)

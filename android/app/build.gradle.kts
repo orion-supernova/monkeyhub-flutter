@@ -152,6 +152,12 @@ dependencies {
     // and the `FLAG_MATCH_PINNED` query ShareShortcuts.clear uses on sign-out.
     implementation("androidx.core:core-ktx:1.13.1")
 
+    // ExifInterface — read the orientation tag BitmapFactory ignores, so a
+    // notification's avatar is drawn the way up it was taken. See
+    // ChatNotifications.uprightBitmap. Not transitively available: the
+    // embedding pulls androidx.core, never this.
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
+
     val media3Version = "1.9.2"
     implementation("androidx.media3:media3-exoplayer:${media3Version}")
     implementation("androidx.media3:media3-ui:${media3Version}")
