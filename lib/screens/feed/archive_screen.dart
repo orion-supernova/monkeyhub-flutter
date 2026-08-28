@@ -1,4 +1,8 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../backend/chat_api.dart';
 import '../../backend/feed_api.dart';
@@ -60,6 +64,27 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
   String? _errorCode;
   String? _selectedDay;
 
+  /// How far down the list we are, 0..1 — the scrubber's thumb position.
+  ///
+  /// Notifiers rather than `setState`: a scroll writes these on every frame,
+  /// and rebuilding a grid of photographs sixty times a second to move a 40pt
+  /// thumb is not a trade worth making.
+  final _scrubAt = ValueNotifier<double>(0);
+
+  /// The day currently under the top of the viewport, as a dayKey.
+  ///
+  /// Read off the section boxes rather than derived from the scroll offset:
+  /// sections are as tall as the number of photographs in them, so an offset
+  /// fraction is a decent way to *move* and a bad way to *say where you are*.
+  final _scrubDay = ValueNotifier<String?>(null);
+
+  /// Whether the scrubber is visible. True while the list moves, and while a
+  /// finger is on the scrubber itself; false a beat after both stop.
+  final _scrubShowing = ValueNotifier<bool>(false);
+
+  Timer? _scrubHide;
+  bool _scrubbing = false;
+
   @override
   void initState() {
     super.initState();
@@ -69,12 +94,17 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
 
   @override
   void dispose() {
+    _scrubHide?.cancel();
     _scroll.removeListener(_onScroll);
     _scroll.dispose();
+    _scrubAt.dispose();
+    _scrubDay.dispose();
+    _scrubShowing.dispose();
     super.dispose();
   }
 
   void _onScroll() {
+    _trackScrub();
     if (!_scroll.hasClients || _loadingMore || !_hasMore) return;
     final pos = _scroll.position;
     // 600px of runway, so the next page is usually already in by the time the
@@ -126,6 +156,84 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     }
   }
 
+  /// Updates the thumb and the label from wherever the list has got to, and
+  /// keeps the scrubber on screen for a moment after it stops.
+  void _trackScrub() {
+    if (!_scroll.hasClients) return;
+    final pos = _scroll.position;
+    final extent = pos.maxScrollExtent;
+    _scrubAt.value = extent <= 0 ? 0 : (pos.pixels / extent).clamp(0.0, 1.0);
+    _scrubDay.value = _dayAtTop() ?? _scrubDay.value;
+    // A drag on the scrubber keeps it up by itself; this timer is for the
+    // ordinary case of flicking the list and watching where you land.
+    if (_scrubbing) return;
+    _scrubShowing.value = true;
+    _scrubHide?.cancel();
+    _scrubHide = Timer(const Duration(milliseconds: 900), () {
+      if (mounted && !_scrubbing) _scrubShowing.value = false;
+    });
+  }
+
+  /// The dayKey of the section the viewport's top edge is currently inside.
+  ///
+  /// Walks the laid-out section boxes, which is exact and costs one
+  /// `localToGlobal` per day on screen — the list holds a page of forty
+  /// moments, so that is a handful of days, not hundreds.
+  String? _dayAtTop() {
+    final listBox = context.findRenderObject();
+    if (listBox is! RenderBox || !listBox.hasSize) return null;
+    final top = listBox.localToGlobal(Offset.zero).dy;
+    String? best;
+    for (final day in _dayKeys) {
+      final ctx = _sectionKeys[day]?.currentContext;
+      final box = ctx?.findRenderObject();
+      if (box is! RenderBox || !box.hasSize) continue;
+      final y = box.localToGlobal(Offset.zero).dy;
+      // The last section that has already started by the time we reach the
+      // top edge — i.e. the one the reader is actually looking at.
+      if (y - top <= 24) {
+        best = day;
+      } else {
+        break;
+      }
+    }
+    return best ?? (_dayKeys.isEmpty ? null : _dayKeys.first);
+  }
+
+  /// Scrubbing: the finger's position along the track IS the position in the
+  /// list.
+  ///
+  /// Mapped through `maxScrollExtent`, which for a list of unequal sections is
+  /// approximate — but the label above the thumb is read from the sections
+  /// themselves, so what it says is always true even where the thumb is only
+  /// roughly right. That is the trade every fast-scroller makes, and it is the
+  /// right way round: being told the wrong date would be worse than landing a
+  /// screen early.
+  void _scrubTo(double fraction) {
+    if (!_scroll.hasClients) return;
+    final extent = _scroll.position.maxScrollExtent;
+    if (extent <= 0) return;
+    final before = _scrubDay.value;
+    _scroll.jumpTo((fraction.clamp(0.0, 1.0)) * extent);
+    // A tick per day crossed, so a fast drag feels like flicking through a
+    // stack rather than sliding a slider.
+    if (_scrubDay.value != before) HapticFeedback.selectionClick();
+  }
+
+  void _scrubStart() {
+    _scrubbing = true;
+    _scrubHide?.cancel();
+    _scrubShowing.value = true;
+  }
+
+  void _scrubEnd() {
+    _scrubbing = false;
+    _scrubHide?.cancel();
+    _scrubHide = Timer(const Duration(milliseconds: 900), () {
+      if (mounted && !_scrubbing) _scrubShowing.value = false;
+    });
+  }
+
   DateTime? get _oldest {
     DateTime? out;
     for (final list in _byDay.values) {
@@ -166,7 +274,10 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
       body: Stack(
         children: [
           theme.backgroundLayer(context),
+          // `bottom: false`, with the inset moved onto the grid below — see
+          // [edgeToEdgeBottom].
           SafeArea(
+            bottom: false,
             child: AdaptivePageBody(
               // Wider than the default reading column: this screen is a photo
               // grid, not text, so an expanded window should show more tiles
@@ -210,7 +321,27 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                       selected: _selectedDay,
                       onTap: _jumpTo,
                     ),
-                  Expanded(child: _body(theme, l10n)),
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        Positioned.fill(child: _body(theme, l10n)),
+                        if (_dayKeys.isNotEmpty)
+                          Positioned(
+                            top: 0,
+                            bottom: 0,
+                            right: 0,
+                            child: _DateScrubber(
+                              at: _scrubAt,
+                              day: _scrubDay,
+                              showing: _scrubShowing,
+                              onStart: _scrubStart,
+                              onEnd: _scrubEnd,
+                              onScrub: _scrubTo,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -255,7 +386,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
 
     return ListView.builder(
       controller: _scroll,
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+      padding: EdgeInsets.fromLTRB(20, 8, 20, edgeToEdgeBottom(context)),
       // One extra row for the tail spinner / end marker.
       itemCount: _dayKeys.length + 1,
       itemBuilder: (context, i) {
@@ -302,6 +433,192 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+/// A dayKey ("YYYY-MM-DD") as a localized date that always carries its year.
+///
+/// `formatFullDate` — "Friday, August 28, 2026" — is what the section headers
+/// used, and on a phone it ellipsized: the part that fell off the end was the
+/// year, which is the one thing a reader browsing an ARCHIVE cannot infer from
+/// context. `formatMediumDate` is short enough to survive but drops the year
+/// entirely, so the two are composed.
+///
+/// Composed rather than formatted through `intl`, which is only a transitive
+/// dependency here and is not worth promoting to a direct one for a date
+/// string. `MaterialLocalizations` supplies both halves already localized.
+String archiveDayLabel(BuildContext context, String dayKey) {
+  final date = archiveDay(dayKey);
+  if (date == null) return dayKey;
+  final l = MaterialLocalizations.of(context);
+  return '${l.formatMediumDate(date)} · ${l.formatYear(date)}';
+}
+
+/// Parses a dayKey, or null when it is not one.
+DateTime? archiveDay(String dayKey) {
+  final parts = dayKey.split('-').map(int.tryParse).toList();
+  if (parts.length != 3 || parts.contains(null)) return null;
+  return DateTime(parts[0]!, parts[1]!, parts[2]!);
+}
+
+/// The fast-scroll rail down the right edge of the archive.
+///
+/// An archive is the one list in this app that can be genuinely long — years
+/// of days, forty moments at a time — and a flick-and-wait scroll through it is
+/// not browsing, it is scrubbing. The date rail across the top answers "take me
+/// to that day" for the days that have loaded; this answers "take me a long way,
+/// and tell me where I am on the way" without needing them named first.
+///
+/// Deliberately not a `Scrollbar`. Flutter's is interactive and correctly
+/// styled, and it can say nothing at all about *what* you are scrolling past —
+/// which on a list keyed by date is the only question worth answering.
+///
+/// Appears while the list is moving and a beat after; a finger on the rail
+/// itself keeps it. It never sits there permanently: it is a control for a
+/// gesture in progress, not furniture.
+class _DateScrubber extends StatelessWidget {
+  const _DateScrubber({
+    required this.at,
+    required this.day,
+    required this.showing,
+    required this.onStart,
+    required this.onEnd,
+    required this.onScrub,
+  });
+
+  final ValueListenable<double> at;
+  final ValueListenable<String?> day;
+  final ValueListenable<bool> showing;
+  final VoidCallback onStart;
+  final VoidCallback onEnd;
+  final void Function(double fraction) onScrub;
+
+  /// Wide enough to hit with a thumb without reaching, narrow enough that it is
+  /// not stealing a column from the grid underneath.
+  static const _trackWidth = 40.0;
+  static const _thumbHeight = 42.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+
+    return ValueListenableBuilder<bool>(
+      valueListenable: showing,
+      builder: (context, visible, child) => IgnorePointer(
+        // Never merely invisible: an invisible rail that still swallowed drags
+        // would make the grid beneath it unscrollable down its right edge.
+        ignoring: !visible,
+        child: AnimatedOpacity(
+          opacity: visible ? 1 : 0,
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOut,
+          child: child,
+        ),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final travel = (constraints.maxHeight - _thumbHeight).clamp(1.0, 1e6);
+
+          void scrubToY(double y) =>
+              onScrub(((y - _thumbHeight / 2) / travel).clamp(0.0, 1.0));
+
+          return SizedBox(
+            width: _trackWidth,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onVerticalDragStart: (d) {
+                onStart();
+                scrubToY(d.localPosition.dy);
+              },
+              onVerticalDragUpdate: (d) => scrubToY(d.localPosition.dy),
+              onVerticalDragEnd: (_) => onEnd(),
+              onVerticalDragCancel: onEnd,
+              // A tap anywhere on the rail jumps there too, which is the whole
+              // point of a rail you can see the length of.
+              onTapDown: (d) {
+                onStart();
+                scrubToY(d.localPosition.dy);
+              },
+              onTapUp: (_) => onEnd(),
+              onTapCancel: onEnd,
+              child: ValueListenableBuilder<double>(
+                valueListenable: at,
+                builder: (context, fraction, _) => Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned(
+                      top: fraction * travel,
+                      right: 6,
+                      child: _Thumb(day: day, theme: theme),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// The grip, with the date it is currently over spilling out to its left.
+class _Thumb extends StatelessWidget {
+  const _Thumb({required this.day, required this.theme});
+
+  final ValueListenable<String?> day;
+  final dynamic theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: _DateScrubber._thumbHeight,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          ValueListenableBuilder<String?>(
+            valueListenable: day,
+            builder: (context, dayKey, _) {
+              if (dayKey == null) return const SizedBox.shrink();
+              return Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: theme.accent,
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.24),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  archiveDayLabel(context, dayKey),
+                  // accentInk on an accent fill, never white — NeonNight's
+                  // accent is pure yellow and Graphite's is near-white.
+                  style: theme.monoTiny.copyWith(color: theme.accentInk),
+                  maxLines: 1,
+                ),
+              );
+            },
+          ),
+          Container(
+            width: 5,
+            height: _DateScrubber._thumbHeight,
+            decoration: BoxDecoration(
+              color: theme.accent,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -370,15 +687,20 @@ class _DayChip extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final parts = dayKey.split('-');
     // Rendered from the key's own digits rather than parsed into a DateTime
-    // and formatted: the day chip is a compact D/M stamp, and every locale
-    // reads two numbers the same way. The full localized date is on the
-    // section header below, where there is room for it.
+    // and formatted: the chip is a compact numeric stamp, and every locale
+    // reads digits the same way. The month and the year share a line so the
+    // chip stays three lines tall — an archive that runs back years was
+    // offering "28 / 08" and no way to tell which August that was.
     final dayNum = parts.length == 3 ? parts[2] : dayKey;
-    final monthNum = parts.length == 3 ? parts[1] : '';
+    final year = parts.isEmpty || parts[0].length != 4
+        ? ''
+        : parts[0].substring(2);
+    final stamp = parts.length == 3 ? '${parts[1]}.$year' : '';
 
     return FocusableTap(
       onTap: onTap,
-      semanticLabel: dayKey,
+      // Spoken, not spelled: "2026-08-28" is read out as a string of digits.
+      semanticLabel: archiveDayLabel(context, dayKey),
       selected: active,
       radius: theme.radiusMd,
       child: GestureDetector(
@@ -386,7 +708,8 @@ class _DayChip extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         child: AnimatedContainer(
           duration: theme.motionFast,
-          width: 54,
+          // Two more points than before, for the ".26" the stamp grew.
+          width: 56,
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
             color: active ? theme.accent : theme.surfaceSunken,
@@ -405,10 +728,11 @@ class _DayChip extends StatelessWidget {
                 ),
               ),
               Text(
-                monthNum,
+                stamp,
                 style: theme.monoTiny.copyWith(
                   color: active ? theme.accentInk : theme.inkMuted,
                 ),
+                maxLines: 1,
               ),
               const SizedBox(height: 2),
               Text(
@@ -445,16 +769,9 @@ class _DaySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final parts = dayKey.split('-').map(int.tryParse).toList();
-    final date = parts.length == 3 && !parts.contains(null)
-        ? DateTime(parts[0]!, parts[1]!, parts[2]!)
-        : null;
-    // MaterialLocalizations rather than intl, which is only a transitive
-    // dependency here. NOT uppercased: Dart's toUpperCase is locale-independent
-    // and would turn a Turkish 'i' into 'I' instead of 'İ'.
-    final label = date == null
-        ? dayKey
-        : MaterialLocalizations.of(context).formatFullDate(date);
+    // NOT uppercased: Dart's toUpperCase is locale-independent and would turn a
+    // Turkish 'i' into 'I' instead of 'İ'.
+    final label = archiveDayLabel(context, dayKey);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 26),
