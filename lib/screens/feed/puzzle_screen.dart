@@ -197,7 +197,10 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       body: Stack(
         children: [
           theme.backgroundLayer(context),
+          // `bottom: false`, with the inset moved onto the shell's own
+          // scroller — see [edgeToEdgeBottom].
           SafeArea(
+            bottom: false,
             child: GameLayoutShell(
               header: header,
               board: game,

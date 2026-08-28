@@ -6,6 +6,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../models/family.dart';
 import '../keyboard/focusable_tap.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/adaptive_sheet.dart';
@@ -410,7 +411,11 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
       body: Stack(
         children: [
           theme.backgroundLayer(context),
+          // See home_screen: the bottom inset leaves a dead strip of
+          // background under the scroller, which reads as a solid bar. The
+          // list clears the home indicator with its own padding instead.
           SafeArea(
+            bottom: false,
             child: AdaptivePageBody(
               child: Column(
                 children: [
@@ -440,7 +445,12 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
                   ),
                   Expanded(
                     child: ListView(
-                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
+                      padding: EdgeInsets.fromLTRB(
+                        20,
+                        4,
+                        20,
+                        edgeToEdgeBottom(context, 40),
+                      ),
                       children: [
                         _SectionHeader(
                           l10n.childPolicyScreenSectionWhatTheyCanDo,

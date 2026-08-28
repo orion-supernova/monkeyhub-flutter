@@ -97,7 +97,10 @@ class _GamesHubScreenState extends State<GamesHubScreen> {
       body: Stack(
         children: [
           theme.backgroundLayer(context),
+          // `bottom: false`, with the inset moved onto the list below — see
+          // [edgeToEdgeBottom].
           SafeArea(
+            bottom: false,
             child: AdaptivePageBody(
               // The tile grid below already grows past 3 columns once there's
               // room for it — the default readable column caps that growth at
@@ -112,7 +115,12 @@ class _GamesHubScreenState extends State<GamesHubScreen> {
                 onRefresh: () =>
                     GamesStore.instance.load(widget.userId, force: true),
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    8,
+                    20,
+                    edgeToEdgeBottom(context),
+                  ),
                   children: [
                     Row(
                       children: [

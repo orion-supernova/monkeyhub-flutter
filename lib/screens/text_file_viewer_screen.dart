@@ -6,6 +6,7 @@ import '../backend/chat_api.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../media/document_saver.dart';
 import '../media/file_url_cache.dart' show FileUnavailable;
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/app_toast.dart';
@@ -112,7 +113,11 @@ class _TextFileViewerScreenState extends State<TextFileViewerScreen> {
       body: Stack(
         children: [
           theme.backgroundLayer(context),
+          // See home_screen: the bottom inset leaves a dead strip of
+          // background under the scroller, which reads as a solid bar. The
+          // list clears the home indicator with its own padding instead.
           SafeArea(
+            bottom: false,
             child: AdaptivePageBody(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(8, 4, 12, 0),
@@ -203,7 +208,9 @@ class _TextFileViewerScreenState extends State<TextFileViewerScreen> {
                                 ),
                               Expanded(
                                 child: SingleChildScrollView(
-                                  padding: const EdgeInsets.only(bottom: 24),
+                                  padding: EdgeInsets.only(
+                                    bottom: edgeToEdgeBottom(context, 24),
+                                  ),
                                   child: SelectableText(
                                     data.text,
                                     style: theme.mono,

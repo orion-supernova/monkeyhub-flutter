@@ -198,7 +198,11 @@ class _JoinByInviteScreenState extends State<JoinByInviteScreen> {
       body: Stack(
         children: [
           theme.backgroundLayer(context),
+          // See home_screen: the bottom inset leaves a dead strip of
+          // background under the scroller, which reads as a solid bar. The
+          // list clears the home indicator with its own padding instead.
           SafeArea(
+            bottom: false,
             child: AdaptivePageBody(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -206,7 +210,12 @@ class _JoinByInviteScreenState extends State<JoinByInviteScreen> {
                   _header(theme, l10n),
                   Expanded(
                     child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(22, 8, 22, 32),
+                      padding: EdgeInsets.fromLTRB(
+                        22,
+                        8,
+                        22,
+                        edgeToEdgeBottom(context, 32),
+                      ),
                       child: _body(theme, l10n),
                     ),
                   ),

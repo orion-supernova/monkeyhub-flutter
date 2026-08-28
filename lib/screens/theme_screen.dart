@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../data/settings_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 
@@ -101,7 +102,11 @@ class _ThemeScreenState extends State<ThemeScreen> {
       body: Stack(
         children: [
           theme.backgroundLayer(context),
+          // See home_screen: the bottom inset leaves a dead strip of
+          // background under the scroller, which reads as a solid bar. The
+          // list clears the home indicator with its own padding instead.
           SafeArea(
+            bottom: false,
             child: AdaptivePageBody(
               child: Column(
               children: [
@@ -137,7 +142,12 @@ class _ThemeScreenState extends State<ThemeScreen> {
                   // theme — `Scrollable.ensureVisible` needs a mounted
                   // context to scroll to.
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+                    padding: EdgeInsets.fromLTRB(
+                      20,
+                      0,
+                      20,
+                      edgeToEdgeBottom(context),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [

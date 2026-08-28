@@ -24,6 +24,7 @@ import '../models/room_admin.dart';
 import '../models/room_capabilities.dart';
 import '../models/room_content_item.dart';
 import '../theme/app_theme.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/app_toast.dart';
@@ -946,14 +947,23 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       body: Stack(
         children: [
           theme.backgroundLayer(context),
+          // See home_screen: the bottom inset leaves a dead strip of
+          // background under the scroller, which reads as a solid bar. The
+          // list clears the home indicator with its own padding instead.
           SafeArea(
+            bottom: false,
             child: AdaptivePageBody(
               child: Column(
               children: [
                 _header(theme, r, title),
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(22, 18, 22, 32),
+                    padding: EdgeInsets.fromLTRB(
+                      22,
+                      18,
+                      22,
+                      edgeToEdgeBottom(context, 32),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [

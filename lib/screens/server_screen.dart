@@ -11,6 +11,7 @@ import '../backend/server_switch.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/labeled_field.dart';
@@ -235,10 +236,19 @@ class _ServerScreenState extends State<ServerScreen> {
       body: Stack(
         children: [
           theme.backgroundLayer(context),
+          // See home_screen: the bottom inset leaves a dead strip of
+          // background under the scroller, which reads as a solid bar. The
+          // list clears the home indicator with its own padding instead.
           SafeArea(
+            bottom: false,
             child: AdaptivePageBody(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 48),
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  14,
+                  20,
+                  edgeToEdgeBottom(context, 48),
+                ),
                 children: [
                   if (!widget.onboarding)
                     Row(

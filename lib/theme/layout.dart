@@ -44,6 +44,27 @@ class Breakpoints {
           : WindowClass.compact;
 }
 
+/// Bottom padding for the scroller on a screen that runs edge to edge.
+///
+/// **The band this exists to remove.** Every pushed screen in this app is a
+/// `Stack` of `theme.backgroundLayer` under a `SafeArea`, and a `SafeArea`
+/// reserves the device's bottom inset by shrinking what is inside it. So the
+/// list stopped above the home indicator and the strip below it was a static
+/// slab of flat background that nothing ever scrolled through — which reads,
+/// correctly, as a solid bar bolted to the bottom of the app.
+///
+/// The fix is the pair: `SafeArea(bottom: false)` so the content box reaches
+/// the bottom of the display, and this on the scroller inside it so the last
+/// row still comes to rest clear of the indicator rather than under it. The
+/// picture then runs to the edge of the glass and the content scrolls past the
+/// indicator on its way, which is what "fullscreen" means on a phone with no
+/// bezel.
+///
+/// [base] is the screen's own breathing room at the end of its content —
+/// whatever it was passing before the inset was its problem.
+double edgeToEdgeBottom(BuildContext context, [double base = 40]) =>
+    base + MediaQuery.paddingOf(context).bottom;
+
 /// Spacing scale — the previously-inline magic numbers, named. Adopt
 /// incrementally; existing literals keep working.
 class Insets {

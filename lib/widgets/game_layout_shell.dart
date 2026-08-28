@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../screens/navigation/destinations.dart';
 import '../theme/layout.dart';
 import 'adaptive_page_body.dart';
 
@@ -56,7 +55,11 @@ class GameLayoutShell extends StatelessWidget {
     if (!context.isExpanded) {
       return AdaptivePageBody(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+          // The device's bottom inset rides on the scroller rather than being
+          // reserved by a `SafeArea` — see [edgeToEdgeBottom]. The board runs
+          // to the bottom of the glass and the scoreboard scrolls past the home
+          // indicator instead of stopping above a slab of background.
+          padding: EdgeInsets.fromLTRB(20, 8, 20, edgeToEdgeBottom(context)),
           children: [
             ...header,
             const SizedBox(height: 20),
@@ -68,7 +71,7 @@ class GameLayoutShell extends StatelessWidget {
       );
     }
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(20, 8, 20, sectionBottomPadding(context)),
+      padding: EdgeInsets.fromLTRB(20, 8, 20, edgeToEdgeBottom(context)),
       child: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(

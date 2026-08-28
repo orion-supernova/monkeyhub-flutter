@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../auth/auth_service.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/code_field.dart';
@@ -128,14 +129,23 @@ class _ReleaseDeviceScreenState extends State<ReleaseDeviceScreen> {
       body: Stack(
         children: [
           theme.backgroundLayer(context),
+          // See home_screen: the bottom inset leaves a dead strip of
+          // background under the scroller, which reads as a solid bar. The
+          // list clears the home indicator with its own padding instead.
           SafeArea(
+            bottom: false,
             child: AdaptivePageBody(
               child: Column(
               children: [
                 _Header(onClose: () => Navigator.of(context).maybePop()),
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(28, 8, 28, 32),
+                    padding: EdgeInsets.fromLTRB(
+                      28,
+                      8,
+                      28,
+                      edgeToEdgeBottom(context, 32),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [

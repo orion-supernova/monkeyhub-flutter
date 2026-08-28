@@ -8,6 +8,7 @@ import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../family/family_service.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/discover_rows.dart';
@@ -152,7 +153,11 @@ class _SearchScreenState extends State<SearchScreen> {
       body: Stack(
         children: [
           theme.backgroundLayer(context),
+          // See home_screen: the bottom inset leaves a dead strip of
+          // background under the scroller, which reads as a solid bar. The
+          // list clears the home indicator with its own padding instead.
           SafeArea(
+            bottom: false,
             child: AdaptivePageBody(
               child: Column(
                 children: [
@@ -249,7 +254,7 @@ class _SearchScreenState extends State<SearchScreen> {
       );
     }
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+      padding: EdgeInsets.fromLTRB(20, 0, 20, edgeToEdgeBottom(context)),
       itemCount: _users.length,
       itemBuilder: (_, i) => _PersonRow(
         user: _users[i],
@@ -272,7 +277,7 @@ class _SearchScreenState extends State<SearchScreen> {
       );
     }
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+      padding: EdgeInsets.fromLTRB(20, 0, 20, edgeToEdgeBottom(context)),
       itemCount: _rooms.length,
       itemBuilder: (_, i) => _RoomRow(
         room: _rooms[i],

@@ -6,6 +6,7 @@ import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
+import '../theme/layout.dart';
 import '../theme/speaker_colors.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
@@ -128,10 +129,19 @@ class _RoomColorsScreenState extends State<RoomColorsScreen> {
       body: Stack(
         children: [
           theme.backgroundLayer(context),
+          // See home_screen: the bottom inset leaves a dead strip of
+          // background under the scroller, which reads as a solid bar. The
+          // list clears the home indicator with its own padding instead.
           SafeArea(
+            bottom: false,
             child: AdaptivePageBody(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 40),
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  14,
+                  20,
+                  edgeToEdgeBottom(context, 40),
+                ),
                 children: [
                   Row(children: [
                     IconButton(

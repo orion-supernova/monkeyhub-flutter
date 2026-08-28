@@ -1034,10 +1034,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: Stack(
         children: [
           theme.backgroundLayer(context),
+          // See home_screen: the bottom inset leaves a dead strip of
+          // background under the scroller, which reads as a solid bar. The
+          // list clears the home indicator with its own padding instead.
           SafeArea(
+            bottom: false,
             child: AdaptivePageBody(
               child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 40),
+              padding: EdgeInsets.fromLTRB(
+                20,
+                14,
+                20,
+                edgeToEdgeBottom(context, 40),
+              ),
               children: [
                 Row(
                   children: [

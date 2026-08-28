@@ -4,6 +4,7 @@ import '../backend/chat_api.dart';
 import '../family/family_service.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/family.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/app_toast.dart';
@@ -121,7 +122,11 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
       body: Stack(
         children: [
           theme.backgroundLayer(context),
+          // See home_screen: the bottom inset leaves a dead strip of
+          // background under the scroller, which reads as a solid bar. The
+          // list clears the home indicator with its own padding instead.
           SafeArea(
+            bottom: false,
             child: AdaptivePageBody(
               child: Column(
               children: [
@@ -156,8 +161,12 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
                               color: theme.accent,
                               onRefresh: _load,
                               child: ListView.builder(
-                                padding:
-                                    const EdgeInsets.fromLTRB(20, 4, 20, 40),
+                                padding: EdgeInsets.fromLTRB(
+                                  20,
+                                  4,
+                                  20,
+                                  edgeToEdgeBottom(context, 40),
+                                ),
                                 itemCount: _items.length,
                                 itemBuilder: (_, i) => _QueueCard(
                                   item: _items[i],

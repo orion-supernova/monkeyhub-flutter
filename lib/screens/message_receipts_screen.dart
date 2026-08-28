@@ -9,6 +9,7 @@ import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/message_preview.dart';
 import '../theme/app_theme.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/message_stamp.dart' show formatClockTime;
@@ -82,7 +83,11 @@ class MessageReceiptsScreen extends StatelessWidget {
       body: Stack(
         children: [
           theme.backgroundLayer(context),
+          // See home_screen: the bottom inset leaves a dead strip of
+          // background under the scroller, which reads as a solid bar. The
+          // list clears the home indicator with its own padding instead.
           SafeArea(
+            bottom: false,
             // Rebuilt on the repository's own notifications, which is where
             // both cursor maps land. A receipt that arrives while this screen
             // is open moves a row from SENT to READ in front of the reader,
@@ -119,7 +124,12 @@ class MessageReceiptsScreen extends StatelessWidget {
           _Header(title: l10n.messageReceiptsScreenTitle),
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+              padding: EdgeInsets.fromLTRB(
+                20,
+                4,
+                20,
+                edgeToEdgeBottom(context, 28),
+              ),
               // Header block first, then one row per person. Built lazily
               // rather than as a Column so a room with a hundred members lays
               // out the dozen rows that are on screen.
