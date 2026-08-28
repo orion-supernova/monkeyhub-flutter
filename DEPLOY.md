@@ -252,6 +252,7 @@ Standalone actions — they run alone and exit:
 | `--rollback-web` | Put the previous web build back. Swaps, so running it twice undoes it |
 | `--infra` | Install `hosting/caddy-monkeyhub.conf` on the VM: validates the whole config first, reloads only if it passes |
 | `--set-min-supported <channel> <version\|clear>` | Force-update a channel — see [Manual commands](#manual-commands). Also reachable from the interactive picker via `f` |
+| `--sync-releases` | Copy every channel's release row from the VPS onto the home server. Prints what it finds and is a no-op when the two agree — the repair for rows written before deploy.sh announced to both |
 
 Any deploy that publishes to the VM also refreshes the two pages, because both
 print the current version in their footer. Left to a separate flag that footer
@@ -272,6 +273,15 @@ right place for how that copy was actually installed. Client lives in
 
 deploy.sh announces each channel automatically, but only **after that channel's
 upload succeeds**, so a failed build never advertises a version nobody can get.
+
+The announcement goes to **both deployments**, same as the function push. It did
+not always: `npx convex run` inherits `backend/.env.local`, which addresses the
+VPS, so for a while a release announced itself only on the standby. Since the
+2026-08-28 migration that is the box no client talks to — 1.3.89 shipped to a
+home server still answering "1.3.88 is the newest", and nothing looked wrong,
+because the deploy asked the one box that agreed with it. `--sync-releases`
+squares up rows written in that window; `--no-homeserver` deliberately
+reintroduces the split for a run when the home server is unreachable.
 
 | Channel | Who publishes it | How the app knows it's on that channel |
 |---|---|---|
@@ -300,6 +310,21 @@ approved for sale — see [Manual commands](#manual-commands). A future
 self-hosted DMG build would stamp `macos-dmg` instead.
 
 ### Manual commands
+
+> **Every `npx convex run` below reaches the VPS only.** It reads
+> `backend/.env.local`, and that file addresses the standby — so a row published
+> by hand lands where no client reads it, which is the exact failure
+> `--sync-releases` exists to clean up. Either follow a manual publish with
+> `./deploy.sh --sync-releases`, or run it a second time against the home
+> server:
+>
+> ```sh
+> cd backend
+> CONVEX_SELF_HOSTED_URL=https://monkeyhub-homeserver-api.walhallaa.com \
+> CONVEX_SELF_HOSTED_ADMIN_KEY="$(ssh muratcankoc@100.104.73.75 \
+>   'docker exec termio-clone-backend ./generate_admin_key.sh | tail -1')" \
+> npx convex run releases:publish '<the same payload>'
+> ```
 
 Publish a channel by hand (omitted fields keep their stored values, so this
 won't clobber a `minSupported` or a store link):

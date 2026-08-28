@@ -91,6 +91,11 @@ RUN_CONVEX=""      # ""=undecided (menu/default), true/false once resolved
 # functions is not a standby — it is an outage with a DNS record. Set false
 # (or --no-homeserver) when the home server is unreachable and you accept the
 # drift; deploy.sh says so loudly in the summary either way.
+#
+# This governs the release ROWS too (publish_release, set_min_supported), not
+# just the function push. They were split for a while, and the split is what
+# made 1.3.89 ship to a home server still telling every client 1.3.88 was the
+# newest build — the deploy said success, because the box it wrote to agreed.
 RUN_HOMESERVER=true
 DEPLOY_IOS=""
 DEPLOY_MACOS=false # --macos: App Store Connect. NOT in --all yet.
@@ -102,7 +107,7 @@ RUN_GIT=true
 DRY_RUN=false
 PLATFORM_ARGS=false
 # Standalone actions: they do their one job and exit, never mixed with a build.
-ACTION=""          # "" | infra | rollback-web | set-min-supported
+ACTION=""          # "" | infra | rollback-web | set-min-supported | sync-releases
 SET_MIN_CHANNEL=""
 SET_MIN_VERSION=""
 
@@ -136,8 +141,10 @@ Platform flags (any of these skips the picker):
   --all                 Convex + iOS + Android + web + site.
   --convex-only         Backend only — no builds, no version bump.
   --no-convex           Skip 'npx convex deploy'.
-  --no-homeserver       Push Convex to the VPS only, not the home server.
-                        Leaves the two backends running different code.
+  --no-homeserver       Push Convex to the VPS only, not the home server —
+                        functions AND the release rows a shipped build
+                        announces. Leaves the two backends disagreeing about
+                        both; --sync-releases fixes the second half.
 
 Standalone actions (run alone and exit):
   --rollback-web        Put the previous web build back. Run it twice to undo.
@@ -151,6 +158,12 @@ Standalone actions (run alone and exit):
                         ios-testflight, macos-testflight, android-play,
                         android-apk, web. One channel per run; press 'f' in the
                         interactive picker to tick several at once.
+  --sync-releases       Copy every channel's release row from the VPS onto the
+                        home server. Repairs the drift left by deploys from
+                        before this script announced to both — the home server
+                        serves the clients, so a stale row there means a shipped
+                        build nobody is told about. Prints what it finds; a
+                        no-op when the two already agree.
 
 Per-platform stages: each platform's pipeline is independent stages that can be
 run on their own — most useful to resume after a partial failure (e.g. iOS
@@ -221,6 +234,7 @@ while [[ $# -gt 0 ]]; do
                              SKIP_VERSION_BUMP=true; PLATFORM_ARGS=true ;;
         --rollback-web)      ACTION="rollback-web" ;;
         --infra)             ACTION="infra" ;;
+        --sync-releases)     ACTION="sync-releases" ;;
         --set-min-supported)
             ACTION="set-min-supported"
             SET_MIN_CHANNEL="${2:-}"
@@ -325,11 +339,116 @@ push_infra() {
 }
 
 
+# ----- reaching both Convex deployments -----
+# `convex deploy` has pushed FUNCTIONS to both boxes since the migration (see
+# run_convex). The `convex run` calls did not: they inherit backend/.env.local,
+# so every releases:publish landed on the VPS alone. Since 2026-08-28 that is
+# the box nobody is talking to — the home server serves the traffic, so the row
+# that tells a client "there is a newer build" was being written where no client
+# reads it. Shipping a build was invisible to every live user, and the drift was
+# silent because the deploy it came from reported success. Code and release rows
+# have to move together; --sync-releases below repairs a run that predates this.
+
+# Mints the home server's admin key into HOMESERVER_KEY, once per shell.
+#
+# Sets a global rather than printing it: $(…) runs the function in a subshell,
+# so a printing version would re-mint on every call and the caller would never
+# see the cache — and a full --all run publishes five channels.
+#
+# A failed mint is cached too. When the box is unreachable the SSH connect
+# timeout is the whole cost, and paying it once a run beats paying it once a
+# channel; every caller still reports the miss on its own line.
+HOMESERVER_KEY=""
+HOMESERVER_KEY_TRIED=false
+homeserver_admin_key() {
+    if [ "$HOMESERVER_KEY_TRIED" = true ]; then
+        [ -n "$HOMESERVER_KEY" ]
+        return
+    fi
+    HOMESERVER_KEY_TRIED=true
+    local key
+    key="$(ssh -o BatchMode=yes -o ConnectTimeout=15 -n "$HOMESERVER_SSH" \
+               "docker exec $HOMESERVER_CONTAINER ./generate_admin_key.sh 2>/dev/null | tail -1" 2>/dev/null)"
+    # Shaped "<instance>|<hex>". Anything else is an SSH banner, a docker error
+    # or the empty string, and exporting one of those as a credential buys a
+    # confusing 401 instead of a clear "could not reach the box".
+    case "$key" in
+        *"|"*) HOMESERVER_KEY="$key" ;;
+    esac
+    [ -n "$HOMESERVER_KEY" ]
+}
+
+# Runs one Convex function on the home server. Exit 2 specifically means "could
+# not mint a key", which is a different problem from a function that ran and
+# failed, and the two want different advice.
+#
+# Runs from backend/ like the VPS call does, and for a reason worth stating: the
+# env vars decide WHICH deployment this reaches, but the CLI still resolves the
+# project (package.json, convex/) from the working directory. Pointed at the
+# home server from the repo root it fails with "Unable to read your
+# package.json", which reads like a credentials problem and is not one.
+convex_run_homeserver() {   # $1 = function, $2 = payload
+    homeserver_admin_key || return 2
+    (cd backend &&
+        CONVEX_SELF_HOSTED_URL="$HOMESERVER_URL" \
+        CONVEX_SELF_HOSTED_ADMIN_KEY="$HOMESERVER_KEY" \
+        npx convex run "$1" "$2" >/dev/null 2>&1)
+}
+
+# Runs one Convex function against BOTH deployments, VPS first — the same
+# standby-before-primary ordering run_convex uses, for the same reason.
+#
+# A half-failure is reported, not fatal: one row written is strictly better than
+# none, and the caller prints the retry for whichever half missed.
+# CONVEX_RUN_FAILED names the targets that failed, "" when all of them landed.
+CONVEX_RUN_FAILED=""
+convex_run_both() {   # $1 = function, $2 = payload
+    local fn="$1" payload="$2" why=""
+    CONVEX_RUN_FAILED=""
+
+    (cd backend && npx convex run "$fn" "$payload" >/dev/null 2>&1) ||
+        CONVEX_RUN_FAILED="the VPS"
+
+    if [ "$RUN_HOMESERVER" != true ]; then
+        [ -z "$CONVEX_RUN_FAILED" ]
+        return
+    fi
+
+    convex_run_homeserver "$fn" "$payload"
+    case $? in
+        0) ;;
+        2) why="the home server (no admin key — is it up and Tailscale connected?)" ;;
+        *) why="the home server" ;;
+    esac
+    [ -z "$why" ] || CONVEX_RUN_FAILED="${CONVEX_RUN_FAILED:+$CONVEX_RUN_FAILED and }$why"
+
+    [ -z "$CONVEX_RUN_FAILED" ]
+}
+
+# The retry lines for a call that half-landed, meant to be pasted. The home
+# server's line mints its key inline, because there is none on disk to point at.
+convex_retry_hint() {   # $1 = function, $2 = already-shell-quoted payload
+    echo "     VPS:         (cd backend && npx convex run $1 $2)"
+    [ "$RUN_HOMESERVER" = true ] || return 0
+    echo "     home server: (cd backend && CONVEX_SELF_HOSTED_URL=$HOMESERVER_URL \\"
+    echo "                     CONVEX_SELF_HOSTED_ADMIN_KEY=\"\$(ssh $HOMESERVER_SSH 'docker exec $HOMESERVER_CONTAINER ./generate_admin_key.sh | tail -1')\" \\"
+    echo "                     npx convex run $1 $2)"
+}
+
 # Reads back a channel's currently published version, or fails (nothing on
 # stdout) if the channel has never been published to. Shared by
 # set_min_supported (so a force-update never clobbers `version`, a required
 # arg on releases:publish) and the picker's 'f' flow (so "require whatever's
 # already live" needs no typing).
+#
+# Reads ONE deployment — the VPS, the default target — while its callers write
+# both, and that asymmetry is deliberate. A read that had to pick a winner
+# between two disagreeing boxes would need a version comparison to do it
+# safely: read the older box, republish it to both, and you have just told
+# every live client that the newest build is one they already have. The VPS is
+# the box that has received every publish to date, so it is the one that can
+# answer for the history. Once writes go to both there is nothing to choose
+# between; --sync-releases squares up whatever came before.
 channel_current_version() {   # $1 = channel
     local current
     current=$(cd backend && npx convex run releases:latest "{\"channel\":\"$1\"}" 2>/dev/null)
@@ -367,16 +486,110 @@ set_min_supported() {   # $1 = channel, $2 = version, or "clear"
         payload=$(jq -nc --arg channel "$channel" --arg version "$version" --arg min "$min" \
             '{channel: $channel, version: $version, minSupported: $min}')
     fi
-    if (cd backend && npx convex run releases:publish "$payload" >/dev/null 2>&1); then
+    # Both deployments: a gate that only exists on the standby gates nobody.
+    if convex_run_both releases:publish "$payload"; then
         if [ "$min" = "clear" ]; then
             echo "  ✅ Cleared minSupported on $channel (still shipping $version)"
         else
             echo "  ✅ $channel now requires >= $min (still shipping $version) — older clients lose \"Later\""
         fi
     else
-        echo "❌ Failed to update $channel. Retry with:"
-        echo "     (cd backend && npx convex run releases:publish $(printf '%s' "$payload" | jq -Rr @sh))"
+        echo "❌ Failed to update $channel on $CONVEX_RUN_FAILED. Retry with:"
+        convex_retry_hint releases:publish "$(printf '%s' "$payload" | jq -Rr @sh)"
         return 1
+    fi
+}
+
+# Copies every channel's release row from the VPS to the home server, and says
+# what it found on the way. The repair tool for everything published before this
+# script wrote both boxes: those runs left the home server — the one clients
+# actually read — announcing an older build than the one that shipped.
+#
+# Reads over the public HTTP query rather than `convex run`, for the same reason
+# switchServer.sh's serve_of does: this is the exact endpoint the app hits on
+# cold start, so what it prints is what a client is being told.
+RELEASE_CHANNELS="ios-testflight macos-testflight android-play android-apk web"
+
+release_row() {   # $1 = base url, $2 = channel → the row as JSON, or "null"
+    curl -s -m 10 -X POST "$1/api/query" \
+        -H 'Content-Type: application/json' \
+        -d "{\"path\":\"releases:latest\",\"args\":{\"channel\":\"$2\"},\"format\":\"json\"}" \
+        2>/dev/null |
+        jq -c 'if .status == "success" then .value else "unreachable" end' 2>/dev/null
+}
+
+sync_releases() {
+    local vps_url
+    vps_url=$(sed -n 's/^CONVEX_SELF_HOSTED_URL=//p' backend/.env.local 2>/dev/null | tr -d '"' | head -1)
+    if [ -z "$vps_url" ]; then
+        echo "❌ No CONVEX_SELF_HOSTED_URL in backend/.env.local — nothing to copy from."
+        return 1
+    fi
+
+    echo "🔄 Squaring up release rows"
+    echo "   from  $vps_url  (the VPS — the box that has been receiving publishes)"
+    echo "   onto  $HOMESERVER_URL  (the home server — the box clients read)"
+    echo ""
+
+    local failed=false changed=0 channel src dst src_ver dst_ver payload dst_cmp
+    for channel in $RELEASE_CHANNELS; do
+        src=$(release_row "$vps_url" "$channel")
+        dst=$(release_row "$HOMESERVER_URL" "$channel")
+
+        if [ "$src" = '"unreachable"' ] || [ -z "$src" ]; then
+            printf "  ❌ %-18s could not read the VPS\n" "$channel"
+            failed=true
+            continue
+        fi
+        if [ "$src" = "null" ]; then
+            printf "  ⏭️  %-18s never published anywhere\n" "$channel"
+            continue
+        fi
+        if [ "$dst" = '"unreachable"' ] || [ -z "$dst" ]; then
+            printf "  ❌ %-18s could not read the home server\n" "$channel"
+            failed=true
+            continue
+        fi
+        # Every optional field goes explicitly, nulls included. releases:publish
+        # reads an OMITTED key as "leave what is there", so copying only the
+        # fields the VPS has set would leave a stale minSupported or updateUrl
+        # standing on the home server — the half of the row most likely to be
+        # the reason the two disagree in the first place.
+        payload=$(echo "$src" | jq -c '{channel, version, minSupported, updateUrl, notes}')
+        # Compared on those same five fields rather than on the whole row,
+        # because `latest` also returns publishedAt and that is a per-write
+        # clock: the two boxes get different values for the very same sync, so
+        # comparing it would report "different" forever and rewrite all five
+        # channels on every run.
+        dst_cmp=$(echo "$dst" | jq -c 'if . == null then null else {channel, version, minSupported, updateUrl, notes} end')
+
+        if [ "$payload" = "$dst_cmp" ]; then
+            printf "  ✅ %-18s already matching (%s)\n" "$channel" "$(echo "$src" | jq -r '.version')"
+            continue
+        fi
+
+        src_ver=$(echo "$src" | jq -r '.version')
+        dst_ver=$(echo "$dst" | jq -r 'if . == null then "nothing" else .version end')
+
+        if convex_run_homeserver releases:publish "$payload"; then
+            printf "  ✅ %-18s %s → %s\n" "$channel" "$dst_ver" "$src_ver"
+            changed=$((changed + 1))
+        else
+            printf "  ❌ %-18s could not write %s to the home server\n" "$channel" "$src_ver"
+            failed=true
+        fi
+    done
+
+    echo ""
+    if [ "$failed" = true ]; then
+        echo "⚠️  Some channels did not sync. If the key is the problem, check that"
+        echo "   ssh $HOMESERVER_SSH works and Tailscale is up, then re-run."
+        return 1
+    fi
+    if [ "$changed" -eq 0 ]; then
+        echo "✨ Nothing to do — both deployments already agree on every channel."
+    else
+        echo "✨ $changed channel(s) synced. Clients on the home server now see what shipped."
     fi
 }
 
@@ -384,6 +597,7 @@ case "$ACTION" in
     rollback-web)      rollback_web; exit 0 ;;
     infra)              push_infra;   exit 0 ;;
     set-min-supported)  set_min_supported "$SET_MIN_CHANNEL" "$SET_MIN_VERSION" || exit 1; exit 0 ;;
+    sync-releases)      sync_releases || exit 1; exit 0 ;;
 esac
 
 # ----- interactive platform picker -----
@@ -929,6 +1143,11 @@ DEPLOY_COMPLETE=false
 SHIPPED_SOMETHING=false
 ANY_STEP_FAILED=false
 CONVEX_STATUS="skip"
+# Set by publish_release when a release row landed on one deployment but not the
+# other. Not folded into ANY_STEP_FAILED: the build itself shipped, and failing
+# the run would be wrong — but the summary has to say so, because the failure
+# mode is a version that is live and invisible, which looks like nothing at all.
+RELEASE_ROWS_INCOMPLETE=false
 IOS_STATUS="skip"
 MACOS_STATUS="skip"
 ANDROID_STATUS="skip"
@@ -1353,10 +1572,7 @@ run_convex() {
     # CONVEX_SELF_HOSTED_URL pointing at the home server is exactly the kind of
     # thing that makes the NEXT deploy in this script go somewhere surprising.
     convex_deploy_homeserver() {
-        local key
-        key="$(ssh -o BatchMode=yes -o ConnectTimeout=15 -n "$HOMESERVER_SSH" \
-                   "docker exec $HOMESERVER_CONTAINER ./generate_admin_key.sh 2>/dev/null | tail -1" 2>/dev/null)"
-        if [ -z "$key" ]; then
+        if ! homeserver_admin_key; then
             echo "   Could not mint an admin key on $HOMESERVER_SSH." >&2
             echo "   Is the box up and Tailscale connected? Re-run with --no-homeserver" >&2
             echo "   to push to the VPS alone and accept the drift." >&2
@@ -1364,7 +1580,7 @@ run_convex() {
         fi
         (
             export CONVEX_SELF_HOSTED_URL="$HOMESERVER_URL"
-            export CONVEX_SELF_HOSTED_ADMIN_KEY="$key"
+            export CONVEX_SELF_HOSTED_ADMIN_KEY="$HOMESERVER_KEY"
             convex_push "the home server"
         )
     }
@@ -1376,6 +1592,12 @@ run_convex() {
     # server is primary today, that means the VPS goes first.
     run_with_spinner "Deploying Convex backend → VPS" convex_deploy || return 1
     if [ "$RUN_HOMESERVER" = true ]; then
+        # Minted out here, in the main shell, rather than inside the spinner:
+        # run_with_spinner backgrounds what it runs, so a key minted in there
+        # dies with the subshell and every later publish_release would SSH for
+        # its own copy. Failure is not handled here — convex_deploy_homeserver
+        # asks again, gets the cached miss, and prints the advice.
+        homeserver_admin_key || true
         run_with_spinner "Deploying Convex backend → home server" convex_deploy_homeserver || return 1
     else
         echo "  ⚠️  --no-homeserver: the home server keeps its current functions." >&2
@@ -1436,10 +1658,12 @@ archive_android_symbols() {   # $1 = version
 #     credentials — which is the point, since a *public* publish endpoint would
 #     let anyone fake a mandatory-update prompt for every user.
 #
-# No --prod, deliberately: this backend is self-hosted (CONVEX_SELF_HOSTED_URL in
-# backend/.env.local), so there's one deployment and the CLI already targets the
-# same URL the app reads from env.local. --prod is a Convex-cloud concept and
-# does not apply here — adding it would break this call, not harden it.
+# No --prod, deliberately: this backend is self-hosted, so there is no
+# prod/dev pair to choose between — --prod is a Convex-cloud concept and adding
+# it would break this call, not harden it. There ARE two deployments, which is a
+# different axis entirely: convex_run_both writes the row to the VPS and the
+# home server, because the CLI's default target (backend/.env.local) is the
+# standby and announcing a release only there tells nobody.
 #
 # $2 (updateUrl) and $3 (notes) are optional; omitting either leaves whatever is
 # already stored, so a hand-set store link or minSupported survives the next
@@ -1468,18 +1692,26 @@ publish_release() {   # $1 = channel, $2 = updateUrl (optional), $3 = notes (opt
         '{channel: $channel, version: $version}
          + (if $updateUrl == "" then {} else {updateUrl: $updateUrl} end)
          + (if $notes == "" then {} else {notes: $notes} end)')
-    if (cd backend && npx convex run releases:publish "$payload" >/dev/null 2>&1); then
+    if convex_run_both releases:publish "$payload"; then
         echo "  ✅ Announced $DISPLAY_VERSION on $channel"
     else
-        # The retry line is meant to be copy-pasted, and $payload can contain an
-        # apostrophe (APK_MIGRATION_NOTE has two), which would close the shell's
-        # single-quoted string early and paste as something that doesn't run.
-        # jq's @sh emits the argument already correctly quoted for a shell —
+        # The retry lines are meant to be copy-pasted, and $payload can contain
+        # an apostrophe (APK_MIGRATION_NOTE has two), which would close the
+        # shell's single-quoted string early and paste as something that doesn't
+        # run. jq's @sh emits the argument already correctly quoted for a shell —
         # surrounding quotes included, hence no '…' around it below.
         local quoted
         quoted=$(printf '%s' "$payload" | jq -Rr @sh)
-        echo "  ⚠️  Could not announce $DISPLAY_VERSION on $channel — users won't be prompted."
-        echo "     Retry with:  (cd backend && npx convex run releases:publish $quoted)"
+        # Named per box rather than "failed": a VPS-only miss is a standby that
+        # will be squared up by the next --sync-releases, while a home-server
+        # miss is the one where the build ships and nobody is told about it.
+        echo "  ⚠️  Could not announce $DISPLAY_VERSION on $channel — $CONVEX_RUN_FAILED did not take it."
+        case "$CONVEX_RUN_FAILED" in
+            *"home server"*) echo "     Clients read the home server, so nobody will be prompted to update." ;;
+        esac
+        echo "     Retry with:"
+        convex_retry_hint releases:publish "$quoted"
+        RELEASE_ROWS_INCOMPLETE=true
     fi
 }
 
@@ -2253,6 +2485,10 @@ if [ "$DEPLOY_SITE" = true ]; then
 fi
 [ "$DEPLOY_WEB" = true ] && [ "$WEB_STATUS" = ok ] && [ "$RUN_UPLOAD" = true ] && \
     echo "     ↩︎  Undo the web deploy with:  ./deploy.sh --rollback-web"
+if [ "$RELEASE_ROWS_INCOMPLETE" = true ]; then
+    echo "  ⚠️  Release rows: one deployment did not take them (see ⚠️ lines above)."
+    echo "     Square them up with:  ./deploy.sh --sync-releases"
+fi
 echo ""
 echo "⏱️  Timing:"
 [ "$DEPLOY_IOS" = true ]     && echo "  🍎 iOS build:      ${IOS_BUILD_TIME}s"
