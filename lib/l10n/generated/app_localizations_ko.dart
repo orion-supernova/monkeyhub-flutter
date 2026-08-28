@@ -3020,6 +3020,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get photoChromeCloseSemanticLabel => '닫기';
 
   @override
+  String get photoChromeFillToggleSemanticLabel => '화면에 맞추기 또는 꽉 채우기';
+
+  @override
   String get photoChromeShowInChatSemanticLabel => '채팅에서 보기';
 
   @override
@@ -5030,6 +5033,15 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get momentViewerDelete => '삭제';
+
+  @override
+  String get momentViewerDeleteConfirmHeadline => '이걸 삭제할까요?';
+
+  @override
+  String get momentViewerDeleteConfirmBody => '모두의 보드와 내 보관함에서 영영 사라져요';
+
+  @override
+  String get momentViewerDeleteFailed => '삭제하지 못했어요 — 다시 시도해주세요';
 
   @override
   String momentActivityPostedHighlight(Object who) {

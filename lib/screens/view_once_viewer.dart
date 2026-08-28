@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../privacy/capture_protection.dart';
 import '../widgets/capture_shield.dart';
+import '../widgets/photo_backdrop.dart';
 
 /// Fullscreen viewer for a view-once photo.
 ///
@@ -59,16 +60,44 @@ class _ViewOnceViewerState extends State<ViewOnceViewer>
   /// land in the same frame.
   bool _closing = false;
 
+  /// The picture's width÷height, once it has decoded.
+  ///
+  /// Measured rather than looked up: this screen deliberately knows nothing but
+  /// a buffer of bytes, and [MediaAspectCache] is keyed by storage id — which
+  /// is the one thing a view-once photo must never leave behind. Costs one
+  /// listener on an image that is being decoded anyway.
+  double? _aspect;
+
+  ImageStream? _measureStream;
+  ImageStreamListener? _measureListener;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     CaptureProtection.instance.pushScope();
     CaptureProtection.instance.ensureListening();
+    _measure();
+  }
+
+  void _measure() {
+    final listener = ImageStreamListener((info, _) {
+      final w = info.image.width.toDouble();
+      final h = info.image.height.toDouble();
+      info.image.dispose();
+      if (!mounted || h <= 0) return;
+      setState(() => _aspect = w / h);
+    }, onError: (_, _) {});
+    _measureListener = listener;
+    _measureStream = MemoryImage(widget.bytes).resolve(ImageConfiguration.empty)
+      ..addListener(listener);
   }
 
   @override
   void dispose() {
+    final stream = _measureStream;
+    final listener = _measureListener;
+    if (stream != null && listener != null) stream.removeListener(listener);
     CaptureProtection.instance.popScope();
     WidgetsBinding.instance.removeObserver(this);
     _xform.dispose();
@@ -92,6 +121,9 @@ class _ViewOnceViewerState extends State<ViewOnceViewer>
   @override
   Widget build(BuildContext context) {
     final topInset = MediaQuery.paddingOf(context).top;
+    // Portrait shots fill the screen; landscape and square ones stay whole over
+    // the blurred backdrop. See [photoFillsScreen].
+    final fills = photoFillsScreen(_aspect, MediaQuery.sizeOf(context));
     // Material + DefaultTextStyle so nothing here can fall back to Flutter's
     // debug text rendering.
     return Material(
@@ -107,6 +139,23 @@ class _ViewOnceViewerState extends State<ViewOnceViewer>
           child: Stack(
             fit: StackFit.expand,
             children: [
+              // The badge and the close button used to sit on dead black above
+              // a `contain`-fitted photo, which read as a toolbar over a
+              // letterbox rather than as a fullscreen picture. The blurred copy
+              // fills that space with the photograph's own colour.
+              //
+              // Decoded from the SAME in-memory bytes, at 96px: nothing is
+              // written to disk and nothing new is fetched, which is the
+              // property this whole screen exists to preserve.
+              if (!fills)
+                PhotoBackdrop(
+                  image: Image.memory(
+                    widget.bytes,
+                    fit: BoxFit.cover,
+                    cacheWidth: kPhotoBackdropDecodeWidth,
+                    gaplessPlayback: true,
+                  ),
+                ),
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 // Only when un-zoomed: while zoomed the vertical drag belongs
@@ -119,13 +168,21 @@ class _ViewOnceViewerState extends State<ViewOnceViewer>
                   transformationController: _xform,
                   minScale: 1,
                   maxScale: 5,
-                  child: Center(
-                    child: Image.memory(
-                      widget.bytes,
-                      fit: BoxFit.contain,
-                      gaplessPlayback: true,
-                    ),
-                  ),
+                  child: fills
+                      ? SizedBox.expand(
+                          child: Image.memory(
+                            widget.bytes,
+                            fit: BoxFit.cover,
+                            gaplessPlayback: true,
+                          ),
+                        )
+                      : Center(
+                          child: Image.memory(
+                            widget.bytes,
+                            fit: BoxFit.contain,
+                            gaplessPlayback: true,
+                          ),
+                        ),
                 ),
               ),
               Positioned(

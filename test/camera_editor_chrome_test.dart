@@ -70,7 +70,7 @@ void main() {
         () => Future<void>.delayed(const Duration(milliseconds: 20)),
       );
       await tester.pump();
-      if (find.byType(RawImage).evaluate().isNotEmpty) break;
+      if (find.byKey(cameraEditorStageImageKey).evaluate().isNotEmpty) break;
     }
     // Bounded rather than pumpAndSettle: the loading spinner schedules frames
     // forever, so a settle loop would hang instead of failing if the decode
@@ -134,7 +134,7 @@ void main() {
     await settle(tester, host(photo, allowDrawing: false));
 
     await tester.drag(
-      find.byType(RawImage),
+      find.byKey(cameraEditorStageImageKey),
       const Offset(50, 40),
       warnIfMissed: false,
     );
@@ -181,7 +181,7 @@ void main() {
     expect(find.byIcon(CupertinoIcons.arrow_uturn_left), findsNothing);
 
     await tester.drag(
-      find.byType(RawImage),
+      find.byKey(cameraEditorStageImageKey),
       const Offset(50, 40),
       // The draw layer sits on top of the image, which is the point.
       warnIfMissed: false,
@@ -193,7 +193,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.drag(
-      find.byType(RawImage),
+      find.byKey(cameraEditorStageImageKey),
       const Offset(50, 40),
       // The draw layer sits on top of the image, which is the point.
       warnIfMissed: false,

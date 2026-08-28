@@ -14,6 +14,7 @@ import '../media/editor_geometry.dart';
 import '../media/image_raster.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/photo_backdrop.dart';
 import '../widgets/photo_chrome.dart';
 import 'review_route.dart';
 
@@ -38,6 +39,16 @@ import 'review_route.dart';
 ///    member of the room, not just the sender. See `kSendPhotoMaxEdge`.
 ///
 /// Pops an [EditorOutcome] on send or retake, `null` on discard.
+/// The photograph being edited, as opposed to the blurred copy of it that
+/// [PhotoBackdrop] paints behind the rails.
+///
+/// Keyed because both are `RawImage`s, so a test reaching for "the image" to
+/// drag across became ambiguous the moment the backdrop landed — and an
+/// ambiguous finder fails loudly rather than picking the wrong one, which is
+/// the good outcome, but it still needs an answer.
+@visibleForTesting
+const Key cameraEditorStageImageKey = Key('camera-editor-stage-image');
+
 class CameraEditorScreen extends StatefulWidget {
   const CameraEditorScreen({
     super.key,
@@ -791,6 +802,21 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
         child: Stack(
           fit: StackFit.expand,
           children: [
+            // The rails float over whatever a `contain` fit leaves over, which
+            // on a photograph that is not the shape of the phone is dead black
+            // — the same "buttons on a black bar above the picture" this app's
+            // fullscreen viewers had. Filling the picture is not an option
+            // HERE: you are about to crop and draw on it, so every pixel of the
+            // frame has to stay visible. The blurred copy is what closes the
+            // gap instead.
+            if (_display != null)
+              PhotoBackdrop(
+                image: RawImage(
+                  image: _display,
+                  fit: BoxFit.cover,
+                  filterQuality: FilterQuality.low,
+                ),
+              ),
             AnimatedPadding(
               padding: stagePad,
               duration: theme.motionMed,
@@ -952,6 +978,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
                     Positioned.fromRect(
                       rect: imageRect,
                       child: RawImage(
+                        key: cameraEditorStageImageKey,
                         image: img,
                         fit: BoxFit.fill,
                         filterQuality: FilterQuality.medium,

@@ -3131,6 +3131,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get photoChromeCloseSemanticLabel => 'बंद करें';
 
   @override
+  String get photoChromeFillToggleSemanticLabel =>
+      'स्क्रीन में फ़िट करें या भरें';
+
+  @override
   String get photoChromeShowInChatSemanticLabel => 'चैट में दिखाएं';
 
   @override
@@ -5223,6 +5227,16 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get momentViewerDelete => 'हटाएँ';
+
+  @override
+  String get momentViewerDeleteConfirmHeadline => 'इसे हटाएँ?';
+
+  @override
+  String get momentViewerDeleteConfirmBody =>
+      'यह सबके बोर्ड और आपके संग्रह, दोनों से हमेशा के लिए हट जाएगा';
+
+  @override
+  String get momentViewerDeleteFailed => 'हटाया नहीं जा सका — फिर कोशिश कीजिए';
 
   @override
   String momentActivityPostedHighlight(Object who) {

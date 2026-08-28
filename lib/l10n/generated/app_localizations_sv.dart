@@ -3136,6 +3136,9 @@ class AppLocalizationsSv extends AppLocalizations {
   String get photoChromeCloseSemanticLabel => 'Stäng';
 
   @override
+  String get photoChromeFillToggleSemanticLabel => 'Anpassa eller fyll skärmen';
+
+  @override
   String get photoChromeShowInChatSemanticLabel => 'Visa i chatten';
 
   @override
@@ -5237,6 +5240,16 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get momentViewerDelete => 'radera';
+
+  @override
+  String get momentViewerDeleteConfirmHeadline => 'radera det här?';
+
+  @override
+  String get momentViewerDeleteConfirmBody =>
+      'den försvinner från allas tavla och från ditt arkiv, för alltid';
+
+  @override
+  String get momentViewerDeleteFailed => 'kunde inte radera — försök igen';
 
   @override
   String momentActivityPostedHighlight(Object who) {

@@ -3177,6 +3177,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get photoChromeCloseSemanticLabel => 'إغلاق';
 
   @override
+  String get photoChromeFillToggleSemanticLabel =>
+      'ملء الشاشة أو احتواء الصورة';
+
+  @override
   String get photoChromeShowInChatSemanticLabel => 'عرض في المحادثة';
 
   @override
@@ -5295,6 +5299,16 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get momentViewerDelete => 'حذف';
+
+  @override
+  String get momentViewerDeleteConfirmHeadline => 'حذف هذا؟';
+
+  @override
+  String get momentViewerDeleteConfirmBody =>
+      'سيختفي من لوحة الجميع ومن أرشيفك نهائيًا';
+
+  @override
+  String get momentViewerDeleteFailed => 'تعذّر الحذف — حاول مجددًا';
 
   @override
   String momentActivityPostedHighlight(Object who) {

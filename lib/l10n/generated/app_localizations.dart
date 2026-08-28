@@ -5433,6 +5433,12 @@ abstract class AppLocalizations {
   /// **'Close'**
   String get photoChromeCloseSemanticLabel;
 
+  /// Screen-reader label for the glass button in a fullscreen photo viewer that switches the picture between filling the screen (cropped) and being shown whole (letterboxed). One label for both states, since the button toggles.
+  ///
+  /// In en, this message translates to:
+  /// **'Fit or fill the screen'**
+  String get photoChromeFillToggleSemanticLabel;
+
   /// Accessibility/semantic label for the button in the fullscreen media pager that pops back and jumps to this message's location in the chat thread.
   ///
   /// In en, this message translates to:
@@ -8962,6 +8968,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'delete'**
   String get momentViewerDelete;
+
+  /// Headline of the confirmation sheet shown before a moment is permanently deleted from the Feed. Lowercase, matching the board's register.
+  ///
+  /// In en, this message translates to:
+  /// **'delete this?'**
+  String get momentViewerDeleteConfirmHeadline;
+
+  /// Body line of the delete-confirmation sheet, spelling out the blast radius: the moment goes from friends' boards AND from the author's own archive, and cannot be recovered.
+  ///
+  /// In en, this message translates to:
+  /// **'it leaves everyone\'s board and your archive, for good'**
+  String get momentViewerDeleteConfirmBody;
+
+  /// Toast shown when deleting a moment from the viewer fails (network/API error). Lowercase, matching momentComposerErrorGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'couldn\'t delete that — try again'**
+  String get momentViewerDeleteFailed;
 
   /// Activity-river line for an untagged moment. {who} is a display name, or the localized word for 'you' when it is the viewer's own.
   ///

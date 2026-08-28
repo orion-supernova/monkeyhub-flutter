@@ -2973,6 +2973,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get photoChromeCloseSemanticLabel => '关闭';
 
   @override
+  String get photoChromeFillToggleSemanticLabel => '适应屏幕或填满屏幕';
+
+  @override
   String get photoChromeShowInChatSemanticLabel => '在聊天中显示';
 
   @override
@@ -4948,6 +4951,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get momentViewerDelete => '删除';
+
+  @override
+  String get momentViewerDeleteConfirmHeadline => '删除这条？';
+
+  @override
+  String get momentViewerDeleteConfirmBody => '它会从所有人的看板和你的归档中永久消失';
+
+  @override
+  String get momentViewerDeleteFailed => '删除失败 — 请重试';
 
   @override
   String momentActivityPostedHighlight(Object who) {

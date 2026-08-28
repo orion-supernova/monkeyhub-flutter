@@ -3106,6 +3106,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String get photoChromeCloseSemanticLabel => 'Kapat';
 
   @override
+  String get photoChromeFillToggleSemanticLabel =>
+      'Ekrana sığdır veya ekranı doldur';
+
+  @override
   String get photoChromeShowInChatSemanticLabel => 'Sohbette göster';
 
   @override
@@ -5185,6 +5189,16 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get momentViewerDelete => 'sil';
+
+  @override
+  String get momentViewerDeleteConfirmHeadline => 'bunu sil?';
+
+  @override
+  String get momentViewerDeleteConfirmBody =>
+      'herkesin panosundan ve arşivinden tamamen silinir';
+
+  @override
+  String get momentViewerDeleteFailed => 'silinemedi — tekrar dene';
 
   @override
   String momentActivityPostedHighlight(Object who) {

@@ -93,10 +93,24 @@ void main() {
     matching: find.byType(RemoteImage),
   );
 
+  /// Shapes the viewport like a phone in portrait.
+  ///
+  /// The default 800×600 test surface is a LANDSCAPE window, on which
+  /// `photoFillsScreen` correctly decides that a 16:9 photograph should fill —
+  /// so the letterbox path these tests are about never runs there. Every
+  /// assertion about a shape-pinned hero has to say which shape of screen it
+  /// means.
+  void phone(WidgetTester tester) {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+  }
+
   group('the destination a flight aims at', () {
     testWidgets('is the picture\'s own shape when the sender said what it is', (
       tester,
     ) async {
+      phone(tester);
       await openPager(tester, items: [photo('m1')]);
 
       final box = find.ancestor(
@@ -126,8 +140,15 @@ void main() {
       // A sender who told us nothing is the common case for anything that came
       // in before the field existed. The thumbnail measured it once and the
       // cache has held it since.
+      //
+      // A LANDSCAPE ratio, because that is the one that still letterboxes on a
+      // phone — a portrait shot fills the screen and has no box to pin. Which
+      // half of the rule runs is `photoFillsScreen`'s business and is pinned in
+      // `photo_fill_rule_test.dart`; this test is only about where the ratio
+      // came from.
+      phone(tester);
       MediaAspectCache.instance.debugPersist = false;
-      MediaAspectCache.instance.remember('stor_m2', 3 / 4);
+      MediaAspectCache.instance.remember('stor_m2', 4 / 3);
       addTearDown(() {
         MediaAspectCache.instance.clear();
         MediaAspectCache.instance.debugPersist = true;
@@ -141,7 +162,28 @@ void main() {
               find.ancestor(of: pageImage, matching: find.byType(AspectRatio)),
             )
             .aspectRatio,
-        3 / 4,
+        4 / 3,
+      );
+    });
+
+    testWidgets('is the whole screen when the picture fills it', (
+      tester,
+    ) async {
+      // A portrait shot on a tall phone fills rather than letterboxing — see
+      // `photoFillsScreen`. That is still a destination the flight can aim at
+      // on its first frame, which is all these tests are really about: it is
+      // the whole route, known before anything has decoded, and it is the same
+      // crop the thumbnail was already showing.
+      phone(tester);
+      await openPager(tester, items: [photo('m4', w: 900, h: 1600)]);
+
+      expect(
+        find.ancestor(of: pageImage, matching: find.byType(AspectRatio)),
+        findsNothing,
+      );
+      expect(
+        tester.getSize(find.byType(SteadyHero).first),
+        tester.getSize(find.byType(MediaPagerScreen)),
       );
     });
 

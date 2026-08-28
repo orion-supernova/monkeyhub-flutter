@@ -3184,6 +3184,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get photoChromeCloseSemanticLabel => 'Fermer';
 
   @override
+  String get photoChromeFillToggleSemanticLabel => 'Ajuster ou remplir l’écran';
+
+  @override
   String get photoChromeShowInChatSemanticLabel =>
       'Afficher dans la conversation';
 
@@ -5295,6 +5298,16 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get momentViewerDelete => 'supprimer';
+
+  @override
+  String get momentViewerDeleteConfirmHeadline => 'supprimer ça ?';
+
+  @override
+  String get momentViewerDeleteConfirmBody =>
+      'ça disparaît du tableau de tout le monde et de tes archives, définitivement';
+
+  @override
+  String get momentViewerDeleteFailed => 'suppression impossible — réessaie';
 
   @override
   String momentActivityPostedHighlight(Object who) {

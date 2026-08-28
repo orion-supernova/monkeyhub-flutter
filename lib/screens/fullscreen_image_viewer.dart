@@ -3,7 +3,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
+import '../media/media_aspect_cache.dart';
 import '../widgets/media_flight.dart';
+import '../widgets/photo_backdrop.dart';
 import '../widgets/photo_dismiss_area.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/route_landing.dart';
@@ -150,7 +152,9 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
     final screen = MediaQuery.sizeOf(context);
     final diameter =
         math.min(screen.width, screen.height) * FullscreenImageViewer._circleFraction;
-    final Widget image = widget.circular ? _circleImage(diameter) : _rectImage();
+    final Widget image = widget.circular
+        ? _circleImage(diameter)
+        : _rectImage(context);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -170,6 +174,32 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
                   ),
                 ),
               ),
+              // Fills the letterbox a `contain` fit leaves above and below the
+              // picture, so the close button floats over the photograph rather
+              // than over dead black. Fades on the same curve as the barrier —
+              // it is part of the backdrop, not part of the picture, so it must
+              // not travel with the dismiss drag.
+              // Not behind an avatar, which is deliberately a small round
+              // portrait on a plain barrier, and not behind a picture that is
+              // already covering the screen.
+              if (!widget.circular && !_fills(context))
+                Positioned.fill(
+                  child: Opacity(
+                    opacity: (1 - t).clamp(0.0, 1.0),
+                    child: PhotoBackdrop(
+                      image: RemoteImage(
+                        storageId: widget.storageId,
+                        api: widget.api,
+                        fit: BoxFit.cover,
+                        borderRadius: BorderRadius.zero,
+                        // The thumbnail's decode when there is one — already
+                        // resident, so the backdrop costs nothing.
+                        decodeWidth: widget.thumbnailDecodeWidth ??
+                            kPhotoBackdropDecodeWidth,
+                      ),
+                    ),
+                  ),
+                ),
               Transform.translate(
                 offset: drag,
                 child: Transform.scale(
@@ -240,18 +270,38 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
   /// "has it landed?" is a question that cannot be answered during a build.
   int? get _deferredDecodeWidth => landed ? null : widget.thumbnailDecodeWidth;
 
-  /// The full-bleed destination: the whole frame, at its own ratio.
-  Widget _rectImage() {
+  /// The picture's width÷height, from the caller or from the last time this
+  /// device drew its thumbnail. Null when nobody knows.
+  double? get _aspect {
+    final aspect =
+        widget.aspectRatio ??
+        MediaAspectCache.instance.peek(widget.storageId);
+    if (aspect == null || !aspect.isFinite || aspect <= 0) return null;
+    return aspect;
+  }
+
+  /// Whether the picture fills the screen rather than sitting inside it. See
+  /// [photoFillsScreen] — portrait shots fill, landscape and square ones stay
+  /// whole over [PhotoBackdrop].
+  bool _fills(BuildContext context) =>
+      !widget.circular && photoFillsScreen(_aspect, MediaQuery.sizeOf(context));
+
+  /// The full-bleed destination.
+  Widget _rectImage(BuildContext context) {
+    final fills = _fills(context);
     final image = RemoteImage(
       storageId: widget.storageId,
       api: widget.api,
-      fit: BoxFit.contain,
+      fit: fills ? BoxFit.cover : BoxFit.contain,
       borderRadius: BorderRadius.zero,
       placeholderDecodeWidth: widget.thumbnailDecodeWidth,
       decodeWidth: _deferredDecodeWidth,
     );
-    final aspect = widget.aspectRatio;
-    if (aspect == null || !aspect.isFinite || aspect <= 0) return image;
+    // Filling takes the whole screen, which is a Hero destination that is right
+    // on the first frame with nothing to measure.
+    if (fills) return SizedBox.expand(child: image);
+    final aspect = _aspect;
+    if (aspect == null) return image;
     // Pin the box to the picture's shape so the Hero has a stable destination
     // from the first frame, decoded or not. `Center` hands down loose
     // constraints, so this settles at the largest rect of that ratio which

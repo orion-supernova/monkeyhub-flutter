@@ -3159,6 +3159,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get photoChromeCloseSemanticLabel => 'Fechar';
 
   @override
+  String get photoChromeFillToggleSemanticLabel =>
+      'Ajustar ou preencher o ecrã';
+
+  @override
   String get photoChromeShowInChatSemanticLabel => 'Mostrar na conversa';
 
   @override
@@ -5271,6 +5275,17 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get momentViewerDelete => 'eliminar';
+
+  @override
+  String get momentViewerDeleteConfirmHeadline => 'eliminar isto?';
+
+  @override
+  String get momentViewerDeleteConfirmBody =>
+      'sai do painel de toda a gente e do teu arquivo, para sempre';
+
+  @override
+  String get momentViewerDeleteFailed =>
+      'não foi possível eliminar — tenta de novo';
 
   @override
   String momentActivityPostedHighlight(Object who) {
@@ -11427,6 +11442,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get photoChromeCloseSemanticLabel => 'Fechar';
 
   @override
+  String get photoChromeFillToggleSemanticLabel =>
+      'Ajustar ou preencher a tela';
+
+  @override
   String get photoChromeShowInChatSemanticLabel => 'Mostrar no chat';
 
   @override
@@ -13544,6 +13563,17 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get momentViewerDelete => 'excluir';
+
+  @override
+  String get momentViewerDeleteConfirmHeadline => 'excluir isso?';
+
+  @override
+  String get momentViewerDeleteConfirmBody =>
+      'sai do painel de todo mundo e do seu arquivo, para sempre';
+
+  @override
+  String get momentViewerDeleteFailed =>
+      'não foi possível excluir — tente de novo';
 
   @override
   String momentActivityPostedHighlight(Object who) {

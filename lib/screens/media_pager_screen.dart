@@ -10,6 +10,7 @@ import '../models/enums.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/media_filmstrip.dart';
 import '../widgets/media_grid_tile.dart' show roomMediaHeroTag;
+import '../widgets/photo_backdrop.dart';
 import '../widgets/photo_dismiss_area.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/route_landing.dart';
@@ -518,21 +519,70 @@ class _Page extends StatelessWidget {
       );
     }
 
+    // A portrait photograph on a tall phone letterboxes to about 60% of the
+    // display; `photoFillsScreen` is what decides whether losing the rest of
+    // the frame is a better trade than the two black bands. A landscape or
+    // square picture stays whole and gets the backdrop instead.
+    final fills = photoFillsScreen(_aspect, MediaQuery.sizeOf(context));
     final image = RemoteImage(
       storageId: id,
       api: api,
-      fit: BoxFit.contain,
+      fit: fills ? BoxFit.cover : BoxFit.contain,
+      borderRadius: BorderRadius.zero,
       placeholderDecodeWidth: sourceDecodeWidth,
       decodeWidth: landed ? null : sourceDecodeWidth,
     );
-    return PhotoDismissArea(
-      drag: drag,
-      onDismiss: onDismiss,
-      onTap: onToggleChrome,
-      onZoomChanged: onZoomChanged,
-      maxScale: 4,
-      child: mediaFlight(heroTag, _shaped(image)),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Only when the picture is not filling — behind a `cover` fit it is
+        // invisible by definition, and an invisible blurred layer still costs
+        // the compositor a filtered pass every frame.
+        //
+        // When it IS visible, the chrome above and the rail below sit on the
+        // picture's own blurred colour rather than on dead black. Reuses the
+        // thumbnail decode where the flight already warmed one, so it costs
+        // nothing on the page you opened.
+        if (!fills)
+          PhotoBackdrop(
+            image: RemoteImage(
+              storageId: id,
+              api: api,
+              fit: BoxFit.cover,
+              borderRadius: BorderRadius.zero,
+              decodeWidth: sourceDecodeWidth ?? kPhotoBackdropDecodeWidth,
+            ),
+          ),
+        PhotoDismissArea(
+          drag: drag,
+          onDismiss: onDismiss,
+          onTap: onToggleChrome,
+          onZoomChanged: onZoomChanged,
+          maxScale: 4,
+          // A filling picture already occupies the whole page, so there is no
+          // box to pin — and that box is a Hero destination that is correct on
+          // the first frame rather than after the first decode.
+          child: mediaFlight(
+            heroTag,
+            fills ? SizedBox.expand(child: image) : _shaped(image),
+          ),
+        ),
+      ],
     );
+  }
+
+  /// The picture's width÷height, when anybody knows it.
+  ///
+  /// The sender usually tells us, and [MediaAspectCache] remembers the ones who
+  /// did not from the last time this device drew the thumbnail. Null when
+  /// neither does, which both [_shaped] and the fill decision read as "show the
+  /// whole thing" — the answer that is never wrong.
+  double? get _aspect {
+    final aspect =
+        message.mediaAspectRatio ??
+        MediaAspectCache.instance.peek(message.mediaStorageId ?? '');
+    if (aspect == null || !aspect.isFinite || aspect <= 0) return null;
+    return aspect;
   }
 
   /// Pins the picture's box to its own shape, when the shape is known.
@@ -550,11 +600,8 @@ class _Page extends StatelessWidget {
   /// When neither knows, the old full-screen destination is still the honest
   /// answer — there is nothing to pin it to.
   Widget _shaped(Widget image) {
-    final aspect =
-        message.mediaAspectRatio ?? MediaAspectCache.instance.peek(
-          message.mediaStorageId ?? '',
-        );
-    if (aspect == null || !aspect.isFinite || aspect <= 0) return image;
+    final aspect = _aspect;
+    if (aspect == null) return image;
     return AspectRatio(aspectRatio: aspect, child: image);
   }
 }
@@ -640,50 +687,67 @@ class _VideoPageState extends State<_VideoPage> with RouteLanding {
     final poster = widget.message.posterStorageId;
     final playable = widget.message.mediaStorageId != null;
 
-    return PhotoDismissArea(
-      drag: widget.drag,
-      onDismiss: widget.onDismiss,
-      // A tap on a video means play, not "hide the chrome". The disc below is
-      // the same action with a smaller target and a focus ring on it.
-      onTap: playable ? _play : null,
-      // A poster is not a photograph to examine: zooming one would enlarge a
-      // still of something the OS player is one tap away from showing properly.
-      maxScale: 1,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          mediaFlight(
-            widget.heroTag,
-            poster == null
-                ? const Icon(
-                    CupertinoIcons.film,
-                    size: 34,
-                    color: Colors.white24,
-                  )
-                : RemoteImage(
-                    storageId: poster,
-                    api: widget.api,
-                    fit: BoxFit.contain,
-                  ),
-          ),
-          if (playable)
-            // Held back until the picture has arrived. A disc fading in over a
-            // photograph that has come to rest reads as the page finishing; the
-            // same disc riding the flight in reads as a second thing moving.
-            IgnorePointer(
-              ignoring: !landed,
-              child: AnimatedOpacity(
-                opacity: landed ? 1 : 0,
-                duration: const Duration(milliseconds: 140),
-                child: _PlayDisc(
-                  onTap: _play,
-                  semanticLabel:
-                      l10n.bubbleStyleScreenMediaTileVideoSemanticLabel,
-                ),
-              ),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (poster != null)
+          PhotoBackdrop(
+            image: RemoteImage(
+              storageId: poster,
+              api: widget.api,
+              fit: BoxFit.cover,
+              borderRadius: BorderRadius.zero,
+              decodeWidth: kPhotoBackdropDecodeWidth,
             ),
-        ],
-      ),
+          ),
+        PhotoDismissArea(
+          drag: widget.drag,
+          onDismiss: widget.onDismiss,
+          // A tap on a video means play, not "hide the chrome". The disc below
+          // is the same action with a smaller target and a focus ring on it.
+          onTap: playable ? _play : null,
+          // A poster is not a photograph to examine: zooming one would enlarge
+          // a still of something the OS player is one tap away from showing
+          // properly.
+          maxScale: 1,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              mediaFlight(
+                widget.heroTag,
+                poster == null
+                    ? const Icon(
+                        CupertinoIcons.film,
+                        size: 34,
+                        color: Colors.white24,
+                      )
+                    : RemoteImage(
+                        storageId: poster,
+                        api: widget.api,
+                        fit: BoxFit.contain,
+                      ),
+              ),
+              if (playable)
+                // Held back until the picture has arrived. A disc fading in
+                // over a photograph that has come to rest reads as the page
+                // finishing; the same disc riding the flight in reads as a
+                // second thing moving.
+                IgnorePointer(
+                  ignoring: !landed,
+                  child: AnimatedOpacity(
+                    opacity: landed ? 1 : 0,
+                    duration: const Duration(milliseconds: 140),
+                    child: _PlayDisc(
+                      onTap: _play,
+                      semanticLabel:
+                          l10n.bubbleStyleScreenMediaTileVideoSemanticLabel,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
