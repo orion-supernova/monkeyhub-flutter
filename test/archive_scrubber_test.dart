@@ -218,8 +218,10 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  double offset(WidgetTester tester) =>
-      tester.widget<ListView>(find.byType(ListView).last).controller!.offset;
+  double offset(WidgetTester tester) => tester
+      .widget<CustomScrollView>(find.byType(CustomScrollView))
+      .controller!
+      .offset;
 
   /// The horizontal day rail's offset — the FIRST ListView on the screen.
   double railOffset(WidgetTester tester) =>
@@ -238,7 +240,10 @@ void main() {
   /// `tester.drag` swallows `kDragSlopDefault` (20pt) before the scroll starts,
   /// so a test that cares about a boundary to the pixel cannot use it.
   Future<void> scrollTo(WidgetTester tester, double px) async {
-    tester.widget<ListView>(find.byType(ListView).last).controller!.jumpTo(px);
+    tester
+        .widget<CustomScrollView>(find.byType(CustomScrollView))
+        .controller!
+        .jumpTo(px);
     await tester.pump();
   }
 
@@ -273,166 +278,99 @@ void main() {
     return tester.widget<Text>(text).data;
   }
 
-  testWidgets('every day is exactly as tall as the maths says', (tester) async {
-    // The load-bearing test. The rail names a day from the scroll offset alone,
-    // via `archiveSectionHeight` — so the moment that arithmetic and the real
-    // layout disagree, the label is wrong everywhere and nothing else fails.
-    //
-    // Consecutive header positions rather than absolute offsets: the gap
-    // between two headers IS one section's height, and it cancels out where
-    // the text sits inside its own fixed-height row.
-    await open(tester);
-    final ctx = tester.element(find.byType(ArchiveScreen));
-    final listBox = tester.renderObject<RenderBox>(find.byType(ListView).last);
-    final inner = listBox.size.width - 20 - 28;
-    final header = archiveHeaderHeight(ctx);
-
-    double? headerTop(String key) {
+  /// The day whose header is currently pinned to the top of the list — the
+  /// date a reader is actually looking at, straight off the widget tree.
+  ///
+  /// With `SliverPersistentHeader(pinned: true)` exactly one header is stuck at
+  /// the top edge at any moment, and it is the one drawn highest.
+  String? pinnedDay(WidgetTester tester, BuildContext ctx) {
+    String? best;
+    var top = double.infinity;
+    for (final day in [...dayKeys, ...shortDays, ...extraDays]) {
       final f = find.descendant(
-        of: find.byType(ListView).last,
-        matching: find.text(archiveDayLabel(ctx, key)),
-      );
-      if (f.evaluate().isEmpty) return null;
-      return tester.getRect(f).top + offset(tester);
-    }
-
-    var checked = 0;
-    for (var i = 0; i + 1 < dayKeys.length; i++) {
-      final a = headerTop(dayKeys[i]);
-      final b = headerTop(dayKeys[i + 1]);
-      if (a == null || b == null) {
-        // Not both laid out yet — scroll on and pick them up further down.
-        await tester.drag(find.byType(ListView).last, const Offset(0, -400));
-        await tester.pump();
-        continue;
-      }
-      expect(
-        b - a,
-        closeTo(
-          archiveSectionHeight(
-            count: photosOn(dayKeys[i]),
-            width: inner,
-            headerHeight: header,
-          ),
-          0.5,
-        ),
-        reason: 'day $i (${dayKeys[i]}) is not the height the maths predicts',
-      );
-      checked++;
-    }
-    expect(checked, greaterThan(4), reason: 'the test measured almost nothing');
-  });
-
-  testWidgets('the label flips exactly as a header crosses the top edge', (
-    tester,
-  ) async {
-    // The threshold you asked about. It used to switch 24pt early, because the
-    // walk counted a section as "at the top" while its header was still below
-    // the fold.
-    await open(tester);
-    final ctx = tester.element(find.byType(ArchiveScreen));
-    final listBox = tester.renderObject<RenderBox>(find.byType(ListView).last);
-    final inner = listBox.size.width - 20 - 28;
-    // Where the SECOND day's RULE reaches the top edge — the line a reader
-    // watches a date cross, not the invisible top of the header row a header's
-    // height above it.
-    final header = archiveHeaderHeight(ctx);
-    final boundary =
-        8.0 +
-        archiveSectionHeight(
-          count: photosOn(dayKeys[0]),
-          width: inner,
-          headerHeight: header,
-        ) +
-        header;
-
-    // Four points short of the rule: still the first day. One pump, because
-    // the label is computed in the scroll callback from the offset rather than
-    // walked out of render boxes after the frame.
-    await scrollTo(tester, boundary - 4);
-    expect(pill(tester), archiveDayLabel(ctx, dayKeys[0]));
-
-    // Eight points later the rule has crossed, and so has the label.
-    await scrollTo(tester, boundary + 4);
-    expect(pill(tester), archiveDayLabel(ctx, dayKeys[1]));
-  });
-
-  testWidgets('EVERY switch lands on its rule, not just the first', (
-    tester,
-  ) async {
-    // The first switch was exact and the later ones ran early, which is what a
-    // sliding anchor does: it travels faster than the finger, so the error
-    // compounds down the list. Checking one boundary could not see that.
-    await open(tester);
-    final ctx = tester.element(find.byType(ArchiveScreen));
-    final listBox = tester.renderObject<RenderBox>(find.byType(ListView).last);
-    final inner = listBox.size.width - 20 - 28;
-    final header = archiveHeaderHeight(ctx);
-    final pos = tester
-        .widget<ListView>(find.byType(ListView).last)
-        .controller!
-        .position;
-
-    var rule = 8.0;
-    var checked = 0;
-    for (var i = 0; i < dayKeys.length; i++) {
-      rule += archiveSectionHeight(
-        count: photosOn(dayKeys[i]),
-        width: inner,
-        headerHeight: header,
-      );
-      final boundary = rule + header;
-      if (boundary + 4 > pos.maxScrollExtent) break;
-
-      await scrollTo(tester, boundary - 4);
-      expect(
-        pill(tester),
-        archiveDayLabel(ctx, dayKeys[i]),
-        reason: 'switch ${i + 1} fired early',
-      );
-      await scrollTo(tester, boundary + 4);
-      expect(
-        pill(tester),
-        archiveDayLabel(ctx, dayKeys[i + 1]),
-        reason: 'switch ${i + 1} fired late',
-      );
-      checked++;
-    }
-    expect(checked, greaterThan(3), reason: 'barely any boundaries checked');
-  });
-
-  testWidgets('at the bottom it names the topmost header on screen', (
-    tester,
-  ) async {
-    // The honest answer for a list whose final screenful can never scroll past
-    // the top edge: the date it names is the one you can see at the top of it.
-    await openShort(tester);
-    final ctx = tester.element(find.byType(ArchiveScreen));
-    final pos = tester
-        .widget<ListView>(find.byType(ListView).last)
-        .controller!
-        .position;
-
-    // No scrub rail on an archive this short, and that is right — there is
-    // nothing to fast-scroll through. The chip is the only thing naming a day.
-    expect(find.byKey(archiveScrubberPillKey), findsNothing);
-    expect(activeChipDay(tester), shortDays.first.split('-').last);
-
-    await scrollTo(tester, pos.maxScrollExtent);
-    await tester.pumpAndSettle();
-
-    final listTop = tester.getRect(find.byType(ListView).last).top;
-    String? topmost;
-    for (final day in shortDays) {
-      final f = find.descendant(
-        of: find.byType(ListView).last,
+        of: find.byType(CustomScrollView),
         matching: find.text(archiveDayLabel(ctx, day)),
       );
       if (f.evaluate().isEmpty) continue;
-      if (tester.getRect(f).top <= listTop + 1) topmost = day;
+      final y = tester.getRect(f.first).top;
+      if (y < top) {
+        top = y;
+        best = day;
+      }
     }
-    expect(topmost, isNotNull);
-    expect(activeChipDay(tester), topmost!.split('-').last);
+    return best;
+  }
+
+  testWidgets('the pill agrees with the pinned header at every offset', (
+    tester,
+  ) async {
+    // The invariant that replaced three generations of arithmetic. The date on
+    // screen IS the pinned section header — the layout system puts it there,
+    // the same way `sectionHeadersPinToVisibleBounds` does on iOS — so there is
+    // no second opinion to drift from it. This walks the whole archive and
+    // checks the two never disagree, which is the only claim worth making.
+    await open(tester);
+    final ctx = tester.element(find.byType(ArchiveScreen));
+    final pos = tester
+        .widget<CustomScrollView>(find.byType(CustomScrollView))
+        .controller!
+        .position;
+
+    final max = pos.maxScrollExtent;
+    var checked = 0;
+    for (var px = 0.0; px <= max; px += 37) {
+      await scrollTo(tester, px);
+      final pinned = pinnedDay(tester, ctx);
+      if (pinned == null) continue;
+      // Both are checked when they are on screen rather than demanded at
+      // rest: the pill is only up while the list moves, and the rail builds
+      // lazily, so a chip far off its own viewport may not exist yet.
+      final chip = activeChipDay(tester);
+      if (chip != null) {
+        expect(
+          chip,
+          pinned.split('-').last,
+          reason: 'at offset $px the chips and the header disagree',
+        );
+      }
+      final showing = pill(tester);
+      if (showing != null) {
+        expect(
+          showing,
+          archiveDayLabel(ctx, pinned),
+          reason: 'at offset $px the rail and the header disagree',
+        );
+      }
+      checked++;
+    }
+    expect(checked, greaterThan(10), reason: 'barely any offsets checked');
+  });
+
+  testWidgets('the chip agrees with the pinned header on a short archive', (
+    tester,
+  ) async {
+    // The reported shape: a handful of days with one photo each. No scrub rail
+    // here — there is nothing to fast-scroll through — so the chip is the only
+    // thing naming a day, and it has to name the one that is pinned.
+    await openShort(tester);
+    final ctx = tester.element(find.byType(ArchiveScreen));
+    final pos = tester
+        .widget<CustomScrollView>(find.byType(CustomScrollView))
+        .controller!
+        .position;
+
+    expect(find.byKey(archiveScrubberPillKey), findsNothing);
+
+    for (var px = 0.0; px <= pos.maxScrollExtent; px += 29) {
+      await scrollTo(tester, px);
+      final pinned = pinnedDay(tester, ctx);
+      if (pinned == null) continue;
+      expect(
+        activeChipDay(tester),
+        pinned.split('-').last,
+        reason: 'at offset $px the chips and the header disagree',
+      );
+    }
   });
 
   testWidgets('days come out chronological even when the page does not', (
@@ -452,13 +390,13 @@ void main() {
     for (var step = 0; step < 24; step++) {
       for (final key in dayKeys) {
         final f = find.descendant(
-          of: find.byType(ListView).last,
+          of: find.byType(CustomScrollView),
           matching: find.text(archiveDayLabel(ctx, key)),
         );
         if (f.evaluate().isEmpty) continue;
         if (!seen.contains(key)) seen.add(key);
       }
-      await tester.drag(find.byType(ListView).last, const Offset(0, -400));
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
       await tester.pump();
     }
 
@@ -495,25 +433,46 @@ void main() {
     );
   });
 
-  testWidgets('the date pill is a handle, not just a label', (tester) async {
-    // What was actually reported: the rail dragged from the thin bar, but the
-    // pill — the part that looks like a grip — painted outside the 28pt track
-    // and so was never hit-tested at all.
+  testWidgets('the grip scrubs, and the pill does not steal the scroll', (
+    tester,
+  ) async {
+    // Two halves of one trade. The grip has to be a real target — it was a 4pt
+    // line, which is what made reaching for the rail miss — but the DATE PILL
+    // beside it must not be, because it is as wide as a date and its hit box
+    // would reach most of the way across the screen and swallow drags meant for
+    // the photographs underneath.
     await open(tester);
-    await tester.drag(find.byType(ListView).last, const Offset(0, -600));
+    await scrollTo(tester, 600);
     await tester.pump();
-    final before = offset(tester);
 
+    // A drag starting on the pill scrolls the grid, exactly as if the pill
+    // were not there.
+    final beforePill = offset(tester);
     await tester.dragFrom(
       tester.getCenter(find.byKey(archiveScrubberPillKey)),
-      const Offset(0, 200),
+      const Offset(0, -200),
     );
     await tester.pumpAndSettle();
-
     expect(
       offset(tester),
-      greaterThan(before),
-      reason: 'dragging the pill has to scrub',
+      greaterThan(beforePill),
+      reason: 'the pill ate a scroll meant for the grid',
+    );
+
+    // A drag on the grip scrubs. Aimed at the right edge, where the grip is.
+    await scrollTo(tester, 600);
+    await tester.pump();
+    final beforeGrip = offset(tester);
+    final screen = tester.getSize(find.byType(ArchiveScreen));
+    await tester.dragFrom(
+      Offset(screen.width - 10, screen.height * 0.45),
+      Offset(0, screen.height * 0.3),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      offset(tester),
+      isNot(beforeGrip),
+      reason: 'the rail did not take the drag',
     );
   });
 
@@ -535,7 +494,7 @@ void main() {
     // getting there is now an ordinary scroll rather than a bounce.
     final ctx = tester.element(find.byType(ArchiveScreen));
     final pos = tester
-        .widget<ListView>(find.byType(ListView).last)
+        .widget<CustomScrollView>(find.byType(CustomScrollView))
         .controller!
         .position;
     await scrollTo(tester, pos.maxScrollExtent);

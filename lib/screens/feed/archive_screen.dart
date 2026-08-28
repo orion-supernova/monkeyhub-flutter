@@ -223,10 +223,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     _canScrub.value = extent > pos.viewportDimension * 0.5;
     // Pure arithmetic on the offset, so the thumb tracks the finger exactly.
     _scrubAt.value = extent <= 0 ? 0 : (pos.pixels / extent).clamp(0.0, 1.0);
-    // Cheap: one render-box read and a record comparison, then an early return
-    // on every frame where nothing that feeds the offsets has moved.
-    _rebuildDayStarts();
-    _refreshDay(_anchor(pos));
+    _refreshDay(pos.pixels);
   }
 
   /// Names the day the top of the viewport is currently inside.
@@ -301,103 +298,39 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     });
   }
 
-  /// Scroll offset at which each day takes over the label, in `_dayKeys` order
-  /// — the y of that day's header RULE, not the top of its section.
+  /// Where each day's section begins, in scroll offset.
   ///
-  /// Computed, not measured — see [archiveSectionHeight]. Rebuilt by
-  /// [_rebuildDayStarts] whenever the days, their counts, the list's width or
-  /// the text scale change, which is the only time any of these numbers can
-  /// move.
-  List<double> _dayStarts = const [];
-
-  /// What [_dayStarts] was built for, so a rebuild is skipped when nothing that
-  /// feeds it has changed.
-  ({double width, double scale, int days, int photos})? _dayStartsFor;
-
-  /// The text scale, captured in `build` so the offset rebuild — which runs
-  /// from a scroll callback — never has to touch `MediaQuery`.
-  double _textScale = 1;
-
-  void _rebuildDayStarts() {
-    final box = _listKey.currentContext?.findRenderObject();
-    if (box is! RenderBox || !box.hasSize) return;
-    // Every input, so a page that only ADDS photos to a day already in the list
-    // invalidates the cache too — the day count alone would not have moved.
-    final photos = _byDay.values.fold(0, (a, b) => a + b.length);
-    final signature = (
-      width: box.size.width,
-      scale: _textScale,
-      days: _dayKeys.length,
-      photos: photos,
-    );
-    if (signature == _dayStartsFor) return;
-    _dayStartsFor = signature;
-
-    // The width the sections are laid out into: the list's box less its own
-    // horizontal padding.
-    final inner = box.size.width - _listPadLeft - _listPadRight;
-    final header = archiveHeaderHeightFor(_textScale);
-    final starts = <double>[];
-    // The list's top padding is part of the scrollable extent, so the first
-    // section starts there rather than at zero.
-    var y = _listPadTop;
-    for (final day in _dayKeys) {
-      // The DIVIDER, not the top of the section.
-      //
-      // A section opens with a header row that is mostly empty space above the
-      // text — the label and its rule sit on the row's bottom edge
-      // (`CrossAxisAlignment.end`). Switching the label at the section's top
-      // meant it changed while that day's rule was still a header's height
-      // below the fold, which is exactly the "changes in the wrong place" you
-      // can see. The rule is the line a reader watches cross the top edge, so
-      // the rule is the switch point.
-      starts.add(y + header);
-      y += archiveSectionHeight(
-        count: _byDay[day]?.length ?? 0,
-        width: inner,
-        headerHeight: header,
-      );
-    }
-    _dayStarts = starts;
-  }
-
-  /// The line the switch happens on: the top edge of the list's viewport.
+  /// **Reported by the layout system, not predicted.** Every day is wrapped in
+  /// a `SliverLayoutBuilder`, and `SliverConstraints.precedingScrollExtent` is
+  /// the framework telling that sliver exactly how much scrollable content sits
+  /// above it. It is the same number three earlier attempts tried to derive
+  /// from tile sizes, spacings, column counts and header metrics — except this
+  /// one cannot be wrong, because it is what the viewport actually laid out.
   ///
-  /// **Fixed, and that is the point.** An earlier attempt slid this line down
-  /// the viewport as the list ran out, so that the last days — which can never
-  /// reach the top — could still be named. It bought that at the cost of the
-  /// only property worth having: with the line moving, the anchor travels
-  /// faster than the finger (on a short archive more than twice as fast), so
-  /// every switch after the first happens before its rule reaches the top and
-  /// the label runs ahead of the list. Switching early everywhere is a worse
-  /// answer than never naming the final day.
-  ///
-  /// So the rule is the one you can check by eye: the day whose header rule has
-  /// most recently crossed the top edge is the day it names. At the bottom of a
-  /// short archive that is the topmost header on screen, which is still a date
-  /// you can see and point at.
-  double _anchor(ScrollPosition pos) => pos.pixels;
+  /// Scroll-invariant, so reading it from a scroll callback is not a stale
+  /// read: a section's position only moves when the CONTENT changes, and when
+  /// that happens the sliver is laid out again and writes a new value here.
+  final _dayOffsets = <String, double>{};
 
-  /// The dayKey whose section contains scroll offset [pixels].
+  /// The dayKey whose section the top of the viewport is inside.
   ///
-  /// A binary search over [_dayStarts]: the last day whose rule has already
-  /// passed the top edge. No tolerance and no fallback, so the label cannot
-  /// change early, late, or to a day that is nowhere near the screen. Before
-  /// the first rule reaches the top the answer is the first day, which is what
-  /// is on screen.
+  /// The last day that has started. With a pinned header this is also, by
+  /// construction, the day whose header is currently stuck to the top edge —
+  /// so the pill, the chips and the header a reader is looking at cannot
+  /// disagree with each other.
   String? _dayAtOffset(double pixels) {
-    if (_dayStarts.isEmpty) return null;
-    var lo = 0;
-    var hi = _dayStarts.length - 1;
-    while (lo < hi) {
-      final mid = (lo + hi + 1) ~/ 2;
-      if (_dayStarts[mid] <= pixels) {
-        lo = mid;
+    String? best;
+    for (final day in _dayKeys) {
+      final start = _dayOffsets[day];
+      // Not laid out yet, so not on screen, so not the answer.
+      if (start == null) continue;
+      if (start <= pixels) {
+        best = day;
       } else {
-        hi = mid - 1;
+        break;
       }
     }
-    return _dayKeys[lo];
+    return best ?? (_dayKeys.isEmpty ? null : _dayKeys.first);
   }
 
   /// Scrubbing: the finger's position along the track IS the position in the
@@ -467,29 +400,25 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
 
   void _jumpTo(String dayKey) {
     setState(() => _selectedDay = dayKey);
-    final index = _dayKeys.indexOf(dayKey);
-    if (index < 0) return;
-    // Scroll rather than filter: filtering hides the neighbouring days, and
-    // "look around" was the request. Jumping keeps everything reachable.
-    final key = _sectionKeys[dayKey];
-    final ctx = key?.currentContext;
-    if (ctx != null) {
-      Scrollable.ensureVisible(
-        ctx,
-        duration: const Duration(milliseconds: 260),
-        curve: Curves.easeOutCubic,
-        alignment: 0.05,
-      );
-    }
+    final start = _dayOffsets[dayKey];
+    if (start == null || !_scroll.hasClients) return;
+    // The framework's own offset for that section, so this lands on the day's
+    // header rather than near it. Scroll rather than filter: filtering hides
+    // the neighbouring days, and "look around" was the request.
+    _scroll.animateTo(
+      start.clamp(
+        _scroll.position.minScrollExtent,
+        _scroll.position.maxScrollExtent,
+      ),
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+    );
   }
-
-  final _sectionKeys = <String, GlobalKey>{};
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    _textScale = MediaQuery.textScalerOf(context).scale(1);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -612,134 +541,165 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
       );
     }
 
-    return ListView.builder(
+    final header = archiveHeaderHeight(context);
+
+    return CustomScrollView(
       key: _listKey,
       controller: _scroll,
-      // 28 on the right, not 20: that is the scrub rail's width, so the rail
-      // lives entirely in the gutter and never covers a tile. A rail that has
-      // to be hittable and a grid that has to be tappable cannot share the same
-      // 20pt.
-      padding: EdgeInsets.fromLTRB(
-        _listPadLeft,
-        _listPadTop,
-        _listPadRight,
-        edgeToEdgeBottom(context),
-      ),
-      // One extra row for the tail spinner / end marker.
-      itemCount: _dayKeys.length + 1,
-      itemBuilder: (context, i) {
-        if (i == _dayKeys.length) {
-          if (_loadingMore) {
-            return Padding(
+      slivers: [
+        SliverPadding(padding: EdgeInsets.only(top: _listPadTop)),
+        for (final day in _dayKeys)
+          // One `SliverLayoutBuilder` per day, for the one number that matters:
+          // `precedingScrollExtent` is the framework saying exactly where this
+          // day begins. Three earlier attempts predicted that from tile sizes
+          // and header metrics and were wrong in a different way each time.
+          //
+          // `SliverMainAxisGroup` is what makes the header STICK to the top for
+          // the length of its own day and then hand over — the same behaviour
+          // `sectionHeadersPinToVisibleBounds` gives a UICollectionView and a
+          // sticky-header decoration gives a RecyclerView. The date on screen
+          // is the section header itself, so it cannot drift from the content
+          // underneath it: there is nothing in between to be out of step.
+          SliverLayoutBuilder(
+            builder: (context, constraints) {
+              _dayOffsets[day] = constraints.precedingScrollExtent;
+              final moments = _byDay[day] ?? const <Moment>[];
+              final inner =
+                  constraints.crossAxisExtent - _listPadLeft - _listPadRight;
+              return SliverMainAxisGroup(
+                slivers: [
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _DayHeader(
+                      dayKey: day,
+                      count: moments.length,
+                      extent: header,
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(
+                      _listPadLeft,
+                      0,
+                      _listPadRight,
+                      _sectionGap,
+                    ),
+                    sliver: SliverGrid.builder(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: archiveColumns(inner),
+                        mainAxisSpacing: _gridSpacing,
+                        crossAxisSpacing: _gridSpacing,
+                      ),
+                      itemCount: moments.length,
+                      itemBuilder: (context, i) => _ArchiveTile(
+                        // Identity, never index.
+                        key: ValueKey(moments[i].id),
+                        moment: moments[i],
+                        api: widget.api,
+                        index: i,
+                        onTap: () => showMomentViewer(
+                          context,
+                          moment: moments[i],
+                          api: widget.api,
+                          feedApi: widget.feedApi,
+                          userId: widget.userId,
+                          // The whole day is the run, so a picture opened from
+                          // the grid can be swiped through like the gallery it
+                          // visually already is.
+                          siblings: moments,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        SliverPadding(
+          padding: EdgeInsets.only(bottom: edgeToEdgeBottom(context)),
+          sliver: SliverToBoxAdapter(
+            child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 24),
               child: Center(
-                child: CircularProgressIndicator(
-                  color: theme.accent,
-                  strokeWidth: 2,
-                ),
-              ),
-            );
-          }
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Center(
-              child: Text(
-                l10n.archiveScreenEnd,
-                style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                child: _loadingMore
+                    ? CircularProgressIndicator(
+                        color: theme.accent,
+                        strokeWidth: 2,
+                      )
+                    : Text(
+                        l10n.archiveScreenEnd,
+                        style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                      ),
               ),
             ),
-          );
-        }
-        final day = _dayKeys[i];
-        return _DaySection(
-          key: _sectionKeys.putIfAbsent(day, GlobalKey.new),
-          dayKey: day,
-          moments: _byDay[day] ?? const [],
-          api: widget.api,
-          onOpen: (m) => showMomentViewer(
-            context,
-            moment: m,
-            api: widget.api,
-            feedApi: widget.feedApi,
-            userId: widget.userId,
-            // The whole day is the run, so a picture opened from the grid can
-            // be swiped through like the gallery it visually already is. The
-            // tile is showing the picture, so it flies — on the same tag the
-            // feed rail uses, which is safe because the two are never in the
-            // same route.
-            siblings: _byDay[day] ?? const [],
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 }
 
-/// The archive list's own padding, named because the scrub rail's arithmetic
-/// depends on all four numbers and a literal in two places is a literal that
-/// drifts. Right is [_DateScrubber._trackWidth] exactly, so the rail sits in
-/// the gutter rather than over a tile.
-const double _listPadLeft = 20;
-const double _listPadTop = 8;
-const double _listPadRight = 28;
+/// One day's header, pinned to the top for the length of its own section.
+///
+/// The date a reader sees IS this widget — there is no second copy of the
+/// answer computed somewhere else that could disagree with it. Opaque, because
+/// a pinned header has photographs scrolling underneath it.
+class _DayHeader extends SliverPersistentHeaderDelegate {
+  const _DayHeader({
+    required this.dayKey,
+    required this.count,
+    required this.extent,
+  });
 
-/// Height of a day section's header row.
-///
-/// **Pinned rather than measured, and that is the point.** Everything else in a
-/// section is arithmetic — square tiles, fixed spacing, a computed column count
-/// — so this one line of text was the only reason a section's height could not
-/// be known without laying it out. Fixing it makes [archiveSectionHeight] exact,
-/// which is what lets the scrub rail name the right day from the scroll offset
-/// alone instead of chasing render boxes a frame behind the finger.
-///
-/// Scaled and clamped the way `_DateRail` and `MomentRail` size themselves: a
-/// flat number clips the label at accessibility text sizes.
-double archiveHeaderHeight(BuildContext context) =>
-    archiveHeaderHeightFor(MediaQuery.textScalerOf(context).scale(1));
+  final String dayKey;
+  final int count;
+  final double extent;
 
-/// [archiveHeaderHeight] for a text scale that has already been read.
-///
-/// The rail rebuilds its offsets from a scroll callback, where reaching into
-/// `MediaQuery` would register an inherited-widget dependency outside a build.
-double archiveHeaderHeightFor(double textScale) =>
-    (18 * textScale).clamp(18.0, 34.0);
+  @override
+  double get minExtent => extent;
 
-/// The exact height of one day's section: header, gap, photo grid, and the
-/// separation before the next day.
-///
-/// Mirrors `_DaySection.build` and `_archiveColumns` — the grid is a
-/// `SliverGridDelegateWithFixedCrossAxisCount` with no `childAspectRatio`, so
-/// tiles are square, and `shrinkWrap: true` lays every row out at once, so a
-/// section reaches its full height the moment it is built. There is nothing
-/// lazy left to estimate.
-///
-/// The same trade `room_content_screen`'s `_revealInGrid` already makes: a grid
-/// whose geometry is known is worth computing rather than measuring.
-double archiveSectionHeight({
-  required int count,
-  required double width,
-  required double headerHeight,
-}) {
-  final columns = archiveColumns(width);
-  final tile = (width - _gridSpacing * (columns - 1)) / columns;
-  final rows = (count / columns).ceil();
-  final grid = rows == 0 ? 0.0 : rows * tile + (rows - 1) * _gridSpacing;
-  return headerHeight + _headerToGrid + grid + _sectionGap;
+  @override
+  double get maxExtent => extent;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlaps) {
+    final theme = ThemeScope.of(context);
+    return Container(
+      color: theme.background,
+      padding: const EdgeInsets.fromLTRB(
+        _listPadLeft,
+        0,
+        _listPadRight,
+        _headerToGrid,
+      ),
+      alignment: Alignment.bottomLeft,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Flexible(
+            child: Text(
+              // NOT uppercased: Dart's toUpperCase is locale-independent and
+              // would turn a Turkish 'i' into 'I' instead of 'İ'.
+              archiveDayLabel(context, dayKey),
+              style: theme.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(child: Container(height: 1, color: theme.divider)),
+          const SizedBox(width: 8),
+          Text('$count', style: theme.monoTiny),
+        ],
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _DayHeader old) =>
+      old.dayKey != dayKey || old.count != count || old.extent != extent;
 }
 
-/// Tiles per row at [width]. Shared by the grid that draws them and the rail
-/// that has to predict them.
-int archiveColumns(double width) =>
-    ((width + _gridSpacing) / (_tileTarget + _gridSpacing))
-        .floor()
-        .clamp(3, 7);
-
-const double _gridSpacing = 8;
-const double _tileTarget = 150;
-const double _headerToGrid = 12;
-const double _sectionGap = 26;
-
-/// The scrub rail's date pill.
+/// The scrub rail's date pill./// The scrub rail's date pill.
 ///
 /// Keyed because the day it names is also drawn as a section header inside the
 /// list, so "find the text" is ambiguous exactly when the two agree — which is
@@ -754,6 +714,35 @@ const Key archiveScrubberPillKey = Key('archive-scrubber-pill');
 /// day you are looking at, and a test of that has to be able to find it.
 @visibleForTesting
 const Key archiveActiveChipKey = Key('archive-active-chip');
+
+/// The archive's own padding and grid metrics, named because the header, the
+/// grid and the scrub rail all have to agree on them.
+const double _listPadLeft = 20;
+const double _listPadTop = 8;
+
+/// Right is [_DateScrubber._trackWidth] exactly, so the rail sits in the gutter
+/// rather than over a tile.
+const double _listPadRight = 28;
+
+const double _gridSpacing = 8;
+const double _tileTarget = 150;
+const double _headerToGrid = 12;
+const double _sectionGap = 26;
+
+/// Height of a day's pinned header.
+///
+/// A `SliverPersistentHeader` has to declare its extent, so this is a layout
+/// constant the framework consumes rather than a number anything predicts.
+/// Scaled and clamped the way `_DateRail` and `MomentRail` size themselves: a
+/// flat number clips the label at accessibility text sizes.
+double archiveHeaderHeight(BuildContext context) =>
+    MediaQuery.textScalerOf(context).scale(30).clamp(30.0, 48.0);
+
+/// Tiles per row at [width].
+int archiveColumns(double width) =>
+    ((width + _gridSpacing) / (_tileTarget + _gridSpacing))
+        .floor()
+        .clamp(3, 7);
 
 /// A dayKey ("YYYY-MM-DD") as a localized date that always carries its year.
 ///
@@ -885,17 +874,19 @@ class _DateScrubber extends StatelessWidget {
                 builder: (context, fraction, _) => Positioned(
                   top: fraction * travel,
                   right: 6,
-                  child: _ScrubGestures(
-                    // A grab, not a jump: the finger has taken hold of the
-                    // thumb where it already is, so the drag starts from the
-                    // thumb's current position and follows the deltas from
-                    // there. Handing the pill's local y to the track would
-                    // teleport the list on touch-down.
+                  child: _Thumb(
+                    day: day,
+                    loud: loud,
+                    theme: theme,
+                    // A grab, not a jump: the finger has taken hold of the grip
+                    // where it already is, so the drag starts from the thumb's
+                    // current position and follows the deltas from there.
+                    // Handing a local y straight to the track would teleport
+                    // the list on touch-down.
                     grabAt: fraction * travel + _thumbHeight / 2,
                     onStart: onStart,
                     onEnd: onEnd,
                     scrubToY: scrubToY,
-                    child: _Thumb(day: day, loud: loud, theme: theme),
                   ),
                 ),
               ),
@@ -985,15 +976,38 @@ class _ScrubGesturesState extends State<_ScrubGestures> {
 
 /// The grip, with the date it is currently over spilling out to its left.
 ///
-/// The date pill is the loud half: it is a running commentary on a gesture in
-/// progress, and leaving it parked over the grid when nothing is moving would
-/// be a permanent label for a scroll position nobody is changing.
+/// **The date pill is a label, and only the grip takes the gesture.** Making
+/// the whole thumb draggable was tempting — the pill is the part that looks
+/// like a handle — but the pill is as wide as a date, so its hit box reached
+/// most of the way across the screen and swallowed drags meant for the
+/// photographs underneath it. A fast-scroller that eats the ordinary scroll is
+/// a worse trade than one you have to aim at.
+///
+/// So the grip gets a proper target instead: [_gripHit] wide, which is a
+/// comfortable thumb rather than the 4pt line it draws, and all of it inside
+/// the gutter the grid already leaves empty.
 class _Thumb extends StatelessWidget {
-  const _Thumb({required this.day, required this.loud, required this.theme});
+  const _Thumb({
+    required this.day,
+    required this.loud,
+    required this.theme,
+    required this.grabAt,
+    required this.onStart,
+    required this.onEnd,
+    required this.scrubToY,
+  });
 
   final ValueListenable<String?> day;
   final ValueListenable<bool> loud;
   final dynamic theme;
+  final double grabAt;
+  final VoidCallback onStart;
+  final VoidCallback onEnd;
+  final void Function(double y) scrubToY;
+
+  /// Hit width of the grip. Apple's minimum target is 44; the line it paints is
+  /// 4, and the difference is the whole reason reaching for this used to miss.
+  static const _gripHit = 40.0;
 
   @override
   Widget build(BuildContext context) {
@@ -1002,55 +1016,73 @@ class _Thumb extends StatelessWidget {
       child: ValueListenableBuilder<bool>(
         valueListenable: loud,
         builder: (context, isLoud, _) => Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          ValueListenableBuilder<String?>(
-            valueListenable: day,
-            builder: (context, dayKey, _) {
-              if (dayKey == null || !isLoud) return const SizedBox.shrink();
-              return Container(
-                key: archiveScrubberPillKey,
-                margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 7,
-                ),
-                decoration: BoxDecoration(
-                  color: theme.accent,
-                  borderRadius: BorderRadius.circular(999),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.24),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Ignored, deliberately: see the class doc.
+            IgnorePointer(
+              child: ValueListenableBuilder<String?>(
+                valueListenable: day,
+                builder: (context, dayKey, _) {
+                  if (dayKey == null || !isLoud) return const SizedBox.shrink();
+                  return Container(
+                    key: archiveScrubberPillKey,
+                    margin: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 7,
                     ),
-                  ],
-                ),
-                child: Text(
-                  archiveDayLabel(context, dayKey),
-                  // accentInk on an accent fill, never white — NeonNight's
-                  // accent is pure yellow and Graphite's is near-white.
-                  style: theme.monoTiny.copyWith(color: theme.accentInk),
-                  maxLines: 1,
-                ),
-              );
-            },
-          ),
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            curve: Curves.easeOut,
-            width: isLoud ? 5 : 4,
-            height: _DateScrubber._thumbHeight,
-            decoration: BoxDecoration(
-              // Dimmed rather than hidden at rest: still visible enough to say
-              // "there is a rail here", quiet enough not to be a stripe down
-              // the side of every photograph.
-              color: theme.accent.withValues(alpha: isLoud ? 1.0 : 0.45),
-              borderRadius: BorderRadius.circular(999),
+                    decoration: BoxDecoration(
+                      color: theme.accent,
+                      borderRadius: BorderRadius.circular(999),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.24),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      archiveDayLabel(context, dayKey),
+                      // accentInk on an accent fill, never white — NeonNight's
+                      // accent is pure yellow and Graphite's is near-white.
+                      style: theme.monoTiny.copyWith(color: theme.accentInk),
+                      maxLines: 1,
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+            _ScrubGestures(
+              grabAt: grabAt,
+              onStart: onStart,
+              onEnd: onEnd,
+              scrubToY: scrubToY,
+              child: SizedBox(
+                width: _gripHit,
+                height: _DateScrubber._thumbHeight,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    curve: Curves.easeOut,
+                    width: isLoud ? 5 : 4,
+                    height: _DateScrubber._thumbHeight,
+                    decoration: BoxDecoration(
+                      // Dimmed rather than hidden at rest: visible enough to
+                      // say "there is a rail here", quiet enough not to be a
+                      // stripe down the side of every photograph.
+                      color: theme.accent.withValues(
+                        alpha: isLoud ? 1.0 : 0.45,
+                      ),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1191,91 +1223,6 @@ class _DayChip extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// One day's worth: a localized header, then a grid.
-class _DaySection extends StatelessWidget {
-  const _DaySection({
-    super.key,
-    required this.dayKey,
-    required this.moments,
-    required this.api,
-    required this.onOpen,
-  });
-
-  final String dayKey;
-  final List<Moment> moments;
-  final ChatApi api;
-  final void Function(Moment) onOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    // NOT uppercased: Dart's toUpperCase is locale-independent and would turn a
-    // Turkish 'i' into 'I' instead of 'İ'.
-    final label = archiveDayLabel(context, dayKey);
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: _sectionGap),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Fixed height, so this section's total is arithmetic rather than
-          // something only a layout pass knows — see [archiveHeaderHeight].
-          SizedBox(
-            height: archiveHeaderHeight(context),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Flexible(
-                  child: Text(
-                    label,
-                    style: theme.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(child: Container(height: 1, color: theme.divider)),
-                const SizedBox(width: 8),
-                Text('${moments.length}', style: theme.monoTiny),
-              ],
-            ),
-          ),
-          const SizedBox(height: _headerToGrid),
-          // Tile count follows the width it's actually given rather than a
-          // flat 3 — a fixed count either crushes tiles on a handset (were it
-          // any higher) or leaves a wide desktop pane at the same 3 phone-size
-          // tiles per row it started with (were it any lower).
-          LayoutBuilder(
-            builder: (context, constraints) {
-              // The one place this is decided, so the scrub rail can predict
-              // it — see [archiveColumns].
-              final columns = archiveColumns(constraints.maxWidth);
-              return GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: columns,
-                  mainAxisSpacing: _gridSpacing,
-                  crossAxisSpacing: _gridSpacing,
-                ),
-                itemCount: moments.length,
-                itemBuilder: (context, i) => _ArchiveTile(
-                  // Identity, never index.
-                  key: ValueKey(moments[i].id),
-                  moment: moments[i],
-                  api: api,
-                  index: i,
-                  onTap: () => onOpen(moments[i]),
-                ),
-              );
-            },
-          ),
-        ],
       ),
     );
   }
