@@ -138,7 +138,7 @@ void main() {
 
     Widget ephemeral(ChatMessage m) => EphemeralMessageBubble(
       message: m,
-      now: DateTime(2026, 3, 1, 12, 0, 5),
+      now: ValueNotifier(DateTime(2026, 3, 1, 12, 0, 5)),
       currentUserId: 'bob',
       api: api,
     );

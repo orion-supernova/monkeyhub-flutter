@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui';
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../backend/chat_api.dart';
@@ -520,7 +521,16 @@ class EphemeralMessageBubble extends StatelessWidget {
   final VoidCallback? onDiscardSend;
 
   final ChatMessage message;
-  final DateTime now;
+
+  /// The dissolve clock, as a listenable rather than a value.
+  ///
+  /// A fading bubble is a function of the current instant across its whole
+  /// body — the life bar, the countdown and the opacity ramp all read it — so
+  /// there is no small piece of this to isolate. What CAN be isolated is the
+  /// rest of the screen: taking the clock as a listenable keeps a 5Hz tick
+  /// inside the bubbles that fade instead of rebuilding the transcript around
+  /// them. See [build].
+  final ValueListenable<DateTime> now;
   final String currentUserId;
   final ChatApi api;
   final ChatUser? author;
@@ -575,16 +585,30 @@ class EphemeralMessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // See MessageBubble.build — the shape is a preference, so the row rebuilds
-    // with it.
-    return AnimatedBuilder(
-      animation: SettingsStore.instance,
-      builder: (context, _) =>
-          _build(context, SettingsStore.instance.bubbleStyle),
+    // The clock arrives as a listenable, and the subscription starts HERE —
+    // one level inside the row — on purpose. The dissolve wants 5Hz, and when
+    // the screen owned that as state, five times a second it rebuilt the whole
+    // transcript: every row, ephemeral or not, plus the dividers, the composer
+    // and the app bar, each row re-running its capability, saved-state and
+    // read-cursor lookups. Four of those five ticks changed nothing anybody
+    // could see, and they were paid out of the same frame budget the receive
+    // path parses an arriving message on. Now the tick repaints the bubbles
+    // that actually fade, and nothing else.
+    return ValueListenableBuilder<DateTime>(
+      valueListenable: now,
+      builder: (context, nowValue, _) =>
+          // See MessageBubble.build — the shape is a preference, so the row
+          // rebuilds with it.
+          AnimatedBuilder(
+            animation: SettingsStore.instance,
+            builder: (context, _) =>
+                _build(context, SettingsStore.instance.bubbleStyle, nowValue),
+          ),
     );
   }
 
-  Widget _build(BuildContext context, BubbleStyle bubbleStyle) {
+  Widget _build(
+      BuildContext context, BubbleStyle bubbleStyle, DateTime now) {
     final theme = ThemeScope.of(context);
     final isMine = message.senderId == currentUserId;
     final progress = message.lifeProgress(now);

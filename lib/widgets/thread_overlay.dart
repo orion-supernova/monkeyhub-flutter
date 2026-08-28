@@ -203,6 +203,13 @@ class _ThreadSheetState extends State<_ThreadSheet>
   Timer? _tick;
   DateTime _now = DateTime.now();
 
+  /// The same instant as [_now], as a listenable, because that is what a
+  /// fading bubble takes now. The overlay ticks at 1Hz and rebuilds itself
+  /// anyway, so this changes nothing here — it exists so the room screen can
+  /// drive its own fade at 5Hz without rebuilding a transcript. See
+  /// [EphemeralMessageBubble.now].
+  final ValueNotifier<DateTime> _fadeNow = ValueNotifier(DateTime.now());
+
   /// In-overlay toast. A SnackBar can't be used here: ScaffoldMessenger
   /// renders inside the Scaffold's subtree, which sits *below* this root
   /// overlay entry and behind the blurred scrim.
@@ -247,7 +254,10 @@ class _ThreadSheetState extends State<_ThreadSheet>
     // there and what it says.
     _jumpBack.addListener(_onJumpBackChanged);
     _tick = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() => _now = DateTime.now());
+      if (!mounted) return;
+      final now = DateTime.now();
+      _fadeNow.value = now;
+      setState(() => _now = now);
     });
 
     widget.repo.openThread(widget.rootId);
@@ -262,6 +272,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
   @override
   void dispose() {
     _tick?.cancel();
+    _fadeNow.dispose();
     _toastTimer?.cancel();
     widget.repo.removeListener(_onRepoChange);
     widget.repo.closeThread(widget.rootId);
@@ -1019,7 +1030,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
         saved: saved,
         bubbleKey: bubbleKey,
         message: m,
-        now: _now,
+        now: _fadeNow,
         currentUserId: me,
         api: widget.api,
         author: author,

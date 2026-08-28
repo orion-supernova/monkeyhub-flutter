@@ -146,7 +146,18 @@ class RoomScreen extends StatefulWidget {
 class _RoomScreenState extends State<RoomScreen>
     with TickerProviderStateMixin {
   late Timer _ticker;
+
+  /// The 1Hz clock: relative timestamps, and whether a live share is still
+  /// running. Screen state, because those two decide what the screen BUILDS.
   DateTime _now = DateTime.now();
+
+  /// The 5Hz clock, and only in a Chamber-of-Secrets room: the dissolve on a
+  /// fading bubble is the one reader that wants sub-second resolution.
+  ///
+  /// A notifier rather than more state, so the fast tick repaints the fading
+  /// bubbles subscribed to it (see [EphemeralMessageBubble.now]) instead of
+  /// rebuilding the whole transcript around them four extra times a second.
+  final ValueNotifier<DateTime> _fadeNow = ValueNotifier(DateTime.now());
   final MentionTextController _composer = MentionTextController();
   final FocusNode _composerFocus = FocusNode();
   late final MentionSession _mention;
@@ -333,15 +344,19 @@ class _RoomScreenState extends State<RoomScreen>
     _mention.addListener(_onMentionChanged);
     _ticker = Timer.periodic(const Duration(milliseconds: 200), (t) {
       if (!mounted) return;
-      // 5Hz only while a Chamber-of-Secrets countdown can be on screen: the
-      // life bar on a fading message is the one reader of `_now` that wants
-      // sub-second resolution. Everywhere else it feeds relative timestamps
-      // and a live-share "still running" check, which a 1Hz tick serves just
-      // as well — and this setState rebuilds the whole transcript, so the
-      // other four ticks a second were pure cost, paid out of the same frame
-      // budget the receive path parses a message on.
-      if (_room?.messageLifetime == null && t.tick % 5 != 0) return;
-      setState(() => _now = DateTime.now());
+      final now = DateTime.now();
+      // The fast half: 5Hz, and only where something is actually fading. This
+      // is a notifier, so it repaints the bubbles listening to it and nothing
+      // else — it does NOT rebuild the screen.
+      if (_room?.messageLifetime != null) _fadeNow.value = now;
+      // The slow half: 1Hz, and this one IS a setState, because relative
+      // timestamps and the live-share "still running" check decide what the
+      // screen builds. It used to run at 5Hz too in an ephemeral room, which
+      // meant four transcript rebuilds a second that changed nothing visible,
+      // paid out of the same frame budget the receive path parses an arriving
+      // message on.
+      if (t.tick % 5 != 0) return;
+      setState(() => _now = now);
     });
     _highlightCtrl = AnimationController(
       vsync: this,
@@ -1046,6 +1061,7 @@ class _RoomScreenState extends State<RoomScreen>
     }
     ShareIntake.instance.removeListener(_takeStagedShare);
     _ticker.cancel();
+    _fadeNow.dispose();
     _captureController.dispose();
     // Before the controller: the session is a listener on it.
     _mention.removeListener(_onMentionChanged);
@@ -1100,7 +1116,13 @@ class _RoomScreenState extends State<RoomScreen>
     // live tail, so come back to it rather than leaving the sender staring at
     // a transcript their own message isn't in.
     widget.repo.exitHistoryWindow(widget.roomId);
-    await widget.repo.sendText(
+    // Take the future, don't await it yet. ChatRepository._send inserts the
+    // optimistic bubble and notifies BEFORE its first await, so by the time
+    // this returns the new message is already in the list — which means the
+    // reader can be put on it now instead of after a server round trip.
+    // Awaiting first left the sender staring at the old tail for the whole
+    // trip, and on a slow link that is the entire "sending feels slow".
+    final sent = widget.repo.sendText(
       widget.roomId,
       text,
       replyToId: replyTarget?.id,
@@ -1108,6 +1130,9 @@ class _RoomScreenState extends State<RoomScreen>
       mentionsEveryone: everyone,
       formatting: formatting,
     );
+    _keepComposerFocus();
+    _scrollToBottom();
+    await sent;
     // A child guard rejection drops the optimistic bubble rather than leaving
     // it in the retry queue, so say why instead of letting the message just
     // vanish. Most likely a grant was revoked while the room was open.
@@ -1127,8 +1152,7 @@ class _RoomScreenState extends State<RoomScreen>
       await _handleSendGate(gate);
       return;
     }
-    _keepComposerFocus();
-    _scrollToBottom();
+    // Focus and scroll already happened above, before the await.
     // The OS ranks share-sheet suggestions by who you actually talk to, and
     // this is where the app finds that out.
     _touchShareTarget();
@@ -3845,7 +3869,7 @@ class _RoomScreenState extends State<RoomScreen>
                         child: target.isEphemeral
                           ? EphemeralMessageBubble(
                               message: target,
-                              now: _now,
+                              now: _fadeNow,
                               currentUserId: me,
                               api: widget.api,
                               author: author,
@@ -4062,7 +4086,7 @@ class _RoomScreenState extends State<RoomScreen>
                     ? EphemeralMessageBubble(
                         key: ValueKey('e_${m.id}'),
                         message: m,
-                        now: _now,
+                        now: _fadeNow,
                         currentUserId: me,
                         api: widget.api,
                         author: author,

@@ -138,7 +138,7 @@ class ConnectionHealth extends ChangeNotifier {
       Duration(seconds: 15),
     ],
     this.heartbeatFailureThreshold = 2,
-    this.backgroundRebuildThreshold = const Duration(seconds: 20),
+    this.backgroundRebuildThreshold = const Duration(seconds: 90),
     this.rebuildAfterAttempt = 2,
     this.rebuildTimeout = const Duration(seconds: 6),
     this.connectivityRetryThrottle = const Duration(seconds: 3),
@@ -220,6 +220,17 @@ class ConnectionHealth extends ChangeNotifier {
   /// socket whose NAT binding expired or whose interface changed while the
   /// device slept, and convex-rs's own detector for that is monotonic — it does
   /// not advance during sleep, so it has learned nothing by the time we resume.
+  ///
+  /// It was 20s, and that was too eager. Glancing at a notification, reading
+  /// one message in another app, answering a passcode prompt — all of them
+  /// cleared 20s and all of them tore down a socket that was perfectly alive.
+  /// The teardown is not free: the first send after it blocks on the Rust
+  /// `build_lock` while `SubscriptionRegistry.rebindAll` pushes fifteen-odd
+  /// resubscribes through the one client worker ahead of it, which is why a
+  /// message sent right after coming back to the app was the slowest one to
+  /// land. Below this threshold the resume still calls `retryNow`, so a socket
+  /// that IS dead is still found — by a probe rather than on sight, which costs
+  /// a probe timeout in the rare case instead of a rebuild in the common one.
   final Duration backgroundRebuildThreshold;
 
   /// How many failed probes before the loop escalates to a rebuild. Above zero

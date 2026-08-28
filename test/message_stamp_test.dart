@@ -186,7 +186,7 @@ void main() {
       host(
         EphemeralMessageBubble(
           message: msg(expiresAt: now.add(const Duration(seconds: 12))),
-          now: now,
+          now: ValueNotifier(now),
           currentUserId: 'bob',
           api: api,
           author: ChatUser(id: 'alice', username: 'alice', name: 'Alice'),

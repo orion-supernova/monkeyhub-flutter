@@ -137,9 +137,17 @@ class DiagBuffer {
 
     revision.value++;
 
-    // A warning or an error is often the last thing to happen before the
-    // process dies, so it does not get to wait out the debounce.
-    if (sev.index >= DiagSev.warn.index) {
+    // An error is often the last thing to happen before the process dies, so
+    // it does not get to wait out the debounce.
+    //
+    // A WARNING does wait, and that is deliberate. `DiagLog.apiEnd` raises a
+    // Convex call to warn at >3 s, so the old `>= warn` test turned every slow
+    // round trip into an immediate `writeAsString(flush: true)` on the main
+    // isolate — an fsync fired at precisely the moment the device was already
+    // struggling, which then slowed the next call, which warned too. A warning
+    // is not a crash precursor; 600 ms of debounce loses nothing, and the
+    // error path above still catches anything that is.
+    if (sev.index >= DiagSev.error.index) {
       unawaited(flush());
     } else {
       _scheduleFlush();

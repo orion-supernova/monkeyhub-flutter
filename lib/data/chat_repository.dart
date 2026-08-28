@@ -2863,7 +2863,18 @@ class ChatRepository extends ChangeNotifier {
     if (optimistic == null) return;
     _pending.putIfAbsent(roomId, () => []).add(optimistic);
     notifyListeners();
-    await _postMessage(roomId, optimistic);
+    // Issue the send FIRST, then retire the typing heartbeat.
+    //
+    // Order matters because both ride one socket whose worker handles one
+    // frame at a time: starting `_postMessage` here puts `messages:send` in
+    // front of the `clearTyping` rather than behind it. And retiring the
+    // heartbeat at all is the point — without this it keeps firing
+    // `typing:setTyping` every 2s for up to 3s more (`_scheduleStopTyping`),
+    // which lands squarely inside the round trip the clock icon is waiting on.
+    // It was also simply wrong: you are not still typing, you just sent.
+    final posted = _postMessage(roomId, optimistic);
+    _stopTyping();
+    await posted;
   }
 
   /// Builds the bubble that stands in for a message until the server confirms it,
