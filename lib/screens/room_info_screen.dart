@@ -26,6 +26,7 @@ import '../models/room_content_item.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
+import '../widgets/app_toast.dart';
 import '../widgets/companion_install_sheet.dart';
 import '../widgets/editable_info_row.dart';
 import '../widgets/labeled_field.dart';
@@ -643,10 +644,10 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
         _passwordOpen = false;
         _passwordHasText = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context).roomInfoScreenPasswordSetSnackbar),
-        ),
+      showAppToast(
+        context,
+        AppLocalizations.of(context).roomInfoScreenPasswordSetSnackbar,
+        tone: ToastTone.success,
       );
     } catch (e) {
       if (!mounted) return;
@@ -666,8 +667,10 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       await widget.api.updateRoomPassword(roomId: r.id, userId: me);
       if (!mounted) return;
       setState(() => _working = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).roomInfoScreenPasswordClearedSnackbar)),
+      showAppToast(
+        context,
+        AppLocalizations.of(context).roomInfoScreenPasswordClearedSnackbar,
+        tone: ToastTone.success,
       );
     } catch (e) {
       if (!mounted) return;
@@ -1851,9 +1854,10 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     } catch (e) {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(humanizeAuthError(e, l10n,
-            fallback: l10n.roomAdminGenericError))),
+      showAppToast(
+        context,
+        humanizeAuthError(e, l10n, fallback: l10n.roomAdminGenericError),
+        tone: ToastTone.danger,
       );
     }
   }
@@ -1879,16 +1883,12 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context);
       final str = e.toString();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            str.contains('BUSY')
+      showAppToast(context, str.contains('BUSY')
                 ? l10n.callButtonErrorBusy
                 : str.contains('NOT_A_MEMBER')
                     ? l10n.callButtonErrorNotMember
                     : l10n.callButtonErrorGeneric,
-          ),
-        ),
+        tone: ToastTone.danger,
       );
     }
   }
@@ -1925,15 +1925,15 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     } catch (e) {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(humanizeAuthError(
-            e,
-            l10n,
-            fallback: l10n.roomAdminGenericError,
-            overrides: roomAdminErrorMessages(l10n),
-          )),
+      showAppToast(
+        context,
+        humanizeAuthError(
+          e,
+          l10n,
+          fallback: l10n.roomAdminGenericError,
+          overrides: roomAdminErrorMessages(l10n),
         ),
+        tone: ToastTone.danger,
       );
     }
   }

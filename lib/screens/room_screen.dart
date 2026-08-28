@@ -54,6 +54,7 @@ import '../data/ui_selection_store.dart';
 import '../platform.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
+import '../widgets/app_toast.dart';
 import 'message_receipts_screen.dart';
 import 'room_items.dart';
 import 'view_once_viewer.dart';
@@ -862,7 +863,7 @@ class _RoomScreenState extends State<RoomScreen>
   /// himself and then does the thing that was asked for.
   Future<void> _translateMessage(
     ChatMessage target,
-    ScaffoldMessengerState messenger,
+    AppToast toast,
   ) async {
     final sebastian = Sebastian.instance;
 
@@ -901,11 +902,9 @@ class _RoomScreenState extends State<RoomScreen>
     final handle = sebastian.handleFor(target);
     if (handle != null && handle.state == TranslationState.sameLanguage) {
       if (!context.mounted) return;
-      messenger.showSnackBar(SnackBar(
-        content: Text(AppLocalizations.of(context)
+      toast.show(AppLocalizations.of(context)
             .roomScreenAlreadyInLanguageSnack(
-                sebastian.targetLanguage.autonym)),
-      ));
+                sebastian.targetLanguage.autonym));
       return;
     }
 
@@ -918,16 +917,14 @@ class _RoomScreenState extends State<RoomScreen>
       _offeredRoomTranslate = true;
       if (!context.mounted) return;
       final l10n = AppLocalizations.of(context);
-      messenger.showSnackBar(SnackBar(
-        content: Text(l10n.roomScreenTranslateRoomOffer),
-        action: SnackBarAction(
-          label: l10n.roomScreenTranslateRoomOfferAction,
-          onPressed: () => Sebastian.instance.startRoom(
-            widget.roomId,
-            widget.repo.messagesFor(widget.roomId),
-          ),
+      toast.show(
+        l10n.roomScreenTranslateRoomOffer,
+        actionLabel: l10n.roomScreenTranslateRoomOfferAction,
+        onAction: () => Sebastian.instance.startRoom(
+          widget.roomId,
+          widget.repo.messagesFor(widget.roomId),
         ),
-      ));
+      );
     }
   }
 
@@ -1181,10 +1178,9 @@ class _RoomScreenState extends State<RoomScreen>
     // `scheduledMessages:schedule` refuses this server-side too; this is the
     // half that explains it.
     if (_room?.isEphemeral ?? false) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context).scheduleErrorNotInEphemeral),
-        ),
+      showAppToast(
+        context,
+        AppLocalizations.of(context).scheduleErrorNotInEphemeral,
       );
       return;
     }
@@ -1243,9 +1239,7 @@ class _RoomScreenState extends State<RoomScreen>
       await _handleSendGate(code);
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(scheduleErrorSentence(context, code))),
-    );
+    showAppToast(context, scheduleErrorSentence(context, code));
   }
 
   /// The hold-to-schedule callback for the composer, or null where the gesture
@@ -1300,8 +1294,10 @@ class _RoomScreenState extends State<RoomScreen>
       );
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).roomScreenAskGrownUpFailedSnack)),
+      showAppToast(
+        context,
+        AppLocalizations.of(context).roomScreenAskGrownUpFailedSnack,
+        tone: ToastTone.danger,
       );
     }
   }
@@ -1418,11 +1414,13 @@ class _RoomScreenState extends State<RoomScreen>
       return;
     }
     final l10n = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(err == 'EDIT_WINDOW_EXPIRED'
+    showAppToast(
+      context,
+      err == 'EDIT_WINDOW_EXPIRED'
           ? l10n.roomScreenEditExpiredSnack
-          : l10n.roomScreenEditFailedSnack),
-    ));
+          : l10n.roomScreenEditFailedSnack,
+      tone: ToastTone.danger,
+    );
     // A transient failure gets the whole session back for a retry. An expired
     // window does NOT: re-arming an edit the server can only refuse again
     // would turn the snack into a loop.
@@ -1477,12 +1475,8 @@ class _RoomScreenState extends State<RoomScreen>
       return;
     }
     if (_selection.count + album.length > _kMaxSelected) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)
-              .roomScreenMaxSelectionSnack(_kMaxSelected)),
-        ),
-      );
+      showAppToast(context, AppLocalizations.of(context)
+              .roomScreenMaxSelectionSnack(_kMaxSelected));
       return;
     }
     for (final p in album) {
@@ -1492,12 +1486,9 @@ class _RoomScreenState extends State<RoomScreen>
 
   void _toggleSelection(ChatMessage m) {
     if (!_selection.contains(m.id) && _selection.count >= _kMaxSelected) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(context).roomScreenMaxSelectionSnack(_kMaxSelected),
-          ),
-        ),
+      showAppToast(
+        context,
+        AppLocalizations.of(context).roomScreenMaxSelectionSnack(_kMaxSelected),
       );
       return;
     }
@@ -1541,7 +1532,7 @@ class _RoomScreenState extends State<RoomScreen>
   /// message is just the one-item case, and the two must not drift.
   Future<void> _forwardMessages(List<ChatMessage> picked) async {
     if (picked.isEmpty) return;
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
 
     final targets = await showForwardTargetSheet(
       context,
@@ -1561,13 +1552,13 @@ class _RoomScreenState extends State<RoomScreen>
     if (!mounted) return;
 
     _selection.clear();
-    messenger.showSnackBar(SnackBar(content: Text(result.summary)));
+    toast.show(result.summary);
   }
 
   Future<void> _deleteSelected() async {
     final picked = _selectedMessages;
     if (picked.isEmpty) return;
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
 
     final l10n = AppLocalizations.of(context);
     final confirmed = await showConfirmSheet(
@@ -1588,7 +1579,7 @@ class _RoomScreenState extends State<RoomScreen>
     // No local removal: the room subscription carries the deletion back, the
     // same way it does for the single-message DELETE in the action menu.
     _selection.clear();
-    messenger.showSnackBar(SnackBar(content: Text(result.summary)));
+    toast.show(result.summary);
   }
 
   /// Open the thread containing [m], scrolled to [m] itself.
@@ -1766,7 +1757,7 @@ class _RoomScreenState extends State<RoomScreen>
   /// outcome worth a back-pill. The thread hand-off has the overlay's own close
   /// button as its way back, and a failure went nowhere to come back from.
   Future<bool> _travelTo(String messageId, {required ChatMessage from}) async {
-    final messenger = ScaffoldMessenger.maybeOf(context);
+    final toast = AppToast.of(context);
 
     // The pin exists to protect a jump in flight; handing the message over to
     // the thread overlay ends the flight, so drop it or the row stays
@@ -1800,8 +1791,9 @@ class _RoomScreenState extends State<RoomScreen>
       return handOffToThread();
     }
     setState(() => _jumpTargetId = null);
-    messenger?.showSnackBar(
-      SnackBar(content: Text(AppLocalizations.of(context).roomScreenJumpFailedSnack)),
+    toast.show(
+      AppLocalizations.of(context).roomScreenJumpFailedSnack,
+      tone: ToastTone.danger,
     );
     return false;
   }
@@ -1974,12 +1966,12 @@ class _RoomScreenState extends State<RoomScreen>
 
   void _onCaptureProblem(CaptureFailure failure) {
     if (!mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     unawaited(showCaptureProblem(
       context,
       failure,
       onMessage: (message) =>
-          messenger.showSnackBar(SnackBar(content: Text(message))),
+          toast.show(message),
     ));
   }
 
@@ -2076,7 +2068,7 @@ class _RoomScreenState extends State<RoomScreen>
     if (draft == null || !mounted) return;
 
     final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     final roomId = widget.roomId;
 
     // Snapshotted and disarmed up front, exactly as `_shareLocation` and
@@ -2109,8 +2101,9 @@ class _RoomScreenState extends State<RoomScreen>
       // `ChatRepository.sendInteraction` — so a refusal has to be SAID. This is
       // the one send in the room where silence would look like nothing
       // happened at all.
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.interactionSendFailed)),
+      toast.show(
+        l10n.interactionSendFailed,
+        tone: ToastTone.danger,
       );
       return;
     }
@@ -2167,9 +2160,7 @@ class _RoomScreenState extends State<RoomScreen>
   /// case the control went back to where it was, and the sentence that helps is
   /// the one saying that was the server's doing rather than a missed tap.
   void _interactionRefused() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(AppLocalizations.of(context).interactionRefused)),
-    );
+    showAppToast(context, AppLocalizations.of(context).interactionRefused);
   }
 
   Future<void> _showRespondents(String messageId) async {
@@ -2230,7 +2221,7 @@ class _RoomScreenState extends State<RoomScreen>
     }
 
     final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     final roomId = widget.roomId;
 
     // Snapshotted and disarmed up front, exactly as `_sendMedia` does it and for
@@ -2247,8 +2238,9 @@ class _RoomScreenState extends State<RoomScreen>
     // saying nothing.
     final fix = await LocationService.instance.currentFix();
     if (fix == null) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.locationCouldNotGetFix)),
+      toast.show(
+        l10n.locationCouldNotGetFix,
+        tone: ToastTone.danger,
       );
       return;
     }
@@ -2282,8 +2274,9 @@ class _RoomScreenState extends State<RoomScreen>
       monitorSignificantChanges: keepRunningInBackground,
     );
     if (!started && mounted) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.locationCouldNotStartLiveShare)),
+      toast.show(
+        l10n.locationCouldNotStartLiveShare,
+        tone: ToastTone.danger,
       );
       return;
     }
@@ -2349,9 +2342,7 @@ class _RoomScreenState extends State<RoomScreen>
       case LocationAvailability.denied:
         // Asked and refused, just now. No sheet: they answered the question a
         // second ago and repeating it in our own words is nagging.
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.locationPermissionNeeded)),
-        );
+        showAppToast(context, l10n.locationPermissionNeeded);
         return false;
       case LocationAvailability.deniedForever:
         final go = await showConfirmSheet(
@@ -2483,7 +2474,7 @@ class _RoomScreenState extends State<RoomScreen>
   ///  * **Text or a link** — the composer, not a message. A shared URL is a
   ///    draft; sending it is still the user's tap.
   Future<void> _deliverShare(SharedPayload payload) async {
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     final loc = AppLocalizations.of(context);
 
     // Text first and unconditionally: with attachments it reads as their
@@ -2501,12 +2492,8 @@ class _RoomScreenState extends State<RoomScreen>
     // because they are over the cap, so there are no bytes to fall back on and
     // saying nothing would look like the share simply failed.
     if (payload.oversized.isNotEmpty) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            loc.roomScreenFileSizeCapSnack(formatFileSize(kMaxFileUploadBytes)),
-          ),
-        ),
+      toast.show(
+        loc.roomScreenFileSizeCapSnack(formatFileSize(kMaxFileUploadBytes)),
       );
     }
 
@@ -2525,7 +2512,7 @@ class _RoomScreenState extends State<RoomScreen>
     try {
       final lone = payload.loneImage;
       if (lone != null) {
-        final bytes = await _readShared(lone, messenger, loc);
+        final bytes = await _readShared(lone, toast, loc);
         if (bytes == null || !mounted) return;
         final outcome = await CameraEditorScreen.open(context, source: bytes);
         // Released whether or not it was sent: the editor holds its own copy of
@@ -2541,7 +2528,7 @@ class _RoomScreenState extends State<RoomScreen>
       // through the same funnel as a picked file, so the repository's upload
       // budget and retry queue see nothing unusual.
       for (final item in items) {
-        final bytes = await _readShared(item, messenger, loc);
+        final bytes = await _readShared(item, toast, loc);
         if (bytes == null) continue;
         if (!mounted) return;
         _sendMedia(
@@ -2573,7 +2560,7 @@ class _RoomScreenState extends State<RoomScreen>
   /// and the tap that placed it.
   Future<Uint8List?> _readShared(
     SharedItem item,
-    ScaffoldMessengerState messenger,
+    AppToast toast,
     AppLocalizations loc,
   ) async {
     try {
@@ -2581,8 +2568,9 @@ class _RoomScreenState extends State<RoomScreen>
     } catch (e) {
       debugPrint('share: could not read ${item.path}: $e');
       if (mounted) {
-        messenger.showSnackBar(
-          SnackBar(content: Text(loc.roomScreenFileReadFailedSnack)),
+        toast.show(
+          loc.roomScreenFileReadFailedSnack,
+          tone: ToastTone.danger,
         );
       }
       return null;
@@ -2778,7 +2766,7 @@ class _RoomScreenState extends State<RoomScreen>
   /// rather than pretended away. Saying "that's gone" is more honest than a
   /// silent retry that can't work.
   Future<void> _openViewOnce(ChatMessage m) async {
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     final res = await fetchViewOnce(
       repo: widget.repo,
       roomId: widget.roomId,
@@ -2791,14 +2779,12 @@ class _RoomScreenState extends State<RoomScreen>
       return;
     }
     final l10n = AppLocalizations.of(context);
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(switch (res.failure!) {
-          ViewOnceFailure.alreadyViewed => l10n.roomScreenViewOnceAlreadyViewed,
-          ViewOnceFailure.gone => l10n.roomScreenViewOnceGone,
-          ViewOnceFailure.network => l10n.roomScreenViewOnceNetworkError,
-        }),
-      ),
+    toast.show(switch (res.failure!) {
+      ViewOnceFailure.alreadyViewed => l10n.roomScreenViewOnceAlreadyViewed,
+      ViewOnceFailure.gone => l10n.roomScreenViewOnceGone,
+      ViewOnceFailure.network => l10n.roomScreenViewOnceNetworkError,
+    },
+      tone: ToastTone.danger,
     );
   }
 
@@ -2833,7 +2819,7 @@ class _RoomScreenState extends State<RoomScreen>
     // Resolved before the awaits below, which are async gaps after which
     // touching `context` is unsafe — the same up-front capture the file pick
     // and the pin paths make.
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     final loc = AppLocalizations.of(context);
     _setMediaBusy(true);
     try {
@@ -2848,8 +2834,9 @@ class _RoomScreenState extends State<RoomScreen>
       // dropping itself out of it. Nothing to send, so say why: the picker has
       // already slid away and the alternative is a tap that did nothing.
       if (pick.unreadable) {
-        messenger.showSnackBar(
-          SnackBar(content: Text(loc.mediaPickFailedMessage)),
+        toast.show(
+          loc.mediaPickFailedMessage,
+          tone: ToastTone.danger,
         );
         return;
       }
@@ -2877,16 +2864,15 @@ class _RoomScreenState extends State<RoomScreen>
           ? picked.sublist(0, kMaxPhotoSelection)
           : picked;
       if (within.length < picked.length) {
-        messenger.showSnackBar(
-          SnackBar(content: Text(loc.photoTrayLimitSnack(kMaxPhotoSelection))),
-        );
+        toast.show(loc.photoTrayLimitSnack(kMaxPhotoSelection));
       }
 
       final read = await readPickedPhotos(within);
       if (!mounted) return;
       if (read.bytes.isEmpty) {
-        messenger.showSnackBar(
-          SnackBar(content: Text(loc.photoTrayLoadFailedSnack)),
+        toast.show(
+          loc.photoTrayLoadFailedSnack,
+          tone: ToastTone.danger,
         );
         return;
       }
@@ -2907,8 +2893,9 @@ class _RoomScreenState extends State<RoomScreen>
       // send is smaller than what was chosen, and saying so is better than
       // letting the user count bubbles.
       if (read.dropped > 0 || (send?.dropped ?? 0) > 0) {
-        messenger.showSnackBar(
-          SnackBar(content: Text(loc.photoTrayLoadFailedSnack)),
+        toast.show(
+          loc.photoTrayLoadFailedSnack,
+          tone: ToastTone.danger,
         );
       }
     } finally {
@@ -2958,7 +2945,7 @@ class _RoomScreenState extends State<RoomScreen>
   /// and the read; the pending bubble covers the upload.
   Future<void> _pickAndSendVideo() async {
     // Captured before the awaits, for the reason the photo pick above gives.
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     final loc = AppLocalizations.of(context);
     _setMediaBusy(true);
     try {
@@ -2967,8 +2954,9 @@ class _RoomScreenState extends State<RoomScreen>
       // Same refusal the photo path handles, and likelier here: a clip is the
       // kind of thing iCloud keeps off the device.
       if (pick.unreadable) {
-        messenger.showSnackBar(
-          SnackBar(content: Text(loc.mediaPickFailedMessage)),
+        toast.show(
+          loc.mediaPickFailedMessage,
+          tone: ToastTone.danger,
         );
         return;
       }
@@ -3005,7 +2993,7 @@ class _RoomScreenState extends State<RoomScreen>
     // Resolved before the awaits below, which are async gaps after which
     // touching `context` is unsafe — the same up-front capture `_openViewOnce`
     // and the pin paths make.
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     _setMediaBusy(true);
     try {
       // No `acceptedTypeGroups`: a chat carries whatever the sender has, and a
@@ -3021,8 +3009,9 @@ class _RoomScreenState extends State<RoomScreen>
         bytes = await picked.readAsBytes();
       } catch (_) {
         if (!mounted) return;
-        messenger.showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context).roomScreenFileReadFailedSnack)),
+        toast.show(
+          AppLocalizations.of(context).roomScreenFileReadFailedSnack,
+          tone: ToastTone.danger,
         );
         return;
       }
@@ -3034,13 +3023,9 @@ class _RoomScreenState extends State<RoomScreen>
       // error. Refusing at the picker names a size while the user is still
       // looking at the file browser they chose it in.
       if (bytes.length > kMaxFileUploadBytes) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context).roomScreenFileSizeCapSnack(
-                formatFileSize(kMaxFileUploadBytes),
-              ),
-            ),
+        toast.show(
+          AppLocalizations.of(context).roomScreenFileSizeCapSnack(
+            formatFileSize(kMaxFileUploadBytes),
           ),
         );
         return;
@@ -3816,7 +3801,7 @@ class _RoomScreenState extends State<RoomScreen>
                 }) async {
                   HapticFeedback.mediumImpact();
                   FocusManager.instance.primaryFocus?.unfocus();
-                  final messenger = ScaffoldMessenger.of(context);
+                  final toast = AppToast.of(context);
                   final anchor = anchorKey ??
                       _dateTracks['m_${_rowOwner(target.id)}']?.key;
                   if (anchor == null) return;
@@ -3938,17 +3923,15 @@ class _RoomScreenState extends State<RoomScreen>
                     case MessageAction.copy:
                       await Clipboard.setData(ClipboardData(text: target.content));
                       if (!context.mounted) return;
-                      messenger.showSnackBar(SnackBar(
-                          content: Text(AppLocalizations.of(context)
-                              .roomScreenCopiedSnack)));
+                      toast.show(AppLocalizations.of(context)
+                              .roomScreenCopiedSnack);
                       break;
                     case MessageAction.copyName:
                       await Clipboard.setData(
                           ClipboardData(text: target.fileName ?? ''));
                       if (!context.mounted) return;
-                      messenger.showSnackBar(
-                          SnackBar(content: Text(AppLocalizations.of(context)
-                              .roomScreenNameCopiedSnack)));
+                      toast.show(AppLocalizations.of(context)
+                              .roomScreenNameCopiedSnack);
                       break;
                     case MessageAction.copyCoordinates:
                       // `capabilitiesForMessage` already refused this row
@@ -3963,12 +3946,11 @@ class _RoomScreenState extends State<RoomScreen>
                                 share.latitude, share.longitude)));
                       }
                       if (!context.mounted) return;
-                      messenger.showSnackBar(SnackBar(
-                          content: Text(AppLocalizations.of(context)
-                              .locationBubbleCoordinatesCopied)));
+                      toast.show(AppLocalizations.of(context)
+                              .locationBubbleCoordinatesCopied);
                       break;
                     case MessageAction.translate:
-                      await _translateMessage(target, messenger);
+                      await _translateMessage(target, toast);
                       break;
                     case MessageAction.showOriginal:
                       Sebastian.instance.showOriginal(target);
@@ -3983,11 +3965,11 @@ class _RoomScreenState extends State<RoomScreen>
                       if (err != null) {
                         if (!context.mounted) return;
                         final l10n = AppLocalizations.of(context);
-                        messenger.showSnackBar(SnackBar(
-                          content: Text(err == 'PIN_LIMIT_REACHED'
+                        toast.show(
+                          err == 'PIN_LIMIT_REACHED'
                               ? l10n.roomScreenPinLimitSnack
-                              : l10n.roomScreenPinFailedSnack),
-                        ));
+                              : l10n.roomScreenPinFailedSnack,
+                        );
                       }
                       break;
                     case MessageAction.unpin:
@@ -4002,11 +3984,11 @@ class _RoomScreenState extends State<RoomScreen>
                       if (saveErr != null) {
                         if (!context.mounted) return;
                         final l10n = AppLocalizations.of(context);
-                        messenger.showSnackBar(SnackBar(
-                          content: Text(saveErr == 'SAVE_LIMIT_REACHED'
+                        toast.show(
+                          saveErr == 'SAVE_LIMIT_REACHED'
                               ? l10n.roomScreenSaveLimitSnack
-                              : l10n.roomScreenSaveFailedSnack),
-                        ));
+                              : l10n.roomScreenSaveFailedSnack,
+                        );
                       }
                       break;
                     case MessageAction.unsave:
@@ -4031,10 +4013,8 @@ class _RoomScreenState extends State<RoomScreen>
                           reason: reason,
                         );
                         if (!context.mounted) return;
-                        messenger.showSnackBar(
-                          SnackBar(content: Text(AppLocalizations.of(context)
-                              .roomScreenReportSentSnack)),
-                        );
+                        toast.show(AppLocalizations.of(context)
+                              .roomScreenReportSentSnack);
                       } catch (_) {}
                       break;
                   }

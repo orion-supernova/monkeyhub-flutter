@@ -9,6 +9,7 @@ import '../platform.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/app_toast.dart';
 import '../widgets/password_field.dart';
 
 /// Why this screen is being shown, which decides where it starts and what the
@@ -127,12 +128,10 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
     // The canonical form IS what is displayed, so a paste of this on the reset
     // screen hashes identically. See RecoveryPhrase.canonical.
     Clipboard.setData(ClipboardData(text: widget.phrase.canonical));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          AppLocalizations.of(context).recoveryPhraseScreenCopiedSnackbar,
-        ),
-      ),
+    showAppToast(
+      context,
+      AppLocalizations.of(context).recoveryPhraseScreenCopiedSnackbar,
+      tone: ToastTone.success,
     );
   }
 

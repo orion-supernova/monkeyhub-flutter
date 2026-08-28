@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/app_toast.dart';
 import 'group_call_service.dart';
 
 /// In-app ringer for a group-call invite. Shown by the app overlay while
@@ -77,7 +78,7 @@ class _IncomingGroupCallScreenState extends State<IncomingGroupCallScreen>
       final msg = e.toString().contains('CALL_FULL')
           ? l10n.incomingGroupCallScreenCallFullError
           : l10n.incomingGroupCallScreenJoinFailedError;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      showAppToast(context, msg);
     }
   }
 

@@ -9,6 +9,7 @@ import '../../models/puzzle.dart';
 import '../../theme/layout.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
+import '../../widgets/app_toast.dart';
 import '../../widgets/game_layout_shell.dart';
 import '../../widgets/puzzle_symbol.dart';
 
@@ -120,9 +121,10 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       ClipboardData(text: '$header\n${attempt.shareGrid}'),
     );
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(l10n.puzzleShareCopied)));
+    showAppToast(
+      context, l10n.puzzleShareCopied,
+      tone: ToastTone.success,
+    );
   }
 
   @override

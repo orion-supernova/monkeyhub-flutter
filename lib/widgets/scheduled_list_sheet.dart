@@ -10,6 +10,7 @@ import '../models/scheduled_message.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
+import 'app_toast.dart';
 import 'destructive_sheet.dart' show SheetGrabber;
 import 'schedule_message_sheet.dart';
 import 'sheet_buttons.dart';
@@ -645,9 +646,7 @@ class _ScheduledRowState extends State<_ScheduledRow> {
       Navigator.of(context).pop();
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(scheduleErrorSentence(context, code))),
-    );
+    showAppToast(context, scheduleErrorSentence(context, code));
   }
 
   Future<void> _changeTime() async {

@@ -6,6 +6,7 @@ import '../../family/family_service.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/chat_room.dart';
 import '../../models/family.dart';
+import '../../widgets/app_toast.dart';
 import '../../widgets/approval_gate.dart';
 import '../../widgets/join_room_sheet.dart';
 import 'open_room.dart';
@@ -42,7 +43,7 @@ Future<void> enterPublicRoom(
   /// can re-read `listMyApprovals` — a grant may have been revoked mid-session.
   VoidCallback? onChildGateRefused,
 }) async {
-  final messenger = ScaffoldMessenger.of(context);
+  final toast = AppToast.of(context);
 
   // Already a member — just open it. Everything below is the flow for *getting*
   // into a room; running any of it against one you're already in is the bug
@@ -80,12 +81,9 @@ Future<void> enterPublicRoom(
       // Its own message: "couldn't join" would be the wrong verb for an action
       // they cannot perform in the first place.
       if (!context.mounted) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(context).enterPublicRoomAskFailedMessage,
-          ),
-        ),
+      toast.show(
+        AppLocalizations.of(context).enterPublicRoomAskFailedMessage,
+        tone: ToastTone.danger,
       );
     }
     // A child never proceeds to the join itself — the grown-up's answer is what
@@ -111,14 +109,10 @@ Future<void> enterPublicRoom(
     }
     if (!context.mounted) return;
     final loc = AppLocalizations.of(context);
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          e.toString().contains('WRONG_PASSWORD')
+    toast.show(e.toString().contains('WRONG_PASSWORD')
               ? loc.enterPublicRoomWrongPasswordMessage
               : loc.enterPublicRoomJoinFailedMessage,
-        ),
-      ),
+      tone: ToastTone.danger,
     );
   }
 }

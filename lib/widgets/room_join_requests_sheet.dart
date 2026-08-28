@@ -9,6 +9,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/room_admin.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
+import 'app_toast.dart';
 import 'sheet_surface.dart';
 import 'user_avatar.dart';
 
@@ -109,15 +110,15 @@ class _JoinRequestsSheetState extends State<_JoinRequestsSheet> {
       if (!mounted) return;
       setState(() => _deciding.remove(r.requestId));
       final l10n = AppLocalizations.of(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(humanizeAuthError(
-            e,
-            l10n,
-            fallback: l10n.roomAdminGenericError,
-            overrides: roomAdminErrorMessages(l10n),
-          )),
+      showAppToast(
+        context,
+        humanizeAuthError(
+          e,
+          l10n,
+          fallback: l10n.roomAdminGenericError,
+          overrides: roomAdminErrorMessages(l10n),
         ),
+        tone: ToastTone.danger,
       );
     }
   }

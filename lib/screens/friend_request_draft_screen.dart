@@ -18,6 +18,7 @@ import '../models/friend_request_message.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/app_toast.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/visibility_badge.dart';
 import 'room_screen.dart';
@@ -214,19 +215,20 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
       return;
     }
     final nav = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     final loc = AppLocalizations.of(context);
     nav.pop();
-    messenger.showSnackBar(SnackBar(
-      content: Text(accepted
+    toast.show(
+      accepted
           ? loc.friendRequestDraftScreenAcceptedSnackbar(_otherUser.displayName)
           : _isIncoming
               ? loc.friendRequestDraftScreenWithdrawnSnackbar
               // Deliberately not "they declined": for a supervised sender the
               // "no" may have come from a grown-up, and the row's absence
               // can't tell the two apart.
-              : loc.friendRequestDraftScreenDeclinedSnackbar),
-    ));
+              : loc.friendRequestDraftScreenDeclinedSnackbar,
+      tone: accepted ? ToastTone.success : ToastTone.neutral,
+    );
   }
 
   Future<void> _openAcceptedRoom() async {
@@ -269,7 +271,7 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
     // Appending to an existing thread still requires text — empty taps are
     // a no-op. Creating a fresh request, however, can fire with no message.
     if (!isCreating && text.isEmpty) return;
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     final loc = AppLocalizations.of(context);
     setState(() => _busy = true);
     _composer.clear();
@@ -303,7 +305,7 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
           : s.contains('NOT_ACCEPTING_REQUESTS')
               ? loc.friendRequestDraftScreenErrorNotAccepting
               : loc.friendRequestDraftScreenErrorSendFailed;
-      messenger.showSnackBar(SnackBar(content: Text(msg)));
+      toast.show(msg);
     } finally {
       if (mounted) setState(() => _busy = false);
     }

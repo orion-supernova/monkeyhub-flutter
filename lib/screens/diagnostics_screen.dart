@@ -10,6 +10,7 @@ import '../diagnostics/diag_export.dart';
 import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
+import '../widgets/app_toast.dart';
 import 'diagnostics/diag_collapse.dart';
 import 'diagnostics/diag_event_row.dart';
 import 'diagnostics/diag_filter_sheet.dart';
@@ -136,9 +137,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
     );
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Summary copied')));
+    showAppToast(context, 'Summary copied', tone: ToastTone.success);
   }
 
   Future<void> _openFilter() async {

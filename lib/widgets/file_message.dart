@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../keyboard/focusable_tap.dart';
@@ -10,6 +9,7 @@ import '../media/file_url_cache.dart';
 import '../screens/text_file_viewer_screen.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'app_toast.dart';
 import 'photo_chrome.dart';
 
 /// A received document, as a tappable row: type badge, name, size.
@@ -108,7 +108,7 @@ class _FileMessageState extends State<FileMessage> {
     if (id == null || _busy) return;
     final l10n = AppLocalizations.of(context);
     final name = widget.fileName ?? l10n.fileMessageDefaultName;
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     final origin = _globalRect();
 
     setState(() => _busy = true);
@@ -123,12 +123,14 @@ class _FileMessageState extends State<FileMessage> {
     } on FileUnavailable {
       // Categorically not retryable — the blob is gone, not unreachable — so
       // this says so instead of inviting another tap.
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.fileMessageUnavailable)),
+      toast.show(
+        l10n.fileMessageUnavailable,
+        tone: ToastTone.danger,
       );
     } catch (_) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.fileMessageOpenFailed)),
+      toast.show(
+        l10n.fileMessageOpenFailed,
+        tone: ToastTone.danger,
       );
     } finally {
       if (mounted) setState(() => _busy = false);

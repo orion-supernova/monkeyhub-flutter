@@ -8,6 +8,7 @@ import '../models/user_device.dart';
 import '../push/device_identity.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
+import '../widgets/app_toast.dart';
 import '../widgets/destructive_sheet.dart';
 
 /// Every device this account has signed in on.
@@ -138,12 +139,11 @@ class _DevicesScreenState extends State<DevicesScreen> {
       );
       await _refresh();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context).devicesScreenRemovedCount(removed),
-            ),
-          ),
+        showAppToast(
+          context,
+          AppLocalizations.of(context).devicesScreenRemovedCount(removed),
+        
+          tone: ToastTone.success,
         );
       }
     } catch (_) {

@@ -11,6 +11,7 @@ import '../models/room_admin.dart';
 import '../screens/friend_request_draft_screen.dart';
 import '../screens/navigation/open_room.dart';
 import '../theme/theme_scope.dart';
+import 'app_toast.dart';
 import 'approval_gate.dart';
 import 'remote_image.dart';
 import 'user_avatar.dart';
@@ -258,15 +259,13 @@ class _RoomInvitationCardState extends State<RoomInvitationCard> {
     } catch (e) {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(humanizeAuthError(
+      showAppToast(context, humanizeAuthError(
             e,
             l10n,
             fallback: l10n.roomAdminGenericError,
             overrides: roomAdminErrorMessages(l10n),
-          )),
-        ),
+          ),
+        tone: ToastTone.danger,
       );
     } finally {
       if (mounted) setState(() => _busy = false);

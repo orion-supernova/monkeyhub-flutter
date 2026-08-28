@@ -6,6 +6,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_sheet.dart';
+import '../widgets/app_toast.dart';
 import '../widgets/user_avatar.dart';
 import 'call_models.dart';
 import 'group_call_service.dart';
@@ -222,9 +223,7 @@ void _startCall(
             : AppLocalizations.of(
                 context,
               ).linkedAccountsScreenCallSheetStartFailedError;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(msg)));
+        showAppToast(context, msg);
       });
 }
 

@@ -10,6 +10,7 @@ import '../data/chat_repository.dart';
 import '../companions/brain_manager.dart';
 import '../companions/companion.dart';
 import '../data/settings_store.dart';
+import '../widgets/app_toast.dart';
 import 'navigation/scroll_memory.dart';
 import '../data/ui_selection_store.dart';
 import '../family/family_service.dart';
@@ -1622,9 +1623,7 @@ class _CheckForUpdatesRowState extends State<_CheckForUpdatesRow> {
       UpdateCheckOutcome.error => l10n.settingsScreenUpdateErrorSnackbar,
     };
     if (message != null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      showAppToast(context, message);
     }
   }
 
@@ -1751,11 +1750,10 @@ class _VersionStampState extends State<_VersionStamp> {
       return;
     }
     if (_taps >= 3 && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          duration: const Duration(milliseconds: 600),
-          content: Text('Diagnostics in ${_tapsNeeded - _taps}…'),
-        ),
+      showAppToast(
+        context,
+        'Diagnostics in ${_tapsNeeded - _taps}…',
+        duration: const Duration(milliseconds: 600),
       );
     }
   }

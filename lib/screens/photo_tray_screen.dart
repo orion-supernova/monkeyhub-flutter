@@ -11,6 +11,7 @@ import '../media/photo_picking.dart';
 import '../data/settings_store.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/app_toast.dart';
 import '../widgets/media_filmstrip.dart';
 import '../widgets/photo_chrome.dart';
 import 'camera_editor_screen.dart';
@@ -195,12 +196,10 @@ class _PhotoTrayScreenState extends State<PhotoTrayScreen> {
   /// A second trip through the OS picker, appending to what is already here.
   Future<void> _addMore() async {
     final remaining = kMaxPhotoSelection - _items.length;
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     final l10n = AppLocalizations.of(context);
     if (remaining <= 0) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.photoTrayLimitSnack(kMaxPhotoSelection))),
-      );
+      toast.show(l10n.photoTrayLimitSnack(kMaxPhotoSelection));
       return;
     }
     _setBusy(true);
@@ -211,8 +210,9 @@ class _PhotoTrayScreenState extends State<PhotoTrayScreen> {
       // — see [MediaPick]. The rail keeps what it already had, so this is an
       // add that did not happen rather than a selection thrown away.
       if (pick.unreadable) {
-        messenger.showSnackBar(
-          SnackBar(content: Text(l10n.mediaPickFailedMessage)),
+        toast.show(
+          l10n.mediaPickFailedMessage,
+          tone: ToastTone.danger,
         );
         return;
       }
@@ -223,8 +223,9 @@ class _PhotoTrayScreenState extends State<PhotoTrayScreen> {
         _items.addAll(read.bytes.map(_TrayItem.picked));
       });
       if (read.dropped > 0) {
-        messenger.showSnackBar(
-          SnackBar(content: Text(l10n.photoTrayLoadFailedSnack)),
+        toast.show(
+          l10n.photoTrayLoadFailedSnack,
+          tone: ToastTone.danger,
         );
       }
     } finally {

@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart' as launcher;
 
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/app_toast.dart';
 
 /// Opens tapped links in the platform's own browser surface —
 /// `SFSafariViewController` on iOS, Chrome Custom Tabs on Android.
@@ -27,7 +28,7 @@ class LinkOpener {
     // Resolve everything that needs `context` up front — the awaits below are
     // async gaps, after which touching `context` is unsafe.
     final theme = ThemeScope.of(context);
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     final couldNotOpenLinkMessage =
         AppLocalizations.of(context).linkOpenerCouldNotOpenLink;
 
@@ -55,9 +56,7 @@ class LinkOpener {
       // same fallback shape `openUpdateDestination` uses for store schemes.
       final opened = await _launchExternally(uri);
       if (!opened) {
-        messenger.showSnackBar(
-          SnackBar(content: Text(couldNotOpenLinkMessage)),
-        );
+        toast.show(couldNotOpenLinkMessage);
       }
     }
   }

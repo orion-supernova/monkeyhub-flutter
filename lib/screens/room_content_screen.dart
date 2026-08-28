@@ -20,6 +20,7 @@ import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
+import '../widgets/app_toast.dart';
 import '../widgets/audio_message.dart';
 import '../widgets/bulk_action_bar.dart';
 import '../widgets/destructive_sheet.dart' show showConfirmSheet;
@@ -313,7 +314,7 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
     if (id == null) return;
     final l10n = AppLocalizations.of(context);
     final name = m.fileName ?? l10n.roomContentScreenDefaultDocumentName;
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     try {
       await DocumentSaver.save(
         api: widget.api,
@@ -322,8 +323,9 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
         mimeType: m.mimeType ?? mimeTypeForFileName(name),
       );
     } catch (_) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.roomContentScreenCouldntOpenFile)),
+      toast.show(
+        l10n.roomContentScreenCouldntOpenFile,
+        tone: ToastTone.danger,
       );
     }
   }
@@ -331,7 +333,7 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
   Future<void> _forward() async {
     final picked = _selected;
     if (picked.isEmpty) return;
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
 
     final targets = await showForwardTargetSheet(
       context,
@@ -351,13 +353,13 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
     if (!mounted) return;
 
     _selection.clear();
-    messenger.showSnackBar(SnackBar(content: Text(result.summary)));
+    toast.show(result.summary);
   }
 
   Future<void> _saveSelected() async {
     final picked = _selected;
     if (picked.isEmpty) return;
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     _selection.clear();
 
     final result = await saveMessagesToDevice(
@@ -365,20 +367,21 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
       messages: picked,
     );
     if (!mounted) return;
-    messenger.showSnackBar(SnackBar(content: Text(result.summary)));
+    toast.show(result.summary);
   }
 
   Future<void> _shareSelected() async {
     final picked = _selected;
     if (picked.isEmpty) return;
     final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     _selection.clear();
 
     final ok = await shareMessages(api: widget.api, messages: picked);
     if (!mounted || ok) return;
-    messenger.showSnackBar(
-      SnackBar(content: Text(l10n.roomContentScreenCouldntShare)),
+    toast.show(
+      l10n.roomContentScreenCouldntShare,
+      tone: ToastTone.danger,
     );
   }
 
@@ -390,12 +393,13 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
     ];
     if (urls.isEmpty) return;
     final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     await Clipboard.setData(ClipboardData(text: urls.join('\n')));
     if (!mounted) return;
     _selection.clear();
-    messenger.showSnackBar(
-      SnackBar(content: Text(l10n.roomContentScreenLinksCopied(urls.length))),
+    toast.show(
+      l10n.roomContentScreenLinksCopied(urls.length),
+      tone: ToastTone.success,
     );
   }
 
@@ -403,7 +407,7 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
     final picked = _selected;
     if (picked.isEmpty) return;
     final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
 
     final confirmed = await showConfirmSheet(
       context,
@@ -429,7 +433,7 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
     // snapshot and would keep describing deleted rows until a refresh.
     _c.forget(ids.toSet());
     _loadCounts();
-    messenger.showSnackBar(SnackBar(content: Text(result.summary)));
+    toast.show(result.summary);
   }
 
   // ───────────────────────── build ─────────────────────────

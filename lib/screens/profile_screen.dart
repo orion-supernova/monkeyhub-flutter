@@ -29,6 +29,7 @@ import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/adaptive_sheet.dart';
+import '../widgets/app_toast.dart';
 import '../widgets/block_choice_sheet.dart';
 import '../widgets/capture_protection_toggle.dart';
 import '../widgets/detail_link_row.dart';
@@ -247,7 +248,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (api == null || repo == null) return;
     final id = repo.userId;
     if (id == null) return;
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     final l10n = AppLocalizations.of(context);
     setState(() => _busy = true);
     try {
@@ -268,12 +269,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // REFUSED — a reserved brand term now returns DISPLAY_NAME_RESERVED, and
       // silently reverting the field tells the user their typing did not
       // register rather than that the name is not allowed.
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            humanizeAuthError(e, l10n, fallback: l10n.profileScreenNameNotSaved),
-          ),
-        ),
+      toast.show(
+        humanizeAuthError(e, l10n, fallback: l10n.profileScreenNameNotSaved),
+        tone: ToastTone.danger,
       );
       await _refresh();
     } finally {
@@ -302,7 +300,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // there is nothing to tell the user about either way.
     if (trimmed.isEmpty || trimmed == _u.username) return;
 
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     final l10n = AppLocalizations.of(context);
 
     SocialCredential? credential;
@@ -320,13 +318,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return;
       } catch (e) {
         if (!mounted) return;
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              humanizeAuthError(e, l10n,
-                  fallback: l10n.profileScreenUsernameNotSaved),
-            ),
+        toast.show(
+          humanizeAuthError(
+            e,
+            l10n,
+            fallback: l10n.profileScreenUsernameNotSaved,
           ),
+          tone: ToastTone.danger,
         );
         return;
       }
@@ -349,20 +347,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
           : await auth.changeUsername(password: password!, username: trimmed);
       await _refresh();
       if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.profileScreenUsernameChanged(settled))),
+      toast.show(
+        l10n.profileScreenUsernameChanged(settled),
+        tone: ToastTone.success,
       );
     } catch (e) {
       // Never swallowed. Every refusal here — taken, reserved, too soon, wrong
       // password — is something the user can act on, and a silent revert would
       // read as "your typing didn't register".
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            humanizeAuthError(e, l10n,
-                fallback: l10n.profileScreenUsernameNotSaved),
-          ),
-        ),
+      toast.show(
+        humanizeAuthError(e, l10n, fallback: l10n.profileScreenUsernameNotSaved),
+        tone: ToastTone.danger,
       );
       await _refresh();
     } finally {
@@ -638,7 +633,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final api = widget.api;
     if (repo == null || api == null) return;
     final nav = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     setState(() => _busy = true);
     try {
       switch (_u.friendshipStatus) {
@@ -667,7 +662,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           break;
       }
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(_humanizeAction(e))));
+      toast.show(_humanizeAction(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -802,7 +797,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _pickAndUploadAvatarFromLibrary() async {
     if (widget.api == null || widget.repo?.userId == null) return;
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     final l10n = AppLocalizations.of(context);
     // Spinner covers BOTH phases: picker spin-up (the native UI can take a beat
     // to appear on cold launch) and the upload itself. Clear it on cancel so
@@ -819,8 +814,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // anywhere: the avatar has been spinning since the tap, and clearing it
     // with no word would read as "your picture was rejected".
     if (pick.unreadable && mounted) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.mediaPickFailedMessage)),
+      toast.show(
+        l10n.mediaPickFailedMessage,
+        tone: ToastTone.danger,
       );
     }
     // Null on every path but a chosen photo, which `_cropAndUploadAvatar`
@@ -896,7 +892,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final api = widget.api;
     final storageId = _u.avatarStorageId;
     if (api == null || storageId == null || storageId.isEmpty) return;
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     final l10n = AppLocalizations.of(context);
     setState(() => _busy = true);
     try {
@@ -904,7 +900,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!hasAccess) {
         final granted = await Gal.requestAccess(toAlbum: false);
         if (!granted) {
-          messenger.showSnackBar(SnackBar(content: Text(l10n.profileScreenPhotoPermissionDenied)));
+          toast.show(l10n.profileScreenPhotoPermissionDenied);
           return;
         }
       }
@@ -918,10 +914,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
       await Gal.putImageBytes(resp.bodyBytes, name: 'avatar-${DateTime.now().millisecondsSinceEpoch}');
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(l10n.profileScreenSavedToPhotos)));
+      toast.show(
+        l10n.profileScreenSavedToPhotos,
+        tone: ToastTone.success,
+      );
     } catch (_) {
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(l10n.profileScreenCouldNotSaveImage)));
+      toast.show(
+        l10n.profileScreenCouldNotSaveImage,
+        tone: ToastTone.danger,
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -931,7 +933,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final api = widget.api;
     final repo = widget.repo;
     if (api == null || repo?.userId == null) return;
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
 
     // Fetch shared-room context so the confirm sheet can tailor copy.
     setState(() => _busy = true);
@@ -960,14 +962,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await api.blockUser(userId: myId, targetUserId: _u.id, deleteDm: choice == BlockChoice.blockAndDelete);
       if (!mounted) return;
       final l10n = AppLocalizations.of(context);
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            choice == BlockChoice.blockAndDelete
-                ? l10n.profileScreenBlockedDmWiped
-                : l10n.profileScreenBlockedOnly,
-          ),
-        ),
+      toast.show(
+        choice == BlockChoice.blockAndDelete
+            ? l10n.profileScreenBlockedDmWiped
+            : l10n.profileScreenBlockedOnly,
       );
       Navigator.of(context).maybePop();
     } catch (_) {
@@ -980,15 +978,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final api = widget.api;
     final repo = widget.repo;
     if (api == null || repo?.userId == null) return;
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     final reason = await showReportSheet(context);
     if (reason == null || reason.isEmpty) return;
     setState(() => _busy = true);
     try {
       await api.report(reporterId: repo!.userId!, targetType: 'user', targetId: _u.id, reason: reason);
       if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).profileScreenReportSent)),
+      toast.show(
+        AppLocalizations.of(context).profileScreenReportSent,
+        tone: ToastTone.success,
       );
     } catch (_) {
     } finally {

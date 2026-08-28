@@ -7,6 +7,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
+import '../widgets/app_toast.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/value_slider.dart';
 import 'navigation/pill_bottom_nav.dart';
@@ -653,15 +654,7 @@ class _GlassScreenState extends State<GlassScreen> {
     ).whenComplete(controller.dispose);
   }
 
-  void _toast(String message) {
-    final theme = ThemeScope.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: theme.surface,
-        content: Text(message, style: theme.body),
-      ),
-    );
-  }
+  void _toast(String message) => showAppToast(context, message);
 }
 
 /// The pinned preview's own box. A [SliverPersistentHeader] is a sliver, so a

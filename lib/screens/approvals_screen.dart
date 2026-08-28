@@ -6,6 +6,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/family.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
+import '../widgets/app_toast.dart';
 import '../widgets/user_avatar.dart';
 
 /// The parent's inbox: everything waiting on them, across every child.
@@ -59,7 +60,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
   Future<void> _decide(QueueItem item, bool approve) async {
     if (_deciding.contains(item.id)) return;
     setState(() => _deciding.add(item.id));
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     final loc = AppLocalizations.of(context);
     try {
       // Three destinations, switched on the item's own [QueueItem.relay].
@@ -93,9 +94,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
       // Keep the badge in Settings honest.
       widget.family.refresh();
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(_humanize(e, loc))),
-      );
+      toast.show(_humanize(e, loc));
     } finally {
       if (mounted) setState(() => _deciding.remove(item.id));
     }

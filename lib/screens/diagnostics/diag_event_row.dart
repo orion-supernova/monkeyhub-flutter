@@ -4,6 +4,7 @@ import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import '../../diagnostics/diag_event.dart';
 import '../../keyboard/focusable_tap.dart';
 import '../../theme/theme_scope.dart';
+import '../../widgets/app_toast.dart';
 import 'diag_collapse.dart';
 import 'diag_palette.dart';
 import 'json_highlight.dart';
@@ -219,9 +220,7 @@ class _Detail extends StatelessWidget {
   static Future<void> _copy(BuildContext context, DiagEvent e) async {
     await Clipboard.setData(ClipboardData(text: e.toNdjsonLine()));
     if (!context.mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Event copied')));
+    showAppToast(context, 'Event copied', tone: ToastTone.success);
   }
 }
 

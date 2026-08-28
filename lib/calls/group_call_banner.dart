@@ -7,6 +7,7 @@ import '../backend/group_call_api.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/app_toast.dart';
 import 'group_call_service.dart';
 
 /// "Ongoing call" banner for a room: green pulse + who's in + a Join pill.
@@ -106,7 +107,7 @@ class _GroupCallBannerState extends State<GroupCallBanner>
       final msg = e.toString().contains('CALL_FULL')
           ? AppLocalizations.of(context).groupCallBannerCallFullError
           : AppLocalizations.of(context).groupCallBannerJoinFailedError;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      showAppToast(context, msg);
     }
   }
 

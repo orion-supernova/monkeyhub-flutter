@@ -104,11 +104,13 @@ class _RoomColorsScreenState extends State<RoomColorsScreen> {
     final l10n = AppLocalizations.of(context);
     final error = await widget.repo.setSpeakerSlot(widget.roomId, member.id, slot);
     if (!mounted || error == null) return;
+    final limit = error == 'OVERRIDE_LIMIT';
     showAppToast(
       context,
-      error == 'OVERRIDE_LIMIT'
-          ? l10n.roomColorsScreenLimitToast
-          : l10n.roomColorsScreenFailedToast,
+      limit ? l10n.roomColorsScreenLimitToast : l10n.roomColorsScreenFailedToast,
+      // A cap is a rule, not a fault. Only the genuine failure wears danger, so
+      // the colour keeps meaning something.
+      tone: limit ? ToastTone.neutral : ToastTone.danger,
     );
   }
 

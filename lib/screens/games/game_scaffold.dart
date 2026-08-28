@@ -9,6 +9,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../models/daily_game.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
+import '../../widgets/app_toast.dart';
 import '../../widgets/game_layout_shell.dart';
 
 /// The chrome every daily game wears: the back arrow, the running clock, the
@@ -542,7 +543,7 @@ Future<void> copyGameResult(
   required int? durationMs,
 }) async {
   final l10n = AppLocalizations.of(context);
-  final messenger = ScaffoldMessenger.of(context);
+  final toast = AppToast.of(context);
   await Clipboard.setData(
     ClipboardData(
       text: l10n.gameShareLine(
@@ -552,5 +553,8 @@ Future<void> copyGameResult(
       ),
     ),
   );
-  messenger.showSnackBar(SnackBar(content: Text(l10n.gameShareCopied)));
+  toast.show(
+    l10n.gameShareCopied,
+    tone: ToastTone.success,
+  );
 }

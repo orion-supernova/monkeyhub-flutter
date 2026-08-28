@@ -75,6 +75,7 @@ import 'theme/layout.dart';
 import 'theme/theme_scope.dart';
 import 'update/update_checker.dart';
 import 'widgets/app_brand_mark.dart';
+import 'widgets/app_toast.dart';
 import 'widgets/capture_shield.dart';
 import 'widgets/companion_download_banner.dart';
 import 'widgets/connection_banner.dart';
@@ -552,13 +553,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   void _toastServerChange() {
     final ctx = rootNavigatorKey.currentContext;
     if (ctx == null) return;
-    final messenger = ScaffoldMessenger.maybeOf(ctx);
-    if (messenger == null) return;
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(AppLocalizations.of(ctx).serverDirectiveChangedToast),
-        duration: const Duration(seconds: 4),
-      ),
+    showAppToast(
+      ctx,
+      AppLocalizations.of(ctx).serverDirectiveChangedToast,
+      duration: const Duration(seconds: 4),
     );
   }
 

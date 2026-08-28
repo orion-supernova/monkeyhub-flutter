@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../keyboard/focusable_tap.dart';
@@ -10,6 +9,7 @@ import '../models/chat_message.dart';
 import '../models/location_share.dart';
 import '../services/maps_handoff.dart';
 import '../theme/app_theme.dart';
+import 'app_toast.dart';
 import 'location_map_preview.dart';
 import 'message_stamp.dart';
 
@@ -459,7 +459,7 @@ class _LocationBubbleState extends State<LocationBubble>
   Future<void> _openInMaps() async {
     final share = widget.message.locationShare;
     if (share == null) return;
-    final messenger = ScaffoldMessenger.maybeOf(context);
+    final toast = AppToast.of(context);
     final failed = AppLocalizations.of(context).locationBubbleNoMapsApp;
     final ok = await MapsHandoff.open(
       latitude: share.latitude,
@@ -468,8 +468,6 @@ class _LocationBubbleState extends State<LocationBubble>
           ? null
           : widget.message.senderName,
     );
-    if (!ok && messenger != null) {
-      messenger.showSnackBar(SnackBar(content: Text(failed)));
-    }
+    if (!ok) toast.show(failed, tone: ToastTone.danger);
   }
 }

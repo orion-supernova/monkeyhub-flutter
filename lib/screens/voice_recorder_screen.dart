@@ -10,6 +10,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
+import '../widgets/app_toast.dart';
 import 'room_items.dart' show formatClockDuration;
 
 /// The MIME for what [VoiceRecorderScreen] produces: AAC-LC in an ISO-BMFF
@@ -63,14 +64,10 @@ class _VoiceRecorderScreenState extends State<VoiceRecorderScreen> {
   Future<void> _start() async {
     if (!await _rec.hasPermission()) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(
-              context,
-            ).voiceRecorderScreenMicPermissionDeniedSnackbar,
-          ),
-        ),
+      showAppToast(
+        context,
+        AppLocalizations.of(context)
+            .voiceRecorderScreenMicPermissionDeniedSnackbar,
       );
       return;
     }

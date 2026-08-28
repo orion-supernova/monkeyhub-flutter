@@ -9,6 +9,7 @@ import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/adaptive_sheet.dart';
+import '../widgets/app_toast.dart';
 import '../widgets/destructive_sheet.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/password_field.dart';
@@ -143,7 +144,7 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
   /// does the same teardown as `revokeContact` — so this never issues two
   /// calls that could fail apart from each other.
   Future<void> _takeBack(ChildContact c) async {
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     final l10n = AppLocalizations.of(context);
 
     // Failing to preview must not mean failing to act, or an offline parent
@@ -189,8 +190,9 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
       }
       await _loadGrants();
     } catch (_) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.childPolicyScreenTakeBackFailed)),
+      toast.show(
+        l10n.childPolicyScreenTakeBackFailed,
+        tone: ToastTone.danger,
       );
     }
   }
@@ -203,7 +205,7 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
     );
     if (result == null || !mounted) return;
 
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     final l10n = AppLocalizations.of(context);
     try {
       final requested = await widget.api.allowContactByUsername(
@@ -213,17 +215,14 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
         sendRequestNow: result.sendNow,
       );
       await _loadGrants();
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            requested
-                ? l10n.childPolicyScreenContactAddedRequestSent
-                : l10n.childPolicyScreenContactAddedToList,
-          ),
-        ),
+      toast.show(
+        requested
+            ? l10n.childPolicyScreenContactAddedRequestSent
+            : l10n.childPolicyScreenContactAddedToList,
+        tone: ToastTone.success,
       );
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(_humanizeAdd(e, l10n))));
+      toast.show(_humanizeAdd(e, l10n));
     }
   }
 
@@ -256,7 +255,7 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
     );
     if (username == null || !mounted) return;
 
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     try {
       await widget.api.addGuardian(
         guardianId: widget.guardianId,
@@ -264,13 +263,12 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
         newGuardianUsername: username,
       );
       await widget.family.refresh();
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.childPolicyScreenGuardianAdded)),
+      toast.show(
+        l10n.childPolicyScreenGuardianAdded,
+        tone: ToastTone.success,
       );
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(_humanizeGuardian(e, l10n))),
-      );
+      toast.show(_humanizeGuardian(e, l10n));
     }
   }
 
@@ -297,7 +295,7 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
     );
     if (!ok || !mounted) return;
 
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     final nav = Navigator.of(context);
     try {
       await widget.api.unlinkChild(
@@ -310,14 +308,13 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
       if (isMe) {
         nav.pop();
       } else {
-        messenger.showSnackBar(
-          SnackBar(content: Text(l10n.childPolicyScreenGuardianRemoved(name))),
+        toast.show(
+          l10n.childPolicyScreenGuardianRemoved(name),
+          tone: ToastTone.success,
         );
       }
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(_humanizeGuardian(e, l10n))),
-      );
+      toast.show(_humanizeGuardian(e, l10n));
     }
   }
 
@@ -357,7 +354,7 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
     );
     if (password == null || !mounted) return;
 
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     final nav = Navigator.of(context);
     try {
       await widget.api.promoteToAdult(
@@ -368,8 +365,9 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
       await widget.family.refresh();
       if (mounted) nav.pop();
     } catch (_) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.childPolicyScreenGraduateFailed)),
+      toast.show(
+        l10n.childPolicyScreenGraduateFailed,
+        tone: ToastTone.danger,
       );
     }
   }
@@ -385,7 +383,7 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
     );
     if (!ok || !mounted) return;
 
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     final nav = Navigator.of(context);
     try {
       await widget.api.deleteChildAccount(
@@ -395,8 +393,9 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
       await widget.family.refresh();
       if (mounted) nav.pop();
     } catch (_) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.childPolicyScreenDeleteAccountFailed)),
+      toast.show(
+        l10n.childPolicyScreenDeleteAccountFailed,
+        tone: ToastTone.danger,
       );
     }
   }

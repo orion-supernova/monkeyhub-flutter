@@ -8,6 +8,7 @@ import '../media/document_saver.dart';
 import '../media/file_url_cache.dart' show FileUnavailable;
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
+import '../widgets/app_toast.dart';
 import '../widgets/photo_chrome.dart';
 
 /// In-app preview for a plain-text attachment — the one exception to
@@ -78,7 +79,7 @@ class _TextFileViewerScreenState extends State<TextFileViewerScreen> {
   Future<void> _download() async {
     if (_saving) return;
     final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = AppToast.of(context);
     setState(() => _saving = true);
     try {
       await DocumentSaver.save(
@@ -88,12 +89,14 @@ class _TextFileViewerScreenState extends State<TextFileViewerScreen> {
         mimeType: 'text/plain',
       );
     } on FileUnavailable {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.fileMessageUnavailable)),
+      toast.show(
+        l10n.fileMessageUnavailable,
+        tone: ToastTone.danger,
       );
     } catch (_) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.fileMessageOpenFailed)),
+      toast.show(
+        l10n.fileMessageOpenFailed,
+        tone: ToastTone.danger,
       );
     } finally {
       if (mounted) setState(() => _saving = false);

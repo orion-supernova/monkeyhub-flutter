@@ -219,6 +219,7 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
         fallback: l10n.roomAdminGenericError,
         overrides: roomAdminErrorMessages(l10n),
       ),
+      tone: ToastTone.danger,
     );
   }
 
@@ -252,7 +253,8 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
   /// ever appeared: a snackbar belongs to a Scaffold and a bottom sheet is a
   /// route stacked above one, so it was being shown correctly and rendered
   /// underneath. See [showAppToast].
-  void _toast(String message) => showAppToast(context, message);
+  void _toast(String message) =>
+      showAppToast(context, message, tone: ToastTone.success);
 
   @override
   Widget build(BuildContext context) {

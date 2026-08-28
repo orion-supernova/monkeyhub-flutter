@@ -11,6 +11,7 @@ import '../media/upload_service.dart';
 import '../push/device_identity.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
+import '../widgets/app_toast.dart';
 
 /// Lets any user describe a problem and send it, with the identifiers that make
 /// it actionable already filled in.
@@ -119,9 +120,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     }
     if (!mounted) return;
     setState(() => _sending = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(duration: const Duration(seconds: 3), content: Text(message)),
-    );
+    showAppToast(context, message, duration: const Duration(seconds: 3));
     // Leave on success only. A failed report must keep the text the user typed
     // and the screenshots they picked, or the retry is a retype.
     if (ok) Navigator.of(context).maybePop();
@@ -133,11 +132,11 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     );
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        duration: const Duration(seconds: 1),
-        content: Text(l10n.reportProblemCopied),
-      ),
+    showAppToast(
+      context,
+      l10n.reportProblemCopied,
+      tone: ToastTone.success,
+      duration: const Duration(seconds: 1),
     );
   }
 

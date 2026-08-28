@@ -4,6 +4,7 @@ import '../family/family_service.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/app_toast.dart';
 import '../widgets/liquid_glass.dart';
 import 'call_models.dart';
 import 'call_picker.dart';
@@ -58,9 +59,7 @@ class CallButton extends StatelessWidget {
     } catch (e) {
       if (!context.mounted) return;
       final msg = _friendlyError(context, e);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg), duration: const Duration(seconds: 3)),
-      );
+      showAppToast(context, msg, duration: const Duration(seconds: 3));
     }
   }
 
@@ -82,9 +81,7 @@ class CallButton extends StatelessWidget {
   }
 
   void _showBusy(BuildContext context, String reason) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(reason), duration: const Duration(seconds: 3)),
-    );
+    showAppToast(context, reason, duration: const Duration(seconds: 3));
   }
 
   @override
