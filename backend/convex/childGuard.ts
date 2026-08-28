@@ -113,6 +113,20 @@ export async function childPolicyOf(ctx: any, userId: any) {
   return acct.childPolicy;
 }
 
+/**
+ * [childPolicyOf] for a caller that already holds the user document.
+ *
+ * Same answer, no read. `guardOutgoing` needs the user row anyway (for the
+ * sender's display name) and was fetching it twice on every single send —
+ * once here through [getAccount] and once for the name. Two point reads is
+ * nothing on a warm backend and a second page-in on a cold one.
+ */
+export function childPolicyOfUser(user: any) {
+  if (!user) return null;
+  if ((user.accountType ?? ACCOUNT_ADULT) !== ACCOUNT_CHILD) return null;
+  return user.childPolicy ?? DEFAULT_CHILD_POLICY;
+}
+
 // ─────────────────────────────── guardianship ───────────────────────────────
 
 /** userIds of everyone who supervises [childId]. */
@@ -275,18 +289,26 @@ export async function childMayUseRoom(
   ctx: any,
   childId: any,
   roomId: any,
+  // Reads the caller may already hold. `guardOutgoing` in messages.ts has both
+  // — it builds a memoized `roster()` for the DM block check and reads the room
+  // for the Chamber-of-Secrets lifetime — and without this it paid for them a
+  // second time here, including a second unbounded roster collect on every send
+  // by a child. Both stay optional: the eight other callers hold neither.
+  opts: { members?: any[]; room?: any } = {},
 ): Promise<boolean> {
-  const members = await ctx.db
-    .query("roomMembers")
-    .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId))
-    .collect();
+  const members =
+    opts.members ??
+    (await ctx.db
+      .query("roomMembers")
+      .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId))
+      .collect());
   const others = members
     .map((m: any) => m.userId.toString())
     .filter((id: string) => id !== childId.toString());
 
   const family = await familyOf(ctx, childId);
 
-  const room = await ctx.db.get(roomId);
+  const room = opts.room !== undefined ? opts.room : await ctx.db.get(roomId);
   if (room?.name?.startsWith("dm:")) {
     // A DM with nobody else in it yet is the child's own half-built room.
     if (others.length === 0) return true;

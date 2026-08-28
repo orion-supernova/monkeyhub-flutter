@@ -43,6 +43,25 @@ type ProviderTokenEntry = { token: string; keyRef: string; issuedAt: number };
 
 const providerTokenCache: Record<string, ProviderTokenEntry> = {};
 
+/// Mints currently in flight, keyed the same way as the cache above.
+///
+/// The cache has one hole, and a message fan-out falls straight into it: every
+/// device is pushed concurrently (`push.sendAlert` → `Promise.allSettled` over
+/// targets, then over each target's devices), and each one calls
+/// [cachedProviderToken] independently. On a COLD isolate the module cache is
+/// empty for all of them, so N devices meant N simultaneous mints — N Google
+/// OAuth round trips at 1.3-1.5s each, and then N writes racing to patch the
+/// same `pushAuthTokens` row. Convex answered that the only way it can: OCC
+/// retries at 20-750ms, and thirteen mutations in a three-hour window that
+/// exhausted their retries outright. On a two-core box that CPU is taken
+/// straight out of whatever mutation a user is waiting on.
+///
+/// Latching the in-flight promise collapses the fan-out to ONE mint and one
+/// write, which is what the cache always intended. Keyed by provider rather
+/// than global because APNs, FCM and each VAPID origin mint independently and
+/// have no reason to queue behind each other.
+const providerTokenInFlight: Record<string, Promise<string>> = {};
+
 export const _getPushAuthToken = internalQuery({
   args: { provider: v.string() },
   returns: v.union(
@@ -122,14 +141,30 @@ export async function cachedProviderToken(
     providerTokenCache[provider] = stored;
     return stored.token;
   }
-  const token = await mint();
-  const entry: ProviderTokenEntry = { token, keyRef, issuedAt: now };
-  providerTokenCache[provider] = entry;
-  await ctx.runMutation(internal.pushTransport._setPushAuthToken, {
-    provider,
-    ...entry,
-  });
-  return token;
+  // Someone else in this isolate is already minting this exact provider —
+  // wait for theirs rather than starting a second one. See
+  // [providerTokenInFlight].
+  const pending = providerTokenInFlight[provider];
+  if (pending) return await pending;
+
+  const flight = (async () => {
+    const token = await mint();
+    const entry: ProviderTokenEntry = { token, keyRef, issuedAt: Date.now() };
+    providerTokenCache[provider] = entry;
+    await ctx.runMutation(internal.pushTransport._setPushAuthToken, {
+      provider,
+      ...entry,
+    });
+    return token;
+  })();
+  providerTokenInFlight[provider] = flight;
+  try {
+    return await flight;
+  } finally {
+    // Cleared on failure as well as success, or one failed mint would leave
+    // every later push awaiting a promise that is never going to resolve.
+    delete providerTokenInFlight[provider];
+  }
 }
 
 // ────────────────────────── APNs ──────────────────────────

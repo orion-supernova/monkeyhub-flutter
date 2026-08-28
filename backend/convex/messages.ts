@@ -9,6 +9,7 @@ import {
   LOCATION_POLICY_FLAG,
   childMayUseRoom,
   childPolicyOf,
+  childPolicyOfUser,
 } from "./childGuard";
 import { deleteStored, releaseMessageBlobs } from "./files";
 import { forkInteraction, purgeInteraction } from "./interactionCore";
@@ -298,12 +299,25 @@ export async function guardOutgoing(
   needs: { media: boolean; location: boolean },
   senderName?: string
 ) {
-  const membership = await ctx.db
-    .query("roomMembers")
-    .withIndex("by_room_user", (q: any) =>
-      q.eq("roomId", roomId).eq("userId", userId)
-    )
-    .first();
+  // Membership, the sender and the room, together.
+  //
+  // These three are mutually independent — no one of them decides whether
+  // another is needed — and they used to be three awaits in a row, with the
+  // user read happening TWICE (once inside `childPolicyOf`, once for the
+  // display name) and the room read after that. Four serial index hits where
+  // one round of three does. On a warm backend that is noise; on one whose
+  // working set has been paged out it is four disk waits instead of one, and
+  // it lands on the ack the sender is watching a clock icon for.
+  const [membership, senderUser, room] = await Promise.all([
+    ctx.db
+      .query("roomMembers")
+      .withIndex("by_room_user", (q: any) =>
+        q.eq("roomId", roomId).eq("userId", userId)
+      )
+      .first(),
+    ctx.db.get(userId),
+    ctx.db.get(roomId),
+  ]);
   if (!membership) throw new Error("NOT_A_MEMBER");
 
   // The room's roster, fetched at most once and only if something actually
@@ -322,9 +336,17 @@ export async function guardOutgoing(
   // the child is still sitting in the room, and the room's members can change
   // after approval. Re-checked on every send so revocation is immediate rather
   // than "until they close the screen".
-  const policy = await childPolicyOf(ctx, userId);
+  const policy = childPolicyOfUser(senderUser);
   if (policy !== null) {
-    if (!(await childMayUseRoom(ctx, userId, roomId))) {
+    // Hand over the roster and the room we already hold. Without them this
+    // ran its own unbounded `roomMembers` collect and its own `rooms` get —
+    // so a child sending into a big room paid for the roster twice.
+    if (
+      !(await childMayUseRoom(ctx, userId, roomId, {
+        members: await roster(),
+        room,
+      }))
+    ) {
       throw new Error(ERR_APPROVAL_REQUIRED);
     }
     // Two independent gates, checked independently. They were an if/else-if
@@ -349,13 +371,12 @@ export async function guardOutgoing(
   // Typed `string` up front rather than inferred from the optional argument,
   // so callers destructuring this get a name they can pass straight to the
   // push action without re-proving it is present.
+  // Read off the document fetched above rather than fetching it again.
   let resolvedSenderName: string = senderName ?? "";
   if (!resolvedSenderName) {
-    const user = await ctx.db.get(userId);
-    resolvedSenderName = user?.name ?? user?.username ?? "Unknown";
+    resolvedSenderName =
+      senderUser?.name ?? senderUser?.username ?? "Unknown";
   }
-
-  const room = await ctx.db.get(roomId);
 
   // DM block enforcement.
   //
@@ -369,18 +390,23 @@ export async function guardOutgoing(
       (m: any) => m.userId.toString() !== userId.toString()
     )?.userId;
     if (otherId) {
-      const iBlockedThem = await ctx.db
-        .query("blocks")
-        .withIndex("by_pair", (q: any) =>
-          q.eq("userId", userId).eq("blockedUserId", otherId)
-        )
-        .first();
-      const theyBlockedMe = await ctx.db
-        .query("blocks")
-        .withIndex("by_pair", (q: any) =>
-          q.eq("userId", otherId).eq("blockedUserId", userId)
-        )
-        .first();
+      // Both directions at once. Neither answer gates the other — the pair of
+      // throws below is what distinguishes them — so serializing these was two
+      // index hits of latency for one hit of information.
+      const [iBlockedThem, theyBlockedMe] = await Promise.all([
+        ctx.db
+          .query("blocks")
+          .withIndex("by_pair", (q: any) =>
+            q.eq("userId", userId).eq("blockedUserId", otherId)
+          )
+          .first(),
+        ctx.db
+          .query("blocks")
+          .withIndex("by_pair", (q: any) =>
+            q.eq("userId", otherId).eq("blockedUserId", userId)
+          )
+          .first(),
+      ]);
       if (iBlockedThem) throw new Error("UNBLOCK_FIRST");
       if (theyBlockedMe) throw new Error("MESSAGE_FAILED");
     }
