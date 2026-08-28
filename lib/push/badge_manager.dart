@@ -98,6 +98,12 @@ class BadgeManager extends ChangeNotifier {
       }
       return;
     }
-    // Android: notification-driven via OneSignal — intentional no-op.
+    // Android: intentional no-op, and not for the reason this line used to
+    // give (it named the push vendor, which has not existed since
+    // `feat(push): the notifications stop going through a vendor`). Android
+    // has no OS-level badge API at all — launchers derive the dot or count
+    // from the app's ACTIVE notifications, which `ChatNotifications` already
+    // posts and dismisses per room. Writing a number here would have nowhere
+    // to write it to.
   }
 }

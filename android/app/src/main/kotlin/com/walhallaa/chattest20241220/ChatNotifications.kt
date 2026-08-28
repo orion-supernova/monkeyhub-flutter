@@ -410,11 +410,17 @@ object ChatNotifications {
             //
             // MessagingStyle is the shape every mainstream messenger uses and
             // the one Android is built around: the conversation title becomes
-            // the notification's TITLE, each message is attributed to a Person
-            // by name, and consecutive messages in one room stack into a
-            // readable transcript instead of replacing one another. It also
-            // carries the face properly — a Person's icon survives into the
-            // conversation surfaces a large icon does not reach.
+            // the notification's TITLE, and the line under it is attributed to
+            // a Person by name rather than being bare text. It also carries
+            // the face properly — a Person's icon reaches the conversation
+            // surfaces a large icon does not.
+            //
+            // What it does NOT change is that this is still one notification
+            // per message: the tag is the messageId, because that is what
+            // makes `dismissIds` able to pull back exactly the banner whose
+            // message was deleted. A room's messages therefore stack under
+            // the group summary as they always did — each carrying one line,
+            // not a transcript.
             val sender = Person.Builder()
                 .setName(data["senderName"].orEmpty().ifEmpty { data["title"].orEmpty() })
                 // The same key ShareShortcuts hangs its Person off, so the

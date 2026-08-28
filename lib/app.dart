@@ -1336,10 +1336,12 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         // `await _repo.attach(...)` and `await PushManager.login(...)`, all
         // inside the single swallow-everything catch below. Two ways that
         // silently killed every incoming call on this device:
-        //   1. `PushManager.login` awaits OneSignal login AND the
+        //   1. `PushManager.login` awaits token registration AND the
         //      notification-permission prompt. On a cold start woken by a
         //      VoIP push, that can hang indefinitely — and everything after
-        //      it, including the entire call stack, never runs.
+        //      it, including the entire call stack, never runs. (It awaited
+        //      the push VENDOR's login when this was written; the vendor is
+        //      gone and the hazard is not.)
         //   2. Anything above throwing lands in the shared `catch (_) {}`,
         //      which logs nothing at all.
         // Either way `CallService` stayed unattached and

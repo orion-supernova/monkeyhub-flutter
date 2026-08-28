@@ -22,7 +22,8 @@ class MessageAlerts {
   static final MessageAlerts instance = MessageAlerts._();
 
   /// Web (autoplay + Notification API) and desktop (no native push) need this;
-  /// mobile is served by OneSignal.
+  /// mobile is served by the OS notification the backend pushes directly
+  /// (backend/convex/push.ts → APNs / FCM).
   static bool get _enabled => isWebOrDesktop;
 
   ChatRepository? _repo;
@@ -107,12 +108,11 @@ class MessageAlerts {
       if (!shouldAlert) continue;
 
       // One ping per notify tick even if several rooms advanced at once. This
-      // is the in-app awareness sound; the background BANNER is owned by
-      // OneSignal Web Push now (see web/index.html + onesignal_web.dart), which
-      // is the only thing that reaches a frozen/closed tab — and it suppresses
-      // itself while the page is focused. So we no longer call
-      // WebNotifier.showMessage here (that would double the banner on an
-      // alive-but-backgrounded tab).
+      // is the in-app awareness sound; the background BANNER belongs to Web
+      // Push (`web/mh-push-sw.js`, encrypted by backend/convex/webPush.ts),
+      // which is the only thing that reaches a frozen or closed tab. So we do
+      // NOT call WebNotifier.showMessage here — that would double the banner
+      // on an alive-but-backgrounded tab, where both paths are awake.
       if (!pinged) {
         pinged = true;
         AlertSounds.instance.playPing();
