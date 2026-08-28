@@ -69,6 +69,7 @@ import '../widgets/chat_composer.dart';
 import '../widgets/composer_capture.dart';
 import '../widgets/chat_pane.dart';
 import '../widgets/destructive_sheet.dart' show showConfirmSheet;
+import '../widgets/edge_bleed.dart';
 import '../widgets/forward_target_sheet.dart';
 import '../widgets/glass_pill.dart';
 import '../widgets/jump_back.dart';
@@ -82,6 +83,7 @@ import '../widgets/companion_strip.dart' show kCompanionStripHeight;
 import '../widgets/pinned_banner.dart';
 import '../widgets/pinned_list_sheet.dart';
 import '../widgets/mention_text_controller.dart';
+import '../widgets/message_arrivals.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/reaction_details_sheet.dart';
 import '../widgets/reaction_picker_sheet.dart';
@@ -766,59 +768,28 @@ class _RoomScreenState extends State<RoomScreen>
     return parts.join(';');
   }
 
-  /// Message ids this screen has already drawn, and the newest `createdAt`
-  /// among them. Together they answer "is this row an arrival, or is it just
-  /// scrolling into view?" — which is the whole question, because
-  /// `ListView.builder` builds a row for the first time every time it scrolls
-  /// past, and animating on that would make the transcript shimmer.
-  final Set<String> _drawnMessageIds = {};
-  DateTime? _newestDrawnAt;
+  /// Which rows are news and which are merely being drawn again — the ledger
+  /// behind the transcript's entrance animation, and behind the row identity
+  /// that keeps a send from being rebuilt when the server confirms it. See
+  /// [MessageArrivals] for the rules and why they are not about time.
+  late final MessageArrivals _arrivals = MessageArrivals(
+    onSettled: () {
+      if (mounted) setState(() {});
+    },
+  );
 
-  /// The ids currently playing their entrance. Small and short-lived: an id
-  /// enters on the delivery that carried it and leaves one animation later.
-  final Set<String> _arriving = {};
-  Timer? _arrivalClear;
-
-  /// Spot messages that were not here a moment ago, so the transcript can grow
-  /// them in rather than snap them into place.
-  ///
-  /// Convex re-sends the whole live window on every change, so "what is new"
-  /// cannot be read off the delivery — every row arrives every time. It has to
-  /// be diffed against what this screen has already drawn.
-  ///
-  /// Two things deliberately do NOT animate. The first paint of a room, which
-  /// would otherwise play the entire transcript in on open; and anything older
-  /// than the newest row already drawn, which is how a page from [loadOlder]
-  /// is told apart from an arrival — it is scrolled-to content, not news.
-  void _noteArrivals(List<ChatMessage> current) {
-    if (current.isEmpty) return;
-    if (_drawnMessageIds.isEmpty) {
-      for (final m in current) {
-        _drawnMessageIds.add(m.id);
-      }
-      _newestDrawnAt = current.last.createdAt;
-      return;
-    }
-    final was = _newestDrawnAt;
-    final fresh = <String>[];
-    for (final m in current) {
-      if (!_drawnMessageIds.add(m.id)) continue;
-      if (was == null || m.createdAt.isAfter(was)) fresh.add(m.id);
-    }
-    if (current.last.createdAt.isAfter(was ?? current.last.createdAt)) {
-      _newestDrawnAt = current.last.createdAt;
-    }
-    if (fresh.isEmpty) return;
-    _arriving.addAll(fresh);
-    // One timer for the whole burst rather than one per message: a batch that
-    // lands together should finish together, and the set is only a hint to the
-    // builder — leaving an id in it a few ms too long costs nothing.
-    _arrivalClear?.cancel();
-    _arrivalClear = Timer(const Duration(milliseconds: 400), () {
-      if (!mounted) return;
-      setState(_arriving.clear);
-    });
-  }
+  /// Hand the ledger this delivery. Separate from [_onRepoChange] only because
+  /// the two things it needs — who we are, and whether the reader is parked at
+  /// the newest message — are this screen's to know.
+  void _noteArrivals(List<ChatMessage> current) => _arrivals.observe(
+        current,
+        myUserId: widget.repo.userId,
+        // Scrolled away, an arrival lands below the fold: there is nothing to
+        // watch rise, and growing a row under the reader drags what they are
+        // reading. Hysteresis and the pre-layout frame both belong to the
+        // notifier, which is already maintained for the jump-to-latest pill.
+        nearBottom: !_scrolledUp.value,
+      );
 
   void _onRepoChange() {
     if (!mounted) return;
@@ -1083,7 +1054,7 @@ class _RoomScreenState extends State<RoomScreen>
     _composerFocus.dispose();
     _highlightCtrl.dispose();
     _hideTimer?.cancel();
-    _arrivalClear?.cancel();
+    _arrivals.dispose();
     _scroll.removeListener(_onScroll);
     _scroll.dispose();
     _scrolledUp.removeListener(_onBottomProximity);
@@ -3714,7 +3685,10 @@ class _RoomScreenState extends State<RoomScreen>
                       // below: it carries no date and would otherwise win the
                       // topmost-tracked-item contest in
                       // _recomputePositionState and show a wrong floating date.
-                      return const _UnreadDivider();
+                      //
+                      // Handed the list's own side padding because it is the
+                      // one row that draws through it — see [_UnreadDivider].
+                      return _UnreadDivider(bleed: listPadding);
                     }
                     if (item is ThreadFoldItem) {
                       // Deliberately not wrapped in _trackedDate: the chip
@@ -4197,6 +4171,13 @@ class _RoomScreenState extends State<RoomScreen>
                             : null,
                         interactionActions: interactionActions,
                       );
+                // The identity of the ROW, which is not always the identity of
+                // the message: a send is one row that wears two ids, the local
+                // `tmp_` one until the server confirms it and the real one
+                // after. Keying on `m.id` made that swap look like one row
+                // leaving and another arriving — the switcher below cross-faded
+                // it, and its entrance played a second time from zero height.
+                final rowKey = _arrivals.keyFor(m);
                 final row = AnimatedSwitcher(
                   duration: theme.motionMed,
                   switchInCurve: theme.motionEntrance,
@@ -4207,7 +4188,7 @@ class _RoomScreenState extends State<RoomScreen>
                   // sit here without a combined widget that would have to
                   // re-tune the reply spring.
                   child: SwipeToReceipts(
-                    key: ValueKey('rc_${m.id}'),
+                    key: ValueKey('rc_$rowKey'),
                     // Your own message, actually on the server, in a room
                     // that has someone else in it. Receipts on a send that
                     // hasn't landed would be a list of people who could not
@@ -4232,7 +4213,7 @@ class _RoomScreenState extends State<RoomScreen>
                       onOpenProfile: _openProfile,
                     ),
                     child: SwipeToReply(
-                      key: ValueKey('sw_${m.id}'),
+                      key: ValueKey('sw_$rowKey'),
                       // A swipe that armed a reply mid-selection would put a
                       // composer card under a bar that has no composer.
                       enabled: canReply && !selecting,
@@ -4241,14 +4222,14 @@ class _RoomScreenState extends State<RoomScreen>
                     ),
                   ),
                 );
-                return _ArrivingRow(
-                  // Only a message that was not on screen a moment ago plays
-                  // an entrance; see [_noteArrivals]. Everything else — a row
-                  // scrolled back into view, a page of older history, a
-                  // re-render after a reaction — draws at full size on the
-                  // first frame, as it always did.
-                  key: ValueKey('arrive_${m.id}'),
-                  animate: _arriving.contains(m.id),
+                return ArrivingRow(
+                  // Only a row that was not in the transcript a moment ago
+                  // plays an entrance; see [MessageArrivals]. Everything else —
+                  // a row scrolled back into view, a page of older history, a
+                  // re-render after a reaction, and every message the reader
+                  // sent themselves — draws at full size on the first frame.
+                  key: ValueKey('arrive_$rowKey'),
+                  animate: _arrivals.isArriving(rowKey),
                   duration: theme.motionMed,
                   curve: theme.motionEntrance,
                   child: _trackedDate(
@@ -4865,39 +4846,51 @@ class _DateDivider extends StatelessWidget {
   }
 }
 
-/// Marks where a reader's backlog starts — a full-width band rather than a
-/// centred pill, deliberately: a pill reads as a date marker in this app (see
-/// `_ThreadFoldChip`'s own note on the same rule), and this is answering a
+/// Marks where a reader's backlog starts — a band drawn edge to edge rather
+/// than a centred pill, deliberately: a pill reads as a date marker in this app
+/// (see `_ThreadFoldChip`'s own note on the same rule), and this is answering a
 /// different question — not "what day is it" but "everything below this line
 /// is new". [_RoomScreenState._maybeLandOnUnread] is what puts it on screen
 /// on open; this widget only draws it.
+///
+/// It is also the only row in the transcript that ignores the list's side
+/// padding. `width: double.infinity` alone stopped it 20pt short at each end,
+/// which reads as one more object floating in the column — a rule drawn across
+/// the conversation has to actually reach both sides of it to say "line".
 class _UnreadDivider extends StatelessWidget {
-  const _UnreadDivider();
+  const _UnreadDivider({required this.bleed});
+
+  /// The transcript's own padding. Only [EdgeInsets.left] and
+  /// [EdgeInsets.right] are read; the band is handed the whole thing so the
+  /// call site can pass `listPadding` without picking it apart.
+  final EdgeInsets bleed;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final band = Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      decoration: BoxDecoration(
+        color: theme.accentSoft,
+        border: Border.symmetric(
+          horizontal: BorderSide(color: theme.accent.withValues(alpha: 0.35)),
+        ),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        AppLocalizations.of(context).roomScreenUnreadDivider,
+        style: theme.monoTiny.copyWith(
+          color: theme.accent,
+          letterSpacing: 1.8,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
     return Padding(
       // Top only — see [MessageGap], same convention _DateDivider follows.
       padding: const EdgeInsets.only(top: MessageGap.aroundMarker),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        decoration: BoxDecoration(
-          color: theme.accentSoft,
-          border: Border.symmetric(
-            horizontal: BorderSide(color: theme.accent.withValues(alpha: 0.35)),
-          ),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          AppLocalizations.of(context).roomScreenUnreadDivider,
-          style: theme.monoTiny.copyWith(
-            color: theme.accent,
-            letterSpacing: 1.8,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
+      child: EdgeBleed(bleed: bleed, child: band),
     );
   }
 }
@@ -5423,82 +5416,6 @@ class _RoomAvatar extends StatelessWidget {
       child: room.isEphemeral
           ? theme.hourglassIcon(size: size * 0.56, color: theme.accent)
           : Icon(Icons.tag, size: size * 0.56, color: theme.accent),
-    );
-  }
-}
-
-
-/// Grows a newly-arrived transcript row into place instead of snapping it in.
-///
-/// Before this the list had no insertion animation of any kind — the only
-/// animated thing touching a row was an `AnimatedSwitcher` keyed on the message
-/// id, which by construction animates content changing *within* a row and never
-/// the row appearing. So a message that landed while you were reading simply
-/// blinked into existence and shoved the transcript, which is the "it just
-/// jumps" half of feeling slow.
-///
-/// Under the list's `reverse: true` an arrival is index 0 — the bottom — so
-/// growing its height from zero reads as the bubble rising into place, and the
-/// rows above it are pushed by exactly the amount they were going to move
-/// anyway, over 200ms instead of over one frame.
-///
-/// [animate] is false for every row that is merely being built — scrolled back
-/// into view, rebuilt after a reaction, part of a page of older history — and
-/// those return the child untouched, allocating nothing.
-class _ArrivingRow extends StatefulWidget {
-  const _ArrivingRow({
-    super.key,
-    required this.animate,
-    required this.duration,
-    required this.curve,
-    required this.child,
-  });
-
-  final bool animate;
-  final Duration duration;
-  final Curve curve;
-  final Widget child;
-
-  @override
-  State<_ArrivingRow> createState() => _ArrivingRowState();
-}
-
-class _ArrivingRowState extends State<_ArrivingRow>
-    with SingleTickerProviderStateMixin {
-  AnimationController? _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.animate) {
-      _ctrl = AnimationController(vsync: this, duration: widget.duration)
-        ..forward();
-    }
-  }
-
-  @override
-  void dispose() {
-    _ctrl?.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final ctrl = _ctrl;
-    // Nothing to play, or it has finished: hand back the child itself so a
-    // settled transcript carries no extra layout or opacity layer per row.
-    if (ctrl == null || ctrl.isCompleted) return widget.child;
-    final t = CurvedAnimation(parent: ctrl, curve: widget.curve);
-    return AnimatedBuilder(
-      animation: t,
-      // Built once and reused across every frame of the animation — the row
-      // beneath is the expensive part and none of it depends on `t`.
-      child: widget.child,
-      builder: (context, child) => Align(
-        alignment: Alignment.topCenter,
-        heightFactor: t.value,
-        child: Opacity(opacity: t.value, child: child),
-      ),
     );
   }
 }
