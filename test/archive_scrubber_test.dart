@@ -227,13 +227,15 @@ void main() {
   double railOffset(WidgetTester tester) =>
       tester.widget<ListView>(find.byType(ListView).first).controller!.offset;
 
-  /// The day-of-month printed on the highlighted chip in the top rail.
-  String? activeChipDay(WidgetTester tester) {
-    final chip = find.byKey(archiveActiveChipKey);
-    if (chip.evaluate().isEmpty) return null;
-    final texts = find.descendant(of: chip, matching: find.byType(Text));
-    return tester.widget<Text>(texts.first).data;
-  }
+  /// Whether the rail is lighting [dayKey] right now.
+  bool chipLit(WidgetTester tester, String dayKey) =>
+      find.byKey(archiveChipKey(dayKey, lit: true)).evaluate().isNotEmpty;
+
+  /// Whether the rail has built a chip for [dayKey] at all — it is a lazy
+  /// horizontal list, so a chip far off its own viewport does not exist yet.
+  bool chipBuilt(WidgetTester tester, String dayKey) =>
+      chipLit(tester, dayKey) ||
+      find.byKey(archiveChipKey(dayKey, lit: false)).evaluate().isNotEmpty;
 
   /// Puts the list at an exact offset.
   ///
@@ -322,15 +324,12 @@ void main() {
       await scrollTo(tester, px);
       final pinned = pinnedDay(tester, ctx);
       if (pinned == null) continue;
-      // Both are checked when they are on screen rather than demanded at
-      // rest: the pill is only up while the list moves, and the rail builds
-      // lazily, so a chip far off its own viewport may not exist yet.
-      final chip = activeChipDay(tester);
-      if (chip != null) {
+      // The pinned day is on screen by definition, so its chip must be lit.
+      if (chipBuilt(tester, pinned)) {
         expect(
-          chip,
-          pinned.split('-').last,
-          reason: 'at offset $px the chips and the header disagree',
+          chipLit(tester, pinned),
+          isTrue,
+          reason: 'at offset $px the pinned day was not lit in the rail',
         );
       }
       final showing = pill(tester);
@@ -346,12 +345,14 @@ void main() {
     expect(checked, greaterThan(10), reason: 'barely any offsets checked');
   });
 
-  testWidgets('the chip agrees with the pinned header on a short archive', (
+  testWidgets('a short archive lights every day that is on screen', (
     tester,
   ) async {
-    // The reported shape: a handful of days with one photo each. No scrub rail
-    // here — there is nothing to fast-scroll through — so the chip is the only
-    // thing naming a day, and it has to name the one that is pinned.
+    // The reported shape: five days of one photo each, an archive barely taller
+    // than the screen. Its last days can never reach the top edge — there is
+    // nothing below them to scroll through — so a rail that lights exactly one
+    // chip stalls partway down the list however it is measured. Four days
+    // visible at once is not a question with a single answer.
     await openShort(tester);
     final ctx = tester.element(find.byType(ArchiveScreen));
     final pos = tester
@@ -359,45 +360,38 @@ void main() {
         .controller!
         .position;
 
+    // No scrub rail here, and that is right: nothing to fast-scroll through.
     expect(find.byKey(archiveScrubberPillKey), findsNothing);
-
-    for (var px = 0.0; px <= pos.maxScrollExtent; px += 29) {
-      await scrollTo(tester, px);
-      final pinned = pinnedDay(tester, ctx);
-      if (pinned == null) continue;
-      expect(
-        activeChipDay(tester),
-        pinned.split('-').last,
-        reason: 'at offset $px the chips and the header disagree',
-      );
-    }
-  });
-
-  testWidgets('the LAST day pins at the bottom, even on a short archive', (
-    tester,
-  ) async {
-    // Five days of one photo each is an archive barely taller than the screen,
-    // so the last sections have nothing below them to scroll through and their
-    // headers could never reach the top: every date after the second was
-    // unreachable, and the sticky header stopped partway down the list and
-    // stayed there. The trailing reserve is what gives the last one room to
-    // arrive.
-    await openShort(tester);
-    final ctx = tester.element(find.byType(ArchiveScreen));
-    final pos = tester
-        .widget<CustomScrollView>(find.byType(CustomScrollView))
-        .controller!
-        .position;
 
     await scrollTo(tester, pos.maxScrollExtent);
     await tester.pumpAndSettle();
 
+    // Every day whose header is on screen is lit — including the last, which
+    // is the one that used to be unreachable.
+    final listTop = tester.getRect(find.byType(CustomScrollView)).top;
+    final listBottom = tester.getRect(find.byType(CustomScrollView)).bottom;
+    var onScreen = 0;
+    for (final day in shortDays) {
+      final header = find.descendant(
+        of: find.byType(CustomScrollView),
+        matching: find.text(archiveDayLabel(ctx, day)),
+      );
+      if (header.evaluate().isEmpty) continue;
+      final r = tester.getRect(header);
+      if (r.bottom < listTop || r.top > listBottom) continue;
+      onScreen++;
+      expect(
+        chipLit(tester, day),
+        isTrue,
+        reason: '$day is on screen but its chip is dark',
+      );
+    }
+    expect(onScreen, greaterThan(2), reason: 'expected several days in view');
     expect(
-      pinnedDay(tester, ctx),
-      shortDays.last,
-      reason: 'the last day never reaches the top',
+      chipLit(tester, shortDays.last),
+      isTrue,
+      reason: 'the last day is on screen and still not lit',
     );
-    expect(activeChipDay(tester), shortDays.last.split('-').last);
   });
 
   testWidgets('days come out chronological even when the page does not', (
@@ -433,30 +427,24 @@ void main() {
   });
 
   testWidgets('the chips at the top follow the scroll', (tester) async {
-    // The third date surface. `_selectedDay` moved only when a chip was TAPPED,
-    // so while you scrolled the highlighted chip named wherever you last jumped
-    // from — two date indicators disagreeing, which reads as neither being
-    // right.
+    // `_selectedDay` moved only when a chip was TAPPED, so while you scrolled
+    // the rail named wherever you last jumped from — and never scrolled itself,
+    // so the lit chips could be off the end of it entirely.
     await open(tester);
-    final ctx = tester.element(find.byType(ArchiveScreen));
     expect(railOffset(tester), 0);
 
-    // Far enough down that the active chip is well off the left end of a rail
-    // that has not moved.
     await scrollTo(tester, 2600);
     await tester.pumpAndSettle();
 
     expect(
-      pill(tester),
-      isNot(archiveDayLabel(ctx, dayKeys[0])),
-      reason: 'the list moved but the label did not follow it',
-    );
-    // The rail scrolled itself to keep the highlighted chip in view, which it
-    // only does when `_selectedDay` tracks the list.
-    expect(
       railOffset(tester),
       greaterThan(0),
-      reason: 'the chips did not follow the scroll',
+      reason: 'the rail did not follow the list',
+    );
+    expect(
+      chipLit(tester, dayKeys.first),
+      isFalse,
+      reason: 'the first day is long gone but still lit',
     );
   });
 
