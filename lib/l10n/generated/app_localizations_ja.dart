@@ -4580,6 +4580,17 @@ class AppLocalizationsJa extends AppLocalizations {
       '現在はプレビューのみ — すっきりした吹き出しで、タップで開けます';
 
   @override
+  String get settingsScreenMenuBarLabel => 'メニューバーアイコン';
+
+  @override
+  String get settingsScreenMenuBarOnBody =>
+      'MonkeyHub が未読数と一緒にメニューバーに常駐します — クリックでウインドウを表示';
+
+  @override
+  String get settingsScreenMenuBarOffBody =>
+      '現在オフ — 隠れたウインドウに戻る手段は Dock アイコンだけです';
+
+  @override
   String get settingsScreenSectionCalls => '通話';
 
   @override

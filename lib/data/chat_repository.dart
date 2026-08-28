@@ -26,6 +26,7 @@ import '../models/room_mute.dart';
 import '../models/room_pin.dart';
 import '../models/scheduled_message.dart';
 import '../push/push_manager.dart';
+import '../push/viewer_presence.dart';
 import '../services/live_location_permission.dart';
 import '../services/live_location_platform.dart';
 import '../services/live_location_publisher.dart';
@@ -246,6 +247,11 @@ class ChatRepository extends ChangeNotifier {
   set _activeRoomId(String? value) {
     if (_activeRoomIdValue == value) return;
     _activeRoomIdValue = value;
+    // Leaving a room while away discards the read this device was holding for
+    // it — see [_markReadOrDefer]. Walking out of a chat you never looked at is
+    // the clearest possible statement that you did not read it, and the room
+    // has to stay unread (and badged) until you come back to it.
+    _deferredRead = null;
     unawaited(PushManager.instance.setActiveRoom(value));
   }
 
@@ -768,6 +774,57 @@ class ChatRepository extends ChangeNotifier {
     api
         .markRoomRead(roomId: p.roomId, userId: p.userId, upTo: p.upTo)
         .catchError((_) {});
+  }
+
+  /// A read the open room earned but nobody was present to take — see
+  /// [_markReadOrDefer]. At most one, because only the open room is ever
+  /// marked read from here and a later cursor supersedes an earlier one.
+  ({String roomId, String userId, DateTime upTo})? _deferredRead;
+
+  /// Advance the open room's read cursor — but only if someone is actually
+  /// looking at it.
+  ///
+  /// The unguarded version is why the macOS Dock icon never badged. Everywhere
+  /// else, "the room is open" is a safe stand-in for "you are reading it",
+  /// because a backgrounded app is suspended within seconds and its
+  /// subscriptions stop firing — nothing arrives to be marked read. On macOS
+  /// the process is kept alive on purpose with its window hidden, since it IS
+  /// the delivery path (macos/Runner/MainFlutterWindow.swift), so messages kept
+  /// landing in the open room and kept being marked read on behalf of somebody
+  /// who had closed the window hours ago. `unreadCount` never left zero, so
+  /// [BadgeManager] had nothing to draw, and the sender was told SEEN for a
+  /// message that had never been on anyone's screen. A background browser tab
+  /// had the same hole.
+  ///
+  /// Held rather than dropped: the messages ARE on screen in the open room, so
+  /// the moment the person comes back to the app they have read them, and
+  /// [flushDeferredRead] takes the cursor then.
+  void _markReadOrDefer(String roomId, String userId, DateTime upTo) {
+    if (!viewerIsPresent) {
+      _deferredRead = (roomId: roomId, userId: userId, upTo: upTo);
+      return;
+    }
+    _deferredRead = null;
+    _scheduleMarkRead(roomId, userId, upTo);
+    // Reading it means its notifications are spent. Done locally rather than
+    // waiting for the server's silent dismiss push, which is best-effort and
+    // can't reach a force-quit app at all. Deferred with the read for the same
+    // reason: clearing the banner for a message nobody has looked at is how it
+    // goes missing.
+    PushManager.instance.dismissRoomNotifications(roomId);
+  }
+
+  /// Take the read [_markReadOrDefer] held back, now that the viewer is here.
+  ///
+  /// Called from the app's `resumed` lifecycle handler (lib/app.dart). Cheap
+  /// and idempotent: no deferral, or one for a room that is no longer open,
+  /// costs nothing and sends nothing.
+  void flushDeferredRead() {
+    final d = _deferredRead;
+    _deferredRead = null;
+    if (d == null || d.roomId != _activeRoomId) return;
+    _scheduleMarkRead(d.roomId, d.userId, d.upTo);
+    PushManager.instance.dismissRoomNotifications(d.roomId);
   }
 
   Timer? _deliveryDebounce;
@@ -1498,11 +1555,7 @@ class ChatRepository extends ChangeNotifier {
           final newestId = parsed.isNotEmpty ? parsed.last.id : null;
           if (newestId != null && newestId != _lastSeenNewestMsgId[roomId]) {
             _lastSeenNewestMsgId[roomId] = newestId;
-            _scheduleMarkRead(roomId, me, parsed.last.createdAt);
-            // Reading it means its notifications are spent. Done locally
-            // rather than waiting for the server's silent dismiss push, which
-            // is best-effort and can't reach a force-quit app at all.
-            PushManager.instance.dismissRoomNotifications(roomId);
+            _markReadOrDefer(roomId, me, parsed.last.createdAt);
           }
         }
         notifyListeners();
@@ -1760,7 +1813,16 @@ class ChatRepository extends ChangeNotifier {
     // order: a message is read when it is on screen, not when the room opens.
     // With nothing held it is omitted, and the server falls back to the room's
     // `lastMessageTime` as it always did.
-    if (me != null) {
+    //
+    // Gated on presence for the same reason [_markReadOrDefer] is, and this is
+    // the path that would otherwise walk straight around it: opening a room is
+    // normally an act of looking, but this runs on every RE-entry too — and a
+    // socket that drops and re-subscribes while the macOS window is hidden
+    // re-enters with a live window full of messages nobody has seen. That would
+    // mark the lot read, silently, hours after the person walked away. Nothing
+    // is lost by skipping it: whatever actually arrives is deferred and taken
+    // on the way back in.
+    if (me != null && viewerIsPresent) {
       final held = _messages[roomId];
       api
           .markRoomRead(

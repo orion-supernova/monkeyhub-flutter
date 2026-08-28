@@ -5334,6 +5334,18 @@
   "@settingsScreenLinksUrlsOffBody": {
     "description": "Caption under SHOW LINK URLS when the toggle is off."
   },
+  "settingsScreenMenuBarLabel": "MENU BAR ICON",
+  "@settingsScreenMenuBarLabel": {
+    "description": "All-caps label on the macOS menu-bar icon toggle row."
+  },
+  "settingsScreenMenuBarOnBody": "MonkeyHub sits in the menu bar with its unread count — click it for the window",
+  "@settingsScreenMenuBarOnBody": {
+    "description": "Caption under MENU BAR ICON when the toggle is on."
+  },
+  "settingsScreenMenuBarOffBody": "currently off — the Dock icon is the only way back to a hidden window",
+  "@settingsScreenMenuBarOffBody": {
+    "description": "Caption under MENU BAR ICON when the toggle is off."
+  },
   "settingsScreenSectionCalls": "CALLS",
   "@settingsScreenSectionCalls": {
     "description": "All-caps section header above the call-related settings (video quality, network stats)."

@@ -4823,6 +4823,17 @@ class AppLocalizationsFr extends AppLocalizations {
       'aperçu seulement — bulles plus épurées, appuie pour ouvrir';
 
   @override
+  String get settingsScreenMenuBarLabel => 'ICÔNE DE LA BARRE DES MENUS';
+
+  @override
+  String get settingsScreenMenuBarOnBody =>
+      'MonkeyHub reste dans la barre des menus avec son compteur de non-lus — cliquez pour afficher la fenêtre';
+
+  @override
+  String get settingsScreenMenuBarOffBody =>
+      'actuellement désactivé — l’icône du Dock est le seul moyen de retrouver une fenêtre masquée';
+
+  @override
   String get settingsScreenSectionCalls => 'APPELS';
 
   @override

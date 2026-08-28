@@ -4716,6 +4716,17 @@ class AppLocalizationsTr extends AppLocalizations {
       'şuan sadece önizleme — daha sade baloncuklar, açmak için dokun';
 
   @override
+  String get settingsScreenMenuBarLabel => 'MENÜ ÇUBUĞU SİMGESİ';
+
+  @override
+  String get settingsScreenMenuBarOnBody =>
+      'MonkeyHub okunmamış sayısıyla menü çubuğunda durur — pencere için tıkla';
+
+  @override
+  String get settingsScreenMenuBarOffBody =>
+      'şuan kapalı — gizli pencereye dönmenin tek yolu Dock simgesi';
+
+  @override
   String get settingsScreenSectionCalls => 'ARAMALAR';
 
   @override

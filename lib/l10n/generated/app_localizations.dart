@@ -8117,6 +8117,24 @@ abstract class AppLocalizations {
   /// **'currently preview only — cleaner bubbles, tap to open'**
   String get settingsScreenLinksUrlsOffBody;
 
+  /// All-caps label on the macOS menu-bar icon toggle row.
+  ///
+  /// In en, this message translates to:
+  /// **'MENU BAR ICON'**
+  String get settingsScreenMenuBarLabel;
+
+  /// Caption under MENU BAR ICON when the toggle is on.
+  ///
+  /// In en, this message translates to:
+  /// **'MonkeyHub sits in the menu bar with its unread count — click it for the window'**
+  String get settingsScreenMenuBarOnBody;
+
+  /// Caption under MENU BAR ICON when the toggle is off.
+  ///
+  /// In en, this message translates to:
+  /// **'currently off — the Dock icon is the only way back to a hidden window'**
+  String get settingsScreenMenuBarOffBody;
+
   /// All-caps section header above the call-related settings (video quality, network stats).
   ///
   /// In en, this message translates to:

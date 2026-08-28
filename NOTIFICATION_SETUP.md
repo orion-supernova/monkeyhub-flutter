@@ -51,6 +51,61 @@ Four things are worth internalising:
   `data` block instead and you have handed a face to everyone in the room whose
   owner set it to "friends". `push_payload_contract_test.dart` fails if you do.
 
+## macOS: the badge, the menu bar, and ⌘W
+
+macOS still has no banner in this app — the point below about desktop holding a
+credential-less `userDevices` row is unchanged. What it does have is a Dock
+badge and a menu-bar item, and both are fed by the same in-process count as
+every other platform (`BadgeManager` → `monkeyhub/badge` → `AppChrome`,
+macos/Runner/AppChrome.swift). One object owns both surfaces so they cannot show
+different numbers.
+
+**Why the Dock badge used to stay empty.** Not the badge path — that worked. The
+count feeding it was always zero, because the open room's read cursor advanced
+whether or not anyone was there. Everywhere else "the room is open" is a safe
+stand-in for "you are reading it": a backgrounded mobile app is suspended within
+seconds, its subscriptions stop firing, and nothing arrives to be marked read.
+macOS deliberately breaks that assumption — the red X and ⌘W hide the window and
+keep the process alive, because the process IS the delivery path — so messages
+kept landing in the open room and kept being marked read on behalf of somebody
+who had put the window away hours earlier. `unreadCount` never left zero, so
+there was nothing to badge, and the sender was shown SEEN for a message that had
+never been on a screen. A background browser tab had the same hole.
+
+`ChatRepository._markReadOrDefer` now holds the cursor back whenever
+`viewerIsPresent` is false, and `flushDeferredRead` takes it on the next
+`resumed`. The messages are on screen in the open room, so coming back to the
+app IS reading them. Leaving the room while away discards the held read instead
+— walking out of a chat you never looked at is the clearest possible statement
+that you did not read it.
+
+`viewerIsPresent` (lib/push/viewer_presence.dart) is deliberately the *same*
+predicate `MessageAlerts` uses to decide whether to ping. A build where a
+message is silent but still marked read is a message that vanishes without ever
+having been seen.
+
+**⌘W.** The Flutter macOS template ships a MainMenu.xib with no Close item at
+all, so the shortcut did nothing — there was no menu item for AppKit to match it
+against. The Window menu now carries Close (⌘W) and Show Window (⌘0). ⌘W routes
+to `MainFlutterWindow.performClose`, which hides rather than closes, for the
+delivery reason above; ⌘0 exists because AppKit drops an ordered-out window from
+the Window menu entirely, so once hidden there was nothing in the menu bar that
+could bring it back.
+
+**The menu-bar item.** Left-click toggles the window, right-click opens a menu
+(open/hide, the unread summary, quit). It can be removed by ⌘-dragging it off
+the bar or from Settings ▸ NOTIFICATIONS ▸ MENU BAR ICON; the preference lives
+in native `UserDefaults`, because it is read at
+`applicationDidFinishLaunching` — long before the engine boots — and an icon
+that pops into the bar a second after every launch reads as a glitch. Dart
+reaches it over `monkeyhub/desktop`. The glyph is drawn as a path rather than
+shipped as an asset: menu-bar images are flattened to a single tint, which the
+full-colour app icon cannot survive.
+
+Its menu titles are English-only, like the rest of the native menu bar (About,
+Quit, Edit are already untranslated) — the app's ARB strings do not reach an
+NSMenu.
+
 ## The daily games nudge
 
 The only push here that no user action produced, which is why it is the only one

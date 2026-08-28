@@ -302,6 +302,12 @@
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <menu key="submenu" title="Window" systemMenu="window" id="Td7-aD-5lo">
                         <items>
+                            <menuItem title="Close" keyEquivalent="w" id="mh1-Cl-os0">
+                                <connections>
+                                    <action selector="performClose:" target="-1" id="mh1-Cl-ac0"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="mh1-Cl-sp0"/>
                             <menuItem title="Minimize" keyEquivalent="m" id="OY7-WF-poV">
                                 <connections>
                                     <action selector="performMiniaturize:" target="-1" id="VwT-WD-YPe"/>
@@ -318,6 +324,12 @@
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="arrangeInFront:" target="-1" id="DRN-fu-gQh"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="mh1-Sh-sp1"/>
+                            <menuItem title="Show Window" keyEquivalent="0" id="mh1-Sh-ow1">
+                                <connections>
+                                    <action selector="showMainWindow:" target="-1" id="mh1-Sh-ac1"/>
                                 </connections>
                             </menuItem>
                         </items>

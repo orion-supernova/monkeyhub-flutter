@@ -30,9 +30,13 @@ class MainFlutterWindow: NSWindow {
       }
     }
 
-    // monkeyhub/badge — set or clear the Dock icon badge. Mirrors the iOS
-    // app-icon badge (see ios/Runner/AppDelegate.swift). Driven by
-    // BadgeManager's unread/request count.
+    // monkeyhub/badge — the unread/request count, pushed in from
+    // `BadgeManager` (lib/push/badge_manager.dart) on every change. Mirrors the
+    // iOS app-icon badge (see ios/Runner/AppDelegate.swift).
+    //
+    // `AppChrome` owns what happens to the number, because on this platform it
+    // lands on two surfaces — the Dock tile and the menu-bar item — and they
+    // have to show the same thing.
     let badgeChannel = FlutterMethodChannel(
       name: "monkeyhub/badge",
       binaryMessenger: flutterViewController.engine.binaryMessenger
@@ -45,15 +49,42 @@ class MainFlutterWindow: NSWindow {
       let args = call.arguments as? [String: Any] ?? [:]
       let count = (args["count"] as? Int) ?? 0
       DispatchQueue.main.async {
-        NSApp.dockTile.badgeLabel = count > 0 ? String(count) : nil
+        AppChrome.shared.setUnread(count)
       }
       result(nil)
+    }
+
+    // monkeyhub/desktop — the settings screen's remote control for the
+    // menu-bar item. The preference itself lives in native `UserDefaults`
+    // (see `AppChrome.menuBarVisible`) because it has to be readable at launch,
+    // before the engine exists; this channel is how the Dart switch reads and
+    // writes it rather than keeping a second copy that can drift.
+    let desktopChannel = FlutterMethodChannel(
+      name: "monkeyhub/desktop",
+      binaryMessenger: flutterViewController.engine.binaryMessenger
+    )
+    desktopChannel.setMethodCallHandler { call, result in
+      switch call.method {
+      case "getMenuBarVisible":
+        DispatchQueue.main.async {
+          result(AppChrome.shared.menuBarVisible)
+        }
+      case "setMenuBarVisible":
+        let args = call.arguments as? [String: Any] ?? [:]
+        let visible = (args["visible"] as? Bool) ?? true
+        DispatchQueue.main.async {
+          AppChrome.shared.menuBarVisible = visible
+          result(nil)
+        }
+      default:
+        result(FlutterMethodNotImplemented)
+      }
     }
 
     super.awakeFromNib()
   }
 
-  /// The red close button hides the window instead of closing it.
+  /// The red close button and ⌘W hide the window instead of closing it.
   ///
   /// Closing would tear down the `FlutterViewController` — and with it the
   /// engine, the Dart isolate and the Convex socket — which on macOS is the
@@ -63,7 +94,8 @@ class MainFlutterWindow: NSWindow {
   ///
   /// Hiding, not minimising, on purpose: a hidden window leaves no window-list
   /// entry to be confused by, and comes back instantly and fully rendered from
-  /// the Dock (`AppDelegate.applicationShouldHandleReopen`). Flutter reports
+  /// the Dock (`AppDelegate.applicationShouldHandleReopen`), the menu-bar item
+  /// (`AppChrome.toggleWindow`) or Window ▸ MonkeyHub (⌘0). Flutter reports
   /// `AppLifecycleState.hidden` for it, which is exactly the `away` presence
   /// this state deserves — the person is reachable, just not looking.
   override func performClose(_ sender: Any?) {

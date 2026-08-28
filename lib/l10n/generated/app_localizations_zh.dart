@@ -4522,6 +4522,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsScreenLinksUrlsOffBody => '当前仅显示预览——气泡更简洁，点击即可打开';
 
   @override
+  String get settingsScreenMenuBarLabel => '菜单栏图标';
+
+  @override
+  String get settingsScreenMenuBarOnBody =>
+      'MonkeyHub 会带着未读数量停留在菜单栏 — 点按即可打开窗口';
+
+  @override
+  String get settingsScreenMenuBarOffBody => '当前已关闭 — 想找回隐藏的窗口只能通过 Dock 图标';
+
+  @override
   String get settingsScreenSectionCalls => '通话';
 
   @override

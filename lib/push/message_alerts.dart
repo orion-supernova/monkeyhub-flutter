@@ -1,10 +1,8 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/widgets.dart';
-
 import '../audio/alert_sounds.dart';
 import '../platform.dart';
 import '../data/chat_repository.dart';
 import '../models/chat_room.dart';
+import 'viewer_presence.dart';
 import 'web_notifier.dart';
 
 /// Plays a sound (and, on web, shows a browser banner) when a new inbound
@@ -66,10 +64,12 @@ class MessageAlerts {
   /// real window focus (`document.hasFocus()`) — a visible-but-unfocused window
   /// counts as NOT focused; on desktop it's the Flutter lifecycle. Drives the
   /// alert rules below.
-  bool get _focused {
-    if (kIsWeb) return WebNotifier.isFocused;
-    return WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
-  }
+  ///
+  /// Shared with [ChatRepository], which asks the same question to decide
+  /// whether the open room's read cursor may advance. Deliberately one
+  /// definition: a build where a message is quiet but still marked read is a
+  /// message that vanishes without ever having been seen.
+  bool get _focused => viewerIsPresent;
 
   void _onChange() {
     final repo = _repo;

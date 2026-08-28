@@ -20,6 +20,7 @@ import '../models/chat_user.dart';
 import '../push/android_call_reliability.dart';
 import '../push/push_manager.dart';
 import '../services/link_opener.dart';
+import '../services/mac_app_chrome.dart';
 import '../theme/bubble_shape.dart';
 import '../theme/speaker_colors.dart';
 import '../theme/layout.dart';
@@ -509,6 +510,11 @@ class _SettingsScreenState extends State<SettingsScreen>
                 // Android's two call-delivery settings. Renders nothing at all
                 // when there is nothing to fix — see _CallDeliveryRows.
                 const _CallDeliveryRows(),
+                // macOS's. Sits with the notification switches rather than
+                // under APPEARANCE because that is what the item is for: on a
+                // platform with no push, the menu bar is where the unread count
+                // lives once the window is hidden. Renders nothing off macOS.
+                const _MenuBarToggle(),
 
                 const SizedBox(height: 28),
                 _SectionHeader(label: l10n.settingsScreenSectionCalls),
@@ -1430,6 +1436,95 @@ class _ShowLinkUrlsToggle extends StatelessWidget {
                   activeThumbColor: theme.accent,
                 ),
               ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// macOS's menu-bar item, on or off.
+///
+/// Renders nothing on every other platform, and nothing on macOS either until
+/// the native side has answered — see [MacAppChrome], which owns the
+/// preference and explains why it lives in `UserDefaults` rather than here.
+class _MenuBarToggle extends StatefulWidget {
+  const _MenuBarToggle();
+
+  @override
+  State<_MenuBarToggle> createState() => _MenuBarToggleState();
+}
+
+class _MenuBarToggleState extends State<_MenuBarToggle> {
+  @override
+  void initState() {
+    super.initState();
+    // Re-read on every visit rather than once per session: the item can also be
+    // removed by ⌘-dragging it out of the menu bar, and the switch has to come
+    // back showing what actually happened.
+    MacAppChrome.instance.load();
+  }
+
+  Future<void> _toggle(bool v) => MacAppChrome.instance.setVisible(v);
+
+  @override
+  Widget build(BuildContext context) {
+    if (!MacAppChrome.isSupported) return const SizedBox.shrink();
+    final theme = ThemeScope.of(context);
+    return AnimatedBuilder(
+      animation: MacAppChrome.instance,
+      builder: (context, _) {
+        final on = MacAppChrome.instance.visible;
+        if (on == null) return const SizedBox.shrink();
+        final l10n = AppLocalizations.of(context);
+        return Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: GestureDetector(
+            onTap: () => _toggle(!on),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+              decoration: BoxDecoration(
+                color: theme.surface,
+                border: Border.all(color: theme.divider),
+                borderRadius: BorderRadius.circular(theme.radiusMd),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    on
+                        ? Icons.desktop_mac_outlined
+                        : Icons.desktop_access_disabled_outlined,
+                    size: 16,
+                    color: on ? theme.accent : theme.inkMuted,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.settingsScreenMenuBarLabel,
+                          style: theme.label,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          on
+                              ? l10n.settingsScreenMenuBarOnBody
+                              : l10n.settingsScreenMenuBarOffBody,
+                          style: theme.bodySoft,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Switch.adaptive(
+                    value: on,
+                    onChanged: _toggle,
+                    activeThumbColor: theme.accent,
+                  ),
+                ],
+              ),
             ),
           ),
         );

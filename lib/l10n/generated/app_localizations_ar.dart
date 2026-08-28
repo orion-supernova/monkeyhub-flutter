@@ -4836,6 +4836,17 @@ class AppLocalizationsAr extends AppLocalizations {
       'حاليًا معاينة فقط — فقاعات أنظف، اضغط للفتح';
 
   @override
+  String get settingsScreenMenuBarLabel => 'أيقونة شريط القوائم';
+
+  @override
+  String get settingsScreenMenuBarOnBody =>
+      'يبقى MonkeyHub في شريط القوائم مع عدد الرسائل غير المقروءة — انقر عليه لفتح النافذة';
+
+  @override
+  String get settingsScreenMenuBarOffBody =>
+      'معطّل حاليًا — أيقونة الـ Dock هي الطريقة الوحيدة لاستعادة نافذة مخفية';
+
+  @override
   String get settingsScreenSectionCalls => 'المكالمات';
 
   @override

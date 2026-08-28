@@ -4736,6 +4736,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'currently preview only — cleaner bubbles, tap to open';
 
   @override
+  String get settingsScreenMenuBarLabel => 'MENU BAR ICON';
+
+  @override
+  String get settingsScreenMenuBarOnBody =>
+      'MonkeyHub sits in the menu bar with its unread count — click it for the window';
+
+  @override
+  String get settingsScreenMenuBarOffBody =>
+      'currently off — the Dock icon is the only way back to a hidden window';
+
+  @override
   String get settingsScreenSectionCalls => 'CALLS';
 
   @override

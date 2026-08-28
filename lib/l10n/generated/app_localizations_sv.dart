@@ -4768,6 +4768,17 @@ class AppLocalizationsSv extends AppLocalizations {
       'bara förhandsgranskning — renare bubblor, tryck för att öppna';
 
   @override
+  String get settingsScreenMenuBarLabel => 'MENYRADSIKON';
+
+  @override
+  String get settingsScreenMenuBarOnBody =>
+      'MonkeyHub ligger i menyraden med antalet olästa — klicka för att ta fram fönstret';
+
+  @override
+  String get settingsScreenMenuBarOffBody =>
+      'avstängd just nu — Dock-ikonen är enda vägen tillbaka till ett dolt fönster';
+
+  @override
   String get settingsScreenSectionCalls => 'SAMTAL';
 
   @override

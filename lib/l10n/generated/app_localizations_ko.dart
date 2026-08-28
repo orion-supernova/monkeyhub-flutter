@@ -4594,6 +4594,17 @@ class AppLocalizationsKo extends AppLocalizations {
       '지금은 미리보기만 표시돼요 — 말풍선이 깔끔해지고, 탭하면 열려요';
 
   @override
+  String get settingsScreenMenuBarLabel => '메뉴 막대 아이콘';
+
+  @override
+  String get settingsScreenMenuBarOnBody =>
+      'MonkeyHub가 읽지 않은 개수와 함께 메뉴 막대에 표시됩니다 — 클릭하면 창이 열립니다';
+
+  @override
+  String get settingsScreenMenuBarOffBody =>
+      '현재 꺼짐 — 숨긴 창으로 돌아가는 방법은 Dock 아이콘뿐입니다';
+
+  @override
   String get settingsScreenSectionCalls => '통화';
 
   @override

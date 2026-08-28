@@ -4797,6 +4797,17 @@ class AppLocalizationsPt extends AppLocalizations {
       'apenas pré-visualização — balões mais limpos, toca para abrir';
 
   @override
+  String get settingsScreenMenuBarLabel => 'ÍCONE NA BARRA DE MENUS';
+
+  @override
+  String get settingsScreenMenuBarOnBody =>
+      'O MonkeyHub fica na barra de menus com a contagem de não lidas — clica para abrir a janela';
+
+  @override
+  String get settingsScreenMenuBarOffBody =>
+      'desativado neste momento — o ícone da Dock é a única forma de recuperar uma janela oculta';
+
+  @override
   String get settingsScreenSectionCalls => 'CHAMADAS';
 
   @override
@@ -13055,6 +13066,17 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get settingsScreenLinksUrlsOffBody =>
       'só a prévia — balões mais limpos, toque para abrir';
+
+  @override
+  String get settingsScreenMenuBarLabel => 'ÍCONE NA BARRA DE MENUS';
+
+  @override
+  String get settingsScreenMenuBarOnBody =>
+      'O MonkeyHub fica na barra de menus com a contagem de não lidas — clique para abrir a janela';
+
+  @override
+  String get settingsScreenMenuBarOffBody =>
+      'desativado no momento — o ícone do Dock é o único jeito de trazer de volta uma janela oculta';
 
   @override
   String get settingsScreenSectionCalls => 'CHAMADAS';

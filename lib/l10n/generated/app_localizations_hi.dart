@@ -4757,6 +4757,17 @@ class AppLocalizationsHi extends AppLocalizations {
       'फिलहाल सिर्फ़ प्रीव्यू — साफ़-सुथरे बबल, खोलने के लिए टैप करें';
 
   @override
+  String get settingsScreenMenuBarLabel => 'मेन्यू बार आइकन';
+
+  @override
+  String get settingsScreenMenuBarOnBody =>
+      'MonkeyHub अपनी अनपढ़ी गिनती के साथ मेन्यू बार में रहता है — विंडो के लिए उस पर क्लिक करें';
+
+  @override
+  String get settingsScreenMenuBarOffBody =>
+      'अभी बंद है — छिपी हुई विंडो वापस लाने का एकमात्र तरीका Dock आइकन है';
+
+  @override
   String get settingsScreenSectionCalls => 'कॉल';
 
   @override

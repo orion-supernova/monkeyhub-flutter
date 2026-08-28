@@ -1031,6 +1031,13 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       // it now rather than after the socket has finished waking up.
       unawaited(_repo.takePushedMessages());
 
+      // Same immediacy, same reason: the open room's messages are already on
+      // screen, so coming back to the app IS reading them. This takes the read
+      // cursor that was held back while nobody was looking — see
+      // [ChatRepository.flushDeferredRead] — which is also what drops the app
+      // icon's badge on the way in.
+      _repo.flushDeferredRead();
+
       // No retry kicked from here. [setForeground] above already did it, and it
       // is the better-informed of the two: it knows how long we were away, and
       // past a threshold that means "rebuild the socket" rather than "probe it".
