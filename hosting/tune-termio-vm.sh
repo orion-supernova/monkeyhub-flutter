@@ -3,6 +3,10 @@
 #
 #   ./hosting/tune-termio-vm.sh            status: where the box stands. Changes nothing.
 #   ./hosting/tune-termio-vm.sh apply      the four steps below, then verify + status.
+#   ./hosting/tune-termio-vm.sh memory-policy  keep the backend RESIDENT: swappiness 10
+#                                          rather than 100, because zram is not
+#                                          reliably there to swap into. No outage,
+#                                          no restart. See memory_policy().
 #   ./hosting/tune-termio-vm.sh reset-zram re-arm zram after a thrash has clogged its
 #                                          slot table (status shows USED ≈ full while
 #                                          DATA is a few MB). No restart — but only
@@ -30,20 +34,33 @@
 #   ./hosting/tune-termio-vm.sh upgrade    pull a newer convex-backend image and
 #                                          recreate. Same six-minute outage as `apply`.
 #
-# ───────── why `upgrade` exists ─────────
+# ───────── why `upgrade` exists — RUN 2026-08-28, and it worked ─────────
 #
-# Two of the caps in the compose file DO NOT EXIST in the image on the box (built
-# 2026-03-10): INDEX_CACHE_SIZE and SOURCE_MAP_CACHE_MAX_SIZE_BYTES. The binary
-# has no such strings, so the backend ignores them and the shared index cache —
-# the single largest item at a 512 MiB default, on a 956 MB box — is still
-# uncapped. It is the largest unapplied win available here, and the only way to
-# collect it is a newer image. `image: …:latest` alone does not do that: compose
-# will not re-pull a tag it already has locally, which is exactly why the box has
-# been sitting on a March build.
+# Two of the caps in the compose file did not EXIST in the March 2026 image, so
+# the backend silently ignored them: INDEX_CACHE_SIZE and
+# SOURCE_MAP_CACHE_MAX_SIZE_BYTES. The shared index cache — the single largest
+# item at a 512 MiB default, on a 956 MB box — was therefore uncapped for five
+# months. `image: …:latest` alone does not fix that: compose will not re-pull a
+# tag it already has locally, which is exactly how the box sat on a March build.
 #
-# After it, check the log actually says the names were recognised:
+# Upgraded 2026-08-28 to the 2026-08-10 image
+# (a08c5b76… → 1f2044e3…), and the log now says:
+#
+#     Overriding INDEX_CACHE_SIZE to 100000000 from environment
+#
+# which is the whole point of the exercise. Confirm it after any future
+# upgrade the same way:
 #   docker logs termio-backend 2>&1 | grep Overriding
-# INDEX_CACHE_SIZE appearing there is the whole point of the exercise.
+#
+# SOURCE_MAP_CACHE_MAX_SIZE_BYTES is still not recognised even by the August
+# build — it stays in the compose file costing nothing.
+#
+# A NOTE ON TESTING THIS: you cannot check whether a knob exists by grepping
+# the binary. The Rust string table is concatenated with no separators
+# (`DISABLE_LIFO_SLOTUDF_CACHE_MAX_SIZEMAX_UDF_EXECUTION…`), so a fixed-string
+# grep matches INDEX_CACHE_SIZE inside FUNRUN_INDEX_CACHE_SIZE and a
+# word-boundary regex matches nothing at all. The `Overriding` line is the only
+# honest test.
 #
 # The diagnosis this answers is at the top of hosting/termio-docker-compose.yaml.
 # In one line: the backend's default caches are sized for a fleet, it grew to a
@@ -77,10 +94,25 @@
 # `sudo systemctl disable --now zram-swap`; step 1 by the dashboard command at
 # the end. Nothing here touches data.
 #
+# THE ONE EXCEPTION, AND IT IS TOTAL: if the backup you are restoring pins an
+# OLDER IMAGE than the one currently running, that is not a rollback, it is an
+# outage. A newer backend rewrites system tables the older one cannot read; the
+# old binary boots, prints "backend listening", and then fails every single
+# request with "missing field `state`". `upgrade` is a ONE-WAY DOOR. See the
+# warning it prints, and the pin comment in termio-docker-compose.yaml.
+#
 # Credentials: the same VM_HOST / VM_USER / VM_SSH_KEY as deploy.sh, with the
 # same .env.local override.
 
 set -uo pipefail
+
+# Brace every expansion that is followed by a non-ASCII character —
+# `${VM_HOST}…`, never `$VM_HOST…`. macOS ships bash 3.2, which folds the
+# leading UTF-8 byte of the `…` into the identifier, and `set -u` then kills
+# the script with "VM_HOST\357\277\275: unbound variable". This file is full
+# of em-dashes and ellipses in echo strings, so it is a live trap: `upgrade`
+# carried it from the day it was written and nobody saw it, because the line
+# it was on had never run.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
@@ -221,12 +253,9 @@ ExecStop=/usr/local/sbin/zram-swap-stop
 [Install]
 WantedBy=multi-user.target
 EOF
-# Swap-in from zram is a memcpy per page; readahead clustering only wastes
-# them. And with a fast swap, evicting a cold anonymous page is cheaper than
-# dropping a page of db.sqlite3 that the disk has to serve again, so the
-# kernel is told to prefer it (the default 60 assumes swap is the slow one).
-printf '# zram swap: no readahead, and prefer it over dropping file cache\nvm.page-cluster = 0\nvm.swappiness = 100\n' > /etc/sysctl.d/60-zram.conf
-sysctl -q -p /etc/sysctl.d/60-zram.conf
+# The sysctls that used to live here now belong to `memory-policy`, which
+# apply() calls right after this. One owner, and one that can be re-run
+# without a container recreate.
 systemctl daemon-reload
 systemctl enable --now zram-swap.service >/dev/null 2>&1
 grep -q zram0 /proc/swaps
@@ -237,6 +266,8 @@ REMOTE
         exit 1
     fi
     echo "     ✅ zram0 active at priority 100"
+
+    memory_policy quiet || exit 1
 
     echo "3/4  Compose file"
     local stamp backup
@@ -331,6 +362,83 @@ REMOTE
 # means; ten seconds is short enough to be dominated by whatever just logged in.
 # avg10 is kept only as a spike brake at a much higher bound, so a box genuinely
 # mid-thrash (the 2026-08-27 incident was at 30%) still refuses instantly.
+
+# ───────── memory policy ─────────
+#
+# How willingly the kernel pushes the backend's own heap out to swap.
+#
+# ── why this used to say 100, and why it now says 10 ─────────────────────────
+#
+# The original argument was sound on its own terms: swap-in from zram is a
+# memcpy, so evicting a cold anonymous page is cheaper than dropping a page of
+# db.sqlite3 that the disk would have to serve again. `vm.swappiness = 100`
+# followed from that, and the kernel default of 60 does assume swap is slow.
+#
+# It rests on a premise this box does not hold up. zram only absorbs a
+# swap-out while it has slots, and after a thrash it does not: the device
+# reports itself full while holding a few MB (see reset-zram), and everything
+# from then on goes to /swapfile on the boot volume. `swappiness = 100` under
+# that condition does not mean "prefer the fast swap", it means "prefer the
+# block device" — and the box duly did, hard. Measured 2026-08-28, with zram
+# clogged at 328M of slots over 17M of data:
+#
+#     convex-local-backend   VmRSS 22 MB    VmSwap 1.28 GB
+#     /proc/pressure/memory  full avg300 = 11.4%
+#     vmstat                 si 10-16 MB/s, sustained
+#
+# 22 MB resident. The backend was living on disk. What that costs is visible
+# from the app: the SAME one-row indexed query, run on the box against
+# 127.0.0.1 with no network in the way, takes 4 ms if something ran a moment
+# ago and 1290 ms after thirty seconds of quiet — because thirty seconds of
+# quiet is all it takes for the working set to be reclaimed, and the next
+# query pages it back in from a block volume before it can start. That cliff
+# is what "sending a message is slow" actually was.
+#
+# Re-arming zram is the other half of the answer and has been tried repeatedly;
+# it does not hold. So stop relying on it being there. At 10 the kernel
+# strongly prefers reclaiming page cache instead — and the trade is not close:
+# a page-cache miss is one 4 KB read of db.sqlite3, while paging the isolate
+# heaps and index cache back is megabytes. `vfs_cache_pressure` is raised for
+# the same reason, so dentry and inode caches are given up before anonymous
+# memory is.
+#
+# `page-cluster = 0` stays as it was. It was chosen for zram, and it remains
+# right here for a different reason: the goal now is to swap LESS, not to swap
+# faster, and readahead on a swap-in only drags neighbours along.
+MEMORY_POLICY_CONF='# Managed by hosting/tune-termio-vm.sh — see memory_policy().
+# Keep the backend RESIDENT. Reclaim file cache before anonymous memory:
+# a page-cache miss is one 4 KB read; a page-in of the isolate heap is MB.
+vm.swappiness = 10
+vm.vfs_cache_pressure = 150
+# No readahead on swap-in.
+vm.page-cluster = 0'
+
+# Writes and applies the sysctls above. No outage, no restart, idempotent.
+# `memory_policy quiet` is the form apply() calls, which numbers itself into
+# apply's own step list instead of printing its own banner.
+memory_policy() {
+    local quiet="${1:-}"
+    [ -n "$quiet" ] || require_vm
+    if [ -n "$quiet" ]; then
+        echo "2b/4 Memory policy (swappiness)"
+    else
+        echo "🧠 Setting the memory policy on ${VM_HOST}…"
+    fi
+    local out
+    if ! out=$(vm_ssh "sudo bash -s" <<REMOTE
+set -e
+printf '%s\n' '$MEMORY_POLICY_CONF' > /etc/sysctl.d/60-zram.conf
+sysctl -q -p /etc/sysctl.d/60-zram.conf
+sysctl -n vm.swappiness vm.vfs_cache_pressure vm.page-cluster | paste -sd/ -
+REMOTE
+    ); then
+        echo "     ❌ Could not apply the sysctls. Check: ssh … 'sudo sysctl -a | grep swappiness'"
+        return 1
+    fi
+    echo "     ✅ swappiness/vfs_cache_pressure/page-cluster = $out"
+    [ -n "$quiet" ] || { echo; status; }
+}
+
 reset_zram() {
     require_vm
     echo "♻️  Re-arming zram0 on ${VM_HOST}…"
@@ -528,7 +636,7 @@ REMOTE
 # does not change and is precisely what made this invisible for five months.
 upgrade() {
     require_vm
-    echo "⬆️  Upgrading the Convex backend image on $VM_HOST…"
+    echo "⬆️  Upgrading the Convex backend image on ${VM_HOST}…"
     echo
     local before after
     before=$(vm_ssh "docker inspect ghcr.io/get-convex/convex-backend:latest --format '{{index .RepoDigests 0}}'" 2>/dev/null || echo "unknown")
@@ -563,9 +671,15 @@ upgrade() {
     echo "    ssh … 'docker logs termio-backend 2>&1 | grep Overriding'"
     echo "INDEX_CACHE_SIZE in that list is the win this upgrade exists for."
     echo
-    echo "If the new build misbehaves, roll back by pinning the old digest in"
-    echo "hosting/termio-docker-compose.yaml and re-running '$0 apply':"
-    echo "    $before"
+    echo "⚠️  THERE IS NO ROLLBACK. This is a ONE-WAY DOOR."
+    echo "    A newer backend rewrites system tables in a format the older one"
+    echo "    cannot read. Pinning $before"
+    echo "    and re-running apply gets you a backend that boots, listens, and"
+    echo "    then fails EVERY request with 'missing field \`state\`'. That is a"
+    echo "    total outage, and the only way out of it is forward again."
+    echo "    If the new build misbehaves, the answer is to tune it or to move"
+    echo "    to a bigger box — never to go back. (Learned 2026-08-28, in"
+    echo "    production, because this line used to advise the opposite.)"
 }
 
 case "${1:-status}" in
@@ -574,9 +688,10 @@ case "${1:-status}" in
     upgrade) upgrade ;;
     reset-zram) reset_zram ;;
     auto-reset) auto_reset ;;
+    memory-policy) memory_policy ;;
     -h|--help|help)
         sed -n '2,38p' "$0" | sed 's/^# \{0,1\}//'
         ;;
     *)
-        echo "Usage: $0 [status|apply|upgrade|reset-zram|auto-reset]"; exit 1 ;;
+        echo "Usage: $0 [status|apply|upgrade|memory-policy|reset-zram|auto-reset]"; exit 1 ;;
 esac

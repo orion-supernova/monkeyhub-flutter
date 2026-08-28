@@ -44,7 +44,42 @@ services:
   backend:
     container_name: termio-backend
     restart: always
-    image: ghcr.io/get-convex/convex-backend:latest
+    # PINNED to a DIGEST, not `:latest`, so that a recreate can never move the
+    # build underneath you. Read the whole of this before changing it.
+    #
+    # ── you cannot go back ───────────────────────────────────────────────────
+    #
+    # A newer backend rewrites system tables in a format an older one cannot
+    # read. Downgrading gives you a backend that starts, prints "backend
+    # listening on 0.0.0.0:3210", and then fails EVERY request with
+    # "missing field `state`" — 2899 of them in three minutes, on 2026-08-28,
+    # in production, for the twenty minutes it took to go forward again.
+    # Upgrading this deployment is a ONE-WAY DOOR. Treat the pin below as
+    # ratcheting forward only.
+    #
+    # ── and this box cannot afford to go forward ─────────────────────────────
+    #
+    # Which is the bind. `upgrade` on 2026-08-28 moved a08c5b76… (2026-03-10)
+    # → 1f2044e3… (2026-08-10). INDEX_CACHE_SIZE was finally honoured, and it
+    # did not matter: the rest of that build wants far more memory than the cap
+    # saves. Same box, same day, same traffic, only the image differing:
+    #
+    #                            2026-03-10        2026-08-10
+    #   backend VmSwap              1.28 GB           3.25 GB
+    #   system swap used            1.47 GB    3.36 GB of 4.6 GB
+    #   memory PSI avg300              5.3%               24%
+    #   IO PSI full avg300               7%               39%
+    #   one-row query, 30s idle      420 ms            800 ms
+    #
+    # Swap was still climbing; the next stop was the OOM killer. So the current
+    # pin is a build this box runs badly, and the previous one is a build it
+    # can no longer run at all.
+    #
+    # The way out is RAM, not a digest. Until this deployment lives somewhere
+    # bigger (see the Ampere A1 note in tune-termio-vm.sh), do not run
+    # `upgrade` again: every future Convex build will want more, not less, and
+    # each attempt is permanent.
+    image: ghcr.io/get-convex/convex-backend@sha256:1f2044e3eac463ac78973b136c0baf72d4ada602611d853d6f99f280e29e0a98
     ports:
       - "3212:3210"
       - "3213:3211"
