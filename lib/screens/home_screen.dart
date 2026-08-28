@@ -353,6 +353,10 @@ class _HomeScreenState extends State<HomeScreen>
   void _showCreateRoom() {
     showAdaptiveSheet(
       context,
+      // The tallest sheet in the app, and the only one that can reach the top
+      // of the screen — see the parameter's own doc. Without it the name field
+      // can end up under the status bar on a short phone with the keyboard up.
+      useSafeArea: true,
       builder: (_) => CreateRoomSheet(repo: widget.repo, api: widget.api),
     );
   }
