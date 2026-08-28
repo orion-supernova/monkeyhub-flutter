@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart' show Ticker;
@@ -175,6 +174,16 @@ const Duration _kPopDwell = Duration(milliseconds: 120);
 /// nothing implicit can hand a *velocity* to the stretch. See [_frame] for how
 /// little of the tree actually rebuilds per frame.
 ///
+/// How much of the bottom inset the home indicator itself actually claims.
+///
+/// The inset a phone reports (34pt on a modern iPhone, ~24 for Android's
+/// gesture bar) is not the size of the thing that must not be covered — it is
+/// comfortable padding around a thin glyph near the edge. Floating chrome is
+/// meant to live inside it; a full-width tab bar is the shape that fills it.
+/// This is the part that is genuinely spoken for, and everything above it is
+/// the designer's to spend.
+const double kIndicatorKeepOut = 12;
+
 /// Returns a [Positioned], so it must be placed directly in a [Stack].
 ///
 /// Lives in its own file, and public, so a widget test can pump it. As a
@@ -638,29 +647,34 @@ class _PillBottomNavState extends State<PillBottomNav>
       horizontal: geo.of(kShellPadH),
       vertical: geo.of(kShellPadV),
     );
-    // MAX, not sum.
-    //
-    // This was `bottom: kBarBottom` with a `SafeArea` inside, so the two ADDED:
-    // 12 of float on top of a 34pt home-indicator inset put the bar 46pt off
-    // the bottom edge, and no value of the knob could bring it below 34. Its
-    // own hint says "how high the bar floats off the bottom", which is what it
-    // now means — a floor, not an extra.
-    //
-    // The indicator still wins where it is bigger, so the bar never sits under
-    // it; on a device with no inset at all the knob is the whole gap, which is
-    // why it cannot just be dropped.
     // `viewPadding`, NOT `padding`.
     //
     // `padding` is what is LEFT after ancestors consume it, so any `SafeArea`
-    // above this widget zeroes it and the max below silently falls back to the
-    // knob — putting the bar 12pt off the screen edge, under the home
-    // indicator, instead of resting on it. `viewPadding` reports the physical
-    // inset regardless of who has already handled it, which is the question
-    // being asked here: where does the unsafe area actually start.
+    // above this widget zeroes it and the gap below collapses to the knob —
+    // putting the bar 12pt off the screen edge, under the home indicator,
+    // instead of clear of it. `viewPadding` reports the physical inset
+    // regardless of who has already handled it, which is the question being
+    // asked here: where is the hardware.
     final safeBottom = MediaQuery.of(context).viewPadding.bottom;
-    // The bar's bottom edge lands exactly on the top of the safe area — flush,
-    // no gap. The knob only takes over on hardware with no inset at all.
-    final barBottom = math.max(geo.of(kBarBottom), safeBottom);
+    // The knob measured from the INDICATOR, not from the top of the inset.
+    //
+    // This has now been wrong twice in opposite directions. It started as
+    // `bottom: kBarBottom` inside a `SafeArea`, so the two ADDED — 12pt of
+    // float on top of a 34pt inset put the bar 46pt up. The fix was
+    // `max(knob, inset)`, which is 34pt: better, still high, and worse in one
+    // way, because the knob's whole range is at or above that floor so nothing
+    // could bring the bar down. "There is more space under it than there
+    // should be" is exactly what that geometry looks like.
+    //
+    // The mistake both times was treating the bottom inset as a keep-out zone.
+    // It is not: it is generous padding around a ~5pt home indicator that sits
+    // ~8pt off the edge, and Apple's own floating chrome sits inside it. What
+    // has to be cleared is the INDICATOR, which [kIndicatorKeepOut] is, and the
+    // knob then means what its hint has always said — how high the bar floats
+    // above it. Hardware with no indicator has nothing to clear, so the knob is
+    // the whole gap there, exactly as before.
+    final barBottom =
+        (safeBottom > 0 ? kIndicatorKeepOut : 0) + geo.of(kBarBottom);
 
     return Positioned(
       left: margin,

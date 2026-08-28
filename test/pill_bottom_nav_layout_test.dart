@@ -92,22 +92,26 @@ void main() {
   }
 
   group('bottom placement', () {
-    testWidgets('rests flush on the safe area, with no gap under it',
-        (tester) async {
+    testWidgets('floats the knob above the home indicator, not above the '
+        'whole inset', (tester) async {
       final screenH = await pumpNavWithInset(tester, inset: 34);
       final bar = tester.getRect(find.byType(LiquidGlass));
-      // The bar's bottom edge should land exactly on the top of the inset.
-      // It used to sit 46pt up — `kBarBottom` ADDED to the inset rather than
-      // floored by it — and no knob value could bring it below 34.
-      expect(screenH - bar.bottom, closeTo(34, 0.5));
+      // `kIndicatorKeepOut` + the knob. This has been wrong twice in opposite
+      // directions: 46pt when the knob was ADDED to the inset, then 34pt when
+      // it was floored by it — which put the bar's whole knob range at or above
+      // 34 and left "there is too much space under it" unfixable by any
+      // setting. The inset is padding around a thin glyph, not a keep-out.
+      expect(screenH - bar.bottom, closeTo(kIndicatorKeepOut + 12, 0.5));
+      // And it clears the glyph itself, which is the only hard constraint.
+      expect(screenH - bar.bottom, greaterThanOrEqualTo(kIndicatorKeepOut));
     });
 
-    testWidgets('falls back to the knob where there is no inset',
+    testWidgets('is the knob alone where there is no indicator to clear',
         (tester) async {
       final screenH = await pumpNavWithInset(tester, inset: 0);
       final bar = tester.getRect(find.byType(LiquidGlass));
-      // Hardware with no indicator: the knob is the whole gap, which is why it
-      // cannot simply be deleted in favour of the inset.
+      // Hardware with no indicator has nothing to keep out of, so the knob is
+      // the whole gap — which is why it cannot simply be replaced by the inset.
       expect(screenH - bar.bottom, closeTo(12, 0.5));
     });
   });
