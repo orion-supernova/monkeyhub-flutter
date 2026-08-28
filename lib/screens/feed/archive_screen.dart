@@ -78,12 +78,27 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
   /// fraction is a decent way to *move* and a bad way to *say where you are*.
   final _scrubDay = ValueNotifier<String?>(null);
 
-  /// Whether the scrubber is visible. True while the list moves, and while a
-  /// finger is on the scrubber itself; false a beat after both stop.
-  final _scrubShowing = ValueNotifier<bool>(false);
+  /// Whether the scrubber is at FULL strength — the date pill showing, the
+  /// thumb bright. True while the list moves and while a finger is on the rail;
+  /// false a beat after both stop.
+  ///
+  /// Not the same as "mounted". The rail is on screen and hittable the whole
+  /// time the list is long enough to be worth scrubbing, dimmed at rest. That
+  /// distinction is the entire difference between a control and a decoration:
+  /// the first version only existed during a scroll, so by the time you saw it
+  /// there was nothing to grab, and reaching for it did nothing at all.
+  final _scrubLoud = ValueNotifier<bool>(false);
+
+  /// Whether there is enough list to be worth a fast-scroll rail. A short
+  /// archive is one flick from end to end and does not want furniture.
+  final _canScrub = ValueNotifier<bool>(false);
 
   Timer? _scrubHide;
   bool _scrubbing = false;
+
+  /// The list's own viewport, so the day label can be measured against the top
+  /// of the SCROLLER rather than the top of the screen — see [_dayAtTop].
+  final _listKey = GlobalKey();
 
   @override
   void initState() {
@@ -99,7 +114,8 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     _scroll.dispose();
     _scrubAt.dispose();
     _scrubDay.dispose();
-    _scrubShowing.dispose();
+    _scrubLoud.dispose();
+    _canScrub.dispose();
     super.dispose();
   }
 
@@ -143,6 +159,12 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
         _loadingMore = false;
         _selectedDay ??= _dayKeys.isEmpty ? null : _dayKeys.first;
       });
+      // After the frame this setState schedules, not before it: the scroll
+      // position has no extent and the sections have no boxes until the list
+      // has actually been laid out with these rows in it.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _measureScrub();
+      });
     } catch (e) {
       if (!mounted) return;
       final s = e.toString();
@@ -158,19 +180,65 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
 
   /// Updates the thumb and the label from wherever the list has got to, and
   /// keeps the scrubber on screen for a moment after it stops.
-  void _trackScrub() {
+  /// Where the rail's thumb goes, what it says, and whether it is worth having
+  /// at all — WITHOUT deciding how loud it is.
+  ///
+  /// Split from [_trackScrub] because this half has to run once the list has
+  /// laid out, not only once it has moved. It was folded in, so `_canScrub`
+  /// stayed false until the first scroll — which left the rail
+  /// `IgnorePointer`'d at rest, which is the whole reason reaching for it did
+  /// nothing. A fast-scroller that only works after you have already scrolled
+  /// is not a fast-scroller.
+  void _measureScrub() {
     if (!_scroll.hasClients) return;
     final pos = _scroll.position;
     final extent = pos.maxScrollExtent;
+    // Worth a rail once there is more than half a screen left to travel.
+    _canScrub.value = extent > pos.viewportDimension * 0.5;
+    // Pure arithmetic on the offset, so the thumb tracks the finger exactly.
     _scrubAt.value = extent <= 0 ? 0 : (pos.pixels / extent).clamp(0.0, 1.0);
-    _scrubDay.value = _dayAtTop() ?? _scrubDay.value;
-    // A drag on the scrubber keeps it up by itself; this timer is for the
+    _queueDayRefresh();
+  }
+
+  /// True while a day refresh is already scheduled for after this frame.
+  bool _dayRefreshQueued = false;
+
+  /// Recomputes the label AFTER the frame, never during the scroll callback.
+  ///
+  /// **This is the whole accuracy bug.** `ScrollController` notifies its
+  /// listeners from inside `setPixels`, which is before the viewport has laid
+  /// out at the new offset — so every section box [_dayAtTop] measures is still
+  /// where it was one frame ago. Reading it there does not give a slightly
+  /// stale answer, it gives the PREVIOUS position's answer, and on a flick or a
+  /// scrub that is a whole screen out of date. Coalesced with a flag, because a
+  /// fling delivers dozens of notifications per frame and each one would
+  /// otherwise queue its own callback.
+  void _queueDayRefresh() {
+    if (_dayRefreshQueued) return;
+    _dayRefreshQueued = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _dayRefreshQueued = false;
+      if (!mounted) return;
+      final day = _dayAtTop();
+      if (day == null || day == _scrubDay.value) return;
+      _scrubDay.value = day;
+      // A tick per day crossed, so a drag down the rail feels like flicking
+      // through a stack rather than sliding a slider. Only while scrubbing:
+      // an ordinary fling past forty days would be a burst of buzzing.
+      if (_scrubbing) HapticFeedback.selectionClick();
+    });
+  }
+
+  void _trackScrub() {
+    if (!_scroll.hasClients) return;
+    _measureScrub();
+    // A drag on the rail keeps it loud by itself; this timer is for the
     // ordinary case of flicking the list and watching where you land.
     if (_scrubbing) return;
-    _scrubShowing.value = true;
+    _scrubLoud.value = true;
     _scrubHide?.cancel();
-    _scrubHide = Timer(const Duration(milliseconds: 900), () {
-      if (mounted && !_scrubbing) _scrubShowing.value = false;
+    _scrubHide = Timer(const Duration(milliseconds: 1200), () {
+      if (mounted && !_scrubbing) _scrubLoud.value = false;
     });
   }
 
@@ -179,8 +247,16 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
   /// Walks the laid-out section boxes, which is exact and costs one
   /// `localToGlobal` per day on screen — the list holds a page of forty
   /// moments, so that is a handful of days, not hundreds.
+  ///
+  /// Measured against [_listKey], the SCROLLER's own box, not against this
+  /// State's context. That context is the whole screen, and the list starts
+  /// well below it — under the title row and the date rail — so comparing
+  /// section positions to it put the origin ~150pt too high: every section read
+  /// as "still below the fold", nothing ever matched, and the label sat on the
+  /// fallback (the first day of the archive) almost all the time. It looked
+  /// like the date was simply wrong, which it was.
   String? _dayAtTop() {
-    final listBox = context.findRenderObject();
+    final listBox = _listKey.currentContext?.findRenderObject();
     if (listBox is! RenderBox || !listBox.hasSize) return null;
     final top = listBox.localToGlobal(Offset.zero).dy;
     String? best;
@@ -213,24 +289,22 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     if (!_scroll.hasClients) return;
     final extent = _scroll.position.maxScrollExtent;
     if (extent <= 0) return;
-    final before = _scrubDay.value;
+    // The jump notifies the controller, which lands in [_measureScrub] and
+    // schedules the label for after the frame — see [_queueDayRefresh].
     _scroll.jumpTo((fraction.clamp(0.0, 1.0)) * extent);
-    // A tick per day crossed, so a fast drag feels like flicking through a
-    // stack rather than sliding a slider.
-    if (_scrubDay.value != before) HapticFeedback.selectionClick();
   }
 
   void _scrubStart() {
     _scrubbing = true;
     _scrubHide?.cancel();
-    _scrubShowing.value = true;
+    _scrubLoud.value = true;
   }
 
   void _scrubEnd() {
     _scrubbing = false;
     _scrubHide?.cancel();
-    _scrubHide = Timer(const Duration(milliseconds: 900), () {
-      if (mounted && !_scrubbing) _scrubShowing.value = false;
+    _scrubHide = Timer(const Duration(milliseconds: 1200), () {
+      if (mounted && !_scrubbing) _scrubLoud.value = false;
     });
   }
 
@@ -333,7 +407,8 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                             child: _DateScrubber(
                               at: _scrubAt,
                               day: _scrubDay,
-                              showing: _scrubShowing,
+                              loud: _scrubLoud,
+                              enabled: _canScrub,
                               onStart: _scrubStart,
                               onEnd: _scrubEnd,
                               onScrub: _scrubTo,
@@ -385,8 +460,13 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     }
 
     return ListView.builder(
+      key: _listKey,
       controller: _scroll,
-      padding: EdgeInsets.fromLTRB(20, 8, 20, edgeToEdgeBottom(context)),
+      // 28 on the right, not 20: that is the scrub rail's width, so the rail
+      // lives entirely in the gutter and never covers a tile. A rail that has
+      // to be hittable and a grid that has to be tappable cannot share the same
+      // 20pt.
+      padding: EdgeInsets.fromLTRB(20, 8, 28, edgeToEdgeBottom(context)),
       // One extra row for the tail spinner / end marker.
       itemCount: _dayKeys.length + 1,
       itemBuilder: (context, i) {
@@ -474,14 +554,18 @@ DateTime? archiveDay(String dayKey) {
 /// styled, and it can say nothing at all about *what* you are scrolling past —
 /// which on a list keyed by date is the only question worth answering.
 ///
-/// Appears while the list is moving and a beat after; a finger on the rail
-/// itself keeps it. It never sits there permanently: it is a control for a
-/// gesture in progress, not furniture.
+/// **On screen the whole time the list is long enough to want it**, dimmed at
+/// rest and bright while it is being used. The first version faded in only
+/// while the list was already moving, which is a control you cannot reach: by
+/// the time it appeared your finger was on the grid, and reaching for it where
+/// it had just been did nothing, because it was neither drawn nor hittable.
+/// A fast-scroller has to be somewhere before you decide to use it.
 class _DateScrubber extends StatelessWidget {
   const _DateScrubber({
     required this.at,
     required this.day,
-    required this.showing,
+    required this.loud,
+    required this.enabled,
     required this.onStart,
     required this.onEnd,
     required this.onScrub,
@@ -489,14 +573,21 @@ class _DateScrubber extends StatelessWidget {
 
   final ValueListenable<double> at;
   final ValueListenable<String?> day;
-  final ValueListenable<bool> showing;
+
+  /// Full strength: the date pill out, the thumb bright.
+  final ValueListenable<bool> loud;
+
+  /// Whether there is enough list to scrub at all.
+  final ValueListenable<bool> enabled;
+
   final VoidCallback onStart;
   final VoidCallback onEnd;
   final void Function(double fraction) onScrub;
 
-  /// Wide enough to hit with a thumb without reaching, narrow enough that it is
-  /// not stealing a column from the grid underneath.
-  static const _trackWidth = 40.0;
+  /// The width of the list's right gutter, exactly — see the padding on the
+  /// `ListView` this sits over. Wide enough to hit with a thumb, and narrow
+  /// enough to fit in the margin rather than over a photograph.
+  static const _trackWidth = 28.0;
   static const _thumbHeight = 42.0;
 
   @override
@@ -504,13 +595,13 @@ class _DateScrubber extends StatelessWidget {
     final theme = ThemeScope.of(context);
 
     return ValueListenableBuilder<bool>(
-      valueListenable: showing,
-      builder: (context, visible, child) => IgnorePointer(
-        // Never merely invisible: an invisible rail that still swallowed drags
-        // would make the grid beneath it unscrollable down its right edge.
-        ignoring: !visible,
+      valueListenable: enabled,
+      builder: (context, on, child) => IgnorePointer(
+        // A short archive is one flick end to end; a rail there is furniture
+        // that also eats the right edge of the grid.
+        ignoring: !on,
         child: AnimatedOpacity(
-          opacity: visible ? 1 : 0,
+          opacity: on ? 1 : 0,
           duration: const Duration(milliseconds: 160),
           curve: Curves.easeOut,
           child: child,
@@ -550,7 +641,7 @@ class _DateScrubber extends StatelessWidget {
                     Positioned(
                       top: fraction * travel,
                       right: 6,
-                      child: _Thumb(day: day, theme: theme),
+                      child: _Thumb(day: day, loud: loud, theme: theme),
                     ),
                   ],
                 ),
@@ -564,24 +655,31 @@ class _DateScrubber extends StatelessWidget {
 }
 
 /// The grip, with the date it is currently over spilling out to its left.
+///
+/// The date pill is the loud half: it is a running commentary on a gesture in
+/// progress, and leaving it parked over the grid when nothing is moving would
+/// be a permanent label for a scroll position nobody is changing.
 class _Thumb extends StatelessWidget {
-  const _Thumb({required this.day, required this.theme});
+  const _Thumb({required this.day, required this.loud, required this.theme});
 
   final ValueListenable<String?> day;
+  final ValueListenable<bool> loud;
   final dynamic theme;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: _DateScrubber._thumbHeight,
-      child: Row(
+      child: ValueListenableBuilder<bool>(
+        valueListenable: loud,
+        builder: (context, isLoud, _) => Row(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           ValueListenableBuilder<String?>(
             valueListenable: day,
             builder: (context, dayKey, _) {
-              if (dayKey == null) return const SizedBox.shrink();
+              if (dayKey == null || !isLoud) return const SizedBox.shrink();
               return Container(
                 margin: const EdgeInsets.only(right: 8),
                 padding: const EdgeInsets.symmetric(
@@ -609,15 +707,21 @@ class _Thumb extends StatelessWidget {
               );
             },
           ),
-          Container(
-            width: 5,
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            curve: Curves.easeOut,
+            width: isLoud ? 5 : 4,
             height: _DateScrubber._thumbHeight,
             decoration: BoxDecoration(
-              color: theme.accent,
+              // Dimmed rather than hidden at rest: still visible enough to say
+              // "there is a rail here", quiet enough not to be a stripe down
+              // the side of every photograph.
+              color: theme.accent.withValues(alpha: isLoud ? 1.0 : 0.45),
               borderRadius: BorderRadius.circular(999),
             ),
           ),
         ],
+        ),
       ),
     );
   }
