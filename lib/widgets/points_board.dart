@@ -256,10 +256,24 @@ class _PointLine extends StatelessWidget {
               children: [
                 Padding(
                   padding: const EdgeInsets.only(top: 2, right: 9),
-                  child: Icon(
-                    MomentTagChip.iconFor(tag),
-                    size: 13,
-                    color: theme.accent,
+                  // Badged when unseen, exactly as the activity river's glyph
+                  // is — the two lists sit one above the other and a row that
+                  // is new in one has to look new in the other.
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Icon(
+                        MomentTagChip.iconFor(tag),
+                        size: 13,
+                        color: theme.accent,
+                      ),
+                      if (!moment.mine && !moment.seen)
+                        const Positioned(
+                          top: -5,
+                          right: -6,
+                          child: MomentUnseenDot(size: 9),
+                        ),
+                    ],
                   ),
                 ),
                 Expanded(

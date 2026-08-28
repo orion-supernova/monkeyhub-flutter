@@ -8,6 +8,7 @@ import '../data/feed_store.dart';
 import '../data/games_store.dart';
 import '../data/settings_store.dart';
 import '../data/ui_selection_store.dart';
+import '../widgets/app_toast.dart';
 import 'navigation/scroll_memory.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
@@ -255,23 +256,28 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
-  /// Opens a moment from the highlights rail, where its picture is on screen and
-  /// can fly to the viewer. A caption-only card has no picture to fly, and
-  /// claiming a tag for one would leave the viewer waiting on a flight that
-  /// never departs.
-  void _openFromRail(Moment moment) => _open(
-    moment,
-    heroTag: moment.thumbStorageId == null
-        ? null
-        : momentMediaHeroTag(moment.id),
-  );
+  /// Opens a moment from the highlights rail. Its picture is on screen, so it
+  /// flies; and the rest of the rail comes along as pages you can swipe to,
+  /// because "the next highlight" plainly has a meaning here and backing out to
+  /// tap the tile beside the one you just looked at is not an answer to it.
+  void _openFromRail(Moment moment) =>
+      _open(moment, siblings: FeedStore.instance.highlights);
 
-  /// Opens a moment from a text row — a point, an activity line. There is no
-  /// picture to fly, so the viewer's card rises out of the row that was tapped.
-  void _openFromRow(Moment moment, Rect? origin) =>
-      _open(moment, origin: origin);
+  /// Opens a point from the standings board. The picture-less ones rise out of
+  /// the line that was tapped; the ones with a photo go full-screen, and the
+  /// other scoring points of the day are the run behind them.
+  void _openFromPoint(Moment moment, Rect? origin) =>
+      _open(moment, origin: origin, siblings: FeedStore.instance.points);
 
-  void _open(Moment moment, {Object? heroTag, Rect? origin}) {
+  /// Opens a moment from the activity river, whose run is the whole day.
+  void _openFromActivity(Moment moment, Rect? origin) =>
+      _open(moment, origin: origin, siblings: FeedStore.instance.moments);
+
+  void _open(
+    Moment moment, {
+    Rect? origin,
+    List<Moment> siblings = const [],
+  }) {
     final userId = widget.repo.userId;
     if (userId == null) return;
     showMomentViewer(
@@ -280,7 +286,7 @@ class _FeedScreenState extends State<FeedScreen>
       api: widget.api,
       feedApi: widget.feedApi,
       userId: userId,
-      heroTag: heroTag,
+      siblings: siblings,
       origin: origin,
     );
   }
@@ -374,7 +380,7 @@ class _FeedScreenState extends State<FeedScreen>
             points: store.points,
             viewerId: widget.repo.userId ?? '',
             onAdd: _addPoint,
-            onOpen: _openFromRow,
+            onOpen: _openFromPoint,
           ),
         ),
       ),
@@ -389,7 +395,7 @@ class _FeedScreenState extends State<FeedScreen>
               : MomentActivity(
                   moments: store.moments,
                   viewerId: widget.repo.userId ?? '',
-                  onOpen: _openFromRow,
+                  onOpen: _openFromActivity,
                 ),
         ),
       ),
@@ -618,31 +624,9 @@ class _MastheadState extends State<_Masthead>
                     // Tappable, because "№219" beside a date is a riddle
                     // otherwise — it is the board's day count, and there is
                     // nowhere else that could possibly say so.
-                    child: FocusableTap(
-                      onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            l10n.feedBoardEditionHint(widget.edition),
-                          ),
-                        ),
-                      ),
-                      semanticLabel: l10n.feedBoardEditionHint(widget.edition),
-                      shape: FocusRingShape.capsule,
-                      child: GestureDetector(
-                        onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              l10n.feedBoardEditionHint(widget.edition),
-                            ),
-                          ),
-                        ),
-                        behavior: HitTestBehavior.opaque,
-                        child: Text(
-                          l10n.feedBoardEditionLabel(widget.edition),
-                          style: theme.monoTiny,
-                          maxLines: 1,
-                        ),
-                      ),
+                    child: _EditionStamp(
+                      label: l10n.feedBoardEditionLabel(widget.edition),
+                      hint: l10n.feedBoardEditionHint(widget.edition),
                     ),
                   ),
                 ],
@@ -650,6 +634,35 @@ class _MastheadState extends State<_Masthead>
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// The colophon's day count, and the one tap that explains what it counts.
+///
+/// Its own widget so the tap handler is written once. `FocusableTap` registers
+/// no gesture recognizer of its own, so the bare `GestureDetector` inside is
+/// what actually receives the pointer and both have to carry the handler —
+/// which spelled inline was the same three-line closure twice.
+class _EditionStamp extends StatelessWidget {
+  const _EditionStamp({required this.label, required this.hint});
+
+  final String label;
+  final String hint;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    void explain() => showAppToast(context, hint);
+    return FocusableTap(
+      onTap: explain,
+      semanticLabel: hint,
+      shape: FocusRingShape.capsule,
+      child: GestureDetector(
+        onTap: explain,
+        behavior: HitTestBehavior.opaque,
+        child: Text(label, style: theme.monoTiny, maxLines: 1),
       ),
     );
   }

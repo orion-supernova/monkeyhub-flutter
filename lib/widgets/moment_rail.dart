@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../backend/chat_api.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../media/media_aspect_cache.dart';
 import '../models/moment.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
@@ -290,6 +291,15 @@ class _Thumb extends StatelessWidget {
                 // BoxFit.fill — which is what stretched every non-square tile in
                 // an earlier build.
                 decodeWidth: momentThumbDecodeWidth,
+                // Recorded while this decode is happening anyway, for the
+                // fullscreen viewer's benefit rather than this tile's — the
+                // tile crops to a fixed box and does not care. Without it, the
+                // FIRST time a picture is opened the viewer has no ratio to pin
+                // its box to and the Hero flight lands on a full-screen rect
+                // before snapping down into the photograph's real one: the
+                // two-step jump. See `_StagePageState._aspect`.
+                onAspectRatio: (a) =>
+                    MediaAspectCache.instance.remember(thumbId, a),
               ),
             ),
           )
@@ -323,19 +333,49 @@ class _Thumb extends StatelessWidget {
             child: MomentTagChip(tag: moment.tag!, dense: true),
           ),
         if (unseen)
-          Positioned(
-            right: 4,
-            top: 4,
-            child: Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: theme.accent,
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
+          const Positioned(right: 5, top: 5, child: MomentUnseenDot()),
       ],
+    );
+  }
+}
+
+/// The mark for "you have not looked at this yet".
+///
+/// One widget because it now appears in three places that must agree — the
+/// highlights rail's thumbnails, the standings lines and the activity river —
+/// and three hand-drawn circles is how three circles end up three different
+/// sizes. It was only on the rail before, and at 8pt over a photograph it was
+/// small enough to miss entirely.
+///
+/// The ring is doing real work: the dot lands on an arbitrary photograph as
+/// often as on a flat surface, and an accent circle on a photograph of the same
+/// colour is invisible without one.
+class MomentUnseenDot extends StatelessWidget {
+  const MomentUnseenDot({super.key, this.size = 13});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: theme.accent,
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: theme.background,
+          width: (size * 0.17).clamp(1.2, 2.4),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.28),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
     );
   }
 }

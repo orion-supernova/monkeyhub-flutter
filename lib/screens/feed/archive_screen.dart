@@ -293,12 +293,12 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
             api: widget.api,
             feedApi: widget.feedApi,
             userId: widget.userId,
-            // The grid tile is showing the picture, so it flies. Same tag as the
-            // feed rail uses; the two are never in the same route, so they can
-            // never collide.
-            heroTag: m.thumbStorageId == null
-                ? null
-                : momentMediaHeroTag(m.id),
+            // The whole day is the run, so a picture opened from the grid can
+            // be swiped through like the gallery it visually already is. The
+            // tile is showing the picture, so it flies — on the same tag the
+            // feed rail uses, which is safe because the two are never in the
+            // same route.
+            siblings: _byDay[day] ?? const [],
           ),
         );
       },

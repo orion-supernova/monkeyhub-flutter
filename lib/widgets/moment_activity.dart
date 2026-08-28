@@ -99,6 +99,9 @@ class _ActivityRow extends StatelessWidget {
     final motion = MotionScope.of(context);
     final l10n = AppLocalizations.of(context);
     final mine = moment.userId == viewerId;
+    // `moment.mine` rather than the id comparison above: the server decides
+    // what counts as yours, and your own rows are always seen.
+    final unseen = !moment.mine && !moment.seen;
     void open() => onTap(tapOriginRect(context));
     final tag = moment.tag;
     // Verb agreement rules this out of a single interpolated template. Turkish
@@ -142,12 +145,28 @@ class _ActivityRow extends StatelessWidget {
               children: [
                 Padding(
                   padding: const EdgeInsets.only(top: 3, right: 10),
-                  child: Icon(
-                    tag == null
-                        ? Icons.photo_outlined
-                        : MomentTagChip.iconFor(tag),
-                    size: 13,
-                    color: tag == null ? theme.inkMuted : theme.accent,
+                  // The category glyph, badged when this row has not been
+                  // looked at. Badged rather than given its own column: an
+                  // unread marker in the gutter would indent every unseen row
+                  // differently from every seen one, and the list's left edge
+                  // is the thing that makes it scannable.
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Icon(
+                        tag == null
+                            ? Icons.photo_outlined
+                            : MomentTagChip.iconFor(tag),
+                        size: 13,
+                        color: tag == null ? theme.inkMuted : theme.accent,
+                      ),
+                      if (unseen)
+                        const Positioned(
+                          top: -5,
+                          right: -6,
+                          child: MomentUnseenDot(size: 9),
+                        ),
+                    ],
                   ),
                 ),
                 Expanded(

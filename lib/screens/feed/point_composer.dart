@@ -1,3 +1,4 @@
+import 'package:camera/camera.dart' show CameraLensDirection;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -15,6 +16,7 @@ import '../../theme/theme_scope.dart';
 import '../../widgets/adaptive_sheet.dart';
 import '../../widgets/moment_rail.dart';
 import '../camera_editor_screen.dart';
+import '../camera_screen.dart';
 import 'points_explainer.dart';
 
 /// Logs a point: what happened, and which kind of thing it was.
@@ -28,8 +30,13 @@ import 'points_explainer.dart';
 /// version of this.
 ///
 /// So: the category is picked first (it is what makes this a point at all), the
-/// text field is focused on open, and the photo is one optional button at the
-/// bottom.
+/// text field is focused on open, and the photo is optional and last.
+///
+/// **Optional is not the same as second-class.** For a long time the only way
+/// to attach one here was the library — you could photograph the thing your
+/// point is about, leave the app, save it, come back and go looking for it.
+/// The camera is the shorter half of that, and it is the same in-app camera and
+/// the same cropper the highlight composer uses, right down to RETAKE.
 Future<bool> showPointComposer(
   BuildContext context, {
   required ChatApi api,
@@ -71,6 +78,16 @@ class _PointComposerState extends State<_PointComposer> {
   final _focus = FocusNode();
   MomentTag? _tag;
   CroppedImage? _image;
+
+  /// The bytes the crop was made FROM.
+  ///
+  /// Re-editing has to start from the original, not from the previous export:
+  /// cropping a crop re-encodes a JPEG that was already re-encoded, and three
+  /// passes of that is visibly mushy. Same reasoning, and the same cost, as the
+  /// highlight composer's.
+  Uint8List? _imageSource;
+  bool _sourceMirrored = false;
+
   bool _busy = false;
   String? _errorCode;
 
@@ -109,30 +126,147 @@ class _PointComposerState extends State<_PointComposer> {
       _tag != null &&
       (_note.text.trim().isNotEmpty || _image != null);
 
-  Future<void> _pickPhoto() async {
+  /// Shoot one now.
+  ///
+  /// Lifted wholesale from the highlight composer rather than reinvented: the
+  /// in-app camera, reviewing in the cropper ON TOP of the still-mounted camera
+  /// route (which is what makes RETAKE free), and the two fallbacks — the OS
+  /// picker when the library button is used from inside it, and the system
+  /// camera on web or a denied permission.
+  Future<void> _capture() async {
+    // Resolved before the first await: `AppLocalizations.of` after one is the
+    // lint this repo treats as an error.
     final l10n = AppLocalizations.of(context);
     setState(() => _busy = true);
     try {
-      final pick = await pickPhoto(source: ImageSource.gallery);
-      // Reported on the composer's own error line, where the post failures go.
-      if (pick.unreadable) {
-        if (mounted) setState(() => _errorCode = 'PICK_FAILED');
-        return;
-      }
-      final bytes = await pick.file?.readAsBytes();
-      if (bytes == null || !mounted) return;
-      // The same editor chat uses: a crop rect dragged by its edges and
-      // corners, rather than a fixed window with the picture panning beneath.
-      final outcome = await CameraEditorScreen.open(
+      // Captured out of the review closure so re-editing can start from the
+      // ORIGINAL frame rather than the JPEG the editor exported.
+      Uint8List? rawFrame;
+      var rawMirrored = false;
+      final result = await CameraScreen.open<EditorSend>(
         context,
-        source: bytes,
-        allowDrawing: false,
-        allowViewOnce: false,
-        confirmLabel: l10n.imageCropScreenDefaultConfirmLabel,
-        busyLabel: l10n.imageCropScreenSavingButton,
+        initialLens: CameraLensDirection.back,
+        review: (context, photo) async {
+          rawFrame = photo.bytes;
+          rawMirrored = photo.mirrored;
+          final outcome = await CameraEditorScreen.open(
+            context,
+            source: photo.bytes,
+            // The camera route is still mounted underneath — that is the whole
+            // contract of `CameraScreen.review` — so RETAKE restores the live
+            // preview instead of unwinding to this sheet.
+            canRetake: true,
+            mirrored: photo.mirrored,
+            overCamera: true,
+            allowDrawing: false,
+            allowViewOnce: false,
+            confirmLabel: l10n.imageCropScreenDefaultConfirmLabel,
+            busyLabel: l10n.imageCropScreenSavingButton,
+          );
+          return switch (outcome) {
+            EditorRetake() => const ReviewRetake<EditorSend>(),
+            final EditorSend send => ReviewDone(send),
+            null => const ReviewDone<EditorSend>(null),
+          };
+        },
       );
-      if (!mounted || outcome is! EditorSend) return;
-      setState(() => _image = outcome.image);
+      if (!mounted) return;
+      switch (result) {
+        case CameraReviewed(:final value):
+          if (value != null) {
+            setState(() {
+              _image = value.image;
+              _imageSource = rawFrame ?? value.image.bytes;
+              _sourceMirrored = rawFrame != null && rawMirrored;
+              _errorCode = null;
+            });
+          }
+        case CameraRecorded():
+        // Unreachable: opened with `allowVideo` left off, so the VIDEO position
+        // never appears and nothing can record. Named rather than defaulted so
+        // that turning video on here becomes a compile error to answer rather
+        // than a clip silently dropped.
+        break;
+        case CameraPickLibrary():
+          await _pickFromLibrary();
+        case CameraUnavailable():
+          // No in-app camera (web, or a denied permission). The system camera
+          // is still a way through.
+          final picked = await pickPhoto(source: ImageSource.camera);
+          if (picked.unreadable) {
+            if (mounted) setState(() => _errorCode = 'PICK_FAILED');
+            return;
+          }
+          await _cropInto(await picked.file?.readAsBytes());
+        case null:
+          break; // backed out
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Choose one that already exists.
+  Future<void> _pickPhoto() async {
+    setState(() => _busy = true);
+    try {
+      await _pickFromLibrary();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _pickFromLibrary() async {
+    // The `pickerImageQuality` [pickPhoto] passes also normalizes EXIF
+    // orientation on Android, which the crop screen relies on — it does not
+    // read the orientation tag itself.
+    final pick = await pickPhoto(source: ImageSource.gallery);
+    // Reported on the composer's own error line, where the post failures go —
+    // a refusal that said nothing would look like a picture the composer had
+    // rejected.
+    if (pick.unreadable) {
+      if (mounted) setState(() => _errorCode = 'PICK_FAILED');
+      return;
+    }
+    await _cropInto(await pick.file?.readAsBytes());
+  }
+
+  /// Opens the same editor chat uses — a crop rect you drag by its edges and
+  /// corners, not a fixed window with the picture sliding underneath it.
+  Future<void> _cropInto(Uint8List? source, {bool mirrored = false}) async {
+    if (source == null || !mounted) return;
+    final l10n = AppLocalizations.of(context);
+    final outcome = await CameraEditorScreen.open(
+      context,
+      source: source,
+      mirrored: mirrored,
+      // Nothing underneath to retake — this is a library pick or the system
+      // camera, both of which have already gone away by now.
+      allowDrawing: false,
+      allowViewOnce: false,
+      confirmLabel: l10n.imageCropScreenDefaultConfirmLabel,
+      busyLabel: l10n.imageCropScreenSavingButton,
+    );
+    if (!mounted || outcome is! EditorSend) return;
+    setState(() {
+      _image = outcome.image;
+      _imageSource = source;
+      _sourceMirrored = mirrored;
+      _errorCode = null;
+    });
+  }
+
+  /// Re-opens the cropper on the ORIGINAL bytes.
+  ///
+  /// Backing out of the crop screen used to drop you back here with no way to
+  /// return to it short of picking the photo again — which is exactly the
+  /// moment you have just changed your mind twice and are least willing to.
+  Future<void> _editImage() async {
+    final source = _imageSource;
+    if (source == null || _busy) return;
+    setState(() => _busy = true);
+    try {
+      await _cropInto(source, mirrored: _sourceMirrored);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -267,27 +401,29 @@ class _PointComposerState extends State<_PointComposer> {
                     Positioned(
                       right: 6,
                       top: 6,
-                      child: FocusableTap(
-                        onTap: () => setState(() => _image = null),
-                        semanticLabel: l10n.momentComposerRemovePhoto,
-                        shape: FocusRingShape.circle,
-                        child: GestureDetector(
-                          onTap: () => setState(() => _image = null),
-                          behavior: HitTestBehavior.opaque,
-                          child: Container(
-                            padding: const EdgeInsets.all(5),
-                            decoration: BoxDecoration(
-                              color: theme.surface,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: theme.divider),
+                      child: Row(
+                        children: [
+                          // Only when the original bytes were kept — a re-crop
+                          // has to start from those, never from the export.
+                          if (_imageSource != null) ...[
+                            _PhotoChip(
+                              icon: Icons.crop,
+                              label: l10n.momentComposerEditPhoto,
+                              onTap: _busy ? null : _editImage,
                             ),
-                            child: Icon(
-                              Icons.close,
-                              size: 13,
-                              color: theme.inkSoft,
-                            ),
+                            const SizedBox(width: 6),
+                          ],
+                          _PhotoChip(
+                            icon: Icons.close,
+                            label: l10n.momentComposerRemovePhoto,
+                            onTap: _busy
+                                ? null
+                                : () => setState(() {
+                                    _image = null;
+                                    _imageSource = null;
+                                  }),
                           ),
-                        ),
+                        ],
                       ),
                     ),
                   ],
@@ -306,31 +442,24 @@ class _PointComposerState extends State<_PointComposer> {
               const SizedBox(height: 14),
               Row(
                 children: [
-                  if (_image == null)
-                    FocusableTap(
-                      onTap: _busy ? null : _pickPhoto,
-                      semanticLabel: l10n.pointComposerAddPhoto,
-                      radius: theme.radiusMd,
-                      child: GestureDetector(
-                        onTap: _busy ? null : _pickPhoto,
-                        behavior: HitTestBehavior.opaque,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.add_photo_alternate_outlined,
-                              size: 15,
-                              color: theme.inkSoft,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              l10n.pointComposerAddPhoto,
-                              style: theme.monoTiny,
-                            ),
-                          ],
-                        ),
-                      ),
+                  // Two ways in, both offered — the camera FIRST, because a
+                  // point is usually logged in the thirty seconds after the
+                  // thing happened, when the picture does not exist yet.
+                  // Hidden once there is a photo: the chips on the preview own
+                  // changing it from there.
+                  if (_image == null) ...[
+                    _SourceButton(
+                      icon: Icons.photo_camera_outlined,
+                      label: l10n.momentComposerCapture,
+                      onTap: _busy ? null : _capture,
                     ),
+                    const SizedBox(width: 8),
+                    _SourceButton(
+                      icon: Icons.photo_library_outlined,
+                      label: l10n.momentComposerLibrary,
+                      onTap: _busy ? null : _pickPhoto,
+                    ),
+                  ],
                   const Spacer(),
                   if (remaining <= 40)
                     Text(
@@ -349,6 +478,100 @@ class _PointComposerState extends State<_PointComposer> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One of the two ways to attach a picture.
+///
+/// A bordered capsule rather than the highlight composer's big square tiles:
+/// there the picture is the *point* and its slot deserves the room, here it is
+/// an afterthought that must not out-shout the sentence above it or push ADD
+/// POINT down the sheet.
+class _SourceButton extends StatelessWidget {
+  const _SourceButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: label,
+      shape: FocusRingShape.capsule,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Opacity(
+          // Matches the rail's capture tile: show the control dimmed rather
+          // than hiding it, so the surface still makes sense while it is busy.
+          opacity: onTap == null ? 0.45 : 1,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+            decoration: BoxDecoration(
+              color: theme.surfaceSunken,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: theme.divider),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 14, color: theme.accent),
+                const SizedBox(width: 6),
+                Text(label, style: theme.monoTiny, maxLines: 1),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A small circular control floating over the chosen picture — re-crop, remove.
+///
+/// A near-twin of the highlight composer's `_SlotChip`, and deliberately so:
+/// the two composers put the same two controls in the same corner of the same
+/// preview, and a 5pt-vs-6pt difference between them is the kind of drift
+/// nobody notices and everybody feels.
+class _PhotoChip extends StatelessWidget {
+  const _PhotoChip({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: label,
+      shape: FocusRingShape.circle,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: theme.surface,
+            shape: BoxShape.circle,
+            border: Border.all(color: theme.divider),
+          ),
+          child: Icon(icon, size: 14, color: theme.inkSoft),
         ),
       ),
     );
