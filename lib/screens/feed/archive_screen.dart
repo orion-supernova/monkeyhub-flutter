@@ -97,6 +97,10 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
   Timer? _scrubHide;
   bool _scrubbing = false;
 
+  /// The horizontal day rail's own scroller, so the active chip can be kept in
+  /// view as the grid scrolls past it — see [_revealChip].
+  final _railScroll = ScrollController();
+
   /// The list's own box, read once per offset rebuild for its width — see
   /// [_rebuildDayStarts]. Nothing measures section positions through it any
   /// more; that is what [_dayStarts] replaced.
@@ -114,6 +118,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     _scrubHide?.cancel();
     _scroll.removeListener(_onScroll);
     _scroll.dispose();
+    _railScroll.dispose();
     _scrubAt.dispose();
     _scrubDay.dispose();
     _scrubLoud.dispose();
@@ -156,6 +161,23 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
           // Guard against a duplicate arriving across a page boundary.
           if (!list.any((x) => x.id == m.id)) list.add(m);
         }
+        // Sorted, not left in arrival order.
+        //
+        // `feed:archive` pages by `createdAt` descending, but a row is filed
+        // under its `dayKey` — which is the AUTHOR's local day, not an instant
+        // (see `Moment.dayKey`). The two disagree the moment a zone does: a
+        // friend who flies east, or anyone either side of a DST shift, produces
+        // moments whose instants descend while their day keys interleave. The
+        // list took arrival order literally, so those days came out shuffled —
+        // and a date rail over a list that is not in date order is wrong no
+        // matter how exactly it is measured.
+        //
+        // `YYYY-MM-DD` sorts chronologically as a string, so this is also the
+        // comparison that keeps a malformed key from throwing.
+        _dayKeys.sort((a, b) => b.compareTo(a));
+        for (final day in _dayKeys) {
+          _byDay[day]?.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        }
         _hasMore = page.hasMore;
         _loading = false;
         _loadingMore = false;
@@ -165,7 +187,9 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
       // position has no extent and the sections have no boxes until the list
       // has actually been laid out with these rows in it.
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _measureScrub();
+        if (!mounted) return;
+        _measureScrub();
+        _topUp();
       });
     } catch (e) {
       if (!mounted) return;
@@ -202,7 +226,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     // Cheap: one render-box read and a record comparison, then an early return
     // on every frame where nothing that feeds the offsets has moved.
     _rebuildDayStarts();
-    _refreshDay(pos.pixels);
+    _refreshDay(_anchor(pos));
   }
 
   /// Names the day the top of the viewport is currently inside.
@@ -221,10 +245,47 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     final day = _dayAtOffset(pixels);
     if (day == null || day == _scrubDay.value) return;
     _scrubDay.value = day;
+    // The chips at the top say a date too, and they were the one surface that
+    // never followed the scroll: `_selectedDay` moved only when a chip was
+    // TAPPED, so the whole time you were scrolling the highlighted chip named
+    // wherever you had last jumped from. Two date indicators disagreeing reads
+    // as neither being right. They are one answer now.
+    if (day != _selectedDay) {
+      setState(() => _selectedDay = day);
+      _revealChip(day);
+    }
     // A tick per day crossed, so a drag down the rail feels like flicking
     // through a stack rather than sliding a slider. Only while scrubbing: an
     // ordinary fling past forty days would be a burst of buzzing.
     if (_scrubbing) HapticFeedback.selectionClick();
+  }
+
+  /// Keeps the active chip on screen as the list moves under it.
+  ///
+  /// Analytic rather than `ensureVisible`: the chips are a fixed width in a
+  /// fixed-pitch row, so where one sits is arithmetic — the same reasoning
+  /// `MediaFilmstrip` gives for its own strip. A highlighted chip scrolled off
+  /// the end of the rail is a highlight nobody can see.
+  void _revealChip(String dayKey) {
+    if (!_railScroll.hasClients) return;
+    final i = _dayKeys.indexOf(dayKey);
+    if (i < 0) return;
+    final pos = _railScroll.position;
+    final target =
+        i * _chipPitch + _chipWidth / 2 - pos.viewportDimension / 2;
+    final clamped = target.clamp(pos.minScrollExtent, pos.maxScrollExtent);
+    // Only when it has genuinely gone: nudging the rail on every day boundary
+    // would drag it under the reader's thumb while they scroll the grid.
+    final chipStart = i * _chipPitch;
+    if (chipStart >= pos.pixels &&
+        chipStart + _chipWidth <= pos.pixels + pos.viewportDimension) {
+      return;
+    }
+    _railScroll.animateTo(
+      clamped,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   void _trackScrub() {
@@ -240,7 +301,8 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     });
   }
 
-  /// Scroll offset of the top of each day's section, in `_dayKeys` order.
+  /// Scroll offset at which each day takes over the label, in `_dayKeys` order
+  /// — the y of that day's header RULE, not the top of its section.
   ///
   /// Computed, not measured — see [archiveSectionHeight]. Rebuilt by
   /// [_rebuildDayStarts] whenever the days, their counts, the list's width or
@@ -280,7 +342,16 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     // section starts there rather than at zero.
     var y = _listPadTop;
     for (final day in _dayKeys) {
-      starts.add(y);
+      // The DIVIDER, not the top of the section.
+      //
+      // A section opens with a header row that is mostly empty space above the
+      // text — the label and its rule sit on the row's bottom edge
+      // (`CrossAxisAlignment.end`). Switching the label at the section's top
+      // meant it changed while that day's rule was still a header's height
+      // below the fold, which is exactly the "changes in the wrong place" you
+      // can see. The rule is the line a reader watches cross the top edge, so
+      // the rule is the switch point.
+      starts.add(y + header);
       y += archiveSectionHeight(
         count: _byDay[day]?.length ?? 0,
         width: inner,
@@ -290,12 +361,30 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     _dayStarts = starts;
   }
 
+  /// The line the switch happens on: the top edge of the list's viewport.
+  ///
+  /// **Fixed, and that is the point.** An earlier attempt slid this line down
+  /// the viewport as the list ran out, so that the last days — which can never
+  /// reach the top — could still be named. It bought that at the cost of the
+  /// only property worth having: with the line moving, the anchor travels
+  /// faster than the finger (on a short archive more than twice as fast), so
+  /// every switch after the first happens before its rule reaches the top and
+  /// the label runs ahead of the list. Switching early everywhere is a worse
+  /// answer than never naming the final day.
+  ///
+  /// So the rule is the one you can check by eye: the day whose header rule has
+  /// most recently crossed the top edge is the day it names. At the bottom of a
+  /// short archive that is the topmost header on screen, which is still a date
+  /// you can see and point at.
+  double _anchor(ScrollPosition pos) => pos.pixels;
+
   /// The dayKey whose section contains scroll offset [pixels].
   ///
-  /// A binary search over [_dayStarts]: the last day that has already started.
-  /// No tolerance, so the label changes exactly as a section header crosses the
-  /// top edge rather than 24pt early; no fallback, so it can never name a day
-  /// that is nowhere near the screen.
+  /// A binary search over [_dayStarts]: the last day whose rule has already
+  /// passed the top edge. No tolerance and no fallback, so the label cannot
+  /// change early, late, or to a day that is nowhere near the screen. Before
+  /// the first rule reaches the top the answer is the first day, which is what
+  /// is on screen.
   String? _dayAtOffset(double pixels) {
     if (_dayStarts.isEmpty) return null;
     var lo = 0;
@@ -342,6 +431,28 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     _scrubHide = Timer(const Duration(milliseconds: 1200), () {
       if (mounted && !_scrubbing) _scrubLoud.value = false;
     });
+  }
+
+  /// Fetches the next page when the one that just landed did not fill the
+  /// screen.
+  ///
+  /// Pagination hangs off [_onScroll], which only fires when the list MOVES —
+  /// so a first page shorter than the viewport left the archive with no way to
+  /// ask for the second. It was reachable only by dragging into the overscroll
+  /// bounce, which produces just enough scroll activity to trip the runway
+  /// check: days that existed, that the screen knew about, and that you had to
+  /// discover by pulling on a list that looked finished.
+  ///
+  /// Terminates on its own: each call consumes a page, so either `hasMore` goes
+  /// false or the content grows past the viewport and the ordinary scroll-based
+  /// path takes over.
+  void _topUp() {
+    if (!mounted || !_hasMore || _loadingMore || !_scroll.hasClients) return;
+    final pos = _scroll.position;
+    // Nothing to scroll, or so little that the runway check would fire on the
+    // very first touch anyway.
+    if (pos.maxScrollExtent > pos.viewportDimension * 0.5) return;
+    _loadMore();
   }
 
   DateTime? get _oldest {
@@ -425,6 +536,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                   ),
                   if (_dayKeys.isNotEmpty)
                     _DateRail(
+                      controller: _railScroll,
                       dayKeys: _dayKeys,
                       counts: {
                         for (final e in _byDay.entries) e.key: e.value.length,
@@ -634,6 +746,14 @@ const double _sectionGap = 26;
 /// the state every test of this is trying to assert.
 @visibleForTesting
 const Key archiveScrubberPillKey = Key('archive-scrubber-pill');
+
+/// The highlighted chip in the day rail.
+///
+/// Keyed for the same reason as the pill: on a short archive the rail is hidden
+/// — there is nothing to fast-scroll — so the chip is the ONLY thing naming the
+/// day you are looking at, and a test of that has to be able to find it.
+@visibleForTesting
+const Key archiveActiveChipKey = Key('archive-active-chip');
 
 /// A dayKey ("YYYY-MM-DD") as a localized date that always carries its year.
 ///
@@ -938,14 +1058,22 @@ class _Thumb extends StatelessWidget {
 }
 
 /// The horizontal strip of days.
+/// Chip width and the pitch between two of them, named because [_revealChip]
+/// has to predict where a chip is without measuring it.
+const double _chipWidth = 56;
+const double _chipGap = 8;
+const double _chipPitch = _chipWidth + _chipGap;
+
 class _DateRail extends StatelessWidget {
   const _DateRail({
+    required this.controller,
     required this.dayKeys,
     required this.counts,
     required this.selected,
     required this.onTap,
   });
 
+  final ScrollController controller;
   final List<String> dayKeys;
   final Map<String, int> counts;
   final String? selected;
@@ -962,6 +1090,7 @@ class _DateRail extends StatelessWidget {
     return SizedBox(
       height: height,
       child: ListView.builder(
+        controller: controller,
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         // Vertical room for FocusableTap's ring, which paints outside its
@@ -970,8 +1099,9 @@ class _DateRail extends StatelessWidget {
         itemCount: dayKeys.length,
         itemBuilder: (context, i) => Padding(
           key: ValueKey(dayKeys[i]),
-          padding: const EdgeInsets.only(right: 8),
+          padding: const EdgeInsets.only(right: _chipGap),
           child: _DayChip(
+            key: dayKeys[i] == selected ? archiveActiveChipKey : null,
             dayKey: dayKeys[i],
             count: counts[dayKeys[i]] ?? 0,
             active: dayKeys[i] == selected,
@@ -985,6 +1115,7 @@ class _DateRail extends StatelessWidget {
 
 class _DayChip extends StatelessWidget {
   const _DayChip({
+    super.key,
     required this.dayKey,
     required this.count,
     required this.active,
@@ -1023,7 +1154,7 @@ class _DayChip extends StatelessWidget {
         child: AnimatedContainer(
           duration: theme.motionFast,
           // Two more points than before, for the ".26" the stamp grew.
-          width: 56,
+          width: _chipWidth,
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
             color: active ? theme.accent : theme.surfaceSunken,
