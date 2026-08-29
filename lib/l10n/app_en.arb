@@ -3359,6 +3359,10 @@
     "description": "Tiny lowercase divider word between the QR-scan button and the manual six-digit code entry field."
   },
   "childPairScreenGenericError": "Something went wrong. Try again.",
+  "profileScreenDeleteAccountFailed": "Something went wrong. Try again.",
+  "@profileScreenDeleteAccountFailed": {
+    "description": "Shown when deleting the account did not reach the server. The device is signed out either way, so the account may or may not be gone."
+  },
   "@childPairScreenGenericError": {
     "description": "Fallback error message shown on the child pairing screen when the pairing code redemption fails for an unrecognized reason."
   },

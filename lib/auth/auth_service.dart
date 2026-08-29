@@ -55,26 +55,26 @@ class AuthService extends ChangeNotifier {
       password: password,
       recoveryKeyHash: recoveryKeyHash,
     );
+    // Persist BEFORE notifying, so "signed in" can never mean "signed in but
+    // not on disk". The old order was the reverse, to keep a slow keychain
+    // from delaying the LoginScreen → HomeShell swap, and the trade it made
+    // was stated as "they'll just need to sign in again next launch". That
+    // turned out to be the optimistic reading: the previous session was still
+    // in the keychain, so the next launch did not ask anyone to sign in — it
+    // restored the OLD account, which is the bug this whole change exists for.
+    // A write that fails now throws out of here and the sign-in reports it.
+    await _persistSession(res);
     _session = Session(userId: res.userId, username: res.username, name: res.name);
-    // Update the UI first. Persisting to flutter_secure_storage occasionally
-    // stalls (first-use after install, keychain accessibility quirks, etc.)
-    // and we don't want that to keep the LoginScreen → HomeShell swap from
-    // happening. If persistence fails the user is still signed in for this
-    // session; they'll just need to sign in again next launch.
     notifyListeners();
-    _persistSession(res);
   }
 
   Future<void> signIn({required String username, required String password}) async {
     debugPrint('[auth] signIn: calling _api.login');
     final res = await _api.login(username: username, password: password);
     debugPrint('[auth] signIn: login returned, userId=${res.userId}');
+    await _persistSession(res);
     _session = Session(userId: res.userId, username: res.username, name: res.name);
-    debugPrint('[auth] signIn: about to notifyListeners (hasListeners=$hasListeners, isSignedIn=$isSignedIn)');
     notifyListeners();
-    debugPrint('[auth] signIn: notifyListeners returned');
-    _persistSession(res);
-    debugPrint('[auth] signIn: _persistSession scheduled, returning');
   }
 
   /// Signs in — or reports that we need a username first — with Apple/Google.
@@ -91,7 +91,7 @@ class AuthService extends ChangeNotifier {
   ) async {
     final outcome = await _api.socialSignIn(credential);
     if (outcome.needsUsername) return outcome;
-    _adoptSession(outcome.result!);
+    await _adoptSession(outcome.result!);
     return null;
   }
 
@@ -106,15 +106,15 @@ class AuthService extends ChangeNotifier {
       username: username,
       name: name,
     );
-    _adoptSession(res);
+    await _adoptSession(res);
   }
 
   /// Shared tail of every social entry point. Mirrors [signIn] exactly,
-  /// including the notify-before-persist ordering and why.
-  void _adoptSession(AuthResult res) {
+  /// including the persist-before-notify ordering and why.
+  Future<void> _adoptSession(AuthResult res) async {
+    await _persistSession(res);
     _session = Session(userId: res.userId, username: res.username, name: res.name);
     notifyListeners();
-    _persistSession(res);
   }
 
   /// Signs in to an existing account and attaches the provider to it, so the
@@ -131,7 +131,7 @@ class AuthService extends ChangeNotifier {
       username: username,
       password: password,
     );
-    _adoptSession(res);
+    await _adoptSession(res);
   }
 
   /// Attaches a provider to the signed-in account, from Profile. The password
@@ -174,7 +174,7 @@ class AuthService extends ChangeNotifier {
   /// — so nothing downstream of `isSignedIn` flipping can tell which one
   /// this was.
   Future<void> completeDeviceLogin(AuthResult res) async {
-    _adoptSession(res);
+    await _adoptSession(res);
   }
 
   /// Signs in a child device by redeeming a guardian-issued pairing code.
@@ -191,6 +191,7 @@ class AuthService extends ChangeNotifier {
       platform: DeviceIdentity.platformTag(),
       deviceName: await DeviceIdentity.displayName(),
     );
+    await _persistSession(res, accountType: AccountType.child);
     _session = Session(
       userId: res.userId,
       username: res.username,
@@ -198,27 +199,31 @@ class AuthService extends ChangeNotifier {
       accountType: AccountType.child,
     );
     notifyListeners();
-    _persistSession(res, accountType: AccountType.child);
   }
 
-  void _persistSession(
+  Future<void> _persistSession(
     AuthResult res, {
     AccountType accountType = AccountType.adult,
-  }) {
+  }) async {
     // Re-arm the loss detector. Without this a device that was signed out
     // remotely and then signed back in would never notice a SECOND revocation,
     // because the latch that stops one dead session firing five sign-outs
     // would still be closed from the first.
     SessionGuard.instance.reset();
-    SessionStore.instance
-        .saveSession(
-          userId: res.userId,
-          username: res.username,
-          name: res.name,
-          token: res.token,
-          accountType: accountType,
-        )
-        .catchError((_) {/* see signIn docs */});
+    // AWAITED, and no longer swallowing. This used to be fire-and-forget with
+    // an empty `catchError`, on the reasoning that a keychain hiccup should not
+    // block a sign-in — but the sign-in it did not block was one whose session
+    // never reached disk. The app then ran on an in-memory session that the
+    // next cold start could not restore, and restored the PREVIOUS one
+    // instead. A credential that failed to persist is a failed sign-in, and
+    // saying so is the only version of this that cannot lie.
+    await SessionStore.instance.saveSession(
+      userId: res.userId,
+      username: res.username,
+      name: res.name,
+      token: res.token,
+      accountType: accountType,
+    );
   }
 
   /// True when a reset just succeeded and the phrase should be retired.
@@ -262,11 +267,11 @@ class AuthService extends ChangeNotifier {
       recoveryKey: recoveryKey,
       newPassword: newPassword,
     );
+    await _persistSession(res);
     _needsPhraseRotation = true;
     _pendingRotationPassword = newPassword;
     _session = Session(userId: res.userId, username: res.username, name: res.name);
     notifyListeners();
-    _persistSession(res);
   }
 
   /// Sets or replaces this account's recovery phrase. [recoveryKeyHash] is
@@ -567,13 +572,106 @@ class AuthService extends ChangeNotifier {
     // A child deleting their own account would be an escape hatch out of
     // supervision. The backend rejects it too.
     if (s != null && s.isChild) return;
-    if (s != null) {
-      await _api.deleteAccount(userId: s.userId);
-      // Account is gone — no reason to keep cached rooms/messages around.
-      await CacheStore.instance.clearFor(s.userId);
+    try {
+      if (s != null) await _api.deleteAccount(userId: s.userId);
+    } finally {
+      // In the `finally`, and that placement is the fix. The delete mutation
+      // commits on the server before the response makes it back, so a socket
+      // that dies in between used to leave the account purged and this device
+      // still holding its session — signed in, forever, to an account that no
+      // longer exists. Tearing down locally regardless is right in both
+      // directions: if the server did delete, this matches it; if it did not,
+      // the worst case is a sign-out.
+      if (s != null) {
+        // Account is gone — no reason to keep cached rooms/messages around.
+        try {
+          await CacheStore.instance.clearFor(s.userId);
+        } catch (e) {
+          debugPrint('[auth] deleteAccount: clearing the cache failed: $e');
+        }
+      }
+      try {
+        await SessionStore.instance.clearSession().timeout(_localSignOutTimeout);
+      } catch (e) {
+        debugPrint('[auth] deleteAccount: clearing the stored session failed: $e');
+      }
+      // Everything [signOut] does that this used to skip. Without the first,
+      // the next "Sign in with Google" tap silently reuses the provider
+      // account that was just deleted; without the second, staged push text
+      // from the dead account survives into the next one.
+      unawaited(SocialSignIn.forgetProviders());
+      unawaited(PushManager.instance.clearPushInbox());
+      SessionGuard.instance.reset();
+      _session = null;
+      notifyListeners();
     }
-    await SessionStore.instance.clearSession();
-    _session = null;
+  }
+
+  /// Our own profile came back missing — so either this account is gone, or
+  /// the userId we asked with is not ours.
+  ///
+  /// Both are possible and they want opposite outcomes, which is why this
+  /// asks the server instead of deciding. A deleted account must sign out; a
+  /// device whose keychain userId drifted from its token must be REPAIRED, and
+  /// signing that one out would be a regression — it works perfectly, it is
+  /// only mislabelled.
+  ///
+  /// [reconcile] separates them without needing to know which it is looking
+  /// at. If the account is gone, `whoami` throws `SESSION_REVOKED` and
+  /// `ConvexBackend` hands that to [SessionGuard] — the sign-out happens on
+  /// the server's word, with its latch, rather than on our inference. If the
+  /// id was merely stale, the answer comes back and repairs it.
+  void onSelfProfileMissing() {
+    if (_session == null) return;
+    debugPrint('[auth] own profile came back empty — asking who we are');
+    unawaited(reconcile());
+  }
+
+  /// Ask the server who this device's token actually belongs to, and adopt the
+  /// answer.
+  ///
+  /// The keychain says who we are at launch and nothing has ever checked it.
+  /// That was survivable while the two could not disagree — but they could:
+  /// the session used to be five separate keychain items written in sequence,
+  /// so a half-finished write left one account's token beside another's name,
+  /// and the app then ran as the first while displaying the second. Storing
+  /// the session as one item stops NEW divergence; this repairs the installs
+  /// that already have it.
+  ///
+  /// Deliberately quiet. A network failure means "ask again next launch", not
+  /// "sign out" — the token is not in question, only the name attached to it.
+  /// A dead session is different, and takes the usual route: `requireSession`
+  /// throws, `ConvexBackend` hands it to [SessionGuard], and that signs out.
+  Future<void> reconcile() async {
+    final s = _session;
+    if (s == null) return;
+    final Session? truth;
+    try {
+      truth = await _api.whoami();
+    } catch (e) {
+      debugPrint('[auth] reconcile: whoami failed: $e');
+      return;
+    }
+    if (truth == null) return;
+    if (truth.userId == s.userId &&
+        truth.username == s.username &&
+        truth.name == s.name &&
+        truth.accountType == s.accountType) {
+      return;
+    }
+    debugPrint(
+      '[auth] reconcile: keychain said ${s.username}, token says '
+      '${truth.username} — adopting the server',
+    );
+    // Token unchanged: `saveSession` keeps the stored one when passed null,
+    // and it is the token that was right all along.
+    await SessionStore.instance.saveSession(
+      userId: truth.userId,
+      username: truth.username,
+      name: truth.name,
+      accountType: truth.accountType,
+    );
+    _session = truth;
     notifyListeners();
   }
 }

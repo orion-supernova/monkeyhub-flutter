@@ -1187,6 +1187,13 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       debugPrint('_auth.restore failed: $e\n$st');
     }
 
+    // Confirm with the server who this token actually belongs to, and repair
+    // the keychain if it disagrees. UNAWAITED on purpose: the restored session
+    // is good enough to render with, this only corrects the NAME on it, and
+    // blocking the first frame on a round trip would trade a rare wrong label
+    // for a launch stall everyone feels. The screen updates when it lands.
+    unawaited(_auth.reconcile());
+
     // Set _bootstrapped true immediately so the UI mounts in <150ms from local cache.
     if (mounted) setState(() => _bootstrapped = true);
 

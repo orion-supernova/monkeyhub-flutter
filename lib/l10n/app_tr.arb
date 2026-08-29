@@ -836,6 +836,7 @@
   "childPairScreenIntro": "Bir büyüğünden MonkeyHub’ı açıp “cihaz eşleştir”e dokunmasını iste. Sonra kodunu tarat ya da söylediği altı rakamı yaz.",
   "childPairScreenOrDivider": "ya da",
   "childPairScreenGenericError": "Bir şeyler ters gitti. Tekrar dene.",
+  "profileScreenDeleteAccountFailed": "Bir şeyler ters gitti. Tekrar dene.",
   "childPairScreenAccountGoneError": "O hesap artık yok.",
   "childPairScreenScanButtonLabel": "KODU TARAT",
   "childPairScreenNoCameraMessage": "Burada kamera yok — bunun yerine altı rakamı yaz.",

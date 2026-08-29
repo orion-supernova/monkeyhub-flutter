@@ -1,6 +1,7 @@
-import 'dart:io' show Platform;
+import 'dart:convert';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -13,17 +14,47 @@ class SessionStore {
   SessionStore._();
   static final SessionStore instance = SessionStore._();
 
+  /// The whole session, as one JSON item.
+  ///
+  /// ONE item, not five, and that is the point rather than a tidy-up. The five
+  /// keys below were written one after another by [saveSession] with no
+  /// transaction over them — token first, userId second — so a write that
+  /// failed or a process that died in the middle left this device holding one
+  /// account's token beside ANOTHER account's userId and username.
+  ///
+  /// Nothing downstream could survive that. `functions.ts` resolves identity
+  /// from the token, so the device went on acting as the newer account while
+  /// every screen rendered the older one's name; and the correction never came,
+  /// because the profile fetch used the stale userId, got `null` for a deleted
+  /// row, and dropped it. One item makes the state unrepresentable: the
+  /// keychain either has the whole session or the previous one, never halves of
+  /// both.
+  static const _kSession = 'mh.session';
+
+  // ── The pre-blob layout ────────────────────────────────────────────────
+  // Read once by [_migrateLegacySession] and deleted on the way past. Kept as
+  // constants (rather than inlined there) because [clearSession] must also
+  // delete them: a half-migrated install with these still present is exactly
+  // the resurrection this class now exists to prevent.
   static const _kUserId = 'mh.userId';
-  /// The bearer token. Kept in the SAME secure store as the userId and cleared
-  /// with it, because a token outliving its session is a credential nobody can
-  /// see and nothing can revoke.
   static const _kToken = 'mh.sessionToken';
   static const _kUsername = 'mh.username';
   static const _kName = 'mh.name';
-  static const _kThemeId = 'mh.themeId';
   static const _kAccountType = 'mh.accountType';
+
+  static const _kThemeId = 'mh.themeId';
   static const _kChildDevice = 'mh.isChildDevice';
   static const _kHasSignedIn = 'mh.hasSignedIn';
+
+  /// Every key a session lives in, current and historical.
+  static const _sessionKeys = <String>[
+    _kSession,
+    _kUserId,
+    _kToken,
+    _kUsername,
+    _kName,
+    _kAccountType,
+  ];
 
   // `first_unlock_this_device`, NOT `unlocked`: a VoIP push can cold-start
   // the app while the phone is LOCKED, and the session must be readable
@@ -54,16 +85,46 @@ class SessionStore {
   Future<String?> _read(String key) async {
     final value = await _storage.read(key: key);
     if (value != null) return value;
-    if (kIsWeb || !Platform.isIOS) return null; // no iOS keychain on web
+    // `defaultTargetPlatform` rather than `Platform.isIOS`, matching
+    // `DeviceIdentity._read`: it is what the storage plugin dispatches its own
+    // options on, so the two agree by construction — and unlike dart:io it can
+    // be overridden in a test, which is what lets the migration below be
+    // covered at all.
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) return null;
+    String? legacy;
     try {
-      final legacy = await _legacyStorage.read(key: key);
-      if (legacy != null) {
-        await _storage.write(key: key, value: legacy);
-      }
-      return legacy;
+      legacy = await _legacyStorage.read(key: key);
     } catch (_) {
       return null;
     }
+    if (legacy == null) return null;
+    // Re-stamping is best effort, and its failure must NOT lose the value we
+    // just read. The previous version returned null from this catch, which
+    // turned "your session is in the old slot" into "you have no session" —
+    // and then the next sign-in wrote over nothing, because [_write]'s hazard
+    // below made that fail too.
+    try {
+      await _write(key, legacy);
+    } catch (_) {/* stays in the legacy slot; still readable next launch */}
+    return legacy;
+  }
+
+  /// Write [key], deleting any existing item first.
+  ///
+  /// The delete is load-bearing. The plugin's `write` probes with
+  /// `containsKey`, whose query carries `kSecAttrAccessible`, so an item
+  /// stored under the OLD accessibility class reads as absent; `write` then
+  /// falls through to `SecItemAdd`, which fails with `errSecDuplicateItem`
+  /// because accessibility is not part of a generic password's primary key.
+  /// A plain overwrite across the two classes therefore THROWS rather than
+  /// replacing — silently, since every caller used to swallow it.
+  ///
+  /// `delete` has no such problem: it nils the accessibility attribute, so it
+  /// matches the item whichever class it was written under. Delete-then-add is
+  /// what makes the overwrite land.
+  Future<void> _write(String key, String value) async {
+    await _storage.delete(key: key);
+    await _storage.write(key: key, value: value);
   }
 
   /// Sticky marker that this handset belongs to a child.
@@ -113,16 +174,26 @@ class SessionStore {
     String? token,
     AccountType accountType = AccountType.adult,
   }) async {
-    if (token != null) {
-      _token = token;
-      await _storage.write(key: _kToken, value: token);
-    }
-    await _storage.write(key: _kUserId, value: userId);
-    await _storage.write(key: _kUsername, value: username);
-    await _storage.write(key: _kName, value: name);
-    await _storage.write(key: _kAccountType, value: accountType.wire);
+    final effective = token ?? _token ?? await _read(_kToken);
+    final encoded = jsonEncode(<String, dynamic>{
+      'v': 1,
+      'userId': userId,
+      'token': effective,
+      'username': username,
+      'name': name,
+      'accountType': accountType.wire,
+    });
+    // One write, so there is no window in which half of this session and half
+    // of the last one are both on disk. If it throws, the PREVIOUS session
+    // survives intact — which is recoverable — rather than a blend of the two,
+    // which is not.
+    await _write(_kSession, encoded);
+    _token = effective;
+    // Only now, with the new session safely stored: a legacy item left live
+    // here is a session [loadSession] would fall back to.
+    await _clearLegacySession();
     _hasSignedInBefore = true;
-    await _storage.write(key: _kHasSignedIn, value: 'true');
+    await _write(_kHasSignedIn, 'true');
     if (accountType == AccountType.child) await markChildDevice();
   }
 
@@ -131,9 +202,19 @@ class SessionStore {
     // there is no session left to restore.
     _isChildDevice = (await _read(_kChildDevice)) == 'true';
     _hasSignedInBefore = (await _read(_kHasSignedIn)) == 'true';
-    final id = await _read(_kUserId);
-    _token = await _read(_kToken);
-    if (id == null || id.isEmpty) return null;
+
+    final record = await _readSession() ?? await _migrateLegacySession();
+    if (record == null) {
+      _token = null;
+      return null;
+    }
+
+    final id = record['userId'] as String? ?? '';
+    _token = record['token'] as String?;
+    if (id.isEmpty) {
+      await clearSession();
+      return null;
+    }
     // A stored identity with no token is a session from before tokens existed.
     // It cannot authenticate anything, so it is not a session — returning null
     // sends the app to the login screen, which is the honest outcome and the
@@ -142,9 +223,9 @@ class SessionStore {
       await clearSession();
       return null;
     }
-    final username = await _read(_kUsername) ?? '';
-    final name = await _read(_kName) ?? username;
-    final type = AccountTypeWire.parse(await _read(_kAccountType));
+    final username = record['username'] as String? ?? '';
+    final name = record['name'] as String? ?? username;
+    final type = AccountTypeWire.parse(record['accountType'] as String?);
     if (type == AccountType.child) _isChildDevice = true;
     return Session(
       userId: id,
@@ -154,9 +235,58 @@ class SessionStore {
     );
   }
 
+  /// The stored session, or null when there is none or it is unreadable.
+  ///
+  /// Corrupt JSON is treated as "no session" rather than thrown: the only
+  /// thing an exception could achieve here is a launch that dies before the
+  /// login screen, which is strictly worse than asking someone to sign in.
+  Future<Map<String, dynamic>?> _readSession() async {
+    final raw = await _read(_kSession);
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      final decoded = jsonDecode(raw);
+      return decoded is Map<String, dynamic> ? decoded : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Fold a pre-blob session into [_kSession], and return what it held.
+  ///
+  /// Runs at most once per install in practice, but is written to be safe
+  /// every launch: if the rewrite fails the legacy items stay exactly where
+  /// they are and this returns them anyway, so an install that cannot migrate
+  /// still signs in rather than being silently logged out.
+  Future<Map<String, dynamic>?> _migrateLegacySession() async {
+    final id = await _read(_kUserId);
+    if (id == null || id.isEmpty) return null;
+    final username = await _read(_kUsername) ?? '';
+    final record = <String, dynamic>{
+      'v': 1,
+      'userId': id,
+      'token': await _read(_kToken),
+      'username': username,
+      'name': await _read(_kName) ?? username,
+      'accountType': await _read(_kAccountType) ?? AccountType.adult.wire,
+    };
+    try {
+      await _write(_kSession, jsonEncode(record));
+      await _clearLegacySession();
+    } catch (_) {/* left in the old slot; re-tried next launch */}
+    return record;
+  }
+
+  Future<void> _clearLegacySession() async {
+    await _storage.delete(key: _kUserId);
+    await _storage.delete(key: _kToken);
+    await _storage.delete(key: _kUsername);
+    await _storage.delete(key: _kName);
+    await _storage.delete(key: _kAccountType);
+  }
+
   Future<void> markChildDevice() async {
     _isChildDevice = true;
-    await _storage.write(key: _kChildDevice, value: 'true');
+    await _write(_kChildDevice, 'true');
   }
 
   /// Deliberately NOT called by [clearSession] — a child signing out (which
@@ -178,15 +308,15 @@ class SessionStore {
   /// rather than the session, and both must outlive a sign-out.
   Future<void> clearSession() async {
     _token = null;
-    await _storage.delete(key: _kToken);
-    await _storage.delete(key: _kUserId);
-    await _storage.delete(key: _kUsername);
-    await _storage.delete(key: _kName);
-    await _storage.delete(key: _kAccountType);
+    // Both layouts. Clearing only the current one would leave a half-migrated
+    // install with a legacy session [loadSession] falls back to — signing
+    // someone back in, as a previous account, on the very next launch.
+    for (final key in _sessionKeys) {
+      await _storage.delete(key: key);
+    }
   }
 
-  Future<void> saveThemeId(String id) async =>
-      _storage.write(key: _kThemeId, value: id);
+  Future<void> saveThemeId(String id) async => _write(_kThemeId, id);
 
   Future<String?> loadThemeId() async => _read(_kThemeId);
 }

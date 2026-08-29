@@ -2915,6 +2915,10 @@ class AppLocalizationsTr extends AppLocalizations {
       'Bir şeyler ters gitti. Tekrar dene.';
 
   @override
+  String get profileScreenDeleteAccountFailed =>
+      'Bir şeyler ters gitti. Tekrar dene.';
+
+  @override
   String get childPairScreenAccountGoneError => 'O hesap artık yok.';
 
   @override

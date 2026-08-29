@@ -2938,6 +2938,10 @@ class AppLocalizationsHi extends AppLocalizations {
       'कुछ गड़बड़ हो गई। फिर से कोशिश करो।';
 
   @override
+  String get profileScreenDeleteAccountFailed =>
+      'कुछ गड़बड़ हो गई। फिर से कोशिश करो।';
+
+  @override
   String get childPairScreenAccountGoneError => 'वह अकाउंट अब मौजूद नहीं है।';
 
   @override

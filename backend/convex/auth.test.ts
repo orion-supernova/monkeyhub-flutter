@@ -1,6 +1,6 @@
 import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import schema from "./schema";
 
 /**
@@ -354,5 +354,202 @@ describe("device login — the desktop QR flow, end to end", () => {
     // The session belongs to the ATTACKER, not the account they named.
     expect(claimed.userId).toBe(attacker.userId);
     expect(claimed.userId).not.toBe(victim.userId);
+  });
+});
+
+/**
+ * Deleting an account has to end its sessions.
+ *
+ * The gap these cover shipped silently and stayed live for four days: the
+ * `sessions` table arrived after `purgeUser` was written, `purgeUser` never
+ * learned about it, and `requireSession` never checked that the account behind
+ * a token still existed. The result was a bearer token for a hard-deleted user
+ * that authenticated forever and resolved to a dangling id — which a phone
+ * then rendered as a signed-in account nobody could sign out of.
+ */
+describe("deleting an account ends its sessions", () => {
+  test("a token minted before deletion stops working after it", async () => {
+    const t = convexTest(schema);
+    const me = await signUp(t, "goksu");
+
+    // Works while the account exists.
+    await expect(
+      t.query(api.auth.whoami, { sessionToken: me.token }),
+    ).resolves.toMatchObject({ username: "goksu" });
+
+    await t.mutation(api.auth.deleteAccount, {
+      sessionToken: me.token,
+      userId: me.userId,
+    });
+
+    // Asserted through `listDevices` rather than `whoami`: `whoami` re-checks
+    // the account itself, so it would reject here even if `purgeUser` had
+    // revoked nothing. `listDevices` only knows what `requireSession` tells it.
+    //
+    // REVOKED, not UNKNOWN: the row is still there, deliberately, so the
+    // client can say "you were signed out" rather than reporting a bug.
+    await expect(
+      t.query(api.voipTokens.listDevices, {
+        sessionToken: me.token,
+        userId: me.userId,
+        deviceId: DEVICE,
+      }),
+    ).rejects.toThrow(/SESSION_REVOKED/);
+  });
+
+  test("every device is signed out, not just the one that asked", async () => {
+    const t = convexTest(schema);
+    const me = await signUp(t, "goksu");
+    const second = await t.mutation(api.auth.login, {
+      username: "goksu",
+      passwordHash: "hash-goksu",
+      deviceId: OTHER_DEVICE,
+    });
+
+    await t.mutation(api.auth.deleteAccount, {
+      sessionToken: me.token,
+      userId: me.userId,
+    });
+
+    await expect(
+      t.query(api.voipTokens.listDevices, {
+        sessionToken: second.token,
+        userId: me.userId,
+        deviceId: OTHER_DEVICE,
+      }),
+    ).rejects.toThrow(/SESSION_REVOKED/);
+  });
+
+  test("purgeUser leaves no live session row behind", async () => {
+    const t = convexTest(schema);
+    const me = await signUp(t, "goksu");
+    await t.mutation(api.auth.deleteAccount, {
+      sessionToken: me.token,
+      userId: me.userId,
+    });
+
+    const live = await t.run(async (ctx) =>
+      ctx.db
+        .query("sessions")
+        .withIndex("by_revoked_at", (q) => q.eq("revokedAt", undefined))
+        .collect(),
+    );
+    expect(live).toHaveLength(0);
+  });
+
+  /**
+   * The pre-existing-orphan case: rows written before `purgeUser` learned to
+   * revoke. Nothing stamps `revokedAt` on these, so only the existence check
+   * inside `requireSession` can stop them.
+   */
+  test("a session orphaned by an older purge is refused too", async () => {
+    const t = convexTest(schema);
+    const me = await signUp(t, "goksu");
+
+    // Delete the user row directly, the way a purge from before the fix did:
+    // no `revokedAt` is ever stamped, so the row still reads as live.
+    await t.run(async (ctx) => ctx.db.delete(me.userId));
+
+    // Deliberately NOT `whoami` — that one re-checks the account itself, so it
+    // would reject here even with `requireSession` unfixed and prove nothing.
+    // `listDevices` has no such check: before the fix it answered `[]` quite
+    // happily for a deleted account, which is precisely how a purged user kept
+    // a working session.
+    await expect(
+      t.query(api.voipTokens.listDevices, {
+        sessionToken: me.token,
+        userId: me.userId,
+        deviceId: DEVICE,
+      }),
+    ).rejects.toThrow(/SESSION_REVOKED/);
+  });
+});
+
+describe("whoami", () => {
+  test("answers with the token's account", async () => {
+    const t = convexTest(schema);
+    const me = await signUp(t, "lulu");
+
+    expect(await t.query(api.auth.whoami, { sessionToken: me.token })).toEqual({
+      userId: me.userId,
+      username: "lulu",
+      name: "lulu",
+      accountType: "adult",
+    });
+  });
+
+  /**
+   * The reason this function takes no arguments. A device whose keychain holds
+   * one account's token beside another account's name is exactly the state
+   * being fixed, and `whoami` is what lets it notice — so it must answer for
+   * the token and nothing else.
+   */
+  test("two accounts get two different answers from the same call", async () => {
+    const t = convexTest(schema);
+    const goksu = await signUp(t, "goksu");
+    const lulu = await t.mutation(api.auth.signup, {
+      username: "lulu",
+      name: "lulu",
+      passwordHash: "hash-lulu",
+      recoveryKeyHash: "recovery-lulu",
+      deviceId: OTHER_DEVICE,
+    });
+
+    const a = await t.query(api.auth.whoami, { sessionToken: goksu.token });
+    const b = await t.query(api.auth.whoami, { sessionToken: lulu.token });
+    expect(a.username).toBe("goksu");
+    expect(b.username).toBe("lulu");
+    expect(a.userId).not.toBe(b.userId);
+  });
+});
+
+/**
+ * The backfill for sessions orphaned before `purgeUser` learned to revoke.
+ *
+ * Run by hand against production, so the thing that matters is that a second
+ * run is harmless and the count means what it says.
+ */
+describe("orphaned session sweep", () => {
+  async function orphan(t: ReturnType<typeof convexTest>, username: string) {
+    const me = await signUp(t, username);
+    // A purge from before the fix: the user row goes, the session stays live.
+    await t.run(async (ctx) => ctx.db.delete(me.userId));
+    return me;
+  }
+
+  test("counts the orphans and leaves healthy sessions alone", async () => {
+    const t = convexTest(schema);
+    await signUp(t, "lulu");
+    await orphan(t, "goksu");
+
+    expect(await t.query(internal.sessions.countOrphaned, {})).toEqual({
+      live: 2,
+      orphaned: 1,
+    });
+  });
+
+  test("revoking clears the count, and running again is a no-op", async () => {
+    const t = convexTest(schema);
+    const healthy = await signUp(t, "lulu");
+    await orphan(t, "goksu");
+
+    expect(await t.mutation(internal.sessions.revokeOrphaned, {})).toEqual({
+      revoked: 1,
+      done: true,
+    });
+    expect(await t.mutation(internal.sessions.revokeOrphaned, {})).toEqual({
+      revoked: 0,
+      done: true,
+    });
+    expect(await t.query(internal.sessions.countOrphaned, {})).toEqual({
+      live: 1,
+      orphaned: 0,
+    });
+
+    // The account that still exists is untouched — a sweep that signed
+    // everybody out would "fix" the count and break the app.
+    await expect(
+      t.query(api.auth.whoami, { sessionToken: healthy.token }),
+    ).resolves.toMatchObject({ username: "lulu" });
   });
 });

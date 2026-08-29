@@ -836,6 +836,7 @@
   "childPairScreenIntro": "请大人打开 MonkeyHub，然后点击“配对设备”。接着扫描对方的验证码，或者输入对方读给你听的6位数字。",
   "childPairScreenOrDivider": "或",
   "childPairScreenGenericError": "出错了，请重试。",
+  "profileScreenDeleteAccountFailed": "出错了，请重试。",
   "childPairScreenAccountGoneError": "这个账号已经不存在了。",
   "childPairScreenScanButtonLabel": "扫描对方的验证码",
   "childPairScreenNoCameraMessage": "没有摄像头，请改为输入6位数字。",

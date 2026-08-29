@@ -846,6 +846,7 @@
   "childPairScreenIntro": "Be en vuxen öppna MonkeyHub och trycka på ”para ihop en enhet”. Skanna sedan deras kod, eller skriv in de sex siffror de läser upp.",
   "childPairScreenOrDivider": "eller",
   "childPairScreenGenericError": "Något gick fel. Försök igen.",
+  "profileScreenDeleteAccountFailed": "Något gick fel. Försök igen.",
   "childPairScreenAccountGoneError": "Det kontot finns inte längre.",
   "childPairScreenScanButtonLabel": "SKANNA DERAS KOD",
   "childPairScreenNoCameraMessage": "Ingen kamera här — skriv in de sex siffrorna istället.",

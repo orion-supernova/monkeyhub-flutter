@@ -5133,6 +5133,12 @@ abstract class AppLocalizations {
   /// **'Something went wrong. Try again.'**
   String get childPairScreenGenericError;
 
+  /// Shown when deleting the account did not reach the server. The device is signed out either way, so the account may or may not be gone.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Try again.'**
+  String get profileScreenDeleteAccountFailed;
+
   /// Error shown on the child pairing screen specifically for USER_NOT_FOUND — here it means the child's account was deleted, not that a typed username didn't match (no username is typed on this screen).
   ///
   /// In en, this message translates to:

@@ -72,6 +72,7 @@ class SessionGuard {
   static const _unknown = 'SESSION_UNKNOWN';
   static const _revoked = 'SESSION_REVOKED';
 
+
   /// Installed by `app.dart`. Called at most once per lost session — see
   /// [noteError]'s latch.
   VoidCallback? onSessionLost;

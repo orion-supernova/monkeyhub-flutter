@@ -2977,6 +2977,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get childPairScreenGenericError => 'حدث خطأ ما. حاول مرة أخرى.';
 
   @override
+  String get profileScreenDeleteAccountFailed => 'حدث خطأ ما. حاول مرة أخرى.';
+
+  @override
   String get childPairScreenAccountGoneError => 'هذا الحساب لم يعد موجودًا.';
 
   @override

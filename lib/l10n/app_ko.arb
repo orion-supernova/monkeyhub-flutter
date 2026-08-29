@@ -836,6 +836,7 @@
   "childPairScreenIntro": "보호자에게 몽키허브를 열고 '기기 페어링하기'를 눌러 달라고 부탁하세요. 그런 다음 보호자의 코드를 스캔하거나, 보호자가 불러주는 여섯 자리 숫자를 입력하세요.",
   "childPairScreenOrDivider": "또는",
   "childPairScreenGenericError": "문제가 발생했어요. 다시 시도해 주세요.",
+  "profileScreenDeleteAccountFailed": "문제가 발생했어요. 다시 시도해 주세요.",
   "childPairScreenAccountGoneError": "그 계정은 더 이상 존재하지 않아요.",
   "childPairScreenScanButtonLabel": "코드 스캔하기",
   "childPairScreenNoCameraMessage": "카메라를 사용할 수 없어요 — 대신 여섯 자리 숫자를 입력하세요.",

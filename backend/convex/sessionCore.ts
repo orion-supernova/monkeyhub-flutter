@@ -136,6 +136,22 @@ export async function requireSession(
     .first();
   if (!row) throw new Error(ERR_SESSION_UNKNOWN);
   if (row.revokedAt !== undefined) throw new Error(ERR_SESSION_REVOKED);
+  // The account itself must still exist. `purgeUser` now revokes sessions on
+  // its way out, so this is belt-and-braces for the rows it already left
+  // behind — but it is the check that actually closes the hole, because a
+  // token whose `users` row is gone otherwise authenticates FOREVER and hands
+  // every caller a dangling id. `users.getProfile` then answers `null` rather
+  // than erroring, so nothing downstream ever notices.
+  //
+  // REVOKED, not UNKNOWN: a deleted account is "you were signed out", which is
+  // exactly what the client should say. UNKNOWN is reserved for the shape a
+  // bug takes (see the doc comment above) and a purge is not one.
+  //
+  // Cost: one document get by id on every authenticated call, in the same
+  // transaction as the index read above. Bought deliberately — the alternative
+  // is a session layer that cannot tell a live account from a deleted one.
+  const user = await ctx.db.get(row.userId);
+  if (!user) throw new Error(ERR_SESSION_REVOKED);
   return row.userId;
 }
 

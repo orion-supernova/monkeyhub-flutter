@@ -2944,6 +2944,9 @@ class AppLocalizationsSv extends AppLocalizations {
   String get childPairScreenGenericError => 'Något gick fel. Försök igen.';
 
   @override
+  String get profileScreenDeleteAccountFailed => 'Något gick fel. Försök igen.';
+
+  @override
   String get childPairScreenAccountGoneError => 'Det kontot finns inte längre.';
 
   @override

@@ -846,6 +846,7 @@
   "childPairScreenIntro": "Pede a um crescido para abrir o MonkeyHub e tocar em “emparelhar dispositivo”. Depois digitaliza o código dele, ou escreve os seis números que ele te disser.",
   "childPairScreenOrDivider": "ou",
   "childPairScreenGenericError": "Algo correu mal. Tenta outra vez.",
+  "profileScreenDeleteAccountFailed": "Algo correu mal. Tenta outra vez.",
   "childPairScreenAccountGoneError": "Essa conta já não existe.",
   "childPairScreenScanButtonLabel": "DIGITALIZA O CÓDIGO DELE",
   "childPairScreenNoCameraMessage": "Sem câmara aqui — escreve os seis números em vez disso.",

@@ -836,6 +836,7 @@
   "childPairScreenIntro": "किसी बड़े से MonkeyHub खोलने और “डिवाइस पेयर करें” पर टैप करने के लिए कहो। फिर उनका कोड स्कैन करो, या वे जो छह अंक बताएं, उन्हें टाइप करो।",
   "childPairScreenOrDivider": "या",
   "childPairScreenGenericError": "कुछ गड़बड़ हो गई। फिर से कोशिश करो।",
+  "profileScreenDeleteAccountFailed": "कुछ गड़बड़ हो गई। फिर से कोशिश करो।",
   "childPairScreenAccountGoneError": "वह अकाउंट अब मौजूद नहीं है।",
   "childPairScreenScanButtonLabel": "उनका कोड स्कैन करो",
   "childPairScreenNoCameraMessage": "यहाँ कैमरा नहीं है — इसके बजाय छह अंक टाइप करो।",

@@ -2823,6 +2823,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get childPairScreenGenericError => '問題が発生しました。もう一度お試しください。';
 
   @override
+  String get profileScreenDeleteAccountFailed => '問題が発生しました。もう一度お試しください。';
+
+  @override
   String get childPairScreenAccountGoneError => 'そのアカウントはもう存在しません。';
 
   @override

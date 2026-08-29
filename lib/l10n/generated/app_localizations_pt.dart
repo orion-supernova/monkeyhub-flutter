@@ -2966,6 +2966,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get childPairScreenGenericError => 'Algo correu mal. Tenta outra vez.';
 
   @override
+  String get profileScreenDeleteAccountFailed =>
+      'Algo correu mal. Tenta outra vez.';
+
+  @override
   String get childPairScreenAccountGoneError => 'Essa conta já não existe.';
 
   @override
@@ -11247,6 +11251,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get childPairScreenGenericError => 'Algo deu errado. Tente de novo.';
+
+  @override
+  String get profileScreenDeleteAccountFailed =>
+      'Algo deu errado. Tente de novo.';
 
   @override
   String get childPairScreenAccountGoneError => 'Essa conta não existe mais.';

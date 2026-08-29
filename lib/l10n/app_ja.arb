@@ -836,6 +836,7 @@
   "childPairScreenIntro": "保護者にMonkeyHubを開いて「デバイスをペアリング」をタップしてもらいましょう。表示されたコードをスキャンするか、読み上げられた6桁の数字を入力してください。",
   "childPairScreenOrDivider": "または",
   "childPairScreenGenericError": "問題が発生しました。もう一度お試しください。",
+  "profileScreenDeleteAccountFailed": "問題が発生しました。もう一度お試しください。",
   "childPairScreenAccountGoneError": "そのアカウントはもう存在しません。",
   "childPairScreenScanButtonLabel": "保護者のコードをスキャン",
   "childPairScreenNoCameraMessage": "カメラが使えません。代わりに6桁の数字を入力してください。",

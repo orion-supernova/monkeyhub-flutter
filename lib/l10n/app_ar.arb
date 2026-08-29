@@ -836,6 +836,7 @@
   "childPairScreenIntro": "اطلب من ولي أمرك فتح تطبيق MonkeyHub والنقر على \"إقران جهاز\"، ثم امسح رمزه ضوئيًا، أو اكتب الأرقام الستة التي يُمليها عليك.",
   "childPairScreenOrDivider": "أو",
   "childPairScreenGenericError": "حدث خطأ ما. حاول مرة أخرى.",
+  "profileScreenDeleteAccountFailed": "حدث خطأ ما. حاول مرة أخرى.",
   "childPairScreenAccountGoneError": "هذا الحساب لم يعد موجودًا.",
   "childPairScreenScanButtonLabel": "امسح رمزه ضوئيًا",
   "childPairScreenNoCameraMessage": "لا توجد كاميرا هنا — أدخل الأرقام الستة بدلاً من ذلك.",

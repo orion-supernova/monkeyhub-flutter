@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { internalMutation, internalQuery } from "./_generated/server";
 import { mutation, query } from "./functions";
 
 /**
@@ -73,5 +74,80 @@ export const listSessions = query({
         createdAt: r.createdAt,
         lastSeenAt: r.lastSeenAt,
       }));
+  },
+});
+
+/**
+ * How many rows to touch per run of the sweeps below.
+ *
+ * Same bound every other sweep in this backend takes, for the same reason: a
+ * mutation that walks an unbounded table is one bad day away from timing out
+ * and never completing at all. Re-run until the answer is 0.
+ */
+const ORPHAN_PAGE = 200;
+
+/**
+ * Live sessions whose account no longer exists.
+ *
+ * The direct measurement of the `purgeUser` gap: before it revoked sessions,
+ * every deleted account left its devices holding a token that still
+ * authenticated. This counts what that left behind.
+ *
+ * Read-only and unbounded on purpose — it is a diagnostic run by hand, and a
+ * paged count that could not see the whole table would answer the wrong
+ * question. `revokeOrphaned` does the writing, and that one is bounded.
+ */
+export const countOrphaned = internalQuery({
+  args: {},
+  returns: v.object({ live: v.number(), orphaned: v.number() }),
+  handler: async (ctx) => {
+    const rows = await ctx.db
+      .query("sessions")
+      .withIndex("by_revoked_at", (q) => q.eq("revokedAt", undefined))
+      .collect();
+    let orphaned = 0;
+    for (const row of rows) {
+      if ((await ctx.db.get(row.userId)) === null) orphaned++;
+    }
+    return { live: rows.length, orphaned };
+  },
+});
+
+/**
+ * Revoke the sessions [countOrphaned] finds.
+ *
+ * Revoke, not delete, to match what `purgeUser` now does on the way out: the
+ * device gets SESSION_REVOKED on its next call and `gcRevokedSessions` clears
+ * the row a week later.
+ *
+ * Idempotent — a second run finds nothing, because the rows it revoked are no
+ * longer in the `revokedAt === undefined` range it scans.
+ */
+export const revokeOrphaned = internalMutation({
+  args: {},
+  returns: v.object({ revoked: v.number(), done: v.boolean() }),
+  handler: async (ctx) => {
+    const now = Date.now();
+    const rows = await ctx.db
+      .query("sessions")
+      .withIndex("by_revoked_at", (q) => q.eq("revokedAt", undefined))
+      .collect();
+    let revoked = 0;
+    let remaining = 0;
+    for (const row of rows) {
+      if ((await ctx.db.get(row.userId)) !== null) continue;
+      // The bound is on WRITES, not on the scan, and that is the whole trick.
+      // Taking the first ORPHAN_PAGE *rows* instead would re-read the same
+      // page of healthy sessions on every run and never reach an orphan
+      // sitting behind them — a sweep that reports "not done" forever and
+      // fixes nothing.
+      if (revoked >= ORPHAN_PAGE) {
+        remaining++;
+        continue;
+      }
+      await ctx.db.patch(row._id, { revokedAt: now });
+      revoked++;
+    }
+    return { revoked, done: remaining === 0 };
   },
 });

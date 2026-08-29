@@ -1,6 +1,10 @@
 import { internalMutation } from "./_generated/server";
 import {  mutation, publicMutation, query  } from "./functions";
-import { mintSession, revokeSessionsForDevice } from "./sessionCore";
+import {
+  ERR_SESSION_REVOKED,
+  mintSession,
+  revokeSessionsForDevice,
+} from "./sessionCore";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { ACCOUNT_CHILD, ERR_MUST_PAIR, ERR_NOT_ALLOWED } from "./childGuard";
@@ -23,6 +27,48 @@ import {
   recoveryKey,
   MAX_RECOVERY_FAILURES,
 } from "./rateLimit";
+
+/**
+ * Who the caller actually is, resolved from the bearer token alone.
+ *
+ * The client has never had a way to ask this. Its identity at launch comes
+ * entirely from the keychain, and the keychain holds the token and the
+ * username as separate items — so a half-finished write leaves a device
+ * carrying one account's token next to another account's name, and every
+ * screen renders the name. `functions.ts` overwrites the client-supplied id
+ * with the token's, so such a device operates correctly and displays wrongly,
+ * forever, because nothing ever compares the two.
+ *
+ * This is that comparison's other half. Takes no arguments on purpose: an
+ * argument is a thing a confused client could get wrong, and the entire point
+ * is to trust nothing it says about itself.
+ *
+ * Session loss surfaces the usual way — `requireSession` throws before the
+ * handler runs, and `SessionGuard` turns it into a sign-out.
+ */
+export const whoami = query({
+  args: {},
+  returns: v.object({
+    userId: v.id("users"),
+    username: v.string(),
+    name: v.string(),
+    accountType: v.string(),
+  }),
+  handler: async (ctx, { userId }) => {
+    const user = await ctx.db.get(userId);
+    // Unreachable: `requireSession` already refuses a token whose account is
+    // gone. Kept because the alternative to a thrown error here is a silent
+    // `null` that the client would file under "offline" — the exact failure
+    // mode this function exists to end.
+    if (!user) throw new Error(ERR_SESSION_REVOKED);
+    return {
+      userId: user._id,
+      username: user.username,
+      name: user.name ?? user.username,
+      accountType: user.accountType ?? "adult",
+    };
+  },
+});
 
 export const signup = publicMutation({
   args: {
@@ -818,6 +864,52 @@ async function purgeUser(ctx: any, userId: any) {
   await deleteRows(
     ctx,
     await ctx.db.query("userDevices").withIndex("by_user", byUser(userId)).collect(),
+  );
+
+  // ── Sessions ─────────────────────────────────────────────────────────────
+  // The one omission that let a deleted account keep signing in. `sessions`
+  // landed after this teardown was written, so every purge before this line
+  // existed left a live bearer token pointing at a row that was about to
+  // vanish — and `requireSession` handed that dangling id straight to callers.
+  //
+  // REVOKED rather than deleted, so the device's next call gets the honest
+  // SESSION_REVOKED ("you were signed out") instead of SESSION_UNKNOWN, and so
+  // `gcRevokedSessions` collects the rows on the schedule it already owns
+  // rather than this becoming a second disposal path.
+  const now = Date.now();
+  for (const row of await ctx.db
+    .query("sessions")
+    .withIndex("by_user", byUser(userId))
+    .collect()) {
+    if (row.revokedAt === undefined) {
+      await ctx.db.patch(row._id, { revokedAt: now });
+    }
+  }
+
+  // ── Group calls ──────────────────────────────────────────────────────────
+  // Same class of omission as `sessions`: three tables carrying `v.id("users")`
+  // that arrived after this teardown was written.
+  //
+  // Only the indexed edges are swept. `groupCallSignals.fromUserId` and
+  // `groupCalls.startedBy` have no index, and unlike `rooms.createdBy` — which
+  // must be re-seated because a room outlives everyone in it — both belong to
+  // a record that is already ephemeral: `gcTerminalGroupCalls` reaps ended
+  // calls and `gcConsumedSignals` their signals, so a dangling id there has a
+  // bounded life and nothing reads it for authorization. A purge-only full
+  // table scan to beat the sweep to it is the worse trade.
+  await deleteRows(
+    ctx,
+    await ctx.db
+      .query("groupCallParticipants")
+      .withIndex("by_user_status", (q: any) => q.eq("userId", userId))
+      .collect(),
+  );
+  await deleteRows(
+    ctx,
+    await ctx.db
+      .query("groupCallSignals")
+      .withIndex("by_to_unconsumed", (q: any) => q.eq("toUserId", userId))
+      .collect(),
   );
 
   // ── Social identities ────────────────────────────────────────────────────

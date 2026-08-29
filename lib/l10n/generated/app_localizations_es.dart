@@ -2962,6 +2962,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'Algo salió mal. Inténtalo de nuevo.';
 
   @override
+  String get profileScreenDeleteAccountFailed =>
+      'Algo salió mal. Inténtalo de nuevo.';
+
+  @override
   String get childPairScreenAccountGoneError => 'Esa cuenta ya no existe.';
 
   @override

@@ -846,6 +846,7 @@
   "childPairScreenIntro": "Pídele a un mayor que abra MonkeyHub y toque “emparejar un dispositivo”. Luego escanea su código, o escribe los seis números que te diga.",
   "childPairScreenOrDivider": "o",
   "childPairScreenGenericError": "Algo salió mal. Inténtalo de nuevo.",
+  "profileScreenDeleteAccountFailed": "Algo salió mal. Inténtalo de nuevo.",
   "childPairScreenAccountGoneError": "Esa cuenta ya no existe.",
   "childPairScreenScanButtonLabel": "ESCANEA SU CÓDIGO",
   "childPairScreenNoCameraMessage": "No hay cámara aquí — escribe los seis números en su lugar.",

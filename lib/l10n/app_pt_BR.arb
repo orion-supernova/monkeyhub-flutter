@@ -846,6 +846,7 @@
   "childPairScreenIntro": "Peça para um adulto abrir o MonkeyHub e tocar em “parear um dispositivo”. Depois, escaneie o código dele ou digite os seis números que ele disser em voz alta.",
   "childPairScreenOrDivider": "ou",
   "childPairScreenGenericError": "Algo deu errado. Tente de novo.",
+  "profileScreenDeleteAccountFailed": "Algo deu errado. Tente de novo.",
   "childPairScreenAccountGoneError": "Essa conta não existe mais.",
   "childPairScreenScanButtonLabel": "ESCANEAR CÓDIGO DELE",
   "childPairScreenNoCameraMessage": "Sem câmera aqui — digite os seis números.",

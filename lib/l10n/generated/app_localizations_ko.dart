@@ -2831,6 +2831,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get childPairScreenGenericError => '문제가 발생했어요. 다시 시도해 주세요.';
 
   @override
+  String get profileScreenDeleteAccountFailed => '문제가 발생했어요. 다시 시도해 주세요.';
+
+  @override
   String get childPairScreenAccountGoneError => '그 계정은 더 이상 존재하지 않아요.';
 
   @override

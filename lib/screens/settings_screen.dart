@@ -151,7 +151,13 @@ class _SettingsScreenState extends State<SettingsScreen>
         s.userId,
         viewerUserId: s.userId,
       );
-      if (!mounted || fresh == null) return;
+      if (!mounted) return;
+      // See the note in `home_screen._loadMe`: a null profile for ourselves
+      // means the account is gone, not that the fetch was uninteresting.
+      if (fresh == null) {
+        widget.auth.onSelfProfileMissing();
+        return;
+      }
       setState(() => _me = fresh);
     } catch (_) {
       /* keep the bootstrap ChatUser; avatar stays generic */

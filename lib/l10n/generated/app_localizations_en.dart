@@ -2922,6 +2922,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get childPairScreenGenericError => 'Something went wrong. Try again.';
 
   @override
+  String get profileScreenDeleteAccountFailed =>
+      'Something went wrong. Try again.';
+
+  @override
   String get childPairScreenAccountGoneError =>
       'That account isn’t there any more.';
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import '../auth/recovery_phrase.dart';
+import '../auth/session_store.dart';
 import '../auth/social_sign_in.dart';
 import '../models/chat_message.dart';
 import '../models/chat_room.dart';
@@ -62,6 +63,28 @@ class ChatApi {
       'deviceId': await DeviceIdentity.ensure(),
     });
     return AuthResult.fromJson(res as Map<String, dynamic>);
+  }
+
+  /// Who the server thinks this device's token belongs to.
+  ///
+  /// Takes no arguments on purpose — the whole value of this call is that it
+  /// trusts nothing the client believes about itself. See `auth.whoami`.
+  ///
+  /// Null on a malformed reply rather than throwing: the caller treats "no
+  /// answer" as "ask again later", and a session that has actually died throws
+  /// from the layer below, where `SessionGuard` is watching.
+  Future<Session?> whoami() async {
+    final res = await _cv.query('auth:whoami', const {});
+    if (res is! Map<String, dynamic>) return null;
+    final userId = res['userId'] as String?;
+    final username = res['username'] as String?;
+    if (userId == null || username == null) return null;
+    return Session(
+      userId: userId,
+      username: username,
+      name: res['name'] as String? ?? username,
+      accountType: AccountTypeWire.parse(res['accountType'] as String?),
+    );
   }
 
   Future<void> logout({required String userId}) async {

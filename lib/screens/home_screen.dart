@@ -298,7 +298,16 @@ class _HomeScreenState extends State<HomeScreen>
         session.userId,
         viewerUserId: session.userId,
       );
-      if (!mounted || fresh == null) return;
+      if (!mounted) return;
+      // `null` is not "nothing changed" — `users.getProfile` returns it only
+      // when the row is gone, and asking for our OWN profile means this
+      // account has been deleted. Conflating it with `!mounted` is what kept a
+      // deleted account on screen indefinitely: the stale cached username was
+      // rendered, the correction was discarded, and nothing ever retried.
+      if (fresh == null) {
+        widget.auth.onSelfProfileMissing();
+        return;
+      }
       setState(() => _me = fresh);
     } catch (_) {}
   }

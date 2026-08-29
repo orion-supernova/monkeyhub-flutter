@@ -614,9 +614,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _deletingAccount = true;
     });
     final nav = Navigator.of(context);
+    // Both captured before the await: the toast because `AppToast.of` wants a
+    // context that is still mounted, and l10n for the same reason.
+    final toast = AppToast.of(context);
+    final l10n = AppLocalizations.of(context);
     try {
       await auth.deleteAccount();
       if (!mounted) return;
+      nav.popUntil((r) => r.isFirst);
+    } catch (e) {
+      // The local teardown ran regardless — `deleteAccount` does it in a
+      // `finally` — so this device is signed out whatever happened. What is
+      // genuinely unknown is the SERVER's half: the mutation may have
+      // committed before the connection died, or never run at all. Saying so
+      // beats the silence this used to keep, which let someone walk away
+      // believing an account was deleted when it might not have been.
+      debugPrint('[profile] deleteAccount failed: $e');
+      if (!mounted) return;
+      toast.show(l10n.profileScreenDeleteAccountFailed, tone: ToastTone.danger);
       nav.popUntil((r) => r.isFirst);
     } finally {
       if (mounted) {

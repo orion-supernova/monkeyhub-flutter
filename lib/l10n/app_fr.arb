@@ -846,6 +846,7 @@
   "childPairScreenIntro": "Demande à une grande personne d’ouvrir MonkeyHub et de toucher « associer un appareil ». Ensuite, scanne son code, ou tape les six chiffres qu’elle te dicte.",
   "childPairScreenOrDivider": "ou",
   "childPairScreenGenericError": "Une erreur est survenue. Réessaie.",
+  "profileScreenDeleteAccountFailed": "Une erreur est survenue. Réessaie.",
   "childPairScreenAccountGoneError": "Ce compte n’existe plus.",
   "childPairScreenScanButtonLabel": "SCANNER SON CODE",
   "childPairScreenNoCameraMessage": "Pas de caméra ici — tape plutôt les six chiffres.",

@@ -2787,6 +2787,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get childPairScreenGenericError => '出错了，请重试。';
 
   @override
+  String get profileScreenDeleteAccountFailed => '出错了，请重试。';
+
+  @override
   String get childPairScreenAccountGoneError => '这个账号已经不存在了。';
 
   @override

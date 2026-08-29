@@ -2991,6 +2991,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Une erreur est survenue. Réessaie.';
 
   @override
+  String get profileScreenDeleteAccountFailed =>
+      'Une erreur est survenue. Réessaie.';
+
+  @override
   String get childPairScreenAccountGoneError => 'Ce compte n’existe plus.';
 
   @override
