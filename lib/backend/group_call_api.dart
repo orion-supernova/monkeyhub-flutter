@@ -75,6 +75,25 @@ class GroupCallApi {
     });
   }
 
+  /// This device no longer shows a native card (CallKit/ConnectionService)
+  /// for [groupCallId] — it ended the card itself the moment the invite left
+  /// `pendingInviteForUser`, or on decline. Every group dismissal push waits
+  /// a short grace so a card in a KILLED process still gets cleared; a device
+  /// that acks inside that grace is skipped — which on iOS is the difference
+  /// between nothing and a one-second phantom "Call". The group twin of
+  /// [CallApi.ackNativeDismissed].
+  Future<void> ackNativeDismissed({
+    required String groupCallId,
+    required String userId,
+    required String deviceId,
+  }) async {
+    await _cv.mutation('groupCalls:ackNativeDismissed', {
+      'groupCallId': groupCallId,
+      'userId': userId,
+      'deviceId': deviceId,
+    });
+  }
+
   /// Returns "ok" while the server still counts us as joined, or
   /// "not-in-call" when it doesn't (we were reaped, or the call ended) —
   /// null from a backend that predates status returns. The service

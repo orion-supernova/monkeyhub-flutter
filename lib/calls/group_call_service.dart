@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
@@ -110,6 +111,21 @@ class GroupCallService extends ChangeNotifier {
   @visibleForTesting
   Duration heartbeatTimeout = const Duration(seconds: 10);
 
+  /// Whether this process drives a native call card (CallKit /
+  /// ConnectionService) for a group invite — real iOS and Android only; web
+  /// and desktop ring in-app and have no card to end. Gates
+  /// [_endNativeCard]. A seam, so a test host can exercise that path.
+  @visibleForTesting
+  bool nativeCardsEnabled =
+      !kIsWeb && (Platform.isIOS || Platform.isAndroid);
+
+  /// Ends the native card for a group call id. Seam for tests; the real one
+  /// resolves the card through the plugin's own records and the derived id
+  /// both ring paths compute from the groupCallId.
+  @visibleForTesting
+  Future<void> Function(String groupCallId) endNativeCardFn =
+      (id) => NativeCallHandler.instance.endNativeByCallId(id);
+
   /// Same pattern as `CallService._mediaEpoch`: bumped at every acquisition
   /// start and first thing in [leaveCall], so a getUserMedia future
   /// resolving after the call ended stops its own (otherwise ownerless)
@@ -179,6 +195,26 @@ class GroupCallService extends ChangeNotifier {
   /// this to show the incoming group-call UI.
   Map<String, dynamic>? pendingInvite;
 
+  /// The invite whose native card this device may be showing right now: the
+  /// last non-null `groupCallId` the subscription delivered, held until the
+  /// subscription drops or replaces it. See [_onInviteGone].
+  String? _ringingInviteId;
+
+  /// The call [joinCall] is in the middle of entering. Set BEFORE the join
+  /// mutation is awaited, because the subscription drops the invite the
+  /// instant the server marks us joined — routinely before [_enterCall] has
+  /// set [_groupCallId] — and that drop must not read as "the call went
+  /// away" and end the card the user just answered.
+  String? _joiningGroupCallId;
+
+  /// The room this call is in, for the in-call screen's title. Seeded from
+  /// the invite when joining from one, then kept current by the roster —
+  /// which is also where a call started from inside the room learns it.
+  String? _roomName;
+  String? get roomName => _roomName;
+  String? _roomAvatarStorageId;
+  String? get roomAvatarStorageId => _roomAvatarStorageId;
+
   // FIFO signal queue — same delivery discipline as SignalingSubscriber:
   // one drain loop, dispatch strictly in server order, consume in batches.
   final LinkedHashSet<String> _dispatched = LinkedHashSet<String>();
@@ -227,7 +263,11 @@ class GroupCallService extends ChangeNotifier {
         .subscribePendingInvite(
           userId: me,
           onInvite: (inv) {
+            final prev = _ringingInviteId;
+            final next = inv?['groupCallId']?.toString();
             pendingInvite = inv;
+            _ringingInviteId = next;
+            if (prev != null && prev != next) _onInviteGone(prev);
             notifyListeners();
           },
           onError: (e) => debugPrint('GroupCallService invite error: $e'),
@@ -274,16 +314,21 @@ class GroupCallService extends ChangeNotifier {
     if (inCall && _groupCallId != groupCallId) {
       throw StateError('Already in a group call');
     }
-    final res = await api.join(
-      groupCallId: groupCallId,
-      userId: me,
-      deviceId: _deviceId,
-    );
-    await _enterCall(
-      groupCallId,
-      roomId: res.roomId,
-      kind: CallMediaKindWire.parse(res.type),
-    );
+    _joiningGroupCallId = groupCallId;
+    try {
+      final res = await api.join(
+        groupCallId: groupCallId,
+        userId: me,
+        deviceId: _deviceId,
+      );
+      await _enterCall(
+        groupCallId,
+        roomId: res.roomId,
+        kind: CallMediaKindWire.parse(res.type),
+      );
+    } finally {
+      _joiningGroupCallId = null;
+    }
   }
 
   Future<void> _enterCall(
@@ -293,10 +338,11 @@ class GroupCallService extends ChangeNotifier {
   }) async {
     if (_groupCallId == groupCallId) return;
     // The single choke point both start and join funnel through, so one gate
-    // covers every way into a mesh call. Group calls never touch the callkit
-    // bridge — no native UI, no foreground service — so this is not the crash
-    // guard the 1:1 path needs; it is here so a missing grant produces the same
-    // clear refusal instead of a raw getUserMedia throw below.
+    // covers every way into a mesh call. A group card answered natively has
+    // already been through the plugin's foreground-service gate — decided at
+    // ring time in `NativeCallHandler.showIncoming` — so this is not the
+    // crash guard the 1:1 path needs; it is here so a missing grant produces
+    // the same clear refusal instead of a raw getUserMedia throw below.
     if (!await CallPermissions.ensure(kind)) return;
     final me = _userId!;
     _groupCallId = groupCallId;
@@ -305,6 +351,20 @@ class GroupCallService extends ChangeNotifier {
     _ending = false;
     localMuted = false;
     localVideoOff = kind != CallMediaKind.video;
+    // The room's name for the in-call screen: off the invite when this is
+    // the call it offered, otherwise the roster fills it in on its first
+    // frame.
+    final inv = pendingInvite;
+    if (inv?['groupCallId']?.toString() == groupCallId) {
+      _roomName = inv?['roomName']?.toString();
+      _roomAvatarStorageId = inv?['roomAvatarStorageId'] as String?;
+    } else {
+      _roomName = null;
+      _roomAvatarStorageId = null;
+    }
+    // The card for this invite is now the call. When the subscription drops
+    // the invite in a moment it must not be mistaken for the call going away.
+    if (_ringingInviteId == groupCallId) _ringingInviteId = null;
     pendingInvite = null;
     notifyListeners();
 
@@ -421,10 +481,18 @@ class GroupCallService extends ChangeNotifier {
     }
     _groupCallId = null;
     _roomId = null;
+    _roomName = null;
+    _roomAvatarStorageId = null;
     _ending = false;
     if (!_disposed) notifyListeners();
-    // Belt for iOS: with no plugin/CallKit card alive (group calls never
-    // raise one) this releases the audio session WebRTC activated.
+    // A card answered natively IS the call to CallKit / ConnectionService:
+    // an "ongoing" session that stays up until told otherwise, and nothing
+    // else ever tells it — a `left` participant is never a `group_taken`
+    // target. No ack: no push is coming for this device. A no-op for a
+    // starter, who never had a card.
+    if (id != null) _endNativeCard(id, ack: false);
+    // Belt for iOS: releases the audio session WebRTC activated once no
+    // card is alive.
     unawaited(NativeCallHandler.instance.deactivateIosAudioSession());
     await notify;
   }
@@ -452,6 +520,14 @@ class GroupCallService extends ChangeNotifier {
       pendingInvite = null;
       notifyListeners();
     }
+    // The in-app Dismiss button would otherwise leave the native card
+    // standing (Android raises one beside the in-app ringer). When CallKit
+    // itself was what declined this is a no-op; the ack is what keeps the
+    // grace-delayed push off this device either way. Cleared from
+    // [_ringingInviteId] first so the subscription's follow-up drop does not
+    // end and ack the same card a second time.
+    if (_ringingInviteId == groupCallId) _ringingInviteId = null;
+    _endNativeCard(groupCallId, ack: true);
     try {
       await api.decline(
         groupCallId: groupCallId,
@@ -459,6 +535,51 @@ class GroupCallService extends ChangeNotifier {
         deviceId: _deviceId,
       );
     } catch (_) {}
+  }
+
+  /// The invite left `pendingInviteForUser` — joined on another device,
+  /// declined there, the call ended, or the ring window closed — and its
+  /// native card is still up. This is the one moment a LIVE app can take the
+  /// card down itself; the backend's `group_taken` push is only the backstop
+  /// for a killed process, and is delayed by `TAKEN_PUSH_GRACE_MS` precisely
+  /// so this can happen first and ack. Not when the invite left because WE
+  /// answered it: the card is the call now.
+  void _onInviteGone(String groupCallId) {
+    if (groupCallId == _groupCallId || groupCallId == _joiningGroupCallId) {
+      return;
+    }
+    _endNativeCard(groupCallId, ack: true);
+  }
+
+  /// End the native card for [groupCallId] and, with [ack], tell the backend
+  /// so the grace-delayed `group_taken` skips this device. No ack on failure:
+  /// the card may still be up, and that push is then the one thing left that
+  /// can clear it — the rule `CallService._teardown` follows.
+  void _endNativeCard(String groupCallId, {required bool ack}) {
+    if (!nativeCardsEnabled) return;
+    unawaited(endNativeCardFn(groupCallId).then((_) {
+      if (ack) _ackNativeDismissed(groupCallId);
+    }).catchError((Object e) {
+      debugPrint('GroupCallService: end native card failed: $e');
+    }));
+  }
+
+  /// `groupCalls:ackNativeDismissed`, fire-and-forget. Nothing here can be
+  /// worth blocking on: if it never lands the push arrives after its grace
+  /// and ends a card that is already gone, which is the status quo ante.
+  void _ackNativeDismissed(String groupCallId) {
+    final me = _userId;
+    final dev = _deviceId;
+    if (me == null || dev == null) return;
+    try {
+      unawaited(api
+          .ackNativeDismissed(groupCallId: groupCallId, userId: me, deviceId: dev)
+          .catchError((Object e) {
+        debugPrint('GroupCallService: ackNativeDismissed failed: $e');
+      }));
+    } catch (e) {
+      debugPrint('GroupCallService: ackNativeDismissed threw: $e');
+    }
   }
 
   // ───────── roster-driven mesh membership ─────────
@@ -473,6 +594,9 @@ class GroupCallService extends ChangeNotifier {
       unawaited(leaveCall());
       return;
     }
+    _roomName = roster['roomName']?.toString() ?? _roomName;
+    _roomAvatarStorageId =
+        (roster['roomAvatarStorageId'] as String?) ?? _roomAvatarStorageId;
     final parts = ((roster['participants'] as List?) ?? const [])
         .map((e) => (e as Map).cast<String, dynamic>())
         .toList(growable: false);

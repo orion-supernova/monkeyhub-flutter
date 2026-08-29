@@ -76,6 +76,7 @@ export const sendMessagePush = internalAction({
       members: allMembers,
       isGroup,
       roomName,
+      roomAvatarUrl,
       senderAvatarUrl,
       createdAt,
       plain,
@@ -89,6 +90,7 @@ export const sendMessagePush = internalAction({
       }>;
       isGroup?: boolean;
       roomName?: string;
+      roomAvatarUrl?: string | null;
       senderAvatarUrl?: string | null;
       createdAt?: number;
       plain?: boolean;
@@ -263,8 +265,17 @@ export const sendMessagePush = internalAction({
         // `rooms:getMemberIds`, which decides it off the row it already holds.
         ...(plain ? { plain: "true" } : {}),
         // Duplicated off `subtitle` for Android/web, which have no `aps.alert`
-        // to read it from — see ChatNotifications.kt / mh-push-sw.js.
+        // to read it from — see ChatNotifications.kt / mh-push-sw.js. iOS's
+        // extension reads it too: a communication notification is titled
+        // with its INPerson and never draws the subtitle, so the extension
+        // titles a group message with the room itself (NotificationService
+        // `composed`), which is the only place the subtitle was ever going
+        // to be seen.
         ...(isGroup && roomName ? { roomName } : {}),
+        // The room's own picture, when it has one, for the same extension to
+        // draw the banner with. Shared, not per recipient: every member may
+        // see the room — see `rooms.getMemberIds`.
+        ...(isGroup && roomAvatarUrl ? { roomAvatarUrl } : {}),
       },
       roomId,
       // Deleting this message later sends a silent push carrying the same

@@ -48,7 +48,13 @@ self.addEventListener('push', (event) => {
   const isGroup = d.isGroup === 'true' && !!d.roomName;
   const sender = d.senderName || d.title || '';
   const title = (isGroup ? d.roomName : d.title) || 'MonkeyHub';
-  const body = isGroup && sender ? `${sender}: ${d.body || ''}` : (d.body || '');
+  // A mention used to vanish here for a group: "X mentioned you" WAS the title
+  // the room's name just replaced. It moves in front of the text instead. A
+  // DM keeps it in the title, where the backend put it.
+  const mentioned = d.mention === 'true';
+  const body = isGroup && sender
+    ? `${sender}${mentioned ? ' mentioned you' : ''}: ${d.body || ''}`
+    : (d.body || '');
   event.waitUntil(
     self.registration.showNotification(title, {
       body,

@@ -2,15 +2,21 @@ import Intents
 import UIKit
 import UserNotifications
 
-/// Redraws an incoming banner as a COMMUNICATION notification: the sender's
-/// face where the app icon normally sits, their name as the title, the room
-/// beneath it — the shape iMessage and WhatsApp use, and the one people read as
-/// "a person is talking to me" rather than "an app wants something".
+/// Redraws an incoming banner as a COMMUNICATION notification: a face where
+/// the app icon normally sits and a name as the title — the shape iMessage and
+/// WhatsApp use, and the one people read as "a person is talking to me" rather
+/// than "an app wants something". For a DM the face and the name are the
+/// sender's. For a GROUP message they are the room's, and the sender moves in
+/// front of the text: "Design Crew / Ayşe: on my way". A communication
+/// notification is titled with its INPerson and draws nothing from
+/// `aps.alert.subtitle`, which is where the backend puts the room — so a
+/// group message titled with its sender looked exactly like a DM, and the only
+/// way to keep the room on the banner is to make the room the person, the way
+/// the group CALL banner already did. See `composed` and `displayName(in:)`.
 ///
-/// It runs only for a push the backend marked `mutable-content: 1`, which
-/// `buildApnsBody` in backend/convex/push.ts sets only when that recipient is
-/// actually allowed to see the sender's avatar. So this process starting at all
-/// already means there is a face to draw.
+/// It runs for every chat message (`buildApnsBody` sets `mutable-content` for
+/// the kind, so the seed below always lands) and for a call banner that
+/// carries a face.
 ///
 /// The payload keys are a cross-language contract shared with push.ts,
 /// ChatNotifications.kt and web/mh-push-sw.js. Renaming one here breaks a
@@ -81,15 +87,22 @@ class NotificationService: UNNotificationServiceExtension {
       })
     }
 
-    let senderName = Self.displayName(in: info, fallback: original.title)
-    let rawUrl = info["senderAvatarUrl"] as? String ?? ""
+    let personName = Self.displayName(in: info, fallback: original.title)
+    let rawUrl = Self.avatarUrl(in: info)
+    // The three lines settled once, up front, and BEFORE any intent touches
+    // them: `updating(from:)` returns content that must not be mutated. The
+    // no-face path below delivers this as is, so a group message reads the
+    // same whether or not a picture was fetched — the same room must not
+    // alternate between two layouts depending on who spoke.
+    let content = Self.composed(original)
+    pending = content
 
     guard
       Self.communicationKinds.contains(kind),
-      !senderName.isEmpty,
+      !personName.isEmpty,
       let url = URL(string: rawUrl)
     else {
-      deliver(original)
+      deliver(content)
       return
     }
 
@@ -113,12 +126,12 @@ class NotificationService: UNNotificationServiceExtension {
       guard ok, let data, !data.isEmpty, error == nil else {
         // The face did not load. That is the ordinary outcome on a flaky
         // network and not worth a log line per push.
-        self.deliver(original)
+        self.deliver(content)
         return
       }
       self.deliver(
-        self.decorate(original, image: Self.uprightAvatar(data),
-                      senderName: senderName)
+        self.decorate(content, image: Self.uprightAvatar(data),
+                      personName: personName)
       )
     }
     avatarTask = task
@@ -132,6 +145,16 @@ class NotificationService: UNNotificationServiceExtension {
     if let pending { deliver(pending) }
   }
 
+  /// Whether this banner belongs to a room full of people rather than to one
+  /// person: a group chat message, or a group call. `isGroup` is a chat-payload
+  /// key; a group call carries `roomName` and its kind, and nothing else says
+  /// so.
+  private static func isGroup(_ info: [AnyHashable: Any]) -> Bool {
+    let kind = info["kind"] as? String ?? ""
+    return kind == "group_call_invite"
+      || (kind == "message" && (info["isGroup"] as? String) == "true")
+  }
+
   /// Whose name this banner is titled with.
   ///
   /// A communication notification takes its title from the INPerson and
@@ -139,24 +162,21 @@ class NotificationService: UNNotificationServiceExtension {
   /// chain for a missing field, it is the title, and every payload that gets
   /// decorated has to be able to answer it.
   ///
-  /// The group-call branch is the one that is not simply "who is talking".
-  /// `groupCalls.sendGroupInvitePush` titles that push with the ROOM
-  /// ("Design Crew") and puts the starter in the body ("Ayşe started a voice
-  /// call — tap to join"), because a group call belongs to the room rather
-  /// than to whoever happened to press the button. Naming the person after the
-  /// starter here overwrote that title with "Ayşe" and left the room named
-  /// nowhere at all, which is precisely the information a group call banner
-  /// exists to carry — you cannot decide whether to join a call without
-  /// knowing which room it is in. So for that kind the room IS the person, and
-  /// the identity below already agrees: a group invite carries no `senderId`
-  /// or `callerId`, so `decorate` already falls back to the roomId for both
-  /// the handle and the `customIdentifier`.
+  /// For anything that belongs to a ROOM, the room is the person. The group
+  /// call banner learned this first: `groupCalls.sendGroupInvitePush` titles
+  /// that push with the room ("Design Crew") and puts the starter in the body,
+  /// because a call belongs to the room rather than to whoever pressed the
+  /// button, and naming the person after the starter overwrote that title and
+  /// left the room named nowhere. A group MESSAGE had the same bug one layer
+  /// down: its room rode in `aps.alert.subtitle`, which survives
+  /// `updating(from:)` on the object and is not drawn by the communication
+  /// layout — so a group banner titled with its sender read exactly like a DM.
+  /// The sender still appears, in front of the text (`composed`).
   private static func displayName(
     in info: [AnyHashable: Any],
     fallback: String
   ) -> String {
-    let kind = info["kind"] as? String ?? ""
-    if kind == "group_call_invite",
+    if isGroup(info),
        let roomName = info["roomName"] as? String,
        !roomName.isEmpty {
       return roomName
@@ -165,6 +185,62 @@ class NotificationService: UNNotificationServiceExtension {
       ?? (info["callerName"] as? String)
       ?? (info["starterName"] as? String)
       ?? fallback
+  }
+
+  /// Which picture the banner is drawn with. A group chat draws the ROOM's own
+  /// picture when it has one — a WhatsApp or Telegram group banner shows the
+  /// group, not whoever spoke last — and the sender's face otherwise, which
+  /// still beats the app icon. A room's picture is not privacy-gated (every
+  /// member may see it), so the backend sends it in the shared payload; the
+  /// sender's is per recipient, see push.ts.
+  private static func avatarUrl(in info: [AnyHashable: Any]) -> String {
+    if (info["kind"] as? String) == "message", isGroup(info),
+       let room = info["roomAvatarUrl"] as? String, !room.isEmpty {
+      return room
+    }
+    return (info["senderAvatarUrl"] as? String) ?? ""
+  }
+
+  /// The three lines of a chat banner as iOS should read them.
+  ///
+  /// A group message is titled with the ROOM and the sender moves in front of
+  /// the text — "Design Crew / Ayşe: on my way" — the shape Android's
+  /// MessagingStyle and the web worker already produce. The backend keeps
+  /// sending `title=sender, subtitle=room` because those two read it that way
+  /// and older builds of this extension did too; this is where iOS decides.
+  /// The subtitle is cleared: the room is the title now, and the line is not
+  /// part of the communication layout in any case.
+  ///
+  /// A mention lives in the body too. "X mentioned you" was the title, which
+  /// the intent replaces; then the subtitle, which the intent leaves alone on
+  /// the object and the layout never draws. The body is the one line certain
+  /// to be shown. For a DM the title still says it on the undecorated path,
+  /// and the body carries it on the decorated one.
+  ///
+  /// Anything that is not a chat message is returned untouched.
+  static func composed(_ content: UNNotificationContent) -> UNNotificationContent {
+    let info = content.userInfo
+    guard (info["kind"] as? String) == "message",
+          let mutable = content.mutableCopy() as? UNMutableNotificationContent
+    else { return content }
+    let sender = (info["senderName"] as? String) ?? ""
+    let mentioned = (info["mention"] as? String) == "true"
+    let roomName = (info["roomName"] as? String) ?? ""
+    if isGroup(info), !roomName.isEmpty {
+      mutable.title = roomName
+      mutable.subtitle = ""
+      if !sender.isEmpty {
+        mutable.body = mentioned
+          ? "\(sender) mentioned you: \(content.body)"
+          : "\(sender): \(content.body)"
+      }
+      return mutable
+    }
+    if mentioned {
+      mutable.body = "Mentioned you: \(content.body)"
+      return mutable
+    }
+    return content
   }
 
   /// Longest edge the face is drawn at. The banner renders it at about 40pt;
@@ -235,47 +311,45 @@ class NotificationService: UNNotificationServiceExtension {
   }
 
   /// Builds the intent that turns a notification into a conversation, and
-  /// returns the updated content — or the original, unchanged, if anything
-  /// about that fails.
+  /// returns the updated content — or [content], unchanged, if anything about
+  /// that fails. [content] has already been through `composed`.
   ///
   /// The outgoing twin of this lives in `donateSendMessage` in
   /// AppDelegate.swift, which donates a send to a room so the share sheet can
-  /// suggest it. Same `INPerson`/`INImage` shape, same reason for the group
-  /// branch; the two should stay legible as siblings.
+  /// suggest it. Same `INPerson`/`INImage` shape, same room-as-person rule for
+  /// a group; the two should stay legible as siblings.
   private func decorate(
     _ content: UNNotificationContent,
     image: INImage,
-    senderName: String
+    personName: String
   ) -> UNNotificationContent {
     let info = content.userInfo
     let roomId = info["roomId"] as? String ?? ""
     let roomName = info["roomName"] as? String ?? ""
-    // `isGroup` is a chat-payload key; a group call carries `roomName` and its
-    // kind, and nothing else says the banner belongs to a room full of people.
-    // Without this the starter's name would replace the room's in the title and
-    // the room would be named nowhere at all.
-    let isGroup = (info["isGroup"] as? String) == "true"
-      || (info["kind"] as? String) == "group_call_invite"
-    // Chat sends `senderId`; a 1:1 call sends `callerId`. Falling back to the
-    // room keeps the identity stable for a group call, which names no single
-    // person in its payload.
-    let senderId = (info["senderId"] as? String)
-      ?? (info["callerId"] as? String)
-      ?? roomId
+    let isGroup = Self.isGroup(info)
+    // Who the INPerson IS. A room's banners are one conversation with one
+    // identity — the room — so a group message is keyed by its roomId rather
+    // than by whoever sent it, the same as a group call (which names no single
+    // person in its payload anyway). A DM is keyed by the sender: chat sends
+    // `senderId`, a 1:1 call sends `callerId`.
+    let personId = isGroup
+      ? roomId
+      : (info["senderId"] as? String) ?? (info["callerId"] as? String) ?? roomId
 
     let sender = INPerson(
       personHandle: INPersonHandle(
-        value: senderId.isEmpty ? senderName : senderId,
+        value: personId.isEmpty ? personName : personId,
         type: .unknown
       ),
       nameComponents: nil,
-      displayName: senderName,
+      displayName: personName,
       image: image,
       contactIdentifier: nil,
-      // A stable identity per person, so consecutive messages from the same
-      // sender are one conversation to the system rather than a new stranger
-      // each time — the same job `customIdentifier` does in donateSendMessage.
-      customIdentifier: senderId.isEmpty ? senderName : senderId
+      // A stable identity, so consecutive messages from the same sender — or
+      // in the same room — are one conversation to the system rather than a
+      // new stranger each time; the same job `customIdentifier` does in
+      // donateSendMessage.
+      customIdentifier: personId.isEmpty ? personName : personId
     )
 
     let intent = INSendMessageIntent(
@@ -292,11 +366,10 @@ class NotificationService: UNNotificationServiceExtension {
       sender: sender,
       attachments: nil
     )
-    // A group draws the group's picture, not one member's — but this app has no
-    // room avatar in the push payload, so the sender's face stands in. Setting
-    // it is still right: without an image on the group parameter iOS falls back
-    // to the app icon for every group message, which is the exact thing being
-    // fixed here.
+    // A group draws the group's picture — the room's own when it has one, the
+    // sender's face standing in otherwise (`avatarUrl(in:)`). Without an image
+    // on the group parameter iOS falls back to the app icon for every group
+    // message, which is the exact thing being fixed here.
     if isGroup {
       intent.setImage(image, forParameterNamed: \.speakableGroupName)
     }

@@ -1,6 +1,7 @@
 import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "./_generated/api";
+import { TAKEN_PUSH_GRACE_MS } from "./calls";
 import schema from "./schema";
 
 /**
@@ -282,5 +283,250 @@ describe("and stops ringing when it should", () => {
     expect(timeouts.length).toBe(1);
     // Alice answered; only Bob's phone is still ringing.
     expect(timeouts[0].args.targetUserIds).toEqual([bob.userId]);
+  });
+});
+
+/**
+ * And never a phantom.
+ *
+ * A group card used to come down by push alone: `dismissRingers` scheduled
+ * `sendGroupVoipTaken` with no delay, nothing acked, and nothing ever flipped
+ * an ignored invite off `invited` — so the ring timeout sent every such phone
+ * a SECOND dismissal, for a card the first had already ended. On iOS a
+ * PushKit `taken` with nothing to end is not a no-op; it is a one-second
+ * phantom "Call". These pin the three things the 1:1 path had and this one
+ * lacked: the grace, the ack, and one dismissal per card.
+ */
+describe("and never a phantom", () => {
+  /** Every participant row of [groupCallId], as `{ userId, status }`. */
+  async function rows(t: ReturnType<typeof convexTest>, groupCallId: any) {
+    return await t.run(async (ctx) => {
+      const all: any[] = await (ctx.db as any)
+        .query("groupCallParticipants")
+        .withIndex("by_call", (q: any) => q.eq("groupCallId", groupCallId))
+        .collect();
+      return all.map((r) => ({ userId: r.userId, status: r.status }));
+    });
+  }
+
+  test("every dismissal waits the grace, so a live app can ack first", async () => {
+    const t = convexTest(schema);
+    const { starter, alice, roomId } = await roomOfThree(t);
+    const groupCallId = await startCall(t, starter, roomId);
+
+    await t.mutation(api.groupCalls.decline, {
+      sessionToken: alice.token,
+      userId: alice.userId as any,
+      groupCallId,
+      deviceId: "device-alice",
+    });
+    await t.mutation(api.groupCalls.leave, {
+      sessionToken: starter.token,
+      userId: starter.userId as any,
+      groupCallId,
+    });
+
+    const taken = await jobs(t, "sendGroupVoipTaken");
+    expect(taken.map((j) => j.args.reason).sort()).toEqual(["declined", "ended"]);
+    // Same constant as `calls.scheduleTakenPush`; `_creationTime` carries a
+    // sub-millisecond fraction, so round it away.
+    for (const j of taken) expect(Math.round(j.delayMs)).toBe(TAKEN_PUSH_GRACE_MS);
+  });
+
+  test("an ignored invite is dismissed once: the end marks it missed and the expiry finds nobody", async () => {
+    const t = convexTest(schema);
+    const { starter, alice, bob, roomId } = await roomOfThree(t);
+    const groupCallId = await startCall(t, starter, roomId);
+
+    // The starter gives up before anyone answers.
+    await t.mutation(api.groupCalls.leave, {
+      sessionToken: starter.token,
+      userId: starter.userId as any,
+      groupCallId,
+    });
+    let taken = await jobs(t, "sendGroupVoipTaken");
+    expect(taken.length).toBe(1);
+    expect(taken[0].args.reason).toBe("ended");
+    expect([...taken[0].args.targetUserIds].sort()).toEqual(
+      [alice.userId, bob.userId].sort(),
+    );
+    expect(
+      (await rows(t, groupCallId)).map((r) => r.status).sort(),
+    ).toEqual(["left", "missed", "missed"]);
+
+    // A minute later the ring timeout fires for the same call.
+    await t.mutation(internal.groupCalls._expireRingers, { groupCallId });
+    taken = await jobs(t, "sendGroupVoipTaken");
+    expect(taken.length).toBe(1);
+  });
+
+  test("…and the other way round: the expiry marks it missed and the end finds nobody", async () => {
+    const t = convexTest(schema);
+    const { starter, alice, bob, roomId } = await roomOfThree(t);
+    const groupCallId = await startCall(t, starter, roomId);
+
+    // Alice answers, so the call outlives its ring window; Bob ignores it.
+    await t.mutation(api.groupCalls.join, {
+      sessionToken: alice.token,
+      userId: alice.userId as any,
+      groupCallId,
+      deviceId: "phone-in-hand",
+    });
+    await t.mutation(internal.groupCalls._expireRingers, { groupCallId });
+    const timeouts = (await jobs(t, "sendGroupVoipTaken")).filter(
+      (j) => j.args.reason === "timeout",
+    );
+    expect(timeouts.length).toBe(1);
+    expect(timeouts[0].args.targetUserIds).toEqual([bob.userId]);
+
+    // Everyone hangs up; the call ends. Bob's phone was already told.
+    for (const who of [starter, alice]) {
+      await t.mutation(api.groupCalls.leave, {
+        sessionToken: who.token,
+        userId: who.userId as any,
+        groupCallId,
+      });
+    }
+    expect(
+      (await jobs(t, "sendGroupVoipTaken")).filter((j) => j.args.reason === "ended"),
+    ).toEqual([]);
+  });
+
+  test("a missed invitee can still join from the room banner", async () => {
+    const t = convexTest(schema);
+    const { starter, alice, bob, roomId } = await roomOfThree(t);
+    const groupCallId = await startCall(t, starter, roomId);
+
+    await t.mutation(api.groupCalls.join, {
+      sessionToken: alice.token,
+      userId: alice.userId as any,
+      groupCallId,
+      deviceId: "phone-in-hand",
+    });
+    await t.mutation(internal.groupCalls._expireRingers, { groupCallId });
+    expect(
+      (await rows(t, groupCallId)).find((r) => r.userId === bob.userId)?.status,
+    ).toBe("missed");
+
+    const res: any = await t.mutation(api.groupCalls.join, {
+      sessionToken: bob.token,
+      userId: bob.userId as any,
+      groupCallId,
+      deviceId: "device-bob",
+    });
+    expect(res.roomId).toBe(roomId);
+    expect(
+      (await rows(t, groupCallId)).find((r) => r.userId === bob.userId)?.status,
+    ).toBe("joined");
+  });
+
+  test("records each device once, and the push reads exactly those", async () => {
+    const t = convexTest(schema);
+    const { starter, alice, roomId } = await roomOfThree(t);
+    const groupCallId = await startCall(t, starter, roomId);
+    expect(
+      await t.query(internal.groupCalls.dismissedDevicesInternal, { groupCallId }),
+    ).toEqual([]);
+
+    const ack = (who: { token: string; userId: string }, deviceId: string) =>
+      t.mutation(api.groupCalls.ackNativeDismissed, {
+        sessionToken: who.token,
+        userId: who.userId as any,
+        groupCallId,
+        deviceId,
+      });
+    await ack(alice, "phone-b");
+    // Idempotent: the invite's drop and a decline may both ack.
+    await ack(alice, "phone-b");
+    await ack(starter, "phone-a");
+    expect(
+      await t.query(internal.groupCalls.dismissedDevicesInternal, { groupCallId }),
+    ).toEqual(["phone-b", "phone-a"]);
+  });
+
+  test("only a participant may ack", async () => {
+    const t = convexTest(schema);
+    const { starter, roomId } = await roomOfThree(t);
+    const groupCallId = await startCall(t, starter, roomId);
+    const stranger = await signUp(t, "stranger");
+    await expect(
+      t.mutation(api.groupCalls.ackNativeDismissed, {
+        sessionToken: stranger.token,
+        userId: stranger.userId as any,
+        groupCallId,
+        deviceId: "phone-x",
+      }),
+    ).rejects.toThrow("NOT_A_PARTICIPANT");
+  });
+
+  test("an ended call's dismissal runs to completion against acked devices", async () => {
+    const t = convexTest(schema);
+    const { starter, alice, bob, roomId } = await roomOfThree(t);
+    const groupCallId = await startCall(t, starter, roomId);
+    await t.mutation(api.groupCalls.leave, {
+      sessionToken: starter.token,
+      userId: starter.userId as any,
+      groupCallId,
+    });
+    // Both live apps dropped their cards off the subscription and acked
+    // inside the grace; the push then has nobody left and exits cleanly.
+    for (const who of [alice, bob]) {
+      await t.mutation(api.groupCalls.ackNativeDismissed, {
+        sessionToken: who.token,
+        userId: who.userId as any,
+        groupCallId,
+        deviceId: `device-${who.userId}`,
+      });
+    }
+    await drain(t);
+    expect(
+      await t.query(internal.groupCalls.dismissedDevicesInternal, { groupCallId }),
+    ).toHaveLength(2);
+  });
+});
+
+/**
+ * Who is calling. The in-app group ringer and the Android card a foregrounded
+ * app raises read `pendingInviteForUser`, which used to name the starter and
+ * nothing else — no id, no face — while the push carried the starter's avatar
+ * to a killed app. The in-call screen reads `roster`, which never named the
+ * room at all.
+ */
+describe("a group invite says who, and where", () => {
+  test("the pending invite carries the starter's identity and the room's", async () => {
+    const t = convexTest(schema);
+    const { starter, alice, roomId } = await roomOfThree(t);
+    const groupCallId = await startCall(t, starter, roomId);
+
+    const inv: any = await t.query(api.groupCalls.pendingInviteForUser, {
+      sessionToken: alice.token,
+      userId: alice.userId as any,
+    });
+    expect(inv).toMatchObject({
+      groupCallId,
+      roomId,
+      roomName: "design crew",
+      starterUserId: starter.userId,
+      starterName: "starter",
+    });
+    // Present, and null: nobody here has uploaded a picture. A hidden face
+    // takes the same shape, so the client never has to tell the two apart.
+    expect(inv).toHaveProperty("starterAvatarStorageId", null);
+    expect(inv).toHaveProperty("starterAvatarUrl", null);
+    expect(inv).toHaveProperty("roomAvatarStorageId", null);
+  });
+
+  test("the roster names the room", async () => {
+    const t = convexTest(schema);
+    const { starter, roomId } = await roomOfThree(t);
+    const groupCallId = await startCall(t, starter, roomId);
+
+    const roster: any = await t.query(api.groupCalls.roster, {
+      sessionToken: starter.token,
+      userId: starter.userId as any,
+      groupCallId,
+    });
+    expect(roster.roomName).toBe("design crew");
+    expect(roster).toHaveProperty("roomAvatarStorageId", null);
   });
 });

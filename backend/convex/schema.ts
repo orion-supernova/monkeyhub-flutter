@@ -1941,6 +1941,11 @@ export default defineSchema({
     status: v.string(), // "active" | "ended"
     startedAt: v.number(),
     endedAt: v.optional(v.number()),
+    // Devices that reported their native call card (CallKit /
+    // ConnectionService) for this call gone — `ackNativeDismissed`. The
+    // grace-delayed `group_taken` push skips them (see `dismissRingers`),
+    // exactly as `calls.dismissedDeviceIds` does for a 1:1 call.
+    dismissedDeviceIds: v.optional(v.array(v.string())),
   })
     .index("by_room_status", ["roomId", "status"])
     .index("by_status", ["status", "startedAt"]),
@@ -1948,7 +1953,13 @@ export default defineSchema({
   groupCallParticipants: defineTable({
     groupCallId: v.id("groupCalls"),
     userId: v.id("users"),
-    status: v.string(), // "invited" | "joined" | "left" | "declined"
+    // "invited" | "joined" | "left" | "declined" | "missed"
+    // `missed` is terminal for a ring: set by `dismissRingers` the moment a
+    // fan-out `group_taken` (call ended / ring timed out) is scheduled for
+    // the row, so the next fan-out finds nobody and no device is ever sent
+    // two dismissals for one card. A missed user can still `join` from the
+    // room banner — `join` patches any existing row.
+    status: v.string(),
     deviceId: v.optional(v.string()),
     invitedAt: v.number(),
     joinedAt: v.optional(v.number()),

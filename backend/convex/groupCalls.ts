@@ -10,6 +10,7 @@ import type { Doc } from "./_generated/dataModel";
 import { childMayReach, childPolicyOf } from "./childGuard";
 import { assertNoSystemAccount } from "./systemAccount";
 import { lensFor } from "./visibility";
+import { TAKEN_PUSH_GRACE_MS } from "./calls";
 
 // ────────────────────────────── constants ──────────────────────────────
 
@@ -99,36 +100,60 @@ async function endCallIfEmpty(ctx: any, groupCallId: any) {
   return true;
 }
 
-/// Everyone still sitting on an unanswered invite, as of right now.
-async function stillInvited(ctx: any, groupCallId: any) {
+/// Everyone still sitting on an unanswered invite, as of right now — the
+/// rows, because the fan-out below flips them.
+async function invitedRows(ctx: any, groupCallId: any) {
   const rows = await ctx.db
     .query("groupCallParticipants")
     .withIndex("by_call", (q: any) => q.eq("groupCallId", groupCallId))
     .collect();
-  return rows.filter((r: any) => r.status === "invited").map((r: any) => r.userId);
+  return rows.filter((r: any) => r.status === "invited");
 }
 
 /// Take the native ringer down on [userIds]' devices.
 ///
 /// The realtime `pendingInviteForUser` subscription is what stops a LIVE app
-/// ringing, exactly as it always was. This is for the process that cannot be
-/// reached that way — a killed app whose card was raised by the push itself —
-/// and is the group twin of `calls.scheduleTakenPush`. Cheap to be wrong
-/// about: ending a card that was never shown is a no-op on both platforms.
+/// ringing: `GroupCallService` ends its own card the moment the invite
+/// leaves that subscription and acks it (`ackNativeDismissed`). This push is
+/// for the process that cannot be reached that way — a killed app whose card
+/// was raised by the push itself — and is the group twin of
+/// `calls.scheduleTakenPush`, with the same two protections and for the same
+/// reason: it waits `TAKEN_PUSH_GRACE_MS` so a live app can report its card
+/// gone first, and `sendGroupVoipTaken` skips every device that did. On iOS
+/// a PushKit `taken` with nothing to end is not a no-op, it is a one-second
+/// phantom "Call" (AppDelegate.reportAndEndCall).
+///
+/// Two audiences. With `opts.userIds` (join, decline) it is one person's
+/// OTHER phones. Without (call ended, ring timed out) it is everyone still
+/// `invited` — and those rows are flipped to `missed` here, in the same
+/// mutation, so the other fan-out finds nobody: an ignored invite used to be
+/// dismissed twice, once when the call ended and again at the ring timeout,
+/// and the second push always landed on a card the first had already ended.
 async function dismissRingers(
   ctx: any,
   groupCallId: any,
   reason: "joined" | "declined" | "ended" | "timeout",
   opts: { userIds?: any[]; excludeDeviceId?: string | null } = {},
 ) {
-  const userIds = opts.userIds ?? (await stillInvited(ctx, groupCallId));
+  let userIds: any[];
+  if (opts.userIds) {
+    userIds = opts.userIds;
+  } else {
+    const rows = await invitedRows(ctx, groupCallId);
+    for (const r of rows) await ctx.db.patch(r._id, { status: "missed" });
+    userIds = rows.map((r: any) => r.userId);
+  }
   if (userIds.length === 0) return;
-  await ctx.scheduler.runAfter(0, internal.voipPush.sendGroupVoipTaken, {
-    groupCallId,
-    targetUserIds: userIds,
-    excludeDeviceId: opts.excludeDeviceId ?? null,
-    reason,
-  });
+  await ctx.scheduler.runAfter(
+    TAKEN_PUSH_GRACE_MS,
+    internal.voipPush.sendGroupVoipTaken,
+    {
+      groupCallId,
+      targetUserIds: userIds,
+      excludeDeviceId: opts.excludeDeviceId ?? null,
+      reason,
+    },
+  );
 }
 
 /// Which of [userIds] still has an unanswered invite to [groupCallId] — read
@@ -154,7 +179,12 @@ async function dismissRingers(
  *
  * Scheduled by `start`, one per call. Anyone who joined, declined, or watched
  * the call end has already had their card dismissed and is no longer
- * `invited`, so this addresses exactly the people it should.
+ * `invited` (the ended fan-out marks its targets `missed`), so this addresses
+ * exactly the people it should — and nobody twice. Deliberately NOT gated on
+ * the call still being active: `endCallIfEmpty` is the only thing that ends
+ * a call and it dismisses its own ringers, but if that ever changes, this is
+ * the last thing standing between a killed phone and a card that rings until
+ * it is touched.
  */
 export const _expireRingers = internalMutation({
   args: { groupCallId: v.id("groupCalls") },
@@ -494,6 +524,47 @@ export const heartbeat = mutation({
   },
 });
 
+// ────────────────────── native-card dismissal acks ──────────────────────
+
+// A device reports that its native card for [groupCallId] is gone — it ended
+// the card itself when the invite left `pendingInviteForUser`, or on decline
+// or hang-up. Recorded so the grace-delayed `group_taken` (`dismissRingers`)
+// leaves that device alone; the twin of `calls.ackNativeDismissed`, and see
+// `calls.TAKEN_PUSH_GRACE_MS` for why it matters on iOS. Idempotent, and a
+// GC'd row is fine: there is nothing left to push about.
+export const ackNativeDismissed = mutation({
+  args: {
+    groupCallId: v.id("groupCalls"),
+    userId: v.id("users"),
+    deviceId: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, { groupCallId, userId, deviceId }) => {
+    const call = await ctx.db.get(groupCallId);
+    if (!call) return null;
+    const mine = await participantRow(ctx, groupCallId, userId);
+    if (!mine) throw new Error("NOT_A_PARTICIPANT");
+    const acked = call.dismissedDeviceIds ?? [];
+    if (acked.includes(deviceId)) return null;
+    await ctx.db.patch(groupCallId, {
+      dismissedDeviceIds: [...acked, deviceId],
+    });
+    return null;
+  },
+});
+
+// Internal, no participant check: the device ids `ackNativeDismissed` has
+// recorded for a call, for `voipPush.sendGroupVoipTaken` (and its retry) to
+// skip. Empty once the row is GC'd — by then every push for it has expired.
+export const dismissedDevicesInternal = internalQuery({
+  args: { groupCallId: v.id("groupCalls") },
+  returns: v.array(v.string()),
+  handler: async (ctx, { groupCallId }) => {
+    const call = await ctx.db.get(groupCallId);
+    return call?.dismissedDeviceIds ?? [];
+  },
+});
+
 // ────────────────────────── queries ──────────────────────────
 
 async function inflateParticipants(ctx: any, viewerUserId: any, groupCallId: any) {
@@ -560,9 +631,17 @@ export const roster = query({
     if (!call) return null;
     await requireMember(ctx, call.roomId, userId);
     const participants = await inflateParticipants(ctx, userId, groupCallId);
+    // The in-call screen is titled with the room. Joining from an invite the
+    // client already knows the name; starting from inside the room it does
+    // not carry it across, and a screen headed "Group video call" leaves the
+    // one question a person in three rooms has — which one is this? — to be
+    // guessed. A room's own picture is not lensed: every member may see it.
+    const room = await ctx.db.get(call.roomId);
     return {
       groupCallId,
       roomId: call.roomId,
+      roomName: room?.name ?? "a room",
+      roomAvatarStorageId: room?.avatarStorageId?.toString() ?? null,
       type: call.type,
       status: call.status,
       startedAt: call.startedAt,
@@ -630,12 +709,37 @@ export const pendingInviteForUser = query({
     const live = joined.filter((p: any) => isLive(p, now));
     // Everyone who was in the call is gone — nothing to join, don't ring.
     if (live.length === 0) return null;
+    // The starter's face, for the in-app ringer and the Android card the
+    // foregrounded app raises itself. Lensed from THIS invitee's side, with
+    // the same "public" fast path `start` uses for the push: the lens costs
+    // two friendship scans and this query re-runs on every roster change
+    // while the phone rings. The storage id feeds `UserAvatar`; the URL is
+    // what the native card wants. Both null when hidden — never a face the
+    // starter's own setting says this person may not see.
+    const avatarLevel = starter?.visibility?.avatar ?? "public";
+    let starterAvatarVisible = !!starter?.avatarStorageId;
+    if (starterAvatarVisible && avatarLevel !== "public") {
+      const lens = await lensFor(ctx, userId);
+      starterAvatarVisible = lens.canSee(starter, "avatar");
+    }
+    const starterAvatarStorageId =
+      starterAvatarVisible && starter?.avatarStorageId
+        ? starter.avatarStorageId.toString()
+        : null;
+    const starterAvatarUrl =
+      starterAvatarVisible && starter?.avatarStorageId
+        ? await ctx.storage.getUrl(starter.avatarStorageId)
+        : null;
     return {
       groupCallId: best.call._id,
       roomId: best.call.roomId,
       roomName: room?.name ?? "a room",
+      roomAvatarStorageId: room?.avatarStorageId?.toString() ?? null,
       type: best.call.type,
+      starterUserId: best.call.startedBy,
       starterName: starter?.name ?? starter?.username ?? "Someone",
+      starterAvatarStorageId,
+      starterAvatarUrl,
       invitedAt: best.inv.invitedAt,
       joinedCount: live.length,
     };

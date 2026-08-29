@@ -2,18 +2,25 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../backend/chat_api.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_toast.dart';
+import '../widgets/user_avatar.dart';
 import 'group_call_service.dart';
 
 /// In-app ringer for a group-call invite. Shown by the app overlay while
 /// [GroupCallService.pendingInvite] is fresh; pops itself when the invite
 /// clears (joined elsewhere, declined, call ended, or ring window expired).
 class IncomingGroupCallScreen extends StatefulWidget {
-  const IncomingGroupCallScreen({super.key, required this.service});
+  const IncomingGroupCallScreen({super.key, required this.service, this.api});
   final GroupCallService service;
+
+  /// Resolves the starter's photo. Without it [UserAvatar] draws the
+  /// per-user gradient and initial, which is still a who.
+  final ChatApi? api;
 
   @override
   State<IncomingGroupCallScreen> createState() =>
@@ -118,29 +125,48 @@ class _IncomingGroupCallScreenState extends State<IncomingGroupCallScreen>
           child: Column(
             children: [
               const Spacer(flex: 2),
-              FadeTransition(
-                opacity: Tween(begin: 0.55, end: 1.0).animate(_pulse),
+              // Whoever started the call, the way the 1:1 ringer draws its
+              // caller (incoming_call_screen.dart): the same widget at the
+              // same size, breathing the same way. A phone icon used to sit
+              // here, which said what kind of call this was and nothing about
+              // who was making it — the Join button already says the kind.
+              AnimatedBuilder(
+                animation: _pulse,
+                builder: (context, child) {
+                  final scale = 1.0 + _pulse.value * 0.06;
+                  return Transform.scale(scale: scale, child: child);
+                },
                 child: Container(
-                  width: 110,
-                  height: 110,
+                  width: 150,
+                  height: 150,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withValues(alpha: 0.08),
                     border: Border.all(
                       color: Colors.white.withValues(alpha: 0.25),
+                      width: 1,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: accent.withValues(alpha: 0.4),
+                        color: accent.withValues(alpha: 0.45),
                         blurRadius: 44,
-                        spreadRadius: 2,
+                        spreadRadius: 4,
                       ),
                     ],
                   ),
-                  child: Icon(
-                    isVideo ? Icons.videocam : Icons.call,
-                    size: 44,
-                    color: Colors.white,
+                  // Their photo when this person may see it — the storage id
+                  // is null otherwise, lensed server-side — else the per-user
+                  // gradient and initial.
+                  child: UserAvatar(
+                    user: ChatUser(
+                      id: inv?['starterUserId']?.toString() ?? '',
+                      username: '',
+                      name: starter,
+                      avatarStorageId:
+                          inv?['starterAvatarStorageId'] as String?,
+                    ),
+                    api: widget.api,
+                    size: 148,
+                    showStatus: false,
                   ),
                 ),
               ),

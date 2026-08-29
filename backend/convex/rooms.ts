@@ -702,11 +702,20 @@ export const getMemberIds = internalQuery({
     // conditional that fills it in forces a wider annotation up front.
     let senderRow: any = null;
     let senderAvatarUrl: string | null = null;
+    // The room's own picture, for a group banner to be drawn with (iOS's
+    // extension, which titles a group message with the room). Unlike the
+    // sender's face this is not lensed per recipient — a room's picture is
+    // visible to every member by construction — so it can ride the shared
+    // payload. Null for a DM, which has no picture of its own.
+    let roomAvatarUrl: string | null = null;
 
     if (resolvePushContext) {
       const room = await ctx.db.get(roomId);
       isGroup = !!room && !room.name.startsWith("dm:");
       roomName = isGroup ? room!.name : undefined;
+      if (isGroup && room?.avatarStorageId) {
+        roomAvatarUrl = await ctx.storage.getUrl(room.avatarStorageId);
+      }
 
       senderRow = await ctx.db.get(excludeUserId);
       if (senderRow?.avatarStorageId) {
@@ -746,6 +755,7 @@ export const getMemberIds = internalQuery({
       exists: true,
       isGroup,
       roomName,
+      roomAvatarUrl,
       senderAvatarUrl,
       createdAt,
       plain,

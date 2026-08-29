@@ -218,11 +218,15 @@ export const sendGroupVoip = internalAction({
           kind: "group_invite",
           groupCallId: args.groupCallId.toString(),
           roomId: args.roomId.toString(),
-          // The ROOM is who is calling. A group call belongs to the room, not
-          // to whoever pressed the button, and the room is what the person
-          // deciding whether to answer needs to read — so it goes in the
-          // field both native ringers title their card with.
-          callerName: args.roomName,
+          // Who is calling, and where — in the one field both native ringers
+          // title their card with. A group call belongs to the room, not to
+          // whoever pressed the button, but the person deciding whether to
+          // answer wants both facts and the CallKit card has exactly one
+          // line to put them on; Android draws the same line under the
+          // starter's face. The handle stays the room: it is what the card's
+          // identity is keyed on, and it is what `roomName` below still says
+          // on its own for anyone who wants the parts.
+          callerName: groupCallerName(args.starterName, args.roomName),
           callerHandle: args.roomName,
           roomName: args.roomName,
           starterName: args.starterName,
@@ -264,6 +268,15 @@ export const sendGroupVoip = internalAction({
 });
 
 /**
+ * "Ayşe · Design Crew" — the line a group ring titles its native card with.
+ * The overlay in lib/app.dart composes the same line for the card a
+ * foregrounded Android app raises itself, so the two read identically.
+ */
+export function groupCallerName(starterName: string, roomName: string): string {
+  return `${starterName} · ${roomName}`;
+}
+
+/**
  * Take a group call's native ringer down on [targetUserIds]' devices.
  *
  * The group twin of `sendVoipTaken`, and simpler in one way that matters:
@@ -274,7 +287,18 @@ export const sendGroupVoip = internalAction({
  *
  * `excludeDeviceId` spares the phone that settled the invite: its card is
  * already gone, and on iOS a `taken` with nothing to end is a one-second
- * phantom ring rather than a no-op.
+ * phantom ring rather than a no-op. Devices that acked their card gone during
+ * the scheduling grace (`groupCalls.ackNativeDismissed`, recorded while
+ * `dismissRingers` waits `TAKEN_PUSH_GRACE_MS`) are skipped for the same
+ * reason — that is every live app, which ends its own card the instant the
+ * invite leaves `pendingInviteForUser`.
+ *
+ * `iosVoip` is always true here, on purpose. The 1:1 `endCallImpl` can drop
+ * the PushKit leg because the peer of an ACTIVE call is mid-WebRTC and never
+ * had an invite card; a group `taken` only ever targets someone still
+ * `invited`, or the settler's other phones, and either can be a card sitting
+ * in a killed process that only PushKit can reach. The ack list, not a
+ * blanket skip, is what keeps this from ringing a phantom.
  */
 export const sendGroupVoipTaken = internalAction({
   args: {
@@ -294,21 +318,34 @@ export const sendGroupVoipTaken = internalAction({
       groupCallId: args.groupCallId.toString(),
       reason: args.reason,
     };
+    const dismissedIds: string[] = await ctx.runQuery(
+      internal.groupCalls.dismissedDevicesInternal,
+      { groupCallId: args.groupCallId },
+    );
+    const dismissed = new Set(dismissedIds);
+    let sent = 0;
     await Promise.allSettled(
       args.targetUserIds.map(async (userId) => {
         const devices: DeviceRow[] = await ctx.runQuery(
           internal.voipPush._loadUserDevices,
           { userId },
         );
-        const targets = devices.filter(
-          (d) =>
-            d.deviceId !== args.excludeDeviceId && (d.voipToken || d.fcmToken),
-        );
+        const targets = selectTakenTargets(devices, {
+          excludeDeviceId: args.excludeDeviceId,
+          iosVoip: true,
+          dismissed,
+        });
+        sent += targets.length;
         await Promise.allSettled(
           targets.map((d) => pushToDevice(ctx, userId, d, payload)),
         );
       }),
     );
+    if (sent === 0) {
+      console.log(
+        `sendGroupVoipTaken: nothing to dismiss for ${args.groupCallId} (${args.reason}) — every device excluded or acked`,
+      );
+    }
   },
 });
 
@@ -485,6 +522,7 @@ export const retryPushToDevice = internalAction({
     // terminal `taken` push already cleared the card.
     const kind = (payload as { kind?: string })?.kind;
     const callId = (payload as { callId?: string })?.callId;
+    const groupCallId = (payload as { groupCallId?: string })?.groupCallId;
     if (kind === "invite" && callId) {
       const status: string | null = await ctx.runQuery(
         internal.calls.callStatusInternal,
@@ -509,6 +547,34 @@ export const retryPushToDevice = internalAction({
       if (dismissedIds.includes(deviceId)) {
         console.log(
           `retryPushToDevice: taken for ${callId} — device ${deviceId} acked dismissal, skipping retry`,
+        );
+        return null;
+      }
+    }
+    // The group twins of both guards. These were missing: a `group_invite`
+    // retry re-rang a call that had ended in the two seconds since, and a
+    // `group_taken` retry had no ack list to consult.
+    if (kind === "group_invite" && groupCallId) {
+      const pending: string[] = await ctx.runQuery(
+        internal.groupCalls._pendingInvitees,
+        { groupCallId: groupCallId as Id<"groupCalls">, userIds: [userId] },
+      );
+      if (pending.length === 0) {
+        console.log(
+          `retryPushToDevice: group invite for ${groupCallId} no longer pending — skipping retry`,
+        );
+        return null;
+      }
+    }
+    if (kind === "group_taken" && groupCallId) {
+      const dismissedIds: string[] = await ctx.runQuery(
+        internal.groupCalls.dismissedDevicesInternal,
+        { groupCallId: groupCallId as Id<"groupCalls"> },
+      );
+      const deviceId = (device as DeviceRow).deviceId;
+      if (dismissedIds.includes(deviceId)) {
+        console.log(
+          `retryPushToDevice: group taken for ${groupCallId} — device ${deviceId} acked dismissal, skipping retry`,
         );
         return null;
       }
@@ -631,31 +697,53 @@ async function pushToDevice(
 
 // ────────────────────────── transport adapters ──────────────────────────
 
+/**
+ * The one id an invite and its own `taken` share on the wire — the APNs
+ * `apns-collapse-id` and the FCM `collapse_key` — so that when a device is
+ * briefly unreachable the transport keeps only the LATEST push for the call:
+ * a `taken` posted while the invite is still pending overwrites it, and the
+ * device never rings a call that is already over. Live delivery is unaffected
+ * (nothing to coalesce). Distinct calls keep distinct ids.
+ *
+ * A 1:1 call is keyed by its `callId`, a group call by its `groupCallId`. The
+ * second half was missing: group pushes carry no `callId`, so a queued
+ * `group_invite` was never superseded by its `group_taken`, and a phone back
+ * from Doze full-screen-rang a call that had ended minutes earlier, then
+ * dismissed it. Pure, so the pairing is pinned by voipPush.test.ts.
+ */
+export function voipCollapseId(
+  payload: Record<string, unknown>,
+): string | undefined {
+  if (typeof payload.callId === "string") return payload.callId;
+  if (typeof payload.groupCallId === "string") return payload.groupCallId;
+  return undefined;
+}
+
+/**
+ * How long the transport may hold a push for an unreachable device. An
+ * invite is only meaningful inside its ring window; a dismissal must chase a
+ * reconnecting device longer, or its CallKit ringer lingers as a ghost — for
+ * a group card, one that then rings out its full minute and posts a missed
+ * call for a call nobody is in. Both kinds of `taken` get the longer window.
+ */
+export function voipExpirySeconds(payload: Record<string, unknown>): number {
+  return payload.kind === "taken" || payload.kind === "group_taken" ? 60 : 30;
+}
+
 async function sendApnsVoip(
   ctx: any,
   voipToken: string,
   payload: Record<string, unknown>,
   apnsEnv?: ApnsEnv,
 ): Promise<void> {
-  // An invite is only meaningful inside the 30s ring window; a "taken"
-  // dismissal must chase a reconnecting device longer, or its CallKit ringer
-  // lingers as a ghost.
-  const expirationSeconds = payload.kind === "taken" ? 60 : 30;
-  // Collapse the invite and its own `taken` onto ONE APNs id (the callId), so
-  // that when a device is briefly unreachable APNs keeps only the LATEST push
-  // for the call: a `taken` posted while the invite is still pending overwrites
-  // it, and the device never rings a call that is already over. Live delivery
-  // is unaffected (nothing to coalesce). Distinct calls keep distinct ids.
-  const collapseId =
-    typeof payload.callId === "string" ? payload.callId : undefined;
   await apnsPost(ctx, {
     token: voipToken,
     env: apnsEnv,
     topicSuffix: ".voip",
     pushType: "voip",
     priority: "10",
-    expiration: Math.floor(Date.now() / 1000) + expirationSeconds,
-    collapseId,
+    expiration: Math.floor(Date.now() / 1000) + voipExpirySeconds(payload),
+    collapseId: voipCollapseId(payload),
     // A PushKit payload has no `aps` — the whole body is ours.
     body: payload,
   });
@@ -666,14 +754,10 @@ async function sendFcmData(
   fcmToken: string,
   payload: Record<string, unknown>,
 ): Promise<void> {
-  // Same coalescing as the APNs side: key the invite and its `taken` to one
-  // `collapse_key` (the callId) so FCM, when the handset is in Doze/offline
-  // with both queued, delivers only the latest — a `taken` supersedes the
-  // still-queued invite and the phone never full-screen-rings a dead call on
-  // reconnect. FCM caps distinct collapse keys at 4, but only PENDING messages
-  // count, so per-call keys are fine.
-  const collapseKey =
-    typeof payload.callId === "string" ? payload.callId : undefined;
+  // Same coalescing as the APNs side — see `voipCollapseId`. FCM caps
+  // distinct collapse keys at 4, but only PENDING messages count, so per-call
+  // keys are fine.
+  const collapseKey = voipCollapseId(payload);
   await fcmPost(ctx, {
     token: fcmToken,
     data: stringifyValues(payload),

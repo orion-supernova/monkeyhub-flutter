@@ -2382,8 +2382,13 @@ class _GroupCallOverlayState extends State<_GroupCallOverlay> {
       unawaited(NativeCallHandler.instance.showIncoming(
         callId: invitedCallId,
         groupCallId: invitedCallId,
-        callerName: invite['roomName']?.toString() ?? 'Group call',
+        // Who, and where — the same line the killed-app path's push titles
+        // its card with (`voipPush.sendGroupVoip`), so the card reads the
+        // same whichever of the two raised it. The starter's face is
+        // already lensed for this viewer by `pendingInviteForUser`.
+        callerName: _groupCardTitle(invite),
         kind: CallMediaKindWire.parse(invite['type']?.toString() ?? 'audio'),
+        avatarUrl: invite['starterAvatarUrl']?.toString(),
       ));
       return;
     }
@@ -2402,12 +2407,26 @@ class _GroupCallOverlayState extends State<_GroupCallOverlay> {
           MaterialPageRoute(
             fullscreenDialog: true,
             settings: const RouteSettings(name: kProtectedRouteName),
-            builder: (_) => IncomingGroupCallScreen(service: widget.service),
+            builder: (_) => IncomingGroupCallScreen(
+              service: widget.service,
+              api: widget.api,
+            ),
           ),
         );
         _ringerUp = false;
       });
     }
+  }
+
+  /// "Ayşe · Design Crew": the starter, then the room. Either alone when the
+  /// other is missing; the generic label only when both are.
+  static String _groupCardTitle(Map<String, dynamic> invite) {
+    final starter = invite['starterName']?.toString() ?? '';
+    final room = invite['roomName']?.toString() ?? '';
+    if (starter.isNotEmpty && room.isNotEmpty) return '$starter · $room';
+    if (room.isNotEmpty) return room;
+    if (starter.isNotEmpty) return starter;
+    return 'Group call';
   }
 
   @override

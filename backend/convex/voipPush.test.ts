@@ -1,5 +1,10 @@
 import { describe, expect, test } from "vitest";
-import { selectTakenTargets } from "./voipPush";
+import {
+  groupCallerName,
+  selectTakenTargets,
+  voipCollapseId,
+  voipExpirySeconds,
+} from "./voipPush";
 
 /**
  * Which devices a native `taken` push reaches. The selection is pure so the
@@ -81,5 +86,50 @@ describe("selectTakenTargets", () => {
       dismissed: new Set(["phone-a"]),
     });
     expect(out).toEqual([legacy]);
+  });
+});
+
+/**
+ * The transport-level pairing of an invite with its own dismissal. Group
+ * pushes carry `groupCallId` and no `callId`, and for a while that meant they
+ * had no collapse key at all: a phone back from Doze received the queued
+ * `group_invite` AND the `group_taken`, in order, and full-screen-rang a call
+ * that had ended minutes earlier.
+ */
+describe("voipCollapseId", () => {
+  test("a 1:1 invite and its taken share the callId", () => {
+    expect(voipCollapseId({ kind: "invite", callId: "c1" })).toBe("c1");
+    expect(voipCollapseId({ kind: "taken", callId: "c1" })).toBe("c1");
+  });
+
+  test("a group invite and its taken share the groupCallId", () => {
+    expect(voipCollapseId({ kind: "group_invite", groupCallId: "g1" })).toBe(
+      "g1",
+    );
+    expect(voipCollapseId({ kind: "group_taken", groupCallId: "g1" })).toBe(
+      "g1",
+    );
+  });
+
+  test("nothing to key on means no collapse, not a shared one", () => {
+    expect(voipCollapseId({ kind: "invite" })).toBeUndefined();
+  });
+});
+
+describe("voipExpirySeconds", () => {
+  test("both kinds of dismissal chase a reconnecting device for a minute", () => {
+    expect(voipExpirySeconds({ kind: "taken" })).toBe(60);
+    expect(voipExpirySeconds({ kind: "group_taken" })).toBe(60);
+  });
+
+  test("an invite is only worth its ring window", () => {
+    expect(voipExpirySeconds({ kind: "invite" })).toBe(30);
+    expect(voipExpirySeconds({ kind: "group_invite" })).toBe(30);
+  });
+});
+
+describe("groupCallerName", () => {
+  test("says who is calling, and where", () => {
+    expect(groupCallerName("Ayşe", "Design Crew")).toBe("Ayşe · Design Crew");
   });
 });

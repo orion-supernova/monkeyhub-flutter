@@ -135,10 +135,18 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final svc = widget.service;
     final peers = svc.peers.values.toList(growable: false);
     final anyReconnecting = peers.any((p) => p.reconnecting);
     final isVideo = svc.mediaKind == CallMediaKind.video;
+    final kindLabel = isVideo
+        ? l10n.groupCallScreenTitleVideo
+        : l10n.groupCallScreenTitleVoice;
+    // The room is the title; the kind of call is the line under it. Someone
+    // in three rooms wants to know which one this is, and "Group video
+    // call" answered a question nobody was asking.
+    final roomName = svc.roomName;
     final tileCount = peers.length + 1; // + me
     // Baseline matches the phone behaviour this always had. On a wide
     // desktop window, add columns instead of leaving 1-3 tiles to balloon to
@@ -169,19 +177,28 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
                     child: Row(
                       children: [
                         Expanded(
-                          child: Text(
-                            isVideo
-                                ? AppLocalizations.of(
-                                    context,
-                                  ).groupCallScreenTitleVideo
-                                : AppLocalizations.of(
-                                    context,
-                                  ).groupCallScreenTitleVoice,
-                            style: theme.displaySmall.copyWith(
-                              color: Colors.white,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                roomName ?? kindLabel,
+                                style: theme.displaySmall.copyWith(
+                                  color: Colors.white,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (roomName != null)
+                                Text(
+                                  kindLabel,
+                                  style: theme.monoTiny.copyWith(
+                                    color: Colors.white70,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                            ],
                           ),
                         ),
                         Container(
@@ -194,9 +211,7 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
-                            AppLocalizations.of(
-                              context,
-                            ).groupCallScreenParticipantCount(tileCount),
+                            l10n.groupCallScreenParticipantCount(tileCount),
                             style: theme.monoTiny.copyWith(
                               color: Colors.white70,
                             ),

@@ -47,6 +47,9 @@ void main() {
   // calls. The only reader of the ring payload that is neither iOS nor
   // Android — it sees what both of them forward.
   const dartNative = 'lib/calls/native_call_handler.dart';
+  // The group-call overlay: the one place a foregrounded Android app raises
+  // the group card itself, off the realtime invite rather than off a push.
+  const dartApp = 'lib/app.dart';
 
   final cache = <String, String>{};
   String source(String path) => cache.putIfAbsent(path, () {
@@ -93,6 +96,17 @@ void main() {
     // The group's name, sent only when `isGroup` is true. Absent for a DM,
     // whose `rooms.name` is the internal `dm:...` key, not a real title.
     'roomName': [senders, androidRender, web, iosNse],
+    // The room's own picture, when it has one, for a group banner. Shared
+    // rather than per recipient — a room is visible to every member — which
+    // is the one way it differs from `senderAvatarUrl` below. Only iOS draws
+    // it today: the extension titles a group message with the room and
+    // prefers the room's picture to the sender's for the same banner.
+    'roomAvatarUrl': [senders, iosNse],
+    // Whether THIS recipient was named. Every renderer has to carry it into
+    // a line it actually draws: MessagingStyle and the web worker replace the
+    // title the backend put "X mentioned you" in, and iOS's communication
+    // layout replaces the title and never draws the subtitle.
+    'mention': [senders, androidRender, web, iosNse],
     // The sender's avatar, present only for a recipient the sender's own
     // avatar-visibility setting actually allows to see it (resolved
     // per-recipient in rooms.ts, mirroring the call ringer in calls.ts).
@@ -125,6 +139,11 @@ void main() {
     // sending it empty, so a typo reads as "1:1" and is indistinguishable
     // from the normal case until a group call is answered as a DM.
     'groupCallId': [voip, ios, androidRoute, dartNative, groupCalls],
+    // The starter's face for the group card a FOREGROUNDED Android app raises
+    // itself, read off the realtime invite. The killed-app path carries the
+    // same picture as `callerAvatarUrl` in the push; without this key the
+    // in-app path drew a card with no face where the push path drew one.
+    'starterAvatarUrl': [groupCalls, dartApp],
   };
 
   contract.forEach((key, consumers) {

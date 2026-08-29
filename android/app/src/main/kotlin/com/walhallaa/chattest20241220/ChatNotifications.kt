@@ -450,6 +450,13 @@ object ChatNotifications {
                 style.isGroupConversation = true
             }
             builder.setStyle(style)
+            // Being named is the one fact MessagingStyle has no line for: it
+            // took over the title, where "X mentioned you" used to sit, and
+            // the message line is the message. The header's subtext is what
+            // is left — small, but a marker for a fact the body carries in
+            // full is the right weight, and it is never the room's name any
+            // more (see the comment above for why that was invisible).
+            if (data["mention"] == "true") builder.setSubText("Mentioned you")
         } else if (isGroup && roomName.isNotEmpty()) {
             // Approvals and call banners keep the plain layout — nobody is
             // "talking" in either, and MessagingStyle would attribute a

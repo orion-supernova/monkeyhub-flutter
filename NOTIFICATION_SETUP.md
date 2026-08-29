@@ -61,6 +61,24 @@ Four things are worth internalising:
   `groupCallId` in the card's `extra` is what makes an accept call
   `groupCalls:join` instead of `calls:accept`; `push_payload_contract_test.dart`
   pins it, and a 1:1 invite omits the key rather than sending it empty.
+  And the first rule above applies to it in full: the `group_taken` push is a
+  backstop. `GroupCallService` ends its own card the moment the invite leaves
+  `pendingInviteForUser` (or on decline, or on hang-up) and acks it
+  (`groupCalls:ackNativeDismissed`); `dismissRingers` waits the same
+  `TAKEN_PUSH_GRACE_MS` and `sendGroupVoipTaken` skips every device that acked.
+  The fan-out dismissals (call ended, ring timed out) flip their targets to
+  `missed`, so an ignored invite is dismissed exactly once rather than at both
+  moments — the second push always landed on a card the first had ended, which
+  on iOS is the phantom. Group pushes collapse on the `groupCallId` the way 1:1
+  pushes collapse on the `callId`, and `iosVoip` is never dropped for a group:
+  every group `taken` can be aimed at a card in a killed process.
+- **A group ring says who and where.** `sendGroupVoip` titles the card
+  `"<starter> · <room>"` — the one line CallKit gives you — and Android draws
+  the same line under the starter's face. `pendingInviteForUser` carries the
+  starter's id, lensed avatar and the room's picture, so the in-app group
+  ringer draws the starter the way the 1:1 ringer draws the caller, and the
+  card a foregrounded Android app raises itself has the same face the push
+  path's card has. `roster` names the room, for the in-call screen.
 - **The sender's face is a per-recipient key, not a per-message one.** It rides
   the `perUser` override map because `visibility.avatar` is answered from each
   *recipient's* side, and `buildApnsBody` gates `mutable-content` on that same
@@ -322,17 +340,26 @@ Podfile's `post_install`, the same way the Share Extension is.
   differ here. What iOS does get is the `call_invite` and `group_call_invite`
   **banners**, which `voipPush.ts` sends only when the ring failed on every
   device.
-- **A mention's title is drawn from the intent, not from `aps.alert.title`.** So
-  "X mentioned you" would be overwritten by the bare sender name. `sendMessagePush`
-  puts the mention in the *subtitle* instead, which `updating(from:)` leaves
-  alone; delete that and iOS silently stops distinguishing a mention from any
-  other message. **The subtitle itself survives `updating(from:)` intact** —
-  measured, not assumed: a harness built the same intent this extension builds
-  and read the result back as `title=<sender> subtitle=<room> body=<message>`.
-  That is why the room name on a group CHAT banner needed no fixing, and why
-  the group CALL banner did: its room name was in the *title*, which the intent
-  does overwrite. `displayName(in:)` names the person after the room for that
-  one kind.
+- **A communication notification is titled with its INPerson and draws
+  nothing from the subtitle.** The subtitle does survive `updating(from:)` on
+  the returned *object* — measured: a harness read back
+  `title=<sender> subtitle=<room> body=<message>` — and that measurement was
+  the wrong one. The layout iOS renders from the intent shows the face, the
+  person's name and the body; the subtitle is simply not part of it. So a
+  group message titled with its sender and carrying the room in the subtitle
+  looked exactly like a DM, which is how it was reported. The extension now
+  treats a group message the way it already treated the group CALL banner:
+  **the room is the person** (`displayName(in:)`), the room's own picture is
+  drawn when it has one (`roomAvatarUrl`, else the sender's face), and the
+  sender moves in front of the text — `"Ayşe: on my way"` — settled in
+  `composed` BEFORE the intent is applied, because the SDK forbids mutating
+  the result. The same composition is delivered when no face loads, so a
+  room's banners do not change shape by sender. A mention rides in the body
+  for the same reason ("Ayşe mentioned you: …"; a DM's decorated banner says
+  "Mentioned you: …"). The backend still sends `title=sender, subtitle=room`
+  and `data.mention`: Android and the web read the flat data, and an older
+  extension read the subtitle. Verify this class of change on a device
+  banner, never on the returned content object.
 
 ## 2. Firebase project (Android)
 
@@ -459,9 +486,12 @@ must display something — which is why the backend never sends the silent
     actually reachable. `iosVoipOnly` counts devices still on a build that
     predates direct push.
 14. iOS communication notifications: after step 5, confirm a **group** message
-    shows the sender's name over the room's name, an `@`-mention still says
-    "mentioned you", and both survive a force-quit (swipe away, then send) —
-    an extension runs for a killed app. Then re-check the paths the extension
+    from a sender **with a visible avatar** (the decorated path — a sender
+    without one takes a different path and passes trivially) is titled with
+    the room, reads "Sender: message" underneath, and draws the room's picture
+    when it has one; that a DM is still titled with the sender; that an
+    `@`-mention reads "Sender mentioned you: …"; and that all of it survives a
+    force-quit (swipe away, then send) — an extension runs for a killed app. Then re-check the paths the extension
     now sits in front of: tap-to-open-room, banner clearing when the room is
     read elsewhere, two messages in one room still threading together, and no
     banner while that room is on screen.
