@@ -18,11 +18,12 @@ import 'destructive_sheet.dart' show SheetGrabber;
 ///    `showModalBottomSheet`, which SLIDES the panel up — so a `BackdropFilter`
 ///    inside is re-rasterized every frame of the transition, at full sheet
 ///    width, in an app whose chrome already stacks several of them.
-///    `call_picker.dart` names it exactly: "the surface itself appears
-///    instantly to keep BackdropFilter off the per-frame compositing path
-///    (animating a blur is the main source of jank here)". The picker can do
-///    glass because it does not animate its surface; a bottom sheet has no
-///    such option. It also bought almost nothing — a modal sheet's `black54`
+///    The old call-kind picker (since retired for two plain buttons) named
+///    it exactly: "the surface itself appears instantly to keep
+///    BackdropFilter off the per-frame compositing path (animating a blur is
+///    the main source of jank here)". The picker could do glass because it
+///    did not animate its surface; a bottom sheet has no such option. It also
+///    bought almost nothing — a modal sheet's `black54`
 ///    scrim has already painted out most of what a blur is there to reveal.
 ///  * **Floating.** Insetting the panel from all four edges is a real idiom,
 ///    but not THIS app's, and the gap it left underneath read as a mistake

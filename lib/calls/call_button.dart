@@ -2,30 +2,22 @@ import 'package:flutter/material.dart';
 
 import '../family/family_service.dart';
 import '../l10n/generated/app_localizations.dart';
-import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/liquid_glass.dart';
 import 'call_models.dart';
-import 'call_picker.dart';
 import 'call_service.dart';
 
 enum CallButtonVariant { classic, liquid }
 
-/// Header width from which both call kinds are shown side by side instead of
-/// behind a picker. Measured against the CHAT PANE, not the window: in the
-/// two-pane desktop shell the header only owns the detail pane, and a 1024px
-/// window leaves it about 580.
-const double _kSideBySideCallsFrom = 520;
-
-/// Header entry-point for starting a 1:1 call. DM-only — callers gate
-/// visibility on `room.isDm`.
+/// Header entry-point for starting a 1:1 call of one [kind]. DM-only —
+/// callers gate visibility on `room.isDm`.
 ///
-/// On a narrow header this is one icon that opens a frosted popover with
-/// "Voice call" / "Video call". Where there is room for them, both kinds get
-/// their own button instead: the popover exists to buy horizontal space, and
-/// when space isn't scarce it is just an extra tap in front of the two things
-/// it was hiding.
+/// Both headers mount two of these side by side, video then voice, so a tap
+/// starts that kind straight away. (There used to be a width-adaptive layout
+/// — one picker icon on a narrow header, both kinds only where there was
+/// room — but a picker is an extra tap in front of the two things it hides,
+/// and the headers found the space by retiring their info buttons.)
 ///
 /// Reflects call state live: while a call is active on THIS device
 /// ([CallService.inCall]) or ANOTHER of the user's devices
@@ -39,20 +31,16 @@ class CallButton extends StatelessWidget {
     required this.peerName,
     required this.roomId,
     required this.variant,
-    this.kind,
+    required this.kind,
   });
 
   final String peerUserId;
   final String peerName;
   final String roomId;
   final CallButtonVariant variant;
+  final CallMediaKind kind;
 
-  /// Starts this kind directly, as a single button, whatever the pane width.
-  /// Null keeps the width-adaptive layout described above: a picker on a
-  /// narrow header, both kinds side by side on a wide one.
-  final CallMediaKind? kind;
-
-  Future<void> _start(BuildContext context, CallMediaKind kind) async {
+  Future<void> _start(BuildContext context) async {
     final service = CallService.instance;
     if (service.inCall) return;
     try {
@@ -104,51 +92,25 @@ class CallButton extends StatelessWidget {
       listenable: service,
       builder: (context, _) {
         final busyReason = _busyReason(context, service);
+        // A disabled button still answers a tap — with the reason, instead
+        // of a second call.
+        final VoidCallback onTap = busyReason == null
+            ? () => _start(context)
+            : () => _showBusy(context, busyReason);
         final enabled = busyReason == null;
-        void onDisabledTap() => _showBusy(context, busyReason!);
-
-        Widget button(CallMediaKind? kind) {
-          switch (variant) {
-            case CallButtonVariant.classic:
-              return _ClassicCallButton(
-                kind: kind,
-                enabled: enabled,
-                onPick: (k) => _start(context, k),
-                onDisabledTap: onDisabledTap,
-              );
-            case CallButtonVariant.liquid:
-              return _LiquidCallButton(
-                kind: kind,
-                enabled: enabled,
-                onPick: (k) => _start(context, k),
-                onDisabledTap: onDisabledTap,
-              );
-          }
-        }
-
-        final kind = this.kind;
-        if (kind != null) return button(kind);
-        final roomy = ChatMetricsScope.of(context).paneWidth >=
-            _kSideBySideCallsFrom;
-        if (!roomy) return button(null);
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            button(CallMediaKind.audio),
-            // The classic variant's IconButtons carry their own 48px hit box,
-            // so they space themselves; the liquid circles need the same 12
-            // the header uses between its other controls.
-            if (variant == CallButtonVariant.liquid) const SizedBox(width: 12),
-            button(CallMediaKind.video),
-          ],
-        );
+        return switch (variant) {
+          CallButtonVariant.classic =>
+            _ClassicCallButton(kind: kind, enabled: enabled, onTap: onTap),
+          CallButtonVariant.liquid =>
+            _LiquidCallButton(kind: kind, enabled: enabled, onTap: onTap),
+        };
       },
     );
   }
 }
 
-/// Icon + tooltip for a direct button; null [kind] is the picker button.
-({IconData icon, String tooltip}) _face(BuildContext context, CallMediaKind? kind) {
+/// Icon + tooltip for a button of [kind].
+({IconData icon, String tooltip}) _face(BuildContext context, CallMediaKind kind) {
   final l10n = AppLocalizations.of(context);
   return switch (kind) {
     CallMediaKind.audio => (
@@ -159,120 +121,66 @@ class CallButton extends StatelessWidget {
         icon: Icons.videocam_outlined,
         tooltip: l10n.callButtonVideoCallTooltip
       ),
-    null => (icon: Icons.call_outlined, tooltip: l10n.callButtonTooltip),
   };
 }
 
-class _ClassicCallButton extends StatefulWidget {
+class _ClassicCallButton extends StatelessWidget {
   const _ClassicCallButton({
     required this.kind,
-    required this.onPick,
     required this.enabled,
-    required this.onDisabledTap,
+    required this.onTap,
   });
 
-  /// Starts this kind directly. Null opens the picker instead.
-  final CallMediaKind? kind;
-  final ValueChanged<CallMediaKind> onPick;
+  final CallMediaKind kind;
   final bool enabled;
-  final VoidCallback onDisabledTap;
-
-  @override
-  State<_ClassicCallButton> createState() => _ClassicCallButtonState();
-}
-
-class _ClassicCallButtonState extends State<_ClassicCallButton> {
-  // Stable across rebuilds — the room screen rebuilds frequently. A
-  // GlobalKey constructed inside build() would make Flutter treat the
-  // anchor as a new widget every frame, breaking gesture recognition
-  // and the picker's RenderBox lookup.
-  final GlobalKey _anchorKey = GlobalKey();
-
-  Future<void> _handleTap() async {
-    if (!widget.enabled) {
-      widget.onDisabledTap();
-      return;
-    }
-    final kind = widget.kind;
-    if (kind != null) {
-      widget.onPick(kind);
-      return;
-    }
-    final picked = await showCallPicker(context: context, anchorKey: _anchorKey);
-    if (picked != null) widget.onPick(picked);
-  }
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final color = widget.enabled
+    final color = enabled
         ? theme.inkSoft
         : theme.inkSoft.withValues(alpha: 0.35);
-    final face = _face(context, widget.kind);
+    final face = _face(context, kind);
     return IconButton(
-      key: _anchorKey,
       tooltip: face.tooltip,
       padding: EdgeInsets.zero,
       iconSize: 18,
+      // Compact, like the header's back button: two of these sit side by
+      // side, and the default 48px hit box left 30px of air between two
+      // 18px icons. Compact density trims each box to 40 — still a
+      // comfortable target, and the pair reads as one group.
+      visualDensity: VisualDensity.compact,
       icon: Icon(face.icon, color: color, size: 18),
-      onPressed: _handleTap,
+      onPressed: onTap,
     );
   }
 }
 
-class _LiquidCallButton extends StatefulWidget {
+class _LiquidCallButton extends StatelessWidget {
   const _LiquidCallButton({
     required this.kind,
-    required this.onPick,
     required this.enabled,
-    required this.onDisabledTap,
+    required this.onTap,
   });
 
-  /// Starts this kind directly. Null opens the picker instead.
-  final CallMediaKind? kind;
-  final ValueChanged<CallMediaKind> onPick;
+  final CallMediaKind kind;
   final bool enabled;
-  final VoidCallback onDisabledTap;
-
-  @override
-  State<_LiquidCallButton> createState() => _LiquidCallButtonState();
-}
-
-class _LiquidCallButtonState extends State<_LiquidCallButton> {
-  // Stable across rebuilds — the room screen rebuilds frequently (stream
-  // updates, typing, scroll tracking); a GlobalKey constructed inside build()
-  // would make Flutter treat the LiquidGlass as a new widget every frame,
-  // unmounting it mid-tap and breaking gesture recognition.
-  final GlobalKey _anchorKey = GlobalKey();
-
-  Future<void> _handleTap() async {
-    if (!widget.enabled) {
-      widget.onDisabledTap();
-      return;
-    }
-    final kind = widget.kind;
-    if (kind != null) {
-      widget.onPick(kind);
-      return;
-    }
-    final picked = await showCallPicker(context: context, anchorKey: _anchorKey);
-    if (picked != null) widget.onPick(picked);
-  }
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final color = widget.enabled
+    final color = enabled
         ? theme.accent
         : theme.accent.withValues(alpha: 0.35);
-    final face = _face(context, widget.kind);
+    final face = _face(context, kind);
     return Tooltip(
       message: face.tooltip,
       child: LiquidGlass(
-        key: _anchorKey,
         shape: LiquidGlassShape.circle,
         size: const Size(44, 44),
-        onTap: _handleTap,
+        onTap: onTap,
         child: Icon(face.icon, size: 18, color: color),
       ),
     );

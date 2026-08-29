@@ -4545,6 +4545,9 @@ class _Header extends StatelessWidget {
                         ? AppLocalizations.of(context).savedMessagesTitle
                         : (dmUser?.displayName ?? room.name),
                     style: theme.displayMedium,
+                    // Two lines, then an ellipsis — the same cap as the
+                    // liquid capsule. Room Info has the full name.
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
@@ -4594,24 +4597,34 @@ class _Header extends StatelessWidget {
               ),
             ),
           ),
+          // Video call, then voice call, both always on show. Room Info has
+          // no button of its own — the title is its tap target, so the "···"
+          // that used to sit here was a second way to the same place.
+          //
           // Nobody to call in a chat with only yourself, and nobody home in a
           // chat with the app — `calls.ts` refuses a system account outright,
           // so a button here would ring nothing.
           if (!caps.canCall)
             const SizedBox.shrink()
-          else if (room.isDm && dmUser != null)
+          else if (room.isDm && dmUser != null) ...[
             CallButton(
               peerUserId: dmUser!.id,
               peerName: dmUser!.displayName,
               roomId: room.id,
               variant: CallButtonVariant.classic,
-            )
-          else
-            GroupCallButton(roomId: room.id),
-          IconButton(
-            onPressed: onOpenInfo,
-            icon: Icon(Icons.more_horiz, color: theme.inkSoft, size: 18),
-          ),
+              kind: CallMediaKind.video,
+            ),
+            CallButton(
+              peerUserId: dmUser!.id,
+              peerName: dmUser!.displayName,
+              roomId: room.id,
+              variant: CallButtonVariant.classic,
+              kind: CallMediaKind.audio,
+            ),
+          ] else ...[
+            GroupCallButton(roomId: room.id, kind: CallMediaKind.video),
+            GroupCallButton(roomId: room.id, kind: CallMediaKind.audio),
+          ],
         ],
           ),
         ),

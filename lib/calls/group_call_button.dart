@@ -18,7 +18,7 @@ class GroupCallButton extends StatelessWidget {
     super.key,
     required this.roomId,
     this.liquid = false,
-    this.kind,
+    required this.kind,
   });
 
   final String roomId;
@@ -28,9 +28,9 @@ class GroupCallButton extends StatelessWidget {
   final bool liquid;
 
   /// Which kind this button is for: it wears that icon and opens the sheet
-  /// with that chip preselected. Null is the generic "call" button, which
-  /// leaves the sheet on its own default.
-  final CallMediaKind? kind;
+  /// with that chip preselected. Both headers mount one of each, video then
+  /// voice.
+  final CallMediaKind kind;
 
   void _open(BuildContext context) {
     final service = GroupCallService.maybeInstance;
@@ -42,7 +42,7 @@ class GroupCallButton extends StatelessWidget {
       api: ChatApi(ConvexBackend.instance),
       roomId: roomId,
       myUserId: me,
-      initialKind: kind ?? CallMediaKind.audio,
+      initialKind: kind,
     );
   }
 
@@ -57,7 +57,6 @@ class GroupCallButton extends StatelessWidget {
     final tooltip = switch (kind) {
       CallMediaKind.audio => l10n.callButtonVoiceCallTooltip,
       CallMediaKind.video => l10n.callButtonVideoCallTooltip,
-      null => l10n.callButtonTooltip,
     };
     if (liquid) {
       return Tooltip(
@@ -76,6 +75,10 @@ class GroupCallButton extends StatelessWidget {
     }
     return IconButton(
       tooltip: tooltip,
+      // Compact, like the classic header's back button and its 1:1 call
+      // buttons: two of these sit side by side, and the default 48px hit box
+      // left 30px of air between two 18px icons.
+      visualDensity: VisualDensity.compact,
       onPressed: busy ? null : () => _open(context),
       icon: Icon(
         icon,
