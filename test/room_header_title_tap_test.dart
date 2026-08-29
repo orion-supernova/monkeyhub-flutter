@@ -7,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// What this pins: in the classic chat header, tapping the room TITLE opens
 /// Room Info — the same destination the liquid header's title capsule
-/// (`_LiquidHeaderState._handleTitleTap`) always lands on.
+/// (`_LiquidHeader`'s `onTap: onOpenInfo`) lands on.
 ///
 /// Before this, the classic title's `GestureDetector.onTap` was
 /// `dmUser != null ? onTapPeer : null` — a group room's title did nothing at

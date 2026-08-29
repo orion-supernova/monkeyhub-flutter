@@ -39,12 +39,18 @@ class CallButton extends StatelessWidget {
     required this.peerName,
     required this.roomId,
     required this.variant,
+    this.kind,
   });
 
   final String peerUserId;
   final String peerName;
   final String roomId;
   final CallButtonVariant variant;
+
+  /// Starts this kind directly, as a single button, whatever the pane width.
+  /// Null keeps the width-adaptive layout described above: a picker on a
+  /// narrow header, both kinds side by side on a wide one.
+  final CallMediaKind? kind;
 
   Future<void> _start(BuildContext context, CallMediaKind kind) async {
     final service = CallService.instance;
@@ -120,6 +126,8 @@ class CallButton extends StatelessWidget {
           }
         }
 
+        final kind = this.kind;
+        if (kind != null) return button(kind);
         final roomy = ChatMetricsScope.of(context).paneWidth >=
             _kSideBySideCallsFrom;
         if (!roomy) return button(null);

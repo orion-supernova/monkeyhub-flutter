@@ -17,6 +17,7 @@ import '../backend/chat_api.dart';
 import '../backend/convex_client.dart';
 import '../backend/group_call_api.dart';
 import '../calls/call_button.dart';
+import '../calls/call_models.dart';
 import '../calls/group_call_banner.dart';
 import '../calls/group_call_button.dart';
 import '../calls/group_call_service.dart';
@@ -5144,7 +5145,7 @@ class _NoMessagesPlaceholder extends StatelessWidget {
 
 // ───────────────────────── liquid variant chrome ─────────────────────────
 
-class _LiquidHeader extends StatefulWidget {
+class _LiquidHeader extends StatelessWidget {
   const _LiquidHeader({
     required this.room,
     required this.api,
@@ -5158,45 +5159,16 @@ class _LiquidHeader extends StatefulWidget {
   final RoomCapabilities caps;
   final ChatUser? dmUser;
 
-  @override
-  State<_LiquidHeader> createState() => _LiquidHeaderState();
-}
-
-class _LiquidHeaderState extends State<_LiquidHeader> {
   /// Avatar diameter inside the title capsule.
   static const _avatarSize = 32.0;
 
-  bool _expanded = false;
-  Timer? _collapseTimer;
+  /// Diameter of the round glass controls either side of the title.
+  static const _controlSize = 44.0;
 
-  /// Whether the title renders on one line at the width it currently has.
-  ///
-  /// Assigned during layout rather than through setState: nothing in the tree
-  /// depends on it, only [_handleTitleTap] reads it, so a setState here would be
-  /// a rebuild loop that changes no pixels.
-  bool _titleFits = true;
-
-  void _expandTitle() {
-    setState(() => _expanded = true);
-    _collapseTimer?.cancel();
-    _collapseTimer = Timer(const Duration(milliseconds: 2500), () {
-      if (mounted) setState(() => _expanded = false);
-    });
-  }
-
-  /// Expanding is only worth a tap when there is something hidden to reveal, and
-  /// only once — a second tap means "I've read it, now let me in".
-  void _handleTitleTap() {
-    if (!_titleFits && !_expanded) {
-      _expandTitle();
-      return;
-    }
-    _collapseTimer?.cancel();
-    // Collapse on the way out, so coming back from room info doesn't land on a
-    // chip still wrapped from a tap two screens ago.
-    setState(() => _expanded = false);
-    widget.onOpenInfo();
-  }
+  /// Gap between the two call controls. Tighter than the 12 that separates
+  /// them from the title capsule, so the pair reads as one group rather than
+  /// two unrelated buttons.
+  static const _controlGap = 6.0;
 
   /// Storage id of the picture behind the capsule's avatar, or null when it is a
   /// gradient-initials or `#` placeholder. Null means no fullscreen route and no
@@ -5206,22 +5178,20 @@ class _LiquidHeaderState extends State<_LiquidHeader> {
     // to follow it too. A `??` chain here would fall back to the room's avatar
     // for a peer who has none, flying someone else's image out of a gradient
     // placeholder.
-    final id = widget.dmUser != null
-        ? widget.dmUser!.avatarStorageId
-        : widget.room.avatarStorageId;
+    final id = dmUser != null ? dmUser!.avatarStorageId : room.avatarStorageId;
     return (id == null || id.isEmpty) ? null : id;
   }
 
-  void _openAvatarFullscreen() {
+  void _openAvatarFullscreen(BuildContext context) {
     final storageId = _avatarStorageId;
     if (storageId == null) return;
     FullscreenImageViewer.openAvatar(
       context,
       storageId: storageId,
-      api: widget.api,
+      api: api,
       // Room-keyed: unique inside this route, and deliberately distinct from
       // ProfileScreen's 'profile-avatar-$id' so a push can't collide.
-      heroTag: 'room-header-avatar-${widget.room.id}',
+      heroTag: 'room-header-avatar-${room.id}',
       sourceSize: _avatarSize,
     );
   }
@@ -5232,9 +5202,10 @@ class _LiquidHeaderState extends State<_LiquidHeader> {
   /// The nesting is the point: the inner recognizer enters the gesture arena
   /// first (hit testing runs child-first), so it beats the capsule's opaque
   /// GestureDetector. With no picture nothing is mounted, and the tap falls
-  /// through to [_handleTitleTap] — a placeholder shouldn't swallow the chip.
-  Widget _buildAvatar() {
-    final Widget avatar = widget.room.isSavedMessages
+  /// through to the capsule's [onOpenInfo] — a placeholder shouldn't swallow
+  /// the chip.
+  Widget _buildAvatar(BuildContext context) {
+    final Widget avatar = room.isSavedMessages
         ? Container(
             width: _avatarSize,
             height: _avatarSize,
@@ -5249,51 +5220,69 @@ class _LiquidHeaderState extends State<_LiquidHeader> {
               color: ThemeScope.of(context).accent,
             ),
           )
-        : widget.dmUser != null
-        ? UserAvatar(user: widget.dmUser!, size: _avatarSize, api: widget.api)
-        : _RoomAvatar(room: widget.room, api: widget.api, size: _avatarSize);
+        : dmUser != null
+        ? UserAvatar(user: dmUser!, size: _avatarSize, api: api)
+        : _RoomAvatar(room: room, api: api, size: _avatarSize);
     if (_avatarStorageId == null) return avatar;
     return FocusableTap(
-      onTap: _openAvatarFullscreen,
+      onTap: () => _openAvatarFullscreen(context),
       shape: FocusRingShape.circle,
-      semanticLabel: widget.dmUser != null
+      semanticLabel: dmUser != null
           ? AppLocalizations.of(context).roomScreenViewProfilePictureSemantic
           : AppLocalizations.of(context).roomScreenViewRoomPictureSemantic,
       child: GestureDetector(
-        onTap: _openAvatarFullscreen,
+        onTap: () => _openAvatarFullscreen(context),
         child: SteadyHero(
-          tag: 'room-header-avatar-${widget.room.id}',
+          tag: 'room-header-avatar-${room.id}',
           child: avatar,
         ),
       ),
     );
   }
 
-  /// True when [title] needs more than one line at [maxWidth].
-  bool _overflows(String title, TextStyle style, double maxWidth) {
-    final painter = TextPainter(
-      text: TextSpan(text: title, style: style),
-      textDirection: Directionality.of(context),
-      textScaler: MediaQuery.textScalerOf(context),
-      maxLines: 1,
-    )..layout(maxWidth: maxWidth);
-    final exceeded = painter.didExceedMaxLines;
-    painter.dispose();
-    return exceeded;
-  }
-
-  @override
-  void dispose() {
-    _collapseTimer?.cancel();
-    super.dispose();
+  /// The controls right of the title: video call, then voice call, both
+  /// always on show. Room Info has no button of its own here — the title
+  /// capsule is its tap target.
+  List<Widget> _buildCallControls() {
+    // See the classic header: no one to call in a chat with only yourself,
+    // and no one home in a chat with the app. Keep one control's width
+    // reserved anyway, so the capsule stays centred between the back button
+    // and this edge instead of drifting right by half a control.
+    if (!caps.canCall) {
+      return const [SizedBox(width: _controlSize)];
+    }
+    if (room.isDm && dmUser != null) {
+      return [
+        CallButton(
+          peerUserId: dmUser!.id,
+          peerName: dmUser!.displayName,
+          roomId: room.id,
+          variant: CallButtonVariant.liquid,
+          kind: CallMediaKind.video,
+        ),
+        const SizedBox(width: _controlGap),
+        CallButton(
+          peerUserId: dmUser!.id,
+          peerName: dmUser!.displayName,
+          roomId: room.id,
+          variant: CallButtonVariant.liquid,
+          kind: CallMediaKind.audio,
+        ),
+      ];
+    }
+    return [
+      GroupCallButton(roomId: room.id, liquid: true, kind: CallMediaKind.video),
+      const SizedBox(width: _controlGap),
+      GroupCallButton(roomId: room.id, liquid: true, kind: CallMediaKind.audio),
+    ];
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final title = widget.room.isSavedMessages
+    final title = room.isSavedMessages
         ? AppLocalizations.of(context).savedMessagesTitle
-        : (widget.dmUser?.displayName ?? widget.room.name);
+        : (dmUser?.displayName ?? room.name);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Row(
@@ -5301,85 +5290,43 @@ class _LiquidHeaderState extends State<_LiquidHeader> {
         children: [
           LiquidGlass(
             shape: LiquidGlassShape.circle,
-            size: const Size(44, 44),
+            size: const Size(_controlSize, _controlSize),
             onTap: () => _roomBack(context),
             child: Icon(Icons.arrow_back, size: 18, color: theme.accent),
           ),
           const SizedBox(width: 12),
           Expanded(
-            // LiquidGlass now shrink-wraps its content, so the capsule is as
-            // wide as the title and no wider; Center keeps it centred in the
-            // header and the inner Flexible(Text) ellipsizes once a long
-            // title reaches the available width. (This used to need an
-            // IntrinsicWidth to undo LiquidGlass expanding to fill.)
+            // LiquidGlass shrink-wraps its content, so the capsule is as wide
+            // as the title and no wider; Center keeps it centred in the header
+            // and the inner Flexible(Text) wraps a long title onto a second
+            // line, then ellipsizes. There is no expand-on-tap any more: a tap
+            // goes straight to Room Info, which shows the full name anyway.
             child: Center(
               child: LiquidGlass(
                 shape: LiquidGlassShape.capsule,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                onTap: _handleTitleTap,
-                child: AnimatedSize(
-                  duration: theme.motionMed,
-                  curve: Curves.easeOutCubic,
-                  alignment: Alignment.center,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildAvatar(),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        // maxWidth here is exactly the width the title has — the
-                        // Row is mainAxisSize.min, so the avatar and its gap are
-                        // already subtracted. Measuring against it beats
-                        // re-deriving the capsule's padding by hand.
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            final style = theme.body
-                                .copyWith(fontWeight: FontWeight.w600, color: theme.ink);
-                            // Always measured at one line, whatever the current
-                            // expansion state: the question is whether expanding
-                            // would reveal anything.
-                            _titleFits =
-                                !_overflows(title, style, constraints.maxWidth);
-                            return Text(
-                              title,
-                              style: style,
-                              overflow:
-                                  _expanded ? TextOverflow.fade : TextOverflow.ellipsis,
-                              softWrap: _expanded,
-                              maxLines: _expanded ? 3 : 1,
-                            );
-                          },
-                        ),
+                onTap: onOpenInfo,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildAvatar(context),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        title,
+                        style: theme.body
+                            .copyWith(fontWeight: FontWeight.w600, color: theme.ink),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
           const SizedBox(width: 12),
-          // See the classic header: no one to call in a chat with only
-          // yourself, and no one home in a chat with the app.
-          if (!widget.caps.canCall) ...[
-            const SizedBox.shrink(),
-          ] else if (widget.room.isDm && widget.dmUser != null) ...[
-            CallButton(
-              peerUserId: widget.dmUser!.id,
-              peerName: widget.dmUser!.displayName,
-              roomId: widget.room.id,
-              variant: CallButtonVariant.liquid,
-            ),
-            const SizedBox(width: 12),
-          ] else ...[
-            GroupCallButton(roomId: widget.room.id, liquid: true),
-            const SizedBox(width: 12),
-          ],
-          LiquidGlass(
-            shape: LiquidGlassShape.circle,
-            size: const Size(44, 44),
-            onTap: widget.onOpenInfo,
-            child: Icon(Icons.info_outline, size: 18, color: theme.accent),
-          ),
+          ..._buildCallControls(),
         ],
       ),
     );

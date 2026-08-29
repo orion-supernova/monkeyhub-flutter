@@ -13,15 +13,20 @@ import 'group_call_service.dart';
 
 /// Entry point for starting a group call from a room header: bottom sheet
 /// with voice/video choice and "call everyone" vs "choose people".
+///
+/// [initialKind] is which chip starts selected — the header's dedicated
+/// video button opens the sheet already on video, so that tap isn't asked
+/// twice. The chips stay, so the choice is still one tap away.
 Future<void> showStartGroupCallSheet(
   BuildContext context, {
   required GroupCallService service,
   required ChatApi api,
   required String roomId,
   required String myUserId,
+  CallMediaKind initialKind = CallMediaKind.audio,
 }) async {
   final theme = ThemeScope.of(context);
-  var kind = CallMediaKind.audio;
+  var kind = initialKind;
 
   await showAdaptiveSheet<void>(
     context,
