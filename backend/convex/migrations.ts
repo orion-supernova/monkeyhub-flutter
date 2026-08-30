@@ -2,7 +2,7 @@ import { internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
-import { LINK_PATTERN, galleryBucketFor } from "./messages";
+import { LINK_PATTERN, galleryBucketFor, roomPreviewFor } from "./messages";
 
 /**
  * One-off backfill for `messages.rootId` (see the field comment in schema.ts).
@@ -481,5 +481,77 @@ export const countMissingHasReactions = internalMutation({
       `countMissingHasReactions: ${m} of ${t} reactions sit on an unflagged message`
     );
     return { done: true, total: t, missing: m };
+  },
+});
+
+/**
+ * One-off repair for `rooms.lastMessage` after spoiler masking landed in
+ * `roomPreviewFor` (see messages.ts).
+ *
+ * A room card shows the preview computed when its newest message was sent,
+ * and for a spoiler sent before the masking deploy that preview is the hidden
+ * words themselves — and stays so until somebody sends something newer. This
+ * walks every room, recomputes the preview from its newest message, and
+ * patches only the rooms whose card would actually change (which, since the
+ * mask is the only difference, is exactly the rooms showing a spoiler).
+ *
+ * Guarded the way the edit/delete repairs are: only when the room card is
+ * really showing that newest message (`lastMessageTime` matches), so a room
+ * in some odd intermediate state is left alone rather than "fixed".
+ *
+ * Idempotent, order-independent, self-chains through the scheduler:
+ *
+ *     npx convex run migrations:backfillSpoilerPreviews '{}'
+ */
+export const backfillSpoilerPreviews = internalMutation({
+  args: {
+    cursor: v.optional(v.string()),
+    batchSize: v.optional(v.number()),
+    scanned: v.optional(v.number()),
+    patched: v.optional(v.number()),
+  },
+  handler: async (ctx, { cursor, batchSize, scanned, patched }) => {
+    const numItems = Math.min(batchSize ?? 100, 300);
+    const page = await ctx.db
+      .query("rooms")
+      .paginate({ numItems, cursor: cursor ?? null });
+
+    let totalScanned = scanned ?? 0;
+    let totalPatched = patched ?? 0;
+
+    for (const room of page.page) {
+      totalScanned++;
+      const newest = await ctx.db
+        .query("messages")
+        .withIndex("by_room_time", (q: any) => q.eq("roomId", room._id))
+        .order("desc")
+        .first();
+      if (!newest) continue;
+      if (!newest.formatting?.some((f) => f.type === "spoiler")) continue;
+      if (room.lastMessageTime !== newest.createdAt) continue;
+      const preview = roomPreviewFor(newest);
+      if (preview === room.lastMessage) continue;
+      await ctx.db.patch(room._id, { lastMessage: preview });
+      totalPatched++;
+    }
+
+    if (!page.isDone) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.migrations.backfillSpoilerPreviews,
+        {
+          cursor: page.continueCursor,
+          batchSize: numItems,
+          scanned: totalScanned,
+          patched: totalPatched,
+        }
+      );
+      return { done: false, scanned: totalScanned, patched: totalPatched };
+    }
+
+    console.log(
+      `backfillSpoilerPreviews complete: scanned ${totalScanned}, patched ${totalPatched}`
+    );
+    return { done: true, scanned: totalScanned, patched: totalPatched };
   },
 });

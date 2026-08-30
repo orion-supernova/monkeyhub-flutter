@@ -595,4 +595,29 @@ void main() {
       expect(messageStampsInline(m, showLinkUrls: true), isTrue);
     });
   });
+
+  testWidgets('the stamp spacer is fully transparent, not merely faint', (
+    tester,
+  ) async {
+    // Load-bearing for the spoiler veil, not for the stamp. The spacer is the
+    // one placeholder inside every message paragraph, and `RenderOpacity`
+    // composites for ANY alpha above zero — which would flip every veiled
+    // bubble onto `RenderVeiledText`'s hard-edged compositing fallback.
+    await tester.pumpWidget(host(StampSpacer(
+      stamp: MessageStamp(
+        createdAt: DateTime(2026, 3, 1, 12, 4),
+        status: MessageStatus.sent,
+        tone: StampTone.onBubble,
+      ),
+    )));
+    final opacity = tester.widget<Opacity>(find.descendant(
+      of: find.byType(StampSpacer),
+      matching: find.byType(Opacity),
+    ));
+    expect(opacity.opacity, 0);
+    expect(
+      tester.renderObject(find.byType(StampSpacer)).needsCompositing,
+      isFalse,
+    );
+  });
 }

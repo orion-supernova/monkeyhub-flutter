@@ -36,7 +36,7 @@ void main() {
           controller: controller,
           // An ancestor MediaQuery is discarded by MaterialApp, so the 24-hour
           // flag has to be injected from inside `builder` — the trick
-          // `spoiler_overlay_test.dart` uses for `disableAnimations`.
+          // `spoiler_veil_test.dart` uses for `disableAnimations`.
           child: MediaQuery(
             data: MediaQuery.of(context)
                 .copyWith(alwaysUse24HourFormat: use24Hour),

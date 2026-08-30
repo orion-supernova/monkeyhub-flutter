@@ -42,6 +42,58 @@ enum FormattingType {
   }
 }
 
+/// What stands in for spoiler text on any surface the reader has not touched
+/// — a pin banner, a reply card, a quote in the action menu.
+///
+/// Mirrors `SPOILER_MASK` in `backend/convex/messages.ts`, which does the same
+/// job for the push body and the room card, so a spoiler looks the same
+/// whichever side rendered the line. A fixed run rather than one block per
+/// character: the length of a spoiler is part of what it hides.
+const String spoilerMask = '\u2592\u2592\u2592\u2592\u2592';
+
+/// [content] with every spoiler span replaced by [spoilerMask].
+///
+/// For surfaces that show a message they are NOT rendering as a bubble — the
+/// bubble itself veils the words in place and never needs this. Touching and
+/// overlapping spans collapse into one mask, and offsets are clamped rather
+/// than thrown on, because a preview line must never take a screen down.
+String maskSpoilers(String content, List<FormattingEntity> formatting) {
+  if (formatting.isEmpty) return content;
+  final spans = <({int start, int end})>[];
+  for (final f in formatting) {
+    if (f.type != FormattingType.spoiler) continue;
+    final start = f.start.clamp(0, content.length);
+    final end = f.end.clamp(0, content.length);
+    if (start < end) spans.add((start: start, end: end));
+  }
+  if (spans.isEmpty) return content;
+  spans.sort((a, b) => a.start.compareTo(b.start));
+
+  final out = StringBuffer();
+  var cursor = 0;
+  var openStart = spans.first.start;
+  var openEnd = spans.first.end;
+  void flush() {
+    out
+      ..write(content.substring(cursor, openStart))
+      ..write(spoilerMask);
+    cursor = openEnd;
+  }
+
+  for (final s in spans.skip(1)) {
+    if (s.start <= openEnd) {
+      if (s.end > openEnd) openEnd = s.end;
+      continue;
+    }
+    flush();
+    openStart = s.start;
+    openEnd = s.end;
+  }
+  flush();
+  out.write(content.substring(cursor));
+  return out.toString();
+}
+
 /// One styled run of a message body. Immutable — an edit replaces the list.
 @immutable
 class FormattingEntity {

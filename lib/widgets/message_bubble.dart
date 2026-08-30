@@ -1934,10 +1934,8 @@ Widget _captionBody(
     codeBackground: theme.codeBackground(isMine: isMine),
     codeBorder: theme.codeBorder(isMine: isMine),
     spoilerContextId: spoilerContextId,
-    // onMedia: a caption's veil sits on a photograph, not on a bubble fill,
-    // so the bubble-derived plate would be measuring a colour that isn't
-    // behind it.
-    spoilerCover: theme.spoilerCover(isMine: isMine, onMedia: true),
+    // onMedia: a caption's dust sits on a photograph, not on a bubble, so it
+    // takes a fixed neutral rather than the theme's bubble ink.
     spoilerDust: theme.spoilerDust(isMine: isMine, onMedia: true),
   );
   if (stamp == null) return Padding(padding: pad, child: body);
@@ -3081,10 +3079,6 @@ class _LinkAwareBubble extends StatelessWidget {
           codeBackground: theme.codeBackground(isMine: isMine),
           codeBorder: theme.codeBorder(isMine: isMine),
           spoilerContextId: message.id,
-          // Both derive from the bubble's own fill. `ephemeral` is left at its
-          // default because an ephemeral bubble only gains a border — the fill
-          // these measure against is the same one.
-          spoilerCover: theme.spoilerCover(isMine: isMine),
           spoilerDust: theme.spoilerDust(isMine: isMine),
         );
 

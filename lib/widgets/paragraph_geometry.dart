@@ -28,6 +28,13 @@ import 'package:flutter/widgets.dart';
 /// measurable yet, which is the caller's signal to keep whatever it had.
 ///
 /// [insetX]/[insetY] shrink each rect; pass negatives to grow it.
+///
+/// For a [host] that is a SIBLING of the paragraph (the `Positioned.fill`
+/// overlays), so the mapping goes through global coordinates. A host that is
+/// an ANCESTOR — the spoiler veil's own render object, measuring during its
+/// layout — calls [paragraphRectsIn] directly with its own transform, because
+/// the global round trip reads parent-data offsets that are not yet set
+/// mid-layout.
 List<List<Rect>> paragraphRectsFor({
   required GlobalKey paragraphKey,
   required RenderBox host,
@@ -36,7 +43,7 @@ List<List<Rect>> paragraphRectsFor({
   double insetY = 0,
 }) {
   if (ranges.isEmpty) return const [];
-  final p = _paragraphUnder(paragraphKey);
+  final p = paragraphUnder(paragraphKey);
   if (p == null ||
       !p.attached ||
       !p.hasSize ||
@@ -44,8 +51,31 @@ List<List<Rect>> paragraphRectsFor({
       !host.hasSize) {
     return const [];
   }
+  return paragraphRectsIn(
+    paragraph: p,
+    ranges: ranges,
+    toLocal: (o) => host.globalToLocal(p.localToGlobal(o)),
+    insetX: insetX,
+    insetY: insetY,
+  );
+}
 
-  Offset toLocal(Offset o) => host.globalToLocal(p.localToGlobal(o));
+/// [paragraphRectsFor]'s core: glyph geometry for [ranges] in whatever space
+/// [toLocal] maps [paragraph]'s own coordinates into.
+///
+/// [paragraph] must be laid out. Legal to call from an ancestor's
+/// `performLayout` right after `child.layout(...)` returns — layout clears
+/// the paragraph's dirty flag before returning, and `getBoxesForSelection`
+/// only asserts on that.
+List<List<Rect>> paragraphRectsIn({
+  required RenderParagraph paragraph,
+  required List<({int start, int end})> ranges,
+  required Offset Function(Offset) toLocal,
+  double insetX = 0,
+  double insetY = 0,
+}) {
+  if (ranges.isEmpty) return const [];
+  final p = paragraph;
 
   // A selection box that ends at a soft wrap includes the space the line
   // broke on, and that space is laid out PAST the paragraph's own width — a
@@ -53,9 +83,14 @@ List<List<Rect>> paragraphRectsFor({
   // runs out through the bubble's padding to its edge, which reads as a bar
   // across the bubble rather than a patch over the words. Clamp before
   // coalescing, so the caller's outset still applies on top.
+  //
+  // `textSize`, not `size`: the laid-out text is what the boxes are relative
+  // to, and — the reason that matters — a debug build asserts when anything
+  // but a box's parent reads its `size` during layout, which is exactly what
+  // the veil is when it measures a paragraph two levels down mid-layout.
   final bounds = Rect.fromPoints(
     toLocal(Offset.zero),
-    toLocal(Offset(p.size.width, p.size.height)),
+    toLocal(Offset(p.textSize.width, p.textSize.height)),
   );
 
   final out = <List<Rect>>[];
@@ -90,7 +125,7 @@ List<List<Rect>> paragraphRectsFor({
 /// means the spoiler veil silently stops mounting and the hidden text renders
 /// as plain readable prose. Nothing in the app does that today; this is here
 /// so that when someone does, it fails visibly or not at all.
-RenderParagraph? _paragraphUnder(GlobalKey key) {
+RenderParagraph? paragraphUnder(GlobalKey key) {
   RenderObject? ro = key.currentContext?.findRenderObject();
   // A handful of proxy boxes is normal; a deep walk means we're lost.
   for (var depth = 0; ro != null && ro is! RenderParagraph && depth < 8; depth++) {

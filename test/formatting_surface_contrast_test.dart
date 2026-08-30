@@ -69,43 +69,33 @@ void main() {
         );
       });
 
-      test('$label — spoiler plate hides without shouting', () {
+      test('$label — spoiler dust registers on the bubble', () {
         final bubble = theme.bubbleFill(isMine: isMine);
-        final plate = theme.spoilerCover(isMine: isMine);
         final dust = theme.spoilerDust(isMine: isMine);
 
-        // The whole thesis of the redesign: the plate IS the bubble. Not
-        // nearly — exactly, or its corners show as a box drawn over the words.
+        // There is no plate: the dust sits directly on the bubble's own
+        // ground, so this is the only contrast the veil has.
         expect(
-          plate,
-          bubble,
-          reason: 'spoiler plate ${hex(plate)} must equal bubble ${hex(bubble)}'
-              ' exactly; anything else is a rectangle the reader can see',
-        );
-        expect(
-          contrast(dust, plate),
+          contrast(dust, bubble),
           greaterThan(3.0),
-          reason: 'dust ${hex(dust)} on plate ${hex(plate)} — sub-pixel motes '
-              'vanish below this',
+          reason: 'dust ${hex(dust)} on bubble ${hex(bubble)} — sub-pixel '
+              'motes vanish below this',
         );
       });
     }
   }
 
   test('media captions get a fixed neutral, not the bubble', () {
-    // Over a photograph no palette colour is the ground, so both spoiler
-    // tokens must ignore the theme entirely.
-    final plates = <Color>{};
+    // Over a photograph no palette colour is the ground, so the dust must
+    // ignore the theme entirely.
     final dusts = <Color>{};
     for (final theme in ThemeController.all) {
       for (final isMine in const [false, true]) {
-        plates.add(theme.spoilerCover(isMine: isMine, onMedia: true));
         dusts.add(theme.spoilerDust(isMine: isMine, onMedia: true));
       }
     }
-    expect(plates, hasLength(1));
     expect(dusts, hasLength(1));
-    expect(contrast(dusts.single, plates.single), greaterThan(3.0));
+    expect(dusts.single, const Color(0xFFFFFFFF));
   });
 
   test('bubbleFill resolves an opaque colour for every theme', () {

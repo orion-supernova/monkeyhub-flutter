@@ -5,7 +5,7 @@ import '../models/mention.dart';
 import '../models/message_formatting.dart';
 import '../services/link_preview_service.dart';
 import 'code_chip_underlay.dart';
-import 'spoiler_overlay.dart';
+import 'spoiler_veil.dart';
 import 'text_runs.dart';
 
 /// Renders a message body: bare URLs underlined and tap-routable via
@@ -45,7 +45,6 @@ class LinkifiedText extends StatefulWidget {
     this.codeBorder,
     this.onLinkEntityTap,
     this.spoilerContextId,
-    this.spoilerCover,
     this.spoilerDust,
   });
 
@@ -149,15 +148,10 @@ class LinkifiedText extends StatefulWidget {
   /// wherever a message id exists.
   final String? spoilerContextId;
 
-  /// The opaque plate under the spoiler's dust (see
-  /// `FormattingSurface.spoilerCover`). Falls back to the body style's own
-  /// colour, so a spoiler is never accidentally legible just because a caller
-  /// forgot the theme plumbing.
-  final Color? spoilerCover;
-
   /// Ink of the spoiler's dust motes (see `FormattingSurface.spoilerDust`).
-  /// Falls back to [spoilerCover]'s own resolution, which yields a plate with
-  /// invisible dust — concealment intact, effect absent.
+  /// Falls back to [style]'s own colour — the words' ink — which is what it
+  /// resolves to on a bubble anyway. There is no plate to colour: the veil
+  /// hides the glyphs themselves and paints nothing over the bubble.
   final Color? spoilerDust;
 
   @override
@@ -167,7 +161,7 @@ class LinkifiedText extends StatefulWidget {
 class _LinkifiedTextState extends State<LinkifiedText> {
   final List<TapGestureRecognizer> _recognizers = [];
 
-  /// On the paragraph only while a veil is up — the overlay resolves it to
+  /// On the paragraph only while a veil or a chip is up — both resolve it to
   /// the RenderParagraph to measure real glyph boxes.
   final GlobalKey _paragraphKey = GlobalKey();
 
@@ -264,24 +258,27 @@ class _LinkifiedTextState extends State<LinkifiedText> {
     }
     if (widget.trailing != null) spans.add(widget.trailing!);
 
-    // The overlay mounts whenever spoiler runs exist, revealed or not, and
-    // owns the whole veiled/open cycle itself — because a revealed spoiler
-    // heals back to dust after a hold, and a widget that had been unmounted
-    // on reveal would have nothing left to do the healing. It paints nothing
+    // The veil mounts whenever spoiler runs exist, revealed or not, and owns
+    // the whole veiled/open cycle itself — because a revealed spoiler heals
+    // back to dust after a hold, and a widget that had been unmounted on
+    // reveal would have nothing left to do the healing. It paints nothing
     // and runs no ticker while the words are simply readable.
     //
-    // The paragraph renders the real text underneath either way: layout must
+    // The paragraph is laid out with the real text either way: layout must
     // be true so the bubble is the right size and the reveal uncovers words
-    // that were always exactly there.
+    // that were always exactly there. The veil WRAPS it and cuts the spoiler
+    // glyphs out of the paragraph's own pixels — nothing is painted over the
+    // bubble, so its ground shows through whatever the theme made it.
     final contextId = widget.spoilerContextId;
     final veiled = fold.spoilerRanges.isNotEmpty;
     final chipped =
         widget.codeBackground != null && fold.codeRanges.isNotEmpty;
 
-    // The key is what both overlays measure against, so it goes on only when
-    // one of them is mounted. Kept conditional rather than always-on because
-    // flipping it null↔non-null remounts the Text element: acceptable once, at
-    // reveal, and pure waste on every plain paragraph in a long transcript.
+    // The key is what the veil and the chip measure against, so it goes on
+    // only when one of them is mounted. Kept conditional rather than
+    // always-on because flipping it null↔non-null remounts the Text element:
+    // acceptable once, at reveal, and pure waste on every plain paragraph in
+    // a long transcript.
     final paragraph = Text.rich(
       TextSpan(children: spans, style: widget.style),
       key: veiled || chipped ? _paragraphKey : null,
@@ -289,34 +286,33 @@ class _LinkifiedTextState extends State<LinkifiedText> {
     if (!veiled && !chipped) return paragraph;
 
     // The paragraph stays the only non-positioned child, so the Stack keeps
-    // hugging the text exactly as it did before either overlay existed.
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        if (chipped)
-          Positioned.fill(
-            child: InlineCodeUnderlay(
-              paragraphKey: _paragraphKey,
-              ranges: fold.codeRanges,
-              fill: widget.codeBackground!,
-              border: widget.codeBorder,
-            ),
-          ),
-        paragraph,
-        if (veiled)
-          Positioned.fill(
-            child: SpoilerOverlay(
-              paragraphKey: _paragraphKey,
-              ranges: fold.spoilerRanges,
-              contextId: contextId ?? '',
-              cover: widget.spoilerCover ?? widget.style.color ?? Colors.black,
-              dust: widget.spoilerDust ??
-                  widget.spoilerCover ??
-                  widget.style.color ??
-                  Colors.black,
-            ),
-          ),
-      ],
+    // hugging the text exactly as it did before the underlay existed.
+    final body = !chipped
+        ? paragraph
+        : Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                child: InlineCodeUnderlay(
+                  paragraphKey: _paragraphKey,
+                  ranges: fold.codeRanges,
+                  fill: widget.codeBackground!,
+                  border: widget.codeBorder,
+                ),
+              ),
+              paragraph,
+            ],
+          );
+    if (!veiled) return body;
+
+    // The chip goes INSIDE the veil: a code run inside a spoiler is hidden
+    // along with its words, rather than showing as an empty chip under dust.
+    return SpoilerVeil(
+      paragraphKey: _paragraphKey,
+      ranges: fold.spoilerRanges,
+      contextId: contextId ?? '',
+      ink: widget.spoilerDust ?? widget.style.color ?? Colors.black,
+      child: body,
     );
   }
 

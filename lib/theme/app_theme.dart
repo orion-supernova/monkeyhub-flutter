@@ -434,37 +434,19 @@ extension FormattingSurface on AppTheme {
         letterSpacing: 0,
       );
 
-  /// The plate the spoiler veil paints, opaque, under its dust.
-  ///
-  /// This used to be the text's own ink, on the argument that "a veil in the
-  /// ink the hidden words would have used reads as 'text, redacted' on every
-  /// theme, which no bubble-coloured bar manages". That argument is overturned
-  /// by looking at it: [ink] is `#FFFFFF` on Midnight, so a spoiler was a
-  /// glowing white slab in a dark transcript — the single brightest object on
-  /// the screen, drawing the eye to the one thing the sender asked to hide.
-  ///
-  /// It is now EXACTLY [bubbleFill], with [spoilerDust] carrying the whole
-  /// read. Exactly, not nearly: a plate even 1.12:1 off its bubble still reads
-  /// as a rectangle with corners sitting inside the message, and a spoiler
-  /// should look like a stretch of bubble where words should be — not like a
-  /// box drawn over them. Matching the fill also means the plate's shape,
-  /// radius and edges are all unobservable, which is why the veil can stay a
-  /// plain rounded rect and still have nothing visible to give it away.
-  ///
-  /// Do not reinstate a contrasting plate, and do not reinstate an
-  /// ink-coloured one without looking at it on Midnight first.
-  ///
-  /// [onMedia] is for captions, where the veil sits on a photograph instead of
-  /// a bubble: nothing can match that ground, so a fixed neutral is the honest
-  /// answer.
-  Color spoilerCover({required bool isMine, bool onMedia = false}) =>
-      onMedia ? const Color(0xFF16181C) : bubbleFill(isMine: isMine);
-
-  /// The ink of the spoiler's dust motes — the layer that actually conceals.
+  /// The ink of the spoiler's dust motes.
   ///
   /// The text's own ink, so the field reads as the hidden words ground to
-  /// powder. Held well clear of [spoilerCover] (>3:1) so sub-pixel motes still
-  /// register against the plate.
+  /// powder — and so it clears the bubble by at least what the words do.
+  /// There is no plate token any more: the veil used to paint an opaque
+  /// rectangle in [bubbleFill] under its dust, which was only invisible when
+  /// that colour matched the bubble EXACTLY, and it could not on a translucent
+  /// fill, a speaker-tinted group bubble or a photograph. The veil now hides
+  /// the glyphs themselves and paints nothing over the bubble at all (see
+  /// `spoiler_veil.dart`), so the only colour it needs is this one.
+  ///
+  /// [onMedia] is for captions, where the dust sits on a photograph instead
+  /// of a bubble: no palette colour is the ground there, so a fixed neutral.
   Color spoilerDust({required bool isMine, bool onMedia = false}) =>
       onMedia ? const Color(0xFFFFFFFF) : (isMine ? accentInk : ink);
 }

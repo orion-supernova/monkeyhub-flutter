@@ -1,5 +1,6 @@
 import 'chat_message.dart';
 import 'enums.dart';
+import 'message_formatting.dart';
 
 /// The most this ever renders as. A pinned banner is one line on a phone; a
 /// message can be thousands of characters, and carrying them around to throw
@@ -44,12 +45,16 @@ String _rawPreview(ChatMessage m, {required bool hasThumbnail}) {
     case MessageType.url:
       // A genuinely empty message is possible (a media send whose upload
       // failed). An ellipsis keeps the row from collapsing to nothing.
-      return m.content.isEmpty ? '…' : m.content;
+      //
+      // Spoilers masked, here and on the captions below: every caller is a
+      // surface showing a message it is not rendering as a bubble, so there
+      // is no veil to touch and the words would simply sit in the open.
+      return m.content.isEmpty ? '…' : maskSpoilers(m.content, m.formatting);
     case MessageType.image:
-      if (m.content.isNotEmpty) return m.content;
+      if (m.content.isNotEmpty) return maskSpoilers(m.content, m.formatting);
       return hasThumbnail ? '' : 'photo';
     case MessageType.video:
-      if (m.content.isNotEmpty) return m.content;
+      if (m.content.isNotEmpty) return maskSpoilers(m.content, m.formatting);
       return hasThumbnail ? '' : 'video';
     case MessageType.videoNote:
       // Named apart from a plain video on purpose: the two are different

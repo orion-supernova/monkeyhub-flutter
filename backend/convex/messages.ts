@@ -425,6 +425,13 @@ export async function guardOutgoing(
 /**
  * The one line a room card shows for its newest message.
  *
+ * Also the push body (`notifications.sendMessagePush` is handed this exact
+ * string), which is why the text case runs through `maskSpoilers`: a
+ * spoiler is a promise that the words stay hidden until touched, and a
+ * lock-screen banner or a chat-list row is the one place the reader never
+ * touched anything. Masked HERE rather than in `notifications` so the room
+ * card, the push and every repair path agree by construction.
+ *
  * Shared by `send` and by the preview repair in `removeMessageAndFanout`,
  * which each spelled it out before — and had already drifted: the repair had
  * no armed-photo case, so deleting the newest message re-labelled a view-once
@@ -435,14 +442,18 @@ export async function guardOutgoing(
  * would make every document on the room list identical, so the name is used
  * where there is one — it is already the thing the sender chose to say.
  */
-function roomPreviewFor(msg: {
+export function roomPreviewFor(msg: {
   type?: string;
   content?: string;
   fileName?: string;
   viewOnce?: boolean;
+  formatting?: FormattingSpan[];
 }): string {
   const type = msg.type ?? "text";
-  if (type === "text") return (msg.content ?? "").slice(0, 100);
+  // Masked BEFORE the slice: span offsets index the whole `content`.
+  if (type === "text") {
+    return maskSpoilers(msg.content ?? "", msg.formatting).slice(0, 100);
+  }
   if (msg.viewOnce === true) return "[photo]";
   if (type === "file") {
     const name = (msg.fileName ?? "").slice(0, 100);
@@ -601,6 +612,72 @@ const FORMATTING_TYPES = new Set([
  * mention cap does: the client caps too, and a disagreement must never fail
  * a send the user has already made. */
 const MAX_FORMATTING_ENTITIES = 50;
+
+/** One stored formatting span — the `messages.formatting` element shape. */
+export type FormattingSpan = {
+  start: number;
+  end: number;
+  type: string;
+  url?: string;
+};
+
+/**
+ * What stands in for spoiler text anywhere the reader has not touched it —
+ * the push body, the room card, a reply quote.
+ *
+ * A fixed run rather than one block per character: the length of a spoiler
+ * is part of what it hides ("▒▒▒" next to a question about a name is an
+ * answer). Five is wide enough to read as a redaction at a glance, and the
+ * glyph is the same one Telegram's chat list uses, so nobody has to learn it.
+ * Not a word like "Spoiler": every other placeholder this string sits beside
+ * is language-neutral because the backend has no locale to speak in.
+ */
+export const SPOILER_MASK = "▒▒▒▒▒";
+
+/**
+ * `content` with every spoiler span replaced by [SPOILER_MASK].
+ *
+ * Overlapping and touching spoiler spans collapse into one mask — the
+ * composer can produce them (toggle, retype, toggle) and two masks side by
+ * side would describe a boundary the sender never drew. Offsets are the
+ * stored UTF-16 code units, which is exactly what `slice` takes, so this is
+ * safe to run on the raw row; anything malformed is clamped rather than
+ * thrown on, because a preview must never fail a send.
+ */
+export function maskSpoilers(
+  content: string,
+  formatting?: FormattingSpan[] | null
+): string {
+  if (!formatting || formatting.length === 0) return content;
+  const spans = formatting
+    .filter((f) => f.type === "spoiler")
+    .map((f) => ({
+      start: Math.max(0, Math.min(content.length, Math.floor(f.start))),
+      end: Math.max(0, Math.min(content.length, Math.floor(f.end))),
+    }))
+    .filter((f) => f.start < f.end)
+    .sort((a, b) => a.start - b.start);
+  if (spans.length === 0) return content;
+  let out = "";
+  let cursor = 0;
+  let open: { start: number; end: number } | null = null;
+  const flush = () => {
+    if (!open) return;
+    out += content.slice(cursor, open.start) + SPOILER_MASK;
+    cursor = open.end;
+    open = null;
+  };
+  for (const s of spans) {
+    if (open && s.start <= open.end) {
+      open.end = Math.max(open.end, s.end);
+      continue;
+    }
+    flush();
+    open = { start: s.start, end: s.end };
+  }
+  flush();
+  return out + content.slice(cursor);
+}
 
 /**
  * Validate client-supplied formatting spans against the content they claim
@@ -823,9 +900,12 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
       replyToPreview = {
         senderId: parent.userId,
         senderName: parent.senderName ?? "unknown",
+        // Spoilers masked: the quote is a permanent copy shown above the
+        // reply, untouched and un-revealable, so the hidden words would
+        // otherwise sit in the open on every reply to them.
         contentPreview: parentIsViewOnce
           ? "__VIEW_ONCE__"
-          : parentContent.slice(0, 140),
+          : maskSpoilers(parentContent, parent.formatting).slice(0, 140),
         type: parent.type ?? "text",
         mediaStorageId: parentIsViewOnce ? undefined : parent.mediaStorageId,
       };
@@ -1073,11 +1153,14 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
   }
 
   // Update room's last message preview
+  // `fmt`, not the raw arg: a spoiler span the sanitizer refused is not on
+  // the row, so it must not mask the preview either.
   const preview = roomPreviewFor({
     type: msgType,
     content,
     fileName,
     viewOnce: armed,
+    formatting: fmt,
   });
   await ctx.db.patch(roomId, {
     lastMessage: preview,
@@ -1598,6 +1681,7 @@ export const editMessage = mutation({
           content,
           fileName: msg.fileName,
           viewOnce: msg.viewOnce,
+          formatting: fmt,
         }),
       });
     }
@@ -1741,8 +1825,12 @@ export const forwardToRoom = mutation({
 
     let forwarded = 0;
     let refused = 0;
-    let newest: { type?: string; content?: string; fileName?: string } | null =
-      null;
+    let newest: {
+      type?: string;
+      content?: string;
+      fileName?: string;
+      formatting?: FormattingSpan[];
+    } | null = null;
     let newestId: any = null;
 
     for (let i = 0; i < sources.length; i++) {
@@ -1850,7 +1938,14 @@ export const forwardToRoom = mutation({
       }
 
       forwarded++;
-      newest = { type: msgType, content: msg.content, fileName: msg.fileName };
+      newest = {
+        type: msgType,
+        content: msg.content,
+        fileName: msg.fileName,
+        // Carried so a forwarded spoiler is masked on the target's room card
+        // and in its push, the same as the original was.
+        formatting: msg.formatting,
+      };
       newestId = newId;
     }
 

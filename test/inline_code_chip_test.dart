@@ -5,7 +5,7 @@ import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/models/message_formatting.dart';
 import 'package:monkeyhub/widgets/code_chip_underlay.dart';
 import 'package:monkeyhub/widgets/linkified_text.dart';
-import 'package:monkeyhub/widgets/spoiler_overlay.dart';
+import 'package:monkeyhub/widgets/spoiler_veil.dart';
 
 /// How the inline-code chip mounts, and — the part worth guarding — what it
 /// does NOT disturb.
@@ -42,7 +42,6 @@ void main() {
                 codeBackground: codeBackground,
                 codeBorder: codeBorder,
                 spoilerContextId: spoilerContextId,
-                spoilerCover: const Color(0xFF232B38),
                 spoilerDust: const Color(0xFFFFFFFF),
                 trailing: trailing,
               ),
@@ -89,7 +88,7 @@ void main() {
     );
   });
 
-  testWidgets('code and a spoiler stack as underlay, text, veil',
+  testWidgets('code and a spoiler: the veil wraps underlay and text together',
       (tester) async {
     await tester.pumpWidget(host(
       formatting: const [codeEntity, spoilerEntity],
@@ -104,7 +103,7 @@ void main() {
         matching: find.byType(Stack),
       ).first,
     );
-    expect(stack.children, hasLength(3));
+    expect(stack.children, hasLength(2));
     expect(stack.children[0], isA<Positioned>());
     expect(
       stack.children[1],
@@ -112,8 +111,15 @@ void main() {
       reason: 'the paragraph must stay the only non-positioned child, or the '
           'Stack stops hugging the text',
     );
-    expect(stack.children[2], isA<Positioned>());
-    expect(find.byType(SpoilerOverlay), findsOneWidget);
+    // The chip is INSIDE the veil, so a code run inside a spoiler is hidden
+    // with its words rather than showing as an empty chip under the dust.
+    expect(
+      find.ancestor(
+        of: find.byType(InlineCodeUnderlay),
+        matching: find.byType(SpoilerVeil),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('the chip measures to real geometry', (tester) async {
