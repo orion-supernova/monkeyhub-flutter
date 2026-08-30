@@ -880,7 +880,7 @@
   "deepOceanThemeAttachButtonLabel": "첨부",
   "deepOceanThemeCameraButtonLabel": "카메라",
   "deepOceanThemeSendButtonLabel": "보내기",
-  "deepOceanThemeEphemeralHint": "서버도 곧 잊어버릴 말을 속삭여보세요…",
+  "deepOceanThemeEphemeralHint": "속삭여보세요…",
   "deepOceanThemeDefaultHint": "아무 말이나 해보세요…",
   "deepOceanThemeMessageHint": "메시지",
   "photoChromeMediaPositionLabel": "{current} / {total}",

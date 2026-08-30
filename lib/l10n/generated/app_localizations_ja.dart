@@ -2991,7 +2991,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get deepOceanThemeSendButtonLabel => '送信';
 
   @override
-  String get deepOceanThemeEphemeralHint => 'サーバーが忘れることをささやいて…';
+  String get deepOceanThemeEphemeralHint => 'ささやいて…';
 
   @override
   String get deepOceanThemeDefaultHint => 'なにか話そう…';

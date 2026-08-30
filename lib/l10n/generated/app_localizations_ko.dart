@@ -3000,7 +3000,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get deepOceanThemeSendButtonLabel => '보내기';
 
   @override
-  String get deepOceanThemeEphemeralHint => '서버도 곧 잊어버릴 말을 속삭여보세요…';
+  String get deepOceanThemeEphemeralHint => '속삭여보세요…';
 
   @override
   String get deepOceanThemeDefaultHint => '아무 말이나 해보세요…';

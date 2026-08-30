@@ -3096,8 +3096,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deepOceanThemeSendButtonLabel => 'Send';
 
   @override
-  String get deepOceanThemeEphemeralHint =>
-      'whisper something the server will forget…';
+  String get deepOceanThemeEphemeralHint => 'whisper something…';
 
   @override
   String get deepOceanThemeDefaultHint => 'say something…';

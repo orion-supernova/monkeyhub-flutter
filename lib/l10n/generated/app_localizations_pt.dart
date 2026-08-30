@@ -3139,8 +3139,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get deepOceanThemeSendButtonLabel => 'Enviar';
 
   @override
-  String get deepOceanThemeEphemeralHint =>
-      'sussurra algo que o servidor vai esquecer…';
+  String get deepOceanThemeEphemeralHint => 'sussurra algo…';
 
   @override
   String get deepOceanThemeDefaultHint => 'diz alguma coisa…';
@@ -11426,8 +11425,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get deepOceanThemeSendButtonLabel => 'Enviar';
 
   @override
-  String get deepOceanThemeEphemeralHint =>
-      'sussurre algo que o servidor vai esquecer…';
+  String get deepOceanThemeEphemeralHint => 'sussurre algo…';
 
   @override
   String get deepOceanThemeDefaultHint => 'diga algo…';

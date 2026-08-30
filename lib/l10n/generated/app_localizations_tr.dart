@@ -3086,8 +3086,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get deepOceanThemeSendButtonLabel => 'Gönder';
 
   @override
-  String get deepOceanThemeEphemeralHint =>
-      'sunucunun unutacağı bir şey fısılda…';
+  String get deepOceanThemeEphemeralHint => 'bir şey fısılda…';
 
   @override
   String get deepOceanThemeDefaultHint => 'bir şeyler söyle…';

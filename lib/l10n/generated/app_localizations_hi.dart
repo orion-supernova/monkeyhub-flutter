@@ -3111,8 +3111,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get deepOceanThemeSendButtonLabel => 'भेजें';
 
   @override
-  String get deepOceanThemeEphemeralHint =>
-      'कुछ फुसफुसाओ जिसे सर्वर भूल जाएगा…';
+  String get deepOceanThemeEphemeralHint => 'कुछ फुसफुसाओ…';
 
   @override
   String get deepOceanThemeDefaultHint => 'कुछ कहो…';

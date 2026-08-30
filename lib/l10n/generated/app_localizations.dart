@@ -5397,10 +5397,10 @@ abstract class AppLocalizations {
   /// **'Send'**
   String get deepOceanThemeSendButtonLabel;
 
-  /// TextField hintText shown in the chat composer when composing an ephemeral (self-destructing) message; used in both ChatComposerClassic and ChatComposerLiquid.
+  /// TextField hintText shown in the chat composer when composing an ephemeral (self-destructing) message; used in both ChatComposerClassic and ChatComposerLiquid Both cap the hint at one line, so keep translations about as short as the default hint.
   ///
   /// In en, this message translates to:
-  /// **'whisper something the server will forget…'**
+  /// **'whisper something…'**
   String get deepOceanThemeEphemeralHint;
 
   /// TextField hintText shown in ChatComposerClassic for a normal (non-ephemeral) message.

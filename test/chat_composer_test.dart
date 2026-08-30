@@ -72,6 +72,47 @@ void main() {
         ),
   };
 
+  /// The same two, in a Chamber-of-Secrets room — which is where the longest
+  /// hint in the app lives.
+  final ephemeral = <String, Widget Function()>{
+    'classic': () => ChatComposerClassic(
+      controller: TextEditingController(),
+      ephemeral: true,
+      onSend: () {},
+      onAttach: () {},
+    ),
+    'liquid': () => ChatComposerLiquid(
+      controller: TextEditingController(),
+      ephemeral: true,
+      onSend: () {},
+      onAttach: () {},
+    ),
+  };
+
+  ephemeral.forEach((name, build) {
+    testWidgets('$name: an empty ephemeral composer is one line tall', (
+      tester,
+    ) async {
+      // A hint is laid out like any other text and wraps. The ephemeral hint
+      // is the longest string either composer ever shows, and it grew the
+      // empty field to two rows before anyone had typed anything — pushing
+      // the send button down and giving the room a composer twice the height
+      // of the one next door. The cap is on the field rather than on the
+      // copy, so no translation can undo it.
+      await tester.pumpWidget(host(build()));
+      await tester.pumpAndSettle();
+
+      final field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.decoration?.hintMaxLines, 1);
+
+      // And the string itself is short enough that the ellipsis is a
+      // safety net rather than the normal case.
+      final context = tester.element(find.byType(TextField));
+      final hint = AppLocalizations.of(context).deepOceanThemeEphemeralHint;
+      expect(hint.length, lessThan(28), reason: 'terse enough to fit: "$hint"');
+    });
+  });
+
   composers.forEach((name, build) {
     group(name, () {
       testWidgets('shows a camera button when one is wired up', (tester) async {

@@ -3157,7 +3157,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get deepOceanThemeSendButtonLabel => 'إرسال';
 
   @override
-  String get deepOceanThemeEphemeralHint => 'اهمس بشيء سينساه الخادم…';
+  String get deepOceanThemeEphemeralHint => 'اهمس بشيء…';
 
   @override
   String get deepOceanThemeDefaultHint => 'قل شيئًا…';

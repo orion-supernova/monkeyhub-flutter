@@ -545,6 +545,13 @@ class ChatComposerClassic extends StatelessWidget {
                           ? AppLocalizations.of(context).deepOceanThemeEphemeralHint
                           : AppLocalizations.of(context).deepOceanThemeDefaultHint,
                       hintStyle: theme.body.copyWith(color: theme.inkMuted),
+                      // One line, always. The field is `minLines: 1`, but a
+                      // hint is laid out like any other text and wraps: the
+                      // ephemeral hint is the longest string here and it grew
+                      // the empty composer to two rows before anyone had typed
+                      // anything. Ellipsize instead of pushing the send button
+                      // down — no translation can undo this.
+                      hintMaxLines: 1,
                       contentPadding: const EdgeInsets.symmetric(vertical: 8),
                     ),
                     onChanged: onChanged,
@@ -732,6 +739,9 @@ class ChatComposerLiquid extends StatelessWidget {
                           ? AppLocalizations.of(context).deepOceanThemeEphemeralHint
                           : AppLocalizations.of(context).deepOceanThemeMessageHint,
                       hintStyle: theme.body.copyWith(color: theme.inkMuted),
+                      // See the classic composer — a wrapping hint grew the
+                      // glass pill to two rows before anything was typed.
+                      hintMaxLines: 1,
                     ),
                     onChanged: onChanged,
                   ),

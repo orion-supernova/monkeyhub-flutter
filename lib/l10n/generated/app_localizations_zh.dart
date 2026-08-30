@@ -2953,7 +2953,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deepOceanThemeSendButtonLabel => '发送';
 
   @override
-  String get deepOceanThemeEphemeralHint => '说点服务器会忘记的悄悄话…';
+  String get deepOceanThemeEphemeralHint => '说点悄悄话…';
 
   @override
   String get deepOceanThemeDefaultHint => '说点什么…';

@@ -3538,9 +3538,9 @@
   "@deepOceanThemeSendButtonLabel": {
     "description": "Screen-reader semantic label for the composer's send-message circular button (chat_composer.dart)."
   },
-  "deepOceanThemeEphemeralHint": "whisper something the server will forget…",
+  "deepOceanThemeEphemeralHint": "whisper something…",
   "@deepOceanThemeEphemeralHint": {
-    "description": "TextField hintText shown in the chat composer when composing an ephemeral (self-destructing) message; used in both ChatComposerClassic and ChatComposerLiquid."
+    "description": "TextField hintText shown in the chat composer when composing an ephemeral (self-destructing) message; used in both ChatComposerClassic and ChatComposerLiquid. Both cap the hint at one line, so keep translations about as short as the default hint."
   },
   "deepOceanThemeDefaultHint": "say something…",
   "@deepOceanThemeDefaultHint": {

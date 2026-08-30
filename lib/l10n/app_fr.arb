@@ -890,7 +890,7 @@
   "deepOceanThemeAttachButtonLabel": "Joindre",
   "deepOceanThemeCameraButtonLabel": "Appareil photo",
   "deepOceanThemeSendButtonLabel": "Envoyer",
-  "deepOceanThemeEphemeralHint": "chuchote un truc que le serveur va oublier…",
+  "deepOceanThemeEphemeralHint": "chuchote un truc…",
   "deepOceanThemeDefaultHint": "dis quelque chose…",
   "deepOceanThemeMessageHint": "Message",
   "photoChromeMediaPositionLabel": "{current} / {total}",
