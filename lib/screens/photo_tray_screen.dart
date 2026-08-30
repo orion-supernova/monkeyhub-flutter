@@ -13,6 +13,7 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/media_filmstrip.dart';
+import '../widgets/photo_backdrop.dart';
 import '../widgets/photo_chrome.dart';
 import 'camera_editor_screen.dart';
 
@@ -24,6 +25,16 @@ import 'camera_editor_screen.dart';
 /// around here. It is also handed to the OS picker as its own limit, so the
 /// refusal happens while the user is still choosing rather than after.
 const int kMaxPhotoSelection = 10;
+
+/// The blurred copy behind the stage, as opposed to the photograph itself or
+/// the rail's thumbnails.
+///
+/// Keyed for the same reason [cameraEditorStageImageKey] is: a test reaching
+/// for "the images on this screen" and counting them became ambiguous the
+/// moment the backdrop landed, and an ambiguous count that fails loudly is the
+/// good outcome — but it still needs an answer.
+@visibleForTesting
+const Key photoTrayBackdropImageKey = Key('photo-tray-backdrop-image');
 
 /// What the tray hands back when the user commits.
 class PhotoTraySend {
@@ -281,6 +292,42 @@ class _PhotoTrayScreenState extends State<PhotoTrayScreen> {
         child: Stack(
           fit: StackFit.expand,
           children: [
+            // The one fullscreen photo surface in the app that was still
+            // missing a backdrop, and the one where it shows worst. The stage
+            // below is a band roughly 200pt shorter than the screen, so a
+            // `contain` fit on a TALL picture — a screenshot, which is the
+            // exact shape of the phone it is being sent from — is scaled down
+            // to that band's height and leaves a black gutter down both sides.
+            // The picture was right; the frame around it was wrong. Same fix
+            // as the editor and every viewer: the photograph's own colour,
+            // blurred past recognition, continues past the frame.
+            //
+            // Crossfaded rather than swapped, because paging is a deliberate
+            // move between two pictures and a hard cut in the background reads
+            // as a flash. Keyed on the bytes so an edit re-runs it too.
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 260),
+              // Taking the last photo back empties the tray, and the pop that
+              // follows is a frame late — there is one build with nothing to
+              // draw. Everything else on this screen already survives it by
+              // being driven off `_items.length`; this one has to say so.
+              child: _items.isEmpty
+                  ? const SizedBox.shrink()
+                  : PhotoBackdrop(
+                      key: ValueKey(_items[_index].bytes),
+                      image: Image.memory(
+                        _items[_index].bytes,
+                        key: photoTrayBackdropImageKey,
+                        fit: BoxFit.cover,
+                        // It is about to be blurred by 34 logical pixels; a
+                        // full decode of a 12-megapixel original here would be
+                        // megabytes spent on detail that never reaches the
+                        // screen.
+                        cacheWidth: kPhotoBackdropDecodeWidth,
+                        gaplessPlayback: true,
+                      ),
+                    ),
+            ),
             // The stage is pulled clear of the rails rather than sitting
             // full-bleed under them: a photograph whose bottom third is behind
             // a strip of its own thumbnails is one you cannot actually check

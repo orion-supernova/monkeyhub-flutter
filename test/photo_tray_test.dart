@@ -78,9 +78,35 @@ void main() {
     await openTray(tester);
 
     expect(find.byType(MediaFilmstrip), findsOneWidget);
-    // One preview page plus three rail tiles.
-    expect(find.byType(Image), findsNWidgets(4));
+    // One preview page plus three rail tiles. The backdrop is a fifth Image
+    // and is deliberately not one of them — it is the blurred copy of the
+    // current picture that fills what a `contain` fit leaves over, so it is
+    // excluded by key rather than being allowed to inflate the count.
+    expect(
+      find.byType(Image).evaluate().length -
+          find.byKey(photoTrayBackdropImageKey).evaluate().length,
+      4,
+    );
+    expect(find.byKey(photoTrayBackdropImageKey), findsOneWidget);
     expect(find.text('3 photos'), findsOneWidget);
+  });
+
+  testWidgets('the stage sits on a blurred copy of its own photo, not black', (
+    tester,
+  ) async {
+    // A screenshot is the exact shape of the phone it is being sent from, and
+    // the stage is a band ~200pt shorter than the screen — so `contain` scales
+    // it down and leaves a gutter down both sides. The gutter is unavoidable
+    // (the whole frame has to stay visible before a send); reading as dead
+    // black is not.
+    await tester.pumpWidget(host([png(10), png(80)], (_) {}));
+    await openTray(tester);
+
+    expect(find.byKey(photoTrayBackdropImageKey), findsOneWidget);
+    final backdrop = tester.widget<Image>(
+      find.byKey(photoTrayBackdropImageKey),
+    );
+    expect(backdrop.fit, BoxFit.cover, reason: 'a backdrop must fill');
   });
 
   testWidgets('taking one back removes it and updates the count', (
