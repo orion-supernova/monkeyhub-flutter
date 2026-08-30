@@ -89,11 +89,13 @@ import '../widgets/message_arrivals.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/reaction_details_sheet.dart';
 import '../widgets/reaction_picker_sheet.dart';
+import '../widgets/pending_placeholder.dart';
 import '../widgets/schedule_message_sheet.dart';
 import '../widgets/scheduled_list_sheet.dart';
 import '../widgets/scheduled_pill.dart';
 import '../widgets/scroll_to_latest.dart';
 import '../widgets/selection_check.dart';
+import '../widgets/skeleton_rows.dart';
 import '../widgets/speaker_scope.dart';
 import '../widgets/typing_indicator.dart';
 import '../widgets/remote_image.dart';
@@ -3592,7 +3594,17 @@ class _RoomScreenState extends State<RoomScreen>
     bool showTypingRow = true,
   }) {
     final theme = ThemeScope.of(context);
-    final initialLoaded = widget.repo.hasLoadedInitial(widget.roomId);
+    // `hasLiveMessages`, NOT `hasLoadedInitial`. The weaker flag flips true the
+    // moment the subscription REGISTERS — a local, instant operation, by its
+    // own admission at the call site — so on any real network it was already
+    // true before a single message had landed, and the spinner this branch
+    // used to draw was unreachable. What the reader actually saw was "no
+    // messages yet", about a conversation that was still on its way.
+    //
+    // The stronger flag means the server has spoken. It never becomes true
+    // offline, which is exactly why the wait below is bounded rather than
+    // open-ended: see [PendingPlaceholder].
+    final serverAnswered = widget.repo.hasLiveMessages(widget.roomId);
     // Built once for the whole transcript rather than inside the item builder.
     // Its callbacks take the message id, so one object serves every interactive
     // card in the list — which is the entire reason [InteractionActions] is
@@ -3623,16 +3635,26 @@ class _RoomScreenState extends State<RoomScreen>
           ? Stack(
               children: [
                 Positioned.fill(
-                  child: !initialLoaded
-                      ? Center(
-                          child: CircularProgressIndicator(
-                            color: theme.accent,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : (room.isEphemeral
-                          ? _SecretSpaceWelcome(ttl: room.messageLifetime)
-                          : const _NoMessagesPlaceholder()),
+                  child: PendingPlaceholder(
+                    pending: !serverAnswered,
+                    // A transcript's own silhouette rather than a spinner in
+                    // the middle of the screen. A spinner says "something is
+                    // happening"; this says "your messages are coming, and
+                    // they will be about here" — and because it occupies the
+                    // space the answer will, the screen settles once instead
+                    // of jumping when the backlog lands.
+                    loading: (context) => Padding(
+                      padding: EdgeInsets.only(
+                        left: listPadding.left + 8,
+                        right: listPadding.right + 8,
+                        bottom: listPadding.bottom + 8,
+                      ),
+                      child: const SkeletonBubbles(),
+                    ),
+                    empty: (context) => room.isEphemeral
+                        ? _SecretSpaceWelcome(ttl: room.messageLifetime)
+                        : const _NoMessagesPlaceholder(),
+                  ),
                 ),
                 // There is no list to append to yet, but a DM where the other
                 // person types first is exactly the moment you want to see it.

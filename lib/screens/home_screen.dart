@@ -7,6 +7,8 @@ import 'package:flutter/services.dart';
 import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
+import '../widgets/pending_placeholder.dart';
+import '../widgets/skeleton_rows.dart';
 import '../data/room_filter.dart';
 import '../data/settings_store.dart';
 import 'navigation/scroll_memory.dart';
@@ -807,14 +809,28 @@ class _RoomsPanelState extends State<_RoomsPanel> {
     final filter = widget.filter;
     final searching = widget.searchQuery.trim().isNotEmpty;
 
-    // Genuinely empty account — distinct from "filtered down to nothing".
+    // Genuinely empty account — distinct from "filtered down to nothing", and
+    // distinct again from "the answer has not arrived yet", which is what
+    // `roomsLoaded` is for. All three are the same empty list, and telling
+    // someone with a hundred rooms that they have none for as long as their
+    // network takes was the whole of the bug.
     if (allRooms.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 40),
-        child: Center(
-          child: Text(
-            AppLocalizations.of(context).homeScreenEmptyRoomsMessage,
-            style: theme.bodySoft,
+      return PendingPlaceholder(
+        pending: !widget.repo.roomsLoaded,
+        loading: (context) => const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          // Rounded-square, not circular: these stand in for rooms, and the
+          // count is what a phone shows without scrolling, so nothing moves
+          // when the real list replaces them.
+          child: SkeletonRows(count: 7, avatarSize: 44, circular: false),
+        ),
+        empty: (context) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 40),
+          child: Center(
+            child: Text(
+              AppLocalizations.of(context).homeScreenEmptyRoomsMessage,
+              style: theme.bodySoft,
+            ),
           ),
         ),
       );

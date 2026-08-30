@@ -69,6 +69,32 @@ class ChatRepository extends ChangeNotifier {
 
   List<ChatRoom> get rooms => List.unmodifiable(_rooms);
 
+  /// Whether anything has ever answered the question "what rooms does this
+  /// user have?" — cache, seed fetch or subscription, whichever got there
+  /// first.
+  ///
+  /// The chat list cannot tell "you have no rooms" from "I have not been told
+  /// yet" out of [rooms] alone: both are an empty list. It used to guess, and
+  /// on a slow connection it guessed wrong every single launch — the home
+  /// screen said "no rooms yet" to people with a hundred of them, for as long
+  /// as the network took. This is the missing bit: false means the answer is
+  /// still coming, and a list that has not been answered draws a skeleton
+  /// rather than an epitaph.
+  ///
+  /// Set by whichever source lands first, including an EMPTY one — a genuinely
+  /// empty account is an answer, and waiting past it would leave a new user
+  /// shimmering forever.
+  bool get roomsLoaded => _roomsLoaded;
+  bool _roomsLoaded = false;
+
+  /// Records that the rooms question has been answered, and tells anyone
+  /// listening if that is news.
+  void _markRoomsLoaded() {
+    if (_roomsLoaded) return;
+    _roomsLoaded = true;
+    notifyListeners();
+  }
+
   /// The chat list's main feed: everything in [rooms] except what's archived.
   /// [rooms] itself stays unfiltered — push alerts and the forward-target
   /// picker both need archived rooms still reachable.
@@ -488,7 +514,12 @@ class ChatRepository extends ChangeNotifier {
       ]);
       final cachedRooms = results[0] as List<ChatRoom>;
       final cachedFriends = results[1] as List<ChatUser>;
-      if (cachedRooms.isNotEmpty) _rooms = cachedRooms;
+      // A non-empty cache is an answer; an empty one is indistinguishable from
+      // never having cached anything, so it does not clear the skeleton.
+      if (cachedRooms.isNotEmpty) {
+        _rooms = cachedRooms;
+        _roomsLoaded = true;
+      }
       if (cachedFriends.isNotEmpty) _friends = cachedFriends;
       if (cachedRooms.isNotEmpty || cachedFriends.isNotEmpty) notifyListeners();
     } catch (_) {}
@@ -510,6 +541,12 @@ class ChatRepository extends ChangeNotifier {
         _rooms = roomsResult;
         CacheStore.instance.scheduleSaveRooms(userId, _rooms);
       }
+      // Outside the `isNotEmpty` guard on purpose. The guard is there because
+      // a failed call comes back as `[]` and must not wipe a good cache — but
+      // `listUserRooms` returning nothing on a call that DID complete is a
+      // real answer, and a new account with no rooms has to be allowed to
+      // reach its empty state.
+      _markRoomsLoaded();
       final friendsResult = results[1] as List<ChatUser>;
       if (friendsResult.isNotEmpty) {
         _friends = friendsResult;
@@ -549,6 +586,7 @@ class ChatRepository extends ChangeNotifier {
         _rooms = list
             .map((e) => ChatRoom.fromJson((e as Map).cast<String, dynamic>()))
             .toList();
+        _roomsLoaded = true;
         CacheStore.instance.scheduleSaveRooms(userId, _rooms);
         // This stream landing IS the delivery: the traffic it describes is on
         // this device now, whichever screen the user happens to be looking at.
@@ -953,6 +991,9 @@ class ChatRepository extends ChangeNotifier {
     _openGen++;
     _userId = null;
     _rooms = [];
+    // The next account has not answered yet either, and inheriting this one's
+    // "answered" would show them an empty chat list instead of a skeleton.
+    _roomsLoaded = false;
     _friends = [];
     _incomingRequests = [];
     _outgoingRequests = [];
@@ -1058,8 +1099,14 @@ class ChatRepository extends ChangeNotifier {
   /// something. Either saying yes is enough.
   bool isJoined(ChatRoom room) => isMemberOf(room.id) || room.isMember;
 
+  /// Seeding IS an answer, empty list included — a test that hands this an
+  /// empty list is describing an account with no rooms, not a network that has
+  /// not replied, and must reach the empty state rather than a skeleton.
   @visibleForTesting
-  void debugSeedRooms(List<ChatRoom> rooms) => _rooms = List.of(rooms);
+  void debugSeedRooms(List<ChatRoom> rooms) {
+    _rooms = List.of(rooms);
+    _roomsLoaded = true;
+  }
 
   Future<String> createRoom({
     required String name,

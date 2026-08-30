@@ -286,6 +286,51 @@ void main() {
     );
   });
 
+  group('roomsLoaded', () {
+    // The chat list cannot tell "you have no rooms" from "nobody has told me
+    // yet" out of `rooms` alone — both are an empty list — so it guessed, and
+    // on a slow connection it told people with a hundred rooms that they had
+    // none for as long as the network took. This is the signal that replaces
+    // the guess.
+
+    /// The live rooms subscription, once `attach` has registered it.
+    _FakeSub roomsSub() =>
+        cv.issued.firstWhere((s) => s.label.startsWith('rooms:listUserRooms'));
+
+    test('a repository nobody has attached has not been answered', () {
+      final fresh = ChatRepository(api: _FakeApi(), cv: _FakeCv());
+      addTearDown(fresh.dispose);
+      expect(fresh.roomsLoaded, isFalse,
+          reason: 'nothing has replied, so the list is pending, not empty');
+    });
+
+    test('the subscription delivering is the answer', () {
+      // Note this is asserted BEFORE the delivery: the seed fetch behind
+      // `_FakeApi` never completes here, and that is the honest shape of a
+      // slow or failing network — a request that has not answered must leave
+      // the list pending rather than quietly resolving it to empty.
+      expect(repo.roomsLoaded, isFalse);
+
+      roomsSub().fireOnData(const []);
+
+      expect(repo.rooms, isEmpty);
+      expect(repo.roomsLoaded, isTrue,
+          reason: 'an empty answer is still an answer — a new account has to '
+              'reach its empty state instead of shimmering at it');
+    });
+
+    test('signing out puts the next account back to pending', () async {
+      roomsSub().fireOnData(const []);
+      expect(repo.roomsLoaded, isTrue);
+
+      await repo.detach();
+
+      expect(repo.roomsLoaded, isFalse,
+          reason: 'inheriting "answered" would show the next person an empty '
+              'chat list while theirs was still loading');
+    });
+  });
+
   group('hasLiveMessages', () {
     test(
       'stays false until the subscription itself delivers, unlike hasLoadedInitial',

@@ -131,6 +131,114 @@ class _SkeletonRowsState extends State<SkeletonRows>
   }
 }
 
+/// Bubble-shaped placeholders for a transcript that has not arrived.
+///
+/// [SkeletonRows]'s avatar-and-two-lines shape is right for a roster and wrong
+/// for a conversation: a transcript is alternating blocks of different widths
+/// pinned to the bottom of the screen, and a skeleton that does not have that
+/// silhouette reads as some other screen loading. This is the same shimmer in
+/// the transcript's own shape.
+///
+/// Anchored to the BOTTOM, like the thing it stands in for. A chat list grows
+/// upward from the composer, so a skeleton centred in the viewport would put
+/// its rows where no message will be and then jump when the real ones land.
+class SkeletonBubbles extends StatefulWidget {
+  const SkeletonBubbles({super.key, this.count = 6});
+
+  /// How many placeholder bubbles. Six fills a phone without implying a
+  /// specific backlog.
+  final int count;
+
+  @override
+  State<SkeletonBubbles> createState() => _SkeletonBubblesState();
+}
+
+class _SkeletonBubblesState extends State<SkeletonBubbles>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _sweep;
+
+  /// Widths and line counts, in order, cycled if [SkeletonBubbles.count] runs
+  /// past the end.
+  ///
+  /// Deterministic rather than random, for the reason [SkeletonRows] gives:
+  /// a skeleton that reshuffles on every rebuild draws the eye, which is the
+  /// opposite of its job. Mixed one- and two-line blocks, because a column of
+  /// identical rectangles reads as a table.
+  static const _shapes = <({double width, int lines})>[
+    (width: 0.52, lines: 1),
+    (width: 0.68, lines: 2),
+    (width: 0.34, lines: 1),
+    (width: 0.74, lines: 2),
+    (width: 0.44, lines: 1),
+    (width: 0.60, lines: 1),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Same 1400ms as SkeletonRows — two skeletons on screen at once (a room
+    // opening over a still-loading chat list) must not beat against each
+    // other.
+    _sweep = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _sweep.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    // See SkeletonRows — translucent ink, not blended surface colours, because
+    // this paints over whatever `backgroundLayer` the theme is drawing.
+    final base = theme.inkMuted.withValues(alpha: 0.16);
+    final highlight = theme.inkMuted.withValues(alpha: 0.34);
+    return RepaintBoundary(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Proportional, so the silhouette is the same on a phone and on the
+          // chat column of a desktop window.
+          final maxBubble = constraints.maxWidth * 0.78;
+          return AnimatedBuilder(
+            animation: _sweep,
+            builder: (_, _) => Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < widget.count; i++)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 5),
+                    child: Align(
+                      // Alternating sides — a conversation, not a monologue.
+                      alignment:
+                          i.isOdd ? Alignment.centerRight : Alignment.centerLeft,
+                      child: _Shape(
+                        width: maxBubble * _shapes[i % _shapes.length].width,
+                        // 20 a line plus the padding a bubble carries, which
+                        // is what makes these read as bubbles rather than as
+                        // paragraph rules.
+                        height: 20.0 * _shapes[i % _shapes.length].lines + 18,
+                        radius: theme.radiusLg,
+                        t: _sweep.value,
+                        base: base,
+                        highlight: highlight,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
 /// One shimmering block.
 ///
 /// The sweep is a gradient whose stops move with [t], rather than an opacity
