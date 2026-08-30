@@ -457,6 +457,15 @@ class MessageBubble extends StatelessWidget {
   }
 }
 
+/// The entrance ramp on the themed dissolve overlay, as opposed to the fade on
+/// the bubble it sits over.
+///
+/// Keyed because both are plain [Opacity]s inside the same subtree, and a test
+/// asking "did the wash arrive or did it snap on" has to be able to say which
+/// one it means.
+@visibleForTesting
+const Key ephemeralSignatureKey = Key('ephemeral-signature');
+
 class EphemeralMessageBubble extends StatelessWidget {
   const EphemeralMessageBubble({
     super.key,
@@ -607,13 +616,51 @@ class EphemeralMessageBubble extends StatelessWidget {
     );
   }
 
+  /// How long the dissolve runs for, at most.
+  ///
+  /// It used to be the last 18% of the lifetime, whatever that came to. In a
+  /// room set to ten minutes that is a hundred and eight seconds of a message
+  /// sitting there blurred and half transparent — long enough that the blur
+  /// stops reading as an animation and starts reading as how old messages
+  /// look here, and long enough that a message still on screen is one you can
+  /// no longer read. A dissolve is a moment, not a phase of a message's life.
+  static const Duration _dissolveWindow = Duration(seconds: 6);
+
+  /// ...and never more than this much of a short-lived message, so a room set
+  /// to thirty seconds does not spend a fifth of every message dissolving it.
+  static const double _dissolveMaxFraction = 0.18;
+
+  /// How far the animation is allowed to lag the clock driving it.
+  ///
+  /// [now] ticks at 5Hz — right for a countdown, four frames a tick short of
+  /// enough for a blur, and the reason this used to move in visible steps.
+  /// Every ramp below is interpolated BETWEEN those ticks instead of stepping
+  /// with them, and this is the tween that does it. Deliberately a shade
+  /// longer than the 200ms tick: the next target then always arrives while
+  /// the last one is still in flight, so the motion never stalls on a frame
+  /// waiting for the clock. The cost is ~40ms of lag, on a fade measured in
+  /// seconds, that nobody can see.
+  static const Duration _tickSmoothing = Duration(milliseconds: 240);
+
+  /// 0 while the message is simply alive, 1 the instant it expires.
+  double _dissolveAt(DateTime now) {
+    final expires = message.expiresAt;
+    if (expires == null) return 0;
+    final life = expires.difference(message.createdAt).inMicroseconds;
+    if (life <= 0) return 1;
+    final window = math.min(
+      _dissolveWindow.inMicroseconds,
+      (life * _dissolveMaxFraction).round(),
+    );
+    if (window <= 0) return 0;
+    return (1 - expires.difference(now).inMicroseconds / window)
+        .clamp(0.0, 1.0);
+  }
+
   Widget _build(
       BuildContext context, BubbleStyle bubbleStyle, DateTime now) {
     final theme = ThemeScope.of(context);
     final isMine = message.senderId == currentUserId;
-    final progress = message.lifeProgress(now);
-    final dissolving = progress > 0.82;
-    final dissolveT = dissolving ? ((progress - 0.82) / 0.18).clamp(0.0, 1.0) : 0.0;
     // See MessageBubble.build — null outside a ChatPane, and every metric
     // then falls back to the literal it replaced.
     final metrics = ChatMetricsScope.maybeOf(context);
@@ -645,21 +692,122 @@ class EphemeralMessageBubble extends StatelessWidget {
       interactionActions: interactionActions,
     );
 
+    // `inner` is built ONCE per clock tick, out here, and handed to the
+    // animation by reference. `Element.updateChild` short-circuits on an
+    // identical widget instance, so the sixty rebuilds a second below re-run
+    // the opacity, blur and transform wrappers and nothing else: the
+    // message's text, its markdown, its media and its player are never
+    // rebuilt by the dissolve.
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(end: _dissolveAt(now)),
+      duration: _tickSmoothing,
+      curve: Curves.linear,
+      builder: (context, t, _) => _frame(
+        context,
+        theme: theme,
+        bubbleStyle: bubbleStyle,
+        isMine: isMine,
+        metrics: metrics,
+        now: now,
+        content: inner,
+        t: t,
+      ),
+    );
+  }
+
+  /// One frame of the dissolve at [t] — 0 as it begins, 1 as the message goes.
+  ///
+  /// Three ramps over the same t, each on its own curve, because they are
+  /// saying different things and one linear ramp said all of them at once.
+  /// What that looked like: the bubble was already smeared under sigma while
+  /// it was still the newest thing in the room, everything moved in lockstep
+  /// and in 5Hz steps, and at the end the fade stopped at 15% opacity and the
+  /// row was then dropped from the list — an animation that never finished,
+  /// followed by a jump.
+  Widget _frame(
+    BuildContext context, {
+    required AppTheme theme,
+    required BubbleStyle bubbleStyle,
+    required bool isMine,
+    required ChatMetrics? metrics,
+    required DateTime now,
+    required Widget content,
+    required double t,
+  }) {
+    // Reads normally for most of the window, then commits. Cubic still leaves
+    // two thirds of the ink at the two-thirds mark, where a linear fade had
+    // already washed the text halfway out — and it reaches zero exactly at
+    // expiry, so the row leaves the list at the moment it becomes invisible
+    // rather than being yanked out at 15%.
+    final fade = Curves.easeInCubic.transform(t);
+    // Arrives last, and it has to: blurred type is the thing that reads as
+    // cheap, so the message stays legible until it is genuinely on its way
+    // out. Quartic holds sigma under a fifth of a pixel for the first half.
+    final soften = Curves.easeInQuart.transform(t);
+    // The lift and the shrink are one gesture — the bubble stepping back off
+    // the glass — so they share a curve, and it is the only symmetric one
+    // here: this should ease out of rest and into its end rather than lurch.
+    final drift = Curves.easeInOutCubic.transform(t);
+
+    final opacity = 1 - fade;
+
+    // The bubble's own outline — tail, run-grouping and all. Computed once and
+    // used twice: the scroll-to halo traces it, and the dissolve overlay is
+    // clipped to it.
+    final bubbleOutline = pulseShapeFor(
+      theme: theme,
+      message: message,
+      isMine: isMine,
+      bubbleStyle: bubbleStyle,
+      ephemeral: true,
+      firstInRun: !grouped,
+      lastInRun: lastInRun,
+    );
+
     final bubble = Stack(
       clipBehavior: Clip.none,
       children: [
-        inner,
-        if (dissolveT > 0)
-          Positioned.fill(child: theme.ephemeralSignature(progress: dissolveT)),
+        content,
+        if (t > 0)
+          Positioned.fill(
+            // CLIPPED TO THE BUBBLE, and this is not a detail.
+            //
+            // Every theme's signature fills the rect it is given — a gradient
+            // in a `DecoratedBox`, a painter over `SizedBox.expand` — and the
+            // rect a `Positioned.fill` gives it is the bubble's bounding BOX,
+            // not the bubble. So the wash painted square corners outside a
+            // rounded bubble and a hard edge across its tail: a rectangle that
+            // appeared around the message for the length of the dissolve.
+            // Invisible before only because the wash used to flash and leave;
+            // now that it stays, it has to be the right shape.
+            child: ClipPath(
+              clipper: ShapeBorderClipper(shape: bubbleOutline),
+              child: Opacity(
+                key: ephemeralSignatureKey,
+                // Every theme's signature is a motion — smoke rising, dots
+                // scattering, a gradient washing across — and every one of
+                // them paints at FULL strength the moment it is handed a
+                // progress of zero. Mounting it at the top of the dissolve
+                // therefore snapped a coloured wash onto the bubble in a
+                // single frame, which is the flash this whole animation used
+                // to open with. The painters carry no entrance of their own;
+                // this is it.
+                opacity:
+                    Curves.easeOutCubic.transform((t / 0.22).clamp(0.0, 1.0)),
+                child: theme.ephemeralSignature(progress: t),
+              ),
+            ),
+          ),
       ],
     );
 
     final bubbleWithEffect = ImageFiltered(
-      imageFilter: ImageFilter.blur(
-        sigmaX: dissolveT * 4.5,
-        sigmaY: dissolveT * 4.5,
-      ),
-      child: Opacity(opacity: 1 - dissolveT * 0.85, child: bubble),
+      // A zero-sigma blur is still a filtered layer, and this widget wraps
+      // EVERY bubble in a Chamber-of-Secrets room, dissolving or not. Off
+      // until there is something to blur.
+      enabled: soften > 0.004,
+      imageFilter: ImageFilter.blur(sigmaX: soften * 3, sigmaY: soften * 3),
+      child: Opacity(opacity: opacity, child: bubble),
     );
 
     final maxWidth = metrics?.bubbleMaxWidth ?? messageMaxWidth(context);
@@ -668,15 +816,7 @@ class EphemeralMessageBubble extends StatelessWidget {
       constraints: BoxConstraints(maxWidth: maxWidth),
       child: HighlightPulse(
         t: highlightT,
-        shape: pulseShapeFor(
-          theme: theme,
-          message: message,
-          isMine: isMine,
-          bubbleStyle: bubbleStyle,
-          ephemeral: true,
-          firstInRun: !grouped,
-          lastInRun: lastInRun,
-        ),
+        shape: bubbleOutline,
         child: bubbleWithEffect,
       ),
     );
@@ -739,7 +879,7 @@ class EphemeralMessageBubble extends StatelessWidget {
               name: senderName!,
               color: nameColor,
               left: (isMine ? 0 : tailGutter) + 4,
-              opacity: 1 - dissolveT,
+              opacity: opacity,
             ),
           keyed,
         ],
@@ -751,61 +891,73 @@ class EphemeralMessageBubble extends StatelessWidget {
       // the space between two rows depend on which two rows they are.
       padding: EdgeInsets.only(
           top: grouped ? MessageGap.withinRun : MessageGap.betweenRuns),
+      // The lift and the shrink together, anchored to the row's own edge so
+      // the bubble recedes from the glass instead of sliding across it. Both
+      // are Transforms and neither touches layout: the row holds its height
+      // until it leaves the list, so nothing below it moves while it goes.
       child: Transform.translate(
-        offset: Offset(0, -dissolveT * 10),
-        child: _BubbleLayout(
-          isMine: isMine,
-          showAvatarSlot: showAvatarSlot,
-          senderName: showInlineName ? null : senderName,
-          nameColor: nameColor,
-          tailGutter: tailGutter,
-          nameOpacity: 1 - dissolveT,
-          avatar: Opacity(
-            opacity: 1 - dissolveT * 0.7,
-            child: _AvatarSlot(
-              author: author,
-              api: api,
-              onTap: onAuthorTap,
-              collapsed: !showAvatar,
+        offset: Offset(0, -drift * 6),
+        child: Transform.scale(
+          scale: 1 - drift * 0.03,
+          alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
+          child: _BubbleLayout(
+            isMine: isMine,
+            showAvatarSlot: showAvatarSlot,
+            senderName: showInlineName ? null : senderName,
+            nameColor: nameColor,
+            tailGutter: tailGutter,
+            nameOpacity: opacity,
+            avatar: Opacity(
+              // A curve rather than a scale factor, so the avatar hangs on a
+              // little past the words it belongs to and still reaches zero at
+              // the same instant everything else does. The old `1 - t * 0.7`
+              // left it sitting at 30% on an otherwise empty row.
+              opacity: 1 - soften,
+              child: _AvatarSlot(
+                author: author,
+                api: api,
+                onTap: onAuthorTap,
+                collapsed: !showAvatar,
+              ),
             ),
-          ),
-          bubble: _BubbleGestureDetector(
-            onLongPress: onLongPress,
-            onDoubleTap: onDoubleTap,
-            child: bubbleArea,
-          ),
-          reactions: message.reactions.isNotEmpty && onReactionTap != null
-              ? Opacity(
-                  opacity: 1 - dissolveT,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: maxWidth),
-                    child: ReactionRow(
-                      reactions: message.reactions,
-                      currentUserId: currentUserId,
-                      onToggle: onReactionTap!,
-                      onShowReactors: onReactionLongPress,
-                      alignment: isMine ? WrapAlignment.end : WrapAlignment.start,
+            bubble: _BubbleGestureDetector(
+              onLongPress: onLongPress,
+              onDoubleTap: onDoubleTap,
+              child: bubbleArea,
+            ),
+            reactions: message.reactions.isNotEmpty && onReactionTap != null
+                ? Opacity(
+                    opacity: opacity,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: maxWidth),
+                      child: ReactionRow(
+                        reactions: message.reactions,
+                        currentUserId: currentUserId,
+                        onToggle: onReactionTap!,
+                        onShowReactors: onReactionLongPress,
+                        alignment: isMine ? WrapAlignment.end : WrapAlignment.start,
+                      ),
+                    ),
+                  )
+                : null,
+            // Only the fallback row needs its own dissolve fade — a stamp inside
+            // the bubble is already carried by the bubble's own blur and opacity.
+            meta: messageStampsInline(message,
+                    showLinkUrls: SettingsStore.instance.showLinkUrls,
+                    ephemeral: true)
+                ? null
+                : Opacity(
+                    opacity: opacity,
+                    child: _MetaRow(
+                      message: message,
+                      isMine: isMine,
+                      countdown: message.timeLeft(now),
+                      seenByOthers: seenByOthers,
+                      deliveredToOthers: deliveredToOthers,
+                      saved: saved,
                     ),
                   ),
-                )
-              : null,
-          // Only the fallback row needs its own dissolve fade — a stamp inside
-          // the bubble is already carried by the bubble's own blur and opacity.
-          meta: messageStampsInline(message,
-                  showLinkUrls: SettingsStore.instance.showLinkUrls,
-                  ephemeral: true)
-              ? null
-              : Opacity(
-                  opacity: 1 - dissolveT,
-                  child: _MetaRow(
-                    message: message,
-                    isMine: isMine,
-                    countdown: message.timeLeft(now),
-                    seenByOthers: seenByOthers,
-                    deliveredToOthers: deliveredToOthers,
-                    saved: saved,
-                  ),
-                ),
+          ),
         ),
       ),
     );

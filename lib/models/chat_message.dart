@@ -380,13 +380,11 @@ class ChatMessage {
     return expiresAt!.difference(now);
   }
 
-  double lifeProgress(DateTime now) {
-    if (expiresAt == null) return 0;
-    final total = expiresAt!.difference(createdAt).inMilliseconds;
-    if (total <= 0) return 1;
-    final elapsed = now.difference(createdAt).inMilliseconds;
-    return (elapsed / total).clamp(0.0, 1.0);
-  }
+  // No `lifeProgress` here any more. The dissolve was its only caller and it
+  // no longer runs on a fraction of the lifetime — a fixed six-second window
+  // at the end, capped for very short-lived messages, is what it reads now.
+  // See `EphemeralMessageBubble._dissolveAt`, which owns that rule because it
+  // is the only thing the rule is for.
 
   factory ChatMessage.fromJson(Map<String, dynamic> j) {
     final ex = j['expiresAt'];
