@@ -21,9 +21,10 @@
 ///
 /// ── Where it lives ─────────────────────────────────────────────────────────
 ///
-/// In `app.dart`'s root Column, directly under [SelfHostBar] — which means it
+/// In `app.dart`'s root Column, and now the only thing in it — which means it
 /// participates in LAYOUT rather than floating over it: everything below shifts
-/// down by its height and nothing is covered.
+/// down by its height and nothing is covered. The self-host bar used to sit
+/// above it and is gone; see [ServerMarkBanner] for why.
 ///
 /// It began life in the floating slot beside [ConnectionBanner] and
 /// [ActiveCallPill], and for those two that is the right call: a connection
@@ -33,12 +34,12 @@
 /// overlay that sits on top of a room header for twenty minutes is not chrome,
 /// it is an obstruction.
 ///
-/// Participating in layout comes with a bargain, and it is the same one
-/// [SelfHostBar.consumesTopInset] documents: when this is the topmost bar it
-/// pads itself by the status-bar inset so the OS glyphs land on it, and in
-/// exchange `app.dart` strips `padding.top` from everything below. Both halves
-/// read [isShowing], so the two cannot disagree and the app cannot end up inset
-/// twice or not at all.
+/// Participating in layout comes with a bargain: this pads itself by the
+/// status-bar inset so the OS glyphs land on it, and in exchange `app.dart`
+/// strips `padding.top` from everything below. Both halves read [isShowing],
+/// so the two cannot disagree and the app cannot end up inset twice or not at
+/// all. It is now always the topmost bar — nothing else takes height above
+/// it — which is why there is no longer a flag saying whether something did.
 ///
 /// Still zero height when idle, and still non-hit-testable — it spans the top
 /// of every screen in the app.
@@ -62,21 +63,13 @@ import '../theme/theme_scope.dart';
 import 'companion_strip.dart';
 
 class CompanionDownloadBanner extends StatelessWidget {
-  const CompanionDownloadBanner({super.key, this.topInsetConsumedAbove = false});
-
-  /// Whether something above this has already covered the status-bar inset —
-  /// in practice [SelfHostBar]. Passed in rather than read here so the whole
-  /// inset bargain is decided in one place, `app.dart`, which is also the side
-  /// that has to strip `padding.top` to match.
-  final bool topInsetConsumedAbove;
+  const CompanionDownloadBanner({super.key});
 
   /// Whether a strip is being drawn right now.
   ///
   /// `app.dart` reads this to decide whether to remove `padding.top` from the
   /// subtree below. The two must agree, or the app is inset either twice or not
-  /// at all — so neither side is allowed its own copy of the condition. Exactly
-  /// the contract [SelfHostBar.consumesTopInset] states, for exactly the same
-  /// reason.
+  /// at all — so neither side is allowed its own copy of the condition.
   static bool get isShowing => _pending() != null;
 
   @override
@@ -118,7 +111,9 @@ class CompanionDownloadBanner extends StatelessWidget {
       // Only when this is the topmost bar. With the self-host bar above it, the
       // inset is already covered and padding again would leave a status-bar
       // sized gap between the two.
-      safeAreaTop: !topInsetConsumedAbove,
+      // Always: this is the topmost bar in the app, so the status-bar inset
+      // is its to cover.
+      safeAreaTop: true,
       // The name and the bytes, then the percentage. The bytes are what a
       // person checks against their own sense of how big the download was; the
       // percentage is what makes it read as PROGRESS rather than as a number

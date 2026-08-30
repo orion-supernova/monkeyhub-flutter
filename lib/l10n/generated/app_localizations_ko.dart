@@ -6409,6 +6409,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get serverSwitchingLabel => '서버를 전환하는 중…';
 
   @override
+  String get serverRoleExplainAction => '무슨 뜻인가요?';
+
+  @override
+  String get serverBadgeRibbonHomeserver => '홈';
+
+  @override
+  String get serverBadgeRibbonSelfHosted => '자체';
+
+  @override
   String get serverBadgeHomeserver => '홈서버에서 제공 중';
 
   @override

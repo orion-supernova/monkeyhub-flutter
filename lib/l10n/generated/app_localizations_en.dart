@@ -6638,6 +6638,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get serverSwitchingLabel => 'Switching server…';
 
   @override
+  String get serverRoleExplainAction => 'What does this mean?';
+
+  @override
+  String get serverBadgeRibbonHomeserver => 'HOME';
+
+  @override
+  String get serverBadgeRibbonSelfHosted => 'SELF';
+
+  @override
   String get serverBadgeHomeserver => 'Serving from homeserver';
 
   @override

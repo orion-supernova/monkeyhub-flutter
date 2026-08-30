@@ -7642,6 +7642,18 @@
   "@serverSwitchingLabel": {
     "description": "The single line shown while the app moves between servers. Deliberately says nothing about which server is being left or joined — that distinction is not actionable and only means something from inside the code."
   },
+  "serverRoleExplainAction": "What does this mean?",
+  "@serverRoleExplainAction": {
+    "description": "Tappable link on the Server screen's active-server card that opens the sheet explaining which deployment this install is on and why. Shown only for the home server and self-hosted roles. This used to be a tap on the top-of-app bar, which is now an un-tappable corner ribbon."
+  },
+  "serverBadgeRibbonHomeserver": "HOME",
+  "@serverBadgeRibbonHomeserver": {
+    "description": "Very short all-caps label on the corner ribbon marking an install pointed at the operator's home server. Drawn on a short diagonal corner ribbon, exactly like Flutter's own DEBUG banner, so it MUST stay very short — one word, 8 characters at the outside. The role name only; the full explanation and the hostname live on the Server screen."
+  },
+  "serverBadgeRibbonSelfHosted": "SELF",
+  "@serverBadgeRibbonSelfHosted": {
+    "description": "Very short all-caps label on the corner ribbon marking an install pointed at a server the user entered themselves. Same 8-character ceiling as serverBadgeRibbonHomeserver. Never the hostname: the ribbon has no room and the Server screen already shows it."
+  },
   "serverBadgeHomeserver": "Serving from homeserver",
   "@serverBadgeHomeserver": {
     "description": "Text on the pill badge while the operator has moved traffic to the home server. Full form."

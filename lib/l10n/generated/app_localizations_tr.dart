@@ -6619,6 +6619,15 @@ class AppLocalizationsTr extends AppLocalizations {
   String get serverSwitchingLabel => 'Sunucu değiştiriliyor…';
 
   @override
+  String get serverRoleExplainAction => 'Bu ne demek?';
+
+  @override
+  String get serverBadgeRibbonHomeserver => 'EV';
+
+  @override
+  String get serverBadgeRibbonSelfHosted => 'KENDİ';
+
+  @override
   String get serverBadgeHomeserver => 'Şu an ev sunucusundan yayında';
 
   @override

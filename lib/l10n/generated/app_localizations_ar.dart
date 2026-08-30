@@ -6736,6 +6736,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get serverSwitchingLabel => 'جارٍ تبديل الخادم…';
 
   @override
+  String get serverRoleExplainAction => 'ماذا يعني هذا؟';
+
+  @override
+  String get serverBadgeRibbonHomeserver => 'منزلي';
+
+  @override
+  String get serverBadgeRibbonSelfHosted => 'ذاتي';
+
+  @override
   String get serverBadgeHomeserver => 'يعمل من الخادم المنزلي';
 
   @override

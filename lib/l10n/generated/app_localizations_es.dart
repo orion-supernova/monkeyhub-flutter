@@ -6719,6 +6719,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get serverSwitchingLabel => 'Cambiando de servidor…';
 
   @override
+  String get serverRoleExplainAction => '¿Qué significa esto?';
+
+  @override
+  String get serverBadgeRibbonHomeserver => 'CASA';
+
+  @override
+  String get serverBadgeRibbonSelfHosted => 'PROPIO';
+
+  @override
   String get serverBadgeHomeserver => 'Sirviendo desde el homeserver';
 
   @override

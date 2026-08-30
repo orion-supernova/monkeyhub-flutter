@@ -6759,6 +6759,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get serverSwitchingLabel => 'Changement de serveur…';
 
   @override
+  String get serverRoleExplainAction => 'Qu\'est-ce que cela signifie ?';
+
+  @override
+  String get serverBadgeRibbonHomeserver => 'MAISON';
+
+  @override
+  String get serverBadgeRibbonSelfHosted => 'PERSO';
+
+  @override
   String get serverBadgeHomeserver => 'Servi depuis le homeserver';
 
   @override

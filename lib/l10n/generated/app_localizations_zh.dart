@@ -6313,6 +6313,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get serverSwitchingLabel => '正在切换服务器…';
 
   @override
+  String get serverRoleExplainAction => '这是什么意思？';
+
+  @override
+  String get serverBadgeRibbonHomeserver => '家庭';
+
+  @override
+  String get serverBadgeRibbonSelfHosted => '自建';
+
+  @override
   String get serverBadgeHomeserver => '由家庭服务器提供服务';
 
   @override

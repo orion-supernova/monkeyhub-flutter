@@ -5397,7 +5397,7 @@ abstract class AppLocalizations {
   /// **'Send'**
   String get deepOceanThemeSendButtonLabel;
 
-  /// TextField hintText shown in the chat composer when composing an ephemeral (self-destructing) message; used in both ChatComposerClassic and ChatComposerLiquid Both cap the hint at one line, so keep translations about as short as the default hint.
+  /// TextField hintText shown in the chat composer when composing an ephemeral (self-destructing) message; used in both ChatComposerClassic and ChatComposerLiquid. Both cap the hint at one line, so keep translations about as short as the default hint.
   ///
   /// In en, this message translates to:
   /// **'whisper something…'**
@@ -11386,6 +11386,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Switching server…'**
   String get serverSwitchingLabel;
+
+  /// Tappable link on the Server screen's active-server card that opens the sheet explaining which deployment this install is on and why. Shown only for the home server and self-hosted roles. This used to be a tap on the top-of-app bar, which is now an un-tappable corner ribbon.
+  ///
+  /// In en, this message translates to:
+  /// **'What does this mean?'**
+  String get serverRoleExplainAction;
+
+  /// Very short all-caps label on the corner ribbon marking an install pointed at the operator's home server. Drawn on a short diagonal corner ribbon, exactly like Flutter's own DEBUG banner, so it MUST stay very short — one word, 8 characters at the outside. The role name only; the full explanation and the hostname live on the Server screen.
+  ///
+  /// In en, this message translates to:
+  /// **'HOME'**
+  String get serverBadgeRibbonHomeserver;
+
+  /// Very short all-caps label on the corner ribbon marking an install pointed at a server the user entered themselves. Same 8-character ceiling as serverBadgeRibbonHomeserver. Never the hostname: the ribbon has no room and the Server screen already shows it.
+  ///
+  /// In en, this message translates to:
+  /// **'SELF'**
+  String get serverBadgeRibbonSelfHosted;
 
   /// Text on the pill badge while the operator has moved traffic to the home server. Full form.
   ///

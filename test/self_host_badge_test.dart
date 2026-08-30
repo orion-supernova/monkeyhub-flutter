@@ -11,26 +11,32 @@ import 'package:monkeyhub/widgets/self_host_badge.dart';
 /// The window every coordinate in this file is measured against.
 const _surface = Size(390, 700);
 
-/// A representative status-bar inset. The bar's whole contract is expressed
+/// A representative status-bar inset. The ribbon's placement is expressed
 /// relative to it, so the assertions have to be too.
 const _statusBar = 47.0;
 
-/// The bar says which server this is, permanently, on every screen. Three
-/// properties keep that from being a bug in itself, and each is the kind an
-/// unrelated edit can quietly break:
+/// The mark says which server this install is on, permanently, on every screen.
+///
+/// It used to be a BAR across the top that took its own height out of the
+/// layout, and that height is what this file mostly exists to talk about. The
+/// bar was fine on a chat list and wrong on every screen whose design is that
+/// the content is the screen: 26pt plus a status inset off the viewport meant
+/// a screenshot no longer fit the photo send-preview and was pillarboxed. It is
+/// a corner ribbon now, and the properties worth pinning changed with it:
 ///
 ///  * it vanishes entirely on the ordinary deployment;
-///  * it never prints the operator's address, only a server the user chose;
-///  * the bar takes its height out of the layout, and the app below is inset
-///    exactly once.
+///  * it takes NO layout height — nothing below it moves, which is the whole
+///    reason for the change;
+///  * it clears the status-bar glyphs rather than hiding under them;
+///  * it never prints the operator's address.
 void main() {
   const selfHosted = ServerEndpoint(deploymentUrl: 'https://chat.example.com');
   final homeserver = KnownHosts.endpointFor(ServerRole.homeserver);
   final primary = KnownHosts.endpointFor(ServerRole.primary);
 
-  /// The app's root arrangement in miniature: a bar that takes height, and
-  /// everything else underneath with the top inset already spent.
-  Widget scene({VoidCallback? onTap, VoidCallback? onBackgroundTap}) {
+  /// The app's root arrangement in miniature: the ribbon over everything, and
+  /// content that keeps the full height of the window.
+  Widget scene() {
     final controller = ThemeController(ThemeController.byId('basic'));
     return MediaQuery(
       data: const MediaQueryData(
@@ -49,28 +55,9 @@ void main() {
           ],
           supportedLocales: AppLocalizations.supportedLocales,
           home: Builder(
-            builder: (context) => Scaffold(
-              body: Column(
-                children: [
-                  SelfHostBar(onTap: onTap),
-                  Expanded(
-                    child: MediaQuery.removePadding(
-                      context: context,
-                      removeTop: SelfHostBar.consumesTopInset,
-                      child: Stack(
-                        children: [
-                          GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: onBackgroundTap,
-                            child: SafeArea(
-                              child: Container(key: const Key('content')),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+            builder: (context) => ServerMarkBanner(
+              child: Scaffold(
+                body: SafeArea(child: Container(key: const Key('content'))),
               ),
             ),
           ),
@@ -81,14 +68,26 @@ void main() {
 
   /// Size the WINDOW, not just the MediaQuery, then pump.
   ///
-  /// The bar's height is measured against a specific inset, and the taps below
-  /// are absolute coordinates. An earlier version of this file left the harness
-  /// at its default 800x600 and was green for entirely the wrong reason.
+  /// The assertions below are absolute coordinates. An earlier version of this
+  /// file left the harness at its default 800x600 and was green for entirely
+  /// the wrong reason.
   Future<void> mount(WidgetTester tester, Widget widget) async {
     await tester.binding.setSurfaceSize(_surface);
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(widget);
   }
+
+  Finder ribbon() => find.byType(Banner);
+
+  /// What the ribbon actually says.
+  ///
+  /// Read off the widget rather than found in the tree: [Banner] paints its
+  /// message with a `TextPainter` inside a `CustomPaint`, so there is no `Text`
+  /// for `find.text` to match — which is also why nothing here can assert the
+  /// absence of a string by searching for it.
+  String? mark(WidgetTester tester) => ribbon().evaluate().isEmpty
+      ? null
+      : tester.widget<Banner>(ribbon()).message;
 
   setUp(() {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -98,15 +97,107 @@ void main() {
   group('when to draw at all', () {
     testWidgets('draws nothing on the bundled deployment', (tester) async {
       await mount(tester, scene());
-      // Zero-height, not merely invisible: a stock install must pay nothing at
-      // all for a state it is not in — least of all vertical space.
-      expect(tester.getSize(find.byType(SelfHostBar)), Size.zero);
+      expect(ribbon(), findsNothing);
+      expect(ServerMarkBanner.isShowing, isFalse);
     });
 
     testWidgets('draws nothing when explicitly on the primary', (tester) async {
       ServerStore.instance.setForTest(primary);
       await mount(tester, scene());
-      expect(tester.getSize(find.byType(SelfHostBar)), Size.zero);
+      expect(ribbon(), findsNothing);
+    });
+  });
+
+  group('it costs the app no height', () {
+    testWidgets('content still starts at the status inset, not below a bar', (
+      tester,
+    ) async {
+      // THE regression this whole change exists to fix. The bar used to sit
+      // above everything and push the app down by its own height plus the
+      // status inset; a screen whose design is "the content IS the screen" —
+      // the photo send-preview, every fullscreen viewer — silently lost 73pt
+      // of viewport and letterboxed anything shaped like the display.
+      ServerStore.instance.setForTest(homeserver);
+      await mount(tester, scene());
+
+      expect(ribbon(), findsOneWidget, reason: 'the mark is up');
+      expect(
+        tester.getTopLeft(find.byKey(const Key('content'))).dy,
+        _statusBar,
+        reason: 'the SafeArea inset, and nothing more',
+      );
+    });
+
+    testWidgets('and the marked app is laid out exactly like an unmarked one', (
+      tester,
+    ) async {
+      await mount(tester, scene());
+      final unmarked = tester.getRect(find.byKey(const Key('content')));
+
+      ServerStore.instance.setForTest(homeserver);
+      await tester.pump();
+
+      expect(tester.getRect(find.byKey(const Key('content'))), unmarked);
+    });
+  });
+
+  group('where it sits', () {
+    testWidgets('in the top-RIGHT corner, out of a back button\'s way', (
+      tester,
+    ) async {
+      ServerStore.instance.setForTest(homeserver);
+      await mount(tester, scene());
+
+      final rect = tester.getRect(ribbon());
+      expect(rect.right, moreOrLessEquals(_surface.width, epsilon: 0.5));
+      expect(rect.top, moreOrLessEquals(0, epsilon: 0.5),
+          reason: 'the corner of what it wraps, exactly like the debug banner');
+    });
+
+    testWidgets('lets taps through to whatever is under it', (tester) async {
+      // It lands in the corner full-screen routes put a control in — the
+      // editor's crop and rotate buttons, for two — so it must never eat a
+      // tap. Flutter paints it as a FOREGROUND painter, which does not
+      // hit-test, and this fails if that ever stops being true.
+      ServerStore.instance.setForTest(homeserver);
+      var tapped = false;
+      await tester.binding.setSurfaceSize(_surface);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(
+            size: _surface,
+            padding: EdgeInsets.only(top: _statusBar),
+          ),
+          child: ThemeScope(
+            controller: ThemeController(ThemeController.byId('basic')),
+            child: MaterialApp(
+              debugShowCheckedModeBanner: false,
+              localizationsDelegates: const [
+                AppLocalizations.delegate,
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: ServerMarkBanner(
+                child: Scaffold(
+                  body: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => tapped = true,
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Straight through the middle of the ribbon.
+      await tester.tapAt(Offset(_surface.width - 20, 20));
+      await tester.pump();
+      expect(tapped, isTrue);
     });
   });
 
@@ -114,126 +205,87 @@ void main() {
     testWidgets("never prints the home server's address", (tester) async {
       ServerStore.instance.setForTest(homeserver);
       await mount(tester, scene());
-      expect(find.text('Serving from homeserver'), findsOneWidget);
       // The operator's deployment URL is infrastructure. It appearing on every
       // user's screen is the bug this asserts against, not a cosmetic detail.
-      expect(find.textContaining('walhallaa'), findsNothing);
+      expect(mark(tester), 'HOME');
+      expect(mark(tester), isNot(contains('walhallaa')));
     });
 
-    testWidgets('prints the address when the user chose it', (tester) async {
+    testWidgets('names the role rather than the host, either way', (
+      tester,
+    ) async {
+      // The bar had room for a hostname; a ribbon does not, and the Server
+      // screen already shows it. This is the deliberate trade, pinned so a
+      // future edit does not put an address back on a 95pt diagonal.
       ServerStore.instance.setForTest(selfHosted);
       await mount(tester, scene());
-      expect(find.text('chat.example.com'), findsOneWidget);
+      expect(mark(tester), 'SELF');
+      expect(mark(tester), isNot(contains('example.com')));
     });
 
-    testWidgets("prints the operator's address when the user typed it",
-        (tester) async {
-      // Same host as the test above, opposite meaning. This install was pointed
-      // here by hand, so it is not the operator's temporary arrangement — it is
-      // the user's server, wearing the address they entered.
+    testWidgets("says self-hosted when the user typed the operator's address", (
+      tester,
+    ) async {
+      // Same host as the home server, opposite meaning: this install was
+      // pointed here by hand, so it is not the operator's arrangement.
       ServerStore.instance.setForTest(homeserver, pinned: true);
       await mount(tester, scene());
-      expect(find.text('Serving from homeserver'), findsNothing);
-      expect(
-        find.text(shortHost(KnownHosts.homeserverHost, max: 28)),
-        findsOneWidget,
-      );
+      expect(mark(tester), 'SELF');
     });
 
-    testWidgets('the label is not truncated at a phone width', (tester) async {
-      ServerStore.instance.setForTest(homeserver);
-      await mount(tester, scene());
-      // The chip this replaced capped itself at 170pt and ellipsised the
-      // sentence into "Serving from home…". A full-width bar has the room; this
-      // fails the moment something narrows it again.
-      final text = tester.widget<Text>(find.text('Serving from homeserver'));
-      final painter = TextPainter(
-        text: TextSpan(text: text.data, style: text.style),
-        textDirection: TextDirection.ltr,
-        maxLines: 1,
-      )..layout();
-      expect(
-        tester.getSize(find.text('Serving from homeserver')).width,
-        greaterThanOrEqualTo(painter.width - 0.5),
-      );
+    testWidgets('the label is short enough for the ribbon', (tester) async {
+      // Flutter lays the message out across `_kBottomOffset * 2` — about 97pt
+      // — and does not ellipsise: a label that outgrows it does not truncate,
+      // it spills off the ribbon.
+      //
+      // Asserted as a character count rather than a measured width on purpose.
+      // Under flutter_test the font is a fixed-width fallback where every
+      // glyph is a full em, so measuring here answers a question about the
+      // test harness rather than about the shipped typeface. The count is the
+      // bound the arb descriptions state, and it is the one a translator can
+      // actually act on.
+      for (final endpoint in [homeserver, selfHosted]) {
+        ServerStore.instance.setForTest(endpoint);
+        await mount(tester, scene());
+        expect(mark(tester)!.length, lessThanOrEqualTo(8),
+            reason: '"${mark(tester)}" will not fit on the diagonal');
+      }
     });
   });
 
   group('keeping up with the store', () {
     testWidgets('appears without the parent being rebuilt', (tester) async {
-      // The bug this exists for: the app mounts `const SelfHostBar()`, and a
-      // const widget is canonicalised — Flutter's identical(old, new)
-      // short-circuit skips the element update, so a build method that read the
-      // store only when its parent rebuilt never ran again. The bar stayed
-      // frozen at whatever it rendered first and took two relaunches to catch
-      // up. Nothing here rebuilds the tree; only the store changes.
+      // The bug this exists for: the app mounts this high in the tree, where
+      // rebuilds are rare, so a build method that read the store only when its
+      // parent rebuilt stayed frozen at whatever it rendered first — two
+      // relaunches to catch up, in practice. Nothing here rebuilds the tree;
+      // only the store changes.
       await mount(tester, scene());
-      expect(tester.getSize(find.byType(SelfHostBar)), Size.zero);
+      expect(ribbon(), findsNothing);
 
       ServerStore.instance.setForTest(homeserver);
       await tester.pump();
-      expect(
-        tester.getSize(find.byType(SelfHostBar)).height,
-        _statusBar + SelfHostBar.contentHeight,
-      );
-      expect(find.text('Serving from homeserver'), findsOneWidget);
+      expect(mark(tester), 'HOME');
     });
 
     testWidgets('goes away the same way', (tester) async {
       ServerStore.instance.setForTest(homeserver);
       await mount(tester, scene());
-      expect(find.text('Serving from homeserver'), findsOneWidget);
+      expect(ribbon(), findsOneWidget);
 
       ServerStore.instance.setForTest(null);
       await tester.pump();
-      expect(tester.getSize(find.byType(SelfHostBar)), Size.zero);
+      expect(ribbon(), findsNothing);
     });
 
     testWidgets('re-labels when the role changes under it', (tester) async {
       ServerStore.instance.setForTest(homeserver);
       await mount(tester, scene());
-      expect(find.text('Serving from homeserver'), findsOneWidget);
+      expect(mark(tester), 'HOME');
 
       ServerStore.instance.setForTest(selfHosted);
       await tester.pump();
-      expect(find.text('Serving from homeserver'), findsNothing);
-      expect(find.text('chat.example.com'), findsOneWidget);
-    });
-  });
-
-  group('the bar takes its own height', () {
-    testWidgets('covers the status bar and adds its content height', (
-      tester,
-    ) async {
-      ServerStore.instance.setForTest(homeserver);
-      await mount(tester, scene());
-      expect(
-        tester.getSize(find.byType(SelfHostBar)).height,
-        _statusBar + SelfHostBar.contentHeight,
-      );
-    });
-
-    testWidgets('the app below it is inset exactly once', (tester) async {
-      ServerStore.instance.setForTest(homeserver);
-      await mount(tester, scene());
-      // The bar has already spent the inset, so the SafeArea below must add
-      // nothing. Leave `padding.top` in place and content lands 47pt lower than
-      // it should — the failure this pairing exists to prevent.
-      expect(
-        tester.getTopLeft(find.byKey(const Key('content'))).dy,
-        _statusBar + SelfHostBar.contentHeight,
-      );
-    });
-
-    testWidgets('a tap anywhere along the bar opens it', (tester) async {
-      ServerStore.instance.setForTest(homeserver);
-      var opened = false;
-      await mount(tester, scene(onTap: () => opened = true));
-      // Far left, well away from the label: the target is the whole strip,
-      // which is the point of the shape.
-      await tester.tapAt(const Offset(30, _statusBar + 12));
-      await tester.pump();
-      expect(opened, isTrue);
+      expect(mark(tester), 'SELF');
     });
   });
 }

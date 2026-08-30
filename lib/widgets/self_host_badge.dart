@@ -4,7 +4,6 @@ import '../backend/server_directory.dart';
 import '../backend/server_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../main.dart' show rootNavigatorKey;
-import '../theme/theme_scope.dart';
 import 'server_role_sheet.dart';
 
 /// The palette the bar paints in, chosen per [ServerRole].
@@ -69,135 +68,80 @@ class _Palette {
   );
 }
 
-/// A strip across the top of the app saying which server this is, that
-/// everything else sits underneath.
+/// A corner ribbon marking which server this install is pointed at, in the
+/// shape of Flutter's own debug banner.
 ///
-/// ───────── why a bar and not an overlay ─────────
+/// ───────── why a ribbon, and not the bar this replaces ─────────
 ///
-/// Three overlay shapes were tried before this one and each collided with
-/// something it could not avoid. A chip centred in the status-bar strip is
-/// drawn over by the clock, the dynamic island and the battery, because the
-/// system composites its glyphs last and no app can paint above them. A chip
-/// below the strip lands on whatever the current route put in its top-right. A
-/// corner ribbon large enough to be tappable sweeps through where full-screen
-/// routes put their close button — and it is the reason there is no longer a
-/// choice of shape here: an option that collides with the app is not a taste
-/// someone should have to hold.
+/// The first version was a strip across the top that took its own height out
+/// of the layout, so the app began 26pt plus a status inset lower than the
+/// screen. That is a fine trade for a chat list. It is the wrong trade for
+/// every screen whose whole design is that the content IS the screen: the
+/// photo send-preview fits the picture with `contain`, so taking 73pt off the
+/// viewport meant a SCREENSHOT — a picture whose only claim on the screen is
+/// being exactly its shape — no longer fit, and was scaled down until it left
+/// a 17pt gutter down both sides. Every fullscreen viewer in the app paid the
+/// same 73pt.
 ///
-/// A bar has none of those problems, because it overlaps nothing: it takes its
-/// own height out of the layout and the app begins below it. It also gives the
-/// tap a target the width of the screen, which is what a permanent
-/// explain-yourself affordance actually wants.
+/// A ribbon takes no height at all. It is painted over the top-right corner as
+/// a foreground layer, so nothing below it moves and the geometry of every
+/// screen is exactly what it was before any of this existed.
 ///
-/// ───────── how it takes that height ─────────
+/// ───────── what it gives up ─────────
 ///
-/// The bar draws from y=0 and pads itself by the top inset, so its background
-/// fills the status-bar strip and the OS glyphs land on it rather than on app
-/// content — exactly how an opaque app bar behaves under edge-to-edge. In
-/// exchange, `app.dart` strips `padding.top` from everything below, so the
-/// SafeArea on every screen adds nothing and content is not inset twice. That
-/// pairing is load-bearing: see [consumesTopInset].
-class SelfHostBar extends StatelessWidget {
-  const SelfHostBar({super.key, this.onTap});
+/// Room for a sentence, and the tap. The bar could carry "Serving from
+/// homeserver" in twelve languages and open an explanation; a ribbon fits
+/// about thirteen characters and, being a foreground painter, is not
+/// hit-testable — taps fall through to whatever is under it, which is the
+/// right behaviour for chrome that sits over a close button.
+///
+/// Both moved to the Server screen, which already names the role and the host
+/// and is where somebody asking "which server am I on?" goes. See
+/// [showServerRoleInfo].
+class ServerMarkBanner extends StatelessWidget {
+  const ServerMarkBanner({super.key, required this.child});
 
-  /// Overrides what a tap opens. Test seam; production opens the info sheet.
-  final VoidCallback? onTap;
+  final Widget child;
 
-  /// Height of the bar's content, below the status-bar inset.
+  /// Whether a ribbon is being drawn right now.
   ///
-  /// Also the exact amount every screen in the app moves down by while this is
-  /// showing, which is why it is stated once and read from here.
-  static const double contentHeight = 26;
-
-  /// Whether a bar is being drawn right now.
-  ///
-  /// `app.dart` reads this to decide whether to remove `padding.top` from the
-  /// subtree below. The two must agree, or the app is inset either twice or not
-  /// at all, so neither side is allowed its own copy of the condition.
-  static bool get consumesTopInset => ServerStore.instance.announcesRole;
+  /// Nothing reads this to change its own layout any more — that was the old
+  /// bar's contract, and the reason it existed. Kept because the Server screen
+  /// and Settings both ask the same question to decide whether to highlight
+  /// the row.
+  static bool get isShowing => ServerStore.instance.announcesRole;
 
   @override
   Widget build(BuildContext context) {
-    // Listens for itself rather than trusting the parent to rebuild it.
-    //
-    // The app mounts this as `const SelfHostBar()`, and a const widget is
-    // canonicalised: every build produces the same instance, so Flutter's
-    // `identical(old, new)` short-circuit skips the element update and this
-    // method never runs again. The layout around it moved on a server change
-    // and the bar itself stayed frozen at whatever it rendered first — which
-    // is a bar that never appears, or one that never leaves, until something
-    // unrelated happens to rebuild it. Two relaunches, in practice.
-    //
-    // An AnimatedBuilder inside a const widget still subscribes, because its
-    // own element is created once and lives on. That is what makes this
-    // immune to how the parent chooses to mount it.
+    // Listens for itself rather than trusting the parent to rebuild it — the
+    // app mounts this high up, where rebuilds are rare, and a server change
+    // has to reach the ribbon on the same frame it reaches everything else.
     return AnimatedBuilder(
       animation: ServerStore.instance,
-      builder: (context, _) => _build(context),
-    );
-  }
-
-  Widget _build(BuildContext context) {
-    if (!consumesTopInset) return const SizedBox.shrink();
-    final theme = ThemeScope.of(context);
-    final store = ServerStore.instance;
-    final palette = _Palette.of(store.role);
-    final labels = serverMarkLabels(context);
-    final top = MediaQuery.paddingOf(context).top;
-    return GestureDetector(
-      onTap: onTap ?? () => showServerRoleSheet(context),
-      behavior: HitTestBehavior.opaque,
-      child: Semantics(
-        container: true,
-        button: true,
-        label: labels.semantics,
-        excludeSemantics: true,
-        child: Material(
-          type: MaterialType.transparency,
-          child: Container(
-            height: top + contentHeight,
-            padding: EdgeInsets.only(top: top),
-            decoration: BoxDecoration(
-              color: palette.fill,
-              border: Border(
-                bottom: BorderSide(color: palette.border, width: 0.5),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 5,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: palette.ink,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // Flexible, not fixed: the label is a full sentence in twelve
-                // languages, and this is the one shape with room for all of
-                // them. It still may not push the glyph off the end.
-                Flexible(
-                  child: Text(
-                    labels.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.monoTiny.copyWith(
-                      color: palette.ink,
-                      fontSize: 10,
-                      letterSpacing: 0.4,
-                      height: 1.1,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 7),
-                Icon(Icons.info_outline, size: 12, color: palette.ink),
-              ],
-            ),
+      builder: (context, _) {
+        if (!isShowing) return child;
+        final store = ServerStore.instance;
+        final palette = _Palette.of(store.role);
+        final l10n = AppLocalizations.of(context);
+        // Flutter's own banner, in its own place, wrapping the app exactly as
+        // the debug banner does — no offset, no wrapper box. Colour and label
+        // are the only things this supplies.
+        return Banner(
+          message: store.role == ServerRole.homeserver
+              ? l10n.serverBadgeRibbonHomeserver
+              : l10n.serverBadgeRibbonSelfHosted,
+          location: BannerLocation.topEnd,
+          color: palette.fill,
+          textStyle: TextStyle(
+            color: palette.ink,
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.2,
+            height: 1.0,
           ),
-        ),
-      ),
+          child: child,
+        );
+      },
     );
   }
 }

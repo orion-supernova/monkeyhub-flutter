@@ -6673,6 +6673,15 @@ class AppLocalizationsSv extends AppLocalizations {
   String get serverSwitchingLabel => 'Byter server…';
 
   @override
+  String get serverRoleExplainAction => 'Vad betyder det här?';
+
+  @override
+  String get serverBadgeRibbonHomeserver => 'HEM';
+
+  @override
+  String get serverBadgeRibbonSelfHosted => 'EGEN';
+
+  @override
   String get serverBadgeHomeserver => 'Körs från hemservern';
 
   @override

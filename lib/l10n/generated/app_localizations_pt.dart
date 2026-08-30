@@ -6733,6 +6733,15 @@ class AppLocalizationsPt extends AppLocalizations {
   String get serverSwitchingLabel => 'A mudar de servidor…';
 
   @override
+  String get serverRoleExplainAction => 'O que é que isto significa?';
+
+  @override
+  String get serverBadgeRibbonHomeserver => 'CASA';
+
+  @override
+  String get serverBadgeRibbonSelfHosted => 'PRÓPRIO';
+
+  @override
   String get serverBadgeHomeserver => 'A servir a partir do homeserver';
 
   @override
@@ -15019,6 +15028,15 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get serverSwitchingLabel => 'Trocando de servidor…';
+
+  @override
+  String get serverRoleExplainAction => 'O que isso significa?';
+
+  @override
+  String get serverBadgeRibbonHomeserver => 'CASA';
+
+  @override
+  String get serverBadgeRibbonSelfHosted => 'PRÓPRIO';
 
   @override
   String get serverBadgeHomeserver => 'Servindo pelo homeserver';

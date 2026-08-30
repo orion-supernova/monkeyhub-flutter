@@ -6389,6 +6389,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get serverSwitchingLabel => 'サーバーを切り替えています…';
 
   @override
+  String get serverRoleExplainAction => 'これはどういう意味ですか？';
+
+  @override
+  String get serverBadgeRibbonHomeserver => 'ホーム';
+
+  @override
+  String get serverBadgeRibbonSelfHosted => 'セルフ';
+
+  @override
   String get serverBadgeHomeserver => 'ホームサーバーで稼働中';
 
   @override

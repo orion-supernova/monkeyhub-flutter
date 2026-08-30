@@ -1616,14 +1616,17 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
               // behind the status glyphs — and it is dark under every theme.
               // Without this the light (riso) themes asked for dark glyphs and
               // painted them on a near-black strip.
-              final serverBar = SelfHostBar.consumesTopInset;
-              // Gated on boot for the same reason the strip used to be: nothing
-              // has asked the disk what is installed yet, so there is nothing
-              // truthful to report and no height to take.
+              // Gated on boot for the same reason the server strip used to
+              // be: nothing has asked the disk what is installed yet, so there
+              // is nothing truthful to report and no height to take.
               final companionBar = _bootstrapped &&
                   _bootError == null &&
                   CompanionDownloadBanner.isShowing;
-              final darkStatusSurface = !isLight || serverBar;
+              // Only the companion bar can sit behind the status glyphs now.
+              // The server mark became a corner ribbon that takes no height and
+              // covers nothing — see [ServerMarkBanner] — so it no longer has
+              // any say in what the glyphs are drawn against.
+              final darkStatusSurface = !isLight || companionBar;
               return AnnotatedRegion<SystemUiOverlayStyle>(
                 value: SystemUiOverlayStyle(
                   statusBarColor: Colors.transparent,
@@ -1670,30 +1673,54 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
                           // SafeArea in the app inset a second time. The condition
                           // is [SelfHostBar.consumesTopInset] on both sides
                           // precisely so the two cannot disagree.
-                          Column(
+                          // Painted over the whole app — the shell, every
+                          // pushed route, and the full-screen media viewers
+                          // that are the reason this is a ribbon and not a
+                          // bar — and painted as a FOREGROUND layer, so it
+                          // takes no height from any of them and is not
+                          // hit-testable. Taps fall straight through to
+                          // whatever is under it, which is what makes it safe
+                          // to land in the one corner a full-screen route is
+                          // likely to have put a control in.
+                          //
+                          // Inside this Stack rather than around it, so the
+                          // CaptureShield below still covers it.
+                          ServerMarkBanner(
+                            child: Column(
                             children: [
-                              const SelfHostBar(),
-                              // Beside the self-host bar rather than in the
-                              // floating slot below, and for the same reason
-                              // that bar is here: it reports a download that
-                              // runs for minutes, and chrome that sits on top
-                              // of a room header for twenty minutes is not
-                              // chrome. Its neighbours down there stay floating
-                              // — a connection blip is transient, and shoving
-                              // the whole app down and back for one would be
-                              // worse than briefly overlapping something.
+                              // The self-host BAR used to sit here and take
+                              // its own height, which is what put every screen
+                              // in the app 26pt plus a status inset below the
+                              // top of the display. That was invisible on a
+                              // chat list and wrong on every screen whose
+                              // design is that the content is the screen — it
+                              // is what pillarboxed a screenshot in the photo
+                              // send-preview. It is a corner ribbon now, drawn
+                              // over the whole app at the bottom of this
+                              // method, taking no height from anything.
+                              //
+                              // The companion bar stays a bar: it reports a
+                              // download that runs for minutes, and chrome
+                              // that sits on top of a room header for twenty
+                              // minutes is not chrome. Its neighbours below
+                              // stay floating — a connection blip is
+                              // transient, and shoving the whole app down and
+                              // back for one would be worse than briefly
+                              // overlapping something.
                               if (_bootstrapped && _bootError == null)
-                                CompanionDownloadBanner(
-                                  topInsetConsumedAbove: serverBar,
-                                ),
+                                const CompanionDownloadBanner(),
                               Expanded(
                                 child: MediaQuery.removePadding(
                                   context: context,
-                                  // Either bar covers the status-bar strip
-                                  // itself, so leaving `padding.top` in place
-                                  // below would have every SafeArea in the app
-                                  // inset a second time.
-                                  removeTop: serverBar || companionBar,
+                                  // The companion bar covers the status-bar
+                                  // strip itself, so leaving `padding.top` in
+                                  // place below would have every SafeArea in
+                                  // the app inset a second time. Nothing else
+                                  // covers it any more: the server mark is a
+                                  // ribbon over the top-right corner, which
+                                  // neither fills the strip nor is owed an
+                                  // inset for it.
+                                  removeTop: companionBar,
                                   child: Stack(
                                     children: [
                                       ?child,
@@ -1750,9 +1777,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
                                 ),
                               ),
                             ],
+                            ),
                           ),
-                          // Above EVERYTHING, the server bar included, so a screen
-                          // recording cannot capture any of it.
+                          // Above EVERYTHING, the server mark included, so a
+                          // screen recording cannot capture any of it.
                           const CaptureShield(),
                         ],
                       ),

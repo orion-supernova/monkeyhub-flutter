@@ -15,6 +15,7 @@ import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/labeled_field.dart';
+import '../widgets/server_role_sheet.dart';
 
 /// Where this install connects: the deployment it shipped with, or one the user
 /// runs themselves.
@@ -649,6 +650,35 @@ class _ActiveServerCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
+          // The explanation used to hang off the marker itself: a bar across
+          // the top of the app that you could tap. The marker is a corner
+          // ribbon now — it takes no layout height, which is the whole point
+          // of the change, and the same property makes it un-tappable. So the
+          // way in lives here, on the screen that already names the role and
+          // the host and is where somebody asking "which server am I on?"
+          // already goes. Only on the two roles that have anything to explain.
+          if (store.announcesRole) ...[
+            const SizedBox(height: 12),
+            FocusableTap(
+              onTap: () => showServerRoleInfo(context),
+              shape: FocusRingShape.rounded,
+              child: GestureDetector(
+                onTap: () => showServerRoleInfo(context),
+                behavior: HitTestBehavior.opaque,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.info_outline, size: 14, color: theme.accent),
+                    const SizedBox(width: 7),
+                    Text(
+                      l10n.serverRoleExplainAction,
+                      style: theme.body.copyWith(color: theme.accent),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

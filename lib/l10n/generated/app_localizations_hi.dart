@@ -6658,6 +6658,15 @@ class AppLocalizationsHi extends AppLocalizations {
   String get serverSwitchingLabel => 'सर्वर बदला जा रहा है…';
 
   @override
+  String get serverRoleExplainAction => 'इसका क्या मतलब है?';
+
+  @override
+  String get serverBadgeRibbonHomeserver => 'होम';
+
+  @override
+  String get serverBadgeRibbonSelfHosted => 'स्वयं';
+
+  @override
   String get serverBadgeHomeserver => 'होमसर्वर से चल रहा है';
 
   @override
