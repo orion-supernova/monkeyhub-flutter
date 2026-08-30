@@ -4501,7 +4501,14 @@ class _Header extends StatelessWidget {
       ),
       child: ChatColumn(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 20, 14),
+          // Tightened with the title. The bar is two stacked rows — name over
+          // a subtitle — inside a fixed frame, so its height is the title's
+          // line box plus this padding, and it was the tallest chrome on the
+          // chat screen. 12/14 of air around a 28pt title made sense when the
+          // title WAS 28pt; against a 20pt one it just reads as a gap. The
+          // back button and the call buttons are 40pt boxes and still clear
+          // the row's own height, so nothing here is a hit-target trade.
+          padding: const EdgeInsets.fromLTRB(12, 8, 20, 9),
           child: Row(
         children: [
           IconButton(
@@ -4544,13 +4551,30 @@ class _Header extends StatelessWidget {
                     room.isSavedMessages
                         ? AppLocalizations.of(context).savedMessagesTitle
                         : (dmUser?.displayName ?? room.name),
-                    style: theme.displayMedium,
-                    // Two lines, then an ellipsis — the same cap as the
-                    // liquid capsule. Room Info has the full name.
-                    maxLines: 2,
+                    // `displayMedium` is a SCREEN title — 22 to 28pt across
+                    // the themes — and this header already carries a subtitle
+                    // row under it, so at full size the bar was the tallest
+                    // thing on the chat and the name was the loudest. Capped
+                    // rather than replaced: the cap keeps each theme's face,
+                    // weight and tracking and only takes the size down, and
+                    // the `min` leaves a theme that already sits below 20
+                    // alone instead of scaling it up.
+                    style: theme.displayMedium.copyWith(
+                      fontSize: math.min(theme.displayMedium.fontSize ?? 20, 20),
+                    ),
+                    // One line, then an ellipsis. Two lines was the wrong
+                    // trade here: the classic header is a fixed bar with a
+                    // subtitle beneath, so a second title line grows the bar
+                    // and pushes the transcript down. The liquid capsule can
+                    // afford two because it floats and has no subtitle. Room
+                    // Info has the full name either way.
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  // 4 was set against a title that could wrap; under a single
+                  // line the name and its subtitle read as one block, and the
+                  // pair is tighter for it.
+                  const SizedBox(height: 2),
                   Wrap(
                     spacing: 6,
                     runSpacing: 6,
