@@ -209,9 +209,12 @@ async function activeCall(t: ReturnType<typeof convexTest>) {
  * it returns) and the sweep, once it runs, removes everything but the bye.
  */
 describe("signal purge is deferred out of the terminal transition", () => {
-  async function signalRows(t: ReturnType<typeof convexTest>, callId: any) {
+  async function signalRows(
+    t: ReturnType<typeof convexTest>,
+    callId: any,
+  ): Promise<any[]> {
     return await t.run(async (ctx) =>
-      ctx.db
+      (ctx.db as any)
         .query("callSignals")
         .withIndex("by_call", (q: any) => q.eq("callId", callId))
         .collect(),
