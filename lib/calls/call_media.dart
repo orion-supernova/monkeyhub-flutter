@@ -335,3 +335,43 @@ Future<void> applyCallAudioRoute({required bool speaker}) async {
     debugPrint('setSpeakerphoneOn failed: $e');
   }
 }
+
+/// Encoder cap for a SCREEN sender — a different animal from the camera's.
+///
+/// [configureVideoSenders] tunes every video sender for a face: a bitrate a
+/// phone can sustain per peer and `MAINTAIN_FRAMERATE`, so congestion softens
+/// the picture rather than stuttering it. Point that at a shared screen and
+/// the text on it turns to soup, because text is exactly what a resolution
+/// drop destroys. So the screen sender is re-tuned after every camera pass:
+/// more bits, fewer frames (a screen barely moves; 15 fps halves the encode
+/// cost), and `MAINTAIN_RESOLUTION` so a bad link drops frames and keeps the
+/// words legible. In a mesh the cap still shrinks with the peer count — one
+/// encoder per link — but never below what a document stays readable at.
+Future<void> configureScreenSender(
+  RTCRtpSender sender, {
+  int remotePeerCount = 1,
+}) async {
+  const solo = 2500000;
+  const floor = 800000;
+  final cap = remotePeerCount <= 1
+      ? solo
+      : (solo / remotePeerCount).round().clamp(floor, solo);
+  try {
+    final params = sender.parameters;
+    var encodings = params.encodings;
+    if (encodings == null || encodings.isEmpty) {
+      encodings = [RTCRtpEncoding()];
+    }
+    for (final e in encodings) {
+      e.maxBitrate = cap;
+      e.maxFramerate = 15;
+    }
+    params.encodings = encodings;
+    params.degradationPreference =
+        RTCDegradationPreference.MAINTAIN_RESOLUTION;
+    final ok = await sender.setParameters(params);
+    if (!ok) debugPrint('configureScreenSender: setParameters rejected');
+  } catch (e) {
+    debugPrint('configureScreenSender skipped: $e');
+  }
+}

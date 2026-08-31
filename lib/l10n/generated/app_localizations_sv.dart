@@ -8233,4 +8233,92 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get messageActionMenuTranslateAgainLabel => 'ÖVERSÄTT IGEN';
+
+  @override
+  String get groupCallScreenShareLabel => 'dela';
+
+  @override
+  String get groupCallScreenStopShareLabel => 'sluta dela';
+
+  @override
+  String get groupCallScreenRingingLabel => 'Ringer…';
+
+  @override
+  String groupCallScreenSharingBy(String name) {
+    return '$name delar sin skärm';
+  }
+
+  @override
+  String get groupCallScreenYouAreSharing => 'Du delar din skärm';
+
+  @override
+  String get groupCallScreenMinimizeLabel => 'dölj';
+
+  @override
+  String get groupCallScreenDrawLabel => 'rita';
+
+  @override
+  String get callScreenControlShare => 'Dela';
+
+  @override
+  String get callScreenControlStopShare => 'Stoppa';
+
+  @override
+  String get callScreenControlDraw => 'Rita';
+
+  @override
+  String get callScreenControlMinimize => 'Dölj';
+
+  @override
+  String get inCallPillOngoingCall => 'Samtal pågår';
+
+  @override
+  String get inCallPillReturn => 'Tillbaka';
+
+  @override
+  String get inCallPillSharing => 'Delar din skärm';
+
+  @override
+  String get inCallPillDrawSemanticLabel => 'Rita på den delade skärmen';
+
+  @override
+  String get inCallPillStopSharingSemanticLabel => 'Sluta dela';
+
+  @override
+  String get screenShareUnsupported =>
+      'Skärmdelning finns inte på den här enheten';
+
+  @override
+  String get screenShareEphemeralWarning =>
+      'Skärmbildsskyddet är av medan du delar';
+
+  @override
+  String get screenShareNotificationTitle => 'Delar din skärm';
+
+  @override
+  String get screenShareNotificationBody => 'Alla i samtalet kan se den';
+
+  @override
+  String get screenShareNotificationStop => 'Stoppa';
+
+  @override
+  String screenShareSomeoneElsePresenting(String name) {
+    return '$name delar redan';
+  }
+
+  @override
+  String get screenShareFailed => 'Kunde inte börja dela';
+
+  @override
+  String get screenSharePickerTitle => 'Dela din skärm';
+
+  @override
+  String get screenSharePickerScreens => 'Skärmar';
+
+  @override
+  String get screenSharePickerWindows => 'Fönster';
+
+  @override
+  String get screenSharePickerEmpty =>
+      'Inget att dela än — tillåt skärminspelning i Systeminställningar och försök igen';
 }

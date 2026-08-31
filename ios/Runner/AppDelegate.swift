@@ -903,6 +903,40 @@ import flutter_callkit_incoming
       captureEvents.setStreamHandler(_CaptureStreamHandler(appDelegate: self))
     }
 
+    // monkeyhub/screen_share — whether this build can share the screen: the
+    // Broadcast Upload Extension flutter_webrtc's capturer hands the system
+    // picker must actually be in the bundle, or the picker offers nothing and
+    // the share button would be a button that does nothing. Android's half of
+    // this channel starts a foreground service; iOS needs none.
+    if let shareRegistrar = engine.registrar(forPlugin: "MonkeyHubScreenSharePlugin") {
+      let shareChannel = FlutterMethodChannel(
+        name: "monkeyhub/screen_share",
+        binaryMessenger: shareRegistrar.messenger()
+      )
+      shareChannel.setMethodCallHandler { call, result in
+        switch call.method {
+        case "isSupported":
+          guard let ext = Bundle.main.object(forInfoDictionaryKey: "RTCScreenSharingExtension") as? String,
+                !ext.isEmpty,
+                let plugins = Bundle.main.builtInPlugInsURL,
+                let contents = try? FileManager.default.contentsOfDirectory(at: plugins, includingPropertiesForKeys: nil)
+          else {
+            result(false)
+            return
+          }
+          let present = contents.contains { url in
+            Bundle(url: url)?.bundleIdentifier == ext
+          }
+          result(present)
+        case "start", "stop":
+          // Android's foreground service; nothing to do here.
+          result(nil)
+        default:
+          result(FlutterMethodNotImplemented)
+        }
+      }
+    }
+
     // monkeyhub/launcher_icon — swap the home-screen launcher icon at runtime.
     // Backs LauncherIconService in Dart. We talk to UIApplication directly
     // here because flutter_dynamic_icon_plus's Swift wrapper (SwiftTryCatch)

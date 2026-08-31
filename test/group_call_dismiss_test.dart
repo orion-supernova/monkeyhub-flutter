@@ -150,6 +150,11 @@ GroupCallService _newService(_FakeGroupApi api, List<String> ended) {
 }
 
 void main() {
+  // The mic belt `leaveCall` runs (`stopDarwinMicCapture`) reaches the
+  // plugin's channel; without a binding that is a synchronous throw the
+  // zone reports as uncaught, with one it is a MissingPluginException the
+  // belt catches itself.
+  TestWidgetsFlutterBinding.ensureInitialized();
   group('a group card comes down from the live app', () {
     test('the invite leaving the subscription ends the card and acks once', () {
       fakeAsync((async) {

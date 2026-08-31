@@ -8217,4 +8217,92 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get messageActionMenuTranslateAgainLabel => 'फिर से अनुवाद करें';
+
+  @override
+  String get groupCallScreenShareLabel => 'साझा करें';
+
+  @override
+  String get groupCallScreenStopShareLabel => 'साझा करना बंद करें';
+
+  @override
+  String get groupCallScreenRingingLabel => 'घंटी बज रही है…';
+
+  @override
+  String groupCallScreenSharingBy(String name) {
+    return '$name अपनी स्क्रीन साझा कर रहे हैं';
+  }
+
+  @override
+  String get groupCallScreenYouAreSharing => 'आप अपनी स्क्रीन साझा कर रहे हैं';
+
+  @override
+  String get groupCallScreenMinimizeLabel => 'छिपाएँ';
+
+  @override
+  String get groupCallScreenDrawLabel => 'बनाएँ';
+
+  @override
+  String get callScreenControlShare => 'साझा करें';
+
+  @override
+  String get callScreenControlStopShare => 'रोकें';
+
+  @override
+  String get callScreenControlDraw => 'बनाएँ';
+
+  @override
+  String get callScreenControlMinimize => 'छिपाएँ';
+
+  @override
+  String get inCallPillOngoingCall => 'कॉल जारी है';
+
+  @override
+  String get inCallPillReturn => 'वापस जाएँ';
+
+  @override
+  String get inCallPillSharing => 'आपकी स्क्रीन साझा हो रही है';
+
+  @override
+  String get inCallPillDrawSemanticLabel => 'साझा स्क्रीन पर बनाएँ';
+
+  @override
+  String get inCallPillStopSharingSemanticLabel => 'साझा करना बंद करें';
+
+  @override
+  String get screenShareUnsupported =>
+      'इस डिवाइस पर स्क्रीन साझा करना उपलब्ध नहीं है';
+
+  @override
+  String get screenShareEphemeralWarning =>
+      'साझा करते समय कैप्चर सुरक्षा बंद है';
+
+  @override
+  String get screenShareNotificationTitle => 'आपकी स्क्रीन साझा हो रही है';
+
+  @override
+  String get screenShareNotificationBody => 'कॉल में सभी इसे देख सकते हैं';
+
+  @override
+  String get screenShareNotificationStop => 'रोकें';
+
+  @override
+  String screenShareSomeoneElsePresenting(String name) {
+    return '$name पहले से साझा कर रहे हैं';
+  }
+
+  @override
+  String get screenShareFailed => 'साझा करना शुरू नहीं हो सका';
+
+  @override
+  String get screenSharePickerTitle => 'अपनी स्क्रीन साझा करें';
+
+  @override
+  String get screenSharePickerScreens => 'स्क्रीन';
+
+  @override
+  String get screenSharePickerWindows => 'विंडो';
+
+  @override
+  String get screenSharePickerEmpty =>
+      'अभी साझा करने को कुछ नहीं — सिस्टम सेटिंग्स में स्क्रीन रिकॉर्डिंग की अनुमति दें और फिर कोशिश करें';
 }

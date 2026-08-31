@@ -8174,4 +8174,92 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get messageActionMenuTranslateAgainLabel => 'YENİDEN ÇEVİR';
+
+  @override
+  String get groupCallScreenShareLabel => 'paylaş';
+
+  @override
+  String get groupCallScreenStopShareLabel => 'paylaşımı durdur';
+
+  @override
+  String get groupCallScreenRingingLabel => 'Çalıyor…';
+
+  @override
+  String groupCallScreenSharingBy(String name) {
+    return '$name ekranını paylaşıyor';
+  }
+
+  @override
+  String get groupCallScreenYouAreSharing => 'Ekranını paylaşıyorsun';
+
+  @override
+  String get groupCallScreenMinimizeLabel => 'gizle';
+
+  @override
+  String get groupCallScreenDrawLabel => 'çiz';
+
+  @override
+  String get callScreenControlShare => 'Paylaş';
+
+  @override
+  String get callScreenControlStopShare => 'Durdur';
+
+  @override
+  String get callScreenControlDraw => 'Çiz';
+
+  @override
+  String get callScreenControlMinimize => 'Gizle';
+
+  @override
+  String get inCallPillOngoingCall => 'Arama sürüyor';
+
+  @override
+  String get inCallPillReturn => 'Geri dön';
+
+  @override
+  String get inCallPillSharing => 'Ekranını paylaşıyorsun';
+
+  @override
+  String get inCallPillDrawSemanticLabel => 'Paylaşılan ekrana çiz';
+
+  @override
+  String get inCallPillStopSharingSemanticLabel => 'Paylaşımı durdur';
+
+  @override
+  String get screenShareUnsupported =>
+      'Bu cihazda ekran paylaşımı kullanılamıyor';
+
+  @override
+  String get screenShareEphemeralWarning =>
+      'Paylaşırken yakalama koruması kapalı';
+
+  @override
+  String get screenShareNotificationTitle => 'Ekranını paylaşıyorsun';
+
+  @override
+  String get screenShareNotificationBody => 'Aramadaki herkes görebilir';
+
+  @override
+  String get screenShareNotificationStop => 'Durdur';
+
+  @override
+  String screenShareSomeoneElsePresenting(String name) {
+    return '$name zaten paylaşıyor';
+  }
+
+  @override
+  String get screenShareFailed => 'Paylaşım başlatılamadı';
+
+  @override
+  String get screenSharePickerTitle => 'Ekranını paylaş';
+
+  @override
+  String get screenSharePickerScreens => 'Ekranlar';
+
+  @override
+  String get screenSharePickerWindows => 'Pencereler';
+
+  @override
+  String get screenSharePickerEmpty =>
+      'Paylaşacak bir şey yok — Sistem Ayarları\'nda ekran kaydına izin verip yeniden dene';
 }

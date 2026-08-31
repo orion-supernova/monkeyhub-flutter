@@ -14,6 +14,7 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     <!-- Lets the app open the "ignore battery optimizations" system prompt so
          OEM power managers (Xiaomi/Samsung/Oppo…) don't defer the high-priority
          FCM call wake. Requested once post-login; see AndroidCallReliability. -->
@@ -158,6 +159,17 @@
             android:exported="false"
             android:foregroundServiceType="location"
             android:stopWithTask="false" />
+
+        <!-- The foreground service a screen share needs on Android 14:
+             createVirtualDisplay refuses to run unless a mediaProjection-typed
+             service is up, and the call service (the callkit plugin's) is not
+             ours to retype. Started from Dart after consent, before capture;
+             dies with the task, because a share never outlives the call. -->
+        <service
+            android:name=".ScreenShareService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection"
+            android:stopWithTask="true" />
 
         <!-- Restarts an unexpired share after a reboot. Reads the deadline out
              of shared_preferences and does nothing at all in the overwhelmingly

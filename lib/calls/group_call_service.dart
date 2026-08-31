@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
 import 'dart:io' show Platform;
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
@@ -14,7 +15,11 @@ import 'call_media.dart';
 import 'call_models.dart';
 import 'call_permissions.dart';
 import 'call_recovery.dart';
+import 'draw/draw_channel.dart';
+import 'draw/draw_model.dart';
 import 'native_call_handler.dart';
+import 'renegotiation.dart';
+import 'screen_share.dart';
 
 /// Per-peer video bitrate cap for a mesh call: every phone runs one encoder
 /// per remote peer, so the budget shrinks as the call grows. [baseline] is
@@ -68,6 +73,37 @@ class GroupPeer {
   /// rationale; the mesh needs its own copy per-peer since each link
   /// receives its own `state` stream.
   int? lastStateTs;
+
+  /// The peer's screen, while it is sharing one — the second video stream
+  /// on this link. Told apart from the camera by the ids the peer names in
+  /// its `state` signal (see [PeerMediaState]); until that signal has
+  /// arrived a stream is filed under [streamsById] and sorted later.
+  MediaStream? screenStream;
+  int screenStreamTick = 0;
+
+  /// Every stream `onTrack` has ever delivered on this link, by id — the
+  /// pool [remoteStream] and [screenStream] are picked from whenever the
+  /// peer's `state` names its streams.
+  final Map<String, MediaStream> streamsById = {};
+
+  /// Ids the peer has ever named as its screen. A share that ended leaves
+  /// its stream in the pool with a video track still in it; without this
+  /// the camera fallback would pick it up and the call would stay a video
+  /// call of a frozen screen.
+  final Set<String> screenStreamIds = {};
+
+  /// Our two outbound video slots on this link — camera and screen — each
+  /// negotiated once, then switched on and off with `replaceTrack`. See
+  /// `renegotiation.dart` for why a slot is never torn down.
+  RTCRtpSender? camSender;
+  RTCRtpSender? screenSender;
+
+  /// Offer/answer bookkeeping for this link.
+  final LinkNegotiation negotiation = LinkNegotiation();
+
+  /// The drawing channel over a shared screen, opened by the offerer before
+  /// its first offer so it rides the initial SDP. Both ends draw on it.
+  RTCDataChannel? drawChannel;
 }
 
 /// Mesh group-call manager: one [RTCPeerConnection] per remote participant,
@@ -178,6 +214,104 @@ class GroupCallService extends ChangeNotifier {
   bool localMuted = false;
   bool localVideoOff = false;
   bool speakerOn = true;
+
+  /// Bumped when a track is swapped inside [localStream] in place — a
+  /// camera coming on in a voice call — since the reference does not change
+  /// and a renderer keyed on it would keep showing the old track.
+  int localStreamTick = 0;
+
+  /// The screen this device is sharing, while it is. Its own stream, so the
+  /// peers can tell it from the camera by id (see
+  /// [PeerMediaState.screenStreamId]); created once per call and kept across
+  /// shares, because the slot it rides in is negotiated once per link and
+  /// the id in that negotiation has to keep meaning this.
+  MediaStream? _screenStream;
+  MediaStream? get screenStream => _screenStream;
+  int localScreenStreamTick = 0;
+  bool localScreenSharing = false;
+
+  /// When this device joined the call — what the call screen's timer counts
+  /// from.
+  DateTime? joinedAt;
+
+  /// Bumped when a minimised call wants its screen back — the in-call pill's
+  /// "return". The overlay that pushes the call screen listens.
+  final ValueNotifier<int> reopenTick = ValueNotifier<int>(0);
+
+  /// Whether this device is drawing over the shared screen right now — the
+  /// pen on the call screen and on the in-call pill are one switch. Only
+  /// meaningful while a screen is shared; cleared with the share.
+  final ValueNotifier<bool> drawArmed = ValueNotifier<bool>(false);
+
+  /// The strokes drawn over a shared screen — everyone's, ours included —
+  /// and the per-link channels they travel on. One model for the call: a
+  /// stroke is a stroke whoever is presenting.
+  final DrawModel drawModel = DrawModel();
+  late final DrawChannels _draw = DrawChannels(model: drawModel);
+
+  /// Seams for tests — the platform calls behind the live controls.
+  @visibleForTesting
+  Future<MediaStream> Function({ScreenShareSource? source}) getDisplayMediaFn =
+      ScreenShare.capture;
+  @visibleForTesting
+  Future<MediaStreamTrack> Function(VideoQualityTier tier) getVideoTrackFn =
+      getCallVideoOnlyTrack;
+  @visibleForTesting
+  Future<MediaStream> Function(String label) createLocalStreamFn =
+      createLocalMediaStream;
+  @visibleForTesting
+  Future<bool> Function(CallMediaKind kind) ensurePermissionsFn =
+      CallPermissions.ensure;
+  @visibleForTesting
+  Future<void> Function(RTCPeerConnection pc) preferCodecFn = preferH264Codec;
+
+  MediaStreamTrack? get _camTrack {
+    final v = _localStream?.getVideoTracks();
+    return (v == null || v.isEmpty) ? null : v.first;
+  }
+
+  MediaStreamTrack? get _screenTrack {
+    final v = _screenStream?.getVideoTracks();
+    return (v == null || v.isEmpty) ? null : v.first;
+  }
+
+  /// Whether this device is sending its camera right now.
+  bool get localCamActive => _camTrack != null && !localVideoOff;
+
+  /// Whether ANY video is on the call — ours or a peer's, camera or screen.
+  ///
+  /// The call screen picks its layout on this. A voice call with nothing to
+  /// look at stays a voice call; the moment someone's camera comes on it is
+  /// a video call for everyone, and when the last one goes off it is a
+  /// voice call again. A peer counts only once its video track has actually
+  /// landed — its `videoOff: false` alone would switch the screen to a grid
+  /// of empty tiles while the frames are still on their way.
+  bool get hasAnyVideo {
+    if (localCamActive || localScreenSharing) return true;
+    for (final p in _peers.values) {
+      if (p.mediaState.screenSharing && p.screenStream != null) return true;
+      final rs = p.remoteStream;
+      if (!p.mediaState.videoOff &&
+          rs != null &&
+          rs.getVideoTracks().isNotEmpty) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// The peer presenting a screen, if any. One presenter at a time — the
+  /// share control is disabled while this is non-null.
+  GroupPeer? get presentingPeer {
+    for (final p in _peers.values) {
+      if (p.mediaState.screenSharing) return p;
+    }
+    return null;
+  }
+
+  /// How many video sections a link to us must carry for what we send.
+  int get _activeVideoSlots =>
+      (_camTrack != null ? 1 : 0) + (_screenTrack != null ? 1 : 0);
 
   /// Remote participants that are `joined` per the roster, keyed by userId.
   final Map<String, GroupPeer> _peers = {};
@@ -351,6 +485,8 @@ class GroupCallService extends ChangeNotifier {
     _ending = false;
     localMuted = false;
     localVideoOff = kind != CallMediaKind.video;
+    localScreenSharing = false;
+    joinedAt = DateTime.now();
     // The room's name for the in-call screen: off the invite when this is
     // the call it offered, otherwise the roster fills it in on its first
     // frame.
@@ -473,6 +609,16 @@ class GroupCallService extends ChangeNotifier {
     }
     _peers.clear();
     rosterRows = const [];
+    drawModel.clearAll();
+    drawArmed.value = false;
+    final ss = _screenStream;
+    _screenStream = null;
+    if (localScreenSharing) {
+      localScreenSharing = false;
+      ScreenShare.onPlatformStop = null;
+      unawaited(ScreenShare.release());
+    }
+    if (ss != null) await stopAndDisposeStream(ss);
     final ls = _localStream;
     _localStream = null;
     if (ls != null) {
@@ -649,7 +795,8 @@ class GroupCallService extends ChangeNotifier {
     for (final peer in _peers.values) {
       final pc = peer.pc;
       if (pc != null) {
-        unawaited(configureVideoSenders(pc, maxBitrate: bitrate));
+        unawaited(configureVideoSenders(pc, maxBitrate: bitrate)
+            .then((_) => _retuneScreenSender(peer)));
       }
     }
     notifyListeners();
@@ -673,24 +820,29 @@ class GroupCallService extends ChangeNotifier {
         return;
       }
       peer.pc = pc;
+      peer.negotiation.reset();
       final ls = _localStream;
       if (ls != null) {
         for (final track in ls.getTracks()) {
-          await pc.addTrack(track, ls);
+          final sender = await pc.addTrack(track, ls);
+          if (track.kind == 'video') peer.camSender = sender;
         }
       }
-      await configureVideoSenders(
-        pc,
-        maxBitrate: meshVideoBitrate(
-          _peers.length,
-          baseline: videoQualityPresets[_videoTier]!.maxBitrate,
-        ),
-      );
-      await preferH264Codec(pc);
+      // A screen already being shared rides the first offer too.
+      await _ensureLocalSlots(peer, pc);
+      await _tuneSenders(peer, pc);
+      // Our mute/video/share state — and the ids that tell our streams
+      // apart — BEFORE the offer that carries them, so the newcomer can file
+      // each track as it lands.
+      await _sendTo(peer, 'state', _stateJson());
       if (_iOffer(peer.userId)) {
+        peer.negotiation.begin();
         final offer = await pc.createOffer({
           'offerToReceiveAudio': true,
-          'offerToReceiveVideo': _mediaKind == CallMediaKind.video,
+          // Always, voice call or not. The section costs nothing while
+          // nobody sends on it, and it is what lets a camera come on later
+          // as a direction change instead of a new m-line.
+          'offerToReceiveVideo': true,
         });
         await pc.setLocalDescription(offer);
         await _sendTo(peer, 'offer', {
@@ -699,11 +851,6 @@ class GroupCallService extends ChangeNotifier {
           'mediaKind': _mediaKind.wire,
         });
       }
-      // Share our current mute/video state with the newcomer.
-      await _sendTo(peer, 'state', {
-        'audioMuted': localMuted,
-        'videoOff': localVideoOff,
-      });
     } catch (e, st) {
       debugPrint('GroupCallService._ensureLink(${peer.userId}): $e\n$st');
     }
@@ -731,12 +878,34 @@ class GroupCallService extends ChangeNotifier {
 
     pc.onTrack = (event) {
       if (gen != peer.generation) return;
+      for (final s in event.streams) {
+        peer.streamsById[s.id] = s;
+      }
       if (event.streams.isNotEmpty) {
-        peer.remoteStream = event.streams.first;
-        peer.remoteStreamTick++;
+        _classifyPeerStreams(peer, arrived: event.streams);
       }
       notifyListeners();
     };
+
+    // The drawing channel is created by the offerer BEFORE its first offer,
+    // so the `m=application` section is in the SDP the link is built on and
+    // no later negotiation is needed for it. The answerer receives it.
+    if (_iOffer(peer.userId)) {
+      try {
+        final ch = await pc.createDataChannel(
+          DrawChannels.label,
+          DrawChannels.init(),
+        );
+        _attachDrawChannel(peer, gen, ch);
+      } catch (e) {
+        debugPrint('GroupCallService: createDataChannel failed: $e');
+      }
+    } else {
+      pc.onDataChannel = (ch) {
+        if (gen != peer.generation) return;
+        if (ch.label == DrawChannels.label) _attachDrawChannel(peer, gen, ch);
+      };
+    }
 
     pc.onIceConnectionState = (state) {
       if (gen != peer.generation) return;
@@ -836,6 +1005,9 @@ class GroupCallService extends ChangeNotifier {
     try {
       if (_iOffer(peer.userId)) {
         await pc.restartIce();
+        // An offer like any other: a re-offer sent on top of it would
+        // answer a section list the peer never saw.
+        peer.negotiation.begin();
         final offer = await pc.createOffer({'iceRestart': true});
         await pc.setLocalDescription(offer);
         await _sendTo(peer, 'restart-offer', {
@@ -965,21 +1137,27 @@ class GroupCallService extends ChangeNotifier {
 
     switch (kind) {
       case 'offer':
+      case 'restart-offer':
+      case 'reoffer':
         // Only the designated offerer sends offers; as the answerer we may
         // need to build our side of the link first.
         if (_iOffer(from)) return; // never valid — drop
-        await _answerOffer(peer, parsed);
-        break;
-      case 'restart-offer':
-        if (_iOffer(from)) return;
-        await _answerOffer(peer, parsed, restart: true);
+        await _applyRemoteOffer(peer, parsed, kind: kind);
         break;
       case 'answer':
       case 'restart-answer':
+      case 'reanswer':
         final pc = peer.pc;
         if (pc == null) return;
         if (pc.signalingState !=
             RTCSignalingState.RTCSignalingStateHaveLocalOffer) {
+          return;
+        }
+        // A `reanswer` names the offer it answers; one for an offer an ICE
+        // restart has since overtaken would be applied against the wrong
+        // local description.
+        if (kind == 'reanswer' &&
+            !peer.negotiation.accepts((parsed['seq'] as num?)?.toInt())) {
           return;
         }
         final sdp = parsed['sdp'] as String?;
@@ -988,6 +1166,16 @@ class GroupCallService extends ChangeNotifier {
         await pc.setRemoteDescription(RTCSessionDescription(sdp, type));
         peer.remoteDescSet = true;
         _drainPeerIce(peer);
+        _finishNegotiation(peer);
+        break;
+      case 'renegotiate':
+        // The answering side wants to send something new and cannot offer;
+        // re-offer with room for it.
+        if (!_iOffer(from)) return;
+        final wanted = (parsed['videoSlots'] as num?)?.toInt() ?? 0;
+        peer.negotiation.wantedVideoSlots =
+            math.max(peer.negotiation.wantedVideoSlots, wanted);
+        unawaited(_renegotiate(peer));
         break;
       case 'ice-batch':
         final list = (parsed['candidates'] as List?) ?? const [];
@@ -1002,6 +1190,10 @@ class GroupCallService extends ChangeNotifier {
         }
         if (ts != null) peer.lastStateTs = ts;
         peer.mediaState = PeerMediaState.fromJson(parsed);
+        // The state names the peer's streams; anything that landed before
+        // it did is sorted now, and a share that ended lets go of its
+        // stream.
+        _classifyPeerStreams(peer);
         notifyListeners();
         break;
       case 'restart-request':
@@ -1013,13 +1205,21 @@ class GroupCallService extends ChangeNotifier {
     }
   }
 
-  Future<void> _answerOffer(GroupPeer peer, Map<String, dynamic> parsed,
-      {bool restart = false}) async {
+  /// Applies an offer from the designated offerer — the first one, an ICE
+  /// restart's, or a re-offer — on the live link, and answers it.
+  Future<void> _applyRemoteOffer(
+    GroupPeer peer,
+    Map<String, dynamic> parsed, {
+    required String kind,
+  }) async {
     final sdp = parsed['sdp'] as String?;
     final type = parsed['type'] as String?;
     if (sdp == null || type == null) return;
     var pc = peer.pc;
     if (pc == null) {
+      // A re-offer presumes a link; without one there is nothing to apply
+      // it to, and the offerer's restart path rebuilds from scratch.
+      if (kind == 'reoffer') return;
       // Build the answering side of the link (no offer from us).
       await _ensureLink(peer);
       pc = peer.pc;
@@ -1028,13 +1228,195 @@ class GroupCallService extends ChangeNotifier {
     await pc.setRemoteDescription(RTCSessionDescription(sdp, type));
     peer.remoteDescSet = true;
     _drainPeerIce(peer);
+    // A slot that came on while this offer was in the air attaches now, to
+    // whichever offered section is free, and rides the answer.
+    await _ensureLocalSlots(peer, pc);
+    await _tuneSenders(peer, pc);
     final answer = await pc.createAnswer({});
     await pc.setLocalDescription(answer);
-    await _sendTo(peer, restart ? 'restart-answer' : 'answer', {
+    final reply = switch (kind) {
+      'restart-offer' => 'restart-answer',
+      'reoffer' => 'reanswer',
+      _ => 'answer',
+    };
+    await _sendTo(peer, reply, {
       'sdp': answer.sdp,
       'type': answer.type,
+      if (kind == 'reoffer') 'seq': parsed['seq'],
     });
+    // A track of ours still without a section — more slots than the offer
+    // had room for — needs another round.
+    if (await hasUnassociatedVideoSender(pc)) {
+      await _requestRenegotiation(peer);
+    }
   }
+
+  // ───────── renegotiation (see renegotiation.dart) ─────────
+
+  /// Offerer only: re-offer the link with every active slot of ours and
+  /// enough receive sections for the peer's. Serialised per link — a change
+  /// while an offer is out is remembered and sent once the answer lands.
+  Future<void> _renegotiate(GroupPeer peer) async {
+    final pc = peer.pc;
+    if (pc == null || !inCall || !_iOffer(peer.userId)) return;
+    final neg = peer.negotiation;
+    if (neg.inFlight) {
+      neg.dirty = true;
+      return;
+    }
+    final gen = peer.generation;
+    final seq = neg.begin();
+    try {
+      await _ensureLocalSlots(peer, pc);
+      await ensureRecvVideoSlots(pc, neg.wantedVideoSlots);
+      await _tuneSenders(peer, pc);
+      // No legacy receive hints: the transceivers say what this offer is.
+      final offer = await pc.createOffer({});
+      if (gen != peer.generation || !identical(peer.pc, pc)) return;
+      await pc.setLocalDescription(offer);
+      await _sendTo(peer, 'reoffer', {
+        'sdp': offer.sdp,
+        'type': offer.type,
+        'seq': seq,
+      });
+    } catch (e, st) {
+      debugPrint('GroupCallService._renegotiate(${peer.userId}): $e\n$st');
+      neg.inFlight = false;
+    }
+  }
+
+  void _finishNegotiation(GroupPeer peer) {
+    if (peer.negotiation.finish()) unawaited(_renegotiate(peer));
+  }
+
+  /// Answerer only: ask the offerer for a round with room for our slots.
+  Future<void> _requestRenegotiation(GroupPeer peer) => _sendTo(
+        peer,
+        'renegotiate',
+        {
+          'videoSlots': _activeVideoSlots,
+          'ts': DateTime.now().millisecondsSinceEpoch,
+        },
+      );
+
+  /// A slot of ours just became active: get it onto this link.
+  Future<void> _activateSlots(GroupPeer peer) async {
+    final pc = peer.pc;
+    // No link yet: [_ensureLink] carries every active slot when it builds.
+    if (pc == null) return;
+    if (_iOffer(peer.userId)) {
+      await _renegotiate(peer);
+    } else {
+      // Added now, before any offer: unified plan parks the track on a
+      // section of its own and associates it with the next offer's.
+      await _ensureLocalSlots(peer, pc);
+      await _requestRenegotiation(peer);
+    }
+  }
+
+  /// Adds a sender for every active slot that has none on this link.
+  Future<void> _ensureLocalSlots(GroupPeer peer, RTCPeerConnection pc) async {
+    final cam = _camTrack;
+    final ls = _localStream;
+    if (cam != null && ls != null && peer.camSender == null) {
+      peer.camSender = await pc.addTrack(cam, ls);
+    }
+    final screen = _screenTrack;
+    final ss = _screenStream;
+    if (screen != null && ss != null && peer.screenSender == null) {
+      peer.screenSender = await pc.addTrack(screen, ss);
+    }
+  }
+
+  Future<void> _tuneSenders(GroupPeer peer, RTCPeerConnection pc) async {
+    await configureVideoSenders(
+      pc,
+      maxBitrate: meshVideoBitrate(
+        _peers.length,
+        baseline: videoQualityPresets[_videoTier]!.maxBitrate,
+      ),
+    );
+    await _retuneScreenSender(peer);
+    await preferCodecFn(pc);
+  }
+
+  /// After every camera pass — [configureVideoSenders] tunes EVERY video
+  /// sender for a face, and a screen wants the opposite trade.
+  Future<void> _retuneScreenSender(GroupPeer peer) async {
+    final sender = peer.screenSender;
+    if (sender == null) return;
+    await configureScreenSender(sender, remotePeerCount: _peers.length);
+  }
+
+  /// Files the streams a link has delivered as the peer's camera and
+  /// screen, by the ids its `state` names. Before that state arrives the
+  /// stream carrying audio is taken for the camera — the only stream a
+  /// link had until screens existed — and everything is re-sorted when the
+  /// ids land. [arrived] are the streams a track just landed in; a renderer
+  /// bound to one of them has to rebind to see the new track.
+  void _classifyPeerStreams(
+    GroupPeer peer, {
+    Iterable<MediaStream> arrived = const [],
+  }) {
+    final st = peer.mediaState;
+    final pool = peer.streamsById;
+    MediaStream? screen;
+    final sid = st.screenStreamId;
+    if (sid != null) peer.screenStreamIds.add(sid);
+    if (st.screenSharing && sid != null) screen = pool[sid];
+    MediaStream? cam;
+    final cid = st.camStreamId;
+    if (cid != null) cam = pool[cid];
+    bool neverScreen(MediaStream s) =>
+        !identical(s, screen) && !peer.screenStreamIds.contains(s.id);
+    if (cam == null) {
+      for (final s in pool.values) {
+        if (neverScreen(s) && s.getAudioTracks().isNotEmpty) {
+          cam = s;
+          break;
+        }
+      }
+    }
+    if (cam == null) {
+      for (final s in pool.values) {
+        if (neverScreen(s)) {
+          cam = s;
+          break;
+        }
+      }
+    }
+    cam ??= peer.remoteStream;
+    var camChanged = !identical(cam, peer.remoteStream);
+    var screenChanged = !identical(screen, peer.screenStream);
+    peer.remoteStream = cam;
+    peer.screenStream = screen;
+    for (final s in arrived) {
+      if (identical(s, screen)) {
+        screenChanged = true;
+      } else if (identical(s, cam)) {
+        camChanged = true;
+      }
+    }
+    if (camChanged) peer.remoteStreamTick++;
+    if (screenChanged) peer.screenStreamTick++;
+  }
+
+  void _attachDrawChannel(GroupPeer peer, int gen, RTCDataChannel ch) {
+    if (gen != peer.generation) return;
+    peer.drawChannel = ch;
+    _draw.attach(peer.userId, ch);
+  }
+
+  Map<String, dynamic> _stateJson() => {
+        ...PeerMediaState(
+          audioMuted: localMuted,
+          videoOff: localVideoOff,
+          screenSharing: localScreenSharing,
+          camStreamId: _localStream?.id,
+          screenStreamId: _screenStream?.id,
+        ).toJson(),
+        'ts': DateTime.now().millisecondsSinceEpoch,
+      };
 
   Future<void> _addPeerCandidate(
       GroupPeer peer, Map<String, dynamic> parsed) async {
@@ -1083,6 +1465,18 @@ class GroupCallService extends ChangeNotifier {
     if (!keepIdentity) {
       peer.rebuildCount = 0;
     }
+    peer.screenStream = null;
+    peer.streamsById.clear();
+    peer.screenStreamIds.clear();
+    peer.camSender = null;
+    peer.screenSender = null;
+    peer.negotiation.reset();
+    final ch = peer.drawChannel;
+    peer.drawChannel = null;
+    if (ch != null) {
+      _draw.detach(peer.userId);
+      unawaited(ch.close().catchError((_) {}));
+    }
     final pc = peer.pc;
     peer.pc = null;
     peer.remoteStream = null;
@@ -1104,15 +1498,204 @@ class GroupCallService extends ChangeNotifier {
     await _broadcastState();
   }
 
+  /// Camera on/off.
+  ///
+  /// In a video call the camera stays acquired and its track is gated, as
+  /// it always was. In a VOICE call there is no camera track at all until
+  /// the user asks for one: turning it on acquires the camera, adds the
+  /// track to the local stream and negotiates a slot for it on every link;
+  /// turning it off hands the slots an empty track and releases the camera
+  /// (its light goes out), and the next "on" swaps a fresh track into the
+  /// slots that already exist — no signaling. The loudspeaker comes on with
+  /// the camera: someone looking at a screen is not holding it to an ear.
   Future<void> toggleVideo() async {
     final ls = _localStream;
-    if (ls == null || _mediaKind != CallMediaKind.video) return;
-    localVideoOff = !localVideoOff;
-    for (final t in ls.getVideoTracks()) {
-      t.enabled = !localVideoOff;
+    if (ls == null) return;
+    if (_mediaKind == CallMediaKind.video) {
+      localVideoOff = !localVideoOff;
+      for (final t in ls.getVideoTracks()) {
+        t.enabled = !localVideoOff;
+      }
+      notifyListeners();
+      await _broadcastState();
+      return;
+    }
+    if (localVideoOff) {
+      await _cameraOn(ls);
+    } else {
+      await _cameraOff(ls);
+    }
+  }
+
+  Future<void> _cameraOn(MediaStream ls) async {
+    if (!await ensurePermissionsFn(CallMediaKind.video)) return;
+    final id = _groupCallId;
+    final MediaStreamTrack track;
+    try {
+      track = await getVideoTrackFn(_videoTier);
+    } catch (e) {
+      debugPrint('GroupCallService._cameraOn: $e');
+      return;
+    }
+    if (_groupCallId != id || _localStream != ls) {
+      // The call ended while the camera was warming up.
+      try {
+        await track.stop();
+      } catch (_) {}
+      return;
+    }
+    await ls.addTrack(track);
+    localVideoOff = false;
+    localStreamTick++;
+    if (!speakerOn) {
+      speakerOn = true;
+      await applyIosCallAudioConfig(CallMediaKind.video, speakerOn: true);
+      await applyCallAudioRoute(speaker: true);
     }
     notifyListeners();
     await _broadcastState();
+    for (final peer in _peers.values.toList(growable: false)) {
+      final sender = peer.camSender;
+      if (sender != null) {
+        try {
+          await sender.replaceTrack(track);
+        } catch (e) {
+          debugPrint('GroupCallService._cameraOn replaceTrack: $e');
+        }
+      } else {
+        await _activateSlots(peer);
+      }
+    }
+  }
+
+  Future<void> _cameraOff(MediaStream ls) async {
+    localVideoOff = true;
+    notifyListeners();
+    await _broadcastState();
+    for (final peer in _peers.values) {
+      final sender = peer.camSender;
+      if (sender != null) {
+        try {
+          await sender.replaceTrack(null);
+        } catch (e) {
+          debugPrint('GroupCallService._cameraOff replaceTrack: $e');
+        }
+      }
+    }
+    for (final t in ls.getVideoTracks()) {
+      await ls.removeTrack(t);
+      try {
+        await t.stop();
+      } catch (e) {
+        debugPrint('GroupCallService._cameraOff stop: $e');
+      }
+    }
+    localStreamTick++;
+    notifyListeners();
+  }
+
+  /// Share this device's screen with everyone on the call.
+  ///
+  /// One presenter at a time; a second is refused here and the control is
+  /// disabled while [presentingPeer] is set. The capture's track is moved
+  /// into [_screenStream] — one stream per call, named after us — so the id
+  /// the peers learn from `state` stays the id the slot was negotiated
+  /// with, share after share. Throws what the capture threw (permission,
+  /// a picker dismissed) so the screen can say so; a denied consent is
+  /// swallowed as "nothing happened".
+  Future<void> startScreenShare({
+    ScreenShareSource? source,
+    ({String title, String body, String stop})? notification,
+  }) async {
+    if (!inCall || localScreenSharing || presentingPeer != null) return;
+    final id = _groupCallId;
+    final me = _userId;
+    if (id == null || me == null) return;
+    try {
+      await ScreenShare.prepare(
+        notificationTitle: notification?.title ?? 'Sharing your screen',
+        notificationBody: notification?.body ?? '',
+        notificationStop: notification?.stop ?? 'Stop',
+      );
+      final captured = await getDisplayMediaFn(source: source);
+      final tracks = captured.getVideoTracks();
+      if (tracks.isEmpty || _groupCallId != id) {
+        await stopAndDisposeStream(captured);
+        await ScreenShare.release();
+        return;
+      }
+      final track = tracks.first;
+      final screen = _screenStream ??= await createLocalStreamFn('screen-$me');
+      await screen.addTrack(track);
+      // Detach before disposing the wrapper — see [getCallVideoOnlyTrack].
+      await captured.removeTrack(track);
+      await captured.dispose();
+      // The system's own "stop sharing" (iOS, macOS, web) ends the track.
+      track.onEnded = () => unawaited(stopScreenShare());
+      ScreenShare.onPlatformStop = () => unawaited(stopScreenShare());
+      localScreenSharing = true;
+      localScreenStreamTick++;
+      notifyListeners();
+      await _broadcastState();
+      for (final peer in _peers.values.toList(growable: false)) {
+        final sender = peer.screenSender;
+        if (sender != null) {
+          try {
+            await sender.replaceTrack(track);
+            await _retuneScreenSender(peer);
+          } catch (e) {
+            debugPrint('GroupCallService.startScreenShare replaceTrack: $e');
+          }
+        } else {
+          await _activateSlots(peer);
+        }
+      }
+    } on ScreenShareDeniedException {
+      await ScreenShare.release();
+    } catch (e, st) {
+      debugPrint('GroupCallService.startScreenShare: $e\n$st');
+      await ScreenShare.release();
+      rethrow;
+    }
+  }
+
+  /// End our share. The slots keep their senders, empty, for the next one.
+  Future<void> stopScreenShare() async {
+    if (!localScreenSharing) return;
+    localScreenSharing = false;
+    ScreenShare.onPlatformStop = null;
+    // The drawings were about this screen; they go with it, for everyone.
+    drawModel.clearAll();
+    drawModel.flush();
+    drawArmed.value = false;
+    notifyListeners();
+    // The flag first: a peer still drawing the last frame reads "not
+    // sharing" before its picture freezes.
+    await _broadcastState();
+    for (final peer in _peers.values) {
+      final sender = peer.screenSender;
+      if (sender != null) {
+        try {
+          await sender.replaceTrack(null);
+        } catch (e) {
+          debugPrint('GroupCallService.stopScreenShare replaceTrack: $e');
+        }
+      }
+    }
+    final ss = _screenStream;
+    if (ss != null) {
+      for (final t in ss.getVideoTracks()) {
+        await ss.removeTrack(t);
+        try {
+          await t.stop();
+        } catch (e) {
+          debugPrint('GroupCallService.stopScreenShare stop: $e');
+        }
+      }
+    }
+    localScreenStreamTick++;
+    await ScreenShare.release();
+    if (!_disposed) notifyListeners();
   }
 
   Future<void> switchCamera() async {
@@ -1162,13 +1745,9 @@ class GroupCallService extends ChangeNotifier {
   }
 
   Future<void> _broadcastState() async {
-    final ts = DateTime.now().millisecondsSinceEpoch;
-    for (final peer in _peers.values) {
-      await _sendTo(peer, 'state', {
-        'audioMuted': localMuted,
-        'videoOff': localVideoOff,
-        'ts': ts,
-      });
+    final state = _stateJson();
+    for (final peer in _peers.values.toList(growable: false)) {
+      await _sendTo(peer, 'state', state);
     }
   }
 
@@ -1233,6 +1812,22 @@ class GroupCallService extends ChangeNotifier {
       unawaited(ls.dispose().catchError((_) {}));
     }
     _localStream = null;
+    final ss = _screenStream;
+    if (ss != null) {
+      for (final t in ss.getTracks()) {
+        unawaited(t.stop().catchError((_) {}));
+      }
+      unawaited(ss.dispose().catchError((_) {}));
+    }
+    _screenStream = null;
+    if (localScreenSharing) {
+      localScreenSharing = false;
+      unawaited(ScreenShare.release());
+    }
+    reopenTick.dispose();
+    _draw.dispose();
+    drawArmed.dispose();
+    drawModel.dispose();
     super.dispose();
   }
 }

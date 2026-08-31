@@ -7888,4 +7888,90 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get messageActionMenuTranslateAgainLabel => '翻訳し直す';
+
+  @override
+  String get groupCallScreenShareLabel => '共有';
+
+  @override
+  String get groupCallScreenStopShareLabel => '共有を停止';
+
+  @override
+  String get groupCallScreenRingingLabel => '呼び出し中…';
+
+  @override
+  String groupCallScreenSharingBy(String name) {
+    return '$nameが画面を共有しています';
+  }
+
+  @override
+  String get groupCallScreenYouAreSharing => '画面を共有中です';
+
+  @override
+  String get groupCallScreenMinimizeLabel => '隠す';
+
+  @override
+  String get groupCallScreenDrawLabel => '描く';
+
+  @override
+  String get callScreenControlShare => '共有';
+
+  @override
+  String get callScreenControlStopShare => '停止';
+
+  @override
+  String get callScreenControlDraw => '描く';
+
+  @override
+  String get callScreenControlMinimize => '隠す';
+
+  @override
+  String get inCallPillOngoingCall => '通話中';
+
+  @override
+  String get inCallPillReturn => '戻る';
+
+  @override
+  String get inCallPillSharing => '画面を共有中';
+
+  @override
+  String get inCallPillDrawSemanticLabel => '共有画面に描く';
+
+  @override
+  String get inCallPillStopSharingSemanticLabel => '共有を停止';
+
+  @override
+  String get screenShareUnsupported => 'このデバイスでは画面共有を利用できません';
+
+  @override
+  String get screenShareEphemeralWarning => '共有中はキャプチャ保護がオフになります';
+
+  @override
+  String get screenShareNotificationTitle => '画面を共有中';
+
+  @override
+  String get screenShareNotificationBody => '通話の参加者全員に表示されます';
+
+  @override
+  String get screenShareNotificationStop => '停止';
+
+  @override
+  String screenShareSomeoneElsePresenting(String name) {
+    return '$nameがすでに共有しています';
+  }
+
+  @override
+  String get screenShareFailed => '共有を開始できませんでした';
+
+  @override
+  String get screenSharePickerTitle => '画面を共有';
+
+  @override
+  String get screenSharePickerScreens => '画面';
+
+  @override
+  String get screenSharePickerWindows => 'ウィンドウ';
+
+  @override
+  String get screenSharePickerEmpty =>
+      '共有できるものがまだありません — システム設定で画面収録を許可してからもう一度お試しください';
 }

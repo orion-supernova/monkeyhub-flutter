@@ -8295,4 +8295,92 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get messageActionMenuTranslateAgainLabel => 'TRADUCIR DE NUEVO';
+
+  @override
+  String get groupCallScreenShareLabel => 'compartir';
+
+  @override
+  String get groupCallScreenStopShareLabel => 'dejar de compartir';
+
+  @override
+  String get groupCallScreenRingingLabel => 'Llamando…';
+
+  @override
+  String groupCallScreenSharingBy(String name) {
+    return '$name está compartiendo su pantalla';
+  }
+
+  @override
+  String get groupCallScreenYouAreSharing => 'Estás compartiendo tu pantalla';
+
+  @override
+  String get groupCallScreenMinimizeLabel => 'ocultar';
+
+  @override
+  String get groupCallScreenDrawLabel => 'dibujar';
+
+  @override
+  String get callScreenControlShare => 'Compartir';
+
+  @override
+  String get callScreenControlStopShare => 'Detener';
+
+  @override
+  String get callScreenControlDraw => 'Dibujar';
+
+  @override
+  String get callScreenControlMinimize => 'Ocultar';
+
+  @override
+  String get inCallPillOngoingCall => 'Llamada en curso';
+
+  @override
+  String get inCallPillReturn => 'Volver';
+
+  @override
+  String get inCallPillSharing => 'Compartiendo tu pantalla';
+
+  @override
+  String get inCallPillDrawSemanticLabel => 'Dibujar en la pantalla compartida';
+
+  @override
+  String get inCallPillStopSharingSemanticLabel => 'Dejar de compartir';
+
+  @override
+  String get screenShareUnsupported =>
+      'Compartir pantalla no está disponible en este dispositivo';
+
+  @override
+  String get screenShareEphemeralWarning =>
+      'La protección contra capturas está desactivada mientras compartes';
+
+  @override
+  String get screenShareNotificationTitle => 'Compartiendo tu pantalla';
+
+  @override
+  String get screenShareNotificationBody => 'Todos en la llamada pueden verla';
+
+  @override
+  String get screenShareNotificationStop => 'Detener';
+
+  @override
+  String screenShareSomeoneElsePresenting(String name) {
+    return '$name ya está compartiendo';
+  }
+
+  @override
+  String get screenShareFailed => 'No se pudo empezar a compartir';
+
+  @override
+  String get screenSharePickerTitle => 'Comparte tu pantalla';
+
+  @override
+  String get screenSharePickerScreens => 'Pantallas';
+
+  @override
+  String get screenSharePickerWindows => 'Ventanas';
+
+  @override
+  String get screenSharePickerEmpty =>
+      'Nada que compartir todavía — permite la grabación de pantalla en Ajustes del Sistema e inténtalo de nuevo';
 }

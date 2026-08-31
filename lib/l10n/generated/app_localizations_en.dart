@@ -8199,4 +8199,92 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get messageActionMenuTranslateAgainLabel => 'TRANSLATE AGAIN';
+
+  @override
+  String get groupCallScreenShareLabel => 'share';
+
+  @override
+  String get groupCallScreenStopShareLabel => 'stop share';
+
+  @override
+  String get groupCallScreenRingingLabel => 'Ringing…';
+
+  @override
+  String groupCallScreenSharingBy(String name) {
+    return '$name is sharing their screen';
+  }
+
+  @override
+  String get groupCallScreenYouAreSharing => 'You are sharing your screen';
+
+  @override
+  String get groupCallScreenMinimizeLabel => 'hide';
+
+  @override
+  String get groupCallScreenDrawLabel => 'draw';
+
+  @override
+  String get callScreenControlShare => 'Share';
+
+  @override
+  String get callScreenControlStopShare => 'Stop';
+
+  @override
+  String get callScreenControlDraw => 'Draw';
+
+  @override
+  String get callScreenControlMinimize => 'Hide';
+
+  @override
+  String get inCallPillOngoingCall => 'Call in progress';
+
+  @override
+  String get inCallPillReturn => 'Return';
+
+  @override
+  String get inCallPillSharing => 'Sharing your screen';
+
+  @override
+  String get inCallPillDrawSemanticLabel => 'Draw on the shared screen';
+
+  @override
+  String get inCallPillStopSharingSemanticLabel => 'Stop sharing';
+
+  @override
+  String get screenShareUnsupported =>
+      'Screen sharing isn\'t available on this device';
+
+  @override
+  String get screenShareEphemeralWarning =>
+      'Capture protection is off while you share';
+
+  @override
+  String get screenShareNotificationTitle => 'Sharing your screen';
+
+  @override
+  String get screenShareNotificationBody => 'Everyone on the call can see it';
+
+  @override
+  String get screenShareNotificationStop => 'Stop';
+
+  @override
+  String screenShareSomeoneElsePresenting(String name) {
+    return '$name is already sharing';
+  }
+
+  @override
+  String get screenShareFailed => 'Couldn\'t start sharing';
+
+  @override
+  String get screenSharePickerTitle => 'Share your screen';
+
+  @override
+  String get screenSharePickerScreens => 'Screens';
+
+  @override
+  String get screenSharePickerWindows => 'Windows';
+
+  @override
+  String get screenSharePickerEmpty =>
+      'Nothing to share yet — allow screen recording in System Settings and try again';
 }

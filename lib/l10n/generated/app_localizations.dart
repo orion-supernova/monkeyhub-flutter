@@ -13920,6 +13920,168 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'TRANSLATE AGAIN'**
   String get messageActionMenuTranslateAgainLabel;
+
+  /// Label under the share-screen control in the call tray. Lowercase like its neighbours (mute, speaker, leave).
+  ///
+  /// In en, this message translates to:
+  /// **'share'**
+  String get groupCallScreenShareLabel;
+
+  /// Label under the share-screen control while this device is sharing; tapping ends the share.
+  ///
+  /// In en, this message translates to:
+  /// **'stop share'**
+  String get groupCallScreenStopShareLabel;
+
+  /// Caption under a dimmed participant who was invited to the group call and has not picked up yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Ringing…'**
+  String get groupCallScreenRingingLabel;
+
+  /// Caption over a shared screen in a call. {name} is the presenter's display name.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is sharing their screen'**
+  String groupCallScreenSharingBy(String name);
+
+  /// Placeholder on the presenter's own screen tile (a phone cannot preview its own share without a mirror tunnel).
+  ///
+  /// In en, this message translates to:
+  /// **'You are sharing your screen'**
+  String get groupCallScreenYouAreSharing;
+
+  /// Label under the control that puts the call screen away while the call keeps going.
+  ///
+  /// In en, this message translates to:
+  /// **'hide'**
+  String get groupCallScreenMinimizeLabel;
+
+  /// Label under the pen control that lets the user draw on a shared screen.
+  ///
+  /// In en, this message translates to:
+  /// **'draw'**
+  String get groupCallScreenDrawLabel;
+
+  /// Label under the 1:1 call tray's share-screen button.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get callScreenControlShare;
+
+  /// Label under the 1:1 call tray's share-screen button while sharing.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get callScreenControlStopShare;
+
+  /// Label under the 1:1 call tray's pen button, shown while a screen is shared.
+  ///
+  /// In en, this message translates to:
+  /// **'Draw'**
+  String get callScreenControlDraw;
+
+  /// Label under the 1:1 call tray's button that puts the call screen away.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide'**
+  String get callScreenControlMinimize;
+
+  /// Title of the pill shown at the top of the app while a call runs behind it.
+  ///
+  /// In en, this message translates to:
+  /// **'Call in progress'**
+  String get inCallPillOngoingCall;
+
+  /// Button on the in-call pill that brings the call screen back.
+  ///
+  /// In en, this message translates to:
+  /// **'Return'**
+  String get inCallPillReturn;
+
+  /// Subtitle of the in-call pill while this device is sharing its screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Sharing your screen'**
+  String get inCallPillSharing;
+
+  /// Accessibility label of the pen toggle on the in-call pill.
+  ///
+  /// In en, this message translates to:
+  /// **'Draw on the shared screen'**
+  String get inCallPillDrawSemanticLabel;
+
+  /// Accessibility label of the stop chip on the in-call pill.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop sharing'**
+  String get inCallPillStopSharingSemanticLabel;
+
+  /// Toast when the share control is tapped on a platform or build that cannot capture the screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Screen sharing isn\'t available on this device'**
+  String get screenShareUnsupported;
+
+  /// Toast when a share starts while an ephemeral room is open, since screen-capture protection is lifted for the share's duration.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture protection is off while you share'**
+  String get screenShareEphemeralWarning;
+
+  /// Title of the Android notification shown for the duration of a screen share.
+  ///
+  /// In en, this message translates to:
+  /// **'Sharing your screen'**
+  String get screenShareNotificationTitle;
+
+  /// Body of the Android screen-share notification.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone on the call can see it'**
+  String get screenShareNotificationBody;
+
+  /// Action button on the Android screen-share notification that ends the share.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get screenShareNotificationStop;
+
+  /// Toast when the share control is tapped while another participant presents. {name} is the presenter.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is already sharing'**
+  String screenShareSomeoneElsePresenting(String name);
+
+  /// Toast when the platform refused or failed to start a screen capture.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t start sharing'**
+  String get screenShareFailed;
+
+  /// Title of the desktop sheet that lists displays and windows to share.
+  ///
+  /// In en, this message translates to:
+  /// **'Share your screen'**
+  String get screenSharePickerTitle;
+
+  /// Section header in the desktop share picker for whole displays.
+  ///
+  /// In en, this message translates to:
+  /// **'Screens'**
+  String get screenSharePickerScreens;
+
+  /// Section header in the desktop share picker for individual windows.
+  ///
+  /// In en, this message translates to:
+  /// **'Windows'**
+  String get screenSharePickerWindows;
+
+  /// Empty state of the desktop share picker when no source could be listed (macOS needs the Screen Recording permission).
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to share yet — allow screen recording in System Settings and try again'**
+  String get screenSharePickerEmpty;
 }
 
 class _AppLocalizationsDelegate

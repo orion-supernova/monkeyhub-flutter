@@ -1907,7 +1907,7 @@ export default defineSchema({
     callId: v.id("calls"),
     fromUserId: v.id("users"),
     toUserId: v.id("users"),
-    kind: v.string(),            // "invite" | "offer" | "answer" | "ice" | "ice-batch" | "state" | "bye" | "reject" | "cancel" | "taken" | "handoff-prepare" | "handoff-takeover" | "handoff-offer" | "handoff-answer" | "restart-request" | "restart-offer" | "restart-answer"
+    kind: v.string(),            // "invite" | "offer" | "answer" | "ice" | "ice-batch" | "state" | "bye" | "reject" | "cancel" | "taken" | "handoff-prepare" | "handoff-takeover" | "handoff-offer" | "handoff-answer" | "restart-request" | "restart-offer" | "restart-answer" | "renegotiate" | "reoffer" | "reanswer"
     payload: v.string(),         // JSON-encoded (SDP, ICE candidate, state object, …)
     createdAt: v.number(),
     consumed: v.boolean(),
@@ -1978,7 +1978,7 @@ export default defineSchema({
     groupCallId: v.id("groupCalls"),
     fromUserId: v.id("users"),
     toUserId: v.id("users"),
-    kind: v.string(), // "offer" | "answer" | "ice-batch" | "state" | "restart-request" | "restart-offer" | "restart-answer"
+    kind: v.string(), // "offer" | "answer" | "ice-batch" | "state" | "restart-request" | "restart-offer" | "restart-answer" | "renegotiate" | "reoffer" | "reanswer"
     payload: v.string(),
     createdAt: v.number(),
     consumed: v.boolean(),
