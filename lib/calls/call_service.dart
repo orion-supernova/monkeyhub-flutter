@@ -56,6 +56,18 @@ class CallService extends ChangeNotifier {
     Map<String, dynamic> constraints,
   ) createPcFn = createPeerConnection;
 
+  /// Seam for tests: the Darwin mic belt [_disposePc] runs last.
+  /// Production value is [stopDarwinMicCapture].
+  @visibleForTesting
+  Future<void> Function() stopMicCaptureFn = stopDarwinMicCapture;
+
+  /// Cap on any single platform call inside [_disposePc]. Each release step
+  /// is bounded on its own so one wedged channel round-trip cannot hold the
+  /// steps after it hostage — the peer connection closes, and the mic belt
+  /// runs, no matter what the capturer stop did.
+  @visibleForTesting
+  Duration disposeStepTimeout = const Duration(seconds: 3);
+
   /// Cap on how long a terminal backend notify (cancel/end/reject) may run.
   /// Local teardown — the mic release — no longer waits on it at all; this
   /// only bounds how long [endCall]/[reject] linger afterwards.
@@ -2329,10 +2341,6 @@ class CallService extends ChangeNotifier {
         debugPrint('CallService._teardown: endNative failed: $e');
       }
     }
-    await _disposePc();
-    // Belt to the plugin's deactivate-on-end: a no-op natively whenever any
-    // call UI (plugin or fallback provider) is still alive.
-    unawaited(NativeCallHandler.instance.deactivateIosAudioSession());
     if (notifyBackend && s != null) {
       final me = _userId;
       if (me != null) {
@@ -2344,7 +2352,11 @@ class CallService extends ChangeNotifier {
       }
     }
     // Hold the terminal state for a moment so the UI can render "ended" /
-    // toast the error before the screen pops itself.
+    // toast the error before the screen pops itself. Scheduled BEFORE the
+    // media release below, not after it: the release is bounded now, but
+    // the screen must never again sit on "Call ended" for as long as a
+    // platform call takes to answer — and `_disposePc` captures what it
+    // releases up front, so a call started once this fires is untouched.
     final endedCallId = s?.callId;
     Future.delayed(teardownUiHold, () {
       // A new call may have started inside this window — leave it alone.
@@ -2355,6 +2367,12 @@ class CallService extends ChangeNotifier {
       _remoteStreamTick = 0;
       notifyListeners();
     });
+    await _disposePc();
+    // Belt to the plugin's deactivate-on-end: a no-op natively whenever any
+    // call UI (plugin or fallback provider) is still alive — repeated over
+    // the next seconds, because that card list empties a beat after
+    // `endNative` returned.
+    unawaited(NativeCallHandler.instance.deactivateIosAudioSessionSettled());
   }
 
   Future<void> _disposePc() async {
@@ -2373,18 +2391,37 @@ class CallService extends ChangeNotifier {
     _iceFlushTimer?.cancel();
     _iceFlushTimer = null;
     _iceOutBuffer.clear();
+    // Capture and null out SYNCHRONOUSLY, before the first await: a fresh
+    // call started while this one is still releasing (instant redial) must
+    // never have ITS stream or peer connection closed by the tail of this.
     final ls = _localStream;
     _localStream = null;
+    final pc = _pc;
+    _pc = null;
+    // Close the peer connection FIRST. On Darwin a track stop is only
+    // `enabled = false`, so this close is the one release of the WebRTC
+    // audio unit short of the belt below — it must not queue behind the
+    // capturer stop, whose completion is what `stream.dispose()` waits on.
+    if (pc != null) {
+      try {
+        await pc.close().timeout(disposeStepTimeout);
+      } catch (e) {
+        debugPrint('CallService._disposePc: close failed: $e');
+      }
+    }
     if (ls != null) {
       // Per-track stop with individual guards — one throwing track (video,
       // typically, on some Android OEMs) must never skip the audio track's
       // stop or the dispose. That skip was a live mic with no owner.
-      await stopAndDisposeStream(ls);
+      await stopAndDisposeStream(ls, stepTimeout: disposeStepTimeout);
     }
-    try {
-      await _pc?.close();
-    } catch (_) {}
-    _pc = null;
+    // Darwin mic belt — see [stopDarwinMicCapture]: on the module the
+    // plugin now builds, the close above no longer stops recording. Never
+    // while a group call is live in this process (shared module); that
+    // path runs its own belt when it ends.
+    if (!NativeCallHandler.groupCallActiveProbe()) {
+      await stopMicCaptureFn();
+    }
   }
 
   @override

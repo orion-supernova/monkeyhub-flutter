@@ -227,26 +227,59 @@ async function assertCallParticipant(ctx: any, callId: any, userId: any) {
 // subscriber still needs to see). Called after every terminal-state
 // transition so late-arriving ICE candidates can't race into a re-entered
 // session.
+//
+// DEFERRED, never inline. The sweep has to read the whole `by_call` index
+// range, and a Convex mutation whose read set covers a range conflicts with
+// EVERY concurrent insert into it — which is exactly what `sendSignal` does,
+// continuously, while a call is up (ICE trickles for the whole life of a
+// video call). Run inside `end`, the purge lost OCC to `sendSignal` four
+// times in a row, backed off past half a second, and then failed outright
+// (2026-08-31 10:17 TR, home server); the caller's hangup took 5.5 s to
+// land and one side's `end` threw. The terminal mutation itself now touches
+// only the `calls` row and the terminal signal it inserts, so nothing it
+// reads overlaps a `sendSignal` write. The sweep runs a beat later, by which
+// point `sendSignal` sees the terminal status and drops everything — so it
+// converges on its first or second try instead of racing a live stream.
+// Signals a peer sees in that beat are for a call whose `bye` already tore
+// its session down, and `handleRemoteSignal` ignores them.
 async function purgeCallSignals(
   ctx: any,
   callId: any,
   keep?: any | any[],
 ) {
-  const keepIds = new Set<string>();
+  const keepIds: any[] = [];
   if (Array.isArray(keep)) {
-    for (const k of keep) if (k) keepIds.add(k.toString());
+    for (const k of keep) if (k) keepIds.push(k);
   } else if (keep) {
-    keepIds.add(keep.toString());
+    keepIds.push(keep);
   }
-  const rows = await ctx.db
-    .query("callSignals")
-    .withIndex("by_call", (q: any) => q.eq("callId", callId))
-    .collect();
-  for (const r of rows) {
-    if (keepIds.has(r._id.toString())) continue;
-    await ctx.db.delete(r._id);
-  }
+  await ctx.scheduler.runAfter(0, internal.calls.purgeCallSignalsInternal, {
+    callId,
+    keepIds,
+  });
 }
+
+// The sweep behind [purgeCallSignals]. Its own transaction, so its range
+// read can lose OCC and retry without dragging a terminal transition along.
+export const purgeCallSignalsInternal = internalMutation({
+  args: {
+    callId: v.id("calls"),
+    keepIds: v.array(v.id("callSignals")),
+  },
+  returns: v.null(),
+  handler: async (ctx, { callId, keepIds }) => {
+    const keep = new Set(keepIds.map((k) => k.toString()));
+    const rows = await ctx.db
+      .query("callSignals")
+      .withIndex("by_call", (q: any) => q.eq("callId", callId))
+      .collect();
+    for (const r of rows) {
+      if (keep.has(r._id.toString())) continue;
+      await ctx.db.delete(r._id);
+    }
+    return null;
+  },
+});
 
 // ────────────────────────── initiate / lifecycle ──────────────────────────
 

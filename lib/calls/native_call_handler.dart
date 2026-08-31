@@ -941,6 +941,12 @@ class NativeCallHandler {
   /// otherwise deactivate the session under the group call's live audio.
   static bool Function() groupCallActiveProbe = () => false;
 
+  /// True while a 1:1 call is live — the mirror of [groupCallActiveProbe],
+  /// for the group path's mic belt (see [stopDarwinMicCapture]): the two
+  /// services share one audio-device module, so neither may stop its
+  /// capture while the other is mid-call. Wired at bootstrap (app.dart).
+  static bool Function() dmCallActiveProbe = () => false;
+
   /// Belt for the stale-mic bug: ask AppDelegate to `setActive(false)` the
   /// AVAudioSession, which it does only when NO call UI (plugin card or
   /// fallback-provider card) is still alive. The callkit plugin activates
@@ -956,6 +962,23 @@ class NativeCallHandler {
     try {
       await _voipChannel.invokeMethod('deactivateAudioSession');
     } catch (_) {}
+  }
+
+  /// [deactivateIosAudioSession], repeated over the seconds after a
+  /// teardown. The native guard reads the callkit plugin's own call list,
+  /// and that list empties INSIDE the `CXEndCallAction` handler — which
+  /// CallKit delivers a beat after `endCall` returns — so a single belt
+  /// fired straight after teardown routinely found the card still listed
+  /// and no-op'd; nothing then deactivated a session WebRTC re-activated
+  /// while its audio unit wound down, and the orange dot outlived the call.
+  /// Every pass is a no-op mid-call (any card alive, or a group call), so a
+  /// call that starts inside the window is untouched.
+  Future<void> deactivateIosAudioSessionSettled() async {
+    if (kIsWeb || !Platform.isIOS) return;
+    for (final gap in const [0, 500, 1000, 1500]) {
+      if (gap > 0) await Future.delayed(Duration(milliseconds: gap));
+      await deactivateIosAudioSession();
+    }
   }
 
   /// Pull fallback-card answer/decline actions that fired before any Dart

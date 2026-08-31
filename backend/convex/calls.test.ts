@@ -199,6 +199,86 @@ async function activeCall(t: ReturnType<typeof convexTest>) {
   return c;
 }
 
+/**
+ * The terminal-transition / signaling write conflict. `purgeCallSignals`
+ * reads the whole `by_call` range, so run inline inside `end` it conflicted
+ * with every concurrent `sendSignal` insert for the call — ICE trickles for
+ * the life of a video call, and on 2026-08-31 a hangup lost OCC four times
+ * and then failed outright. The purge is now its own scheduled transaction:
+ * `end` itself leaves the range alone (the stale rows are still there when
+ * it returns) and the sweep, once it runs, removes everything but the bye.
+ */
+describe("signal purge is deferred out of the terminal transition", () => {
+  async function signalRows(t: ReturnType<typeof convexTest>, callId: any) {
+    return await t.run(async (ctx) =>
+      ctx.db
+        .query("callSignals")
+        .withIndex("by_call", (q: any) => q.eq("callId", callId))
+        .collect(),
+    );
+  }
+
+  test("end keeps the range untouched; the scheduled sweep leaves only the bye", async () => {
+    const t = convexTest(schema);
+    const { caller, callee, callId } = await activeCall(t);
+    // Drain the accept/ring pipeline first so the only scheduled work left
+    // after `end` is the purge itself. The rows the setup itself left behind
+    // (invite, offer, …) are the baseline — the sweep must take those too.
+    await drain(t);
+    const base = (await signalRows(t, callId)).length;
+
+    // A trickle of ICE from both sides, as during any live call.
+    for (let i = 0; i < 3; i++) {
+      await t.mutation(api.calls.sendSignal, {
+        sessionToken: caller.token,
+        callId,
+        fromUserId: caller.userId as any,
+        toUserId: callee.userId as any,
+        kind: "ice",
+        payload: `{"i":${i}}`,
+      });
+      await t.mutation(api.calls.sendSignal, {
+        sessionToken: callee.token,
+        callId,
+        fromUserId: callee.userId as any,
+        toUserId: caller.userId as any,
+        kind: "ice",
+        payload: `{"i":${i}}`,
+      });
+    }
+    expect((await signalRows(t, callId)).length).toBe(base + 6);
+
+    expect(
+      await t.mutation(api.calls.end, {
+        sessionToken: caller.token,
+        callId,
+        userId: caller.userId as any,
+      }),
+    ).toBe("ended");
+    // The transition wrote the row and its bye — and read none of the ICE.
+    const afterEnd = await signalRows(t, callId);
+    expect(afterEnd.length).toBe(base + 7);
+    expect(afterEnd.filter((r) => r.kind === "bye").length).toBe(1);
+
+    // A late candidate from the other side now drops on the terminal status
+    // instead of racing the sweep.
+    await t.mutation(api.calls.sendSignal, {
+      sessionToken: callee.token,
+      callId,
+      fromUserId: callee.userId as any,
+      toUserId: caller.userId as any,
+      kind: "ice",
+      payload: '{"late":true}',
+    });
+    expect((await signalRows(t, callId)).length).toBe(base + 7);
+
+    await drain(t);
+    const swept = await signalRows(t, callId);
+    expect(swept.map((r) => r.kind)).toEqual(["bye"]);
+    expect(swept[0].toUserId).toBe(callee.userId);
+  });
+});
+
 describe("hangup `taken` push keeps PushKit only for a ringing callee", () => {
   test("accept still fans a full PushKit dismissal to the callee's other devices", async () => {
     const t = convexTest(schema);

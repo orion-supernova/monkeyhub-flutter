@@ -9,6 +9,7 @@ import 'package:monkeyhub/backend/group_call_api.dart';
 import 'package:monkeyhub/calls/call_models.dart';
 import 'package:monkeyhub/calls/call_service.dart';
 import 'package:monkeyhub/calls/group_call_service.dart';
+import 'package:monkeyhub/calls/native_call_handler.dart';
 
 import 'fakes/fake_webrtc.dart';
 
@@ -19,6 +20,15 @@ import 'fakes/fake_webrtc.dart';
 /// The WebRTC boundary is faked through `getUserMediaFn`/`createPcFn`; the
 /// backend through recording [_FakeCallApi]/[_FakeGroupApi]. No real device,
 /// no real timers beyond microseconds.
+
+/// A stream whose `dispose()` never answers — the Darwin `streamDispose`
+/// whose capturer-stop completion never fires.
+class _HangingDisposeStream extends FakeMediaStream {
+  _HangingDisposeStream(super.tracks);
+
+  @override
+  Future<void> dispose() => Completer<void>().future;
+}
 
 class _FakeSubscription extends Fake implements Subscription {
   @override
@@ -152,6 +162,75 @@ void main() {
           reason: 'mic off while the network is still wedged');
       expect(service.localStream, isNull);
       await ending;
+    });
+
+    test('a wedged stream dispose neither blocks the PC close nor the belt',
+        () async {
+      // The macOS mic leak of 2026-08-31: the camera came down, the mic
+      // stayed. Two things must hold whatever the capturer stop does — the
+      // peer connection closes (the one release WebRTC itself performs), and
+      // the module-level belt runs after it; and the ended session clears
+      // on the UI hold rather than on a platform channel answering.
+      final api = _FakeCallApi();
+      final service = _newService(api)
+        ..disposeStepTimeout = const Duration(milliseconds: 20);
+      final stream =
+          _HangingDisposeStream([FakeMediaStreamTrack(kind: 'audio')]);
+      final pc = FakePeerConnection();
+      final beltLog = <String>[];
+      service.stopMicCaptureFn = () async {
+        beltLog.add(pc.closed ? 'belt-after-close' : 'belt-before-close');
+      };
+      service.getUserMediaFn = (kind, {tier = VideoQualityTier.auto}) async {
+        return stream;
+      };
+      service.createPcFn = (config, constraints) async => pc;
+
+      await service.initiate(
+        peerUserId: 'peer',
+        peerName: 'Peer',
+        roomId: 'room1',
+        kind: CallMediaKind.audio,
+      );
+      await service.endCall();
+
+      expect(pc.closed, isTrue,
+          reason: 'close must not queue behind the wedged dispose');
+      expect(
+          stream
+              .getAudioTracks()
+              .every((t) => (t as FakeMediaStreamTrack).stopped),
+          isTrue);
+      expect(beltLog, ['belt-after-close']);
+      await _pump();
+      expect(service.session, isNull,
+          reason: 'the ended session clears on the hold, not the channel');
+    });
+
+    test('the belt stays off while a group call is live in the process',
+        () async {
+      NativeCallHandler.groupCallActiveProbe = () => true;
+      addTearDown(() => NativeCallHandler.groupCallActiveProbe = () => false);
+      final api = _FakeCallApi();
+      final service = _newService(api);
+      final stream = FakeMediaStream([FakeMediaStreamTrack(kind: 'audio')]);
+      var beltRuns = 0;
+      service.stopMicCaptureFn = () async => beltRuns++;
+      service.getUserMediaFn = (kind, {tier = VideoQualityTier.auto}) async {
+        return stream;
+      };
+      service.createPcFn = (config, constraints) async => FakePeerConnection();
+
+      await service.initiate(
+        peerUserId: 'peer',
+        peerName: 'Peer',
+        roomId: 'room1',
+        kind: CallMediaKind.audio,
+      );
+      await service.endCall();
+      expect(stream.micReleased, isTrue);
+      expect(beltRuns, 0,
+          reason: 'the two call paths share one audio-device module');
     });
 
     test("a server-converted cancel ('ended') triggers no duplicate end",

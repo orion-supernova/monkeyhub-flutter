@@ -491,9 +491,17 @@ class GroupCallService extends ChangeNotifier {
     // target. No ack: no push is coming for this device. A no-op for a
     // starter, who never had a card.
     if (id != null) _endNativeCard(id, ack: false);
+    // Darwin mic belt — see [stopDarwinMicCapture]. Never while a 1:1 call
+    // is live in this process: the two paths share one audio-device module.
+    // Fire-and-forget, after the state reset above: nothing here waits on a
+    // platform channel, and a session that is over must read as over now.
+    if (!NativeCallHandler.dmCallActiveProbe()) {
+      unawaited(stopDarwinMicCapture());
+    }
     // Belt for iOS: releases the audio session WebRTC activated once no
-    // card is alive.
-    unawaited(NativeCallHandler.instance.deactivateIosAudioSession());
+    // card is alive — repeated, because the card list it is gated on
+    // empties a beat after `endCall` returns.
+    unawaited(NativeCallHandler.instance.deactivateIosAudioSessionSettled());
     await notify;
   }
 

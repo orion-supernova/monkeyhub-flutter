@@ -1284,6 +1284,8 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       // alive guard can't see them. Without this, canceling a 1:1 ring
       // DURING a group call would cut the group call's live audio.
       NativeCallHandler.groupCallActiveProbe = () => _groupCallService.inCall;
+      // And the mirror, for the group path's mic belt (same shared module).
+      NativeCallHandler.dmCallActiveProbe = () => _callService.inCall;
       await _signaling.start(s.userId, deviceId: deviceId);
       _callStackAttached = true;
       // Fire-and-forget: reconciling stale native cards must never be

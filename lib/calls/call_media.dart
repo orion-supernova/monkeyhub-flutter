@@ -110,18 +110,51 @@ class MediaSupersededException implements Exception {
 /// because a single throwing `stop()` (seen on some Android OEMs) must never
 /// skip the remaining tracks or the dispose. A skipped audio-track stop is a
 /// live microphone with no owner: the iOS orange-dot bug.
-Future<void> stopAndDisposeStream(MediaStream stream) async {
+/// Every step is bounded on its own. `stream.dispose()` on Darwin defers its
+/// answer until the video capturer's stop-completion fires (the plugin's
+/// `streamDispose` sets `shouldCallResult = NO` and answers from inside the
+/// completion), so a completion that never comes used to hang this await —
+/// and with it everything a caller sequenced after it.
+Future<void> stopAndDisposeStream(
+  MediaStream stream, {
+  Duration stepTimeout = const Duration(seconds: 3),
+}) async {
   for (final t in stream.getTracks()) {
     try {
-      await t.stop();
+      await t.stop().timeout(stepTimeout);
     } catch (e) {
       debugPrint('stopAndDisposeStream: track ${t.id} stop failed: $e');
     }
   }
   try {
-    await stream.dispose();
+    await stream.dispose().timeout(stepTimeout);
   } catch (e) {
     debugPrint('stopAndDisposeStream: dispose failed: $e');
+  }
+}
+
+/// Darwin belt: stop the WebRTC audio-device module's capture outright.
+///
+/// flutter_webrtc 1.4 builds the macOS/iOS factory on the LiveKit CoreAudio
+/// module (`initWithAudioDeviceModuleType:0` in FlutterWebRTCPlugin.m), and
+/// on that module closing the last peer connection no longer stops recording
+/// — `mediaStreamTrackStop` for an audio track is just `isEnabled = NO`, and
+/// nothing else in the plugin ever calls the module's `stopRecording`.
+/// Observed 2026-08-31 on macOS: a video call ended, the camera came down
+/// (`video capturer stopped` in the plugin's own log), and Control Center
+/// kept attributing the microphone to MonkeyHub for an hour, until the
+/// process quit. The plugin does expose `stopRecording` as
+/// `stopLocalRecording`; WebRTC restarts recording by itself the next time a
+/// connection adds an audio sender, so this is safe after every teardown —
+/// provided no OTHER call is still live in the process, which is the
+/// caller's check ([CallService] and [GroupCallService] share one module).
+Future<void> stopDarwinMicCapture() async {
+  if (kIsWeb || !(Platform.isIOS || Platform.isMacOS)) return;
+  try {
+    await NativeAudioManagement.stopLocalRecording()
+        .timeout(const Duration(seconds: 2));
+  } catch (e) {
+    debugPrint('stopDarwinMicCapture failed: $e');
   }
 }
 
