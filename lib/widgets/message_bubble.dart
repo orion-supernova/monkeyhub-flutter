@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui';
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -44,6 +43,7 @@ import 'reply_indicator.dart';
 import 'translation_slab.dart';
 import 'speaker_scope.dart';
 import 'user_avatar.dart';
+import 'message_departures.dart';
 import 'video_message.dart';
 import 'video_note_message.dart';
 
@@ -502,7 +502,18 @@ class EphemeralMessageBubble extends StatelessWidget {
     this.bubbleKey,
     this.interaction,
     this.interactionActions = InteractionActions.none,
+    this.departures,
+    this.rowKey,
   });
+
+  /// Where this bubble reports its own expiry, and what rasters it for the
+  /// exit. Null (a lifted preview, a thread pane, a test) means the bubble
+  /// simply draws until its row is gone.
+  final MessageDepartures? departures;
+
+  /// The row's identity in the ledgers — stable across the `tmp_` → server
+  /// id swap. Required alongside [departures].
+  final String? rowKey;
 
   /// The poll/checklist/event body, and what may be done to it. Carried here as
   /// well as on [MessageBubble] because a Chamber of Secrets room can hold one:
@@ -531,14 +542,14 @@ class EphemeralMessageBubble extends StatelessWidget {
 
   final ChatMessage message;
 
-  /// The dissolve clock, as a listenable rather than a value.
+  /// The expiry clock, as a listenable rather than a value.
   ///
-  /// A fading bubble is a function of the current instant across its whole
-  /// body — the life bar, the countdown and the opacity ramp all read it — so
-  /// there is no small piece of this to isolate. What CAN be isolated is the
-  /// rest of the screen: taking the clock as a listenable keeps a 5Hz tick
-  /// inside the bubbles that fade instead of rebuilding the transcript around
-  /// them. See [build].
+  /// A bubble on a clock is a function of the current instant across its
+  /// whole body — the countdown, the closing wash and the moment it asks to
+  /// leave all read it — so there is no small piece of this to isolate. What
+  /// CAN be isolated is the rest of the screen: taking the clock as a
+  /// listenable keeps a 5Hz tick inside the bubbles that are counting down
+  /// instead of rebuilding the transcript around them. See [build].
   final ValueListenable<DateTime> now;
   final String currentUserId;
   final ChatApi api;
@@ -595,14 +606,14 @@ class EphemeralMessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // The clock arrives as a listenable, and the subscription starts HERE —
-    // one level inside the row — on purpose. The dissolve wants 5Hz, and when
-    // the screen owned that as state, five times a second it rebuilt the whole
-    // transcript: every row, ephemeral or not, plus the dividers, the composer
-    // and the app bar, each row re-running its capability, saved-state and
-    // read-cursor lookups. Four of those five ticks changed nothing anybody
-    // could see, and they were paid out of the same frame budget the receive
-    // path parses an arriving message on. Now the tick repaints the bubbles
-    // that actually fade, and nothing else.
+    // one level inside the row — on purpose. The countdown wants 5Hz, and
+    // when the screen owned that as state, five times a second it rebuilt the
+    // whole transcript: every row, ephemeral or not, plus the dividers, the
+    // composer and the app bar, each row re-running its capability,
+    // saved-state and read-cursor lookups. Four of those five ticks changed
+    // nothing anybody could see, and they were paid out of the same frame
+    // budget the receive path parses an arriving message on. Now the tick
+    // repaints the bubbles that are actually counting down, and nothing else.
     return ValueListenableBuilder<DateTime>(
       valueListenable: now,
       builder: (context, nowValue, _) =>
@@ -616,34 +627,35 @@ class EphemeralMessageBubble extends StatelessWidget {
     );
   }
 
-  /// How long the dissolve runs for, at most.
+  /// How long the closing wash runs for, at most.
   ///
-  /// It used to be the last 18% of the lifetime, whatever that came to. In a
-  /// room set to ten minutes that is a hundred and eight seconds of a message
-  /// sitting there blurred and half transparent — long enough that the blur
-  /// stops reading as an animation and starts reading as how old messages
-  /// look here, and long enough that a message still on screen is one you can
-  /// no longer read. A dissolve is a moment, not a phase of a message's life.
-  static const Duration _dissolveWindow = Duration(seconds: 6);
+  /// The wash is the warning, not the exit: the theme's signature builds over
+  /// the bubble for its last few seconds — the message stays perfectly
+  /// legible under it — and at expiry the bubble itself blows apart (see
+  /// [DepartingRow]). Three seconds is long enough to read as "about to go"
+  /// and short enough never to read as how old messages look here. It used to
+  /// be a six-second fade to nothing, which left the row invisible for the
+  /// moment that mattered.
+  static const Duration _dissolveWindow = Duration(seconds: 3);
 
   /// ...and never more than this much of a short-lived message, so a room set
-  /// to thirty seconds does not spend a fifth of every message dissolving it.
+  /// to ten seconds does not spend a third of every message warning about it.
   static const double _dissolveMaxFraction = 0.18;
 
-  /// How far the animation is allowed to lag the clock driving it.
+  /// How far the wash is allowed to lag the clock driving it.
   ///
   /// [now] ticks at 5Hz — right for a countdown, four frames a tick short of
-  /// enough for a blur, and the reason this used to move in visible steps.
-  /// Every ramp below is interpolated BETWEEN those ticks instead of stepping
-  /// with them, and this is the tween that does it. Deliberately a shade
-  /// longer than the 200ms tick: the next target then always arrives while
-  /// the last one is still in flight, so the motion never stalls on a frame
-  /// waiting for the clock. The cost is ~40ms of lag, on a fade measured in
-  /// seconds, that nobody can see.
+  /// enough for a wash, and the reason this used to move in visible steps.
+  /// The ramp is interpolated BETWEEN those ticks instead of stepping with
+  /// them, and this is the tween that does it. Deliberately a shade longer
+  /// than the 200ms tick: the next target then always arrives while the last
+  /// one is still in flight, so the motion never stalls on a frame waiting
+  /// for the clock. The cost is ~40ms of lag, on a ramp measured in seconds,
+  /// that nobody can see.
   static const Duration _tickSmoothing = Duration(milliseconds: 240);
 
   /// 0 while the message is simply alive, 1 the instant it expires.
-  double _dissolveAt(DateTime now) {
+  double _washAt(DateTime now) {
     final expires = message.expiresAt;
     if (expires == null) return 0;
     final life = expires.difference(message.createdAt).inMicroseconds;
@@ -664,6 +676,38 @@ class EphemeralMessageBubble extends StatelessWidget {
     // See MessageBubble.build — null outside a ChatPane, and every metric
     // then falls back to the literal it replaced.
     final metrics = ChatMetricsScope.maybeOf(context);
+
+    // The bubble's own outline — tail, run-grouping and all. Computed once and
+    // used three times: the scroll-to halo traces it, the closing wash is
+    // clipped to it, and the exit takes flight only from inside it.
+    final bubbleOutline = pulseShapeFor(
+      theme: theme,
+      message: message,
+      isMine: isMine,
+      bubbleStyle: bubbleStyle,
+      ephemeral: true,
+      firstInRun: !grouped,
+      lastInRun: lastInRun,
+    );
+
+    // Expired on this device's clock: ask to leave. The ledger rasters the
+    // bubble after this frame — which is why the bubble below still draws at
+    // full strength — and swaps the row for the exit. Idempotent, so the
+    // ticks that follow cost a map probe each.
+    final departures = this.departures;
+    final rowKey = this.rowKey;
+    final expires = message.expiresAt;
+    if (departures != null &&
+        rowKey != null &&
+        expires != null &&
+        !now.isBefore(expires)) {
+      departures.requestLocalDeparture(
+        rowKey,
+        message,
+        isMine: isMine,
+        outline: bubbleOutline,
+      );
+    }
 
     final inner = buildMessageContent(
       context: context,
@@ -695,11 +739,10 @@ class EphemeralMessageBubble extends StatelessWidget {
     // `inner` is built ONCE per clock tick, out here, and handed to the
     // animation by reference. `Element.updateChild` short-circuits on an
     // identical widget instance, so the sixty rebuilds a second below re-run
-    // the opacity, blur and transform wrappers and nothing else: the
-    // message's text, its markdown, its media and its player are never
-    // rebuilt by the dissolve.
+    // the wash wrapper and nothing else: the message's text, its markdown,
+    // its media and its player are never rebuilt by the ramp.
     return TweenAnimationBuilder<double>(
-      tween: Tween<double>(end: _dissolveAt(now)),
+      tween: Tween<double>(end: _washAt(now)),
       duration: _tickSmoothing,
       curve: Curves.linear,
       builder: (context, t, _) => _frame(
@@ -710,20 +753,20 @@ class EphemeralMessageBubble extends StatelessWidget {
         metrics: metrics,
         now: now,
         content: inner,
+        bubbleOutline: bubbleOutline,
         t: t,
       ),
     );
   }
 
-  /// One frame of the dissolve at [t] — 0 as it begins, 1 as the message goes.
+  /// One frame of the closing wash at [t] — 0 while the message is simply
+  /// alive, 1 at expiry.
   ///
-  /// Three ramps over the same t, each on its own curve, because they are
-  /// saying different things and one linear ramp said all of them at once.
-  /// What that looked like: the bubble was already smeared under sigma while
-  /// it was still the newest thing in the room, everything moved in lockstep
-  /// and in 5Hz steps, and at the end the fade stopped at 15% opacity and the
-  /// row was then dropped from the list — an animation that never finished,
-  /// followed by a jump.
+  /// The bubble itself is untouched by [t]: no fade, no blur, no drift. It
+  /// used to do all three, reaching invisibility exactly at expiry — which
+  /// meant the row was already gone to the eye when the list dropped it, and
+  /// there was nothing left for an exit to happen to. Now the bubble stays at
+  /// full strength under the wash until the instant it blows apart.
   Widget _frame(
     BuildContext context, {
     required AppTheme theme,
@@ -732,38 +775,9 @@ class EphemeralMessageBubble extends StatelessWidget {
     required ChatMetrics? metrics,
     required DateTime now,
     required Widget content,
+    required ShapeBorder bubbleOutline,
     required double t,
   }) {
-    // Reads normally for most of the window, then commits. Cubic still leaves
-    // two thirds of the ink at the two-thirds mark, where a linear fade had
-    // already washed the text halfway out — and it reaches zero exactly at
-    // expiry, so the row leaves the list at the moment it becomes invisible
-    // rather than being yanked out at 15%.
-    final fade = Curves.easeInCubic.transform(t);
-    // Arrives last, and it has to: blurred type is the thing that reads as
-    // cheap, so the message stays legible until it is genuinely on its way
-    // out. Quartic holds sigma under a fifth of a pixel for the first half.
-    final soften = Curves.easeInQuart.transform(t);
-    // The lift and the shrink are one gesture — the bubble stepping back off
-    // the glass — so they share a curve, and it is the only symmetric one
-    // here: this should ease out of rest and into its end rather than lurch.
-    final drift = Curves.easeInOutCubic.transform(t);
-
-    final opacity = 1 - fade;
-
-    // The bubble's own outline — tail, run-grouping and all. Computed once and
-    // used twice: the scroll-to halo traces it, and the dissolve overlay is
-    // clipped to it.
-    final bubbleOutline = pulseShapeFor(
-      theme: theme,
-      message: message,
-      isMine: isMine,
-      bubbleStyle: bubbleStyle,
-      ephemeral: true,
-      firstInRun: !grouped,
-      lastInRun: lastInRun,
-    );
-
     final bubble = Stack(
       clipBehavior: Clip.none,
       children: [
@@ -801,15 +815,6 @@ class EphemeralMessageBubble extends StatelessWidget {
       ],
     );
 
-    final bubbleWithEffect = ImageFiltered(
-      // A zero-sigma blur is still a filtered layer, and this widget wraps
-      // EVERY bubble in a Chamber-of-Secrets room, dissolving or not. Off
-      // until there is something to blur.
-      enabled: soften > 0.004,
-      imageFilter: ImageFilter.blur(sigmaX: soften * 3, sigmaY: soften * 3),
-      child: Opacity(opacity: opacity, child: bubble),
-    );
-
     final maxWidth = metrics?.bubbleMaxWidth ?? messageMaxWidth(context);
 
     final innerBubble = ConstrainedBox(
@@ -817,14 +822,24 @@ class EphemeralMessageBubble extends StatelessWidget {
       child: HighlightPulse(
         t: highlightT,
         shape: bubbleOutline,
-        child: bubbleWithEffect,
+        child: bubble,
       ),
     );
 
+    // The raster boundary the exit is taken from: the bubble alone — wash
+    // included, marker and avatar excluded — which is exactly the box
+    // [DepartingRow] cuts into tiles. Only a bubble with a ledger to report
+    // to pays for the layer.
+    final anchor =
+        departures != null && rowKey != null ? departures!.anchorKeyFor(rowKey!) : null;
+    final captured = anchor == null
+        ? innerBubble
+        : RepaintBoundary(key: anchor, child: innerBubble);
+
     // See the twin in [MessageBubble] — the bubble alone, not the marker.
     final keyed = bubbleKey == null
-        ? innerBubble
-        : KeyedSubtree(key: bubbleKey!, child: innerBubble);
+        ? captured
+        : KeyedSubtree(key: bubbleKey!, child: captured);
 
     // See the twin in [MessageBubble] — same rule, same veto.
     final marker = message.isReply ? replyMarker : ReplyMarker.none;
@@ -845,8 +860,8 @@ class EphemeralMessageBubble extends StatelessWidget {
         crossAxisAlignment:
             isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          // Marker sits OUTSIDE the dissolve effect — its own identity,
-          // its own fade if we add one later.
+          // Marker sits OUTSIDE the raster boundary — its own identity, and
+          // it simply leaves with the row.
           if (marker == ReplyMarker.compact)
             ReplyTether(
               preview: message.replyToPreview!,
@@ -879,7 +894,6 @@ class EphemeralMessageBubble extends StatelessWidget {
               name: senderName!,
               color: nameColor,
               left: (isMine ? 0 : tailGutter) + 4,
-              opacity: opacity,
             ),
           keyed,
         ],
@@ -891,74 +905,47 @@ class EphemeralMessageBubble extends StatelessWidget {
       // the space between two rows depend on which two rows they are.
       padding: EdgeInsets.only(
           top: grouped ? MessageGap.withinRun : MessageGap.betweenRuns),
-      // The lift and the shrink together, anchored to the row's own edge so
-      // the bubble recedes from the glass instead of sliding across it. Both
-      // are Transforms and neither touches layout: the row holds its height
-      // until it leaves the list, so nothing below it moves while it goes.
-      child: Transform.translate(
-        offset: Offset(0, -drift * 6),
-        child: Transform.scale(
-          scale: 1 - drift * 0.03,
-          alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
-          child: _BubbleLayout(
-            isMine: isMine,
-            showAvatarSlot: showAvatarSlot,
-            senderName: showInlineName ? null : senderName,
-            nameColor: nameColor,
-            tailGutter: tailGutter,
-            nameOpacity: opacity,
-            avatar: Opacity(
-              // A curve rather than a scale factor, so the avatar hangs on a
-              // little past the words it belongs to and still reaches zero at
-              // the same instant everything else does. The old `1 - t * 0.7`
-              // left it sitting at 30% on an otherwise empty row.
-              opacity: 1 - soften,
-              child: _AvatarSlot(
-                author: author,
-                api: api,
-                onTap: onAuthorTap,
-                collapsed: !showAvatar,
-              ),
-            ),
-            bubble: _BubbleGestureDetector(
-              onLongPress: onLongPress,
-              onDoubleTap: onDoubleTap,
-              child: bubbleArea,
-            ),
-            reactions: message.reactions.isNotEmpty && onReactionTap != null
-                ? Opacity(
-                    opacity: opacity,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: maxWidth),
-                      child: ReactionRow(
-                        reactions: message.reactions,
-                        currentUserId: currentUserId,
-                        onToggle: onReactionTap!,
-                        onShowReactors: onReactionLongPress,
-                        alignment: isMine ? WrapAlignment.end : WrapAlignment.start,
-                      ),
-                    ),
-                  )
-                : null,
-            // Only the fallback row needs its own dissolve fade — a stamp inside
-            // the bubble is already carried by the bubble's own blur and opacity.
-            meta: messageStampsInline(message,
-                    showLinkUrls: SettingsStore.instance.showLinkUrls,
-                    ephemeral: true)
-                ? null
-                : Opacity(
-                    opacity: opacity,
-                    child: _MetaRow(
-                      message: message,
-                      isMine: isMine,
-                      countdown: message.timeLeft(now),
-                      seenByOthers: seenByOthers,
-                      deliveredToOthers: deliveredToOthers,
-                      saved: saved,
-                    ),
-                  ),
-          ),
+      child: _BubbleLayout(
+        isMine: isMine,
+        showAvatarSlot: showAvatarSlot,
+        senderName: showInlineName ? null : senderName,
+        nameColor: nameColor,
+        tailGutter: tailGutter,
+        avatar: _AvatarSlot(
+          author: author,
+          api: api,
+          onTap: onAuthorTap,
+          collapsed: !showAvatar,
         ),
+        bubble: _BubbleGestureDetector(
+          onLongPress: onLongPress,
+          onDoubleTap: onDoubleTap,
+          child: bubbleArea,
+        ),
+        reactions: message.reactions.isNotEmpty && onReactionTap != null
+            ? ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxWidth),
+                child: ReactionRow(
+                  reactions: message.reactions,
+                  currentUserId: currentUserId,
+                  onToggle: onReactionTap!,
+                  onShowReactors: onReactionLongPress,
+                  alignment: isMine ? WrapAlignment.end : WrapAlignment.start,
+                ),
+              )
+            : null,
+        meta: messageStampsInline(message,
+                showLinkUrls: SettingsStore.instance.showLinkUrls,
+                ephemeral: true)
+            ? null
+            : _MetaRow(
+                message: message,
+                isMine: isMine,
+                countdown: message.timeLeft(now),
+                seenByOthers: seenByOthers,
+                deliveredToOthers: deliveredToOthers,
+                saved: saved,
+              ),
       ),
     );
   }
@@ -1020,7 +1007,6 @@ class _SenderNameLabel extends StatelessWidget {
     required this.name,
     required this.color,
     required this.left,
-    this.opacity = 1,
   });
 
   final String name;
@@ -1030,32 +1016,28 @@ class _SenderNameLabel extends StatelessWidget {
   /// colour of their own.
   final Color? color;
   final double left;
-  final double opacity;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     return Padding(
       padding: EdgeInsets.only(left: left, bottom: 2),
-      child: Opacity(
-        opacity: opacity,
-        child: Text(
-          name,
-          // Deliberately NOT the uppercased monoTiny that reply indicators
-          // and the composer card use: those are labels, this is a person.
-          // mono has no letter-spacing and enough size to read as a name, and
-          // stays clear of the 9px timestamp below.
-          style: theme.mono.copyWith(
-            // The 0.95 stays off the speaker ink: that colour was
-            // conditioned to clear 4.5:1 against this exact background, and
-            // shaving five percent off it would spend contrast the
-            // conditioning just finished earning.
-            color: color ?? theme.accent.withValues(alpha: 0.95),
-            fontWeight: FontWeight.w600,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+      child: Text(
+        name,
+        // Deliberately NOT the uppercased monoTiny that reply indicators
+        // and the composer card use: those are labels, this is a person.
+        // mono has no letter-spacing and enough size to read as a name, and
+        // stays clear of the 9px timestamp below.
+        style: theme.mono.copyWith(
+          // The 0.95 stays off the speaker ink: that colour was
+          // conditioned to clear 4.5:1 against this exact background, and
+          // shaving five percent off it would spend contrast the
+          // conditioning just finished earning.
+          color: color ?? theme.accent.withValues(alpha: 0.95),
+          fontWeight: FontWeight.w600,
         ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
@@ -1082,7 +1064,6 @@ class _BubbleLayout extends StatelessWidget {
     required this.reactions,
     required this.meta,
     this.tailGutter = 0,
-    this.nameOpacity = 1,
     this.nameColor,
   });
 
@@ -1103,8 +1084,6 @@ class _BubbleLayout extends StatelessWidget {
   /// Everything below the bubble is inset by it so timestamps and reactions
   /// line up with the bubble's *body* edge rather than the tail's tip.
   final double tailGutter;
-
-  final double nameOpacity;
 
   /// The ink [senderName] is written in. Null keeps the accent every sender
   /// used to share — a DM, a room with speaker colours off, or a sender who is
@@ -1131,7 +1110,6 @@ class _BubbleLayout extends StatelessWidget {
             name: name,
             color: nameColor,
             left: leadingIndent + 4 + (isMine ? 0 : tailGutter),
-            opacity: nameOpacity,
           ),
         Row(
           mainAxisAlignment:

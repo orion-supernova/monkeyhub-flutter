@@ -59,6 +59,7 @@ import '../widgets/app_toast.dart';
 import 'message_receipts_screen.dart';
 import 'room_items.dart';
 import 'view_once_viewer.dart';
+import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/anchored_scroll.dart';
 import '../widgets/approval_gate.dart';
@@ -85,7 +86,9 @@ import '../widgets/companion_strip.dart' show kCompanionStripHeight;
 import '../widgets/pinned_banner.dart';
 import '../widgets/pinned_list_sheet.dart';
 import '../widgets/mention_text_controller.dart';
+import '../widgets/departing_row.dart';
 import '../widgets/message_arrivals.dart';
+import '../widgets/message_departures.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/reaction_details_sheet.dart';
 import '../widgets/reaction_picker_sheet.dart';
@@ -514,7 +517,20 @@ class _RoomScreenState extends State<RoomScreen>
       m.id == _highlightedMessageId ||
       m.id == _jumpTargetId ||
       m.id == _replyingTo?.id ||
+      _departures.isDeparting(_arrivals.keyFor(m)) ||
       _dateTracks.containsKey('m_${m.id}');
+
+  /// The outline a departing bubble takes flight from, for a capture taken
+  /// outside the bubble's own build. Run grouping is unknown here, so the
+  /// row is treated as standing on its own — a corner's worth of difference
+  /// on tiles a few pixels wide.
+  ShapeBorder _outlineFor(ChatMessage m) => pulseShapeFor(
+        theme: ThemeScope.of(context),
+        message: m,
+        isMine: m.senderId == widget.repo.userId,
+        bubbleStyle: SettingsStore.instance.bubbleStyle,
+        ephemeral: true,
+      );
 
   /// Flatten the message list into intro / date-divider / message / thread-
   /// fold rows. See lib/screens/room_items.dart for the algorithm.
@@ -797,6 +813,21 @@ class _RoomScreenState extends State<RoomScreen>
     },
   );
 
+  /// Which rows are leaving — the ledger behind a Chamber of Secrets
+  /// message's exit. It holds the bubble's last picture and keeps the row in
+  /// the list while the picture blows apart. See [MessageDepartures] for the
+  /// two moments that can start one and why the capture is synchronous.
+  late final MessageDepartures _departures = MessageDepartures(
+    onChanged: () {
+      if (mounted) setState(() {});
+    },
+  );
+
+  /// The timeline the last build drew, ghosts included. What
+  /// [_onRepoChange] diffs a delivery against to catch a row the server
+  /// removed before this device's clock ran out.
+  List<ChatMessage> _lastTimeline = const [];
+
   /// Hand the ledger this delivery. Separate from [_onRepoChange] only because
   /// the two things it needs — who we are, and whether the reader is parked at
   /// the newest message — are this screen's to know.
@@ -813,7 +844,20 @@ class _RoomScreenState extends State<RoomScreen>
   void _onRepoChange() {
     if (!mounted) return;
     final room = widget.repo.roomById(widget.roomId);
-    _noteArrivals(widget.repo.timelineFor(widget.roomId));
+    final current = widget.repo.timelineFor(widget.roomId);
+    _noteArrivals(current);
+    // BEFORE the rebuild below, and synchronously: a row the server just
+    // deleted is still the last painted frame right now, and this is the
+    // only moment its pixels can still be taken for the exit.
+    if (_room?.messageLifetime != null) {
+      _departures.observeRemoval(
+        _lastTimeline,
+        current,
+        keyFor: _arrivals.keyFor,
+        isMine: (m) => m.senderId == widget.repo.userId,
+        outlineFor: _outlineFor,
+      );
+    }
     // A pin lands through the repository like everything else, so this is where
     // a colour picked in room info reaches the transcript. Gated on the
     // signature because this handler runs on every repository notification and
@@ -1071,6 +1115,7 @@ class _RoomScreenState extends State<RoomScreen>
     _highlightCtrl.dispose();
     _hideTimer?.cancel();
     _arrivals.dispose();
+    _departures.dispose();
     _scroll.removeListener(_onScroll);
     _scroll.dispose();
     _scrolledUp.removeListener(_onBottomProximity);
@@ -3145,7 +3190,11 @@ class _RoomScreenState extends State<RoomScreen>
     // transcript renders a detached window of it until the reader scrolls
     // back down to the present. Everything else — threads, receipts, the
     // cache — still reads the live list.
-    final messages = widget.repo.timelineFor(widget.roomId);
+    // ...plus every message whose exit is still playing: the ledger keeps a
+    // departed row in the list until its picture has blown away.
+    final messages =
+        _departures.withGhosts(widget.repo.timelineFor(widget.roomId));
+    _lastTimeline = messages;
     final me = widget.repo.userId ?? '';
     // ListView is rendered with reverse:true so the viewport naturally
     // anchors to the newest message at the bottom. The items list is built
@@ -4085,6 +4134,31 @@ class _RoomScreenState extends State<RoomScreen>
                     ? _members[m.replyToPreview?.senderId]
                     : null;
                 Future<void> onViewThread() => _openThread(m);
+                // The identity of the ROW, which is not always the identity of
+                // the message: a send is one row that wears two ids, the local
+                // `tmp_` one until the server confirms it and the real one
+                // after. Keying on `m.id` made that swap look like one row
+                // leaving and another arriving — the switcher below cross-faded
+                // it, and its entrance played a second time from zero height.
+                final rowKey = _arrivals.keyFor(m);
+                // Leaving: the whole row — swipes, selection, entrance — is
+                // replaced by the exit, which holds the row's height and
+                // then closes it. Tracked under the same key so the floating
+                // date reads it exactly as it read the bubble.
+                final departing = _departures.captureFor(rowKey);
+                if (departing != null) {
+                  return _trackedDate(
+                    stableId: 'm_${m.id}',
+                    label: humanDay(DateTime(m.createdAt.year, m.createdAt.month, m.createdAt.day)),
+                    isDivider: false,
+                    child: DepartingRow(
+                      key: ValueKey('depart_$rowKey'),
+                      capture: departing,
+                      calm: MotionScope.of(context).calm,
+                      onDone: () => _departures.end(rowKey),
+                    ),
+                  );
+                }
                 final bubble = m.isEphemeral
                     ? EphemeralMessageBubble(
                         key: ValueKey('e_${m.id}'),
@@ -4092,6 +4166,8 @@ class _RoomScreenState extends State<RoomScreen>
                         now: _fadeNow,
                         currentUserId: me,
                         api: widget.api,
+                        departures: _departures,
+                        rowKey: rowKey,
                         author: author,
                         onLongPress: isPending ? null : onLongPress,
                         onDoubleTap: isPending ? null : onLongPress,
@@ -4198,13 +4274,6 @@ class _RoomScreenState extends State<RoomScreen>
                             : null,
                         interactionActions: interactionActions,
                       );
-                // The identity of the ROW, which is not always the identity of
-                // the message: a send is one row that wears two ids, the local
-                // `tmp_` one until the server confirms it and the real one
-                // after. Keying on `m.id` made that swap look like one row
-                // leaving and another arriving — the switcher below cross-faded
-                // it, and its entrance played a second time from zero height.
-                final rowKey = _arrivals.keyFor(m);
                 final row = AnimatedSwitcher(
                   duration: theme.motionMed,
                   switchInCurve: theme.motionEntrance,
@@ -4249,17 +4318,7 @@ class _RoomScreenState extends State<RoomScreen>
                     ),
                   ),
                 );
-                return ArrivingRow(
-                  // Only a row that was not in the transcript a moment ago
-                  // plays an entrance; see [MessageArrivals]. Everything else —
-                  // a row scrolled back into view, a page of older history, a
-                  // re-render after a reaction, and every message the reader
-                  // sent themselves — draws at full size on the first frame.
-                  key: ValueKey('arrive_$rowKey'),
-                  animate: _arrivals.isArriving(rowKey),
-                  duration: theme.motionMed,
-                  curve: theme.motionEntrance,
-                  child: _trackedDate(
+                final tracked = _trackedDate(
                   stableId: 'm_${m.id}',
                   label: humanDay(DateTime(m.createdAt.year, m.createdAt.month, m.createdAt.day)),
                   isDivider: false,
@@ -4281,7 +4340,26 @@ class _RoomScreenState extends State<RoomScreen>
                           child: row,
                         )
                       : row,
-                  ),
+                );
+                // The exit needs to know how tall this row was and where the
+                // bubble sat in it; the tracked key is that measurement.
+                if (m.isEphemeral) {
+                  _departures.registerRowBox(
+                    rowKey,
+                    _dateTracks['m_${m.id}']!.key,
+                  );
+                }
+                return ArrivingRow(
+                  // Only a row that was not in the transcript a moment ago
+                  // plays an entrance; see [MessageArrivals]. Everything else —
+                  // a row scrolled back into view, a page of older history, a
+                  // re-render after a reaction, and every message the reader
+                  // sent themselves — draws at full size on the first frame.
+                  key: ValueKey('arrive_$rowKey'),
+                  animate: _arrivals.isArriving(rowKey),
+                  duration: theme.motionMed,
+                  curve: theme.motionEntrance,
+                  child: tracked,
                 );
               },
                   ),

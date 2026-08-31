@@ -12,6 +12,7 @@ import 'package:flutter/widgets.dart';
 import '../data/spoiler_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/motion.dart';
+import 'dust/dust_kit.dart';
 import 'paragraph_geometry.dart';
 
 /// The dust veil over a message's spoiler text, and everything that happens
@@ -202,11 +203,7 @@ class _SpoilerVeilState extends State<SpoilerVeil>
   void _onTick(Duration elapsed) {
     final last = _lastTick;
     _lastTick = elapsed;
-    // Clamped hard: a dropped frame handed to an integrator is how particle
-    // systems explode.
-    final dt = last == null
-        ? 1 / 60
-        : ((elapsed - last).inMicroseconds / 1e6).clamp(1 / 240, 1 / 30);
+    final dt = dustFrameDt(last, elapsed);
     _model.time += dt;
     _model._field?.step(_model, dt);
     _frame.value++;
@@ -1103,29 +1100,6 @@ class VeilModel {
 // The dust
 // ---------------------------------------------------------------------------
 
-/// A sine table, because the field costs several of them per mote per frame.
-///
-/// 2048 entries puts the worst quantisation error at about a hundredth of a
-/// pixel at these amplitudes — invisible, and a fraction of the cost of
-/// `math.sin` a few thousand motes at a time.
-class _Trig {
-  static const int _n = 2048;
-  static final Float32List _table = () {
-    final t = Float32List(_n);
-    for (var i = 0; i < _n; i++) {
-      t[i] = math.sin(2 * math.pi * i / _n);
-    }
-    return t;
-  }();
-
-  /// sin(2π · [turns]).
-  static double sin(double turns) {
-    var i = (turns * _n).toInt() & (_n - 1);
-    if (i < 0) i += _n;
-    return _table[i];
-  }
-}
-
 /// The particle field over one veil: every mote of every line, in one set of
 /// buffers, drawn with one call.
 ///
@@ -1270,8 +1244,8 @@ class _DustField {
   void _relaunch(int i, {required bool fresh}) {
     final heading = _rand.nextDouble();
     final speed = 3 + _rand.nextDouble() * 9;
-    vx[i] = _Trig.sin(heading + 0.25) * speed;
-    vy[i] = _Trig.sin(heading) * speed;
+    vx[i] = DustTrig.sin(heading + 0.25) * speed;
+    vy[i] = DustTrig.sin(heading) * speed;
     life[i] = 0.9 + _rand.nextDouble() * 1.5;
     // A field seeded mid-life is steady from its first frame, rather than
     // every mote being born together and dying together.
@@ -1387,7 +1361,7 @@ class _DustField {
     final heal = m.heal;
     final healWind = m.healWind;
     final inkRgb = m.inkRgb;
-    final spritePx = _Sprite.pxFor(m.dpr).toDouble();
+    final spritePx = DustSprite.pxFor(m.dpr).toDouble();
 
     var k = 0;
     for (var i = 0; i < count; i++) {
@@ -1409,8 +1383,8 @@ class _DustField {
       // there is no direction to the field for the eye to catch.
       final u = px / 90 + time / 16;
       final v = py / 40 - time / 21;
-      final flowX = -3.0 * _Trig.sin(u) * _Trig.sin(v);
-      final flowY = -1.3 * _Trig.sin(u + 0.25) * _Trig.sin(v + 0.25);
+      final flowX = -3.0 * DustTrig.sin(u) * DustTrig.sin(v);
+      final flowY = -1.3 * DustTrig.sin(u + 0.25) * DustTrig.sin(v + 0.25);
 
       var ax = 0.0;
       var ay = 0.0;
@@ -1432,8 +1406,8 @@ class _DustField {
           // a curl makes the field orbit the finger, which is a turbine.
           var ex = d > 0.001 ? dx / d : 0.0;
           var ey = d > 0.001 ? dy / d : -1.0;
-          ex += _Trig.sin(rnd[i] * 0.9 + 0.25) * 0.9;
-          ey += _Trig.sin(rnd[i] * 0.9) * 0.9;
+          ex += DustTrig.sin(rnd[i] * 0.9 + 0.25) * 0.9;
+          ey += DustTrig.sin(rnd[i] * 0.9) * 0.9;
           final el = math.sqrt(ex * ex + ey * ey);
           if (el > 0.001) {
             ex /= el;
@@ -1443,8 +1417,8 @@ class _DustField {
           ay += ey * _draughtAccel * f;
           // Turbulence on top, wandering in time, so the scatter keeps
           // changing for as long as the finger is down.
-          ax += _Trig.sin(time * 0.43 + rnd[i] * 13) * _draughtAccel * f * 0.5;
-          ay += _Trig.sin(time * 0.49 + rnd[i] * 17) * _draughtAccel * f * 0.5;
+          ax += DustTrig.sin(time * 0.43 + rnd[i] * 13) * _draughtAccel * f * 0.5;
+          ay += DustTrig.sin(time * 0.49 + rnd[i] * 17) * _draughtAccel * f * 0.5;
         }
       }
 
@@ -1464,8 +1438,8 @@ class _DustField {
           final nx = dist > 0.001 ? dx / dist : 0.0;
           final ny = dist > 0.001 ? dy / dist : -1.0;
           final f = lead * lead;
-          ax += nx * 1400 * f + _Trig.sin(rnd[i] * 0.7 + 0.25) * 600 * f;
-          ay += ny * 1400 * f + _Trig.sin(rnd[i] * 0.7) * 600 * f;
+          ax += nx * 1400 * f + DustTrig.sin(rnd[i] * 0.7 + 0.25) * 600 * f;
+          ay += ny * 1400 * f + DustTrig.sin(rnd[i] * 0.7) * 600 * f;
           final remaining = age[i] + 0.18;
           if (life[i] > remaining) life[i] = remaining;
         }
@@ -1510,7 +1484,7 @@ class _DustField {
       if (uLife < 0.25) a *= _smooth(uLife / 0.25);
       if (uLife > 0.7) a *= 1 - _smooth((uLife - 0.7) / 0.3);
       if (sparkle[i] == 1) {
-        a *= 0.55 + 0.45 * _Trig.sin(time * 1.4 + rnd[i] * 7);
+        a *= 0.55 + 0.45 * DustTrig.sin(time * 1.4 + rnd[i] * 7);
       }
       // A wiped cell is a window: no dust over words the reader has already
       // uncovered. A mote the heal has blown in is over covered words by
@@ -1544,47 +1518,6 @@ class _DustField {
   }
 }
 
-/// The one sprite every mote is drawn from: a soft dot, white, so a per-mote
-/// colour can tint it through `BlendMode.modulate`.
-///
-/// Sized to the screen so the largest mote draws it about 1:1 — a 16px
-/// sprite squeezed to two logical pixels through a bilinear filter flickers
-/// with sub-pixel phase; one that is nearly the right size does not.
-class _Sprite {
-  static final Map<int, ui.Image?> _cache = {};
-
-  static int pxFor(double dpr) => (2.8 * dpr).round().clamp(6, 16);
-
-  /// Null when the platform could not rasterise one, in which case the
-  /// painter falls back to points.
-  static ui.Image? forDpr(double dpr) {
-    final px = pxFor(dpr);
-    if (_cache.containsKey(px)) return _cache[px];
-    ui.Image? image;
-    try {
-      final recorder = ui.PictureRecorder();
-      final canvas = Canvas(recorder);
-      final c = Offset(px / 2, px / 2);
-      canvas.drawCircle(
-        c,
-        px / 2,
-        Paint()
-          ..shader = ui.Gradient.radial(
-            c,
-            px / 2,
-            const [Color(0xFFFFFFFF), Color(0xF2FFFFFF), Color(0x00FFFFFF)],
-            const [0, 0.58, 1],
-          ),
-      );
-      image = recorder.endRecording().toImageSync(px, px);
-    } catch (_) {
-      image = null;
-    }
-    _cache[px] = image;
-    return image;
-  }
-}
-
 /// Draws the field — one `drawRawAtlas` for every mote of every line — or,
 /// under calm motion, the static stipple.
 class _DustPainter extends CustomPainter {
@@ -1596,8 +1529,6 @@ class _DustPainter extends CustomPainter {
 
   final VeilModel model;
   final Color ink;
-
-  static final Paint _atlasPaint = Paint()..filterQuality = FilterQuality.low;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1620,27 +1551,15 @@ class _DustPainter extends CustomPainter {
     if (field == null || field.alive == 0) return;
     final n = field.alive;
 
-    final sprite = _Sprite.forDpr(m.dpr);
-    if (sprite == null) {
-      canvas.drawRawPoints(
-        ui.PointMode.points,
-        Float32List.view(field.points.buffer, 0, n * 2),
-        Paint()
-          ..color = ink.withValues(alpha: 0.6)
-          ..strokeCap = StrokeCap.round
-          ..strokeWidth = 1.3,
-      );
-      return;
-    }
-
-    canvas.drawRawAtlas(
-      sprite,
-      Float32List.view(field.transforms.buffer, 0, n * 4),
-      Float32List.view(field.spriteRects.buffer, 0, n * 4),
-      Int32List.view(field.colors.buffer, 0, n),
-      BlendMode.modulate,
-      null,
-      _atlasPaint,
+    DustAtlas.draw(
+      canvas,
+      sprite: DustSprite.forDpr(m.dpr),
+      transforms: field.transforms,
+      spriteRects: field.spriteRects,
+      colors: field.colors,
+      alive: n,
+      points: field.points,
+      fallbackInk: ink.withValues(alpha: 0.6),
     );
   }
 
