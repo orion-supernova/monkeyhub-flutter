@@ -13987,6 +13987,12 @@ abstract class AppLocalizations {
   /// **'Starting…'**
   String get callScreenControlShareStarting;
 
+  /// The chip at the top of the screen while the presenter is drawing over their own shared screen; tapping it puts the pen down so the rest of the app is tappable again.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop drawing'**
+  String get screenShareStopDrawing;
+
   /// Label under the 1:1 call tray's pen button, shown while a screen is shared.
   ///
   /// In en, this message translates to:

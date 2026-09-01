@@ -51,7 +51,10 @@ class GlassTray extends StatelessWidget {
             child: Container(
               padding: padding,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.10),
+                // Dark glass, not light: the controls are white, and over a
+                // bright camera picture a white-tinted capsule left them
+                // unreadable. FaceTime's tray is dark for the same reason.
+                color: Colors.black.withValues(alpha: 0.45),
                 borderRadius: BorderRadius.circular(30),
                 border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
               ),

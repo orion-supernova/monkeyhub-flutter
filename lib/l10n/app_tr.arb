@@ -2306,6 +2306,7 @@
   "callScreenControlShare": "Paylaş",
   "callScreenControlStopShare": "Durdur",
   "callScreenControlShareStarting": "Başlıyor…",
+  "screenShareStopDrawing": "Çizimi bitir",
   "callScreenControlDraw": "Çiz",
   "callScreenControlMinimize": "Gizle",
   "inCallPillOngoingCall": "Arama sürüyor",

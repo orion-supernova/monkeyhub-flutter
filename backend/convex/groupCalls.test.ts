@@ -530,3 +530,52 @@ describe("a group invite says who, and where", () => {
     expect(roster).toHaveProperty("roomAvatarStorageId", null);
   });
 });
+
+describe("signals are addressed to a device", () => {
+  test("a device-targeted signal is left out for every other device of the user",
+    async () => {
+      const t = convexTest(schema);
+      const { starter, alice, roomId } = await roomOfThree(t);
+      const groupCallId = await startCall(t, starter, roomId);
+      await t.mutation(api.groupCalls.join, {
+        sessionToken: alice.token,
+        userId: alice.userId as any,
+        groupCallId,
+        deviceId: "alice-phone",
+      });
+      await t.mutation(api.groupCalls.sendSignal, {
+        sessionToken: starter.token,
+        groupCallId,
+        fromUserId: starter.userId as any,
+        toUserId: alice.userId as any,
+        kind: "state",
+        payload: "{}",
+        targetDeviceId: "alice-phone",
+      });
+      await t.mutation(api.groupCalls.sendSignal, {
+        sessionToken: starter.token,
+        groupCallId,
+        fromUserId: starter.userId as any,
+        toUserId: alice.userId as any,
+        kind: "ice-batch",
+        payload: "{}",
+      });
+      const phone: any[] = await t.query(api.groupCalls.signalsForUser, {
+        sessionToken: alice.token,
+        userId: alice.userId as any,
+        deviceId: "alice-phone",
+      });
+      const laptop: any[] = await t.query(api.groupCalls.signalsForUser, {
+        sessionToken: alice.token,
+        userId: alice.userId as any,
+        deviceId: "alice-laptop",
+      });
+      const legacy: any[] = await t.query(api.groupCalls.signalsForUser, {
+        sessionToken: alice.token,
+        userId: alice.userId as any,
+      });
+      expect(phone.map((s) => s.kind)).toEqual(["state", "ice-batch"]);
+      expect(laptop.map((s) => s.kind)).toEqual(["ice-batch"]);
+      expect(legacy.map((s) => s.kind)).toEqual(["state", "ice-batch"]);
+    });
+});

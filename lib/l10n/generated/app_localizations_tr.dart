@@ -8211,6 +8211,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get callScreenControlShareStarting => 'Başlıyor…';
 
   @override
+  String get screenShareStopDrawing => 'Çizimi bitir';
+
+  @override
   String get callScreenControlDraw => 'Çiz';
 
   @override

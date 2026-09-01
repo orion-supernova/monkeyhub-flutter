@@ -313,6 +313,16 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
     setState(() => _controlsVisible = !_controlsVisible);
   }
 
+  /// A flick down puts the chrome away and a flick up brings it back — the
+  /// gesture people reach for on a full-screen picture, beside the tap.
+  void _onVerticalSwipe(DragEndDetails d) {
+    final v = d.primaryVelocity ?? 0;
+    if (v.abs() < 300) return;
+    final show = v < 0;
+    if (!mounted || show == _controlsVisible) return;
+    setState(() => _controlsVisible = show);
+  }
+
   void _hide() {
     final nav = Navigator.of(context);
     if (nav.canPop()) nav.pop();
@@ -442,6 +452,8 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
         body: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: layout == _Layout.voice ? null : _toggleControls,
+          onVerticalDragEnd:
+              layout == _Layout.voice ? null : _onVerticalSwipe,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -1086,11 +1098,14 @@ class _ShareStage extends StatelessWidget {
                             ],
                           ),
                         ),
-                      Positioned(
-                        left: 10,
-                        top: 10,
-                        child: _CaptionPill(text: caption, theme: theme),
-                      ),
+                      // The placeholder already carries the caption when
+                      // there is no picture to put it over.
+                      if (screenRenderer != null)
+                        Positioned(
+                          left: 10,
+                          top: 10,
+                          child: _CaptionPill(text: caption, theme: theme),
+                        ),
                     ],
                   ),
                 ),

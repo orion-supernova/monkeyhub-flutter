@@ -2306,6 +2306,7 @@
   "callScreenControlShare": "共享",
   "callScreenControlStopShare": "停止",
   "callScreenControlShareStarting": "启动中…",
+  "screenShareStopDrawing": "停止绘制",
   "callScreenControlDraw": "绘制",
   "callScreenControlMinimize": "隐藏",
   "inCallPillOngoingCall": "通话进行中",

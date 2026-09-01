@@ -225,6 +225,16 @@ class _CallScreenState extends State<CallScreen> {
     setState(() => _controlsVisible = !_controlsVisible);
   }
 
+  /// A flick down puts the chrome away and a flick up brings it back — the
+  /// gesture people reach for on a full-screen picture, beside the tap.
+  void _onVerticalSwipe(DragEndDetails d) {
+    final v = d.primaryVelocity ?? 0;
+    if (v.abs() < 300) return;
+    final show = v < 0;
+    if (!mounted || show == _controlsVisible) return;
+    setState(() => _controlsVisible = show);
+  }
+
   void _onChanged() {
     if (!mounted) return;
     final s = widget.service.session;
@@ -515,6 +525,7 @@ class _CallScreenState extends State<CallScreen> {
         body: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: _toggleControls,
+          onVerticalDragEnd: _onVerticalSwipe,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -530,7 +541,10 @@ class _CallScreenState extends State<CallScreen> {
                   localRenderer: _localScreenRenderer,
                   ink: myInk,
                   theme: theme,
-                  bottomInset: trayInset,
+                  // Under the name and status block at the top; the tray
+                  // is where it used to sit, and with two rows of controls
+                  // that put the caption in the middle of the picture.
+                  topInset: MediaQuery.paddingOf(context).top + 76,
                 )
               else if (remoteVisible)
                 RTCVideoView(
@@ -800,7 +814,7 @@ class _ShareStage extends StatelessWidget {
     required this.localRenderer,
     required this.ink,
     required this.theme,
-    required this.bottomInset,
+    required this.topInset,
   });
 
   final CallService service;
@@ -810,8 +824,8 @@ class _ShareStage extends StatelessWidget {
   final Color ink;
   final AppTheme theme;
 
-  /// What the tray covers; the caption pill sits just above it.
-  final double bottomInset;
+  /// Where the caption pill sits — below the top overlay.
+  final double topInset;
 
   @override
   Widget build(BuildContext context) {
@@ -858,27 +872,32 @@ class _ShareStage extends StatelessWidget {
       children: [
         const ColoredBox(color: Color(0xFF0E0F12)),
         surface,
-        Positioned(
-          left: 16,
-          bottom: bottomInset + 12,
-          child: IgnorePointer(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.55),
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-              ),
-              child: Text(
-                caption,
-                style: theme.monoTiny.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
+        // The presenter's own placeholder already says so; only the viewer
+        // needs telling whose screen this is.
+        if (!mine || !isMobileCallPlatform)
+          Positioned(
+            left: 16,
+            top: topInset,
+            child: IgnorePointer(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.55),
+                  borderRadius: BorderRadius.circular(999),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                ),
+                child: Text(
+                  caption,
+                  style: theme.monoTiny.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
           ),
-        ),
       ],
     );
   }

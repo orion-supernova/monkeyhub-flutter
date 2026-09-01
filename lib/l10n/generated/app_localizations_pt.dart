@@ -8340,6 +8340,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get callScreenControlShareStarting => 'Iniciando…';
 
   @override
+  String get screenShareStopDrawing => 'Parar de desenhar';
+
+  @override
   String get callScreenControlDraw => 'Desenhar';
 
   @override
@@ -16729,6 +16732,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get callScreenControlShareStarting => 'Iniciando…';
+
+  @override
+  String get screenShareStopDrawing => 'Parar de desenhar';
 
   @override
   String get callScreenControlDraw => 'Desenhar';

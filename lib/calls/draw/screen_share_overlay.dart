@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/generated/app_localizations.dart';
 import '../../theme/theme_scope.dart';
 import '../call_service.dart';
 import '../group_call_service.dart';
@@ -16,6 +17,12 @@ import 'draw_model.dart';
 /// root stack) and maps the shared frame's unit square onto the window.
 /// Inert to touch unless the pen is armed, so the app underneath keeps
 /// working while the strokes land on it.
+///
+/// Armed, it takes every touch — that is what makes it a pen — so it has to
+/// carry its own way out: a "stop drawing" chip at the top, above the
+/// canvas, which is the one thing that stays tappable. Without it the
+/// presenter could draw and do nothing else: not mute, not stop the share,
+/// not put the pen down.
 ///
 /// On a desktop share of the app's own window the same mapping holds; a
 /// share of another window or a whole display shows nothing here — the
@@ -38,26 +45,80 @@ class ScreenShareOverlay extends StatelessWidget {
       ]),
       builder: (context, _) {
         final DrawModel model;
-        final bool armed;
+        final ValueNotifier<bool> armedNotifier;
         if (call.localScreenSharing) {
           model = call.drawModel;
-          armed = call.drawArmed.value;
+          armedNotifier = call.drawArmed;
         } else if (group != null && group.localScreenSharing) {
           model = group.drawModel;
-          armed = group.drawArmed.value;
+          armedNotifier = group.drawArmed;
         } else {
           return const SizedBox.shrink();
         }
+        final armed = armedNotifier.value;
         final theme = ThemeScope.of(context);
         final me = call.userId ?? group?.userId ?? 'me';
         return Positioned.fill(
-          child: DrawCanvas(
-            model: model,
-            armed: armed,
-            inkColor: drawColorFor(me, theme),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: DrawCanvas(
+                  model: model,
+                  armed: armed,
+                  inkColor: drawColorFor(me, theme),
+                ),
+              ),
+              if (armed)
+                Positioned(
+                  top: MediaQuery.paddingOf(context).top + 10,
+                  right: 12,
+                  child: _StopDrawingChip(
+                    onTap: () => armedNotifier.value = false,
+                  ),
+                ),
+            ],
           ),
         );
       },
+    );
+  }
+}
+
+class _StopDrawingChip extends StatelessWidget {
+  const _StopDrawingChip({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = ThemeScope.of(context);
+    return Material(
+      color: Colors.black.withValues(alpha: 0.72),
+      shape: StadiumBorder(
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.18)),
+      ),
+      child: InkWell(
+        customBorder: const StadiumBorder(),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 14, 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.draw_outlined, size: 16, color: Colors.white),
+              const SizedBox(width: 8),
+              Text(
+                l10n.screenShareStopDrawing,
+                style: theme.monoTiny.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

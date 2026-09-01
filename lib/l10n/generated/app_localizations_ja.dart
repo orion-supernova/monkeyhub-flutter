@@ -7925,6 +7925,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get callScreenControlShareStarting => '開始中…';
 
   @override
+  String get screenShareStopDrawing => '描画を終了';
+
+  @override
   String get callScreenControlDraw => '描く';
 
   @override

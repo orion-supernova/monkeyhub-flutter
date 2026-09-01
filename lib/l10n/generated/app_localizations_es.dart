@@ -8332,6 +8332,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get callScreenControlShareStarting => 'Iniciando…';
 
   @override
+  String get screenShareStopDrawing => 'Dejar de dibujar';
+
+  @override
   String get callScreenControlDraw => 'Dibujar';
 
   @override

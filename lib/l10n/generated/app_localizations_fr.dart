@@ -8379,6 +8379,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get callScreenControlShareStarting => 'Démarrage…';
 
   @override
+  String get screenShareStopDrawing => 'Arrêter de dessiner';
+
+  @override
   String get callScreenControlDraw => 'Dessiner';
 
   @override

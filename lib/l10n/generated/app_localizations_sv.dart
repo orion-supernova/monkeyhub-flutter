@@ -8270,6 +8270,9 @@ class AppLocalizationsSv extends AppLocalizations {
   String get callScreenControlShareStarting => 'Startar…';
 
   @override
+  String get screenShareStopDrawing => 'Sluta rita';
+
+  @override
   String get callScreenControlDraw => 'Rita';
 
   @override

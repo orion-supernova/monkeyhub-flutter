@@ -8254,6 +8254,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get callScreenControlShareStarting => 'शुरू हो रहा…';
 
   @override
+  String get screenShareStopDrawing => 'ड्रॉइंग बंद करें';
+
+  @override
   String get callScreenControlDraw => 'बनाएँ';
 
   @override

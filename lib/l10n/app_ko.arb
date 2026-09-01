@@ -2306,6 +2306,7 @@
   "callScreenControlShare": "공유",
   "callScreenControlStopShare": "중지",
   "callScreenControlShareStarting": "시작 중…",
+  "screenShareStopDrawing": "그리기 종료",
   "callScreenControlDraw": "그리기",
   "callScreenControlMinimize": "숨기기",
   "inCallPillOngoingCall": "통화 중",

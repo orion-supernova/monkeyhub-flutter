@@ -8354,6 +8354,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get callScreenControlShareStarting => 'جارٍ البدء…';
 
   @override
+  String get screenShareStopDrawing => 'إيقاف الرسم';
+
+  @override
   String get callScreenControlDraw => 'رسم';
 
   @override

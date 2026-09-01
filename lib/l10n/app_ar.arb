@@ -2306,6 +2306,7 @@
   "callScreenControlShare": "مشاركة",
   "callScreenControlStopShare": "إيقاف",
   "callScreenControlShareStarting": "جارٍ البدء…",
+  "screenShareStopDrawing": "إيقاف الرسم",
   "callScreenControlDraw": "رسم",
   "callScreenControlMinimize": "إخفاء",
   "inCallPillOngoingCall": "مكالمة جارية",

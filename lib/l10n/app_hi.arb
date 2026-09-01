@@ -2306,6 +2306,7 @@
   "callScreenControlShare": "साझा करें",
   "callScreenControlStopShare": "रोकें",
   "callScreenControlShareStarting": "शुरू हो रहा…",
+  "screenShareStopDrawing": "ड्रॉइंग बंद करें",
   "callScreenControlDraw": "बनाएँ",
   "callScreenControlMinimize": "छिपाएँ",
   "inCallPillOngoingCall": "कॉल जारी है",

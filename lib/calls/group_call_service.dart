@@ -81,6 +81,16 @@ class GroupPeer {
   MediaStream? screenStream;
   int screenStreamTick = 0;
 
+  /// The device this participant is in the call with, from the roster —
+  /// what our signals to them are addressed to (`targetDeviceId`), so a
+  /// sibling device of theirs never receives, drops and consumes them.
+  String? deviceId;
+
+  /// Armed when this peer's `state` says it shares a screen and no screen
+  /// stream has landed; asks for another round when it fires. See
+  /// [GroupCallService._armScreenWatchdog].
+  Timer? screenWatchdog;
+
   /// Every stream `onTrack` has ever delivered on this link, by id — the
   /// pool [remoteStream] and [screenStream] are picked from whenever the
   /// peer's `state` names its streams.
@@ -394,6 +404,7 @@ class GroupCallService extends ChangeNotifier {
     unawaited(api
         .subscribeSignals(
           userId: me,
+          deviceId: _deviceId,
           onSignals: _onSignals,
           onError: (e) => debugPrint('GroupCallService signals error: $e'),
         )
@@ -805,7 +816,7 @@ class GroupCallService extends ChangeNotifier {
           userId: entry.key,
           name: entry.value['name']?.toString() ?? 'Someone',
           avatarStorageId: entry.value['avatarStorageId'] as String?,
-        );
+        )..deviceId = entry.value['deviceId'] as String?;
         _peers[entry.key] = peer;
         unawaited(_ensureLink(peer));
       } else {
@@ -813,6 +824,8 @@ class GroupCallService extends ChangeNotifier {
         existing.avatarStorageId =
             (entry.value['avatarStorageId'] as String?) ??
                 existing.avatarStorageId;
+        existing.deviceId =
+            (entry.value['deviceId'] as String?) ?? existing.deviceId;
       }
     }
     // Re-cap encoders for the new mesh size.
@@ -906,6 +919,9 @@ class GroupCallService extends ChangeNotifier {
 
     pc.onTrack = (event) {
       if (gen != peer.generation) return;
+      debugPrint('GroupCallService.onTrack ${peer.userId}: '
+          '${event.track.kind} streams='
+          '${event.streams.map((s) => s.id).toList()}');
       for (final s in event.streams) {
         peer.streamsById[s.id] = s;
       }
@@ -1070,6 +1086,9 @@ class GroupCallService extends ChangeNotifier {
         kind: kind,
         payload: jsonEncode(payload),
         fromDeviceId: _deviceId,
+        // The device the roster says they are in the call with. Their
+        // other devices then never see this row — see `signalsForUser`.
+        targetDeviceId: peer.deviceId,
       );
     } catch (e) {
       debugPrint('GroupCallService._sendTo($kind): $e');
@@ -1109,9 +1128,16 @@ class GroupCallService extends ChangeNotifier {
   // ───────── inbound signaling (FIFO drain) ─────────
 
   void _onSignals(List<Map<String, dynamic>> signals) {
+    final mine = _deviceId;
     for (final sig in signals) {
       final id = sig['_id']?.toString();
       if (id == null || _dispatched.contains(id)) continue;
+      // Addressed to another of this user's devices: not ours to act on,
+      // and above all not ours to consume. The server leaves these out when
+      // it knows our deviceId; this is the same rule for a server that does
+      // not yet.
+      final target = sig['targetDeviceId'] as String?;
+      if (target != null && mine != null && target != mine) continue;
       _dispatched.add(id);
       while (_dispatched.length > 300) {
         _dispatched.remove(_dispatched.first);
@@ -1132,13 +1158,23 @@ class GroupCallService extends ChangeNotifier {
         while (_queue.isNotEmpty) {
           final sig = _queue.removeAt(0);
           final id = sig['_id']?.toString();
+          var handled = true;
           try {
-            await _handleSignal(sig);
+            handled = await _handleSignal(sig);
           } catch (e, st) {
             debugPrint('GroupCallService dispatch failed: $e\n$st');
           }
-          if (id != null) ids.add(id);
+          if (id == null) continue;
+          if (handled) {
+            ids.add(id);
+          } else {
+            // Not ours to consume: a call another device of ours is in, or
+            // a peer the roster has not delivered to us yet. Forgotten, so
+            // the next delivery looks at it again.
+            _dispatched.remove(id);
+          }
         }
+        if (ids.isEmpty) continue;
         try {
           await api.consumeSignals(signalIds: ids, userId: me);
         } catch (e) {
@@ -1150,17 +1186,22 @@ class GroupCallService extends ChangeNotifier {
     }
   }
 
-  Future<void> _handleSignal(Map<String, dynamic> sig) async {
+  /// Returns whether the signal was ours to act on. False leaves it
+  /// unconsumed for the device (or the moment) it belongs to.
+  Future<bool> _handleSignal(Map<String, dynamic> sig) async {
     final id = _groupCallId;
     final kind = sig['kind'] as String?;
     final from = sig['fromUserId']?.toString();
     final callId = sig['groupCallId']?.toString();
     final payload = (sig['payload'] as String?) ?? '{}';
-    if (kind == null || from == null || callId == null) return;
-    // Signals for a call we're not in are stale — consume-and-drop.
-    if (id == null || callId != id) return;
+    if (kind == null || from == null || callId == null) return true;
+    // A call we are not in. Not "stale": another device of ours may be in
+    // it, and consuming here would steal a round from it. Left alone — the
+    // call's end sweeps its rows.
+    if (id == null || callId != id) return false;
     final peer = _peers[from];
-    if (peer == null) return; // roster hasn't caught up; offerer will retry ICE restart path
+    // The roster has not delivered this peer yet; look again next time.
+    if (peer == null) return false;
     final parsed = jsonDecode(payload) as Map<String, dynamic>;
 
     switch (kind) {
@@ -1169,40 +1210,44 @@ class GroupCallService extends ChangeNotifier {
       case 'reoffer':
         // Only the designated offerer sends offers; as the answerer we may
         // need to build our side of the link first.
-        if (_iOffer(from)) return; // never valid — drop
+        if (_iOffer(from)) return true; // never valid — drop
         await _applyRemoteOffer(peer, parsed, kind: kind);
         break;
       case 'answer':
       case 'restart-answer':
       case 'reanswer':
         final pc = peer.pc;
-        if (pc == null) return;
+        if (pc == null) return true;
         if (pc.signalingState !=
             RTCSignalingState.RTCSignalingStateHaveLocalOffer) {
-          return;
+          return true;
         }
         // A `reanswer` names the offer it answers; one for an offer an ICE
         // restart has since overtaken would be applied against the wrong
         // local description.
         if (kind == 'reanswer' &&
             !peer.negotiation.accepts((parsed['seq'] as num?)?.toInt())) {
-          return;
+          return true;
         }
         final sdp = parsed['sdp'] as String?;
         final type = parsed['type'] as String?;
-        if (sdp == null || type == null) return;
+        if (sdp == null || type == null) return true;
         await pc.setRemoteDescription(RTCSessionDescription(sdp, type));
         peer.remoteDescSet = true;
+        debugPrint('GroupCallService: $kind from $from applied'
+            '${kind == 'reanswer' ? ' (#${parsed['seq']})' : ''}');
         _drainPeerIce(peer);
         _finishNegotiation(peer);
         break;
       case 'renegotiate':
         // The answering side wants to send something new and cannot offer;
         // re-offer with room for it.
-        if (!_iOffer(from)) return;
+        if (!_iOffer(from)) return true;
         final wanted = (parsed['videoSlots'] as num?)?.toInt() ?? 0;
         peer.negotiation.wantedVideoSlots =
             math.max(peer.negotiation.wantedVideoSlots, wanted);
+        debugPrint('GroupCallService: $from asks for a round '
+            '(videoSlots=$wanted)');
         unawaited(_renegotiate(peer));
         break;
       case 'ice-batch':
@@ -1222,6 +1267,7 @@ class GroupCallService extends ChangeNotifier {
         // it did is sorted now, and a share that ended lets go of its
         // stream.
         _classifyPeerStreams(peer);
+        _armScreenWatchdog(peer);
         notifyListeners();
         break;
       case 'restart-request':
@@ -1231,6 +1277,7 @@ class GroupCallService extends ChangeNotifier {
         }
         break;
     }
+    return true;
   }
 
   /// Applies an offer from the designated offerer — the first one, an ICE
@@ -1253,6 +1300,8 @@ class GroupCallService extends ChangeNotifier {
       pc = peer.pc;
       if (pc == null) return;
     }
+    debugPrint('GroupCallService: $kind from ${peer.userId}'
+        '${kind == 'reoffer' ? ' #${parsed['seq']}' : ''}');
     await pc.setRemoteDescription(RTCSessionDescription(sdp, type));
     peer.remoteDescSet = true;
     _drainPeerIce(peer);
@@ -1289,8 +1338,15 @@ class GroupCallService extends ChangeNotifier {
     if (pc == null || !inCall || !_iOffer(peer.userId)) return;
     final neg = peer.negotiation;
     if (neg.inFlight) {
-      neg.dirty = true;
-      return;
+      if (!neg.stuck) {
+        neg.dirty = true;
+        return;
+      }
+      // See LinkNegotiation.stuck: a restart offer that failed after
+      // begin(), an answer lost on the wire — the round nobody will answer
+      // must not hold this one hostage.
+      debugPrint('GroupCallService: round ${neg.seq} to ${peer.userId} '
+          'never answered — starting a new one');
     }
     final gen = peer.generation;
     final seq = neg.begin();
@@ -1307,6 +1363,7 @@ class GroupCallService extends ChangeNotifier {
         'type': offer.type,
         'seq': seq,
       });
+      debugPrint('GroupCallService: reoffer #$seq → ${peer.userId}');
     } catch (e, st) {
       debugPrint('GroupCallService._renegotiate(${peer.userId}): $e\n$st');
       neg.inFlight = false;
@@ -1318,14 +1375,47 @@ class GroupCallService extends ChangeNotifier {
   }
 
   /// Answerer only: ask the offerer for a round with room for our slots.
-  Future<void> _requestRenegotiation(GroupPeer peer) => _sendTo(
-        peer,
-        'renegotiate',
-        {
-          'videoSlots': _activeVideoSlots,
-          'ts': DateTime.now().millisecondsSinceEpoch,
-        },
-      );
+  Future<void> _requestRenegotiation(GroupPeer peer) {
+    debugPrint('GroupCallService: asking ${peer.userId} for a round '
+        '(videoSlots=$_activeVideoSlots)');
+    return _sendTo(
+      peer,
+      'renegotiate',
+      {
+        'videoSlots': _activeVideoSlots,
+        'ts': DateTime.now().millisecondsSinceEpoch,
+      },
+    );
+  }
+
+  /// The peer says it is sharing and its screen has not landed. A round can
+  /// be lost — a signal eaten before this device saw it, an answer applied
+  /// against a stale description — and nothing else would ever ask again.
+  /// After [screenWatchdogDelay] with the state still saying "sharing" and
+  /// no stream, ask for one more round from whichever side of the link can
+  /// start one. Harmless when the stream is merely slow: the round carries
+  /// the same sections and the peer answers it the same way.
+  void _armScreenWatchdog(GroupPeer peer) {
+    peer.screenWatchdog?.cancel();
+    peer.screenWatchdog = null;
+    if (!peer.mediaState.screenSharing || peer.screenStream != null) return;
+    final gen = peer.generation;
+    peer.screenWatchdog = Timer(screenWatchdogDelay, () {
+      peer.screenWatchdog = null;
+      if (!inCall || gen != peer.generation || peer.pc == null) return;
+      if (!peer.mediaState.screenSharing || peer.screenStream != null) return;
+      debugPrint('GroupCallService: ${peer.userId} says it shares a screen '
+          'but none arrived — asking for another round');
+      if (_iOffer(peer.userId)) {
+        unawaited(_renegotiate(peer));
+      } else {
+        unawaited(_requestRenegotiation(peer));
+      }
+    });
+  }
+
+  @visibleForTesting
+  Duration screenWatchdogDelay = const Duration(seconds: 6);
 
   /// A slot of ours just became active: get it onto this link.
   Future<void> _activateSlots(GroupPeer peer) async {
@@ -1418,6 +1508,10 @@ class GroupCallService extends ChangeNotifier {
     var screenChanged = !identical(screen, peer.screenStream);
     peer.remoteStream = cam;
     peer.screenStream = screen;
+    if (screen != null) {
+      peer.screenWatchdog?.cancel();
+      peer.screenWatchdog = null;
+    }
     for (final s in arrived) {
       if (identical(s, screen)) {
         screenChanged = true;
@@ -1477,6 +1571,8 @@ class GroupCallService extends ChangeNotifier {
   void _disposePeerLink(GroupPeer peer, {bool keepIdentity = false}) {
     peer.generation++;
     peer.restartTimer?.cancel();
+    peer.screenWatchdog?.cancel();
+    peer.screenWatchdog = null;
     peer.iceFlushTimer?.cancel();
     peer.iceFlushTimer = null;
     peer.iceOut.clear();

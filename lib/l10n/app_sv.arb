@@ -2306,6 +2306,7 @@
   "callScreenControlShare": "Dela",
   "callScreenControlStopShare": "Stoppa",
   "callScreenControlShareStarting": "Startar…",
+  "screenShareStopDrawing": "Sluta rita",
   "callScreenControlDraw": "Rita",
   "callScreenControlMinimize": "Dölj",
   "inCallPillOngoingCall": "Samtal pågår",

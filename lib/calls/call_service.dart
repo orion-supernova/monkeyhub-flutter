@@ -1140,8 +1140,14 @@ class CallService extends ChangeNotifier {
     final me = _userId;
     if (pc == null || s == null || me == null || !s.isCaller) return;
     if (_negotiation.inFlight) {
-      _negotiation.dirty = true;
-      return;
+      if (!_negotiation.stuck) {
+        _negotiation.dirty = true;
+        return;
+      }
+      // See LinkNegotiation.stuck: a round nobody will answer must not
+      // hold this one hostage.
+      debugPrint('CallService: round ${_negotiation.seq} never answered — '
+          'starting a new one');
     }
     final gen = _pcGeneration;
     final seq = _negotiation.begin();

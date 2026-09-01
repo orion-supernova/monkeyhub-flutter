@@ -2306,6 +2306,7 @@
   "callScreenControlShare": "Partager",
   "callScreenControlStopShare": "Arrêter",
   "callScreenControlShareStarting": "Démarrage…",
+  "screenShareStopDrawing": "Arrêter de dessiner",
   "callScreenControlDraw": "Dessiner",
   "callScreenControlMinimize": "Masquer",
   "inCallPillOngoingCall": "Appel en cours",

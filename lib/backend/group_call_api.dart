@@ -144,12 +144,16 @@ class GroupCallApi {
 
   Future<Subscription> subscribeSignals({
     required String userId,
+    /// This device's id. A signal addressed to another of this user's
+    /// devices (`targetDeviceId`) is then left out server-side — see the
+    /// query — so it can neither be acted on nor consumed here.
+    String? deviceId,
     required void Function(List<Map<String, dynamic>> signals) onSignals,
     void Function(Object error)? onError,
   }) {
     return _cv.subscribe(
       'groupCalls:signalsForUser',
-      {'userId': userId},
+      {'userId': userId, if (deviceId != null) 'deviceId': deviceId},
       onData: (raw) {
         final list = (raw as List?) ?? const [];
         onSignals(list

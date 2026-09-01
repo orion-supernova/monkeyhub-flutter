@@ -7947,6 +7947,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get callScreenControlShareStarting => '시작 중…';
 
   @override
+  String get screenShareStopDrawing => '그리기 종료';
+
+  @override
   String get callScreenControlDraw => '그리기';
 
   @override

@@ -91,6 +91,20 @@ class LinkNegotiation {
   /// A slot changed while [inFlight]; run again when the answer lands.
   bool dirty = false;
 
+  /// When the round in flight began. An answer normally lands within a
+  /// second; a round older than [staleAfter] is one that will never be
+  /// answered — a restart offer that failed after [begin], an answer lost
+  /// on the wire — and holding every later round behind it starved the
+  /// link for good: no camera, no screen, ever again on that link.
+  DateTime? since;
+  static const Duration staleAfter = Duration(seconds: 8);
+
+  /// [inFlight], and for so long that nothing is coming.
+  bool get stuck =>
+      inFlight &&
+      since != null &&
+      DateTime.now().difference(since!) > staleAfter;
+
   /// Sequence of the last `reoffer` sent; a `reanswer` must echo it. An
   /// answer to a superseded offer — one an ICE restart overtook — is dropped
   /// on this rather than applied to the wrong local description.
@@ -104,6 +118,7 @@ class LinkNegotiation {
   int begin() {
     inFlight = true;
     dirty = false;
+    since = DateTime.now();
     return ++seq;
   }
 
@@ -115,6 +130,7 @@ class LinkNegotiation {
   /// The answer landed. Returns true when another round was queued.
   bool finish() {
     inFlight = false;
+    since = null;
     final again = dirty;
     dirty = false;
     return again;
@@ -124,5 +140,6 @@ class LinkNegotiation {
   void reset() {
     inFlight = false;
     dirty = false;
+    since = null;
   }
 }

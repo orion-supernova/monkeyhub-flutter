@@ -9492,6 +9492,10 @@
   "@callScreenControlShareStarting": {
       "description": "Label under the 1:1 call tray's share-screen button while the share is being set up (the iOS broadcast picker, the countdown) and not yet sending."
   },
+  "screenShareStopDrawing": "Stop drawing",
+  "@screenShareStopDrawing": {
+    "description": "The chip at the top of the screen while the presenter is drawing over their own shared screen; tapping it puts the pen down so the rest of the app is tappable again."
+  },
   "callScreenControlDraw": "Draw",
   "@callScreenControlDraw": {
       "description": "Label under the 1:1 call tray's pen button, shown while a screen is shared."

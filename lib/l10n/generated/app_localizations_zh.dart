@@ -7834,6 +7834,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get callScreenControlShareStarting => '启动中…';
 
   @override
+  String get screenShareStopDrawing => '停止绘制';
+
+  @override
   String get callScreenControlDraw => '绘制';
 
   @override
