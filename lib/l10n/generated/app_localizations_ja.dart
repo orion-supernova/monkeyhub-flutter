@@ -7896,6 +7896,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get groupCallScreenStopShareLabel => '共有を停止';
 
   @override
+  String get groupCallScreenShareStartingLabel => '開始中…';
+
+  @override
   String get groupCallScreenRingingLabel => '呼び出し中…';
 
   @override
@@ -7917,6 +7920,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get callScreenControlStopShare => '停止';
+
+  @override
+  String get callScreenControlShareStarting => '開始中…';
 
   @override
   String get callScreenControlDraw => '描く';

@@ -8241,6 +8241,9 @@ class AppLocalizationsSv extends AppLocalizations {
   String get groupCallScreenStopShareLabel => 'sluta dela';
 
   @override
+  String get groupCallScreenShareStartingLabel => 'startar…';
+
+  @override
   String get groupCallScreenRingingLabel => 'Ringer…';
 
   @override
@@ -8262,6 +8265,9 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get callScreenControlStopShare => 'Stoppa';
+
+  @override
+  String get callScreenControlShareStarting => 'Startar…';
 
   @override
   String get callScreenControlDraw => 'Rita';

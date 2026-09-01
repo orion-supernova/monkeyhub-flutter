@@ -7918,6 +7918,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get groupCallScreenStopShareLabel => '공유 중지';
 
   @override
+  String get groupCallScreenShareStartingLabel => '시작 중…';
+
+  @override
   String get groupCallScreenRingingLabel => '연결 중…';
 
   @override
@@ -7939,6 +7942,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get callScreenControlStopShare => '중지';
+
+  @override
+  String get callScreenControlShareStarting => '시작 중…';
 
   @override
   String get callScreenControlDraw => '그리기';

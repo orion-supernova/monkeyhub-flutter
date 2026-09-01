@@ -182,6 +182,10 @@ class GroupCallService extends ChangeNotifier {
   // ── live call state ──
   String? _groupCallId;
   String? get groupCallId => _groupCallId;
+
+  /// The call a `joinCall` is in flight for — the window in which the invite
+  /// leaving the subscription must not be read as the call going away.
+  String? get joiningGroupCallId => _joiningGroupCallId;
   String? _roomId;
   String? get roomId => _roomId;
   CallMediaKind _mediaKind = CallMediaKind.audio;
@@ -229,6 +233,13 @@ class GroupCallService extends ChangeNotifier {
   MediaStream? get screenStream => _screenStream;
   int localScreenStreamTick = 0;
   bool localScreenSharing = false;
+
+  /// True from the moment a share was asked for until the platform is
+  /// actually sending it — on iOS, until the broadcast the system picker
+  /// offered has started. The tray shows it as "Starting…" with the control
+  /// disabled; a share that never starts is rolled back and this goes false
+  /// again. See [startScreenShare].
+  bool screenSharePending = false;
 
   /// When this device joined the call — what the call screen's timer counts
   /// from.
@@ -613,6 +624,9 @@ class GroupCallService extends ChangeNotifier {
     drawArmed.value = false;
     final ss = _screenStream;
     _screenStream = null;
+    // A share still waiting on its broadcast returns false from that wait
+    // and disposes what it captured; nothing else holds the capture.
+    ScreenShare.cancelStartWait();
     if (localScreenSharing) {
       localScreenSharing = false;
       ScreenShare.onPlatformStop = null;
@@ -701,6 +715,20 @@ class GroupCallService extends ChangeNotifier {
   void _onInviteGone(String groupCallId) {
     if (groupCallId == _groupCallId || groupCallId == _joiningGroupCallId) {
       return;
+    }
+    _endNativeCard(groupCallId, ack: true);
+  }
+
+  /// A native card for [groupCallId] that has no invite behind it any more
+  /// — found by `NativeCallHandler.replayColdStartCalls` on a resume, after
+  /// the invite was answered elsewhere, declined, ended or rang out while
+  /// this process was not listening. Ended like [_onInviteGone] ends one,
+  /// ack included; never a decline, because nobody declined anything.
+  Future<void> dismissStaleCard(String groupCallId) async {
+    if (_ringingInviteId == groupCallId) _ringingInviteId = null;
+    if (pendingInvite?['groupCallId']?.toString() == groupCallId) {
+      pendingInvite = null;
+      notifyListeners();
     }
     _endNativeCard(groupCallId, ack: true);
   }
@@ -1608,9 +1636,12 @@ class GroupCallService extends ChangeNotifier {
     ({String title, String body, String stop})? notification,
   }) async {
     if (!inCall || localScreenSharing || presentingPeer != null) return;
+    if (screenSharePending) return;
     final id = _groupCallId;
     final me = _userId;
     if (id == null || me == null) return;
+    screenSharePending = true;
+    notifyListeners();
     try {
       await ScreenShare.prepare(
         notificationTitle: notification?.title ?? 'Sharing your screen',
@@ -1618,6 +1649,23 @@ class GroupCallService extends ChangeNotifier {
         notificationStop: notification?.stop ?? 'Stop',
       );
       final captured = await getDisplayMediaFn(source: source);
+      // iOS: the picker is up and nothing is captured yet. Wait for the
+      // broadcast to actually start before anyone hears about it — a share
+      // announced now would put every peer on a black stage while the user
+      // reads a countdown, and leave them there for good if the sheet was
+      // dismissed instead. See [ScreenShare.needsStartHandshake].
+      if (ScreenShare.needsStartHandshake) {
+        final started = await ScreenShare.awaitPlatformStart(
+          timeout: startHandshakeTimeout,
+        );
+        if (!started || _groupCallId != id) {
+          debugPrint('GroupCallService.startScreenShare: the broadcast never '
+              'started — rolled back');
+          await stopAndDisposeStream(captured);
+          await ScreenShare.release();
+          return;
+        }
+      }
       final tracks = captured.getVideoTracks();
       if (tracks.isEmpty || _groupCallId != id) {
         await stopAndDisposeStream(captured);
@@ -1656,8 +1704,18 @@ class GroupCallService extends ChangeNotifier {
       debugPrint('GroupCallService.startScreenShare: $e\n$st');
       await ScreenShare.release();
       rethrow;
+    } finally {
+      screenSharePending = false;
+      if (!_disposed) notifyListeners();
     }
   }
+
+  /// How long a share may sit between the picker appearing and the platform
+  /// saying it is on the air (iOS only — see [ScreenShare.needsStartHandshake]).
+  /// Long enough to read the sheet and sit through the countdown; a dismissed
+  /// sheet is only ever known by this running out.
+  @visibleForTesting
+  Duration startHandshakeTimeout = const Duration(seconds: 45);
 
   /// End our share. The slots keep their senders, empty, for the next one.
   Future<void> stopScreenShare() async {

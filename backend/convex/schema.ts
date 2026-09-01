@@ -199,6 +199,10 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_device", ["userId", "deviceId"])
+    // Account-change eviction: one physical device, one account. `upsertDevice`
+    // deletes every OTHER user's row for the deviceId it is registering, so a
+    // phone that signs in as B after A stops carrying A's push credentials.
+    .index("by_device", ["deviceId"])
     // Token-reassignment dedupe. A push token is unique to one device-app
     // pair at any moment, so a token appearing under a second (userId,
     // deviceId) means it moved and the old row must stop being pushed to.

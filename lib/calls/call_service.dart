@@ -292,6 +292,12 @@ class CallService extends ChangeNotifier {
   bool _localScreenSharing = false;
   bool get localScreenSharing => _localScreenSharing;
 
+  /// True from the moment a share was asked for until the platform is
+  /// actually sending it — on iOS, until the broadcast the system picker
+  /// offered has started. See the group service's field of the same name.
+  bool _screenSharePending = false;
+  bool get screenSharePending => _screenSharePending;
+
   /// The peer's screen, while it shares one — told from its camera by the
   /// ids its `state` names (see [PeerMediaState]); until that state lands a
   /// stream waits in [_remoteStreamsById].
@@ -1017,6 +1023,9 @@ class CallService extends ChangeNotifier {
     final me = _userId;
     if (s == null || me == null || !inCall) return;
     if (_localScreenSharing || s.peerState.screenSharing) return;
+    if (_screenSharePending) return;
+    _screenSharePending = true;
+    notifyListeners();
     try {
       await ScreenShare.prepare(
         notificationTitle: notification?.title ?? 'Sharing your screen',
@@ -1024,6 +1033,21 @@ class CallService extends ChangeNotifier {
         notificationStop: notification?.stop ?? 'Stop',
       );
       final captured = await getDisplayMediaFn(source: source);
+      // iOS: the picker is up and nothing is captured yet — wait for the
+      // broadcast itself before the peer hears about it. Same reasoning as
+      // GroupCallService.startScreenShare.
+      if (ScreenShare.needsStartHandshake) {
+        final started = await ScreenShare.awaitPlatformStart(
+          timeout: startHandshakeTimeout,
+        );
+        if (!started || _session?.callId != s.callId) {
+          debugPrint('CallService.startScreenShare: the broadcast never '
+              'started — rolled back');
+          await stopAndDisposeStream(captured);
+          await ScreenShare.release();
+          return;
+        }
+      }
       final tracks = captured.getVideoTracks();
       if (tracks.isEmpty || _session?.callId != s.callId) {
         await stopAndDisposeStream(captured);
@@ -1060,8 +1084,15 @@ class CallService extends ChangeNotifier {
       debugPrint('CallService.startScreenShare: $e\n$st');
       await ScreenShare.release();
       rethrow;
+    } finally {
+      _screenSharePending = false;
+      notifyListeners();
     }
   }
+
+  /// See `GroupCallService.startHandshakeTimeout`.
+  @visibleForTesting
+  Duration startHandshakeTimeout = const Duration(seconds: 45);
 
   /// End our share. The slot keeps its sender, empty, for the next one.
   Future<void> stopScreenShare() async {
@@ -2940,6 +2971,9 @@ class CallService extends ChangeNotifier {
     _localStream = null;
     final ss = _screenStream;
     _screenStream = null;
+    // A share still waiting on its broadcast returns false from that wait
+    // and disposes what it captured; nothing else holds the capture.
+    ScreenShare.cancelStartWait();
     if (_localScreenSharing) {
       _localScreenSharing = false;
       ScreenShare.onPlatformStop = null;

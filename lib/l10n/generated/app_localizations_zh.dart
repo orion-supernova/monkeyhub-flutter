@@ -7805,6 +7805,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get groupCallScreenStopShareLabel => '停止共享';
 
   @override
+  String get groupCallScreenShareStartingLabel => '启动中…';
+
+  @override
   String get groupCallScreenRingingLabel => '呼叫中…';
 
   @override
@@ -7826,6 +7829,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get callScreenControlStopShare => '停止';
+
+  @override
+  String get callScreenControlShareStarting => '启动中…';
 
   @override
   String get callScreenControlDraw => '绘制';

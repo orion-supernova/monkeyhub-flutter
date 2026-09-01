@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/foundation.dart';
@@ -59,6 +60,237 @@ class GlassTray extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// One control in the tray, in priority order — the first ones are the
+/// ones that keep the first row when the tray has to wrap.
+class CallTrayAction {
+  const CallTrayAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.active = false,
+    this.enabled = true,
+    this.key,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool active;
+  final bool enabled;
+
+  /// Handed to the button, so a test can find one control among many.
+  final Key? key;
+}
+
+/// The control tray both call screens share: a glass capsule of round
+/// controls and, standing alone beneath it, the red end-call hero.
+///
+/// The old tray was one `Row` of `Expanded` buttons — eight of them on a
+/// phone left each ~42 pt wide with its label cut short. This one lays the
+/// controls out the way FaceTime, Meet and Teams do: every control is the
+/// same fixed size, as many as fit stand in a row, and the rest wrap onto
+/// a second, quieter row. [actions] is in priority order, so the everyday
+/// toggles (mute, camera, speaker, share) keep the first row and the
+/// occasional ones (flip, options, hide) are the ones that move down. Rows
+/// are balanced — five controls on a phone that fits five stay on one row;
+/// seven become four and three, never six and one.
+///
+/// On a wide window the capsule grows until every control is on one row,
+/// so a desktop keeps the single-line tray it always had.
+class CallTray extends StatelessWidget {
+  const CallTray({
+    super.key,
+    required this.actions,
+    required this.endIcon,
+    required this.endLabel,
+    required this.onEnd,
+    required this.endColor,
+    this.maxWidth = 480,
+  });
+
+  final List<CallTrayAction> actions;
+  final IconData endIcon;
+  final String endLabel;
+  final VoidCallback onEnd;
+  final Color endColor;
+
+  /// The capsule's width on a wide window — unless one row of every
+  /// control needs more, in which case it gets that.
+  final double maxWidth;
+
+  /// A control's diameter, and the narrower one for a capsule with less
+  /// than [compactBelow] to lay out in (a 320 pt phone).
+  static const double diameter = 56;
+  static const double compactDiameter = 48;
+  static const double compactBelow = 300;
+
+  /// Between two controls in a row, and between two rows.
+  static const double gap = 12;
+  static const double rowGap = 12;
+
+  static const EdgeInsets capsulePadding =
+      EdgeInsets.symmetric(horizontal: 12, vertical: 14);
+
+  /// The capsule's hairline border — GlassTray draws it inside the box, so
+  /// it comes out of the room the controls have.
+  static const double capsuleBorder = 1;
+
+  /// What the capsule takes off its width before the controls get any.
+  static double get capsuleChrome =>
+      capsulePadding.horizontal + 2 * capsuleBorder;
+
+  /// Between the capsule and the end-call hero; the hero's own size; the
+  /// clearance under it so it never sits on the home indicator.
+  static const double heroGap = 16;
+  static const double heroDiameter = 72;
+  static const double bottomPadding = 10;
+
+  /// The label under a control: a 6 pt gap and one 11 pt line.
+  static const double labelBlock = 6 + 16;
+
+  static double diameterFor(double innerWidth) =>
+      innerWidth < compactBelow ? compactDiameter : diameter;
+
+  /// The width one row of [count] controls of size [d] needs.
+  static double oneRowWidth(int count, double d) =>
+      count * d + math.max(0, count - 1) * gap;
+
+  /// The capsule's width given [available] points of screen: [maxWidth],
+  /// or wider when that is what one row of every control takes.
+  static double capsuleWidth(int count, double available, double maxWidth) {
+    final oneRow = oneRowWidth(count, diameter) + capsuleChrome;
+    return math.min(available, math.max(maxWidth, oneRow));
+  }
+
+  /// How many of [count] controls stand in a row [innerWidth] wide: as many
+  /// as fit at their fixed size, never fewer than three.
+  static int perRow(int count, double innerWidth) {
+    if (count <= 0) return 1;
+    final d = diameterFor(innerWidth);
+    final fit = ((innerWidth + gap) / (d + gap)).floor();
+    return fit.clamp(math.min(3, count), count);
+  }
+
+  /// The rows [items] fall into: no more than [perRow] each, balanced so
+  /// the last row is never a lone control, the first row taking the first
+  /// — highest-priority — items.
+  static List<List<T>> rowsFor<T>(List<T> items, int perRow) {
+    if (items.isEmpty) return const [];
+    final rows = (items.length / perRow).ceil();
+    final per = (items.length / rows).ceil();
+    return [
+      for (var i = 0; i < items.length; i += per)
+        items.sublist(i, math.min(i + per, items.length)),
+    ];
+  }
+
+  /// How tall the tray is for [actionCount] controls on a screen [width]
+  /// wide, measured above the safe-area inset — for the layouts that keep
+  /// clear of it. [horizontalInset] is the padding the screen wraps the
+  /// tray in on each side.
+  static double estimateHeight({
+    required int actionCount,
+    required double width,
+    double maxWidth = 480,
+    double horizontalInset = 16,
+  }) {
+    final available = math.max(0.0, width - 2 * horizontalInset);
+    final inner =
+        capsuleWidth(actionCount, available, maxWidth) - capsuleChrome;
+    final d = diameterFor(inner);
+    final rows = actionCount <= 0
+        ? 0
+        : rowsFor(List<int>.filled(actionCount, 0), perRow(actionCount, inner))
+            .length;
+    final capsule = rows == 0
+        ? 0.0
+        : capsulePadding.vertical +
+            2 * capsuleBorder +
+            rows * (d + labelBlock) +
+            (rows - 1) * rowGap;
+    return capsule +
+        (rows == 0 ? 0 : heroGap) +
+        heroDiameter +
+        labelBlock +
+        bottomPadding;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final available =
+            constraints.maxWidth.isFinite ? constraints.maxWidth : maxWidth;
+        final capsule = capsuleWidth(actions.length, available, maxWidth);
+        final inner = capsule - capsuleChrome;
+        final d = diameterFor(inner);
+        final rows = rowsFor(actions, perRow(actions.length, inner));
+        // Columns line up across rows, and a shorter last row sits centred
+        // under the one above. Slots snap to half a point so the row's sum
+        // can never drift a hair past the width it was given.
+        final cols = rows.isEmpty
+            ? 1
+            : rows.map((r) => r.length).reduce(math.max);
+        final slot = (inner / cols * 2).floorToDouble() / 2;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (rows.isNotEmpty) ...[
+              GlassTray(
+                maxWidth: capsule,
+                padding: capsulePadding,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (var i = 0; i < rows.length; i++) ...[
+                      if (i > 0) const SizedBox(height: rowGap),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          for (final a in rows[i])
+                            SizedBox(
+                              width: slot,
+                              child: CallControlButton(
+                                key: a.key,
+                                icon: a.icon,
+                                label: a.label,
+                                onTap: a.onTap,
+                                active: a.active,
+                                enabled: a.enabled,
+                                diameter: d,
+                                // The everyday controls read a shade
+                                // brighter than the ones that wrapped.
+                                subdued: i > 0,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: heroGap),
+            ],
+            // The hero action: alone on its own row so it never competes
+            // for space with the toggles above it, at a size that reads as
+            // unmistakably primary.
+            CallControlButton(
+              icon: endIcon,
+              background: endColor,
+              iconColor: Colors.white,
+              large: true,
+              onTap: onEnd,
+              label: endLabel,
+            ),
+            const SizedBox(height: bottomPadding),
+          ],
+        );
+      },
     );
   }
 }
@@ -411,10 +643,15 @@ class AudioBackdrop extends StatefulWidget {
     required this.user,
     this.api,
     this.peerMuted = false,
+    this.bottomInset = 0,
   });
   final String name;
   final Widget status;
   final bool peerMuted;
+
+  /// What the tray covers at the bottom of the screen, so the avatar and
+  /// name centre in the space above it rather than under it.
+  final double bottomInset;
   final dynamic theme;
   final ChatUser user;
   final ChatApi? api;
@@ -443,16 +680,18 @@ class AudioBackdropState extends State<AudioBackdrop>
     return CallBackdrop(
       accent: accent,
       child: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Avatar + concentric pulse rings.
-              PulseRings(
-                accent: accent,
-                diameter: 132,
-                reach: 128,
-                child: Container(
+        child: Padding(
+          padding: EdgeInsets.only(bottom: widget.bottomInset),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Avatar + concentric pulse rings.
+                PulseRings(
+                  accent: accent,
+                  diameter: 132,
+                  reach: 128,
+                  child: Container(
                     width: 132,
                     height: 132,
                     decoration: BoxDecoration(
@@ -478,26 +717,27 @@ class AudioBackdropState extends State<AudioBackdrop>
                       showStatus: false,
                     ),
                   ),
-              ),
-              const SizedBox(height: 28),
-              Text(
-                widget.name,
-                style: theme.displayMedium.copyWith(color: Colors.white),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (widget.peerMuted) ...[
-                    const Icon(Icons.mic_off, size: 14, color: Colors.white70),
-                    const SizedBox(width: 8),
+                ),
+                const SizedBox(height: 28),
+                Text(
+                  widget.name,
+                  style: theme.displayMedium.copyWith(color: Colors.white),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.peerMuted) ...[
+                      const Icon(Icons.mic_off, size: 14, color: Colors.white70),
+                      const SizedBox(width: 8),
+                    ],
+                    widget.status,
                   ],
-                  widget.status,
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -516,6 +756,8 @@ class CallControlButton extends StatelessWidget {
     this.iconColor,
     this.large = false,
     this.enabled = true,
+    this.diameter,
+    this.subdued = false,
   });
 
   final IconData icon;
@@ -526,6 +768,14 @@ class CallControlButton extends StatelessWidget {
   final Color? iconColor;
   final bool large;
   final bool enabled;
+
+  /// Pin the circle to exactly this size instead of sizing it from the
+  /// slot. [CallTray] sets it, so every control in the tray is the same
+  /// size whatever its label needs.
+  final double? diameter;
+
+  /// A quieter surface for a control on the tray's second row.
+  final bool subdued;
 
   @override
   Widget build(BuildContext context) {
@@ -538,8 +788,8 @@ class CallControlButton extends StatelessWidget {
         // The end-call button (large: true) now sits alone on its own row
         // (see the control-bar layout in call_screen's build()), so it gets
         // a bigger ceiling/floor than the toolbar row's shared-width toggles.
-        final maxDiameter = large ? 72.0 : 56.0;
-        final minDiameter = large ? 56.0 : 40.0;
+        final maxDiameter = diameter ?? (large ? 72.0 : 56.0);
+        final minDiameter = diameter ?? (large ? 56.0 : 40.0);
         final size = constraints.maxWidth.isFinite
             ? constraints.maxWidth.clamp(minDiameter, maxDiameter).toDouble()
             : maxDiameter;
@@ -575,7 +825,7 @@ class CallControlButton extends StatelessWidget {
                 textScaler: labelScaler,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.30),
-                  fontSize: 10,
+                  fontSize: 11,
                 ),
               ),
             ],
@@ -585,7 +835,7 @@ class CallControlButton extends StatelessWidget {
             background ??
             (active
                 ? Colors.white.withValues(alpha: 0.95)
-                : Colors.white.withValues(alpha: 0.18));
+                : Colors.white.withValues(alpha: subdued ? 0.12 : 0.18));
         final fg = iconColor ?? (active ? Colors.black : Colors.white);
         return Column(
           mainAxisSize: MainAxisSize.min,
@@ -629,7 +879,7 @@ class CallControlButton extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
               textScaler: labelScaler,
-              style: const TextStyle(color: Colors.white70, fontSize: 10),
+              style: const TextStyle(color: Colors.white70, fontSize: 11),
             ),
           ],
         );

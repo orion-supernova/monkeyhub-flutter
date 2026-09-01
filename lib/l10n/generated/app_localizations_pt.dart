@@ -8311,6 +8311,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get groupCallScreenStopShareLabel => 'parar partilha';
 
   @override
+  String get groupCallScreenShareStartingLabel => 'iniciando…';
+
+  @override
   String get groupCallScreenRingingLabel => 'A chamar…';
 
   @override
@@ -8332,6 +8335,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get callScreenControlStopShare => 'Parar';
+
+  @override
+  String get callScreenControlShareStarting => 'Iniciando…';
 
   @override
   String get callScreenControlDraw => 'Desenhar';
@@ -16695,6 +16701,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get groupCallScreenStopShareLabel => 'parar de compartilhar';
 
   @override
+  String get groupCallScreenShareStartingLabel => 'iniciando…';
+
+  @override
   String get groupCallScreenRingingLabel => 'Chamando…';
 
   @override
@@ -16717,6 +16726,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get callScreenControlStopShare => 'Parar';
+
+  @override
+  String get callScreenControlShareStarting => 'Iniciando…';
 
   @override
   String get callScreenControlDraw => 'Desenhar';

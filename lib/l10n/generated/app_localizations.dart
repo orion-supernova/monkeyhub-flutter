@@ -13933,6 +13933,12 @@ abstract class AppLocalizations {
   /// **'stop share'**
   String get groupCallScreenStopShareLabel;
 
+  /// Label under the share-screen control from the tap until the platform is actually sending the screen — on iOS, until the system broadcast has started. Lowercase like its neighbours.
+  ///
+  /// In en, this message translates to:
+  /// **'starting…'**
+  String get groupCallScreenShareStartingLabel;
+
   /// Caption under a dimmed participant who was invited to the group call and has not picked up yet.
   ///
   /// In en, this message translates to:
@@ -13974,6 +13980,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Stop'**
   String get callScreenControlStopShare;
+
+  /// Label under the 1:1 call tray's share-screen button while the share is being set up (the iOS broadcast picker, the countdown) and not yet sending.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting…'**
+  String get callScreenControlShareStarting;
 
   /// Label under the 1:1 call tray's pen button, shown while a screen is shared.
   ///

@@ -72,9 +72,65 @@ class ScreenShare {
       invokeFn = (m, [a]) => _channel.invokeMethod(m, a);
 
   /// Called when the platform ended the share from outside the app — the
-  /// STOP action on Android's notification. The service that started the
-  /// share sets this while it runs.
+  /// STOP action on Android's notification, or the red status-bar pill on
+  /// iOS (the Broadcast Upload Extension's `broadcastFinished`, relayed by
+  /// AppDelegate off the `iOS_BroadcastStopped` Darwin notification; the
+  /// capturer itself tells Dart nothing when the socket goes quiet). The
+  /// service that started the share sets this while it runs.
   static void Function()? onPlatformStop;
+
+  /// Whether [capture] returning means frames are flowing (everywhere but
+  /// iOS) or only that the system picker is up. On iOS the user still has
+  /// to tap Start Broadcast and sit through a countdown — or may dismiss
+  /// the sheet, which no API reports. So the services there wait for the
+  /// extension's own "started" before a single peer hears about the share:
+  /// [awaitPlatformStart], resolved by [reportPlatformStart] when
+  /// AppDelegate relays `iOS_BroadcastStarted`.
+  static bool get needsStartHandshake =>
+      startHandshakeOverride ?? (!kIsWeb && Platform.isIOS);
+
+  /// Seam for tests: forces [needsStartHandshake] either way.
+  @visibleForTesting
+  static bool? startHandshakeOverride;
+
+  static Completer<bool>? _startWait;
+
+  /// True when the platform says the share is on the air; false after
+  /// [timeout] (a dismissed picker gives no other signal) or when
+  /// [cancelStartWait] ends the wait — a call that ended meanwhile.
+  static Future<bool> awaitPlatformStart({required Duration timeout}) {
+    cancelStartWait();
+    final c = Completer<bool>();
+    _startWait = c;
+    Timer(timeout, () {
+      if (!c.isCompleted) c.complete(false);
+      if (identical(_startWait, c)) _startWait = null;
+    });
+    return c.future;
+  }
+
+  /// Ends a pending [awaitPlatformStart] with false. Safe without one.
+  static void cancelStartWait() {
+    final c = _startWait;
+    _startWait = null;
+    if (c != null && !c.isCompleted) c.complete(false);
+  }
+
+  /// The platform reports the share started. Native entry (and test seam).
+  @visibleForTesting
+  static void reportPlatformStart() {
+    final c = _startWait;
+    _startWait = null;
+    if (c != null && !c.isCompleted) c.complete(true);
+  }
+
+  /// The platform reports the share ended. Native entry (and test seam).
+  @visibleForTesting
+  static void reportPlatformStop() {
+    // A stop before the start ever came is the same as no start.
+    cancelStartWait();
+    onPlatformStop?.call();
+  }
 
   static bool _handlerInstalled = false;
   static bool? _iosSupported;
@@ -183,7 +239,15 @@ class ScreenShare {
     if (_handlerInstalled || kIsWeb) return;
     _handlerInstalled = true;
     _channel.setMethodCallHandler((call) async {
-      if (call.method == 'onUserStop') onPlatformStop?.call();
+      switch (call.method) {
+        case 'onUserStop': // Android notification action
+        case 'onBroadcastStopped': // iOS extension finished
+          reportPlatformStop();
+          break;
+        case 'onBroadcastStarted': // iOS extension is on the air
+          reportPlatformStart();
+          break;
+      }
       return null;
     });
   }

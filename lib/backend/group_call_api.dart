@@ -193,6 +193,19 @@ class GroupCallApi {
     );
   }
 
+  /// One-shot [subscribePendingInvite]: the invite the backend would ring
+  /// this user for right now, or null. `NativeCallHandler.replayColdStartCalls`
+  /// asks this of a native card it finds on resume, because the service's own
+  /// subscription may not have delivered yet in a process the push launched.
+  Future<Map<String, dynamic>?> pendingInviteOnce({
+    required String userId,
+  }) async {
+    final res =
+        await _cv.query('groupCalls:pendingInviteForUser', {'userId': userId});
+    if (res == null) return null;
+    return (res as Map).cast<String, dynamic>();
+  }
+
   /// Live freshest ring-worthy group invite for this user.
   Future<Subscription> subscribePendingInvite({
     required String userId,

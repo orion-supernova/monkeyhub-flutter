@@ -43,6 +43,79 @@ class NativeCallHandler {
   // armed with the delete/timeout intent that ends the call.
   final Map<String, String> _uuidByCallId = {};
 
+  // ── seams ──
+
+  /// The plugin's own call list. A seam because the plugin has no
+  /// implementation on the test host, and because [replayColdStartCalls]'s
+  /// decisions are exactly the thing worth pinning in a test.
+  @visibleForTesting
+  static Future<List<dynamic>> Function() activeCallsFn = () async =>
+      (await FlutterCallkitIncoming.activeCalls()) as List<dynamic>;
+
+  @visibleForTesting
+  static Future<void> Function(String uuid) endCallFn =
+      (uuid) => FlutterCallkitIncoming.endCall(uuid);
+
+  @visibleForTesting
+  static Future<void> Function() endAllCallsFn =
+      () => FlutterCallkitIncoming.endAllCalls();
+
+  /// Forces the "this device drives a native card" decision in tests, where
+  /// `Platform` says macOS and every event would otherwise be dropped on the
+  /// floor before the code under test.
+  @visibleForTesting
+  static bool? nativeCallUiOverride;
+
+  // ── cards this process is ending itself ──
+  //
+  // Keyed by the Convex id the card carries (`extra.callId` /
+  // `extra.groupCallId`) and by native UUID, with the moment we asked. The
+  // vendored plugin reports EVERY end of an un-answered card as
+  // ACTION_CALL_DECLINE — the user's decline and our own `endCall` alike:
+  // SwiftFlutterCallkitIncomingPlugin's CXEndCallAction handler classifies
+  // on `isAccepted || isOutGoing` and nothing else (MONKEYHUB PATCH 2). Read
+  // as a user action, our own dismissal became `calls:reject` /
+  // `groupCalls:decline` on a call that was still ringing — which is how a
+  // card the resume-time sweep took down by mistake turned into "rejected"
+  // on the caller's side within a second of it ringing. Anything recorded
+  // here is an echo: it may clear local state and must touch nothing on the
+  // backend. Entries age out rather than being consumed, because one
+  // `endNativeByCallId` can end several cards for one id (an outgoing card
+  // beside a push-raised one) and each echoes separately.
+  final Map<String, DateTime> _selfEnded = {};
+  DateTime? _selfEndedAllAt;
+  static const Duration _selfEndedTtl = Duration(seconds: 15);
+
+  void _markSelfEnded(String? key) {
+    if (key == null || key.isEmpty) return;
+    final now = DateTime.now();
+    _selfEnded.removeWhere((_, at) => now.difference(at) > _selfEndedTtl);
+    _selfEnded[key] = now;
+  }
+
+  bool _wasSelfEnded(Iterable<String?> keys) {
+    final now = DateTime.now();
+    final all = _selfEndedAllAt;
+    if (all != null && now.difference(all) <= _selfEndedTtl) return true;
+    for (final k in keys) {
+      if (k == null || k.isEmpty) continue;
+      final at = _selfEnded[k];
+      if (at != null && now.difference(at) <= _selfEndedTtl) return true;
+    }
+    return false;
+  }
+
+  /// Whether a decline/end event is the plugin echoing an end WE asked for.
+  bool _isSelfEndedEcho(CallKitParams params) => _wasSelfEnded([
+        params.id,
+        params.extra?['callId']?.toString(),
+        params.extra?['groupCallId']?.toString(),
+      ]);
+
+  /// Test-only view of [_wasSelfEnded].
+  @visibleForTesting
+  bool debugWasSelfEnded(String key) => _wasSelfEnded([key]);
+
   // When we ourselves dismiss a card (driven by WebRTC teardown), the package
   // fires ACTION_CALL_ENDED back at us. `_endNamedCall` drops that echo by
   // checking the session's status — "endCall() is idempotent" was never quite
@@ -73,7 +146,8 @@ class NativeCallHandler {
   /// there throws MissingPluginException), and the iOS simulator's CallKit is
   /// unreliable. Those platforms use the in-app IncomingCallScreen instead.
   bool get _nativeCallUi =>
-      !kIsWeb && (Platform.isAndroid || Platform.isIOS) && !_isIosSimulator;
+      nativeCallUiOverride ??
+      (!kIsWeb && (Platform.isAndroid || Platform.isIOS) && !_isIosSimulator);
 
   static bool _detectIosSimulator() {
     // kIsWeb first: it's a const, so Platform.* (dart:io) is never touched on
@@ -126,6 +200,11 @@ class NativeCallHandler {
       cancelOnError: false,
     );
   }
+
+  /// Feed one plugin event through the same switch the live subscription
+  /// uses. Tests only.
+  @visibleForTesting
+  Future<void> handleEvent(CallEvent? event) => _onEvent(event);
 
   Future<void> _onEvent(CallEvent? event) async {
     if (event == null) return;
@@ -190,6 +269,15 @@ class NativeCallHandler {
         }
         break;
       case CallEventActionCallDecline(:final callKitParams):
+        // Our own `endCall` on an un-answered card comes back as a DECLINE
+        // (see _selfEnded). It is not the user's decision, so it must not
+        // become one on the backend: no reject, no decline, no accept-latch
+        // gymnastics — the code that ended the card owns its cleanup.
+        if (_isSelfEndedEcho(callKitParams)) {
+          debugPrint('NativeCallHandler: decline is the echo of our own end '
+              '— ignored');
+          break;
+        }
         // Same reason as the accept above: none of the 1:1 reasoning below
         // applies to a card that never had a `calls` row behind it, and its
         // "no session" branch would fire a `calls:reject` for an id that is
@@ -247,6 +335,13 @@ class NativeCallHandler {
         }
         break;
       case CallEventActionCallEnded(:final callKitParams):
+        // Same echo, for a card that HAD been answered (or was outgoing):
+        // a teardown's own `endNative` must not re-enter endCall/decline.
+        if (_isSelfEndedEcho(callKitParams)) {
+          debugPrint('NativeCallHandler: end is the echo of our own end '
+              '— ignored');
+          break;
+        }
         // A group card ended without being answered — swiped away, or ended
         // from the system UI. That is a decline, and it must not reach
         // `_endNamedCall`, which arbitrates a 1:1 session this card has no
@@ -264,6 +359,14 @@ class NativeCallHandler {
         );
         break;
       case CallEventActionCallTimeout(:final id):
+        // The CXEndCallAction handler reports TIMEOUT when it can no longer
+        // find the call it is ending — which our own end, racing the
+        // plugin's list, can produce. Same rule as the two above.
+        if (_wasSelfEnded([id, _callIdForUuid(id, null)])) {
+          debugPrint('NativeCallHandler: timeout is the echo of our own end '
+              '— ignored');
+          break;
+        }
         // A group card that rang itself out. This event carries only the
         // native id — no `extra`, so no `groupCallId` to read — so the id has
         // to be recognised by deriving it back. Getting it wrong is not
@@ -377,33 +480,65 @@ class NativeCallHandler {
   }
 
   /// Reconcile persisted native call state with backend truth after a
-  /// (re)start. Called once per session right after the signaling
-  /// subscription starts. Two jobs:
+  /// (re)start, and on every resume. Two jobs:
   ///
   ///   1. Replay a native accept that happened while no Dart was running
   ///      (killed-app flow: the plugin shows the call UI, the user taps
   ///      Accept, the plugin persists the call and launches the app — but
   ///      the accept EVENT fired before this isolate existed).
   ///   2. Clear ghost cards: calls the plugin still tracks whose backend
-  ///      call went terminal while the app was dead. Previously iOS was
-  ///      excluded from this entirely, which is exactly how stale ghost
-  ///      ringers survived an app restart there.
+  ///      call went terminal while the app was dead.
+  ///
+  /// Two rules this pass lives by, both learned the hard way:
+  ///
+  ///   * A card is cleared only on a DEFINITIVE answer from the backend.
+  ///     "Couldn't ask" (offline, a socket still reconnecting after the very
+  ///     resume that triggered this) leaves every card standing — the
+  ///     plugin's own ring timeout, the accept watchdog and the backend's
+  ///     `taken` push all outlive this pass, and ending an un-answered card
+  ///     is reported by the plugin as the USER declining (see [_selfEnded]),
+  ///     which the old sweep turned into `calls:reject` a second after the
+  ///     phone started ringing.
+  ///   * Group cards are reconciled against the GROUP backend. They carry
+  ///     `extra.groupCallId`, and `calls:activeCallForUser` knows nothing of
+  ///     them, so to the 1:1 logic every group card read as a ghost.
   Future<void> replayColdStartCalls() async {
     if (kIsWeb) return; // no CallKit on web — nothing to replay.
+    if (_replaying) return; // attach and resume can land together
+    _replaying = true;
+    try {
+      await _replayColdStartCalls();
+    } finally {
+      _replaying = false;
+    }
+  }
+
+  bool _replaying = false;
+
+  Future<void> _replayColdStartCalls() async {
     final service = CallService.instance;
     await _drainPendingFallbackEvents();
     List<dynamic> calls;
     try {
-      calls = (await FlutterCallkitIncoming.activeCalls()) as List<dynamic>;
+      calls = await activeCallsFn();
     } catch (e) {
       debugPrint('NativeCallHandler.replayColdStartCalls: $e');
       return;
     }
 
-    // Backend truth: my live ringing/active call, if any. Distinguish "no
-    // live call" from "couldn't ask" (offline) — when unreachable, stay
-    // lenient and keep the old replay behavior rather than killing a
-    // possibly-valid ring; the accept watchdog covers a wrong guess.
+    final oneToOne = <Map>[];
+    final group = <Map>[];
+    for (final c in calls) {
+      if (c is! Map) continue;
+      final extra = c['extra'];
+      final gid = extra is Map ? extra['groupCallId']?.toString() : null;
+      (gid != null && gid.isNotEmpty ? group : oneToOne).add(c);
+    }
+    if (group.isNotEmpty) await _reconcileGroupCards(group);
+
+    // Backend truth: my live ringing/active 1:1 call, if any. Distinguish
+    // "no live call" from "couldn't ask" — only the former licenses ending
+    // anything.
     Map<String, dynamic>? live;
     var backendReachable = false;
     final me = service.userId;
@@ -420,7 +555,7 @@ class NativeCallHandler {
     }
     final liveId = live?['_id']?.toString();
 
-    if (calls.isEmpty) {
+    if (oneToOne.isEmpty) {
       // Nothing native persisted — but a stale accept latch from a previous
       // run could still poison routing. Clear it if no call is live.
       if (backendReachable && live == null) service.clearNativeAccept();
@@ -428,8 +563,7 @@ class NativeCallHandler {
     }
 
     var handled = false;
-    for (final c in calls) {
-      if (c is! Map) continue;
+    for (final c in oneToOne) {
       // Android persists `isAccepted`; iOS reports `accepted`.
       final accepted = c['isAccepted'] == true || c['accepted'] == true;
       final extra = c['extra'];
@@ -458,27 +592,93 @@ class NativeCallHandler {
         break;
       }
     }
-    if (!handled && !service.inCall) {
-      // Stale card(s) with nothing behind them — clear so the user isn't
-      // left staring at (or answering) a dead ringer after reopening.
-      //
-      // Card by card, never `endAllCalls()`. This runs on EVERY session
-      // attach, off a 4-second-timeout backend read, and `activeCalls()` on
-      // Android only reports the last call — far too weak a basis for a
-      // process-wide clear that broadcasts ENDED into every isolate.
-      final stale = calls
-          .whereType<Map>()
-          .map((c) {
-            final extra = c['extra'];
-            return extra is Map ? extra['callId']?.toString() : null;
-          })
-          .whereType<String>()
-          .toSet();
-      for (final id in stale) {
+    if (handled || service.inCall) return;
+    if (!backendReachable) {
+      debugPrint('NativeCallHandler: backend unreachable — leaving '
+          '${oneToOne.length} card(s) up');
+      return;
+    }
+    // The backend answered and none of these cards is the live call: they
+    // are stale, and this is our own end (no reject follows — the plugin's
+    // DECLINE echo is recognised by [_isSelfEndedEcho]).
+    //
+    // Card by card, never `endAllCalls()` while anything else may be alive.
+    // This runs on EVERY resume, and `activeCalls()` on Android only reports
+    // the last call — far too weak a basis for a process-wide clear that
+    // broadcasts ENDED into every isolate.
+    final stale = oneToOne
+        .map((c) {
+          final extra = c['extra'];
+          return extra is Map ? extra['callId']?.toString() : null;
+        })
+        .whereType<String>()
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    for (final id in stale) {
+      await endNativeByCallId(id);
+    }
+    if (stale.isEmpty && group.isEmpty) await endAllNative();
+    if (live == null) service.clearNativeAccept();
+  }
+
+  /// [replayColdStartCalls] for the cards that belong to group calls.
+  ///
+  /// A card is left alone when it IS the call this device is in (or joining),
+  /// when the service holds its invite, or when the backend still offers that
+  /// invite. It is cleared only when the backend answers and offers nothing
+  /// at all — answered elsewhere, declined, ended, or rung out. A probe that
+  /// fails, or that names a DIFFERENT newer invite (`pendingInviteForUser`
+  /// returns one), decides nothing: the plugin's own ring timeout ends a
+  /// card we cannot vouch for, at no cost but a longer ring.
+  ///
+  /// An accepted card with no call behind it is the killed-app answer the
+  /// 1:1 branch replays too: the tap launched this process and the accept
+  /// event fired before any Dart existed. Join now, as the event would have.
+  Future<void> _reconcileGroupCards(List<Map> cards) async {
+    final group = GroupCallService.maybeInstance;
+    final me = group?.userId;
+    Map<String, dynamic>? offered;
+    var probed = false;
+    if (group != null && me != null) {
+      try {
+        offered = await group.api
+            .pendingInviteOnce(userId: me)
+            .timeout(const Duration(seconds: 4));
+        probed = true;
+      } catch (e) {
+        debugPrint('NativeCallHandler: group invite probe failed: $e');
+      }
+    }
+    final offeredId = offered?['groupCallId']?.toString();
+    for (final c in cards) {
+      final extra = c['extra'];
+      final id = extra is Map ? extra['groupCallId']?.toString() : null;
+      if (id == null || id.isEmpty) continue;
+      _rememberGroupCall(id);
+      if (group != null &&
+          (group.groupCallId == id || group.joiningGroupCallId == id)) {
+        continue; // the card is the call
+      }
+      final accepted = c['isAccepted'] == true || c['accepted'] == true;
+      if (accepted) {
+        _captureNativeUuid(c);
+        debugPrint('NativeCallHandler: replaying cold-start group accept '
+            'for $id');
+        await _acceptGroupCall(id);
+        continue;
+      }
+      final held = group?.pendingInvite?['groupCallId']?.toString() == id;
+      if (held || offeredId == id) continue; // still ringing, for real
+      if (!probed || offered != null) continue; // cannot vouch either way
+      debugPrint(
+          'NativeCallHandler: group card $id has no invite behind it — clearing');
+      if (group != null) {
+        // Through the service so the backend is told (`ackNativeDismissed`)
+        // and the grace-delayed `group_taken` skips this device.
+        await group.dismissStaleCard(id);
+      } else {
         await endNativeByCallId(id);
       }
-      if (stale.isEmpty) await endAllNative();
-      if (backendReachable && live == null) service.clearNativeAccept();
     }
   }
 
@@ -850,6 +1050,9 @@ class NativeCallHandler {
   Future<void> endNativeByCallId(String callId) async {
     if (!_nativeCallUi) return;
     final known = _uuidByCallId.remove(callId);
+    // Recorded BEFORE the plugin is asked, so the echo can never outrun it.
+    _markSelfEnded(callId);
+    _markSelfEnded(known);
     // One retry after a short delay before giving up — this is the same
     // call a stuck-call push relies on to clear an orphaned CallKit/
     // ConnectionService card, so a single transient failure (a busy plugin
@@ -859,14 +1062,14 @@ class NativeCallHandler {
         // Prefer the plugin's own record so a natively-minted id (iOS
         // PushKit) is matched exactly.
         var ended = false;
-        final active =
-            (await FlutterCallkitIncoming.activeCalls()) as List<dynamic>;
+        final active = await activeCallsFn();
         for (final c in active) {
           if (c is Map &&
               ((c['extra'] as Map?)?['callId']?.toString() == callId)) {
             final uuid = c['id']?.toString();
             if (uuid != null && uuid.isNotEmpty) {
-              await FlutterCallkitIncoming.endCall(uuid);
+              _markSelfEnded(uuid);
+              await endCallFn(uuid);
               ended = true;
             }
           }
@@ -882,13 +1085,15 @@ class NativeCallHandler {
             // report it — e.g. a card the plugin's own list has already
             // dropped, or Android's activeCalls() only reporting the last
             // call.
-            await FlutterCallkitIncoming.endCall(known);
+            await endCallFn(known);
           } else if (Platform.isAndroid) {
             // No UUID we ourselves issued. Android can still reliably
             // derive one — both ring paths derive the id from the callId —
             // but the equivalent guess on iOS risks handing CallKit a UUID
             // it has never issued, so iOS stays excluded here.
-            await FlutterCallkitIncoming.endCall(derivedUuid(callId));
+            final derived = derivedUuid(callId);
+            _markSelfEnded(derived);
+            await endCallFn(derived);
           }
         }
         break;
@@ -913,8 +1118,10 @@ class NativeCallHandler {
   /// [endNativeByCallId] — this broadcasts ENDED process-wide.
   Future<void> endAllNative() async {
     if (!_nativeCallUi) return;
+    // Everything alive is about to echo back; none of it is the user.
+    _selfEndedAllAt = DateTime.now();
     try {
-      await FlutterCallkitIncoming.endAllCalls();
+      await endAllCallsFn();
     } catch (e) {
       debugPrint('NativeCallHandler.endAllNative failed: $e');
     }

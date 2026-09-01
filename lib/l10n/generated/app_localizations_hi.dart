@@ -8225,6 +8225,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get groupCallScreenStopShareLabel => 'साझा करना बंद करें';
 
   @override
+  String get groupCallScreenShareStartingLabel => 'शुरू हो रहा…';
+
+  @override
   String get groupCallScreenRingingLabel => 'घंटी बज रही है…';
 
   @override
@@ -8246,6 +8249,9 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get callScreenControlStopShare => 'रोकें';
+
+  @override
+  String get callScreenControlShareStarting => 'शुरू हो रहा…';
 
   @override
   String get callScreenControlDraw => 'बनाएँ';

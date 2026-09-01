@@ -8325,6 +8325,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get groupCallScreenStopShareLabel => 'إيقاف المشاركة';
 
   @override
+  String get groupCallScreenShareStartingLabel => 'جارٍ البدء…';
+
+  @override
   String get groupCallScreenRingingLabel => 'يرن…';
 
   @override
@@ -8346,6 +8349,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get callScreenControlStopShare => 'إيقاف';
+
+  @override
+  String get callScreenControlShareStarting => 'جارٍ البدء…';
 
   @override
   String get callScreenControlDraw => 'رسم';

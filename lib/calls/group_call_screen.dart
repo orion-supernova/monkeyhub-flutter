@@ -392,6 +392,13 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
     // In the voice layout the chrome is the screen; only over video does a
     // tap put it away.
     final chromeVisible = layout == _Layout.voice || _controlsVisible;
+    final trayActions = _trayActions(l10n, layout);
+    // What the tray covers, so every stage keeps clear of it however many
+    // rows it needs.
+    final trayInset = CallTray.estimateHeight(
+      actionCount: trayActions.length,
+      width: MediaQuery.sizeOf(context).width,
+    );
 
     final Widget stage = switch (layout) {
       _Layout.voice => _VoiceStage(
@@ -401,6 +408,7 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
           levels: _levels,
           me: _meUser,
           theme: theme,
+          bottomInset: trayInset,
         ),
       _Layout.grid => _VideoGrid(
           key: const ValueKey('grid'),
@@ -411,6 +419,7 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
           renderers: _renderers,
           localRenderer: _localRenderer,
           theme: theme,
+          bottomInset: trayInset,
         ),
       _Layout.stage => _ShareStage(
           key: const ValueKey('stage'),
@@ -422,6 +431,7 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
           localRenderer: _localRenderer,
           localScreenRenderer: _localScreenRenderer,
           theme: theme,
+          bottomInset: trayInset,
         ),
     };
 
@@ -558,24 +568,13 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
                   child: SafeArea(
                     top: false,
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          GlassTray(
-                            maxWidth: 480,
-                            child: _tray(theme, l10n, layout),
-                          ),
-                          const SizedBox(height: 16),
-                          CallControlButton(
-                            icon: Icons.call_end,
-                            background: theme.danger,
-                            iconColor: Colors.white,
-                            large: true,
-                            onTap: () => unawaited(svc.leaveCall()),
-                            label: l10n.groupCallScreenLeaveLabel,
-                          ),
-                        ],
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: CallTray(
+                        actions: trayActions,
+                        endIcon: Icons.call_end,
+                        endLabel: l10n.groupCallScreenLeaveLabel,
+                        endColor: theme.danger,
+                        onEnd: () => unawaited(svc.leaveCall()),
                       ),
                     ),
                   ),
@@ -588,82 +587,72 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
     );
   }
 
-  Widget _tray(AppTheme theme, AppLocalizations l10n, _Layout layout) {
+  /// The tray's controls, in the order they keep the first row: the
+  /// everyday toggles first, the occasional ones last. CallTray wraps
+  /// whatever does not fit onto a second row.
+  List<CallTrayAction> _trayActions(AppLocalizations l10n, _Layout layout) {
     final sharing = svc.localScreenSharing;
+    final pending = svc.screenSharePending;
     final someoneElseSharing = !sharing && svc.presentingPeer != null;
-    return ValueListenableBuilder<bool>(
-      valueListenable: svc.drawArmed,
-      builder: (context, armed, _) => Row(
-        children: [
-          Expanded(
-            child: CallControlButton(
-              icon: svc.localMuted ? Icons.mic_off : Icons.mic,
-              active: svc.localMuted,
-              onTap: svc.toggleMute,
-              label: svc.localMuted
-                  ? l10n.groupCallScreenUnmuteLabel
-                  : l10n.groupCallScreenMuteLabel,
-            ),
-          ),
-          Expanded(
-            child: CallControlButton(
-              icon: svc.localCamActive ? Icons.videocam : Icons.videocam_off,
-              active: !svc.localCamActive,
-              onTap: () => unawaited(svc.toggleVideo()),
-              label: svc.localCamActive
-                  ? l10n.groupCallScreenCamOffLabel
-                  : l10n.groupCallScreenCamOnLabel,
-            ),
-          ),
-          if (svc.localCamActive && isMobileCallPlatform)
-            Expanded(
-              child: CallControlButton(
-                icon: Icons.cameraswitch_outlined,
-                onTap: () => unawaited(svc.switchCamera()),
-                label: l10n.groupCallScreenFlipLabel,
-              ),
-            ),
-          Expanded(
-            child: CallControlButton(
-              icon: svc.speakerOn ? Icons.volume_up : Icons.phone_in_talk,
-              active: svc.speakerOn,
-              onTap: () => unawaited(svc.toggleSpeaker()),
-              label: l10n.groupCallScreenSpeakerLabel,
-            ),
-          ),
-          if (_shareSupported)
-            Expanded(
-              child: CallControlButton(
-                icon: sharing
-                    ? Icons.stop_screen_share_outlined
-                    : Icons.screen_share_outlined,
-                active: sharing,
-                enabled: !someoneElseSharing,
-                onTap: () => unawaited(_onShareTap()),
-                label: sharing
-                    ? l10n.groupCallScreenStopShareLabel
-                    : l10n.groupCallScreenShareLabel,
-              ),
-            ),
-          if (layout == _Layout.stage)
-            Expanded(
-              child: CallControlButton(
-                icon: Icons.draw_outlined,
-                active: armed,
-                onTap: () => svc.drawArmed.value = !armed,
-                label: l10n.groupCallScreenDrawLabel,
-              ),
-            ),
-          Expanded(
-            child: CallControlButton(
-              icon: Icons.keyboard_arrow_down_rounded,
-              onTap: _hide,
-              label: l10n.groupCallScreenMinimizeLabel,
-            ),
-          ),
-        ],
+    return [
+      CallTrayAction(
+        icon: svc.localMuted ? Icons.mic_off : Icons.mic,
+        active: svc.localMuted,
+        onTap: svc.toggleMute,
+        label: svc.localMuted
+            ? l10n.groupCallScreenUnmuteLabel
+            : l10n.groupCallScreenMuteLabel,
       ),
-    );
+      CallTrayAction(
+        icon: svc.localCamActive ? Icons.videocam : Icons.videocam_off,
+        active: !svc.localCamActive,
+        onTap: () => unawaited(svc.toggleVideo()),
+        label: svc.localCamActive
+            ? l10n.groupCallScreenCamOffLabel
+            : l10n.groupCallScreenCamOnLabel,
+      ),
+      CallTrayAction(
+        icon: svc.speakerOn ? Icons.volume_up : Icons.phone_in_talk,
+        active: svc.speakerOn,
+        onTap: () => unawaited(svc.toggleSpeaker()),
+        label: l10n.groupCallScreenSpeakerLabel,
+      ),
+      if (_shareSupported)
+        CallTrayAction(
+          icon: sharing
+              ? Icons.stop_screen_share_outlined
+              : Icons.screen_share_outlined,
+          active: sharing,
+          // Disabled while someone else holds the stage, and while our own
+          // share is being set up (the picker, the countdown) — a second
+          // tap then would start a second capture.
+          enabled: !someoneElseSharing && !pending,
+          onTap: () => unawaited(_onShareTap()),
+          label: sharing
+              ? l10n.groupCallScreenStopShareLabel
+              : pending
+                  ? l10n.groupCallScreenShareStartingLabel
+                  : l10n.groupCallScreenShareLabel,
+        ),
+      if (layout == _Layout.stage)
+        CallTrayAction(
+          icon: Icons.draw_outlined,
+          active: svc.drawArmed.value,
+          onTap: () => svc.drawArmed.value = !svc.drawArmed.value,
+          label: l10n.groupCallScreenDrawLabel,
+        ),
+      if (svc.localCamActive && isMobileCallPlatform)
+        CallTrayAction(
+          icon: Icons.cameraswitch_outlined,
+          onTap: () => unawaited(svc.switchCamera()),
+          label: l10n.groupCallScreenFlipLabel,
+        ),
+      CallTrayAction(
+        icon: Icons.keyboard_arrow_down_rounded,
+        onTap: _hide,
+        label: l10n.groupCallScreenMinimizeLabel,
+      ),
+    ];
   }
 }
 
@@ -682,6 +671,7 @@ class _VoiceStage extends StatelessWidget {
     required this.levels,
     required this.me,
     required this.theme,
+    required this.bottomInset,
   });
 
   final GroupCallService service;
@@ -689,6 +679,9 @@ class _VoiceStage extends StatelessWidget {
   final AudioLevelMonitor levels;
   final ChatUser me;
   final AppTheme theme;
+
+  /// What the tray covers at the bottom; the faces centre above it.
+  final double bottomInset;
 
   @override
   Widget build(BuildContext context) {
@@ -715,7 +708,7 @@ class _VoiceStage extends StatelessWidget {
                         : 4;
             final rows = (n / cols).ceil();
             final byWidth = (c.maxWidth - 40) / cols - 24;
-            final byHeight = (c.maxHeight - 300) / rows - 44;
+            final byHeight = (c.maxHeight - 110 - bottomInset) / rows - 44;
             final orb = math.min(byWidth, byHeight).clamp(56.0, 128.0);
             Widget orbFor(ChatUser u, String label, {bool isMe = false,
                 bool muted = false, bool dimmed = false, bool ghost = false,
@@ -742,7 +735,7 @@ class _VoiceStage extends StatelessWidget {
             );
             return Center(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 96, 20, 190),
+                padding: EdgeInsets.fromLTRB(20, 96, 20, bottomInset),
                 child: Wrap(
                   alignment: WrapAlignment.center,
                   runAlignment: WrapAlignment.center,
@@ -809,6 +802,7 @@ class _VideoGrid extends StatelessWidget {
     required this.renderers,
     required this.localRenderer,
     required this.theme,
+    required this.bottomInset,
   });
 
   final GroupCallService service;
@@ -818,6 +812,9 @@ class _VideoGrid extends StatelessWidget {
   final Map<String, RTCVideoRenderer> renderers;
   final RTCVideoRenderer? localRenderer;
   final AppTheme theme;
+
+  /// What the tray covers at the bottom; the grid scrolls clear of it.
+  final double bottomInset;
 
   @override
   Widget build(BuildContext context) {
@@ -837,7 +834,7 @@ class _VideoGrid extends StatelessWidget {
         service.localCamActive && localRenderer != null;
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 76, 10, 236),
+        padding: EdgeInsets.fromLTRB(10, 76, 10, bottomInset + 16),
         child: GridView.count(
           crossAxisCount: columns,
           mainAxisSpacing: 8,
@@ -1014,6 +1011,7 @@ class _ShareStage extends StatelessWidget {
     required this.localRenderer,
     required this.localScreenRenderer,
     required this.theme,
+    required this.bottomInset,
   });
 
   final GroupCallService service;
@@ -1024,6 +1022,9 @@ class _ShareStage extends StatelessWidget {
   final RTCVideoRenderer? localRenderer;
   final RTCVideoRenderer? localScreenRenderer;
   final AppTheme theme;
+
+  /// What the tray covers at the bottom; the strip ends above it.
+  final double bottomInset;
 
   @override
   Widget build(BuildContext context) {
@@ -1149,7 +1150,7 @@ class _ShareStage extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 228),
+          SizedBox(height: bottomInset + 8),
         ],
       ),
     );

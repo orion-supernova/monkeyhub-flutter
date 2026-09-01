@@ -8303,6 +8303,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get groupCallScreenStopShareLabel => 'dejar de compartir';
 
   @override
+  String get groupCallScreenShareStartingLabel => 'iniciando…';
+
+  @override
   String get groupCallScreenRingingLabel => 'Llamando…';
 
   @override
@@ -8324,6 +8327,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get callScreenControlStopShare => 'Detener';
+
+  @override
+  String get callScreenControlShareStarting => 'Iniciando…';
 
   @override
   String get callScreenControlDraw => 'Dibujar';
