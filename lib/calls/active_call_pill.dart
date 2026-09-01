@@ -103,7 +103,16 @@ class _ActiveCallPillState extends State<ActiveCallPill> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(theme.radiusLg),
                           gradient: LinearGradient(
-                            colors: [theme.accent, theme.accentSoft],
+                            // Two OPAQUE stops. accentSoft is the accent at
+                        // 18% alpha — as a gradient end it left the right
+                        // half of the banner see-through.
+                        colors: [
+                          theme.accent,
+                          Color.alphaBlend(
+                            Colors.white.withValues(alpha: 0.16),
+                            theme.accent,
+                          ),
+                        ],
                             begin: Alignment.centerLeft,
                             end: Alignment.centerRight,
                           ),

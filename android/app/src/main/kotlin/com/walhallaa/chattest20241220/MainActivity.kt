@@ -116,6 +116,10 @@ class MainActivity : FlutterActivity() {
         // over, the old activity is evicted and destroyed; handlers still
         // pointing at its window would be talking to a corpse.
 
+        // monkeyhub/screen_share — the mediaProjection foreground service a
+        // share needs on Android 14, and its notification's STOP button.
+        ScreenShareBridge.register(this, flutterEngine)
+
         // monkeyhub/capture — toggles FLAG_SECURE on the window. With
         // FLAG_SECURE set, Android blocks screenshots AND screen-recording at
         // the OS level (the app content shows as black to recorders). No

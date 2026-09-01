@@ -7910,4 +7910,99 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get messageActionMenuTranslateAgainLabel => '다시 번역';
+
+  @override
+  String get groupCallScreenShareLabel => '공유';
+
+  @override
+  String get groupCallScreenStopShareLabel => '공유 중지';
+
+  @override
+  String get groupCallScreenShareStartingLabel => '시작 중…';
+
+  @override
+  String get groupCallScreenRingingLabel => '연결 중…';
+
+  @override
+  String groupCallScreenSharingBy(String name) {
+    return '$name님이 화면을 공유하고 있어요';
+  }
+
+  @override
+  String get groupCallScreenYouAreSharing => '내 화면을 공유하고 있어요';
+
+  @override
+  String get groupCallScreenMinimizeLabel => '숨기기';
+
+  @override
+  String get groupCallScreenDrawLabel => '그리기';
+
+  @override
+  String get callScreenControlShare => '공유';
+
+  @override
+  String get callScreenControlStopShare => '중지';
+
+  @override
+  String get callScreenControlShareStarting => '시작 중…';
+
+  @override
+  String get screenShareStopDrawing => '그리기 종료';
+
+  @override
+  String get callScreenControlDraw => '그리기';
+
+  @override
+  String get callScreenControlMinimize => '숨기기';
+
+  @override
+  String get inCallPillOngoingCall => '통화 중';
+
+  @override
+  String get inCallPillReturn => '돌아가기';
+
+  @override
+  String get inCallPillSharing => '내 화면 공유 중';
+
+  @override
+  String get inCallPillDrawSemanticLabel => '공유 화면에 그리기';
+
+  @override
+  String get inCallPillStopSharingSemanticLabel => '공유 중지';
+
+  @override
+  String get screenShareUnsupported => '이 기기에서는 화면 공유를 사용할 수 없어요';
+
+  @override
+  String get screenShareEphemeralWarning => '공유하는 동안 캡처 보호가 꺼져요';
+
+  @override
+  String get screenShareNotificationTitle => '내 화면 공유 중';
+
+  @override
+  String get screenShareNotificationBody => '통화 중인 모두가 볼 수 있어요';
+
+  @override
+  String get screenShareNotificationStop => '중지';
+
+  @override
+  String screenShareSomeoneElsePresenting(String name) {
+    return '$name님이 이미 공유 중이에요';
+  }
+
+  @override
+  String get screenShareFailed => '공유를 시작할 수 없어요';
+
+  @override
+  String get screenSharePickerTitle => '화면 공유';
+
+  @override
+  String get screenSharePickerScreens => '화면';
+
+  @override
+  String get screenSharePickerWindows => '창';
+
+  @override
+  String get screenSharePickerEmpty =>
+      '아직 공유할 것이 없어요 — 시스템 설정에서 화면 기록을 허용한 뒤 다시 시도하세요';
 }

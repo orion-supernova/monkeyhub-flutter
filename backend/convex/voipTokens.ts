@@ -109,12 +109,23 @@ async function upsertDevice(
   patch: DevicePatch,
 ): Promise<void> {
   const now = Date.now();
-  const existing = await ctx.db
+  // One physical device, one account. The deviceId is minted once per
+  // install and survives sign-out, so a phone that signs in as B after A
+  // used to keep A's row — and A's row still held live push credentials for
+  // THIS handset, so A's banners and A's call invites kept landing on a phone
+  // B was holding (observed 2026-09-01: the caller's own iPhone was still a
+  // registered device of the callee). The row is not "A's other device", it
+  // is this one, and this one is B's now.
+  const sameDevice = await ctx.db
     .query("userDevices")
-    .withIndex("by_user_device", (q: any) =>
-      q.eq("userId", userId).eq("deviceId", deviceId),
-    )
-    .first();
+    .withIndex("by_device", (q: any) => q.eq("deviceId", deviceId))
+    .collect();
+  for (const d of sameDevice) {
+    if (d.userId.toString() !== userId.toString()) await ctx.db.delete(d._id);
+  }
+  const existing = sameDevice.find(
+    (d: Doc<"userDevices">) => d.userId.toString() === userId.toString(),
+  );
   if (existing) {
     await ctx.db.patch(existing._id, {
       platform,

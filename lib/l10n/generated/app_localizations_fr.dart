@@ -8342,4 +8342,102 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get messageActionMenuTranslateAgainLabel => 'RETRADUIRE';
+
+  @override
+  String get groupCallScreenShareLabel => 'partager';
+
+  @override
+  String get groupCallScreenStopShareLabel => 'arrêter';
+
+  @override
+  String get groupCallScreenShareStartingLabel => 'démarrage…';
+
+  @override
+  String get groupCallScreenRingingLabel => 'Sonnerie…';
+
+  @override
+  String groupCallScreenSharingBy(String name) {
+    return '$name partage son écran';
+  }
+
+  @override
+  String get groupCallScreenYouAreSharing => 'Vous partagez votre écran';
+
+  @override
+  String get groupCallScreenMinimizeLabel => 'masquer';
+
+  @override
+  String get groupCallScreenDrawLabel => 'dessiner';
+
+  @override
+  String get callScreenControlShare => 'Partager';
+
+  @override
+  String get callScreenControlStopShare => 'Arrêter';
+
+  @override
+  String get callScreenControlShareStarting => 'Démarrage…';
+
+  @override
+  String get screenShareStopDrawing => 'Arrêter de dessiner';
+
+  @override
+  String get callScreenControlDraw => 'Dessiner';
+
+  @override
+  String get callScreenControlMinimize => 'Masquer';
+
+  @override
+  String get inCallPillOngoingCall => 'Appel en cours';
+
+  @override
+  String get inCallPillReturn => 'Revenir';
+
+  @override
+  String get inCallPillSharing => 'Partage de votre écran';
+
+  @override
+  String get inCallPillDrawSemanticLabel => 'Dessiner sur l\'écran partagé';
+
+  @override
+  String get inCallPillStopSharingSemanticLabel => 'Arrêter le partage';
+
+  @override
+  String get screenShareUnsupported =>
+      'Le partage d\'écran n\'est pas disponible sur cet appareil';
+
+  @override
+  String get screenShareEphemeralWarning =>
+      'La protection contre les captures est désactivée pendant le partage';
+
+  @override
+  String get screenShareNotificationTitle => 'Partage de votre écran';
+
+  @override
+  String get screenShareNotificationBody =>
+      'Tout le monde dans l\'appel peut le voir';
+
+  @override
+  String get screenShareNotificationStop => 'Arrêter';
+
+  @override
+  String screenShareSomeoneElsePresenting(String name) {
+    return '$name partage déjà';
+  }
+
+  @override
+  String get screenShareFailed => 'Impossible de démarrer le partage';
+
+  @override
+  String get screenSharePickerTitle => 'Partagez votre écran';
+
+  @override
+  String get screenSharePickerScreens => 'Écrans';
+
+  @override
+  String get screenSharePickerWindows => 'Fenêtres';
+
+  @override
+  String get screenSharePickerEmpty =>
+      'Rien à partager pour l\'instant — autorisez l\'enregistrement de l\'écran dans Réglages Système et réessayez';
 }

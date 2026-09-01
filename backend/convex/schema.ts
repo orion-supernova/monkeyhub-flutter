@@ -199,6 +199,10 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_device", ["userId", "deviceId"])
+    // Account-change eviction: one physical device, one account. `upsertDevice`
+    // deletes every OTHER user's row for the deviceId it is registering, so a
+    // phone that signs in as B after A stops carrying A's push credentials.
+    .index("by_device", ["deviceId"])
     // Token-reassignment dedupe. A push token is unique to one device-app
     // pair at any moment, so a token appearing under a second (userId,
     // deviceId) means it moved and the old row must stop being pushed to.
@@ -1907,7 +1911,7 @@ export default defineSchema({
     callId: v.id("calls"),
     fromUserId: v.id("users"),
     toUserId: v.id("users"),
-    kind: v.string(),            // "invite" | "offer" | "answer" | "ice" | "ice-batch" | "state" | "bye" | "reject" | "cancel" | "taken" | "handoff-prepare" | "handoff-takeover" | "handoff-offer" | "handoff-answer" | "restart-request" | "restart-offer" | "restart-answer"
+    kind: v.string(),            // "invite" | "offer" | "answer" | "ice" | "ice-batch" | "state" | "bye" | "reject" | "cancel" | "taken" | "handoff-prepare" | "handoff-takeover" | "handoff-offer" | "handoff-answer" | "restart-request" | "restart-offer" | "restart-answer" | "renegotiate" | "reoffer" | "reanswer"
     payload: v.string(),         // JSON-encoded (SDP, ICE candidate, state object, …)
     createdAt: v.number(),
     consumed: v.boolean(),
@@ -1978,7 +1982,7 @@ export default defineSchema({
     groupCallId: v.id("groupCalls"),
     fromUserId: v.id("users"),
     toUserId: v.id("users"),
-    kind: v.string(), // "offer" | "answer" | "ice-batch" | "state" | "restart-request" | "restart-offer" | "restart-answer"
+    kind: v.string(), // "offer" | "answer" | "ice-batch" | "state" | "restart-request" | "restart-offer" | "restart-answer" | "renegotiate" | "reoffer" | "reanswer"
     payload: v.string(),
     createdAt: v.number(),
     consumed: v.boolean(),

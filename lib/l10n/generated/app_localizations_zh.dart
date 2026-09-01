@@ -7797,4 +7797,98 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get messageActionMenuTranslateAgainLabel => '重新翻译';
+
+  @override
+  String get groupCallScreenShareLabel => '共享';
+
+  @override
+  String get groupCallScreenStopShareLabel => '停止共享';
+
+  @override
+  String get groupCallScreenShareStartingLabel => '启动中…';
+
+  @override
+  String get groupCallScreenRingingLabel => '呼叫中…';
+
+  @override
+  String groupCallScreenSharingBy(String name) {
+    return '$name 正在共享屏幕';
+  }
+
+  @override
+  String get groupCallScreenYouAreSharing => '你正在共享屏幕';
+
+  @override
+  String get groupCallScreenMinimizeLabel => '隐藏';
+
+  @override
+  String get groupCallScreenDrawLabel => '绘制';
+
+  @override
+  String get callScreenControlShare => '共享';
+
+  @override
+  String get callScreenControlStopShare => '停止';
+
+  @override
+  String get callScreenControlShareStarting => '启动中…';
+
+  @override
+  String get screenShareStopDrawing => '停止绘制';
+
+  @override
+  String get callScreenControlDraw => '绘制';
+
+  @override
+  String get callScreenControlMinimize => '隐藏';
+
+  @override
+  String get inCallPillOngoingCall => '通话进行中';
+
+  @override
+  String get inCallPillReturn => '返回';
+
+  @override
+  String get inCallPillSharing => '正在共享你的屏幕';
+
+  @override
+  String get inCallPillDrawSemanticLabel => '在共享屏幕上绘制';
+
+  @override
+  String get inCallPillStopSharingSemanticLabel => '停止共享';
+
+  @override
+  String get screenShareUnsupported => '此设备不支持屏幕共享';
+
+  @override
+  String get screenShareEphemeralWarning => '共享期间截屏保护已关闭';
+
+  @override
+  String get screenShareNotificationTitle => '正在共享你的屏幕';
+
+  @override
+  String get screenShareNotificationBody => '通话中的所有人都能看到';
+
+  @override
+  String get screenShareNotificationStop => '停止';
+
+  @override
+  String screenShareSomeoneElsePresenting(String name) {
+    return '$name 已在共享';
+  }
+
+  @override
+  String get screenShareFailed => '无法开始共享';
+
+  @override
+  String get screenSharePickerTitle => '共享你的屏幕';
+
+  @override
+  String get screenSharePickerScreens => '屏幕';
+
+  @override
+  String get screenSharePickerWindows => '窗口';
+
+  @override
+  String get screenSharePickerEmpty => '暂时没有可共享的内容——请在系统设置中允许屏幕录制后重试';
 }

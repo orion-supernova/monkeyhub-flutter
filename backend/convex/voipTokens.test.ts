@@ -103,3 +103,66 @@ describe("voipTokens.gcStaleDevices", () => {
     expect(after.devices).toBe(before.devices - 1);
   });
 });
+
+describe("voipTokens.upsertDevice — one physical device, one account", () => {
+  test("registering a deviceId under a second user evicts the first user's row",
+    async () => {
+      const t = convexTest(schema);
+      const a = await signUp(t, "a-first");
+      const b = await signUp(t, "b-second");
+      await t.mutation(api.voipTokens.registerDevice, {
+        userId: a.userId,
+        sessionToken: a.token,
+        deviceId: "shared-phone",
+        platform: "ios",
+        deviceName: "iPhone",
+      });
+      await t.mutation(api.voipTokens.registerDevice, {
+        userId: b.userId,
+        sessionToken: b.token,
+        deviceId: "shared-phone",
+        platform: "ios",
+        deviceName: "iPhone",
+      });
+      const rows = await t.run(async (ctx) =>
+        ctx.db
+          .query("userDevices")
+          .withIndex("by_device", (q) => q.eq("deviceId", "shared-phone"))
+          .collect(),
+      );
+      expect(rows.map((r) => r.userId)).toEqual([b.userId]);
+    });
+
+  test("a user's OTHER devices are untouched by the eviction", async () => {
+    const t = convexTest(schema);
+    const a = await signUp(t, "a-two-devices");
+    const b = await signUp(t, "b-takes-one");
+    await t.mutation(api.voipTokens.registerDevice, {
+      userId: a.userId,
+      sessionToken: a.token,
+      deviceId: "phone",
+      platform: "ios",
+    });
+    await t.mutation(api.voipTokens.registerDevice, {
+      userId: a.userId,
+      sessionToken: a.token,
+      deviceId: "laptop",
+      platform: "macos",
+    });
+    await t.mutation(api.voipTokens.registerDevice, {
+      userId: b.userId,
+      sessionToken: b.token,
+      deviceId: "phone",
+      platform: "ios",
+    });
+    const aRows = await t.run(async (ctx) =>
+      ctx.db
+        .query("userDevices")
+        .withIndex("by_user", (q) => q.eq("userId", a.userId as any))
+        .collect(),
+    );
+    const aDevices = aRows.map((r) => r.deviceId);
+    expect(aDevices).toContain("laptop");
+    expect(aDevices).not.toContain("phone");
+  });
+});

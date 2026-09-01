@@ -35,10 +35,18 @@ class CallOptionsSheet extends StatelessWidget {
       animation: SettingsStore.instance,
       builder: (context, _) {
         final store = SettingsStore.instance;
-        return SafeArea(
-          child: Container(
-            decoration: theme.sheetDecoration(),
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        // The decoration reaches the bottom edge; the home-indicator inset
+        // is padding INSIDE it. A SafeArea outside the decorated box left a
+        // transparent band under the sheet.
+        return DecoratedBox(
+          decoration: theme.sheetDecoration(),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              16,
+              20,
+              20 + MediaQuery.paddingOf(context).bottom,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,

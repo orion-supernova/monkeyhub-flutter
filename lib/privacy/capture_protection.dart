@@ -39,8 +39,35 @@ class CaptureProtection extends ChangeNotifier {
 
   bool get userEnabled => _userEnabled;
 
+  /// Protection is lifted while this device is SHARING its screen — the
+  /// flag blanks our own outgoing capture as thoroughly as anyone else's.
+  /// Broadcasting the screen is the user's deliberate act, so for the
+  /// share's duration the window is unprotected, and the instant the share
+  /// ends it is protected again exactly as before. The preference and the
+  /// scopes are untouched underneath; only the resolution changes.
+  bool _suspended = false;
+  bool get suspended => _suspended;
+
   /// True when protection is currently active for any reason.
-  bool get active => _userEnabled || _scopeCount > 0;
+  bool get active => (_userEnabled || _scopeCount > 0) && !_suspended;
+
+  /// Whether a scope — an ephemeral room on screen — is what makes
+  /// protection active right now. The share flow warns about this one.
+  bool get scopeActive => _scopeCount > 0;
+
+  void suspend() {
+    if (_suspended) return;
+    _suspended = true;
+    _notifyDeferred();
+    unawaited(_reconcileNative());
+  }
+
+  void resume() {
+    if (!_suspended) return;
+    _suspended = false;
+    _notifyDeferred();
+    unawaited(_reconcileNative());
+  }
 
   /// iOS only — true while a screen recording or AirPlay mirror is active.
   /// Always false on Android (FLAG_SECURE pre-empts the need for it).

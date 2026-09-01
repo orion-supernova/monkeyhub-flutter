@@ -68,4 +68,8 @@ post_install do |installer|
   # Extensions' phase, and this script expects to find one rather than create a
   # second. Also takes no pods, for the same reason.
   load File.expand_path('../tool/setup_ios_notification_extension.rb', __dir__)
+
+  # The Broadcast Upload Extension a system-wide screen share needs — see
+  # tool/setup_ios_broadcast_extension.rb. Same shape as the two above.
+  load File.expand_path('../tool/setup_ios_broadcast_extension.rb', __dir__)
 end

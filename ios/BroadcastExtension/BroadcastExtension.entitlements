@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- The App Group whose container holds the socket the screen's frames
+	     travel through to the app. Must be enabled on THIS extension's own App
+	     ID (com.walhallaa.chatTest-20241220.BroadcastExtension) in the portal —
+	     see NotificationService.entitlements for the long version of that
+	     caveat; it applies here word for word. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.walhallaa.monkeyhub</string>
+	</array>
+</dict>
+</plist>

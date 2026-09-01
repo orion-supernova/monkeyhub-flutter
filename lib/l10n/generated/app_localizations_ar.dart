@@ -8317,4 +8317,100 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get messageActionMenuTranslateAgainLabel => 'أعد الترجمة';
+
+  @override
+  String get groupCallScreenShareLabel => 'مشاركة';
+
+  @override
+  String get groupCallScreenStopShareLabel => 'إيقاف المشاركة';
+
+  @override
+  String get groupCallScreenShareStartingLabel => 'جارٍ البدء…';
+
+  @override
+  String get groupCallScreenRingingLabel => 'يرن…';
+
+  @override
+  String groupCallScreenSharingBy(String name) {
+    return '$name يشارك شاشته';
+  }
+
+  @override
+  String get groupCallScreenYouAreSharing => 'أنت تشارك شاشتك';
+
+  @override
+  String get groupCallScreenMinimizeLabel => 'إخفاء';
+
+  @override
+  String get groupCallScreenDrawLabel => 'رسم';
+
+  @override
+  String get callScreenControlShare => 'مشاركة';
+
+  @override
+  String get callScreenControlStopShare => 'إيقاف';
+
+  @override
+  String get callScreenControlShareStarting => 'جارٍ البدء…';
+
+  @override
+  String get screenShareStopDrawing => 'إيقاف الرسم';
+
+  @override
+  String get callScreenControlDraw => 'رسم';
+
+  @override
+  String get callScreenControlMinimize => 'إخفاء';
+
+  @override
+  String get inCallPillOngoingCall => 'مكالمة جارية';
+
+  @override
+  String get inCallPillReturn => 'عودة';
+
+  @override
+  String get inCallPillSharing => 'أنت تشارك شاشتك';
+
+  @override
+  String get inCallPillDrawSemanticLabel => 'الرسم على الشاشة المشتركة';
+
+  @override
+  String get inCallPillStopSharingSemanticLabel => 'إيقاف المشاركة';
+
+  @override
+  String get screenShareUnsupported => 'مشاركة الشاشة غير متاحة على هذا الجهاز';
+
+  @override
+  String get screenShareEphemeralWarning =>
+      'حماية الالتقاط متوقفة أثناء المشاركة';
+
+  @override
+  String get screenShareNotificationTitle => 'مشاركة شاشتك';
+
+  @override
+  String get screenShareNotificationBody => 'يمكن للجميع في المكالمة رؤيتها';
+
+  @override
+  String get screenShareNotificationStop => 'إيقاف';
+
+  @override
+  String screenShareSomeoneElsePresenting(String name) {
+    return '$name يشارك بالفعل';
+  }
+
+  @override
+  String get screenShareFailed => 'تعذّر بدء المشاركة';
+
+  @override
+  String get screenSharePickerTitle => 'شارك شاشتك';
+
+  @override
+  String get screenSharePickerScreens => 'الشاشات';
+
+  @override
+  String get screenSharePickerWindows => 'النوافذ';
+
+  @override
+  String get screenSharePickerEmpty =>
+      'لا شيء للمشاركة بعد — اسمح بتسجيل الشاشة في إعدادات النظام وحاول مجددًا';
 }

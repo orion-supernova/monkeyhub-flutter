@@ -786,15 +786,25 @@ export const sendSignal = mutation({
 });
 
 export const signalsForUser = query({
-  args: { userId: v.id("users") },
-  handler: async (ctx, { userId }) => {
-    const rows = await ctx.db
+  // `deviceId`: the subscribing device. Signals a peer addressed to one
+  // specific device of this user (`targetDeviceId`, set from the roster's
+  // per-participant deviceId) are left out for every other device — a
+  // sibling that is not in the call used to receive them, drop them as
+  // "not my call" and mark them consumed, and since a subscription delivers
+  // the latest snapshot rather than a log, the device that WAS in the call
+  // could miss a round for good. Absent (an older client): unfiltered.
+  args: { userId: v.id("users"), deviceId: v.optional(v.string()) },
+  handler: async (ctx, { userId, deviceId }) => {
+    const all = await ctx.db
       .query("groupCallSignals")
       .withIndex("by_to_unconsumed", (q) =>
         q.eq("toUserId", userId).eq("consumed", false),
       )
       .order("asc")
       .take(64);
+    const rows = deviceId
+      ? all.filter((r) => !r.targetDeviceId || r.targetDeviceId === deviceId)
+      : all;
     return rows.map((r) => ({
       _id: r._id,
       groupCallId: r.groupCallId,

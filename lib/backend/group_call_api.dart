@@ -144,12 +144,16 @@ class GroupCallApi {
 
   Future<Subscription> subscribeSignals({
     required String userId,
+    /// This device's id. A signal addressed to another of this user's
+    /// devices (`targetDeviceId`) is then left out server-side — see the
+    /// query — so it can neither be acted on nor consumed here.
+    String? deviceId,
     required void Function(List<Map<String, dynamic>> signals) onSignals,
     void Function(Object error)? onError,
   }) {
     return _cv.subscribe(
       'groupCalls:signalsForUser',
-      {'userId': userId},
+      {'userId': userId, if (deviceId != null) 'deviceId': deviceId},
       onData: (raw) {
         final list = (raw as List?) ?? const [];
         onSignals(list
@@ -191,6 +195,19 @@ class GroupCallApi {
       },
       onError: onError,
     );
+  }
+
+  /// One-shot [subscribePendingInvite]: the invite the backend would ring
+  /// this user for right now, or null. `NativeCallHandler.replayColdStartCalls`
+  /// asks this of a native card it finds on resume, because the service's own
+  /// subscription may not have delivered yet in a process the push launched.
+  Future<Map<String, dynamic>?> pendingInviteOnce({
+    required String userId,
+  }) async {
+    final res =
+        await _cv.query('groupCalls:pendingInviteForUser', {'userId': userId});
+    if (res == null) return null;
+    return (res as Map).cast<String, dynamic>();
   }
 
   /// Live freshest ring-worthy group invite for this user.

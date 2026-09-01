@@ -18,6 +18,8 @@ import 'backend/server_endpoint.dart';
 import 'backend/server_store.dart';
 import 'backend/server_switch.dart';
 import 'calls/active_call_pill.dart';
+import 'calls/draw/screen_share_overlay.dart';
+import 'calls/in_call_pill.dart';
 import 'calls/call_models.dart';
 import 'calls/call_screen.dart';
 import 'calls/call_service.dart';
@@ -187,6 +189,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   late final ChatRepository _repo = ChatRepository(api: _api, cv: _cv);
   late final AuthService _auth = AuthService(_api);
   late final FamilyService _family = FamilyService.ensure(_api);
+  /// Whether a call screen is the top route — see [_CallOverlay.screenUp].
+  final ValueNotifier<bool> _callScreenUp = ValueNotifier<bool>(false);
+
   late final CallService _callService = CallService.ensure(_callApi);
   late final SignalingSubscriber _signaling = SignalingSubscriber(
     api: _callApi,
@@ -1751,21 +1756,38 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
                                               ActiveCallPill(
                                                 service: _callService,
                                               ),
+                                              // The way back into a call whose
+                                              // screen was put away; the pen
+                                              // over a shared screen.
+                                              InCallPill(
+                                                call: _callService,
+                                                group: _groupCallService,
+                                                callScreenUp: _callScreenUp,
+                                              ),
                                             ],
                                           ),
                                         ),
+                                      // Strokes over the app while THIS device
+                                      // shares its screen — above every route,
+                                      // inert unless the pen is armed.
+                                      ScreenShareOverlay(
+                                        call: _callService,
+                                        group: _groupCallService,
+                                      ),
                                       // Pushes call screens onto the root navigator the moment
                                       // the call service transitions to a non-idle state.
                                       // Invisible.
                                       _CallOverlay(
                                         service: _callService,
                                         api: _api,
+                                        screenUp: _callScreenUp,
                                       ),
                                       // Same job for group calls: pushes GroupCallScreen /
                                       // the group invite ringer. Invisible.
                                       _GroupCallOverlay(
                                         service: _groupCallService,
                                         api: _api,
+                                        screenUp: _callScreenUp,
                                       ),
                                       // Listens for a deliberate shake and OFFERS the report
                                       // screen. Invisible; mounted here only so the sensor
@@ -1952,9 +1974,17 @@ void _reconcileNavigatorForExpanded() {
 /// itself. A single _CallOverlay lives inside the MaterialApp.builder so it
 /// can navigate above whatever screen the user is currently on.
 class _CallOverlay extends StatefulWidget {
-  const _CallOverlay({required this.service, required this.api});
+  const _CallOverlay({
+    required this.service,
+    required this.api,
+    required this.screenUp,
+  });
   final CallService service;
   final ChatApi api;
+
+  /// Whether a call screen (1:1 or group) is the top route. Written by the
+  /// overlays that push them, read by the in-call pill.
+  final ValueNotifier<bool> screenUp;
   @override
   State<_CallOverlay> createState() => _CallOverlayState();
 }
@@ -1974,12 +2004,22 @@ class _CallOverlayState extends State<_CallOverlay> {
   void initState() {
     super.initState();
     widget.service.addListener(_onChanged);
+    widget.service.reopenTick.addListener(_reopen);
   }
 
   @override
   void dispose() {
     widget.service.removeListener(_onChanged);
+    widget.service.reopenTick.removeListener(_reopen);
     super.dispose();
+  }
+
+  /// The in-call pill asked for the screen back: forget that it was
+  /// pushed, and let the normal routing push it again.
+  void _reopen() {
+    if (widget.screenUp.value) return;
+    _activeCallId = null;
+    _onChanged();
   }
 
   /// Whether this platform rings via the NATIVE UI (CallKit /
@@ -2079,14 +2119,17 @@ class _CallOverlayState extends State<_CallOverlay> {
       final nav = rootNavigatorKey.currentState;
       if (nav == null) return;
       if (goCallScreen) {
-        nav.push(
-          MaterialPageRoute(
-            fullscreenDialog: true,
-            settings: const RouteSettings(name: kProtectedRouteName),
-            builder: (_) =>
-                CallScreen(service: widget.service, api: widget.api),
-          ),
-        );
+        widget.screenUp.value = true;
+        nav
+            .push(
+              MaterialPageRoute(
+                fullscreenDialog: true,
+                settings: const RouteSettings(name: kProtectedRouteName),
+                builder: (_) =>
+                    CallScreen(service: widget.service, api: widget.api),
+              ),
+            )
+            .whenComplete(() => widget.screenUp.value = false);
       } else {
         nav.push(
           MaterialPageRoute(
@@ -2312,9 +2355,16 @@ class _BootError extends StatelessWidget {
 /// [IncomingGroupCallScreen] while a fresh invite is pending. Renders
 /// nothing itself — same pattern as [_CallOverlay] above.
 class _GroupCallOverlay extends StatefulWidget {
-  const _GroupCallOverlay({required this.service, required this.api});
+  const _GroupCallOverlay({
+    required this.service,
+    required this.api,
+    required this.screenUp,
+  });
   final GroupCallService service;
   final ChatApi api;
+
+  /// See [_CallOverlay.screenUp].
+  final ValueNotifier<bool> screenUp;
   @override
   State<_GroupCallOverlay> createState() => _GroupCallOverlayState();
 }
@@ -2342,12 +2392,21 @@ class _GroupCallOverlayState extends State<_GroupCallOverlay> {
   void initState() {
     super.initState();
     widget.service.addListener(_onChanged);
+    widget.service.reopenTick.addListener(_reopen);
   }
 
   @override
   void dispose() {
     widget.service.removeListener(_onChanged);
+    widget.service.reopenTick.removeListener(_reopen);
     super.dispose();
+  }
+
+  /// The in-call pill asked for the screen back.
+  void _reopen() {
+    if (widget.screenUp.value) return;
+    _pushedCallId = null;
+    _onChanged();
   }
 
   void _onChanged() {
@@ -2361,14 +2420,17 @@ class _GroupCallOverlayState extends State<_GroupCallOverlay> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final nav = rootNavigatorKey.currentState;
         if (nav == null) return;
-        nav.push(
-          MaterialPageRoute(
-            fullscreenDialog: true,
-            settings: const RouteSettings(name: kProtectedRouteName),
-            builder: (_) =>
-                GroupCallScreen(service: widget.service, api: widget.api),
-          ),
-        );
+        widget.screenUp.value = true;
+        nav
+            .push(
+              MaterialPageRoute(
+                fullscreenDialog: true,
+                settings: const RouteSettings(name: kProtectedRouteName),
+                builder: (_) =>
+                    GroupCallScreen(service: widget.service, api: widget.api),
+              ),
+            )
+            .whenComplete(() => widget.screenUp.value = false);
       });
       return;
     }

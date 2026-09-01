@@ -42,6 +42,8 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSScreenCaptureUsageDescription</key>
+	<string>MonkeyHub shares your screen with the people on your call when you ask it to.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>This app requires access to your camera.</string>
 	<key>NSMicrophoneUsageDescription</key>

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,13 +9,21 @@ import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
+import '../privacy/capture_protection.dart';
+import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_sheet.dart';
-import '../widgets/user_avatar.dart';
+import '../widgets/app_toast.dart';
+import 'call_media.dart';
 import 'call_models.dart';
 import 'call_options_sheet.dart';
 import 'call_service.dart';
 import 'call_stats_monitor.dart';
+import 'draw/draw_canvas.dart';
+import 'draw/draw_model.dart';
+import 'screen_share.dart';
+import 'share_picker_sheet.dart';
+import 'widgets/call_chrome.dart';
 
 /// Full-screen UI for the active call. Listens to [CallService] and pops
 /// itself once the session transitions to a terminal state.
@@ -28,17 +35,29 @@ class CallScreen extends StatefulWidget {
   /// gradient + initial when absent.
   final ChatApi? api;
 
+  /// Seam for tests: the renderer behind every video view. The real one
+  /// needs the plugin's texture channel, which a widget test does not have.
+  @visibleForTesting
+  static RTCVideoRenderer Function() rendererFactory = RTCVideoRenderer.new;
+
   @override
   State<CallScreen> createState() => _CallScreenState();
 }
 
 class _CallScreenState extends State<CallScreen> {
-  final _localRenderer = RTCVideoRenderer();
-  final _remoteRenderer = RTCVideoRenderer();
+  final _localRenderer = CallScreen.rendererFactory();
+  final _remoteRenderer = CallScreen.rendererFactory();
+  final _remoteScreenRenderer = CallScreen.rendererFactory();
+  final _localScreenRenderer = CallScreen.rendererFactory();
   bool _renderersReady = false;
-  // Voice calls never touch the renderers — no GPU textures allocated and
-  // nothing to dispose. A call's media kind can't change mid-call.
+  // A voice call touches no renderer — no GPU textures allocated, nothing to
+  // dispose — until the first video appears on it: a camera coming on, a
+  // screen shared. Then the renderers are set up, once, and kept.
   bool _renderersUsed = false;
+  bool _settingUp = false;
+  int _boundRemoteScreenTick = -1;
+  int _boundLocalScreenTick = -1;
+  bool _shareSupported = false;
   // Mirrors CallService.remoteStreamTick — we re-bind the remote renderer
   // whenever the tick advances, even if the stream reference is unchanged,
   // because audio + video tracks arrive as separate onTrack events on the
@@ -69,17 +88,43 @@ class _CallScreenState extends State<CallScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.service.session?.mediaKind == CallMediaKind.video) {
-      _renderersUsed = true;
-      _setupRenderers();
+    if (widget.service.session?.mediaKind == CallMediaKind.video ||
+        _anyVideo) {
+      _ensureRenderers();
     }
     widget.service.addListener(_onChanged);
+    widget.service.drawArmed.addListener(_onChanged);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    unawaited(ScreenShare.supported().then((ok) {
+      if (mounted && ok != _shareSupported) setState(() => _shareSupported = ok);
+    }));
+  }
+
+  /// Whether there is anything to render — ours or theirs, camera or screen.
+  bool get _anyVideo {
+    final svc = widget.service;
+    return svc.hasAnyVideo ||
+        svc.remoteScreenStream != null ||
+        svc.localScreenSharing;
+  }
+
+  void _ensureRenderers() {
+    if (_renderersUsed || _settingUp) return;
+    _settingUp = true;
+    _renderersUsed = true;
+    unawaited(_setupRenderers());
   }
 
   Future<void> _setupRenderers() async {
-    await _localRenderer.initialize();
-    await _remoteRenderer.initialize();
+    try {
+      await _localRenderer.initialize();
+      await _remoteRenderer.initialize();
+      await _remoteScreenRenderer.initialize();
+      await _localScreenRenderer.initialize();
+    } catch (e) {
+      debugPrint('CallScreen: renderer init failed: $e');
+    }
+    _settingUp = false;
     if (!mounted) return;
     _renderersReady = true;
     _syncStreams();
@@ -99,12 +144,26 @@ class _CallScreenState extends State<CallScreen> {
       _remoteRenderer.srcObject = svc.remoteStream;
       _boundRemoteTick = svc.remoteStreamTick;
     }
+    if (_remoteScreenRenderer.srcObject != svc.remoteScreenStream ||
+        _boundRemoteScreenTick != svc.remoteScreenStreamTick) {
+      _remoteScreenRenderer.srcObject = svc.remoteScreenStream;
+      _boundRemoteScreenTick = svc.remoteScreenStreamTick;
+    }
+    // Our own share, previewed only where the preview is not a mirror
+    // tunnel — a desktop window, not the whole phone screen.
+    final ownScreen =
+        svc.localScreenSharing && !isMobileCallPlatform ? svc.screenStream : null;
+    if (_localScreenRenderer.srcObject != ownScreen ||
+        _boundLocalScreenTick != svc.localScreenStreamTick) {
+      _localScreenRenderer.srcObject = ownScreen;
+      _boundLocalScreenTick = svc.localScreenStreamTick;
+    }
   }
 
   int _buildKey() {
     final svc = widget.service;
     final s = svc.session;
-    return Object.hash(
+    return Object.hashAll([
       s?.callId,
       s?.status,
       s?.peerName,
@@ -115,14 +174,23 @@ class _CallScreenState extends State<CallScreen> {
       s?.reconnecting,
       s?.peerState.audioMuted,
       s?.peerState.videoOff,
+      s?.peerState.screenSharing,
+      s?.localScreenSharing,
       s?.errorMessage,
       svc.localStream,
+      svc.localStreamTick,
+      svc.localCamActive,
       svc.remoteStream,
       svc.remoteStreamTick,
+      svc.remoteScreenStream,
+      svc.remoteScreenStreamTick,
+      svc.localScreenStreamTick,
+      svc.drawArmed.value,
       _renderersReady,
       _pipIsLocal,
       _controlsVisible,
-    );
+      _shareSupported,
+    ]);
   }
 
   /// Both feeds are up: the remote video is actually on screen (as opposed
@@ -130,10 +198,21 @@ class _CallScreenState extends State<CallScreen> {
   /// the only state where a PiP tile — and therefore a swap target — exists.
   bool _remoteVisible(CallSession? s) {
     final svc = widget.service;
+    final rs = svc.remoteStream;
     return s != null &&
-        s.mediaKind == CallMediaKind.video &&
-        svc.remoteStream != null &&
-        !s.peerState.videoOff;
+        rs != null &&
+        rs.getVideoTracks().isNotEmpty &&
+        !s.peerState.videoOff &&
+        _renderersReady;
+  }
+
+  /// The peer's screen is on the way in and has a picture.
+  bool _remoteScreenVisible(CallSession? s) {
+    final svc = widget.service;
+    return s != null &&
+        s.peerState.screenSharing &&
+        svc.remoteScreenStream != null &&
+        _renderersReady;
   }
 
   void _swapPip() {
@@ -146,14 +225,25 @@ class _CallScreenState extends State<CallScreen> {
     setState(() => _controlsVisible = !_controlsVisible);
   }
 
+  /// A flick down puts the chrome away and a flick up brings it back — the
+  /// gesture people reach for on a full-screen picture, beside the tap.
+  void _onVerticalSwipe(DragEndDetails d) {
+    final v = d.primaryVelocity ?? 0;
+    if (v.abs() < 300) return;
+    final show = v < 0;
+    if (!mounted || show == _controlsVisible) return;
+    setState(() => _controlsVisible = show);
+  }
+
   void _onChanged() {
     if (!mounted) return;
     final s = widget.service.session;
+    if (_anyVideo) _ensureRenderers();
     _syncStreams();
     // A swap only makes sense while both feeds are on screen. If the peer's
     // video drops or the user turns their own camera off, un-swap so no one
     // gets stuck staring at a frozen/disabled feed full-screen.
-    if (_pipIsLocal && (!_remoteVisible(s) || (s?.localVideoOff ?? false))) {
+    if (_pipIsLocal && (!_remoteVisible(s) || !widget.service.localCamActive)) {
       _pipIsLocal = false;
     }
     if (s == null ||
@@ -184,14 +274,66 @@ class _CallScreenState extends State<CallScreen> {
   @override
   void dispose() {
     widget.service.removeListener(_onChanged);
+    widget.service.drawArmed.removeListener(_onChanged);
     if (_renderersUsed) {
       _localRenderer.srcObject = null;
       _remoteRenderer.srcObject = null;
+      _remoteScreenRenderer.srcObject = null;
+      _localScreenRenderer.srcObject = null;
       _localRenderer.dispose();
       _remoteRenderer.dispose();
+      _remoteScreenRenderer.dispose();
+      _localScreenRenderer.dispose();
     }
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
+  }
+
+  void _hide() {
+    final nav = Navigator.of(context);
+    if (nav.canPop()) nav.pop();
+  }
+
+  Future<void> _onShareTap() async {
+    final svc = widget.service;
+    final s = svc.session;
+    if (s == null) return;
+    final l10n = AppLocalizations.of(context);
+    final toast = AppToast.of(context);
+    if (svc.localScreenSharing) {
+      await svc.stopScreenShare();
+      return;
+    }
+    if (s.peerState.screenSharing) {
+      toast.show(l10n.screenShareSomeoneElsePresenting(s.peerName));
+      return;
+    }
+    if (!_shareSupported) {
+      toast.show(l10n.screenShareUnsupported);
+      return;
+    }
+    ScreenShareSource? source;
+    if (!isMobileCallPlatform) {
+      source = await showSharePickerSheet(context);
+      if (source == null || !mounted) return;
+    }
+    final protectedRoom = CaptureProtection.instance.scopeActive;
+    try {
+      await svc.startScreenShare(
+        source: source,
+        notification: (
+          title: l10n.screenShareNotificationTitle,
+          body: l10n.screenShareNotificationBody,
+          stop: l10n.screenShareNotificationStop,
+        ),
+      );
+    } catch (e) {
+      toast.show(l10n.screenShareFailed, tone: ToastTone.danger);
+      return;
+    }
+    if (svc.localScreenSharing && protectedRoom) {
+      toast.show(l10n.screenShareEphemeralWarning);
+    }
   }
 
   /// "Video call" / "Voice call" — prefixed to pre-active statuses so the
@@ -235,7 +377,7 @@ class _CallScreenState extends State<CallScreen> {
   Widget _statusWidget(CallSession s, TextStyle style) {
     final start = s.connectedAt ?? s.startedAt;
     if (s.status == CallStatus.active && start != null) {
-      return _ElapsedLabel(start: start, style: style);
+      return ElapsedLabel(start: start, style: style);
     }
     return Text(_statusLabel(s), style: style);
   }
@@ -249,6 +391,90 @@ class _CallScreenState extends State<CallScreen> {
     avatarStorageId: s.peerAvatarStorageId,
   );
 
+  /// The tray's controls, in the order they keep the first row: the
+  /// everyday toggles first, the occasional ones last. The speaker toggle
+  /// is ALWAYS present (video defaults to loudspeaker, voice to earpiece,
+  /// both switchable).
+  List<CallTrayAction> _trayActions(
+    AppLocalizations l10n,
+    CallSession s,
+    CallService svc, {
+    required bool stage,
+    required bool ownScreen,
+  }) {
+    final pending = svc.screenSharePending;
+    return [
+      CallTrayAction(
+        icon: s.localMuted ? Icons.mic_off : Icons.mic,
+        active: s.localMuted,
+        onTap: widget.service.toggleMute,
+        label: s.localMuted
+            ? l10n.callScreenControlUnmute
+            : l10n.callScreenControlMute,
+      ),
+      CallTrayAction(
+        icon: svc.localCamActive ? Icons.videocam : Icons.videocam_off,
+        active: !svc.localCamActive,
+        onTap: () => unawaited(widget.service.toggleVideo()),
+        label: svc.localCamActive
+            ? l10n.callScreenControlCamOff
+            : l10n.callScreenControlCamOn,
+      ),
+      CallTrayAction(
+        icon: s.speakerOn ? Icons.volume_up : Icons.phone_in_talk,
+        active: s.speakerOn,
+        onTap: widget.service.toggleSpeaker,
+        label: l10n.callScreenControlSpeaker,
+      ),
+      if (_shareSupported)
+        CallTrayAction(
+          icon: ownScreen
+              ? Icons.stop_screen_share_outlined
+              : Icons.screen_share_outlined,
+          active: ownScreen,
+          // Disabled while the peer holds the stage, and while our own
+          // share is being set up (the picker, the countdown) — a second
+          // tap then would start a second capture.
+          enabled: ownScreen || (!s.peerState.screenSharing && !pending),
+          onTap: () => unawaited(_onShareTap()),
+          label: ownScreen
+              ? l10n.callScreenControlStopShare
+              : pending
+                  ? l10n.callScreenControlShareStarting
+                  : l10n.callScreenControlShare,
+        ),
+      if (stage)
+        CallTrayAction(
+          icon: Icons.draw_outlined,
+          active: svc.drawArmed.value,
+          onTap: () => svc.drawArmed.value = !svc.drawArmed.value,
+          label: l10n.callScreenControlDraw,
+        ),
+      if (svc.localCamActive && isMobileCallPlatform)
+        CallTrayAction(
+          icon: Icons.cameraswitch_outlined,
+          onTap: widget.service.switchCamera,
+          label: l10n.callScreenControlFlip,
+        ),
+      CallTrayAction(
+        icon: Icons.tune,
+        onTap: () => showAdaptiveSheet(
+          context,
+          builder: (_) => CallOptionsSheet(
+            service: widget.service,
+            showVideoQuality: svc.localCamActive,
+          ),
+        ),
+        label: l10n.callScreenControlOptions,
+      ),
+      CallTrayAction(
+        icon: Icons.keyboard_arrow_down_rounded,
+        onTap: _hide,
+        label: l10n.callScreenControlMinimize,
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -259,17 +485,38 @@ class _CallScreenState extends State<CallScreen> {
         body: SizedBox.expand(),
       );
     }
-    final isVideo = s.mediaKind == CallMediaKind.video;
+    final svc = widget.service;
     final remoteVisible = _remoteVisible(s);
+    final remoteScreenVisible = _remoteScreenVisible(s);
+    final ownScreen = svc.localScreenSharing;
+    final stage = remoteScreenVisible || ownScreen;
     // WhatsApp-style pre-answer/pre-connect view for video calls: your own
     // camera fills the screen until the peer's video arrives (then the
     // local view shrinks into the PiP tile).
     final localFullscreen =
-        isVideo &&
+        !stage &&
         !remoteVisible &&
-        !s.localVideoOff &&
-        widget.service.localStream != null &&
+        svc.localCamActive &&
+        svc.localStream != null &&
         _renderersReady;
+    // Anything on screen that is not the voice backdrop: the top overlay and
+    // the tap-to-hide chrome apply.
+    final isVideo = stage || remoteVisible || localFullscreen;
+    final myInk = drawColorFor(svc.userId ?? 'me', theme);
+    final l10n = AppLocalizations.of(context);
+    final trayActions = _trayActions(
+      l10n,
+      s,
+      svc,
+      stage: stage,
+      ownScreen: ownScreen,
+    );
+    // What the tray covers, so the voice backdrop and the stage caption
+    // keep clear of it however many rows it needs.
+    final trayInset = CallTray.estimateHeight(
+      actionCount: trayActions.length,
+      width: MediaQuery.sizeOf(context).width,
+    );
 
     return PopScope(
       canPop: false,
@@ -278,6 +525,7 @@ class _CallScreenState extends State<CallScreen> {
         body: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: _toggleControls,
+          onVerticalDragEnd: _onVerticalSwipe,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -285,7 +533,20 @@ class _CallScreenState extends State<CallScreen> {
               // handler here on purpose — a tap on this area falls through to
               // the outer GestureDetector's show/hide toggle. Only the small
               // PiP tile below is the swap target.
-              if (remoteVisible)
+              if (stage)
+                _ShareStage(
+                  service: svc,
+                  session: s,
+                  remoteRenderer: _remoteScreenRenderer,
+                  localRenderer: _localScreenRenderer,
+                  ink: myInk,
+                  theme: theme,
+                  // Under the name and status block at the top; the tray
+                  // is where it used to sit, and with two rows of controls
+                  // that put the caption in the middle of the picture.
+                  topInset: MediaQuery.paddingOf(context).top + 76,
+                )
+              else if (remoteVisible)
                 RTCVideoView(
                   _pipIsLocal ? _localRenderer : _remoteRenderer,
                   mirror: _pipIsLocal,
@@ -307,7 +568,7 @@ class _CallScreenState extends State<CallScreen> {
                   ),
                 ),
               ] else
-                _AudioBackdrop(
+                AudioBackdrop(
                   name: s.peerName,
                   status: _statusWidget(
                     s,
@@ -319,6 +580,7 @@ class _CallScreenState extends State<CallScreen> {
                   theme: theme,
                   user: _peerAsUser(s),
                   api: widget.api,
+                  bottomInset: trayInset,
                 ),
 
               // Top scrim so the name/status stay legible over video.
@@ -347,7 +609,25 @@ class _CallScreenState extends State<CallScreen> {
               // Local PiP — only once the remote video is on screen (before
               // that the local camera IS the fullscreen view). Tapping it
               // swaps which feed is full-bleed vs. tiled.
-              if (isVideo && !s.localVideoOff && remoteVisible)
+              if (stage && remoteVisible)
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 16,
+                  right: svc.localCamActive ? 132 : 16,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(theme.radiusMd),
+                    child: Container(
+                      width: 100,
+                      height: 140,
+                      color: Colors.black,
+                      child: RTCVideoView(
+                        _remoteRenderer,
+                        objectFit:
+                            RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                      ),
+                    ),
+                  ),
+                ),
+              if (svc.localCamActive && (remoteVisible || stage))
                 Positioned(
                   top: MediaQuery.of(context).padding.top + 16,
                   right: 16,
@@ -368,8 +648,10 @@ class _CallScreenState extends State<CallScreen> {
                           height: 140,
                           color: Colors.black,
                           child: RTCVideoView(
-                            _pipIsLocal ? _remoteRenderer : _localRenderer,
-                            mirror: !_pipIsLocal,
+                            _pipIsLocal && !stage
+                                ? _remoteRenderer
+                                : _localRenderer,
+                            mirror: !_pipIsLocal || stage,
                             objectFit: RTCVideoViewObjectFit
                                 .RTCVideoViewObjectFitCover,
                           ),
@@ -386,7 +668,7 @@ class _CallScreenState extends State<CallScreen> {
                   top: MediaQuery.of(context).padding.top + 18,
                   left: 24,
                   right: 132,
-                  child: _ControlsFade(
+                  child: ControlsFade(
                     visible: _controlsVisible,
                     slide: const Offset(0, -0.3),
                     child: Column(
@@ -434,16 +716,16 @@ class _CallScreenState extends State<CallScreen> {
                 top: MediaQuery.of(context).padding.top + 80,
                 left: 0,
                 right: 0,
-                child: _ControlsFade(
+                child: ControlsFade(
                   visible: _controlsVisible,
                   child: s.status == CallStatus.switching
-                      ? _OverlayChip(
+                      ? OverlayChip(
                           label: AppLocalizations.of(
                             context,
                           ).callScreenStatusSwitching,
                         )
                       : s.reconnecting
-                      ? _OverlayChip(
+                      ? OverlayChip(
                           label: AppLocalizations.of(
                             context,
                           ).callScreenStatusReconnecting,
@@ -463,12 +745,12 @@ class _CallScreenState extends State<CallScreen> {
                                 // toggle: full numeric panel regardless of
                                 // quality tier, not just when degraded.
                                 if (showStats) {
-                                  return _NetworkStatsPanel(snapshot: q);
+                                  return NetworkStatsPanel(snapshot: q);
                                 }
                                 if (q.quality == CallQuality.good) {
                                   return const SizedBox.shrink();
                                 }
-                                return _OverlayChip(
+                                return OverlayChip(
                                   label: q.quality == CallQuality.poor
                                       ? AppLocalizations.of(
                                           context,
@@ -486,152 +768,28 @@ class _CallScreenState extends State<CallScreen> {
                 ),
               ),
 
-              // Bottom controls, two tiers (WhatsApp/FaceTime-style) instead
-              // of one crowded row: a glass toolbar for the everyday
-              // toggles, and the end-call button standing alone beneath it
-              // as the one unmistakably "primary" action. The speaker
-              // toggle is ALWAYS present (video defaults to loudspeaker,
-              // voice to earpiece, both switchable).
+              // Bottom controls: the shared tray — a glass capsule of
+              // fixed-size toggles that wraps onto a second row rather than
+              // squeezing, and the end-call button standing alone beneath
+              // it as the one unmistakably "primary" action. See CallTray
+              // for the layout rules; _trayActions for the order.
               Positioned(
                 left: 0,
                 right: 0,
                 bottom: 0,
-                child: _ControlsFade(
+                child: ControlsFade(
                   visible: _controlsVisible,
                   slide: const Offset(0, 0.3),
                   child: SafeArea(
                     top: false,
-                    // Capped and centered so the tray reads as one grouped
-                    // control on a wide desktop window instead of stretching
-                    // edge to edge — on a phone this ceiling is never reached,
-                    // so nothing changes there.
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 420),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(30),
-                                child: BackdropFilter(
-                                  filter: ImageFilter.blur(
-                                    sigmaX: 20,
-                                    sigmaY: 20,
-                                  ),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 14,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.10,
-                                      ),
-                                      borderRadius: BorderRadius.circular(30),
-                                      border: Border.all(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.12,
-                                        ),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: _ControlButton(
-                                            icon: s.localMuted
-                                                ? Icons.mic_off
-                                                : Icons.mic,
-                                            active: s.localMuted,
-                                            onTap: widget.service.toggleMute,
-                                            label: s.localMuted
-                                                ? AppLocalizations.of(
-                                                    context,
-                                                  ).callScreenControlUnmute
-                                                : AppLocalizations.of(
-                                                    context,
-                                                  ).callScreenControlMute,
-                                          ),
-                                        ),
-                                        if (isVideo)
-                                          Expanded(
-                                            child: _ControlButton(
-                                              icon: s.localVideoOff
-                                                  ? Icons.videocam_off
-                                                  : Icons.videocam,
-                                              active: s.localVideoOff,
-                                              onTap: widget.service.toggleVideo,
-                                              label: s.localVideoOff
-                                                  ? AppLocalizations.of(
-                                                      context,
-                                                    ).callScreenControlCamOn
-                                                  : AppLocalizations.of(
-                                                      context,
-                                                    ).callScreenControlCamOff,
-                                            ),
-                                          ),
-                                        if (isVideo)
-                                          Expanded(
-                                            child: _ControlButton(
-                                              icon: Icons.cameraswitch_outlined,
-                                              onTap:
-                                                  widget.service.switchCamera,
-                                              label: AppLocalizations.of(
-                                                context,
-                                              ).callScreenControlFlip,
-                                              enabled: !s.localVideoOff,
-                                            ),
-                                          ),
-                                        Expanded(
-                                          child: _ControlButton(
-                                            icon: s.speakerOn
-                                                ? Icons.volume_up
-                                                : Icons.phone_in_talk,
-                                            active: s.speakerOn,
-                                            onTap: widget.service.toggleSpeaker,
-                                            label: AppLocalizations.of(
-                                              context,
-                                            ).callScreenControlSpeaker,
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: _ControlButton(
-                                            icon: Icons.tune,
-                                            onTap: () => showAdaptiveSheet(
-                                              context,
-                                              builder: (_) => CallOptionsSheet(
-                                                service: widget.service,
-                                                showVideoQuality: isVideo,
-                                              ),
-                                            ),
-                                            label: AppLocalizations.of(
-                                              context,
-                                            ).callScreenControlOptions,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 18),
-                              // The hero action: alone on its own row so it
-                              // never competes for space with the toggles above
-                              // it, at a size that reads as unmistakably primary.
-                              _ControlButton(
-                                icon: Icons.call_end,
-                                background: theme.danger,
-                                iconColor: Colors.white,
-                                large: true,
-                                onTap: () => widget.service.endCall(),
-                                label: AppLocalizations.of(
-                                  context,
-                                ).callScreenControlEnd,
-                              ),
-                            ],
-                          ),
-                        ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: CallTray(
+                        actions: trayActions,
+                        endIcon: Icons.call_end,
+                        endLabel: l10n.callScreenControlEnd,
+                        endColor: theme.danger,
+                        onEnd: () => widget.service.endCall(),
                       ),
                     ),
                   ),
@@ -645,525 +803,102 @@ class _CallScreenState extends State<CallScreen> {
   }
 }
 
-/// Fades (and optionally slides) an overlay region for the call screen's
-/// tap-to-hide-controls gesture. [IgnorePointer] while hidden so faded-out
-/// chrome can't be tapped through mid-animation or while fully hidden.
-class _ControlsFade extends StatelessWidget {
-  const _ControlsFade({required this.visible, required this.child, this.slide});
-
-  final bool visible;
-  final Widget child;
-
-  /// Fractional offset (of the child's own size) to slide toward when
-  /// hidden — e.g. (0, -0.3) drifts upward as it fades out.
-  final Offset? slide;
-
-  static const _duration = Duration(milliseconds: 220);
-  static const _curve = Curves.easeOutCubic;
-
-  @override
-  Widget build(BuildContext context) {
-    Widget result = AnimatedOpacity(
-      opacity: visible ? 1 : 0,
-      duration: _duration,
-      curve: _curve,
-      child: child,
-    );
-    if (slide != null) {
-      result = AnimatedSlide(
-        offset: visible ? Offset.zero : slide!,
-        duration: _duration,
-        curve: _curve,
-        child: result,
-      );
-    }
-    return IgnorePointer(ignoring: !visible, child: result);
-  }
-}
-
-class _AudioBackdrop extends StatefulWidget {
-  const _AudioBackdrop({
-    required this.name,
-    required this.status,
+/// A shared screen on a 1:1 call — the peer's, with the drawing layer over
+/// it, or our own (a live preview on a desktop; on a phone a placeholder,
+/// because a screen showing itself showing itself is a tunnel).
+class _ShareStage extends StatelessWidget {
+  const _ShareStage({
+    required this.service,
+    required this.session,
+    required this.remoteRenderer,
+    required this.localRenderer,
+    required this.ink,
     required this.theme,
-    required this.user,
-    this.api,
-    this.peerMuted = false,
-  });
-  final String name;
-  final Widget status;
-  final bool peerMuted;
-  final dynamic theme;
-  final ChatUser user;
-  final ChatApi? api;
-
-  @override
-  State<_AudioBackdrop> createState() => _AudioBackdropState();
-}
-
-class _AudioBackdropState extends State<_AudioBackdrop>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _pulse = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 2600),
-  )..repeat();
-
-  @override
-  void dispose() {
-    _pulse.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = widget.theme;
-    final accent = theme.accent as Color;
-    return Container(
-      decoration: BoxDecoration(
-        // Soft ambient wash centered just behind the avatar; the focal glow
-        // is the avatar's own boxShadow so the two always line up.
-        gradient: RadialGradient(
-          center: const Alignment(0, -0.2),
-          radius: 1.0,
-          colors: [accent.withValues(alpha: 0.32), Colors.black],
-          stops: const [0.0, 0.85],
-        ),
-      ),
-      child: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Avatar + concentric pulse rings.
-              SizedBox(
-                width: 260,
-                height: 260,
-                child: AnimatedBuilder(
-                  animation: _pulse,
-                  builder: (context, child) {
-                    return Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        for (final phase in const [0.0, 0.5])
-                          _pulseRing(accent, (_pulse.value + phase) % 1.0),
-                        child!,
-                      ],
-                    );
-                  },
-                  child: Container(
-                    width: 132,
-                    height: 132,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.28),
-                        width: 1,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: accent.withValues(alpha: 0.45),
-                          blurRadius: 40,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    // Real avatar photo when available; per-user gradient +
-                    // initial otherwise (UserAvatar handles both).
-                    child: UserAvatar(
-                      user: widget.user,
-                      api: widget.api,
-                      size: 130,
-                      showStatus: false,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 28),
-              Text(
-                widget.name,
-                style: theme.displayMedium.copyWith(color: Colors.white),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (widget.peerMuted) ...[
-                    const Icon(Icons.mic_off, size: 14, color: Colors.white70),
-                    const SizedBox(width: 8),
-                  ],
-                  widget.status,
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _pulseRing(Color accent, double t) {
-    final size = 132.0 + t * 120.0;
-    return Opacity(
-      opacity: (1.0 - t) * 0.35,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: accent.withValues(alpha: 0.6), width: 1.5),
-        ),
-      ),
-    );
-  }
-}
-
-class _ControlButton extends StatelessWidget {
-  const _ControlButton({
-    required this.icon,
-    required this.onTap,
-    required this.label,
-    this.active = false,
-    this.background,
-    this.iconColor,
-    this.large = false,
-    this.enabled = true,
+    required this.topInset,
   });
 
-  final IconData icon;
-  final VoidCallback onTap;
-  final String label;
-  final bool active;
-  final Color? background;
-  final Color? iconColor;
-  final bool large;
-  final bool enabled;
+  final CallService service;
+  final CallSession session;
+  final RTCVideoRenderer remoteRenderer;
+  final RTCVideoRenderer localRenderer;
+  final Color ink;
+  final AppTheme theme;
+
+  /// Where the caption pill sits — below the top overlay.
+  final double topInset;
 
   @override
   Widget build(BuildContext context) {
-    // Sized from whatever width the Row's Expanded slot actually gives us —
-    // never exceeding today's diameter, never shrinking below a usable
-    // floor — so a narrow phone or a large accessibility text scale can
-    // never overflow the tray (see call_screen control-row layout).
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // The end-call button (large: true) now sits alone on its own row
-        // (see the control-bar layout in call_screen's build()), so it gets
-        // a bigger ceiling/floor than the toolbar row's shared-width toggles.
-        final maxDiameter = large ? 72.0 : 56.0;
-        final minDiameter = large ? 56.0 : 40.0;
-        final size = constraints.maxWidth.isFinite
-            ? constraints.maxWidth.clamp(minDiameter, maxDiameter).toDouble()
-            : maxDiameter;
-        final iconSize = size * (large ? 32 / 72 : 24 / 56);
-        final labelScaler = MediaQuery.textScalerOf(
-          context,
-        ).clamp(maxScaleFactor: 1.3);
-        if (!enabled) {
-          // Unavailable control (e.g. flip while the camera is off):
-          // dimmed and non-tappable.
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Material(
-                color: Colors.white.withValues(alpha: 0.08),
-                shape: const CircleBorder(),
-                child: SizedBox(
-                  width: size,
-                  height: size,
-                  child: Icon(
-                    icon,
-                    color: Colors.white.withValues(alpha: 0.30),
-                    size: iconSize,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                textScaler: labelScaler,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.30),
-                  fontSize: 10,
-                ),
-              ),
-            ],
-          );
-        }
-        final bg =
-            background ??
-            (active
-                ? Colors.white.withValues(alpha: 0.95)
-                : Colors.white.withValues(alpha: 0.18));
-        final fg = iconColor ?? (active ? Colors.black : Colors.white);
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            FocusableTap(
-              onTap: onTap,
-              semanticLabel: label,
-              shape: FocusRingShape.circle,
-              // FocusableTap adds keyboard focus/activation only — the
-              // child GestureDetector is what makes this tappable.
-              child: GestureDetector(
-                onTap: onTap,
-                child: Container(
-                  width: size,
-                  height: size,
-                  decoration: BoxDecoration(
-                    color: bg,
-                    shape: BoxShape.circle,
-                    // Only the standalone hero button (end call) needs to
-                    // read as "floating" above the video — the toolbar row's
-                    // buttons already sit inside their own glass tray.
-                    boxShadow: large
-                        ? [
-                            BoxShadow(
-                              color: bg.withValues(alpha: 0.45),
-                              blurRadius: 20,
-                              spreadRadius: 1,
-                              offset: const Offset(0, 8),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Icon(icon, color: fg, size: iconSize),
-                ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              textScaler: labelScaler,
-              style: const TextStyle(color: Colors.white70, fontSize: 10),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-/// Small centered pill shown over the call view during a transient state —
-/// device-switch renegotiation, ICE-restart recovery, or a degraded
-/// connection. Subtle by design; the call audio/video continues behind it.
-class _OverlayChip extends StatelessWidget {
-  const _OverlayChip({required this.label, this.spinner = true, this.tint});
-  final String label;
-  final bool spinner;
-  final Color? tint;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final fg = tint ?? Colors.white;
-    return Center(
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.55),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: fg.withValues(alpha: 0.15)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (spinner) ...[
-              SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator(strokeWidth: 2, color: fg),
-              ),
-              const SizedBox(width: 10),
-            ] else ...[
-              Icon(Icons.network_check, size: 14, color: fg),
-              const SizedBox(width: 8),
-            ],
-            Text(
-              label,
-              style: theme.monoTiny.copyWith(
-                color: fg,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.4,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Detailed live numeric readout — opt-in replacement for [_OverlayChip]'s
-/// plain "poor/weak connection" label, driven by the same
-/// [CallQualitySnapshot] the chip already reads. Shown whenever
-/// [SettingsStore.showNetworkStats] is on, at every quality tier, not just
-/// when degraded.
-class _NetworkStatsPanel extends StatelessWidget {
-  const _NetworkStatsPanel({required this.snapshot});
-  final CallQualitySnapshot snapshot;
-
-  String _fmtKbps(double? v) => v == null ? '—' : '${v.round()} kbps';
-  String _fmtMs(double? v) => v == null ? '—' : '${v.round()} ms';
-
-  IconData _qualityIcon(CallQuality q) => switch (q) {
-    CallQuality.good => Icons.signal_cellular_alt,
-    CallQuality.fair => Icons.signal_cellular_alt_2_bar,
-    CallQuality.poor => Icons.signal_cellular_alt_1_bar,
-  };
-
-  Widget _metric(TextStyle style, IconData icon, String text, Color color) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 12, color: color.withValues(alpha: 0.85)),
-        const SizedBox(width: 4),
-        Text(text, style: style.copyWith(color: color.withValues(alpha: 0.95))),
-      ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    final q = snapshot;
-    final res = (q.frameWidth != null && q.frameHeight != null)
-        ? '${q.frameWidth}×${q.frameHeight}'
-              '${q.fps != null ? '@${q.fps!.round()}' : ''}'
-        : null;
-    final tint = switch (q.quality) {
-      CallQuality.poor => const Color(0xFFFF6B6B),
-      CallQuality.fair => const Color(0xFFFFB74D),
-      CallQuality.good => Colors.white,
-    };
-    final style = theme.monoTiny;
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(theme.radiusMd),
-          border: Border.all(color: tint.withValues(alpha: 0.2)),
-        ),
+    final mine = service.localScreenSharing;
+    final caption = mine
+        ? l10n.groupCallScreenYouAreSharing
+        : l10n.groupCallScreenSharingBy(session.peerName);
+    final Widget surface;
+    if (mine && isMobileCallPlatform) {
+      surface = Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Wrap(
-              spacing: 12,
-              runSpacing: 4,
-              children: [
-                // Resolution leads — it's what a user actually notices when
-                // they wonder "why does the video look bad," so it shouldn't
-                // read as an afterthought next to the more technical
-                // quality/path metric.
-                if (res != null)
-                  _metric(style, Icons.aspect_ratio, res, Colors.white),
-                _metric(
-                  style,
-                  _qualityIcon(q.quality),
-                  q.candidateType ?? '—',
-                  tint,
-                ),
-              ],
+            Icon(
+              Icons.screen_share_outlined,
+              size: 40,
+              color: theme.accent.withValues(alpha: 0.9),
             ),
-            const SizedBox(height: 5),
-            Wrap(
-              spacing: 12,
-              runSpacing: 4,
-              children: [
-                _metric(
-                  style,
-                  Icons.arrow_downward_rounded,
-                  _fmtKbps(q.inKbps),
-                  Colors.white,
-                ),
-                _metric(
-                  style,
-                  Icons.arrow_upward_rounded,
-                  _fmtKbps(q.outKbps),
-                  Colors.white,
-                ),
-              ],
-            ),
-            const SizedBox(height: 5),
-            Wrap(
-              spacing: 12,
-              runSpacing: 4,
-              children: [
-                _metric(
-                  style,
-                  Icons.timer_outlined,
-                  '${l10n.callScreenStatsRttLabel} ${_fmtMs(q.rttMs)}',
-                  Colors.white,
-                ),
-                if (q.jitterMs != null)
-                  _metric(
-                    style,
-                    Icons.graphic_eq,
-                    '${l10n.callScreenStatsJitterLabel} ${_fmtMs(q.jitterMs)}',
-                    Colors.white,
-                  ),
-                if (q.lossPercent != null)
-                  _metric(
-                    style,
-                    Icons.error_outline,
-                    '${l10n.callScreenStatsLossLabel} '
-                    '${q.lossPercent!.toStringAsFixed(1)}%',
-                    Colors.white,
-                  ),
-              ],
+            const SizedBox(height: 12),
+            Text(
+              caption,
+              style: theme.body.copyWith(color: Colors.white70),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
-      ),
+      );
+    } else {
+      surface = ValueListenableBuilder<bool>(
+        valueListenable: service.drawArmed,
+        builder: (context, armed, _) => ShareSurface(
+          renderer: mine ? localRenderer : remoteRenderer,
+          model: service.drawModel,
+          // The presenter draws through the app-wide overlay, which is
+          // what maps to the screen being captured.
+          armed: armed && !mine,
+          inkColor: ink,
+        ),
+      );
+    }
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const ColoredBox(color: Color(0xFF0E0F12)),
+        surface,
+        // The presenter's own placeholder already says so; only the viewer
+        // needs telling whose screen this is.
+        if (!mine || !isMobileCallPlatform)
+          Positioned(
+            left: 16,
+            top: topInset,
+            child: IgnorePointer(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.55),
+                  borderRadius: BorderRadius.circular(999),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                ),
+                child: Text(
+                  caption,
+                  style: theme.monoTiny.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
-  }
-}
-
-/// Self-ticking call-duration label. Owning the 1 Hz timer here confines the
-/// per-second rebuild to this one Text widget.
-class _ElapsedLabel extends StatefulWidget {
-  const _ElapsedLabel({required this.start, required this.style});
-  final DateTime start;
-  final TextStyle style;
-
-  @override
-  State<_ElapsedLabel> createState() => _ElapsedLabelState();
-}
-
-class _ElapsedLabelState extends State<_ElapsedLabel> {
-  Timer? _ticker;
-
-  @override
-  void initState() {
-    super.initState();
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() {});
-    });
-  }
-
-  @override
-  void dispose() {
-    _ticker?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final d = DateTime.now().difference(widget.start);
-    final mm = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final ss = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    final label = d.inHours > 0 ? '${d.inHours}:$mm:$ss' : '$mm:$ss';
-    return Text(label, style: widget.style);
   }
 }

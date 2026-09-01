@@ -8303,6 +8303,103 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get messageActionMenuTranslateAgainLabel => 'TRADUZIR DE NOVO';
+
+  @override
+  String get groupCallScreenShareLabel => 'partilhar';
+
+  @override
+  String get groupCallScreenStopShareLabel => 'parar partilha';
+
+  @override
+  String get groupCallScreenShareStartingLabel => 'iniciando…';
+
+  @override
+  String get groupCallScreenRingingLabel => 'A chamar…';
+
+  @override
+  String groupCallScreenSharingBy(String name) {
+    return '$name está a partilhar o ecrã';
+  }
+
+  @override
+  String get groupCallScreenYouAreSharing => 'Está a partilhar o seu ecrã';
+
+  @override
+  String get groupCallScreenMinimizeLabel => 'ocultar';
+
+  @override
+  String get groupCallScreenDrawLabel => 'desenhar';
+
+  @override
+  String get callScreenControlShare => 'Partilhar';
+
+  @override
+  String get callScreenControlStopShare => 'Parar';
+
+  @override
+  String get callScreenControlShareStarting => 'Iniciando…';
+
+  @override
+  String get screenShareStopDrawing => 'Parar de desenhar';
+
+  @override
+  String get callScreenControlDraw => 'Desenhar';
+
+  @override
+  String get callScreenControlMinimize => 'Ocultar';
+
+  @override
+  String get inCallPillOngoingCall => 'Chamada em curso';
+
+  @override
+  String get inCallPillReturn => 'Voltar';
+
+  @override
+  String get inCallPillSharing => 'A partilhar o seu ecrã';
+
+  @override
+  String get inCallPillDrawSemanticLabel => 'Desenhar no ecrã partilhado';
+
+  @override
+  String get inCallPillStopSharingSemanticLabel => 'Parar de partilhar';
+
+  @override
+  String get screenShareUnsupported =>
+      'A partilha de ecrã não está disponível neste dispositivo';
+
+  @override
+  String get screenShareEphemeralWarning =>
+      'A proteção contra capturas fica desligada enquanto partilha';
+
+  @override
+  String get screenShareNotificationTitle => 'A partilhar o seu ecrã';
+
+  @override
+  String get screenShareNotificationBody => 'Todos na chamada podem vê-lo';
+
+  @override
+  String get screenShareNotificationStop => 'Parar';
+
+  @override
+  String screenShareSomeoneElsePresenting(String name) {
+    return '$name já está a partilhar';
+  }
+
+  @override
+  String get screenShareFailed => 'Não foi possível começar a partilhar';
+
+  @override
+  String get screenSharePickerTitle => 'Partilhe o seu ecrã';
+
+  @override
+  String get screenSharePickerScreens => 'Ecrãs';
+
+  @override
+  String get screenSharePickerWindows => 'Janelas';
+
+  @override
+  String get screenSharePickerEmpty =>
+      'Ainda nada para partilhar — permita a gravação do ecrã nas Definições do Sistema e tente de novo';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -16599,4 +16696,102 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get messageActionMenuTranslateAgainLabel => 'TRADUZIR DE NOVO';
+
+  @override
+  String get groupCallScreenShareLabel => 'compartilhar';
+
+  @override
+  String get groupCallScreenStopShareLabel => 'parar de compartilhar';
+
+  @override
+  String get groupCallScreenShareStartingLabel => 'iniciando…';
+
+  @override
+  String get groupCallScreenRingingLabel => 'Chamando…';
+
+  @override
+  String groupCallScreenSharingBy(String name) {
+    return '$name está compartilhando a tela';
+  }
+
+  @override
+  String get groupCallScreenYouAreSharing =>
+      'Você está compartilhando sua tela';
+
+  @override
+  String get groupCallScreenMinimizeLabel => 'ocultar';
+
+  @override
+  String get groupCallScreenDrawLabel => 'desenhar';
+
+  @override
+  String get callScreenControlShare => 'Compartilhar';
+
+  @override
+  String get callScreenControlStopShare => 'Parar';
+
+  @override
+  String get callScreenControlShareStarting => 'Iniciando…';
+
+  @override
+  String get screenShareStopDrawing => 'Parar de desenhar';
+
+  @override
+  String get callScreenControlDraw => 'Desenhar';
+
+  @override
+  String get callScreenControlMinimize => 'Ocultar';
+
+  @override
+  String get inCallPillOngoingCall => 'Chamada em andamento';
+
+  @override
+  String get inCallPillReturn => 'Voltar';
+
+  @override
+  String get inCallPillSharing => 'Compartilhando sua tela';
+
+  @override
+  String get inCallPillDrawSemanticLabel => 'Desenhar na tela compartilhada';
+
+  @override
+  String get inCallPillStopSharingSemanticLabel => 'Parar de compartilhar';
+
+  @override
+  String get screenShareUnsupported =>
+      'Compartilhar a tela não está disponível neste dispositivo';
+
+  @override
+  String get screenShareEphemeralWarning =>
+      'A proteção contra capturas fica desligada enquanto você compartilha';
+
+  @override
+  String get screenShareNotificationTitle => 'Compartilhando sua tela';
+
+  @override
+  String get screenShareNotificationBody => 'Todos na chamada podem ver';
+
+  @override
+  String get screenShareNotificationStop => 'Parar';
+
+  @override
+  String screenShareSomeoneElsePresenting(String name) {
+    return '$name já está compartilhando';
+  }
+
+  @override
+  String get screenShareFailed => 'Não foi possível começar a compartilhar';
+
+  @override
+  String get screenSharePickerTitle => 'Compartilhe sua tela';
+
+  @override
+  String get screenSharePickerScreens => 'Telas';
+
+  @override
+  String get screenSharePickerWindows => 'Janelas';
+
+  @override
+  String get screenSharePickerEmpty =>
+      'Nada para compartilhar ainda — permita a gravação de tela nos Ajustes do Sistema e tente de novo';
 }

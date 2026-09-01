@@ -708,6 +708,7 @@ class _FakeGroupApi extends Fake implements GroupCallApi {
   @override
   Future<Subscription> subscribeSignals({
     required String userId,
+    String? deviceId,
     required void Function(List<Map<String, dynamic>> signals) onSignals,
     void Function(Object error)? onError,
   }) async =>

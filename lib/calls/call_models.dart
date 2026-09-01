@@ -50,26 +50,63 @@ enum CallStatus {
 }
 
 /// What the remote end has told us about its media tracks. Used to overlay a
-/// muted-mic / video-off icon on the peer tile without re-negotiating.
+/// muted-mic / video-off icon on the peer tile without re-negotiating — and,
+/// since screen sharing arrived, to tell the peer's two video streams apart.
+///
+/// A peer can send up to two video tracks on one link: its camera and its
+/// screen. Both arrive through the same `onTrack`, and neither track says
+/// which it is — the stream ids are minted by the platform and are random on
+/// web. So the sender names them here: [camStreamId] is the id of the stream
+/// its camera rides in, [screenStreamId] the one its screen does. The
+/// `state` signal carrying them is always sent BEFORE the offer that adds the
+/// stream, and signals drain in order, so the receiver knows the id before
+/// the track lands. [screenSharing] is the flag the UI reads; the id alone
+/// would not say whether the share is currently live.
 class PeerMediaState {
-  const PeerMediaState({this.audioMuted = false, this.videoOff = false});
+  const PeerMediaState({
+    this.audioMuted = false,
+    this.videoOff = false,
+    this.screenSharing = false,
+    this.camStreamId,
+    this.screenStreamId,
+  });
   final bool audioMuted;
   final bool videoOff;
+  final bool screenSharing;
+  final String? camStreamId;
+  final String? screenStreamId;
 
-  PeerMediaState copyWith({bool? audioMuted, bool? videoOff}) =>
+  PeerMediaState copyWith({
+    bool? audioMuted,
+    bool? videoOff,
+    bool? screenSharing,
+    String? camStreamId,
+    String? screenStreamId,
+  }) =>
       PeerMediaState(
         audioMuted: audioMuted ?? this.audioMuted,
         videoOff: videoOff ?? this.videoOff,
+        screenSharing: screenSharing ?? this.screenSharing,
+        camStreamId: camStreamId ?? this.camStreamId,
+        screenStreamId: screenStreamId ?? this.screenStreamId,
       );
 
   Map<String, dynamic> toJson() => {
         'audioMuted': audioMuted,
         'videoOff': videoOff,
+        'screenSharing': screenSharing,
+        if (camStreamId != null) 'camStreamId': camStreamId,
+        if (screenStreamId != null) 'screenStreamId': screenStreamId,
       };
 
+  /// Tolerant of the two-field payload older builds still send: a missing
+  /// key reads as "not sharing, no ids".
   static PeerMediaState fromJson(Map<String, dynamic> j) => PeerMediaState(
         audioMuted: (j['audioMuted'] as bool?) ?? false,
         videoOff: (j['videoOff'] as bool?) ?? false,
+        screenSharing: (j['screenSharing'] as bool?) ?? false,
+        camStreamId: j['camStreamId'] as String?,
+        screenStreamId: j['screenStreamId'] as String?,
       );
 }
 
@@ -87,6 +124,7 @@ class CallSession {
     this.peerState = const PeerMediaState(),
     this.localMuted = false,
     this.localVideoOff = false,
+    this.localScreenSharing = false,
     this.speakerOn = true,
     this.startedAt,
     this.connectedAt,
@@ -110,6 +148,11 @@ class CallSession {
   final PeerMediaState peerState;
   final bool localMuted;
   final bool localVideoOff;
+
+  /// Whether THIS device is sending its screen on the call. The share's
+  /// stream lives on the service (`CallService.screenStream`); this is the
+  /// flag the screen reads and the `state` signal carries.
+  final bool localScreenSharing;
   final bool speakerOn;
   final DateTime? startedAt;
   final DateTime? connectedAt;
@@ -131,6 +174,7 @@ class CallSession {
     PeerMediaState? peerState,
     bool? localMuted,
     bool? localVideoOff,
+    bool? localScreenSharing,
     bool? speakerOn,
     DateTime? connectedAt,
     String? errorMessage,
@@ -149,6 +193,7 @@ class CallSession {
       peerState: peerState ?? this.peerState,
       localMuted: localMuted ?? this.localMuted,
       localVideoOff: localVideoOff ?? this.localVideoOff,
+      localScreenSharing: localScreenSharing ?? this.localScreenSharing,
       speakerOn: speakerOn ?? this.speakerOn,
       startedAt: startedAt,
       connectedAt: connectedAt ?? this.connectedAt,

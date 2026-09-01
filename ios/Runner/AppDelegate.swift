@@ -41,6 +41,9 @@ import flutter_callkit_incoming
   private var voipRegistry: PKPushRegistry?
   private var cachedVoipToken: String?
   private var voipChannel: FlutterMethodChannel?
+  // monkeyhub/screen_share, kept so the Broadcast Upload Extension's
+  // lifecycle (see installBroadcastObservers) can be pushed to Dart.
+  private var screenShareChannel: FlutterMethodChannel?
   // Maps Convex callId → CallKit UUID minted when we reported an incoming
   // call to flutter_callkit_incoming. Required so a follow-up "taken"
   // PushKit payload can end *that specific call* with
@@ -312,6 +315,63 @@ import flutter_callkit_incoming
       didReceive: response,
       withCompletionHandler: completionHandler
     )
+  }
+
+  // MARK: - Broadcast Upload Extension lifecycle
+
+  // The extension (ios/BroadcastExtension/SampleHandler.swift) posts two
+  // Darwin notifications: `iOS_BroadcastStarted` from `broadcastStarted` and
+  // `iOS_BroadcastStopped` from `broadcastFinished`. flutter_webrtc's
+  // capturer relays neither — the track it hands Dart is "live" from the
+  // moment the system picker is presented, and when the user ends the
+  // broadcast from the red status-bar pill the socket simply goes quiet.
+  // Dart needs both moments: the first to announce the share to peers only
+  // once frames can flow (and to roll back a share whose picker was
+  // dismissed), the second to end a share the app did not end itself.
+  // Darwin notifications are system-wide and carry no payload, but iOS runs
+  // at most one broadcast at a time, so while this app has a share pending
+  // or live the one that fires is ours; Dart ignores them otherwise.
+  private static let broadcastStartedName = "iOS_BroadcastStarted"
+  private static let broadcastStoppedName = "iOS_BroadcastStopped"
+  private var broadcastObserversInstalled = false
+
+  private func installBroadcastObservers() {
+    if broadcastObserversInstalled { return }
+    broadcastObserversInstalled = true
+    let center = CFNotificationCenterGetDarwinNotifyCenter()
+    let observer = Unmanaged.passUnretained(self).toOpaque()
+    // A C callback: it may capture nothing, so the delegate rides in as
+    // the observer pointer (retained for the process lifetime anyway).
+    let callback: CFNotificationCallback = { _, observer, name, _, _ in
+      guard let observer = observer, let name = name else { return }
+      let me = Unmanaged<AppDelegate>.fromOpaque(observer).takeUnretainedValue()
+      me.onBroadcastNotification(name.rawValue as String)
+    }
+    for name in [Self.broadcastStartedName, Self.broadcastStoppedName] {
+      CFNotificationCenterAddObserver(
+        center,
+        observer,
+        callback,
+        name as CFString,
+        nil,
+        .deliverImmediately
+      )
+    }
+  }
+
+  private func onBroadcastNotification(_ name: String) {
+    let method: String
+    if name == Self.broadcastStartedName {
+      method = "onBroadcastStarted"
+    } else if name == Self.broadcastStoppedName {
+      method = "onBroadcastStopped"
+    } else {
+      return
+    }
+    NSLog("[screen_share] \(method)")
+    DispatchQueue.main.async { [weak self] in
+      self?.screenShareChannel?.invokeMethod(method, arguments: nil)
+    }
   }
 
   // MARK: - PKPushRegistryDelegate
@@ -901,6 +961,42 @@ import flutter_callkit_incoming
         binaryMessenger: captureRegistrar.messenger()
       )
       captureEvents.setStreamHandler(_CaptureStreamHandler(appDelegate: self))
+    }
+
+    // monkeyhub/screen_share — whether this build can share the screen: the
+    // Broadcast Upload Extension flutter_webrtc's capturer hands the system
+    // picker must actually be in the bundle, or the picker offers nothing and
+    // the share button would be a button that does nothing. Android's half of
+    // this channel starts a foreground service; iOS needs none.
+    if let shareRegistrar = engine.registrar(forPlugin: "MonkeyHubScreenSharePlugin") {
+      let shareChannel = FlutterMethodChannel(
+        name: "monkeyhub/screen_share",
+        binaryMessenger: shareRegistrar.messenger()
+      )
+      screenShareChannel = shareChannel
+      installBroadcastObservers()
+      shareChannel.setMethodCallHandler { call, result in
+        switch call.method {
+        case "isSupported":
+          guard let ext = Bundle.main.object(forInfoDictionaryKey: "RTCScreenSharingExtension") as? String,
+                !ext.isEmpty,
+                let plugins = Bundle.main.builtInPlugInsURL,
+                let contents = try? FileManager.default.contentsOfDirectory(at: plugins, includingPropertiesForKeys: nil)
+          else {
+            result(false)
+            return
+          }
+          let present = contents.contains { url in
+            Bundle(url: url)?.bundleIdentifier == ext
+          }
+          result(present)
+        case "start", "stop":
+          // Android's foreground service; nothing to do here.
+          result(nil)
+        default:
+          result(FlutterMethodNotImplemented)
+        }
+      }
     }
 
     // monkeyhub/launcher_icon — swap the home-screen launcher icon at runtime.
