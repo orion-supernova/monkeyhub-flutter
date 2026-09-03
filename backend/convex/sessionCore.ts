@@ -156,6 +156,63 @@ export async function requireSession(
 }
 
 
+/**
+ * The deviceIds [userId] is currently signed in on.
+ *
+ * The push senders' authorization check, and the reason it exists: a
+ * `userDevices` row is NOT evidence that anyone is signed in on that handset.
+ * The row is written at login and deleted by `voipTokens.clearDeviceToken`,
+ * which is an authenticated call the client can only make while it still holds
+ * a live token — so every path that ends a session WITHOUT one (a revoked
+ * session, a sign-out that raced its own teardown, an install whose keychain
+ * lost the session) leaves the row behind with a working APNs/FCM credential
+ * on it. `push._loadAlertTargets`, `voipPush._loadUserDevices` and
+ * `dailyNudge` then kept ringing and buzzing a phone parked on the login
+ * screen, for the account it could no longer open, until the 90-day sweep in
+ * `voipTokens.gcStaleDevices` collected the row.
+ *
+ * Sessions are the honest signal because they are the ONE thing every entry
+ * point mints (`auth.login`/`signup`/`resetPasswordWithRecoveryKey`,
+ * `socialAuth`, `deviceLogin`, `family.redeemPairingCode`) and the one thing
+ * every exit revokes — including the exits the client is not around for.
+ * [mintSession] revokes the previous session for the same pair, so this set
+ * holds at most one entry per device.
+ *
+ * One indexed read per USER, not per device: callers hold the set across all
+ * of that account's rows.
+ */
+export async function liveSessionDeviceIds(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">,
+): Promise<Set<string>> {
+  const rows = await ctx.db
+    .query("sessions")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+  const live = new Set<string>();
+  for (const row of rows) {
+    if (row.revokedAt === undefined) live.add(row.deviceId);
+  }
+  return live;
+}
+
+/**
+ * Whether [userId] still holds a live session anywhere.
+ *
+ * Asked by the sign-out paths before marking the account offline: signing out
+ * one handset does not put someone offline while their other phone is open.
+ */
+export async function hasAnyLiveSession(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">,
+): Promise<boolean> {
+  const rows = await ctx.db
+    .query("sessions")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+  return rows.some((row) => row.revokedAt === undefined);
+}
+
 /** Revoke every live session on one device. */
 export async function revokeSessionsForDevice(
   ctx: MutationCtx,

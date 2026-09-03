@@ -175,7 +175,17 @@ class ConvexBackend implements ConnectionProbe {
   /// rather than threaded through every method on `ChatApi`.
   Map<String, dynamic> _withToken(String name, Map<String, dynamic> args) {
     if (!SessionGuard.instance.requiresToken(name)) return args;
-    final token = SessionStore.instance.token;
+    final store = SessionStore.instance;
+    // The teardown of a session runs after that session has been cleared, so
+    // for those two calls — and only those two — the token of the session that
+    // just ended is the right credential to send. Without this they are sent
+    // an empty one, fail, and leave both the server session and the device's
+    // push row alive. See `SessionGuard.farewell`.
+    final token = SessionGuard.instance.attachedToken(
+      name,
+      live: store.token,
+      outgoing: store.outgoingToken,
+    );
     // No token but the function wants one: send it anyway and let the server
     // answer SESSION_UNKNOWN. Failing here instead would produce a different
     // error shape for the same condition, and `SessionGuard` would never see

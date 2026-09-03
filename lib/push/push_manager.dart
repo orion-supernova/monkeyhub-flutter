@@ -5,8 +5,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart' show WidgetsBinding, AppLifecycleState;
 
+import '../auth/session_guard.dart';
 import '../backend/chat_api.dart';
 import '../calls/native_call_handler.dart';
+import '../diagnostics/diag_log.dart';
 import '../env.dart';
 import 'device_identity.dart';
 import 'permission_latch.dart';
@@ -629,8 +631,21 @@ class PushManager {
     if (userId != null && deviceId != null && api != null) {
       try {
         await api.clearDeviceToken(userId: userId, deviceId: deviceId);
-      } catch (e) {
+      } catch (e, st) {
         debugPrint('PushManager.logout: clearDeviceToken failed: $e');
+        // Reported, not just printed. This catch is how a signed-out handset
+        // came to keep receiving the account's notifications for months: the
+        // call went out with an empty token on EVERY sign-out, failed, and
+        // said so nowhere anyone would look.
+        //
+        // A session loss is the one expected failure and stays quiet. It means
+        // either that `auth:logout` won the race and already did this — the
+        // two are the same operation from either end now — or that the session
+        // was gone before we got here, which no client call can fix and which
+        // the senders now handle by checking sessions themselves.
+        if (!SessionGuard.isSessionLoss(e)) {
+          DiagLog.error('push logout', e, stack: st);
+        }
       }
     }
     _userId = null;

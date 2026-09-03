@@ -68,6 +68,25 @@ class SessionGuard {
     'releases:latest',
   };
 
+  /// Backend functions that are a session's own teardown, and may therefore be
+  /// sent the token of the session that has just ended.
+  ///
+  /// Signing out clears the local session FIRST (see
+  /// `SessionStore.outgoingToken` for why), so by the time these two run there
+  /// is no live token to attach and both were being rejected with
+  /// `SESSION_UNKNOWN` — leaving the server session live and the device's push
+  /// row in place, which is how a handset parked on the login screen kept
+  /// receiving notifications for the account it had signed out of.
+  ///
+  /// A named list rather than a per-call-site judgement, for the same reason
+  /// [tokenless] is one, and a SHORT one on purpose: an outgoing token is a
+  /// credential the app is in the middle of revoking, and nothing outside this
+  /// set has any business acting with it.
+  static const Set<String> farewell = {
+    'auth:logout',
+    'voipTokens:clearDeviceToken',
+  };
+
   /// Error codes `sessionCore.requireSession` throws.
   static const _unknown = 'SESSION_UNKNOWN';
   static const _revoked = 'SESSION_REVOKED';
@@ -81,6 +100,27 @@ class SessionGuard {
 
   /// Whether [name] should carry a token.
   bool requiresToken(String name) => !tokenless.contains(name);
+
+  /// Whether [name] may fall back to the token of the session that just ended.
+  /// See [farewell].
+  bool acceptsOutgoingToken(String name) => farewell.contains(name);
+
+  /// The token [name] travels with: the live one, or — for the two calls that
+  /// ARE a session's teardown, and run after it has been cleared — the one the
+  /// session left behind.
+  ///
+  /// Null means the call goes out with no credential, which the server answers
+  /// with `SESSION_UNKNOWN`. That is the honest outcome for an ordinary call
+  /// made while signed out, and the sign-out loop depends on it; it is only
+  /// wrong for [farewell], where it silently stranded a device's push row.
+  ///
+  /// Takes both tokens rather than reading `SessionStore`, so the rule can be
+  /// stated and tested in one place instead of inside `ConvexBackend`.
+  String? attachedToken(
+    String name, {
+    required String? live,
+    required String? outgoing,
+  }) => live ?? (acceptsOutgoingToken(name) ? outgoing : null);
 
   /// Whether [error] means this device's session is gone.
   ///

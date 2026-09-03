@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../backend/chat_api.dart';
 import '../data/cache_store.dart';
+import '../diagnostics/diag_log.dart';
 import '../models/family.dart';
 import '../push/device_identity.dart';
 import '../push/push_manager.dart';
@@ -403,8 +404,15 @@ class AuthService extends ChangeNotifier {
     await PushManager.instance.clearPushInbox();
     try {
       await _api.logout(userId: userId);
-    } catch (e) {
+    } catch (e, st) {
       debugPrint('[auth] signOut: auth:logout failed: $e');
+      // Same rule as `PushManager.logout`: a session loss here means the push
+      // teardown won the race and already revoked this device, and anything
+      // else means the account is still signed in on a server that never
+      // heard about it. Only the second is worth waking someone for.
+      if (!SessionGuard.isSessionLoss(e)) {
+        DiagLog.error('auth logout', e, stack: st);
+      }
     }
     // Otherwise the provider SDK silently reuses the last account and the next
     // "Sign in with Google" tap lands straight back in the account they just

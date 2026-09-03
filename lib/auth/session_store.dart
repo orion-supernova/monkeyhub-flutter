@@ -163,6 +163,29 @@ class SessionStore {
   String? _token;
   String? get token => _token;
 
+  /// The token of the session that just ended, kept in memory for the teardown
+  /// that follows it.
+  ///
+  /// Sign-out is local-first — [clearSession] runs before anything touches the
+  /// network, deliberately, so the button cannot sit spinning behind a mutation
+  /// on a socket that is about to be replaced. The cost of that ordering was
+  /// invisible and total: `auth:logout` and `voipTokens:clearDeviceToken` are
+  /// both authenticated, both run AFTER this point, and both were therefore
+  /// sent an empty token and rejected with `SESSION_UNKNOWN`. Every client call
+  /// site swallows its error with a `debugPrint`, so signing out revoked
+  /// nothing and deleted nothing: the server session stayed live and the push
+  /// row kept the handset receiving notifications for the account it had left,
+  /// until the 90-day device sweep collected it.
+  ///
+  /// Read by exactly two calls — the ones named in `SessionGuard.farewell` —
+  /// and never by ordinary traffic, which must not be able to act as an account
+  /// that has signed out. Dropped by [saveSession] — the next sign-in is the
+  /// point at which the outgoing session stops being anyone's business — and by
+  /// [loadSession], which runs once at launch, when no teardown can be in
+  /// flight.
+  String? _outgoingToken;
+  String? get outgoingToken => _outgoingToken;
+
   Future<void> saveSession({
     required String userId,
     required String username,
@@ -189,6 +212,8 @@ class SessionStore {
     // which is not.
     await _write(_kSession, encoded);
     _token = effective;
+    // Whoever signed out before this is no longer owed a teardown.
+    _outgoingToken = null;
     // Only now, with the new session safely stored: a legacy item left live
     // here is a session [loadSession] would fall back to.
     await _clearLegacySession();
@@ -198,6 +223,9 @@ class SessionStore {
   }
 
   Future<Session?> loadSession() async {
+    // Launch: whatever a previous run was in the middle of tearing down is not
+    // this process's business. See [outgoingToken].
+    _outgoingToken = null;
     // Read the markers first — the login screen needs both of them even when
     // there is no session left to restore.
     _isChildDevice = (await _read(_kChildDevice)) == 'true';
@@ -307,6 +335,11 @@ class SessionStore {
   /// `_kHasSignedIn` (see [hasSignedInBefore]). Both describe the handset
   /// rather than the session, and both must outlive a sign-out.
   Future<void> clearSession() async {
+    // Handed to the teardown, not dropped — see [outgoingToken]. `??` because
+    // this is also called with nothing to clear (a corrupt record, a second
+    // pass through the same sign-out), and those must not wipe the token the
+    // teardown already in flight is about to use.
+    _outgoingToken = _token ?? _outgoingToken;
     _token = null;
     // Both layouts. Clearing only the current one would leave a half-migrated
     // install with a legacy session [loadSession] falls back to — signing

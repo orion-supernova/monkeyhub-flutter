@@ -9,6 +9,7 @@ import {
   type ApnsEnv,
 } from "./pushTransport";
 import { badgeTotalFor } from "./badges";
+import { liveSessionDeviceIds } from "./sessionCore";
 import { resolveMute } from "./mute";
 
 // Deliberately NOT imported from ./webPush: that module runs in the Node
@@ -295,10 +296,18 @@ export const _loadAlertTargets = internalQuery({
         .query("userDevices")
         .withIndex("by_user", (q) => q.eq("userId", userId))
         .collect();
+      // One read for the whole account, reused by every row below.
+      const live = await liveSessionDeviceIds(ctx, userId);
       const devices: AlertDevice[] = [];
       for (const r of rows) {
         // undefined means enabled — every row predating the field.
         if (r.pushEnabled === false) continue;
+        // Signed out on this handset. A `userDevices` row outlives the session
+        // whenever the client could not delete it, and a banner for an account
+        // the phone can no longer open is exactly what that leaves behind —
+        // reported by a user sitting on the login screen, locked out, still
+        // being notified. See [liveSessionDeviceIds].
+        if (!live.has(r.deviceId)) continue;
         const web =
           r.webEndpoint && r.webP256dh && r.webAuth
             ? {

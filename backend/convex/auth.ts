@@ -181,6 +181,20 @@ export const logout = mutation({
   args: { deviceId: v.string() },
   handler: async (ctx, { userId, deviceId }) => {
     await revokeSessionsForDevice(ctx, userId, deviceId);
+    // And its push row, which is the OTHER half of signing out and used to be
+    // somebody else's job entirely: the client called this to end the session
+    // and `voipTokens.clearDeviceToken` to drop the row, both after clearing
+    // its own token, so both were rejected and the handset kept receiving
+    // notifications for the account it had just left. Doing it here means one
+    // surviving call is enough — the two are now the same operation from
+    // either end, and each is a no-op once the other has run.
+    const device = await ctx.db
+      .query("userDevices")
+      .withIndex("by_user_device", (q: any) =>
+        q.eq("userId", userId).eq("deviceId", deviceId),
+      )
+      .first();
+    if (device) await ctx.db.delete(device._id);
     await ctx.db.patch(userId, { status: "offline", lastSeen: Date.now() });
   },
 });

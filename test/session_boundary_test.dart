@@ -105,6 +105,98 @@ void main() {
     });
   });
 
+  test('the farewell calls exist, and are authenticated', () {
+    // These carry the token of the session they are ending — see
+    // `SessionGuard.farewell`. Two ways for that to rot silently: the function
+    // is renamed, and the outgoing token is attached to nothing; or it becomes
+    // public, and the client sends an undeclared arg to the one call that has
+    // to work on the way out.
+    final public = declaredPublic();
+    for (final name in SessionGuard.farewell) {
+      final parts = name.split(':');
+      final source = File('backend/convex/${parts.first}.ts');
+      expect(
+        source.existsSync(),
+        isTrue,
+        reason: '$name names a backend module that does not exist',
+      );
+      expect(
+        source.readAsStringSync(),
+        contains('export const ${parts.last} = '),
+        reason: '$name was renamed; the sign-out teardown now targets nothing',
+      );
+      expect(
+        public,
+        isNot(contains(name)),
+        reason:
+            '$name is public now, so it must not be sent a token at all — '
+            'move it out of SessionGuard.farewell.',
+      );
+    }
+  });
+
+  test('nothing but the teardown may act as a session that ended', () {
+    // An outgoing token is a credential the app is in the middle of revoking.
+    // Growing this set is a security change — say so in the commit message.
+    expect(SessionGuard.farewell, {
+      'auth:logout',
+      'voipTokens:clearDeviceToken',
+    });
+  });
+
+  group('which token a call carries', () {
+    final guard = SessionGuard.instance;
+
+    test('an ordinary call carries the live one', () {
+      expect(
+        guard.attachedToken('messages:send', live: 't-live', outgoing: 't-old'),
+        't-live',
+      );
+    });
+
+    test('an ordinary call after a sign-out carries none', () {
+      // The server answers SESSION_UNKNOWN, which is what drives the sign-out
+      // — and an account that has signed out must not be able to post.
+      expect(
+        guard.attachedToken('messages:send', live: null, outgoing: 't-old'),
+        isNull,
+      );
+    });
+
+    test('the teardown carries the token of the session it is ending', () {
+      // The regression this exists for: both of these run AFTER the local
+      // session is cleared, so with `live: null` they used to go out empty,
+      // fail, and leave the server session live and the device's push row in
+      // place — a handset on the login screen still being notified.
+      for (final name in SessionGuard.farewell) {
+        expect(
+          guard.attachedToken(name, live: null, outgoing: 't-old'),
+          't-old',
+          reason: '$name is the teardown; it must not go out empty',
+        );
+      }
+    });
+
+    test('the live token still wins for the teardown calls', () {
+      // `voipTokens:clearDeviceToken` is also how the Devices screen removes
+      // some OTHER handset, and that caller is signed in.
+      expect(
+        guard.attachedToken(
+          'voipTokens:clearDeviceToken',
+          live: 't-live',
+          outgoing: 't-old',
+        ),
+        't-live',
+      );
+    });
+
+    test('nothing is invented when there is no token at all', () {
+      for (final name in [...SessionGuard.farewell, 'messages:send']) {
+        expect(guard.attachedToken(name, live: null, outgoing: null), isNull);
+      }
+    });
+  });
+
   test('no module still imports the raw builders', () {
     // A file left on `./_generated/server` for its query/mutation/action is a
     // file whose every function is unauthenticated — the exact regression this

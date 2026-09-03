@@ -8,6 +8,7 @@ import {
   stringifyValues,
   type ApnsEnv,
 } from "./pushTransport";
+import { liveSessionDeviceIds } from "./sessionCore";
 
 // Direct VoIP push delivery — wakes a *killed* app for CallKit (iOS) or
 // ConnectionService (Android).
@@ -40,15 +41,23 @@ export const _loadUserDevices = internalQuery({
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
     if (rows.length > 0) {
-      return rows.map((r) => ({
-        deviceRowId: r._id,
-        legacy: false as const,
-        deviceId: r.deviceId,
-        platform: r.platform,
-        voipToken: r.voipToken,
-        apnsEnv: r.apnsEnv,
-        fcmToken: r.fcmToken,
-      }));
+      // Ring only handsets that are still signed in. The filter is applied
+      // INSIDE this branch on purpose: a user whose every row is stale must
+      // come back empty rather than fall through to the legacy fallback
+      // below, which would resurrect the very pushes this stops. See
+      // [liveSessionDeviceIds].
+      const live = await liveSessionDeviceIds(ctx, userId);
+      return rows
+        .filter((r) => live.has(r.deviceId))
+        .map((r) => ({
+          deviceRowId: r._id,
+          legacy: false as const,
+          deviceId: r.deviceId,
+          platform: r.platform,
+          voipToken: r.voipToken,
+          apnsEnv: r.apnsEnv,
+          fcmToken: r.fcmToken,
+        }));
     }
     const u = await ctx.db.get(userId);
     if (!u) return [];

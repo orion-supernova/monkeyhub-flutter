@@ -8,6 +8,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { GAMES } from "./games";
 import type { AlertSpec } from "./push";
+import { liveSessionDeviceIds } from "./sessionCore";
 
 /**
  * The once-a-day "you haven't played today" nudge.
@@ -882,10 +883,12 @@ async function hasZonedDevice(
     .query("userDevices")
     .withIndex("by_user", (q: any) => q.eq("userId", userId))
     .take(DEVICES_PER_USER);
+  const live = await liveSessionDeviceIds(ctx, userId);
   return rows.some(
     (r) =>
       r.tzOffsetMinutes !== undefined &&
       r.lastSeenAt > cutoff &&
+      live.has(r.deviceId) &&
       nudgeableDevice(r) !== null,
   );
 }
@@ -936,9 +939,26 @@ export const candidateUsers = internalQuery({
         numItems: tzOffsetMinutes === null ? ZONELESS_PAGE : DEVICE_PAGE,
       });
     const seen = new Set<string>();
+    // One live-session read per ACCOUNT, not per row: a page is 200 devices
+    // and a person's phones sit next to each other in it.
+    const liveByUser = new Map<string, Set<string>>();
+    const liveFor = async (userId: Id<"users">) => {
+      const key = userId.toString();
+      let set = liveByUser.get(key);
+      if (set === undefined) {
+        set = await liveSessionDeviceIds(ctx, userId);
+        liveByUser.set(key, set);
+      }
+      return set;
+    };
     const userIds: Array<Id<"users">> = [];
     for (const row of page.page) {
       if (!nudgeableDevice(row)) continue;
+      // Signed out on this handset. Checked here as well as in
+      // `devicesForUsers` so a stranded row cannot CLAIM the day for an
+      // account and then send nothing, which would cost that person the
+      // nudge their live phone had coming.
+      if (!(await liveFor(row.userId)).has(row.deviceId)) continue;
       const key = row.userId.toString();
       if (seen.has(key)) continue;
       seen.add(key);
@@ -987,8 +1007,13 @@ export const devicesForUsers = internalQuery({
         .query("userDevices")
         .withIndex("by_user", (q) => q.eq("userId", userId))
         .take(DEVICES_PER_USER);
+      const live = await liveSessionDeviceIds(ctx, userId);
       for (const row of rows) {
         if (row.lastSeenAt <= cutoff) continue;
+        // Signed out on this handset — see [liveSessionDeviceIds]. The
+        // 30-day `lastSeenAt` window above already hid most of these, which
+        // is why the nudge was the quieter half of the same bug.
+        if (!live.has(row.deviceId)) continue;
         if (tzOffsetMinutes === null) {
           if (row.tzOffsetMinutes !== undefined) continue;
         } else if (

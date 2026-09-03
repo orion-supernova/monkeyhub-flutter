@@ -250,6 +250,57 @@ void main() {
       expect(stored.keys, isNot(contains('mh.userId')));
     });
 
+    test('the token of a session that ended is kept for its teardown', () async {
+      // Signing out is local-first: this store is emptied BEFORE `auth:logout`
+      // and `voipTokens:clearDeviceToken` are sent. Both are authenticated, so
+      // without this the two calls that revoke the session and delete the push
+      // row went out with an empty token, were rejected, and had their errors
+      // swallowed — leaving a signed-out handset still receiving that
+      // account's notifications.
+      await store.saveSession(
+        userId: 'u-lulu',
+        username: 'lulu',
+        name: 'Lulu',
+        token: 't-lulu',
+      );
+      expect(store.outgoingToken, isNull);
+
+      await store.clearSession();
+
+      expect(store.token, isNull);
+      expect(store.outgoingToken, 't-lulu');
+
+      // A second pass over the same sign-out must not wipe what the teardown
+      // in flight is about to use.
+      await store.clearSession();
+      expect(store.outgoingToken, 't-lulu');
+
+      // The next sign-in is where the outgoing session stops being anyone's
+      // business.
+      await store.saveSession(
+        userId: 'u-goksu',
+        username: 'goksu',
+        name: 'Goksu',
+        token: 't-goksu',
+      );
+      expect(store.outgoingToken, isNull);
+    });
+
+    test('a launch inherits no teardown', () async {
+      await store.saveSession(
+        userId: 'u-lulu',
+        username: 'lulu',
+        name: 'Lulu',
+        token: 't-lulu',
+      );
+      await store.clearSession();
+      expect(store.outgoingToken, isNotNull);
+
+      await store.loadSession();
+
+      expect(store.outgoingToken, isNull);
+    });
+
     test('the handset markers outlive the session', () async {
       await store.saveSession(
         userId: 'u-lulu',

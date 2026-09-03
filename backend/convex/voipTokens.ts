@@ -1,7 +1,12 @@
 import { v } from "convex/values";
-import { internalMutation } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
 import { mutation, query } from "./functions";
-import { revokeSessionsForDevice, revokeOtherSessions } from "./sessionCore";
+import {
+  revokeSessionsForDevice,
+  revokeOtherSessions,
+  liveSessionDeviceIds,
+  hasAnyLiveSession,
+} from "./sessionCore";
 import type { Doc, Id } from "./_generated/dataModel";
 
 // Per-device push registry. Rows live in `userDevices`, keyed by
@@ -436,6 +441,7 @@ export const listDevices = query({
       .query("userDevices")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
+    const live = await liveSessionDeviceIds(ctx, userId);
     return rows
       .map((row) => ({
         deviceId: row.deviceId,
@@ -450,6 +456,10 @@ export const listDevices = query({
         // had one) is still a device you signed in on, and still worth seeing.
         reachable:
           row.pushEnabled !== false &&
+          // Signed out on that handset. The senders skip it (see
+          // [liveSessionDeviceIds]), so saying "reachable" here would be the
+          // screen promising something the backend has stopped doing.
+          live.has(row.deviceId) &&
           Boolean(
             row.voipToken ?? row.apnsToken ?? row.fcmToken ?? row.webEndpoint,
           ),
@@ -511,6 +521,15 @@ export const clearDeviceToken = mutation({
       .first();
     await revokeSessionsForDevice(ctx, userId, deviceId);
     if (row) await ctx.db.delete(row._id);
+    // `auth.logout` does this too, and on a sign-out the two race — whichever
+    // lands first does the whole job and the other is rejected for the very
+    // revocation it was trying to perform. Doing it here as well means the
+    // presence dot is right either way. Guarded, because "remove this device"
+    // is also reachable from the Devices screen of a phone the user is still
+    // holding, and that phone is not offline.
+    if (!(await hasAnyLiveSession(ctx, userId))) {
+      await ctx.db.patch(userId, { status: "offline", lastSeen: Date.now() });
+    }
   },
 });
 
@@ -604,6 +623,66 @@ const STALE_DEVICE_PAGE = 200;
  * probe and a backlog only ever costs a longer tail, never a function that
  * blows past Convex's per-call limits.
  */
+/**
+ * How many device rows are addressed to a handset that is no longer signed in.
+ *
+ *   npx convex run voipTokens:strandedDevices
+ *
+ * The triage query for the incident that produced [liveSessionDeviceIds]: a
+ * user locked out of her own account, sitting on the login screen, still
+ * getting notifications for it. The senders now skip these rows, so a non-zero
+ * count is no longer a live bug — it is the backlog left by every sign-out
+ * that ran before the fix, draining as `gcStaleDevices` collects it.
+ *
+ * Bounded by [limit] because it walks device rows and then their owners'
+ * sessions, and a query that dies on the read limit is no use to whoever is
+ * trying to answer a support ticket with it. `truncated` says when the answer
+ * is a floor rather than a total.
+ */
+export const strandedDevices = internalQuery({
+  args: { limit: v.optional(v.number()) },
+  returns: v.object({
+    scanned: v.number(),
+    /** …of those, no live session on that (user, device). */
+    stranded: v.number(),
+    /** …of THOSE, still holding a credential a sender could have used. */
+    strandedWithCredential: v.number(),
+    truncated: v.boolean(),
+  }),
+  handler: async (ctx, { limit }) => {
+    const cap = Math.min(limit ?? 2000, 5000);
+    const rows = await ctx.db.query("userDevices").take(cap + 1);
+    const truncated = rows.length > cap;
+    const scan = truncated ? rows.slice(0, cap) : rows;
+    // One session read per ACCOUNT: a person's handsets sit together here.
+    const liveByUser = new Map<string, Set<string>>();
+    let stranded = 0;
+    let strandedWithCredential = 0;
+    for (const row of scan) {
+      const key = row.userId.toString();
+      let live = liveByUser.get(key);
+      if (live === undefined) {
+        live = await liveSessionDeviceIds(ctx, row.userId);
+        liveByUser.set(key, live);
+      }
+      if (live.has(row.deviceId)) continue;
+      stranded += 1;
+      if (
+        row.pushEnabled !== false &&
+        (row.voipToken ?? row.apnsToken ?? row.fcmToken ?? row.webEndpoint)
+      ) {
+        strandedWithCredential += 1;
+      }
+    }
+    return {
+      scanned: scan.length,
+      stranded,
+      strandedWithCredential,
+      truncated,
+    };
+  },
+});
+
 export const gcStaleDevices = internalMutation({
   args: {},
   handler: async (ctx) => {
