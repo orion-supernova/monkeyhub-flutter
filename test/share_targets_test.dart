@@ -20,7 +20,11 @@ void main() {
   ChatRoom room(
     String id, {
     String? name,
-    bool isMember = true,
+    // False, because that is what `rooms:listUserRooms` actually returns:
+    // only `rooms:listPublic` ever fills this in. A fixture that defaulted it
+    // to true is what let an `if (!r.isMember) continue;` over `repo.rooms`
+    // pass its tests while rejecting every real room.
+    bool isMember = false,
     bool isArchived = false,
     RoomType type = RoomType.regular,
     int? lastMessageMs,
@@ -73,12 +77,15 @@ void main() {
       expect(build(r).map((t) => t.roomId), ['busy', 'quiet']);
     });
 
-    test('skips rooms the user is not in', () {
-      // The room list carries discover results too. Offering one would open a
-      // chat the share cannot be sent to.
-      final r = repo()
-        ..debugSeedRooms([room('joined'), room('not', isMember: false)]);
-      expect(build(r).map((t) => t.roomId), ['joined']);
+    test('offers the rooms the server actually sends', () {
+      // `repo.rooms` is `rooms:listUserRooms` and nothing else — already the
+      // list of rooms the viewer is in — and that query does not set
+      // `isMember`, so every room in it reads as false. The guard that used to
+      // stand here therefore rejected all of them, and the iOS extension
+      // cached an empty picker: a share sheet that could only offer "Open
+      // MonkeyHub", on an account with seventeen chats.
+      final r = repo()..debugSeedRooms([room('a'), room('b')]);
+      expect(build(r).map((t) => t.roomId), ['a', 'b']);
     });
 
     test('skips archived rooms', () {

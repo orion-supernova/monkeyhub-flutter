@@ -93,10 +93,13 @@ final class Staging {
         // Reads and writes of the three variables above happen here and only
         // here, on the one serial queue, which is what makes them safe to share
         // between however many providers are loading at once.
-        func deliver() {
+        func deliver(timedOut: Bool = false) {
             self.queue.async {
                 guard !delivered else { return }
                 delivered = true
+                if timedOut {
+                    NSLog("[share] staging deadline reached; going with what arrived")
+                }
                 let ordered = staged.keys.sorted().compactMap { staged[$0] }
                 DispatchQueue.main.async { completion(ordered, text) }
             }
@@ -122,8 +125,7 @@ final class Staging {
 
         group.notify(queue: .main) { deliver() }
         DispatchQueue.main.asyncAfter(deadline: .now() + deadline) {
-            NSLog("[share] staging deadline reached; sending with what arrived")
-            deliver()
+            deliver(timedOut: true)
         }
     }
 

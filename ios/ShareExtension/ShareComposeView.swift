@@ -138,28 +138,62 @@ struct ShareComposeView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(24)
         } else {
-            List(chats, id: \.id) { chat in
-                Button {
-                    selectedChatId = chat.id
-                } label: {
-                    HStack(spacing: 12) {
-                        ChatAvatar(chat: chat)
-                        Text(chat.title)
-                            .foregroundColor(.primary)
-                            .lineLimit(1)
-                        Spacer(minLength: 8)
-                        if selectedChatId == chat.id {
-                            Image(systemName: "checkmark")
-                                .foregroundColor(.accentColor)
-                                .font(.body.weight(.semibold))
+            // A ScrollView of explicit rows rather than a `List`, for the
+            // separators.
+            //
+            // A plain List derives each separator's inset from that row's own
+            // content, and these rows do not agree about what their content
+            // is: a chat with an avatar leads with an `AsyncImage` whose size
+            // is unknown until it loads, one without leads with a `Text` in a
+            // circle. The result is separators starting at three different
+            // x positions down one list — visible, and the sort of thing that
+            // reads as a broken sheet rather than a styled one.
+            //
+            // `alignmentGuide(.listRowSeparatorLeading)` is the supported way
+            // to pin it and is iOS 16; this ships to 15. So the rows and their
+            // rules are drawn here, off one set of metrics.
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(Array(chats.enumerated()), id: \.element.id) { index, chat in
+                        Button { selectedChatId = chat.id } label: { row(chat) }
+                            // Without this a Button tints its whole label with
+                            // the accent colour, avatar included.
+                            .buttonStyle(.plain)
+                            .disabled(state == .sending)
+                        if index < chats.count - 1 {
+                            Divider().padding(.leading, RowMetrics.titleInset)
                         }
                     }
-                    .contentShape(Rectangle())
                 }
-                .disabled(state == .sending)
             }
-            .listStyle(.plain)
         }
+    }
+
+    private func row(_ chat: ShareChat) -> some View {
+        let selected = selectedChatId == chat.id
+        return HStack(spacing: RowMetrics.spacing) {
+            ChatAvatar(chat: chat)
+            Text(chat.title)
+                .foregroundColor(.primary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+            Spacer(minLength: 8)
+            // Always laid out, only sometimes visible: a checkmark that comes
+            // and goes changes the row's width budget and shunts a long title's
+            // truncation point as the selection moves.
+            Image(systemName: "checkmark")
+                .font(.body.weight(.semibold))
+                .foregroundColor(.accentColor)
+                .opacity(selected ? 1 : 0)
+        }
+        .padding(.horizontal, RowMetrics.inset)
+        .padding(.vertical, 10)
+        // 44pt is the floor for a touch target, and a row of one short line
+        // would otherwise come in under it.
+        .frame(minHeight: 44)
+        .background(selected ? Color.accentColor.opacity(0.12) : Color.clear)
+        // The whole row, not just the glyphs in it.
+        .contentShape(Rectangle())
     }
 
     // MARK: - The caption, and the way out
@@ -195,6 +229,20 @@ struct ShareComposeView: View {
     }
 }
 
+/// One chat row's measurements, in one place.
+///
+/// The separator's inset is *derived* from the avatar and the gap rather than
+/// written down beside them, because the two drifting apart is exactly the
+/// defect this replaces — a rule that starts a few points off the title it is
+/// meant to line up with.
+private enum RowMetrics {
+    static let avatar: CGFloat = 34
+    static let spacing: CGFloat = 12
+    static let inset: CGFloat = 16
+    /// Where a row's title begins, and therefore where its separator does.
+    static var titleInset: CGFloat { inset + avatar + spacing }
+}
+
 /// The avatar, or the app's own gradient-and-initial fallback.
 ///
 /// Same two colours the app paints (`ShareTarget.gradientStart/End`, seeded
@@ -224,7 +272,7 @@ private struct ChatAvatar: View {
                     .foregroundColor(.white)
             }
         }
-        .frame(width: 34, height: 34)
+        .frame(width: RowMetrics.avatar, height: RowMetrics.avatar)
         .clipShape(Circle())
     }
 }

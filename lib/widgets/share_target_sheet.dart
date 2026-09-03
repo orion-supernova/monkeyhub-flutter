@@ -16,6 +16,8 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'destructive_sheet.dart' show SheetGrabber;
+import 'pending_placeholder.dart';
+import 'skeleton_rows.dart';
 import 'user_avatar.dart';
 
 /// What the user picked to receive a share.
@@ -81,8 +83,27 @@ class _ShareTargetSheet extends StatefulWidget {
 class _ShareTargetSheetState extends State<_ShareTargetSheet> {
   final TextEditingController _search = TextEditingController();
 
+  /// The sheet outlives the moment it was opened at, and the room list very
+  /// often arrives afterwards.
+  ///
+  /// A share is frequently *the launch* — the iOS extension's "Open in
+  /// MonkeyHub" raises this sheet on a cold start, before
+  /// `rooms:listUserRooms` has delivered anything. Read once at build time,
+  /// that is a picker that says "no other chats yet" to an account with
+  /// seventeen of them and never corrects itself, because nothing rebuilds it.
+  @override
+  void initState() {
+    super.initState();
+    widget.repo.addListener(_onRepoChange);
+  }
+
+  void _onRepoChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    widget.repo.removeListener(_onRepoChange);
     _search.dispose();
     super.dispose();
   }
@@ -104,7 +125,9 @@ class _ShareTargetSheetState extends State<_ShareTargetSheet> {
     final q = _query;
     final out = <ChatRoom>[];
     for (final r in widget.repo.rooms) {
-      if (!r.isMember) continue;
+      // No `isMember` test — see the note in `buildShareTargets`. The field is
+      // `rooms:listPublic`'s alone and is false on everything this list holds,
+      // so filtering on it emptied the sheet outright.
       if (!widget.repo.capabilitiesFor(r).canReceiveForwards) continue;
       if (q.isNotEmpty && !_titleOf(r).toLowerCase().contains(q)) continue;
       out.add(r);
@@ -182,14 +205,26 @@ class _ShareTargetSheetState extends State<_ShareTargetSheet> {
                   maxHeight: MediaQuery.sizeOf(context).height * 0.42,
                 ),
                 child: empty
-                    ? Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 26),
-                        child: Text(
-                          _query.isEmpty
-                              ? loc.approvalsScreenForwardNoChatsYet
-                              : loc.approvalsScreenForwardNoMatches,
-                          textAlign: TextAlign.center,
-                          style: theme.bodySoft,
+                    ? PendingPlaceholder(
+                        // A search that matched nothing HAS its answer, so it
+                        // goes straight to the empty text — only an unfiltered
+                        // list can still be waiting on the subscription.
+                        pending: _query.isEmpty && !widget.repo.roomsLoaded,
+                        loading: (context) => const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 6),
+                          // Circular and 32pt, matching `_TargetRow`'s avatars,
+                          // so nothing shifts when the real rows replace these.
+                          child: SkeletonRows(count: 5, avatarSize: 32),
+                        ),
+                        empty: (context) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 26),
+                          child: Text(
+                            _query.isEmpty
+                                ? loc.approvalsScreenForwardNoChatsYet
+                                : loc.approvalsScreenForwardNoMatches,
+                            textAlign: TextAlign.center,
+                            style: theme.bodySoft,
+                          ),
                         ),
                       )
                     : ListView(

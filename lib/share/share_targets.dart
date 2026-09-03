@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+import '../auth/session_store.dart';
 import '../backend/server_store.dart';
 import '../data/chat_repository.dart';
 import '../media/file_url_cache.dart';
@@ -116,23 +117,33 @@ class ShareTargets {
   String? _publishedUserId;
   String? _publishedDeployment;
   String? _publishedSenderName;
+  String? _publishedToken;
 
   /// Hands the OS the current list — and, on iOS, the credential behind it.
   ///
-  /// [userId] and [deploymentUrl] are what let the **Share Extension send
-  /// without opening the app**. It is a separate binary with no Flutter engine
-  /// and no Convex client, and this backend's identity is the `userId`
-  /// argument rather than a token (there is no `ctx.auth` in the deployment —
-  /// see the note at the top of `backend/convex/feed.ts`), so those two strings
-  /// plus the chat list are the whole of what it needs. iOS stores them in the
-  /// App Group; Android ignores them, because its share target opens the app.
+  /// [userId], [deploymentUrl] and [sessionToken] are what let the **Share
+  /// Extension send without opening the app**. It is a separate binary with no
+  /// Flutter engine and no Convex client, so those three strings plus the chat
+  /// list are the whole of what it needs. iOS stores them in the App Group;
+  /// Android ignores them, because its share target opens the app.
   ///
-  /// Both are cleared by [clear] on sign-out, which is what stops a share
+  /// [sessionToken] is `SessionGuard.identityArg`'s value — the credential every
+  /// authenticated backend call carries. It was not always needed: this backend
+  /// used to take the sender's user id as an ordinary argument and authenticate
+  /// nothing, and the extension was built against that. When `functions.ts`
+  /// began wrapping every function with a required `sessionToken`, the
+  /// extension's hand-rolled HTTP calls kept sending the old argument set and
+  /// every send failed with `ArgumentValidationError: Object is missing the
+  /// required field \`sessionToken\`` — a share sheet that composed perfectly
+  /// and could not deliver.
+  ///
+  /// All of it is cleared by [clear] on sign-out, which is what stops a share
   /// composed afterwards from being sent as the account that left.
   Future<void> sync(
     List<ShareTarget> targets, {
     required String userId,
     required String deploymentUrl,
+    required String sessionToken,
     String? senderName,
   }) async {
     if (!_supported) return;
@@ -140,17 +151,20 @@ class ShareTargets {
     if (listEquals(capped, _published) &&
         userId == _publishedUserId &&
         deploymentUrl == _publishedDeployment &&
+        sessionToken == _publishedToken &&
         senderName == _publishedSenderName) {
       return;
     }
     _published = capped;
     _publishedUserId = userId;
     _publishedDeployment = deploymentUrl;
+    _publishedToken = sessionToken;
     _publishedSenderName = senderName;
     await _invoke('publishTargets', {
       'targets': [for (final t in capped) t.toChannel()],
       'userId': userId,
       'deploymentUrl': deploymentUrl,
+      'sessionToken': sessionToken,
       'senderName': senderName,
     });
   }
@@ -168,6 +182,7 @@ class ShareTargets {
     _published = const [];
     _publishedUserId = null;
     _publishedDeployment = null;
+    _publishedToken = null;
     _publishedSenderName = null;
     await _invoke('clearTargets', const <String, Object?>{});
   }
@@ -187,6 +202,7 @@ class ShareTargets {
     _published = const [];
     _publishedUserId = null;
     _publishedDeployment = null;
+    _publishedToken = null;
     _publishedSenderName = null;
   }
 }
@@ -210,7 +226,13 @@ List<ShareTarget> buildShareTargets({
 }) {
   final rooms = <ChatRoom>[];
   for (final r in repo.rooms) {
-    if (!r.isMember) continue;
+    // Deliberately NOT filtered on `ChatRoom.isMember`. That field is filled
+    // in by `rooms:listPublic` and by nothing else, so it is `false` on every
+    // room here — while `repo.rooms` is `rooms:listUserRooms`, which is *by
+    // definition* the rooms the viewer is in. Testing it therefore rejected
+    // the whole list, and the iOS extension cached an empty chat picker: a
+    // share sheet that could only ever offer "Open MonkeyHub". Use
+    // `repo.isMemberOf` if a membership question ever genuinely arises here.
     if (r.isArchived) continue;
     if (!repo.capabilitiesFor(r).canReceiveForwards) continue;
     rooms.add(r);
@@ -364,6 +386,11 @@ class ShareTargetsSync {
       // and an extension left pointing at the previous deployment would send
       // into a backend this account does not exist on.
       deploymentUrl: ServerStore.instance.deploymentUrl,
+      // Live for a sharper reason — a captured token is the bug in
+      // `SessionGuard.noteError`'s doc, where a frozen credential outlived the
+      // session it belonged to. The extension must cache the token this device
+      // holds NOW, and re-cache it whenever it rotates.
+      sessionToken: SessionStore.instance.token ?? '',
       senderName: _senderName(),
     ));
   }

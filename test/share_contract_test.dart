@@ -116,6 +116,62 @@ void main() {
     });
   });
 
+  group('the extension presents a session, like every other caller does', () {
+    // The gap this closes. The group above checks that every argument the
+    // SWIFT side sends is one the app sends too — which says nothing about an
+    // argument the backend REQUIRES and Swift omits. `functions.ts` grew
+    // exactly that: a `sessionToken` wrapped around every authenticated
+    // function. The Dart client answered it in one place and nothing failed;
+    // the extension kept sending the old argument set and every share died on
+    //
+    //     ArgumentValidationError: Object is missing the required field
+    //     `sessionToken`.
+    //
+    // — after composing a perfect sheet. Nothing in the suite noticed.
+    test('spells the identity argument the way Dart does', () {
+      final guard = read('lib/auth/session_guard.dart');
+      final match = RegExp(r"identityArg = '([^']+)'").firstMatch(guard);
+      expect(match, isNotNull,
+          reason: 'SessionGuard.identityArg moved or changed shape');
+      final arg = match!.group(1)!;
+      expect(convexHttp, contains('identityArg = "$arg"'),
+          reason: 'the extension signs its calls with a different argument '
+              'name than the app does — every send fails validation');
+    });
+
+    test('and attaches it to every mutation, not per call site', () {
+      // Injected once, exactly like `ConvexBackend._withToken`. A second caller
+      // that has to remember is a caller that will not.
+      expect(convexHttp, contains('args[identityArg] = sessionToken'));
+      // `files:generateUploadUrl` is authenticated too — an attachment share
+      // fails at the upload step, before the message is ever built.
+      expect(convexHttp, contains('sessionToken: sessionToken'),
+          reason: 'the upload leg must present the session as well');
+    });
+
+    test('and the app caches a token for it to present', () {
+      expect(read('lib/share/share_targets.dart'),
+          contains("'sessionToken': sessionToken"),
+          reason: 'publishTargets is the only channel the extension has');
+      expect(read('ios/Runner/ShareCache.swift'),
+          contains('args["sessionToken"] as? String'));
+      // A session cached without one offers a Send that can only fail, so it
+      // is not cached at all.
+      expect(read('ios/Runner/ShareCache.swift'),
+          contains('!sessionToken.isEmpty'));
+      expect(read('ios/Shared/ShareSession.swift'),
+          contains('!session.sessionToken.isEmpty'));
+    });
+
+    test('and reads it live, never captured', () {
+      // A frozen credential outliving its session is the bug written up in
+      // `SessionGuard.noteError` — the extension must cache the token this
+      // device holds now, and re-cache it when it rotates.
+      expect(read('lib/share/share_targets.dart'),
+          contains('SessionStore.instance.token'));
+    });
+  });
+
   group('the extension cannot outlive the session', () {
     test('signing out clears the cache the extension sends with', () {
       // The cache holds the user id, which IS this backend\'s credential
@@ -145,10 +201,13 @@ void main() {
     });
 
     test('an empty credential clears rather than writing half a session', () {
-      // An extension that found a session with no userId would offer a picker
-      // whose Send button could only ever fail.
-      expect(read('ios/Runner/ShareCache.swift'),
-          contains('guard !userId.isEmpty, !deploymentUrl.isEmpty else {'));
+      // An extension that found a session missing any one of these would offer
+      // a picker whose Send button could only ever fail.
+      expect(
+        read('ios/Runner/ShareCache.swift'),
+        contains('guard !userId.isEmpty, !deploymentUrl.isEmpty, '
+            '!sessionToken.isEmpty else {'),
+      );
     });
   });
 
@@ -175,31 +234,44 @@ void main() {
 
     group('the hand-off to the app', () {
       late String openApp;
-      setUpAll(() => openApp = bodyOf(controller, 'private func openApp()'));
+      late String openHost;
+      setUpAll(() {
+        openApp = bodyOf(controller, 'private func openApp()');
+        openHost = bodyOf(controller, 'private func openHost(');
+      });
 
-      test('completes the request from a handler, not beside the call', () {
+      test('completes the request from an answer, not beside the call', () {
         // The bug this replaces: `open` is asynchronous, and calling
         // `completeRequest` on the next line tears the extension down before
         // iOS acts on the request. The symptom is exactly "the sheet appeared
         // and nothing happened" — no error, no log, no app.
-        final afterOpen = openApp.substring(openApp.indexOf('context.open('));
-        expect(afterOpen, isNot(contains('\n        finish()')),
-            reason: 'finish() must not be called beside the open call');
-        expect(openApp, contains('settle(opened)'),
-            reason: "open's completion handler must be what settles it");
+        expect(openApp, contains('openHost {'));
+        expect(openApp, contains('done()'));
+        expect(openHost, isNot(contains('finish()')),
+            reason: 'the request is settled by openApp, from the answer '
+                'openHost reports — never from inside the asking');
       });
 
       test('has a route left when the extension context refuses', () {
         // `NSExtensionContext.open` is documented for Today and iMessage
-        // extensions ONLY. From a share extension it is tolerated rather than
-        // supported and answers false on most releases — which is the whole of
-        // "the Open in MonkeyHub button does not open MonkeyHub". The responder
-        // chain is the only way left to reach UIApplication from in here.
-        expect(openApp, contains('openViaResponder('));
-        expect(controller, contains('NSSelectorFromString("openURL:")'));
+        // extensions ONLY. From a share extension it answers false, which is
+        // the whole of "Open in MonkeyHub does not open MonkeyHub".
+        expect(openHost, contains('context.open('));
+        expect(openHost, contains('scene.open('),
+            reason: 'the scene is the only route left, and the only one that '
+                'is public API an app extension may call');
       });
 
-      test('and settles even when the handler never fires at all', () {
+      test('and hands the scene no options dictionary', () {
+        // `UIScene.open` takes a `UISceneOpenExternalURLOptions`, NOT
+        // UIApplication's options dictionary — the two spell the selector
+        // identically. Handing it the dictionary crashes the extension
+        // outright with `-[__NSDictionary0 universalLinksOnly]: unrecognized
+        // selector`, which is worse than the button doing nothing.
+        expect(openHost, contains('options: nil'));
+      });
+
+      test('and settles even when nothing answers at all', () {
         expect(openApp, contains('asyncAfter'),
             reason: 'on some releases open() never answers; a sheet that never '
                 'completes is one the user has to force-quit out of');

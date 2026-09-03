@@ -23,7 +23,11 @@ void main() {
   ChatRoom room(
     String id, {
     String? name,
-    bool isMember = true,
+    // False, because that is what `rooms:listUserRooms` actually returns:
+    // only `rooms:listPublic` ever fills this in. A fixture that defaulted it
+    // to true is what let an `if (!r.isMember) continue;` over `repo.rooms`
+    // pass its tests while rejecting every real room.
+    bool isMember = false,
     RoomType type = RoomType.regular,
     int? lastMessageMs,
   }) =>

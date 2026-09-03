@@ -45,27 +45,43 @@ bubble a photo picked from the composer goes through.
 
 > ### How the extension can send with no app, no engine and no login
 >
-> **This backend has no `ctx.auth` anywhere** — identity is the `userId`
-> argument, and every function re-derives permission from it. See the note at
-> the top of `backend/convex/feed.ts`, which says so in as many words.
+> The app leaves three strings and the recent-chat list in the App Group
+> (`ShareSession`), and the extension does the rest with three `URLSession`
+> calls against Convex's HTTP API — the same function paths and argument shapes
+> the Dart client uses over its socket (`ConvexHTTP.swift`):
 >
-> So the credential is a string. The app leaves it, the deployment URL and the
-> recent-chat list in the App Group (`ShareSession`), and the extension does the
-> rest with three `URLSession` calls against Convex's HTTP API — the same
-> function paths and argument shapes the Dart client uses over its socket
-> (`ConvexHTTP.swift`).
+> | | |
+> |---|---|
+> | `deploymentUrl` | which backend. Read live at publish time, so a server switch follows |
+> | `userId` | who the message is from — an ordinary argument to `messages:send` |
+> | `sessionToken` | the credential. `SessionGuard.identityArg`, spelled the same on both sides |
 >
-> **If the backend ever gains real authentication, this stops working** — loudly,
-> as a 401 surfaced in the sheet — and the extension will need the token too.
-> `share_contract_test.dart` pins the argument names in the meantime, because a
-> second implementation of the send path is a second thing to drift.
+> **The token was not always there, and its absence is the bug this box used to
+> predict.** The backend once authenticated nothing, the user id alone was the
+> whole credential, and this note said "if the backend ever gains real
+> authentication, this stops working". It did: `withToken` in
+> `backend/convex/functions.ts` now wraps *every* authenticated function with a
+> required `sessionToken`. The Dart client answered that in one place
+> (`ConvexBackend._withToken`) and nothing in the app noticed — while the
+> extension went on sending the old argument set, and every share died on
+>
+> ```
+> ArgumentValidationError: Object is missing the required field `sessionToken`.
+> ```
+>
+> after composing a perfect sheet. `ConvexHTTP.mutation` now injects it the same
+> way, once, and `share_contract_test.dart` reads `SessionGuard.identityArg` out
+> of the Dart source and fails if the Swift half spells it differently — the
+> check that would have caught it. Note what the old contract test could not
+> see: it verified that every argument Swift *sends* exists in Dart, which says
+> nothing about an argument the backend *requires* and Swift omits.
 >
 > The cache is written at the same protection class the keychain holds the
 > session under (`first_unlock_this_device` ↔
 > `.completeFileProtectionUntilFirstUserAuthentication`), excluded from backups,
-> and **deleted on sign-out** — otherwise the next person to pick up the phone
-> could send as the account that left, from the share sheet, without unlocking
-> the app.
+> and **deleted on sign-out** — it is a live session token, and otherwise the
+> next person to pick up the phone could send as the account that left, from the
+> share sheet, without unlocking the app.
 
 One photo gets the editor (crop, annotate, view-once). Anything else goes
 straight into the transcript; there is no carousel to preview five photos in.
@@ -245,6 +261,25 @@ the two silent ones: the shortcut's `setCategories` not matching the
 `<category>` in `share_targets.xml`, or a launcher entry with no
 `android.app.shortcuts` meta-data (see the box above). Both are pinned by
 `share_handoff_test.dart`.
+
+---
+
+> ### The chat list is not filtered on `ChatRoom.isMember`
+>
+> `repo.rooms` is `rooms:listUserRooms` and nothing else — already, by
+> definition, the rooms the viewer is in. `ChatRoom.isMember` is filled in by
+> `rooms:listPublic` **alone**, so it is `false` on every room in that list.
+>
+> `buildShareTargets` used to test it anyway, which rejected all of them: the
+> extension cached an empty picker and offered nothing but "Open MonkeyHub" on
+> an account with seventeen chats. The same guard stood in
+> `share_target_sheet.dart` and `forward_target_sheet.dart`, emptying both of
+> those outright. It survived because the test fixtures defaulted `isMember` to
+> `true`, which the server never sends — they now default to `false`, like the
+> real thing.
+>
+> A membership question here, if one ever genuinely arises, is
+> `ChatRepository.isMemberOf`.
 
 ---
 

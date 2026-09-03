@@ -33,7 +33,7 @@ import UniformTypeIdentifiers
 /// it is asynchronous: `completeRequest` must be called from its completion
 /// handler, never beside it. Calling both in sequence tears the extension down
 /// before iOS acts on the request, which looks exactly like "the sheet appeared
-/// and nothing happened". It is also allowed to refuse — see [openViaResponder]
+/// and nothing happened". It is also allowed to refuse — see [openHost]
 /// for the fallback — and if both fail the payload is already in the container,
 /// so the app collects it on its next foreground (`ShareInbox`).
 class ShareViewController: UIViewController {
@@ -263,6 +263,7 @@ class ShareViewController: UIViewController {
             }
             ConvexHTTP.mutation(
                 deploymentUrl: session.deploymentUrl,
+                sessionToken: session.sessionToken,
                 path: "messages:send",
                 args: args
             ) { result in
@@ -283,6 +284,7 @@ class ShareViewController: UIViewController {
         }
         ConvexHTTP.upload(
             deploymentUrl: session.deploymentUrl,
+            sessionToken: session.sessionToken,
             data: data,
             contentType: item.mimeType
         ) { result in
@@ -336,7 +338,7 @@ class ShareViewController: UIViewController {
     /// what made an earlier build appear to do nothing at all.
     ///
     /// Two things can go wrong after that and both look identical to the user,
-    /// so both are handled: `open` can answer `false` (see [openViaResponder]),
+    /// so both are handled: `open` can answer `false` (see [openHost]),
     /// and on some releases it never answers at all — hence the watchdog. The
     /// payload is in the container either way, so the worst case is the app
     /// collecting it on the user's next visit rather than immediately.
@@ -346,62 +348,79 @@ class ShareViewController: UIViewController {
             return
         }
         writeManifest(at: dir)
-        guard let context = extensionContext else {
-            finish()
-            return
-        }
 
-        // Main-queue-only, so no lock: `open`'s handler is hopped onto main and
-        // the watchdog is scheduled there.
+        // Every route out of here is asynchronous and any of them may never
+        // answer, so one latch settles the request whichever gets there first.
         var settled = false
-        let settle: (Bool) -> Void = { [weak self] opened in
+        let done: () -> Void = { [weak self] in
             guard let self, !settled else { return }
             settled = true
-            if !opened, !self.openViaResponder(ShareGroup.hostURL) {
+            self.finish()
+        }
+
+        openHost { opened in
+            if !opened {
                 // Not fatal and not worth an alert: the payload is in the
                 // container, so the app collects it the moment the user gets
                 // there — which they are already on their way to doing.
                 NSLog("[share] could not open the host app; payload left for its next foreground")
             }
-            self.finish()
+            done()
         }
-
-        context.open(ShareGroup.hostURL) { opened in
-            DispatchQueue.main.async { settle(opened) }
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            if !settled { NSLog("[share] open() never answered; falling back") }
-            settle(false)
-        }
+        // Neither route is guaranteed to call back — both are documented to and
+        // on some releases neither does. The sheet has to close regardless.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { done() }
     }
 
-    /// Opens [url] by walking the responder chain up to `UIApplication`.
+    /// Asks iOS to bring the app up, by each route there is.
     ///
     /// `NSExtensionContext.open` is documented for Today and iMessage
     /// extensions **only**. From a share extension it is tolerated rather than
-    /// supported, and on most releases it answers `false` and does nothing —
-    /// which is the whole of "the Open in MonkeyHub button does not open
-    /// MonkeyHub".
+    /// supported and answers `false` — which is the whole of "the Open in
+    /// MonkeyHub button does not open MonkeyHub". So a refusal falls through to
+    /// the scene, which can do it and is allowed to.
     ///
-    /// `UIApplication.shared` and `open(_:options:completionHandler:)` are
-    /// annotated unavailable to extensions and will not compile here, so this
-    /// goes through the responder chain and `perform`. `openURL:` is ordinary
-    /// public API on UIApplication — deprecated, not private — and the chain
-    /// from a presented extension view controller runs through it.
-    private func openViaResponder(_ url: URL) -> Bool {
-        let selector = NSSelectorFromString("openURL:")
-        var responder: UIResponder? = self
-        while let current = responder {
-            if current.responds(to: selector) {
-                // The return is a BOOL, which `perform` hands back as an
-                // unmanaged pointer; it is discarded rather than read, because
-                // reading it would be a cast of a boolean to an object.
-                _ = current.perform(selector, with: url)
-                return true
-            }
-            responder = current.next
+    /// `UIScene.open(_:options:completionHandler:)` is the piece that makes
+    /// this ordinary code rather than a hack. `UIApplication.shared` and its
+    /// `open` are both annotated unavailable to app extensions and will not
+    /// compile here, which is why every recipe on the subject reaches for the
+    /// responder chain and `perform(NSSelectorFromString("openURL:"))` — and
+    /// that recipe is now doubly dead:
+    ///
+    ///  * iOS 26 refuses the deprecated `openURL:` outright, logging
+    ///    "BUG IN CLIENT OF UIKIT … Force returning false (NO)" and doing
+    ///    nothing, while still answering `responds(to:)` — so the caller
+    ///    believes it worked;
+    ///  * and the first responder that answers the three-argument spelling is
+    ///    the **scene**, whose `options:` is a `UISceneOpenExternalURLOptions`
+    ///    rather than UIApplication's dictionary. Handing it the dictionary
+    ///    that spelling implies crashes the extension outright with
+    ///    `-[__NSDictionary0 universalLinksOnly]: unrecognized selector`.
+    ///
+    /// The scene is reachable directly and its `open` is public, extension-safe
+    /// API. No selector, no `perform`, no guessing which object answered.
+    private func openHost(_ completion: @escaping (Bool) -> Void) {
+        guard let context = extensionContext else {
+            completion(false)
+            return
         }
-        return false
+        context.open(ShareGroup.hostURL) { [weak self] opened in
+            DispatchQueue.main.async {
+                if opened {
+                    completion(true)
+                    return
+                }
+                guard let scene = self?.view.window?.windowScene else {
+                    NSLog("[share] no scene to open from")
+                    completion(false)
+                    return
+                }
+                NSLog("[share] extensionContext.open refused; going through the scene")
+                scene.open(ShareGroup.hostURL, options: nil) { opened in
+                    completion(opened)
+                }
+            }
+        }
     }
 
     private func writeManifest(at dir: URL) {

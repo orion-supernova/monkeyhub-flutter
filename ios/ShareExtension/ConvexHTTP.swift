@@ -9,14 +9,27 @@ import Foundation
 ///
 /// It does not need one. Convex serves an HTTP API alongside the socket
 /// (`POST /api/mutation`, `POST /api/query`) with the same function paths and
-/// the same argument shapes — and **this app's mutations carry no bearer
-/// token**: `messages:send` takes the sender's user id as an ordinary argument.
-/// So the whole credential is the user id in `ShareSession`, and sending is
-/// three ordinary HTTP calls.
+/// the same argument shapes, so sending is three ordinary HTTP calls.
 ///
-/// That is a fact about the backend, not an assumption. If the backend ever
-/// starts authenticating (`ctx.auth`), this file stops working — loudly, with a
-/// 401 surfaced as `.server` — and the extension falls back to opening the app.
+/// ### The token is injected here, once
+///
+/// `backend/convex/functions.ts` wraps every authenticated function with a
+/// required `sessionToken` argument, and the Dart client answers that in one
+/// place — `ConvexBackend._withToken` — rather than at its hundred call sites.
+/// [mutation] does the same for this side, for the same reason: a second
+/// caller that forgets is a call that fails validation outright, and the
+/// failure reads as "the share sheet cannot send" rather than as an auth
+/// problem.
+///
+/// This is what that omission actually looked like, from a sheet that had
+/// composed perfectly:
+///
+///     ArgumentValidationError: Object is missing the required field
+///     `sessionToken`.
+///
+/// `share_contract_test.dart` pins the argument's name against
+/// `SessionGuard.identityArg`, because the two halves are spelled in different
+/// languages and nothing else makes them agree.
 enum ConvexHTTP {
 
     enum Failure: Error {
@@ -46,9 +59,20 @@ enum ConvexHTTP {
 
     // MARK: - Mutations
 
+    /// The argument the session token travels in.
+    ///
+    /// Mirrors `SessionGuard.identityArg` in Dart, and deliberately not
+    /// `token`: several functions already have an argument by that name
+    /// carrying a PUSH token. See the note in `session_guard.dart`.
+    static let identityArg = "sessionToken"
+
     /// Runs a Convex mutation and returns its `value`.
+    ///
+    /// [sessionToken] is added to every call rather than left to the caller —
+    /// see the note on this type.
     static func mutation(
         deploymentUrl: String,
+        sessionToken: String,
         path: String,
         args: [String: Any],
         completion: @escaping (Result<Any?, Failure>) -> Void
@@ -57,6 +81,8 @@ enum ConvexHTTP {
             completion(.failure(.malformed))
             return
         }
+        var args = args
+        args[identityArg] = sessionToken
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -103,12 +129,16 @@ enum ConvexHTTP {
     /// file and the Dart one and fails if they drift.
     static func upload(
         deploymentUrl: String,
+        sessionToken: String,
         data: Data,
         contentType: String,
         completion: @escaping (Result<String, Failure>) -> Void
     ) {
         mutation(
             deploymentUrl: deploymentUrl,
+            sessionToken: sessionToken,
+            // Authenticated like everything else — `functions.ts` calls this
+            // one out by name as the shape that takes nothing BUT its identity.
             path: "files:generateUploadUrl",
             args: [:]
         ) { result in

@@ -16,13 +16,19 @@ enum ShareCache {
     /// Stores the session, or clears it when [userId] is empty.
     ///
     /// Called with the chat list the app just published to the OS, so the two
-    /// can never disagree about which chats exist. An empty `deploymentUrl` or
-    /// `userId` clears rather than writes a half-usable file: an extension that
-    /// found one would offer a picker whose Send button could only fail.
+    /// can never disagree about which chats exist. An empty `deploymentUrl`,
+    /// `userId` or `sessionToken` clears rather than writing a half-usable
+    /// file: an extension that found one would offer a picker whose Send
+    /// button could only fail.
     static func store(_ args: [String: Any]) {
         let userId = (args["userId"] as? String) ?? ""
         let deploymentUrl = (args["deploymentUrl"] as? String) ?? ""
-        guard !userId.isEmpty, !deploymentUrl.isEmpty else {
+        // The token is as load-bearing as the other two: without it every
+        // authenticated function on this backend refuses the call outright, so
+        // a session cached without one offers a picker whose Send can only
+        // fail. See `withToken` in backend/convex/functions.ts.
+        let sessionToken = (args["sessionToken"] as? String) ?? ""
+        guard !userId.isEmpty, !deploymentUrl.isEmpty, !sessionToken.isEmpty else {
             ShareSession.clear()
             return
         }
@@ -45,6 +51,7 @@ enum ShareCache {
         ShareSession(
             userId: userId,
             deploymentUrl: deploymentUrl,
+            sessionToken: sessionToken,
             chats: chats,
             senderName: args["senderName"] as? String
         ).save()

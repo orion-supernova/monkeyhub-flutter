@@ -25,22 +25,40 @@ struct ShareChat: Codable {
 ///
 /// ### Why this is enough to send
 ///
-/// `messages:send` takes the user id as an ordinary argument and there is no
-/// bearer token anywhere in this app's Convex calls. So `userId` plus
-/// `deploymentUrl` is the entire credential, and a plain `URLSession` against
-/// Convex's HTTP API can do what the Dart client does. That is a property of
-/// the backend's design rather than a trick — see `ConvexHTTP.swift`.
+/// Every authenticated function on this backend takes a `sessionToken` — see
+/// `withToken` in `backend/convex/functions.ts`, which injects it into all of
+/// them — and `messages:send` takes the sender's user id as an ordinary
+/// argument beside it. So the deployment URL, the user id and the token are the
+/// whole of what a plain `URLSession` needs to do what the Dart client does.
+///
+/// It was not always three. The backend once authenticated nothing and the
+/// user id alone was the credential, which is what this extension was written
+/// against; when `functions.ts` gained the wrapper, every send from here
+/// started failing with `ArgumentValidationError: Object is missing the
+/// required field \`sessionToken\``. `share_contract_test.dart` now pins the
+/// token's argument name against `SessionGuard.identityArg` so the two cannot
+/// drift apart again silently.
 ///
 /// ### What that means for privacy
 ///
-/// This file is a list of the user's most recent chats sitting in a container
-/// that survives the app being closed. It is inside the app group (readable
-/// only by these two binaries, both signed by the same team) and it is
-/// **deleted on sign-out**, which is what stops the previous account's chats
-/// being offered to whoever signs in next on a shared handset.
+/// This file is a live session token and a list of the user's most recent
+/// chats, sitting in a container that survives the app being closed. Anything
+/// that can read it can post as this account. It is inside the app group
+/// (readable only by these two binaries, both signed by the same team), written
+/// at the keychain's own protection class, excluded from backups, and
+/// **deleted on sign-out** — which is what stops the account that left being
+/// usable by whoever picks the handset up next.
 struct ShareSession: Codable {
     let userId: String
     let deploymentUrl: String
+
+    /// The credential every authenticated call carries, spelled exactly as
+    /// `SessionGuard.identityArg` spells it. Non-optional on purpose: a cache
+    /// written before this field existed fails to decode and reads as "no
+    /// session", which is the honest answer — the sheet offers to open the app
+    /// instead of a Send that could only fail.
+    let sessionToken: String
+
     let chats: [ShareChat]
 
     /// The app's own display name, sent as `senderName` so a push from a
@@ -53,7 +71,8 @@ struct ShareSession: Codable {
             let data = try? Data(contentsOf: url),
             let session = try? JSONDecoder().decode(ShareSession.self, from: data),
             !session.userId.isEmpty,
-            !session.deploymentUrl.isEmpty
+            !session.deploymentUrl.isEmpty,
+            !session.sessionToken.isEmpty
         else { return nil }
         return session
     }
