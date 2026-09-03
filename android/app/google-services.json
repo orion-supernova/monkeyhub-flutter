@@ -14,6 +14,30 @@
       },
       "oauth_client": [
         {
+          "client_id": "691782206017-49kqsqv594c0l7ndag3s8ttssdp8ot17.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.walhallaa.chattest20241220",
+            "certificate_hash": "31d35d9f6dae3676ad13347b8082b2ddc78c63c4"
+          }
+        },
+        {
+          "client_id": "691782206017-50dkq11f5a846gq7mr7peem79hgsnn5g.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.walhallaa.chattest20241220",
+            "certificate_hash": "2ec420d1414f4ca5405e28eb4c35cfc12da7a36e"
+          }
+        },
+        {
+          "client_id": "691782206017-as05k21t7ltpjd097bp6v293vlo3t7fb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.walhallaa.chattest20241220",
+            "certificate_hash": "5a6d50eb90036b72e18bfea4362dfa12be291afa"
+          }
+        },
+        {
           "client_id": "691782206017-u82ooanr6la6o8p1k9p73fff20e3lsqq.apps.googleusercontent.com",
           "client_type": 3
         }
