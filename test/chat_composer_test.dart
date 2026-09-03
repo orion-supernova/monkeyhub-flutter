@@ -289,4 +289,56 @@ void main() {
       });
     });
   });
+
+  /// The send button has to arrive on the keystroke that earns it.
+  ///
+  /// Both composers are stateless and pick the trailing button off
+  /// `controller.text`, and neither host rebuilds on a keystroke: the room
+  /// screen's `setState` runs on a 1Hz ticker and the thread overlay's on repo
+  /// traffic. So this pumps the tree ONCE and never hands it a new widget
+  /// again — the only thing that can bring the button in is the composer
+  /// listening to the controller itself. Without that the button showed up
+  /// whenever the host next happened to build, up to a second after the
+  /// character, and only then started its 200ms fade.
+  final typing = <String, Widget Function(TextEditingController)>{
+    'classic': (controller) => ChatComposerClassic(
+          controller: controller,
+          ephemeral: false,
+          onSend: () {},
+          onCamera: () {},
+        ),
+    'liquid': (controller) => ChatComposerLiquid(
+          controller: controller,
+          ephemeral: false,
+          onSend: () {},
+          onCamera: () {},
+        ),
+  };
+
+  typing.forEach((name, build) {
+    testWidgets('$name the send button lands on the first character', (
+      tester,
+    ) async {
+      final controller = TextEditingController();
+      addTearDown(controller.dispose);
+      final send = find.byIcon(sendIcon[name]!);
+
+      await tester.pumpWidget(host(build(controller)));
+      await tester.pumpAndSettle();
+      expect(send, findsNothing);
+
+      await tester.enterText(find.byType(TextField), 'h');
+      // Frames only — pumpAndSettle finishes the switcher's fade, it does not
+      // rebuild the host. That is the whole point of the test.
+      await tester.pumpAndSettle();
+      expect(send, findsOneWidget, reason: 'one character is enough to send');
+
+      // And it leaves the same way: on the clear, not on whatever rebuild
+      // happens to come next.
+      controller.clear();
+      await tester.pumpAndSettle();
+      expect(send, findsNothing);
+      expect(find.byIcon(Icons.photo_camera_outlined), findsOneWidget);
+    });
+  });
 }

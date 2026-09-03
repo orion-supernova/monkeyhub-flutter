@@ -373,6 +373,63 @@ class _HoldRingPainter extends CustomPainter {
       old.progress != progress || old.color != color;
 }
 
+/// Rebuilds its subtree when the composer crosses between empty and non-empty.
+///
+/// The trailing button is chosen off `controller.text`, but both composers are
+/// `StatelessWidget`s (deliberately — see the note below) and neither host
+/// rebuilds on a keystroke: the room screen's `setState` runs on a 1Hz ticker
+/// and the thread overlay's on repo traffic. So the send button used to arrive
+/// whenever the host next happened to build — up to a second after the
+/// character that earned it, and only then starting its 200ms fade. Listening
+/// to the controller here puts it on the keystroke instead.
+///
+/// Only the flip rebuilds. A `TextEditingController` notifies on every
+/// selection and composing-region change as well, and none of those change
+/// which button belongs in the row.
+class _ComposerEmptiness extends StatefulWidget {
+  const _ComposerEmptiness({required this.controller, required this.builder});
+
+  final TextEditingController controller;
+  final Widget Function(BuildContext context, bool hasText) builder;
+
+  @override
+  State<_ComposerEmptiness> createState() => _ComposerEmptinessState();
+}
+
+class _ComposerEmptinessState extends State<_ComposerEmptiness> {
+  late bool _hasText = widget.controller.text.isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onControllerChanged);
+  }
+
+  @override
+  void didUpdateWidget(_ComposerEmptiness old) {
+    super.didUpdateWidget(old);
+    if (old.controller != widget.controller) {
+      old.controller.removeListener(_onControllerChanged);
+      widget.controller.addListener(_onControllerChanged);
+      _hasText = widget.controller.text.isNotEmpty;
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onControllerChanged);
+    super.dispose();
+  }
+
+  void _onControllerChanged() {
+    final has = widget.controller.text.isNotEmpty;
+    if (has != _hasText) setState(() => _hasText = has);
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(context, _hasText);
+}
+
 /// The two message composers, lifted verbatim out of `room_screen.dart` so
 /// the thread overlay can use the same input the room does.
 ///
@@ -561,63 +618,66 @@ class ChatComposerClassic extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            transitionBuilder: (child, animation) => FadeTransition(
-              opacity: animation,
-              child: ScaleTransition(
-                scale: Tween<double>(begin: 0.8, end: 1.0).animate(
-                  CurvedAnimation(parent: animation, curve: Curves.easeInOutCubic),
+          _ComposerEmptiness(
+            controller: controller,
+            builder: (context, hasText) => AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: ScaleTransition(
+                  scale: Tween<double>(begin: 0.8, end: 1.0).animate(
+                    CurvedAnimation(parent: animation, curve: Curves.easeInOutCubic),
+                  ),
+                  child: child,
                 ),
-                child: child,
               ),
-            ),
-            child: controller.text.isNotEmpty
-                ? _SendButton(
-                    key: const ValueKey('send'),
-                    onSend: onSend,
-                    semanticLabel: AppLocalizations.of(context).deepOceanThemeSendButtonLabel,
-                    classic: true,
-                    onSchedule: onSchedule,
-                    scheduledCount: scheduledCount,
-                  )
-                : modeButton != null
-                    ? SizedBox(
-                        key: const ValueKey('mode'),
-                        width: 38,
-                        height: 38,
-                        child: modeButton,
-                      )
-                    : onCamera != null
-                        ? FocusableTap(
-                            key: const ValueKey('camera'),
-                            onTap: onCamera,
-                            semanticLabel: AppLocalizations.of(context).deepOceanThemeCameraButtonLabel,
-                            shape: FocusRingShape.circle,
-                            child: GestureDetector(
+              child: hasText
+                  ? _SendButton(
+                      key: const ValueKey('send'),
+                      onSend: onSend,
+                      semanticLabel: AppLocalizations.of(context).deepOceanThemeSendButtonLabel,
+                      classic: true,
+                      onSchedule: onSchedule,
+                      scheduledCount: scheduledCount,
+                    )
+                  : modeButton != null
+                      ? SizedBox(
+                          key: const ValueKey('mode'),
+                          width: 38,
+                          height: 38,
+                          child: modeButton,
+                        )
+                      : onCamera != null
+                          ? FocusableTap(
+                              key: const ValueKey('camera'),
                               onTap: onCamera,
-                              child: Container(
-                                width: 38,
-                                height: 38,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: theme.surfaceRaised,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: theme.divider),
-                                ),
-                                child: Icon(
-                                  Icons.photo_camera_outlined,
-                                  color: theme.inkSoft,
-                                  size: 18,
+                              semanticLabel: AppLocalizations.of(context).deepOceanThemeCameraButtonLabel,
+                              shape: FocusRingShape.circle,
+                              child: GestureDetector(
+                                onTap: onCamera,
+                                child: Container(
+                                  width: 38,
+                                  height: 38,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: theme.surfaceRaised,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: theme.divider),
+                                  ),
+                                  child: Icon(
+                                    Icons.photo_camera_outlined,
+                                    color: theme.inkSoft,
+                                    size: 18,
+                                  ),
                                 ),
                               ),
+                            )
+                          : const SizedBox(
+                              key: ValueKey('empty'),
+                              width: 38,
+                              height: 38,
                             ),
-                          )
-                        : const SizedBox(
-                            key: ValueKey('empty'),
-                            width: 38,
-                            height: 38,
-                          ),
+            ),
           ),
         ],
         ),
@@ -750,50 +810,53 @@ class ChatComposerLiquid extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            transitionBuilder: (child, animation) => FadeTransition(
-              opacity: animation,
-              child: ScaleTransition(
-                scale: Tween<double>(begin: 0.8, end: 1.0).animate(
-                  CurvedAnimation(parent: animation, curve: Curves.easeInOutCubic),
+          _ComposerEmptiness(
+            controller: controller,
+            builder: (context, hasText) => AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: ScaleTransition(
+                  scale: Tween<double>(begin: 0.8, end: 1.0).animate(
+                    CurvedAnimation(parent: animation, curve: Curves.easeInOutCubic),
+                  ),
+                  child: child,
                 ),
-                child: child,
               ),
-            ),
-            child: controller.text.isNotEmpty
-                ? _SendButton(
-                    key: const ValueKey('send'),
-                    onSend: onSend,
-                    semanticLabel: AppLocalizations.of(context).deepOceanThemeSendButtonLabel,
-                    classic: false,
-                    onSchedule: onSchedule,
-                    scheduledCount: scheduledCount,
-                  )
-                : modeButton != null
-                    ? SizedBox(
-                        key: const ValueKey('mode'),
-                        width: 44,
-                        height: 44,
-                        child: modeButton,
-                      )
-                    : onCamera != null
-                        ? LiquidGlass(
-                            key: const ValueKey('camera'),
-                            shape: LiquidGlassShape.circle,
-                            size: const Size(44, 44),
-                            onTap: onCamera,
-                            child: Icon(
-                              Icons.photo_camera_outlined,
-                              size: 18,
-                              color: theme.accent,
+              child: hasText
+                  ? _SendButton(
+                      key: const ValueKey('send'),
+                      onSend: onSend,
+                      semanticLabel: AppLocalizations.of(context).deepOceanThemeSendButtonLabel,
+                      classic: false,
+                      onSchedule: onSchedule,
+                      scheduledCount: scheduledCount,
+                    )
+                  : modeButton != null
+                      ? SizedBox(
+                          key: const ValueKey('mode'),
+                          width: 44,
+                          height: 44,
+                          child: modeButton,
+                        )
+                      : onCamera != null
+                          ? LiquidGlass(
+                              key: const ValueKey('camera'),
+                              shape: LiquidGlassShape.circle,
+                              size: const Size(44, 44),
+                              onTap: onCamera,
+                              child: Icon(
+                                Icons.photo_camera_outlined,
+                                size: 18,
+                                color: theme.accent,
+                              ),
+                            )
+                          : const SizedBox(
+                              key: ValueKey('empty'),
+                              width: 44,
+                              height: 44,
                             ),
-                          )
-                        : const SizedBox(
-                            key: ValueKey('empty'),
-                            width: 44,
-                            height: 44,
-                          ),
+            ),
           ),
         ],
         ),
