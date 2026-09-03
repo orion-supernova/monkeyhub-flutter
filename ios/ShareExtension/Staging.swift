@@ -52,6 +52,17 @@ struct StagedItem {
 /// asynchronously and out of order, and the results have to keep the order the
 /// user chose them in — five photos sent in a shuffled order is a bug people
 /// notice immediately.
+///
+/// ### Its own callbacks hold it alive, on purpose
+///
+/// Every closure below captures `self` **strongly**. That is not an oversight
+/// and it is not a leak: nothing else references a Staging — the controller
+/// starts one and the loads it kicked off are the only things left pointing at
+/// it — so a weak capture means the object is gone before the first provider
+/// answers, every staged file is discarded, and [run]'s completion is never
+/// called at all. The symptom is a share sheet that spins, then offers nothing
+/// to send. The closures are released as they fire, so the object goes away
+/// when the work does.
 final class Staging {
 
     init(directory: URL) {
@@ -61,18 +72,39 @@ final class Staging {
     private let directory: URL
     private let queue = DispatchQueue(label: "monkeyhub.share.staging")
 
+    /// Copies every provider's payload into the staging directory.
+    ///
+    /// [completion] runs on the main queue and runs **exactly once**: when
+    /// every provider has answered, or when [deadline] elapses with whatever
+    /// has landed by then. The deadline is not belt-and-braces — a provider
+    /// that never calls its completion handler is an ordinary occurrence (a
+    /// declined transcode, an iCloud original that will not download), and one
+    /// of them must not be able to hold the whole sheet at a spinner.
     func run(
         providers: [NSItemProvider],
+        deadline: TimeInterval,
         completion: @escaping ([StagedItem], String?) -> Void
     ) {
         var staged = [Int: StagedItem]()
         var text: String?
+        var delivered = false
         let group = DispatchGroup()
+
+        // Reads and writes of the three variables above happen here and only
+        // here, on the one serial queue, which is what makes them safe to share
+        // between however many providers are loading at once.
+        func deliver() {
+            self.queue.async {
+                guard !delivered else { return }
+                delivered = true
+                let ordered = staged.keys.sorted().compactMap { staged[$0] }
+                DispatchQueue.main.async { completion(ordered, text) }
+            }
+        }
 
         for (index, provider) in providers.enumerated() {
             group.enter()
-            load(provider, index: index) { [weak self] result in
-                guard let self else { group.leave(); return }
+            load(provider, index: index) { result in
                 self.queue.async {
                     switch result {
                     case .file(let item): staged[index] = item
@@ -88,12 +120,10 @@ final class Staging {
             }
         }
 
-        group.notify(queue: .main) { [weak self] in
-            guard let self else { return }
-            self.queue.sync {
-                let ordered = staged.keys.sorted().compactMap { staged[$0] }
-                DispatchQueue.main.async { completion(ordered, text) }
-            }
+        group.notify(queue: .main) { deliver() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + deadline) {
+            NSLog("[share] staging deadline reached; sending with what arrived")
+            deliver()
         }
     }
 
@@ -185,8 +215,7 @@ final class Staging {
         // `loadFileRepresentation`'s URL is valid only for the length of the
         // callback — it is deleted the moment this closure returns — so the
         // copy has to happen inside it rather than being scheduled from it.
-        provider.loadFileRepresentation(forTypeIdentifier: type) { [weak self] url, error in
-            guard let self else { completion(.none); return }
+        provider.loadFileRepresentation(forTypeIdentifier: type) { url, error in
             guard let url else {
                 NSLog("[share] load failed for \(type): \(error?.localizedDescription ?? "unknown")")
                 // A provider that cannot produce the type we asked for. The

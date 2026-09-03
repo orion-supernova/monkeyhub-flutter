@@ -128,6 +128,21 @@ long enough to be read later.
 | `AppDelegate.swift` | The channel, and `donateSendMessage` — the suggestions |
 | `tool/setup_ios_share_extension.rb` | Creates the extension target. Run from the Podfile's `post_install` |
 
+> ### The copy has to be owned by something
+>
+> `Staging` is started by the controller and then referenced by nothing except
+> the item-provider callbacks it registered. Captured weakly, it is deallocated
+> before the first provider answers — every file is discarded and the completion
+> never runs, which the user sees as a sheet that spins for the whole staging
+> deadline and then offers nothing to send. So the controller holds it *and* its
+> own callbacks capture `self` strongly. `share_contract_test.dart` fails if
+> either goes away.
+>
+> The deadline lives inside `Staging` rather than beside it for the same reason:
+> a provider that never calls its completion handler is ordinary (a declined
+> transcode, an iCloud original that will not download), and only the thing
+> holding the results can answer with a partial one.
+
 The extension target is **generated, not committed**. Committing it would be
 ~2000 lines of `project.pbxproj` that no review can read. The script is
 idempotent — a second run over a configured project saves nothing — so
@@ -187,6 +202,16 @@ placeholder beyond what is already committed.
    back in Photos with the message already delivered.
 5. Tap one of the suggested chats in the top row instead — the same sheet opens
    with that chat already selected.
+
+**The way out of the sheet has two routes and needs both.**
+`extensionContext.open` is documented for Today and iMessage extensions *only*;
+from a share extension it is tolerated rather than supported and answers `false`
+on most releases. When it does, `openViaResponder` walks the responder chain to
+`UIApplication` and sends it `openURL:` — the route every app that leaves a share
+sheet actually takes. On some releases the completion handler never fires at
+all, so a watchdog settles the hand-off either way. If both routes fail the
+payload is still in the container and the app collects it on its next
+foreground; the URL was only ever an optimisation.
 
 If the sheet appears and **nothing happens at all**, the App Group is not
 provisioned: `ShareSession.load()` returns nil, the picker is empty, and the

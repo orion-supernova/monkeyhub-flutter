@@ -152,16 +152,89 @@ void main() {
     });
   });
 
-  group('the hand-off completes the request from the open handler', () {
-    test('completeRequest is inside open\'s completion, not beside it', () {
-      // The bug this replaces: `open` is asynchronous, and calling
-      // `completeRequest` on the next line tears the extension down before iOS
-      // acts on the request. The symptom is exactly "the sheet appeared and
-      // nothing happened" — no error, no log, no app.
-      final open = controller.substring(controller.indexOf('context.open('));
-      final body = open.substring(0, open.indexOf('\n    }'));
-      expect(body, contains('self?.finish()'),
-          reason: 'finish() must be called from open\'s completion handler');
+  group('the sheet can always act on the tap it was given', () {
+    /// One function's body, from its signature to the first closing brace at
+    /// the type's indentation. Nested closures close deeper than that, so this
+    /// is the whole function and nothing after it.
+    String bodyOf(String source, String signature) {
+      final start = source.indexOf(signature);
+      expect(start, greaterThan(-1), reason: '$signature moved or was renamed');
+      return source.substring(start, source.indexOf('\n    }', start));
+    }
+
+    test('Send reports instead of swallowing the tap', () {
+      // A share arriving on a signed-out device still carries the donated room
+      // id, so Send is live with no session behind it. A bare `return` on that
+      // path is a button that does nothing at all — no spinner, no error, no
+      // message — which is indistinguishable from a broken extension.
+      final send = bodyOf(controller, 'private func send()');
+      expect(send, isNot(contains('else { return }')),
+          reason: 'every refusal in send() has to reach the user');
+      expect(send, contains('model.state = .failed'));
+    });
+
+    group('the hand-off to the app', () {
+      late String openApp;
+      setUpAll(() => openApp = bodyOf(controller, 'private func openApp()'));
+
+      test('completes the request from a handler, not beside the call', () {
+        // The bug this replaces: `open` is asynchronous, and calling
+        // `completeRequest` on the next line tears the extension down before
+        // iOS acts on the request. The symptom is exactly "the sheet appeared
+        // and nothing happened" — no error, no log, no app.
+        final afterOpen = openApp.substring(openApp.indexOf('context.open('));
+        expect(afterOpen, isNot(contains('\n        finish()')),
+            reason: 'finish() must not be called beside the open call');
+        expect(openApp, contains('settle(opened)'),
+            reason: "open's completion handler must be what settles it");
+      });
+
+      test('has a route left when the extension context refuses', () {
+        // `NSExtensionContext.open` is documented for Today and iMessage
+        // extensions ONLY. From a share extension it is tolerated rather than
+        // supported and answers false on most releases — which is the whole of
+        // "the Open in MonkeyHub button does not open MonkeyHub". The responder
+        // chain is the only way left to reach UIApplication from in here.
+        expect(openApp, contains('openViaResponder('));
+        expect(controller, contains('NSSelectorFromString("openURL:")'));
+      });
+
+      test('and settles even when the handler never fires at all', () {
+        expect(openApp, contains('asyncAfter'),
+            reason: 'on some releases open() never answers; a sheet that never '
+                'completes is one the user has to force-quit out of');
+      });
+    });
+  });
+
+  group('the copy outlives the call that started it', () {
+    late String staging;
+    setUpAll(() => staging = read('ios/ShareExtension/Staging.swift'));
+
+    test('the controller owns the copy in flight', () {
+      expect(controller, contains('private var staging: Staging?'),
+          reason: 'an operation nobody holds is one ARC is free to deallocate '
+              'in the middle of');
+    });
+
+    test('and the callbacks hold it too', () {
+      // Nothing else points at a Staging once `run` returns — the loads it
+      // kicked off are all there is. Captured weakly, the object died before
+      // the first provider answered: every staged file discarded, the
+      // completion never called, and a share sheet that spins for the whole
+      // deadline and then has nothing to send.
+      expect(staging, isNot(contains('[weak self]')),
+          reason: 'a weak capture here deallocates the copy mid-flight');
+    });
+
+    test('and answers on a deadline rather than waiting forever', () {
+      // A provider that never calls its completion handler is ordinary rather
+      // than exotic — a declined transcode, an iCloud original that will not
+      // download — and one of them must not hold the whole sheet.
+      expect(staging, contains('deadline: TimeInterval'));
+      expect(staging, contains('guard !delivered else { return }'),
+          reason: 'the group and the deadline can both fire, and the '
+              'completion must run exactly once');
     });
   });
 }

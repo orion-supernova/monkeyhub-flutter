@@ -29,16 +29,18 @@ import UniformTypeIdentifiers
 /// annotation, view-once — which lives in the app and is not worth rebuilding
 /// here. Both offer a button; neither is the default.
 ///
-/// `extensionContext.open` is the only documented way out of a share extension,
-/// and it is asynchronous: `completeRequest` must be called from its completion
+/// `extensionContext.open` is the documented way out of a share extension, and
+/// it is asynchronous: `completeRequest` must be called from its completion
 /// handler, never beside it. Calling both in sequence tears the extension down
 /// before iOS acts on the request, which looks exactly like "the sheet appeared
-/// and nothing happened". If it fails anyway, the payload is already in the
-/// container and the app collects it on its next foreground (`ShareInbox`).
+/// and nothing happened". It is also allowed to refuse — see [openViaResponder]
+/// for the fallback — and if both fail the payload is already in the container,
+/// so the app collects it on its next foreground (`ShareInbox`).
 class ShareViewController: UIViewController {
 
-    /// Longest the extension will spend copying attachments before giving up
-    /// and working with what it has. iOS will kill this process on its own
+    /// Longest the extension will spend copying attachments before working with
+    /// whatever arrived. Enforced inside [Staging], which is the only place that
+    /// can still deliver a partial result. iOS will kill this process on its own
     /// schedule regardless, and a share sheet that sits there is worse than one
     /// that arrives incomplete.
     private static let stagingDeadline: TimeInterval = 20
@@ -46,6 +48,10 @@ class ShareViewController: UIViewController {
     private let model = ComposeModel()
     private var finished = false
     private var stagingDir: URL?
+    /// The copy currently in flight. Held because an in-flight operation that
+    /// nobody owns is one iOS is free to deallocate mid-copy — see the note on
+    /// [Staging] about what that looked like.
+    private var staging: Staging?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -106,14 +112,11 @@ class ShareViewController: UIViewController {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         stagingDir = dir
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.stagingDeadline) { [weak self] in
-            guard let self, !self.model.ready else { return }
-            NSLog("[share] timed out staging attachments")
-            self.model.ready = true
-        }
-
-        Staging(directory: dir).run(providers: providers) { [weak self] staged, text in
+        let job = Staging(directory: dir)
+        staging = job
+        job.run(providers: providers, deadline: Self.stagingDeadline) { [weak self] staged, text in
             guard let self else { return }
+            self.staging = nil
             self.model.items = staged
             self.model.sharedText = text ?? fallbackText
             self.model.previewImage = Self.thumbnail(for: staged)
@@ -145,10 +148,19 @@ class ShareViewController: UIViewController {
     // MARK: - Sending
 
     private func send() {
-        guard
-            let session = model.session,
-            let roomId = model.selectedChatId
-        else { return }
+        // Both of these are reachable from a sheet the user is looking at, and
+        // an early `return` here is a Send button that swallows the tap: no
+        // spinner, no error, nothing. A share arriving on a signed-out device
+        // still carries a donated room id, so the button is live even when
+        // there is no session behind it.
+        guard let session = model.session else {
+            model.state = .failed("Open MonkeyHub and sign in before sending from here.")
+            return
+        }
+        guard let roomId = model.selectedChatId else {
+            model.state = .failed("Pick a chat first.")
+            return
+        }
         model.state = .sending
 
         let caption = model.caption.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -322,6 +334,12 @@ class ShareViewController: UIViewController {
     /// iOS to open the app, and completes only once that request has been
     /// answered. Completing beside the call rather than inside its handler is
     /// what made an earlier build appear to do nothing at all.
+    ///
+    /// Two things can go wrong after that and both look identical to the user,
+    /// so both are handled: `open` can answer `false` (see [openViaResponder]),
+    /// and on some releases it never answers at all — hence the watchdog. The
+    /// payload is in the container either way, so the worst case is the app
+    /// collecting it on the user's next visit rather than immediately.
     private func openApp() {
         guard let dir = stagingDir else {
             finish()
@@ -332,15 +350,58 @@ class ShareViewController: UIViewController {
             finish()
             return
         }
-        context.open(ShareGroup.hostURL) { [weak self] opened in
-            if !opened {
+
+        // Main-queue-only, so no lock: `open`'s handler is hopped onto main and
+        // the watchdog is scheduled there.
+        var settled = false
+        let settle: (Bool) -> Void = { [weak self] opened in
+            guard let self, !settled else { return }
+            settled = true
+            if !opened, !self.openViaResponder(ShareGroup.hostURL) {
                 // Not fatal and not worth an alert: the payload is in the
                 // container, so the app collects it the moment the user gets
                 // there — which they are already on their way to doing.
                 NSLog("[share] could not open the host app; payload left for its next foreground")
             }
-            DispatchQueue.main.async { self?.finish() }
+            self.finish()
         }
+
+        context.open(ShareGroup.hostURL) { opened in
+            DispatchQueue.main.async { settle(opened) }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            if !settled { NSLog("[share] open() never answered; falling back") }
+            settle(false)
+        }
+    }
+
+    /// Opens [url] by walking the responder chain up to `UIApplication`.
+    ///
+    /// `NSExtensionContext.open` is documented for Today and iMessage
+    /// extensions **only**. From a share extension it is tolerated rather than
+    /// supported, and on most releases it answers `false` and does nothing —
+    /// which is the whole of "the Open in MonkeyHub button does not open
+    /// MonkeyHub".
+    ///
+    /// `UIApplication.shared` and `open(_:options:completionHandler:)` are
+    /// annotated unavailable to extensions and will not compile here, so this
+    /// goes through the responder chain and `perform`. `openURL:` is ordinary
+    /// public API on UIApplication — deprecated, not private — and the chain
+    /// from a presented extension view controller runs through it.
+    private func openViaResponder(_ url: URL) -> Bool {
+        let selector = NSSelectorFromString("openURL:")
+        var responder: UIResponder? = self
+        while let current = responder {
+            if current.responds(to: selector) {
+                // The return is a BOOL, which `perform` hands back as an
+                // unmanaged pointer; it is discarded rather than read, because
+                // reading it would be a cast of a boolean to an object.
+                _ = current.perform(selector, with: url)
+                return true
+            }
+            responder = current.next
+        }
+        return false
     }
 
     private func writeManifest(at dir: URL) {

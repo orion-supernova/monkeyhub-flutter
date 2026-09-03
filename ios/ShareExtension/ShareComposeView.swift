@@ -127,8 +127,13 @@ struct ShareComposeView: View {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
+                // Disabled until staging finishes, exactly like the escape
+                // hatch below it. Handing the app a manifest written while the
+                // copies are still in flight is handing it a share with no
+                // photos in it, which Dart drops on the floor as empty.
                 Button("Open MonkeyHub", action: onOpenApp)
                     .buttonStyle(.borderedProminent)
+                    .disabled(state == .sending)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(24)
