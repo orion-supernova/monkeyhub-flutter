@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../auth/auth_errors.dart';
 import '../auth/recovery_phrase.dart';
+import '../keyboard/dismiss_keyboard_on_tap.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../platform.dart';
@@ -184,25 +185,27 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
       canPop: widget.dismissible,
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: Stack(
-          children: [
-            theme.backgroundLayer(context),
-            SafeArea(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints:
-                      const BoxConstraints(maxWidth: ContentWidth.auth),
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(28, 36, 28, 28),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: _body(theme),
+        body: DismissKeyboardOnTap(
+          child: Stack(
+            children: [
+              theme.backgroundLayer(context),
+              SafeArea(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints:
+                        const BoxConstraints(maxWidth: ContentWidth.auth),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(28, 36, 28, 28),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: _body(theme),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

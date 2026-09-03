@@ -8,6 +8,7 @@ import '../backend/server_endpoint.dart';
 import '../backend/server_probe.dart';
 import '../backend/server_store.dart';
 import '../backend/server_switch.dart';
+import '../keyboard/dismiss_keyboard_on_tap.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
@@ -234,141 +235,143 @@ class _ServerScreenState extends State<ServerScreen> {
     final switching = ServerSwitch.instance.busy;
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          // See home_screen: the bottom inset leaves a dead strip of
-          // background under the scroller, which reads as a solid bar. The
-          // list clears the home indicator with its own padding instead.
-          SafeArea(
-            bottom: false,
-            child: AdaptivePageBody(
-              child: ListView(
-                padding: EdgeInsets.fromLTRB(
-                  20,
-                  14,
-                  20,
-                  edgeToEdgeBottom(context, 48),
-                ),
-                children: [
-                  if (!widget.onboarding)
+      body: DismissKeyboardOnTap(
+        child: Stack(
+          children: [
+            theme.backgroundLayer(context),
+            // See home_screen: the bottom inset leaves a dead strip of
+            // background under the scroller, which reads as a solid bar. The
+            // list clears the home indicator with its own padding instead.
+            SafeArea(
+              bottom: false,
+              child: AdaptivePageBody(
+                child: ListView(
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    14,
+                    20,
+                    edgeToEdgeBottom(context, 48),
+                  ),
+                  children: [
+                    if (!widget.onboarding)
+                      Row(
+                        children: [
+                          IconButton(
+                            onPressed: switching
+                                ? null
+                                : () => Navigator.of(context).maybePop(),
+                            icon: Icon(
+                              Icons.arrow_back,
+                              color: theme.inkSoft,
+                              size: 18,
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      const SizedBox(height: 8),
+                    const SizedBox(height: 10),
+                    Text(
+                      widget.onboarding
+                          ? l10n.serverOnboardingTitle
+                          : l10n.serverScreenTitle,
+                      style: theme.displayMedium,
+                    ),
+                    const SizedBox(height: 10),
                     Row(
                       children: [
-                        IconButton(
-                          onPressed: switching
-                              ? null
-                              : () => Navigator.of(context).maybePop(),
-                          icon: Icon(
-                            Icons.arrow_back,
-                            color: theme.inkSoft,
-                            size: 18,
+                        Container(width: 18, height: 1, color: theme.accent),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            widget.onboarding
+                                ? l10n.serverOnboardingSubtitle
+                                : l10n.serverScreenSubtitle,
+                            style: theme.caption,
                           ),
                         ),
                       ],
-                    )
-                  else
-                    const SizedBox(height: 8),
-                  const SizedBox(height: 10),
-                  Text(
-                    widget.onboarding
-                        ? l10n.serverOnboardingTitle
-                        : l10n.serverScreenTitle,
-                    style: theme.displayMedium,
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Container(width: 18, height: 1, color: theme.accent),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          widget.onboarding
-                              ? l10n.serverOnboardingSubtitle
-                              : l10n.serverScreenSubtitle,
-                          style: theme.caption,
-                        ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Where things stand right now. Skipped during onboarding —
+                    // there is no "now" yet, and a card reading NOT CONNECTED
+                    // above an empty form describes a problem rather than the
+                    // task.
+                    if (!widget.onboarding) ...[
+                      _ActiveServerCard(health: widget._health),
+                      const SizedBox(height: 24),
+                    ],
+
+                    if (_hasBundled) ...[
+                      _ChoiceCard(
+                        label: l10n.serverChoiceCloud,
+                        // Says "temporarily on the homeserver" rather than naming
+                        // an address: a follow is still THIS choice, just being
+                        // served from somewhere else for a while.
+                        sub: ServerStore.instance.role == ServerRole.homeserver
+                            ? l10n.serverChoiceCloudSubHomeserver
+                            : l10n.serverChoiceCloudSub,
+                        host: '',
+                        selected: _choice == _Choice.bundled,
+                        inUse: !ServerStore.instance.isSelfHosted,
+                        inUseLabel: l10n.serverActiveNowLabel,
+                        onTap: switching
+                            ? null
+                            : () => setState(() => _choice = _Choice.bundled),
+                      ),
+                      const SizedBox(height: 12),
+                      _ChoiceCard(
+                        label: l10n.serverChoiceOwn,
+                        sub: l10n.serverChoiceOwnSub,
+                        host: ServerStore.instance.isSelfHosted
+                            ? ServerStore.instance.host
+                            : '',
+                        selected: _choice == _Choice.own,
+                        inUse: ServerStore.instance.isSelfHosted,
+                        inUseLabel: l10n.serverActiveNowLabel,
+                        onTap: switching
+                            ? null
+                            : () => setState(() => _choice = _Choice.own),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+
+                    if (_choice == _Choice.own)
+                      ..._ownServerForm(theme, l10n, switching)
+                    else
+                      ..._bundledForm(l10n, switching),
+
+                    if (_switchError != null) ...[
+                      const SizedBox(height: 18),
+                      _Notice(
+                        icon: Icons.error_outline,
+                        tone: theme.danger,
+                        title: l10n.serverSwitchRolledBackTitle,
+                        body: _switchError!,
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 24),
 
-                  // Where things stand right now. Skipped during onboarding —
-                  // there is no "now" yet, and a card reading NOT CONNECTED
-                  // above an empty form describes a problem rather than the
-                  // task.
-                  if (!widget.onboarding) ...[
-                    _ActiveServerCard(health: widget._health),
+                    ..._recentSection(l10n, switching),
+
                     const SizedBox(height: 24),
-                  ],
-
-                  if (_hasBundled) ...[
-                    _ChoiceCard(
-                      label: l10n.serverChoiceCloud,
-                      // Says "temporarily on the homeserver" rather than naming
-                      // an address: a follow is still THIS choice, just being
-                      // served from somewhere else for a while.
-                      sub: ServerStore.instance.role == ServerRole.homeserver
-                          ? l10n.serverChoiceCloudSubHomeserver
-                          : l10n.serverChoiceCloudSub,
-                      host: '',
-                      selected: _choice == _Choice.bundled,
-                      inUse: !ServerStore.instance.isSelfHosted,
-                      inUseLabel: l10n.serverActiveNowLabel,
-                      onTap: switching
-                          ? null
-                          : () => setState(() => _choice = _Choice.bundled),
-                    ),
-                    const SizedBox(height: 12),
-                    _ChoiceCard(
-                      label: l10n.serverChoiceOwn,
-                      sub: l10n.serverChoiceOwnSub,
-                      host: ServerStore.instance.isSelfHosted
-                          ? ServerStore.instance.host
-                          : '',
-                      selected: _choice == _Choice.own,
-                      inUse: ServerStore.instance.isSelfHosted,
-                      inUseLabel: l10n.serverActiveNowLabel,
-                      onTap: switching
-                          ? null
-                          : () => setState(() => _choice = _Choice.own),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-
-                  if (_choice == _Choice.own)
-                    ..._ownServerForm(theme, l10n, switching)
-                  else
-                    ..._bundledForm(l10n, switching),
-
-                  if (_switchError != null) ...[
-                    const SizedBox(height: 18),
                     _Notice(
-                      icon: Icons.error_outline,
-                      tone: theme.danger,
-                      title: l10n.serverSwitchRolledBackTitle,
-                      body: _switchError!,
+                      icon: Icons.swap_horiz,
+                      tone: theme.inkMuted,
+                      title: l10n.serverSwitchWarningTitle,
+                      body: l10n.serverSwitchWarningBody,
                     ),
                   ],
-
-                  ..._recentSection(l10n, switching),
-
-                  const SizedBox(height: 24),
-                  _Notice(
-                    icon: Icons.swap_horiz,
-                    tone: theme.inkMuted,
-                    title: l10n.serverSwitchWarningTitle,
-                    body: l10n.serverSwitchWarningBody,
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
-          // A half-applied switch is the one state with no sensible UI: the
-          // session is gone, the socket is mid-rebuild, and every screen
-          // underneath is describing a server that is no longer there. So the
-          // whole screen is taken until it settles.
-          if (switching) const _SwitchScrim(),
-        ],
+            // A half-applied switch is the one state with no sensible UI: the
+            // session is gone, the socket is mid-rebuild, and every screen
+            // underneath is describing a server that is no longer there. So the
+            // whole screen is taken until it settles.
+            if (switching) const _SwitchScrim(),
+          ],
+        ),
       ),
     );
   }

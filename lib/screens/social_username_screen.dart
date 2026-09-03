@@ -4,6 +4,7 @@ import '../auth/auth_errors.dart';
 import '../auth/auth_service.dart';
 import '../auth/social_sign_in.dart';
 import '../data/username_availability_controller.dart';
+import '../keyboard/dismiss_keyboard_on_tap.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../platform.dart';
@@ -174,176 +175,178 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          SafeArea(
-            child: Column(
-              children: [
-                // The way out. This screen is pushed as a fullscreenDialog,
-                // which on iOS also disables swipe-back — without this there is
-                // no gesture and no button that leaves, and a failed attempt
-                // traps the user on it.
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 8, 12, 0),
-                    child: FocusableTap(
-                      onTap: _busy ? null : () => Navigator.of(context).pop(),
-                      enabled: !_busy,
-                      semanticLabel:
-                          AppLocalizations.of(context).audioMessageCancelSemanticLabel,
-                      radius: theme.radiusSm,
-                      child: GestureDetector(
+      body: DismissKeyboardOnTap(
+        child: Stack(
+          children: [
+            theme.backgroundLayer(context),
+            SafeArea(
+              child: Column(
+                children: [
+                  // The way out. This screen is pushed as a fullscreenDialog,
+                  // which on iOS also disables swipe-back — without this there is
+                  // no gesture and no button that leaves, and a failed attempt
+                  // traps the user on it.
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(0, 8, 12, 0),
+                      child: FocusableTap(
                         onTap: _busy ? null : () => Navigator.of(context).pop(),
-                        child: Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: Icon(Icons.close,
-                              size: 20, color: theme.inkMuted),
+                        enabled: !_busy,
+                        semanticLabel:
+                            AppLocalizations.of(context).audioMessageCancelSemanticLabel,
+                        radius: theme.radiusSm,
+                        child: GestureDetector(
+                          onTap: _busy ? null : () => Navigator.of(context).pop(),
+                          child: Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: Icon(Icons.close,
+                                size: 20, color: theme.inkMuted),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                Expanded(
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints:
-                          const BoxConstraints(maxWidth: ContentWidth.auth),
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(28, 8, 28, 24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Text.rich(
-                              TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: creating
-                                        ? AppLocalizations.of(context)
-                                            .audioMessageHeroCreateLine1
-                                        : AppLocalizations.of(context)
-                                            .audioMessageHeroLinkLine1,
-                                    style: theme.displayHero
-                                        .copyWith(color: theme.inkMuted),
-                                  ),
-                                  TextSpan(
-                                    text: creating
-                                        ? AppLocalizations.of(context)
-                                            .audioMessageHeroCreateLine2
-                                        : AppLocalizations.of(context)
-                                            .audioMessageHeroLinkLine2,
-                                    style: theme.displayHero,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              creating
-                                  ? AppLocalizations.of(context)
-                                      .audioMessageCreateSubtitle
-                                  : AppLocalizations.of(context)
-                                      .audioMessageLinkSubtitle(_provider),
-                              style: theme.bodySoft,
-                            ),
-                            const SizedBox(height: 28),
-                            ThemedInput(
-                              controller: _username,
-                              hint: AppLocalizations.of(context)
-                                  .audioMessageUsernameHint,
-                              autocorrect: false,
-                              enableSuggestions: false,
-                              autofocus: isPhysicalKeyboardPlatform,
-                              textInputAction: TextInputAction.next,
-                              onChanged:
-                                  creating ? _availability.onChanged : null,
-                              onSubmitted: (_) =>
-                                  FocusScope.of(context).nextFocus(),
-                            ),
-                            if (creating)
-                              UsernameStatusLabel(controller: _availability),
-                            const SizedBox(height: 12),
-                            if (creating)
-                              ThemedInput(
-                                controller: _name,
-                                hint: AppLocalizations.of(context)
-                                    .audioMessageDisplayNameHint,
-                                textInputAction: TextInputAction.done,
-                                onSubmitted: (_) => _submit(),
-                              )
-                            else
-                              PasswordField(
-                                controller: _password,
-                                hint: AppLocalizations.of(context)
-                                    .audioMessagePasswordHint,
-                                textInputAction: TextInputAction.done,
-                                onSubmitted: (_) => _submit(),
-                              ),
-                            if (_error != null) ...[
-                              const SizedBox(height: 14),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: theme.danger.withValues(alpha: 0.12),
-                                  borderRadius:
-                                      BorderRadius.circular(theme.radiusSm),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                  Expanded(
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints:
+                            const BoxConstraints(maxWidth: ContentWidth.auth),
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(28, 8, 28, 24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text.rich(
+                                TextSpan(
                                   children: [
-                                    Text(
-                                      _error!,
-                                      style: theme.body
-                                          .copyWith(color: theme.danger),
+                                    TextSpan(
+                                      text: creating
+                                          ? AppLocalizations.of(context)
+                                              .audioMessageHeroCreateLine1
+                                          : AppLocalizations.of(context)
+                                              .audioMessageHeroLinkLine1,
+                                      style: theme.displayHero
+                                          .copyWith(color: theme.inkMuted),
                                     ),
-                                    if (_offerLink) ...[
-                                      const SizedBox(height: 8),
-                                      _TextLink(
-                                        label: AppLocalizations.of(context)
-                                            .audioMessageSwitchToLinkPrompt,
-                                        onTap: () => _switchTo(_Mode.link),
-                                      ),
-                                    ],
+                                    TextSpan(
+                                      text: creating
+                                          ? AppLocalizations.of(context)
+                                              .audioMessageHeroCreateLine2
+                                          : AppLocalizations.of(context)
+                                              .audioMessageHeroLinkLine2,
+                                      style: theme.displayHero,
+                                    ),
                                   ],
                                 ),
                               ),
-                            ],
-                            const SizedBox(height: 20),
-                            _Cta(
-                              busy: _busy,
-                              label: creating
-                                  ? AppLocalizations.of(context)
-                                      .audioMessageCreateAccountButton
-                                  : AppLocalizations.of(context)
-                                      .audioMessageSignInLinkButton(_provider)
-                                      .toUpperCase(),
-                              onTap: _submit,
-                            ),
-                            const SizedBox(height: 18),
-                            Center(
-                              child: _TextLink(
+                              const SizedBox(height: 12),
+                              Text(
+                                creating
+                                    ? AppLocalizations.of(context)
+                                        .audioMessageCreateSubtitle
+                                    : AppLocalizations.of(context)
+                                        .audioMessageLinkSubtitle(_provider),
+                                style: theme.bodySoft,
+                              ),
+                              const SizedBox(height: 28),
+                              ThemedInput(
+                                controller: _username,
+                                hint: AppLocalizations.of(context)
+                                    .audioMessageUsernameHint,
+                                autocorrect: false,
+                                enableSuggestions: false,
+                                autofocus: isPhysicalKeyboardPlatform,
+                                textInputAction: TextInputAction.next,
+                                onChanged:
+                                    creating ? _availability.onChanged : null,
+                                onSubmitted: (_) =>
+                                    FocusScope.of(context).nextFocus(),
+                              ),
+                              if (creating)
+                                UsernameStatusLabel(controller: _availability),
+                              const SizedBox(height: 12),
+                              if (creating)
+                                ThemedInput(
+                                  controller: _name,
+                                  hint: AppLocalizations.of(context)
+                                      .audioMessageDisplayNameHint,
+                                  textInputAction: TextInputAction.done,
+                                  onSubmitted: (_) => _submit(),
+                                )
+                              else
+                                PasswordField(
+                                  controller: _password,
+                                  hint: AppLocalizations.of(context)
+                                      .audioMessagePasswordHint,
+                                  textInputAction: TextInputAction.done,
+                                  onSubmitted: (_) => _submit(),
+                                ),
+                              if (_error != null) ...[
+                                const SizedBox(height: 14),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: theme.danger.withValues(alpha: 0.12),
+                                    borderRadius:
+                                        BorderRadius.circular(theme.radiusSm),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _error!,
+                                        style: theme.body
+                                            .copyWith(color: theme.danger),
+                                      ),
+                                      if (_offerLink) ...[
+                                        const SizedBox(height: 8),
+                                        _TextLink(
+                                          label: AppLocalizations.of(context)
+                                              .audioMessageSwitchToLinkPrompt,
+                                          onTap: () => _switchTo(_Mode.link),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 20),
+                              _Cta(
+                                busy: _busy,
+                                label: creating
+                                    ? AppLocalizations.of(context)
+                                        .audioMessageCreateAccountButton
+                                    : AppLocalizations.of(context)
+                                        .audioMessageSignInLinkButton(_provider)
+                                        .toUpperCase(),
+                                onTap: _submit,
+                              ),
+                              const SizedBox(height: 12),
+                              _SecondaryCta(
                                 label: creating
                                     ? AppLocalizations.of(context)
                                         .audioMessageSwitchToLinkModeLink
                                     : AppLocalizations.of(context)
                                         .audioMessageSwitchToCreateModeLink,
-                                onTap: () => _switchTo(
-                                  creating ? _Mode.link : _Mode.create,
-                                ),
+                                onTap: _busy
+                                    ? null
+                                    : () => _switchTo(
+                                        creating ? _Mode.link : _Mode.create,
+                                      ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -389,6 +392,79 @@ class _Cta extends StatelessWidget {
                     letterSpacing: 2,
                   ),
                 ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The OTHER mode, as a button rather than a footnote.
+///
+/// This was a small underlined line at the very bottom of the screen, and it
+/// was missed. The class doc above already says the most common first tap of a
+/// provider button is by someone who ALREADY has an account of months'
+/// standing — and what that person met was a hero reading "almost there." over
+/// a CREATE ACCOUNT button, with the door they actually wanted set in caption
+/// type below the fold. Three consecutive attempts on one real account ended
+/// with the person backing out of this screen rather than finding it, and then
+/// reporting that sign-in was broken. It was not; the way through was
+/// invisible.
+///
+/// So it sits directly under the primary action, at the same width and weight,
+/// where the two modes read as the pair they are.
+///
+/// OUTLINED, not filled, and that is the whole point of the widget: it has to
+/// be impossible to miss without becoming impossible to tell apart from the
+/// primary action. Someone who genuinely IS new must still see at a glance
+/// which of the two is theirs, so only ever one of them is solid.
+class _SecondaryCta extends StatelessWidget {
+  const _SecondaryCta({required this.label, required this.onTap});
+
+  final String label;
+
+  /// Null while a request is in flight: the switch rebuilds the whole form,
+  /// and doing that under a submit already on the wire is how the answer comes
+  /// back to a screen that has moved on.
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final enabled = onTap != null;
+    return Opacity(
+      opacity: enabled ? 1 : 0.5,
+      child: FocusableTap(
+        onTap: onTap,
+        enabled: enabled,
+        semanticLabel: label,
+        radius: theme.radiusMd,
+        // Never InkWell anywhere in this app — no ink, no ripple.
+        child: GestureDetector(
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: theme.motionFast,
+            // One short of [_Cta]'s 16, so the 1px border lands both buttons
+            // on the same outer height.
+            padding: const EdgeInsets.symmetric(vertical: 15),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(theme.radiusMd),
+              border: Border.all(color: theme.accent, width: 1),
+            ),
+            // [_Cta]'s tracking is 2, which suits the short SHOUTED label it
+            // always carries. This one is a sentence-case question and long
+            // enough that the same value pulls it apart; no `toUpperCase()`
+            // either, because Turkish is a shipped locale and dotted-i does
+            // not survive Dart's default casing.
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: theme.label.copyWith(
+                color: theme.accent,
+                letterSpacing: 0.6,
+              ),
+            ),
+          ),
         ),
       ),
     );

@@ -4,6 +4,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../auth/auth_errors.dart';
 import '../auth/auth_service.dart';
+import '../keyboard/dismiss_keyboard_on_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
@@ -137,140 +138,142 @@ class _ChildPairScreenState extends State<ChildPairScreen> {
     final theme = ThemeScope.of(context);
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          SafeArea(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: ContentWidth.auth),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(28, 36, 28, 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      RichText(
-                        text: TextSpan(
-                          style: theme.displayHero,
+      body: DismissKeyboardOnTap(
+        child: Stack(
+          children: [
+            theme.backgroundLayer(context),
+            SafeArea(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: ContentWidth.auth),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(28, 36, 28, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        RichText(
+                          text: TextSpan(
+                            style: theme.displayHero,
+                            children: [
+                              TextSpan(
+                                text:
+                                    '${AppLocalizations.of(context).childPairScreenGreetingLine1}\n',
+                                style: theme.displayHero
+                                    .copyWith(color: theme.inkMuted),
+                              ),
+                              TextSpan(
+                                text: AppLocalizations.of(context)
+                                    .childPairScreenGreetingLine2,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          AppLocalizations.of(context).childPairScreenIntro,
+                          style: theme.bodySoft,
+                        ),
+                        const SizedBox(height: 28),
+                        if (_scanning)
+                          _ScannerPanel(
+                            controller: _scanner!,
+                            onDetect: _onDetect,
+                            onCancel: _stopScanning,
+                          )
+                        else
+                          _ScanButton(onTap: _startScanning),
+                        const SizedBox(height: 22),
+                        Row(
                           children: [
-                            TextSpan(
-                              text:
-                                  '${AppLocalizations.of(context).childPairScreenGreetingLine1}\n',
-                              style: theme.displayHero
-                                  .copyWith(color: theme.inkMuted),
+                            Expanded(child: Container(height: 1, color: theme.divider)),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                AppLocalizations.of(context)
+                                    .childPairScreenOrDivider,
+                                style: theme.monoTiny,
+                              ),
                             ),
-                            TextSpan(
-                              text: AppLocalizations.of(context)
-                                  .childPairScreenGreetingLine2,
-                            ),
+                            Expanded(child: Container(height: 1, color: theme.divider)),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 18),
-                      Text(
-                        AppLocalizations.of(context).childPairScreenIntro,
-                        style: theme.bodySoft,
-                      ),
-                      const SizedBox(height: 28),
-                      if (_scanning)
-                        _ScannerPanel(
-                          controller: _scanner!,
-                          onDetect: _onDetect,
-                          onCancel: _stopScanning,
-                        )
-                      else
-                        _ScanButton(onTap: _startScanning),
-                      const SizedBox(height: 22),
-                      Row(
-                        children: [
-                          Expanded(child: Container(height: 1, color: theme.divider)),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                        const SizedBox(height: 22),
+                        CodeField(
+                          controller: _manual,
+                          onCompleted: _submit,
+                          enabled: !_busy,
+                        ),
+                        if (_error != null) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                            decoration: BoxDecoration(
+                              color: theme.danger.withValues(alpha: 0.12),
+                              border: Border(
+                                left: BorderSide(color: theme.danger, width: 2),
+                              ),
+                              borderRadius: BorderRadius.circular(theme.radiusMd),
+                            ),
                             child: Text(
-                              AppLocalizations.of(context)
-                                  .childPairScreenOrDivider,
-                              style: theme.monoTiny,
+                              _error!,
+                              style: theme.body.copyWith(color: theme.danger),
                             ),
                           ),
-                          Expanded(child: Container(height: 1, color: theme.divider)),
                         ],
-                      ),
-                      const SizedBox(height: 22),
-                      CodeField(
-                        controller: _manual,
-                        onCompleted: _submit,
-                        enabled: !_busy,
-                      ),
-                      if (_error != null) ...[
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-                          decoration: BoxDecoration(
-                            color: theme.danger.withValues(alpha: 0.12),
-                            border: Border(
-                              left: BorderSide(color: theme.danger, width: 2),
+                        const SizedBox(height: 22),
+                        GestureDetector(
+                          onTap: _busy
+                              ? null
+                              : () => _submit(_manual.text.trim()),
+                          child: AnimatedContainer(
+                            duration: theme.motionFast,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: _busy ? theme.accentSoft : theme.accent,
+                              borderRadius: BorderRadius.circular(theme.radiusMd),
                             ),
-                            borderRadius: BorderRadius.circular(theme.radiusMd),
-                          ),
-                          child: Text(
-                            _error!,
-                            style: theme.body.copyWith(color: theme.danger),
+                            child: _busy
+                                ? SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: theme.accentInk,
+                                    ),
+                                  )
+                                : Text(
+                                    AppLocalizations.of(context)
+                                        .childPairScreenSubmitButtonLabel,
+                                    style: theme.label.copyWith(
+                                      color: theme.accentInk,
+                                      letterSpacing: 2.4,
+                                    ),
+                                  ),
                           ),
                         ),
-                      ],
-                      const SizedBox(height: 22),
-                      GestureDetector(
-                        onTap: _busy
-                            ? null
-                            : () => _submit(_manual.text.trim()),
-                        child: AnimatedContainer(
-                          duration: theme.motionFast,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: _busy ? theme.accentSoft : theme.accent,
-                            borderRadius: BorderRadius.circular(theme.radiusMd),
-                          ),
-                          child: _busy
-                              ? SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: theme.accentInk,
-                                  ),
-                                )
-                              : Text(
-                                  AppLocalizations.of(context)
-                                      .childPairScreenSubmitButtonLabel,
-                                  style: theme.label.copyWith(
-                                    color: theme.accentInk,
-                                    letterSpacing: 2.4,
-                                  ),
-                                ),
-                        ),
-                      ),
-                      if (widget.onCancel != null) ...[
-                        const SizedBox(height: 16),
-                        Center(
-                          child: GestureDetector(
-                            onTap: widget.onCancel,
-                            child: Text(
-                              AppLocalizations.of(context)
-                                  .childPairScreenBackToSignIn,
-                              style: theme.monoTiny
-                                  .copyWith(color: theme.inkMuted),
+                        if (widget.onCancel != null) ...[
+                          const SizedBox(height: 16),
+                          Center(
+                            child: GestureDetector(
+                              onTap: widget.onCancel,
+                              child: Text(
+                                AppLocalizations.of(context)
+                                    .childPairScreenBackToSignIn,
+                                style: theme.monoTiny
+                                    .copyWith(color: theme.inkMuted),
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

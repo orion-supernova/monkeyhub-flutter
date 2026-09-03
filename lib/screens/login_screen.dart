@@ -10,6 +10,7 @@ import '../auth/session_store.dart';
 import '../auth/social_sign_in.dart';
 import '../backend/server_directory.dart';
 import '../backend/server_store.dart';
+import '../keyboard/dismiss_keyboard_on_tap.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../legal_links.dart';
@@ -356,54 +357,56 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          SafeArea(
-            child: LayoutBuilder(
-              builder: (context, outer) {
-                // Desktop/web only, and sign-in only — scanning a QR needs a
-                // phone on the other end, and sign-up/reset have no use for
-                // it. Below the breakpoint the row would either overflow or
-                // squeeze the form uncomfortably narrow, so `_footer` offers
-                // the link to the full-screen fallback instead.
-                final showPhonePanel = isWebOrDesktop &&
-                    _mode == _AuthMode.signIn &&
-                    outer.maxWidth >= _phonePanelBreakpoint;
-                return Center(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: showPhonePanel
-                          ? ContentWidth.auth + _phonePanelGap + _phonePanelWidth
-                          : ContentWidth.auth,
-                      maxHeight: outer.maxHeight,
-                    ),
-                    child: showPhonePanel
-                        ? Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Expanded(
-                                child: _formColumn(showPhoneLink: false),
-                              ),
-                              const SizedBox(width: _phonePanelGap),
-                              SizedBox(
-                                width: _phonePanelWidth,
-                                child: Center(
-                                  child: SingleChildScrollView(
-                                    padding: const EdgeInsets.symmetric(vertical: 36),
-                                    child: DeviceLoginPanel(auth: widget.auth),
+      body: DismissKeyboardOnTap(
+        child: Stack(
+          children: [
+            theme.backgroundLayer(context),
+            SafeArea(
+              child: LayoutBuilder(
+                builder: (context, outer) {
+                  // Desktop/web only, and sign-in only — scanning a QR needs a
+                  // phone on the other end, and sign-up/reset have no use for
+                  // it. Below the breakpoint the row would either overflow or
+                  // squeeze the form uncomfortably narrow, so `_footer` offers
+                  // the link to the full-screen fallback instead.
+                  final showPhonePanel = isWebOrDesktop &&
+                      _mode == _AuthMode.signIn &&
+                      outer.maxWidth >= _phonePanelBreakpoint;
+                  return Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: showPhonePanel
+                            ? ContentWidth.auth + _phonePanelGap + _phonePanelWidth
+                            : ContentWidth.auth,
+                        maxHeight: outer.maxHeight,
+                      ),
+                      child: showPhonePanel
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(
+                                  child: _formColumn(showPhoneLink: false),
+                                ),
+                                const SizedBox(width: _phonePanelGap),
+                                SizedBox(
+                                  width: _phonePanelWidth,
+                                  child: Center(
+                                    child: SingleChildScrollView(
+                                      padding: const EdgeInsets.symmetric(vertical: 36),
+                                      child: DeviceLoginPanel(auth: widget.auth),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          )
-                        : _formColumn(showPhoneLink: true),
-                  ),
-                );
-              },
+                              ],
+                            )
+                          : _formColumn(showPhoneLink: true),
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
