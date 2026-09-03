@@ -204,7 +204,11 @@ class ConvexBackend implements ConnectionProbe {
       return decoded;
     } catch (e) {
       DiagLog.apiError(corr, name, sw.elapsedMilliseconds, e);
-      SessionGuard.instance.noteError(e);
+      SessionGuard.instance.noteError(
+        e,
+        carried: args[SessionGuard.identityArg] as String?,
+        live: SessionStore.instance.token,
+      );
       rethrow;
     }
   }
@@ -226,7 +230,11 @@ class ConvexBackend implements ConnectionProbe {
         return null;
       }
       DiagLog.apiError(corr, name, sw.elapsedMilliseconds, e);
-      SessionGuard.instance.noteError(e);
+      SessionGuard.instance.noteError(
+        e,
+        carried: args[SessionGuard.identityArg] as String?,
+        live: SessionStore.instance.token,
+      );
       rethrow;
     }
   }
@@ -246,7 +254,11 @@ class ConvexBackend implements ConnectionProbe {
         return null;
       }
       DiagLog.apiError(corr, name, sw.elapsedMilliseconds, e);
-      SessionGuard.instance.noteError(e);
+      SessionGuard.instance.noteError(
+        e,
+        carried: args[SessionGuard.identityArg] as String?,
+        live: SessionStore.instance.token,
+      );
       rethrow;
     }
   }
@@ -297,7 +309,15 @@ class ConvexBackend implements ConnectionProbe {
       // another device signs them out. Without this the socket would just go
       // quiet and the screen would look merely stale.
       onError: (Object error) {
-        SessionGuard.instance.noteError(error);
+        // `args` is the frozen map this entry keeps and re-sends on every
+        // rebind, so this is the token the subscription was bound under —
+        // which is exactly what tells a live session's loss apart from a
+        // bygone one's. See `SessionGuard.noteError`.
+        SessionGuard.instance.noteError(
+          error,
+          carried: args[SessionGuard.identityArg] as String?,
+          live: SessionStore.instance.token,
+        );
         onError?.call(error);
       },
     );

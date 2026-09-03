@@ -221,12 +221,20 @@ void main() {
     // failed request — `reconcile` deliberately swallows the error itself.
     auth.onSelfProfileMissing();
     await pumpEventQueue();
-    SessionGuard.instance.noteError(StateError('SESSION_REVOKED'));
+    SessionGuard.instance.noteError(
+      StateError('SESSION_REVOKED'),
+      carried: 'tok',
+      live: 'tok',
+    );
 
     expect(lost, 1);
     // Latched: a dead account fails every screen's fetch in the same frame,
     // and five simultaneous sign-outs would fight the navigator.
-    SessionGuard.instance.noteError(StateError('SESSION_REVOKED'));
+    SessionGuard.instance.noteError(
+      StateError('SESSION_REVOKED'),
+      carried: 'tok',
+      live: 'tok',
+    );
     expect(lost, 1);
   });
 }

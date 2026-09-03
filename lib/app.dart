@@ -1496,6 +1496,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         await _groupCallService.leaveCall();
         await _signaling.stop();
         _callService.detachWatch();
+        // AFTER leaveCall, which still wants the roster and its leave mutation.
+        // This is the account-level half — the two subscriptions that used to
+        // outlive the session and, at the next sign-in, undo it. See
+        // `GroupCallService.detach`.
+        _groupCallService.detach();
         // Reset landing tab so the next sign-in starts on Chat instead of
         // wherever the previous session left off (e.g. Settings, which is
         // where Sign Out is reached from).

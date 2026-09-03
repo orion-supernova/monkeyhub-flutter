@@ -132,14 +132,44 @@ class SessionGuard {
     return text.contains(_unknown) || text.contains(_revoked);
   }
 
-  /// Report a failed call. Fires [onSessionLost] exactly once.
+  /// Report a failed call, together with the token it actually went out under
+  /// ([carried]) and the one this device holds now ([live]).
   ///
   /// Latched because a dead session fails EVERY in-flight subscription and
   /// request at once — a chat list, a presence heartbeat and three room
   /// subscriptions can all land in the same frame, and signing out five times
   /// would fight the navigator and could strand the user mid-transition.
-  void noteError(Object error) {
+  ///
+  /// THE TWO TOKENS ARE NOT BOOKKEEPING. A subscription freezes its arguments,
+  /// session token included, at the moment it is bound, and goes on
+  /// re-delivering whatever the server last answered — so a subscription that
+  /// outlives its session reports `SESSION_REVOKED` forever. The latch hides
+  /// that while signed out, and [reset] at the next sign-in is precisely what
+  /// un-hides it: the first stale delivery after a successful sign-in used to
+  /// tear the BRAND NEW session down, which on screen was a sign-in that
+  /// flickered and bounced straight back to the login form. Whether it
+  /// happened had nothing to do with which button was pressed — Apple, Google
+  /// and password all bounce — only with whether some earlier session in the
+  /// same app run had been revoked.
+  ///
+  /// So a loss only counts when the call that reported it presented the
+  /// credential this device is signed in with now. Anything else is news about
+  /// a session that has already ended, and there is nothing left to sign out
+  /// of. Cancelling the subscription is still the right thing and is done
+  /// where it is owned (see `GroupCallService.detach`); this is the rule that
+  /// makes the next service to forget a harmless bug rather than one that
+  /// makes signing in impossible.
+  /// Both are `required` and nullable, exactly like [attachedToken]'s pair:
+  /// null is a real answer (a call that went out with no credential), and a
+  /// caller that has not thought about which token it presented cannot supply
+  /// one by accident.
+  void noteError(
+    Object error, {
+    required String? carried,
+    required String? live,
+  }) {
     if (_lost || !isSessionLoss(error)) return;
+    if (carried != live) return;
     _lost = true;
     debugPrint('[session] server rejected our token — signing out');
     onSessionLost?.call();

@@ -324,15 +324,46 @@ void main() {
     var fired = 0;
     guard.onSessionLost = () => fired++;
     for (var i = 0; i < 5; i++) {
-      guard.noteError(Exception('SESSION_REVOKED'));
+      guard.noteError(Exception('SESSION_REVOKED'), carried: 'tok', live: 'tok');
     }
     expect(fired, 1);
 
     // ...and re-arms after a fresh sign-in, or a later revocation is missed.
     guard.reset();
-    guard.noteError(Exception('SESSION_REVOKED'));
+    guard.noteError(Exception('SESSION_REVOKED'), carried: 'tok', live: 'tok');
     expect(fired, 2);
     guard.onSessionLost = null;
     guard.reset();
+  });
+
+  test('a bygone session cannot sign the current one out', () {
+    // The Apple/Google/password sign-in that flickered and bounced straight
+    // back to the login form. A subscription freezes its args, session token
+    // included, so one that outlives its session reports SESSION_REVOKED for
+    // the rest of the app's life. The latch hid that while signed out — and
+    // `reset()` at the next sign-in is exactly what un-hid it, so the first
+    // stale delivery afterwards tore the BRAND NEW session down.
+    final guard = SessionGuard.instance;
+    guard.reset();
+    var fired = 0;
+    guard.onSessionLost = () => fired++;
+    addTearDown(() {
+      guard.onSessionLost = null;
+      guard.reset();
+    });
+
+    // Signed in as 'new'; a zombie bound under 'old' keeps erroring.
+    guard.noteError(Exception('SESSION_REVOKED'), carried: 'old', live: 'new');
+    guard.noteError(Exception('SESSION_REVOKED'), carried: 'old', live: 'new');
+    expect(fired, 0, reason: 'news about a session that has already ended');
+
+    // A call with no credential at all says nothing either — that is an
+    // ordinary request made while signed out, not a revocation.
+    guard.noteError(Exception('SESSION_UNKNOWN'), carried: '', live: 'new');
+    expect(fired, 0);
+
+    // But the live session's own revocation still lands, latch and all.
+    guard.noteError(Exception('SESSION_REVOKED'), carried: 'new', live: 'new');
+    expect(fired, 1);
   });
 }

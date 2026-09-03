@@ -437,6 +437,41 @@ class GroupCallService extends ChangeNotifier {
     }));
   }
 
+  /// Drop the two ACCOUNT-level subscriptions, on sign-out.
+  ///
+  /// [leaveCall] is about a call; this is about the account, and
+  /// `signalsForUser` / `pendingInvite` belong to the second — nothing closed
+  /// them, so they outlived every session that bound them. That is not merely
+  /// untidy: a subscription freezes its arguments, session token included, so
+  /// a surviving one reports `SESSION_REVOKED` for the rest of the app's life.
+  /// `SessionGuard`'s latch hides that while signed out and re-arms on the
+  /// next sign-in, so the first stale delivery afterwards signed the new
+  /// session straight back out — a sign-in that flickered and returned to the
+  /// login screen, for any provider.
+  ///
+  /// Clearing [_userId] is load-bearing, not tidiness: [attach]'s early return
+  /// matches on the same user id, so signing back in as the same person would
+  /// otherwise keep the cancelled handles and never ring again. Bumping
+  /// [_subGen] disowns a subscribe still in flight, exactly as [_resubscribe]
+  /// does.
+  ///
+  /// The invite goes too — a ringing invite belongs to the account that just
+  /// left, and on a shared handset the next person must not inherit it.
+  void detach() {
+    _subGen++;
+    _signalsSub?.cancel();
+    _signalsSub = null;
+    _inviteSub?.cancel();
+    _inviteSub = null;
+    _userId = null;
+    _deviceId = null;
+    pendingInvite = null;
+    _ringingInviteId = null;
+    _dispatched.clear();
+    _queue.clear();
+    if (!_disposed) notifyListeners();
+  }
+
   // ───────── lifecycle ─────────
 
   /// Start (or converge onto) the call in [roomId]. `inviteeIds == null`
