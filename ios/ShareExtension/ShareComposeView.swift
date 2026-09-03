@@ -20,9 +20,19 @@ struct ShareComposeView: View {
     let previewImage: UIImage?
     /// Set when the share carries text or a link rather than files.
     let sharedText: String?
+    /// True when at least one attachment is a photo the HD toggle actually
+    /// does something to — a video or a plain file has nothing for it to act
+    /// on, so the toggle stays hidden rather than offering a no-op.
+    let hasCompressiblePhoto: Bool
 
     @Binding var selectedChatId: String?
     @Binding var caption: String
+    /// Off by default and reset every time this sheet opens — see
+    /// `ComposeModel.hd`. Leaving a photo untouched here sends it compressed,
+    /// same trade the app's own composer makes.
+    @Binding var hd: Bool
+    /// Same one-time contract as `hd` — see `ComposeModel.viewOnce`.
+    @Binding var viewOnce: Bool
 
     let state: SendState
     let onSend: () -> Void
@@ -103,9 +113,45 @@ struct ShareComposeView: View {
                 }
             }
             Spacer(minLength: 0)
+            if hasCompressiblePhoto {
+                // Same pairing as `PhotoViewOnceToggle`/`PhotoHdToggle` in the
+                // app's own composer: two per-photo properties of the send,
+                // not tools that change the picture, drawn as matching circles
+                // side by side.
+                HStack(spacing: 8) {
+                    circleToggle("1", active: $viewOnce, semanticOn: "View once on", semanticOff: "View once off")
+                    circleToggle("HD", active: $hd, semanticOn: "HD on", semanticOff: "HD off")
+                }
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
+    }
+
+    /// One property-of-the-send toggle — view-once or HD. Neither choice
+    /// outlives the tap: both bindings trace back to `ComposeModel` fields
+    /// that are never written to `UserDefaults`, so the next share starts
+    /// with both off again regardless of what was picked here.
+    private func circleToggle(
+        _ label: String,
+        active: Binding<Bool>,
+        semanticOn: String,
+        semanticOff: String
+    ) -> some View {
+        Button {
+            active.wrappedValue.toggle()
+        } label: {
+            Text(label)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(active.wrappedValue ? .white : .accentColor)
+                .frame(width: 30, height: 30)
+                .background(
+                    Circle().fill(active.wrappedValue ? Color.accentColor : Color.accentColor.opacity(0.15))
+                )
+        }
+        .buttonStyle(.plain)
+        .disabled(state == .sending)
+        .accessibilityLabel(active.wrappedValue ? semanticOn : semanticOff)
     }
 
     private var previewTitle: String {

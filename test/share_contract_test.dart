@@ -71,6 +71,7 @@ void main() {
       'fileName',
       'fileSize',
       'mimeType',
+      'viewOnce',
     ];
 
     // The literal block of the `messages:send` mutation call in Dart.

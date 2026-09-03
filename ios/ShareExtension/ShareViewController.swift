@@ -229,6 +229,13 @@ class ShareViewController: UIViewController {
         item: StagedItem?,
         completion: @escaping (String?) -> Void
     ) {
+        // Read here, not at staging time: staging starts the moment the sheet
+        // opens, before the user has had any chance to touch the HD toggle, so
+        // this is the first point its value can be trusted. Nil means "the
+        // staged bytes go out unchanged" — HD is on, the item isn't a photo,
+        // or it was already under the cap.
+        let compressed = model.hd ? nil : item.flatMap(PhotoSendCompression.compress)
+
         func post(storageId: String?) {
             var args: [String: Any] = [
                 "roomId": roomId,
@@ -248,7 +255,10 @@ class ShareViewController: UIViewController {
                 args["mediaStorageId"] = storageId
             }
             if let item {
-                if let size = item.pixelSize {
+                if let compressed {
+                    args["mediaWidth"] = compressed.width
+                    args["mediaHeight"] = compressed.height
+                } else if let size = item.pixelSize {
                     args["mediaWidth"] = Int(size.width)
                     args["mediaHeight"] = Int(size.height)
                 }
@@ -259,6 +269,13 @@ class ShareViewController: UIViewController {
                     args["fileName"] = item.fileName
                     args["fileSize"] = item.byteCount
                     args["mimeType"] = item.mimeType
+                }
+                // Photos only, matching the scope `PhotoViewOnceToggle` has in
+                // the app — the extension never offers this for a video or a
+                // file. Omitted rather than sent false, matching
+                // `ChatApi.sendMessage`'s own `if (viewOnce) 'viewOnce': true`.
+                if model.viewOnce, item.isImage {
+                    args["viewOnce"] = true
                 }
             }
             ConvexHTTP.mutation(
@@ -278,15 +295,26 @@ class ShareViewController: UIViewController {
             post(storageId: nil)
             return
         }
-        guard let data = try? Data(contentsOf: item.url, options: .mappedIfSafe) else {
-            completion("That file could not be read.")
-            return
+
+        let data: Data
+        let contentType: String
+        if let compressed {
+            data = compressed.data
+            contentType = compressed.contentType
+        } else {
+            guard let raw = try? Data(contentsOf: item.url, options: .mappedIfSafe) else {
+                completion("That file could not be read.")
+                return
+            }
+            data = raw
+            contentType = item.mimeType
         }
+
         ConvexHTTP.upload(
             deploymentUrl: session.deploymentUrl,
             sessionToken: session.sessionToken,
             data: data,
-            contentType: item.mimeType
+            contentType: contentType
         ) { result in
             switch result {
             case .success(let storageId): post(storageId: storageId)
@@ -462,6 +490,68 @@ class ShareViewController: UIViewController {
     }
 }
 
+/// Recompresses a staged photo for a non-HD send: capped at [maxEdge] on its
+/// longest side, re-encoded as JPEG at [quality].
+///
+/// Mirrors `compressForSend`/`prepareUneditedForSend` in
+/// lib/media/image_raster.dart exactly — same cap, same quality — so a photo
+/// costs the same on the wire whether it left the app's own composer or this
+/// sheet. HD is not a mirror of anything here: it is simply skipping this
+/// step, which is what the Dart `hd` branch does too — the source bytes,
+/// untouched.
+private enum PhotoSendCompression {
+    /// Matches `kSendPhotoMaxEdge`.
+    static let maxEdge: CGFloat = 1280
+    /// Matches `kSendPhotoQuality` (0-100 there, 0-1 for ImageIO here).
+    static let quality: CGFloat = 0.75
+
+    struct Result {
+        let data: Data
+        let contentType: String
+        let width: Int
+        let height: Int
+    }
+
+    /// Nil means "send the staged file as-is" — not a photo, or its longest
+    /// edge is already at or under the cap, exactly like the Dart
+    /// pass-through does.
+    static func compress(_ item: StagedItem) -> Result? {
+        guard item.isImage else { return nil }
+        if let size = item.pixelSize, max(size.width, size.height) <= maxEdge {
+            return nil
+        }
+        guard let source = CGImageSourceCreateWithURL(item.url as CFURL, nil) else { return nil }
+        // A thumbnail request, not a full decode-then-scale: it downsamples
+        // during decode, which is both the fast path and the one that keeps
+        // a 12 megapixel HEIC from being fully decoded in an extension's
+        // memory budget just to be immediately thrown away.
+        let thumbnailOptions: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxEdge,
+        ]
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, thumbnailOptions as CFDictionary)
+        else { return nil }
+
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(
+            data, UTType.jpeg.identifier as CFString, 1, nil
+        ) else { return nil }
+        CGImageDestinationAddImage(
+            destination, cgImage,
+            [kCGImageDestinationLossyCompressionQuality: quality] as CFDictionary
+        )
+        guard CGImageDestinationFinalize(destination) else { return nil }
+
+        return Result(
+            data: data as Data,
+            contentType: "image/jpeg",
+            width: cgImage.width,
+            height: cgImage.height
+        )
+    }
+}
+
 /// Bridges the controller's state into SwiftUI.
 final class ComposeModel: ObservableObject {
     @Published var chats: [ShareChat] = []
@@ -470,6 +560,17 @@ final class ComposeModel: ObservableObject {
     @Published var previewImage: UIImage?
     @Published var selectedChatId: String?
     @Published var caption: String = ""
+    /// Off every time the sheet opens, and never written to `UserDefaults` or
+    /// the App Group — unlike the app's own `SettingsStore.photoHd`, this is
+    /// a one-time choice for this share only. A fresh process next time means
+    /// a fresh `false` here for free.
+    @Published var hd: Bool = false
+    /// Same one-time contract as `hd`. The app doesn't persist this one
+    /// either — `_viewOnce` in `camera_editor_screen.dart` and
+    /// `photo_tray_screen.dart` both start `false` on every open — so there
+    /// is nothing to deliberately avoid saving here, only something to not
+    /// introduce.
+    @Published var viewOnce: Bool = false
     @Published var state: ShareComposeView.SendState = .idle
     /// False until staging finishes, so Send cannot fire at an empty list.
     @Published var ready: Bool = false
@@ -489,8 +590,11 @@ private struct ShareComposeHost: View {
             attachmentCount: model.items.filter { !$0.oversize }.count,
             previewImage: model.previewImage,
             sharedText: model.sharedText,
+            hasCompressiblePhoto: model.items.contains { $0.isImage && !$0.oversize },
             selectedChatId: $model.selectedChatId,
             caption: $model.caption,
+            hd: $model.hd,
+            viewOnce: $model.viewOnce,
             state: model.ready ? model.state : .sending,
             onSend: model.onSend,
             onOpenApp: model.onOpenApp,
