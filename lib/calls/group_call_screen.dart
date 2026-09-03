@@ -1052,68 +1052,64 @@ class _ShareStage extends StatelessWidget {
         ? l10n.groupCallScreenYouAreSharing
         : l10n.groupCallScreenSharingBy(presenter?.name ?? '');
 
-    return SafeArea(
-      child: Column(
-        children: [
-          const SizedBox(height: 72),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  color: const Color(0xFF0E0F12),
-                  child: Stack(
-                    fit: StackFit.expand,
+    // Below the header text and above the tray — same landmarks the 1:1
+    // stage floats its own caption and controls over.
+    final topInset = MediaQuery.paddingOf(context).top + 76;
+    final stripBottom = MediaQuery.paddingOf(context).bottom + bottomInset + 8;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Full-bleed, like the 1:1 stage: the header, caption and strip
+        // float over the picture instead of boxing it into a card, so a
+        // group call's shared screen reads as large as a DM's.
+        Container(
+          color: const Color(0xFF0E0F12),
+          child: screenRenderer != null
+              ? ValueListenableBuilder<bool>(
+                  valueListenable: service.drawArmed,
+                  builder: (context, armed, _) => ShareSurface(
+                    renderer: screenRenderer,
+                    model: service.drawModel,
+                    // The presenter draws through the app-wide overlay,
+                    // which is what maps to the screen being captured;
+                    // here it would draw twice.
+                    armed: armed && !mine,
+                    inkColor: ink,
+                  ),
+                )
+              : Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (screenRenderer != null)
-                        ValueListenableBuilder<bool>(
-                          valueListenable: service.drawArmed,
-                          builder: (context, armed, _) => ShareSurface(
-                            renderer: screenRenderer,
-                            model: service.drawModel,
-                            // The presenter draws through the app-wide
-                            // overlay, which is what maps to the screen
-                            // being captured; here it would draw twice.
-                            armed: armed && !mine,
-                            inkColor: ink,
-                          ),
-                        )
-                      else
-                        Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.screen_share_outlined,
-                                size: 40,
-                                color: theme.accent.withValues(alpha: 0.9),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                caption,
-                                style: theme.body.copyWith(color: Colors.white70),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ),
-                      // The placeholder already carries the caption when
-                      // there is no picture to put it over.
-                      if (screenRenderer != null)
-                        Positioned(
-                          left: 10,
-                          top: 10,
-                          child: _CaptionPill(text: caption, theme: theme),
-                        ),
+                      Icon(
+                        Icons.screen_share_outlined,
+                        size: 40,
+                        color: theme.accent.withValues(alpha: 0.9),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        caption,
+                        style: theme.body.copyWith(color: Colors.white70),
+                        textAlign: TextAlign.center,
+                      ),
                     ],
                   ),
                 ),
-              ),
-            ),
+        ),
+        // The placeholder already carries the caption when there is no
+        // picture to put it over.
+        if (screenRenderer != null)
+          Positioned(
+            left: 16,
+            top: topInset,
+            child: _CaptionPill(text: caption, theme: theme),
           ),
-          const SizedBox(height: 10),
-          SizedBox(
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: stripBottom,
+          child: SizedBox(
             height: 92,
             child: ListView(
               scrollDirection: Axis.horizontal,
@@ -1165,9 +1161,8 @@ class _ShareStage extends StatelessWidget {
               ],
             ),
           ),
-          SizedBox(height: bottomInset + 8),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
