@@ -65,6 +65,10 @@ class ChatRepository extends ChangeNotifier {
   set _rooms(List<ChatRoom> next) {
     _roomsStore = next;
     _facetCounts = null;
+    // The one place a room list can appear, so the one place an unread anchor
+    // waiting on it can be answered — see [_resolveUnreadAnchor]. A no-op once
+    // it has been, which is every write after the first.
+    _resolveUnreadAnchor();
   }
 
   List<ChatRoom> get rooms => List.unmodifiable(_rooms);
@@ -283,6 +287,69 @@ class ChatRepository extends ChangeNotifier {
 
   String? get activeRoomId => _activeRoomIdValue;
 
+  // ──── unread anchor ────
+  // Where "unread" starts for the room a screen is currently reading: the
+  // room's `lastReadAt` as it stood BEFORE this device advanced it.
+  //
+  // Owned here rather than snapshotted by `RoomScreen.initState` because the
+  // screen can mount before the room list does, and that is not a corner case
+  // — it is the notification tap. A cold start from a banner opens the room
+  // while `attach` is still hydrating, so `roomById` answers null; a tap that
+  // wakes a backgrounded app opens it against a room list frozen at the moment
+  // the app went away, whose `unreadCount` is the pre-push value (usually 0)
+  // and whose `lastReadAt` is the one thing about it that IS still true. A
+  // one-shot read in `initState` therefore saw "nothing unread" on exactly the
+  // two paths the divider exists for, which is why the label and the landing
+  // only ever appeared off a chat-list tap.
+  //
+  // So the capture is split from the resolve. [beginUnreadAnchor] pins WHICH
+  // room is being read; the value is taken from the first room-list snapshot
+  // that carries it — synchronously when the room is already known, otherwise
+  // from the `_rooms` setter below. Nothing this device does can pollute it in
+  // between: every path that advances the cursor is gated on `_userId`, and a
+  // room opened before `attach` published one cannot send a read until the
+  // re-open at the end of [_attach] — which runs after the same hydrate that
+  // resolves this.
+  String? _anchorRoomId;
+  DateTime? _unreadAnchor;
+  bool _unreadAnchorResolved = false;
+
+  /// Pin [roomId] as the room being read and start resolving its unread
+  /// anchor. Call from the reading screen's `initState`, before [openRoom].
+  void beginUnreadAnchor(String roomId) {
+    _anchorRoomId = roomId;
+    _unreadAnchor = null;
+    _unreadAnchorResolved = false;
+    _resolveUnreadAnchor();
+  }
+
+  /// The read cursor [roomId] had when its screen opened, or null when there
+  /// is none (a room never read before) or the answer has not landed yet —
+  /// [unreadAnchorSettled] tells the two apart.
+  DateTime? unreadAnchorFor(String roomId) =>
+      _anchorRoomId == roomId ? _unreadAnchor : null;
+
+  /// Whether [unreadAnchorFor] is an answer rather than a "not yet". A caller
+  /// deciding where to open the transcript has to wait for this: landing at the
+  /// bottom because the room list has not arrived is the bug, not the fallback.
+  bool unreadAnchorSettled(String roomId) =>
+      _anchorRoomId == roomId && _unreadAnchorResolved;
+
+  /// Latch the anchor off the room list the moment it carries the room.
+  ///
+  /// Once only — a later snapshot has our own `markRoomRead` in it, and taking
+  /// that would move the divider down over the very messages it is marking.
+  void _resolveUnreadAnchor() {
+    final id = _anchorRoomId;
+    if (id == null || _unreadAnchorResolved) return;
+    for (final r in _roomsStore) {
+      if (r.id != id) continue;
+      _unreadAnchor = r.lastReadAt;
+      _unreadAnchorResolved = true;
+      return;
+    }
+  }
+
   /// Whoever asked for the open room — the `RoomScreen` state that called
   /// [openRoom]. [closeRoom] only tears the room down for THIS holder.
   ///
@@ -292,6 +359,11 @@ class ChatRepository extends ChangeNotifier {
   /// roomId comparison would match and let the departing screen close the
   /// room its replacement is now serving.
   Object? _openOwner;
+
+  /// True when the open room was opened with no `_userId` in hand — see the
+  /// note at its assignment in [openRoom]. Cleared by the repair at the end of
+  /// [_attach], and by any open that did have an id.
+  bool _openedWithoutUser = false;
 
   /// Bumped by [openRoom], [closeRoom] and [detach]. An open that started
   /// before the bump has been superseded and must not publish the
@@ -728,6 +800,22 @@ class ChatRepository extends ChangeNotifier {
     // come back. [ConnectionHealth] owns that edge now, and it hands it to
     // [flushPending], of which the old handler was a strict subset.
 
+    // A room that was already on screen before this attach published a user id
+    // is subscribed read-blind — see `_openedWithoutUser` in [openRoom]. The
+    // room list has landed by now (hydrate and seed both ran above), so the
+    // unread anchor is already latched and re-opening cannot move it; what the
+    // re-open buys is the rest of the room: the disk cache, the read cursor,
+    // the notification dismiss and the six secondary subscriptions.
+    //
+    // `force` for [resubscribe]'s reason: ownership stays with the screen that
+    // holds it, and `activeRoomId` never blinks off — which is what keeps push
+    // suppression honest for the room on screen while this runs.
+    final reopen = _activeRoomId;
+    if (reopen != null && _openedWithoutUser) {
+      _openedWithoutUser = false;
+      unawaited(openRoom(reopen, force: true));
+    }
+
     // Last, and unawaited. A live share left over from a previous process is
     // real but it is not urgent — nothing on screen is waiting for it — and
     // putting a disk read and a permission check in front of the subscriptions
@@ -986,6 +1074,10 @@ class ChatRepository extends ChangeNotifier {
     _secondaryFallback?.cancel();
     _secondaryFallback = null;
     _activeRoomId = null;
+    _anchorRoomId = null;
+    _unreadAnchor = null;
+    _unreadAnchorResolved = false;
+    _openedWithoutUser = false;
     _openOwner = null;
     // Any open still in flight belongs to the account being signed out.
     _openGen++;
@@ -1487,6 +1579,16 @@ class ChatRepository extends ChangeNotifier {
     _initialLoaded.remove(roomId);
     _liveMessagesLoaded.remove(roomId);
     final me = _userId;
+    // A room can be opened before there is an account to open it as: a cold
+    // start from a notification tap pushes the screen from `_bootstrap`, which
+    // runs while `ChatRepository.attach` is still in flight. Every branch below
+    // that needs an id — the disk hydrate, the read cursor, the six secondary
+    // subscriptions — then quietly does nothing, and the room stays subscribed
+    // read-blind for the rest of the session: nothing cached, nothing marked
+    // read, notifications never dismissed. That is the badge that survives
+    // reading a room you reached from its own banner. Recorded here and
+    // repaired at the end of [_attach], once there is an id to re-open with.
+    _openedWithoutUser = me == null;
     // Guarantees at least one microtask boundary before the first
     // `notifyListeners()` below, on every path — including the one where
     // `_messages[roomId]` is already warm and the cache read beneath is
@@ -1560,6 +1662,13 @@ class ChatRepository extends ChangeNotifier {
       // out live) without refiring it for anybody else in the room.
       {'roomId': roomId, 'limit': kLiveWindow, 'viewerUserId': ?me},
       onData: (data) {
+        // Re-read rather than the `me` captured above: this closure outlives
+        // the open that made it, and on a cold start from a notification tap
+        // that open ran before `attach` published an id. The re-open at the end
+        // of [_attach] repairs the rest of the room, but this is what stops the
+        // messages the reader is looking at RIGHT NOW from staying unread in
+        // the seconds before it lands.
+        final me = _userId;
         final list = (data as List?) ?? const [];
         final parsed = _parseLiveWindow(roomId, list);
         // Re-attach any pages the user scrolled back through. A bare
@@ -1869,7 +1978,16 @@ class ChatRepository extends ChangeNotifier {
     // mark the lot read, silently, hours after the person walked away. Nothing
     // is lost by skipping it: whatever actually arrives is deferred and taken
     // on the way back in.
-    if (me != null && viewerIsPresent) {
+    //
+    // Held back once more while the reader's own cursor is still unknown. With
+    // nothing held this call marks the room read to its newest message, and
+    // doing that before [_resolveUnreadAnchor] has latched would erase the very
+    // cursor the divider is drawn from — the offline cold start, where neither
+    // the disk cache nor the seed answered and only the live subscription can.
+    // The anchor lands with the room list, and whatever arrives is marked read
+    // from the transcript's own delivery either way.
+    final anchorPending = _anchorRoomId == roomId && !_unreadAnchorResolved;
+    if (me != null && viewerIsPresent && !anchorPending) {
       final held = _messages[roomId];
       api
           .markRoomRead(
@@ -1954,6 +2072,11 @@ class ChatRepository extends ChangeNotifier {
     _scheduledSub = null;
     _interactionsSub = null;
     _activeRoomId = null;
+    // Nothing left for [_attach]'s repair to re-open. The anchor itself stays:
+    // a route transition disposes the OUTGOING screen after its replacement has
+    // already pinned the room, and clearing here would throw away the answer
+    // the screen now on the wire is waiting for.
+    _openedWithoutUser = false;
     // Hand the room back to the global stream's name-only entry.
     _openTypingRoomId = null;
     _openTypingUsers = const [];

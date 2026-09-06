@@ -304,11 +304,19 @@ List<RoomItem> collapseAlbums(List<RoomItem> rows) {
   required bool Function(ChatMessage m) mustKeepOwnRow,
   required String Function(DateTime day) dayLabel,
   int minFolded = kMinFoldedMessages,
-  /// The reader's `lastReadAt` cursor, captured once when the room screen
-  /// opened. Null skips the divider entirely — a room with no read cursor
-  /// yet (never opened before) or one the caller already knows is fully
-  /// read shouldn't draw a line under nothing.
-  DateTime? unreadAfter,
+  /// The message the UNREAD MESSAGES line sits above. Null draws no line — a
+  /// room with no read cursor yet, one that was already fully read, or one
+  /// whose first unread message is not in [messages].
+  ///
+  /// A message id and not the reader's `lastReadAt`, which is what this used
+  /// to take. A timestamp is re-evaluated on every pass, so a message landing
+  /// while the room is ON SCREEN is newer than the cursor too and gets a line
+  /// of its own above it — an "unread" label over something the reader is
+  /// watching arrive. The room screen picks the row once instead, and picks it
+  /// with the same rule it aims the opening scroll with, which is also what
+  /// keeps the line and the viewport pointed at the same message. See
+  /// `_settleUnreadDivider`.
+  String? unreadBeforeId,
 }) {
   if (messages.isEmpty) {
     return (items: <RoomItem>[IntroItem()], hidden: const <String>{});
@@ -383,12 +391,12 @@ List<RoomItem> collapseAlbums(List<RoomItem> rows) {
   // The most recently emitted message row, so a grouped row can reach back and
   // clear its predecessor's `lastInRun`.
   MessageItem? prevRow;
-  // Already null when there's no cursor to compare against, so the loop
-  // below never has to null-check `unreadAfter` itself.
-  var unreadMarked = unreadAfter == null;
+  // Already true when there's no row to mark, so the loop below never has to
+  // null-check `unreadBeforeId` itself.
+  var unreadMarked = unreadBeforeId == null;
 
   for (final m in messages) {
-    if (!unreadMarked && m.createdAt.isAfter(unreadAfter!)) {
+    if (!unreadMarked && m.id == unreadBeforeId) {
       out.add(UnreadDividerItem());
       unreadMarked = true;
     }

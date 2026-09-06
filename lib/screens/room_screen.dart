@@ -268,16 +268,33 @@ class _RoomScreenState extends State<RoomScreen>
   final JumpBackStack _jumpBack = JumpBackStack();
 
   // ──── land-on-unread ────
-  // See _maybeLandOnUnread. Snapshotted once in initState, before openRoom's
-  // markRoomRead call advances the server cursor and the subscription echoes
-  // it back into widget.repo.roomById(...).lastReadAt.
-  DateTime? _unreadAnchorReadAt;
+  // The reader's cursor lives in the repository, which pins it before anything
+  // can advance it and is allowed to answer a beat late — see
+  // [ChatRepository.beginUnreadAnchor]. Asked for rather than copied into a
+  // field here, so a screen that mounted ahead of its room list (a
+  // notification tap, cold or warm) picks the answer up when it lands instead
+  // of being stuck with the "don't know" it was born with.
+  //
+  // What this screen owns is the row that cursor resolves to: the message the
+  // UNREAD MESSAGES line sits above and the opening scroll aims at, settled
+  // once and then held. See [_settleUnreadDivider].
+  String? _unreadDividerId;
+  bool _unreadDividerSettled = false;
 
   // True from mount until the initial landing has either succeeded or been
   // given up on — guards against re-triggering on a later notification (a
   // reaction, a typing update) once the reader has already scrolled off on
   // their own.
   bool _unreadLandingPending = false;
+
+  // How long the landing may keep waiting for a cursor that has not arrived.
+  // The divider itself has no deadline — a label appearing late is harmless —
+  // but a viewport that jumps on its own half a minute after the room opened
+  // is not, so the scroll half gives up here and leaves the reader where they
+  // are. Generous because the wait it is bounding is a cold start's room list
+  // on a bad connection, which is the case the whole feature exists for.
+  static const Duration _kUnreadLandingWindow = Duration(seconds: 12);
+  DateTime? _unreadLandingDeadline;
 
   /// Which pin the banner is describing. Read as `_pinCursor % pins.length` at
   /// build time and never clamped in place: a pinned message can self-destruct
@@ -384,19 +401,23 @@ class _RoomScreenState extends State<RoomScreen>
           _highlightCtrl.reset();
         }
       });
-    // Snapshotted before openRoom below, which marks the room read and — once
-    // the mutation's round trip echoes back through rooms:listUserRooms —
-    // moves lastReadAt out from under a cursor taken any later. Guarded on a
-    // real unread count: a room with nothing unread has nowhere to land that
-    // isn't the bottom, and one that has never been read at all (lastReadAt
-    // null) has no cursor to land relative to.
-    final roomAtOpen = widget.repo.roomById(widget.roomId);
-    if (roomAtOpen != null &&
-        roomAtOpen.lastReadAt != null &&
-        roomAtOpen.unreadCount > 0) {
-      _unreadAnchorReadAt = roomAtOpen.lastReadAt;
-      _unreadLandingPending = true;
-    }
+    // Before openRoom below, which marks the room read and — once the
+    // mutation's round trip echoes back through rooms:listUserRooms — moves
+    // lastReadAt out from under a cursor taken any later. The repository pins
+    // it from here and answers when it can; see [beginUnreadAnchor].
+    //
+    // Armed unconditionally, unlike the `unreadCount > 0` snapshot this
+    // replaces. That gate was read off whatever room list happened to be in
+    // memory, and on both notification-tap paths that list has not caught up
+    // with the push that caused the open: a cold start has no list at all, and
+    // a warm one holds the counts as they were before the app went away. It
+    // therefore answered "nothing unread" on exactly the two entries this
+    // feature exists for, which is why the divider only ever showed up off a
+    // chat-list tap. [_maybeLandOnUnread] decides from the transcript instead,
+    // which cannot be stale in that way.
+    widget.repo.beginUnreadAnchor(widget.roomId);
+    _unreadLandingPending = true;
+    _unreadLandingDeadline = DateTime.now().add(_kUnreadLandingWindow);
     // `this` is the ownership token: whichever State opened the room is the
     // only one allowed to close it. Route transitions dispose the outgoing
     // RoomScreen well after the incoming one has opened its room, so an
@@ -538,12 +559,20 @@ class _RoomScreenState extends State<RoomScreen>
     ChatRoom room,
     List<ChatMessage> messages,
   ) {
+    // Here as well as in _maybeLandOnUnread because the two settle on the same
+    // frame either way, and the divider must not be a frame behind the scroll
+    // that lands on it. Costs one bool once settled, which is nearly always.
+    _settleUnreadDivider();
     // Everything _mustKeepOwnRow reads has to be in the key, or an armed reply
-    // or a highlight pulse would be computed against a stale fold set.
+    // or a highlight pulse would be computed against a stale fold set. The
+    // divider row is in it for a different reason: it is null until the room
+    // list answers, so on a notification tap it fills in exactly once,
+    // mid-room, and a key without it would serve the divider-less pass forever.
     final foldKey = '${_dateTracks.length}'
         '|${_replyingTo?.id ?? ''}'
         '|${_highlightedMessageId ?? ''}'
-        '|${_jumpTargetId ?? ''}';
+        '|${_jumpTargetId ?? ''}'
+        '|${_unreadDividerId ?? ''}';
     final memo = _memoResult;
     if (memo != null &&
         identical(messages, _memoSource) &&
@@ -555,7 +584,7 @@ class _RoomScreenState extends State<RoomScreen>
       roomIsEphemeral: room.isEphemeral,
       mustKeepOwnRow: _mustKeepOwnRow,
       dayLabel: humanDay,
-      unreadAfter: _unreadAnchorReadAt,
+      unreadBeforeId: _unreadDividerId,
     );
     _memoSource = messages;
     _memoFoldKey = foldKey;
@@ -979,46 +1008,80 @@ class _RoomScreenState extends State<RoomScreen>
   /// visit. See [_translateMessage].
   bool _offeredRoomTranslate = false;
 
+  /// Pick the row the UNREAD MESSAGES line sits above — once, and for good.
+  ///
+  /// The rule is the server's own definition of unread (`badges.unreadForRoom`):
+  /// the oldest message past the reader's cursor that they did not send
+  /// themselves. Own sends are skipped or the line lands above your last reply
+  /// and calls it news to you.
+  ///
+  /// Latched rather than recomputed, and that is the whole reason this is a row
+  /// and not the cursor itself. Every message arriving after this point arrives
+  /// while the reader is watching it arrive, and is newer than the cursor too —
+  /// so a per-pass comparison draws a fresh line above each of them. Settling
+  /// once also means the line and [_maybeLandOnUnread]'s scroll target are
+  /// literally the same message rather than two answers that agree by
+  /// construction.
+  ///
+  /// Three ways to settle, and the order matters:
+  ///
+  ///  * the cursor has not arrived yet — nothing is decided. On a notification
+  ///    tap the room list lands AFTER this screen, so answering here is what
+  ///    used to disable the divider on exactly that entry.
+  ///  * no cursor at all — a room never read before has no line to draw.
+  ///  * a cursor with nothing past it — held open until the SUBSCRIPTION has
+  ///    spoken, not merely `hasLoadedInitial`, which is already true off a
+  ///    disk-cache hydrate that can predate everything this is looking for.
+  void _settleUnreadDivider() {
+    if (_unreadDividerSettled) return;
+    final repo = widget.repo;
+    if (!repo.unreadAnchorSettled(widget.roomId)) return;
+    final anchor = repo.unreadAnchorFor(widget.roomId);
+    if (anchor == null) {
+      _unreadDividerSettled = true;
+      return;
+    }
+    final me = repo.userId;
+    for (final m in repo.timelineFor(widget.roomId)) {
+      if (m.senderId == me) continue;
+      if (!m.createdAt.isAfter(anchor)) continue;
+      _unreadDividerId = m.id;
+      _unreadDividerSettled = true;
+      return;
+    }
+    if (repo.hasLiveMessages(widget.roomId)) _unreadDividerSettled = true;
+  }
+
   /// Snaps the transcript to the first unread message once, as soon as its
   /// row can be located — instead of the reverse:true default of opening at
   /// the very bottom and paging a backlog in above it. Mirrors what a
   /// notification tap or reopening a room with unread messages does in
   /// every big chat app: land where you left off, not where the list ends.
   ///
-  /// Self-clearing: gives up (clears [_unreadLandingPending] without
-  /// scrolling) once the room's first batch is confirmed in and the target
-  /// still can't be found — either it was read on another device since, or
-  /// the backlog is deeper than what's loaded. Anything short of that keeps
-  /// trying on the next notification rather than landing on a stale guess.
+  /// Aims at [_settleUnreadDivider]'s row, so the viewport and the line cannot
+  /// disagree. Self-clearing on three exits: the row is found and jumped to,
+  /// the divider settles on nothing to jump to, or the window below runs out
+  /// while the answer is still coming.
   void _maybeLandOnUnread() {
     if (!_unreadLandingPending || !mounted) return;
-    final anchor = _unreadAnchorReadAt;
-    if (anchor == null) {
+    final deadline = _unreadLandingDeadline;
+    if (deadline != null && DateTime.now().isAfter(deadline)) {
       _unreadLandingPending = false;
       return;
     }
-    String? targetId;
-    for (final m in widget.repo.timelineFor(widget.roomId)) {
-      if (m.createdAt.isAfter(anchor)) {
-        targetId = m.id;
-        break;
-      }
-    }
-    final index = targetId == null ? null : _rowIndexOf[targetId];
-    if (targetId == null || index == null) {
-      // Gated on the SUBSCRIPTION landing, not just hasLoadedInitial: that
-      // one is already true off a disk-cache hydrate, which can predate
-      // whatever arrived while this device was offline — exactly the
-      // messages this landing exists to find. Giving up on a stale cache's
-      // word would silently disable the feature on precisely its most
-      // common trigger: reopening the app after time away.
-      if (widget.repo.hasLiveMessages(widget.roomId)) {
-        _unreadLandingPending = false;
-      }
+    _settleUnreadDivider();
+    // "Not yet" is not "nothing to land on" — keep waiting rather than
+    // conceding the bottom of the list to a room list still in flight.
+    if (!_unreadDividerSettled) return;
+    final id = _unreadDividerId;
+    if (id == null) {
+      _unreadLandingPending = false;
       return;
     }
+    // Settled on a row that isn't built — folded into a thread chip, or a
+    // rebuild away. Keep trying; the deadline above is what ends it.
+    if (_rowIndexOf[id] == null) return;
     _unreadLandingPending = false;
-    final id = targetId;
     unawaited(snapToIndex(
       controller: _scroll,
       // Re-read every hop: a message arriving mid-jump shifts every index.

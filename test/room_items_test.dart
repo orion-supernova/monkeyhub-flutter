@@ -41,14 +41,14 @@ ChatMessage msg(
   bool ephemeral = false,
   bool Function(ChatMessage)? mustKeepOwnRow,
   int minFolded = kMinFoldedMessages,
-  DateTime? unreadAfter,
+  String? unreadBeforeId,
 }) => buildRoomItems(
   messages: messages,
   roomIsEphemeral: ephemeral,
   mustKeepOwnRow: mustKeepOwnRow ?? (_) => false,
   dayLabel: (d) => '${d.year}-${d.month}-${d.day}',
   minFolded: minFolded,
-  unreadAfter: unreadAfter,
+  unreadBeforeId: unreadBeforeId,
 );
 
 List<String> visibleIds(List<RoomItem> items) => items
@@ -452,65 +452,57 @@ void main() {
   });
 
   group('unread divider', () {
-    test('no cursor, no divider', () {
+    // The row is chosen by the room screen (`_settleUnreadDivider`), which
+    // holds the reader's cursor and the "not my own send" half of the rule.
+    // What is pinned here is that the line lands exactly above that row —
+    // ahead of anything else the same message drags in with it.
+    test('no row, no divider', () {
       final ms = [msg('a', t: 0), msg('b', t: 1)];
       final r = build(ms);
       expect(r.items.whereType<UnreadDividerItem>(), isEmpty);
     });
 
-    test('lands immediately before the first message newer than the cursor', () {
+    test('lands immediately before the named message', () {
       final ms = [msg('a', t: 0), msg('b', t: 1), msg('c', t: 2)];
-      final r = build(ms, unreadAfter: _epoch.add(const Duration(minutes: 1)));
+      final r = build(ms, unreadBeforeId: 'c');
       final dividerRow = r.items.indexWhere((i) => i is UnreadDividerItem);
       final cRow = r.items.indexOf(itemFor(r.items, 'c'));
       expect(dividerRow, cRow - 1);
-      // b is not after the cursor (equal, not newer) so it stays read.
-      expect(
-        r.items.indexOf(itemFor(r.items, 'b')),
-        lessThan(dividerRow),
-      );
+      expect(r.items.indexOf(itemFor(r.items, 'b')), lessThan(dividerRow));
     });
 
-    test('a cursor exactly at a message\'s timestamp does not mark it unread', () {
-      // "newer than lastReadAt" — matches ChatRoom.unreadCount's own rule.
-      final ms = [msg('a', t: 0), msg('b', t: 1)];
-      final r = build(ms, unreadAfter: _epoch.add(const Duration(minutes: 1)));
-      expect(r.items.whereType<UnreadDividerItem>(), isEmpty);
-    });
-
-    test('a cursor before every message lands the divider ahead of everything', () {
+    test('a row at the very front lands the divider ahead of everything', () {
       // Day 1's own DateDividerItem also lands on `a`, so the two are not
       // strictly adjacent — this only pins the ordering.
       final ms = [msg('a', t: 0), msg('b', t: 1)];
-      final r = build(ms, unreadAfter: _epoch.subtract(const Duration(minutes: 1)));
+      final r = build(ms, unreadBeforeId: 'a');
       final dividerRow = r.items.indexWhere((i) => i is UnreadDividerItem);
-      final aRow = r.items.indexOf(itemFor(r.items, 'a'));
       expect(dividerRow, isNot(-1));
-      expect(dividerRow, lessThan(aRow));
+      expect(dividerRow, lessThan(r.items.indexOf(itemFor(r.items, 'a'))));
     });
 
-    test('a cursor after every message inserts nothing', () {
+    test('a row that is not in the list inserts nothing', () {
+      // How the line retires itself: the message it marked was deleted, or it
+      // expired out of an ephemeral room, or the reader scrolled into a
+      // history window that does not contain it.
       final ms = [msg('a', t: 0), msg('b', t: 1)];
-      final r = build(ms, unreadAfter: _epoch.add(const Duration(minutes: 10)));
+      final r = build(ms, unreadBeforeId: 'gone');
       expect(r.items.whereType<UnreadDividerItem>(), isEmpty);
     });
 
-    test('emitted once, even with several messages past the cursor', () {
+    test('emitted once, even with several messages past it', () {
       final ms = [msg('a', t: 0), msg('b', t: 1), msg('c', t: 2), msg('d', t: 3)];
-      final r = build(ms, unreadAfter: _epoch);
+      final r = build(ms, unreadBeforeId: 'b');
       expect(r.items.whereType<UnreadDividerItem>(), hasLength(1));
     });
 
-    test('precedes a thread fold chip anchored at the first unread message', () {
+    test('precedes a thread fold chip anchored at the same message', () {
       // The chip for the interior run [m2,m4,m6,m8] is anchored at m2 (the
-      // oldest of the run) — landing the cursor just before m2 puts the
-      // crossing on the very message the chip stands in for, so the marker
-      // must show up ahead of it rather than after.
+      // oldest of the run), which is also the first unread — so the crossing
+      // lands on the very message the chip stands in for, and the marker must
+      // show up ahead of it rather than after.
       final ms = interleavedThread();
-      final r = build(
-        ms,
-        unreadAfter: _epoch.add(const Duration(seconds: 30)),
-      );
+      final r = build(ms, unreadBeforeId: 'm2');
       final dividerRow = r.items.indexWhere((i) => i is UnreadDividerItem);
       final foldRow = r.items.indexWhere((i) => i is ThreadFoldItem);
       expect(dividerRow, isNot(-1));
@@ -520,14 +512,14 @@ void main() {
 
     test('precedes the date divider for the day it lands in', () {
       final ms = [msg('a', t: 0), msg('b', t: 60 * 24)]; // b is a day later
-      final r = build(ms, unreadAfter: _epoch.add(const Duration(hours: 1)));
+      final r = build(ms, unreadBeforeId: 'b');
       final unreadRow = r.items.indexWhere((i) => i is UnreadDividerItem);
       final dateRows = [
         for (var i = 0; i < r.items.length; i++)
           if (r.items[i] is DateDividerItem) i,
       ];
-      // Two: day 1's (ahead of `a`, unrelated to the cursor) and day 2's
-      // (the one the unread marker must precede).
+      // Two: day 1's (ahead of `a`, unrelated) and day 2's (the one the unread
+      // marker must precede).
       expect(dateRows, hasLength(2));
       expect(unreadRow, lessThan(dateRows[1]));
     });
