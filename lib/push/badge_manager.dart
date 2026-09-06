@@ -37,10 +37,36 @@ class BadgeManager extends ChangeNotifier {
   int _total = 0;
   int get total => _total;
 
+  /// Whether the number on the app icon might have been written by somebody
+  /// other than us — which is to say, whether we are still entitled to skip a
+  /// platform write because [_total] has not moved.
+  ///
+  /// True in a fresh process and again after every trip through the
+  /// background, because every push carries an absolute `ios_badgeCount` and
+  /// APNs applies it whether this process is running or not. So the OS can be
+  /// showing 1 while [_total] still reads the 0 it held when the app went
+  /// away, and "unchanged" then means "unchanged from a value the icon never
+  /// had". That is the badge that survives reading the room it belongs to: on
+  /// a notification tap the room is opened at once, and `markRoomRead` can
+  /// land before the room-list subscription has refired even once — so the
+  /// first fire after coming back already says 0, matches [_total], and the
+  /// write that would have cleared the icon is skipped.
+  bool _platformUnknown = true;
+
+  /// The room-list snapshot [_recompute] last saw. [ChatRepository.facetCounts]
+  /// is memoised per room-list write, so its identity changing is exactly the
+  /// signal "the server has told us about rooms again" — which is when a
+  /// re-assert is worth making and, equally, when it is safe to make. Asserting
+  /// on the resume edge instead would write the stale pre-background total over
+  /// a push's newer one.
+  Object? _lastCounts;
+
   void bind(ChatRepository repo) {
     if (identical(_repo, repo)) return;
     _repo?.removeListener(_recompute);
     _repo = repo;
+    _platformUnknown = true;
+    _lastCounts = null;
     repo.addListener(_recompute);
     _recompute();
   }
@@ -49,17 +75,35 @@ class BadgeManager extends ChangeNotifier {
     _repo?.removeListener(_recompute);
     _repo = null;
     _total = 0;
+    _platformUnknown = true;
+    _lastCounts = null;
     notifyListeners();
     _writePlatform(0);
   }
 
+  /// The app went away, so a push may write the icon behind our back. Called
+  /// from the lifecycle handler in app.dart on every non-resumed state.
+  void invalidatePlatformBadge() => _platformUnknown = true;
+
   void _recompute() {
     final repo = _repo;
     if (repo == null) return;
+    // Identity, not value: this is asking whether the list was re-delivered,
+    // not whether the counts in it came out the same.
+    final counts = repo.facetCounts;
+    final listMoved = !identical(counts, _lastCounts);
+    _lastCounts = counts;
     final next = repo.incomingRequests.length + repo.unreadMessageTotal;
-    if (next == _total) return;
+    final numberMoved = next != _total;
+    // Two reasons to write, and the second is the whole point of the flag: the
+    // number moved, or it did not but the icon is not known to be showing it
+    // and the room list has just answered afresh, so what we hold is worth
+    // asserting. Everything else — a typing notify, a reaction, a room-list
+    // fire that changed nothing on an icon we already trust — writes nothing.
+    if (!numberMoved && !(listMoved && _platformUnknown)) return;
     _total = next;
-    notifyListeners();
+    _platformUnknown = false;
+    if (numberMoved) notifyListeners();
     _writePlatform(_total);
   }
 

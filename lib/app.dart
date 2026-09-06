@@ -938,6 +938,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     // A backgrounding is the last chance to get the tail of the log onto disk.
     if (state != AppLifecycleState.resumed) {
       unawaited(DiagBuffer.instance.flush());
+      // And the last moment the app icon's number is ours. Every push carries
+      // an absolute `ios_badgeCount` that APNs applies while we are away, so
+      // from here on "the total hasn't changed" no longer implies "the icon
+      // already shows it" — see [BadgeManager.invalidatePlatformBadge].
+      BadgeManager.instance.invalidatePlatformBadge();
     }
     // Above the session check on purpose: connection health must keep tracking
     // foreground/background across a signed-out window, so a sign-in that lands

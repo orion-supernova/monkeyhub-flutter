@@ -168,8 +168,12 @@ void main() {
       'a push tap into the room already on screen survives the old dispose',
       () async {
         await repo.openRoom('a', owner: screenA);
-        // The tap mounts a SECOND RoomScreen for the same room; openRoom
-        // short-circuits but must still hand ownership over.
+        // The tap mounts a SECOND RoomScreen for the same room. That is a new
+        // reading session, so the room is genuinely re-opened — the previous
+        // generation's subscriptions are replaced rather than kept, which is
+        // what stops the new screen inheriting a transcript the frozen socket
+        // has not caught up on (see `newReader` in [ChatRepository.openRoom]).
+        // What must NOT change is who holds the room.
         final screenA2 = Object();
         await repo.openRoom('a', owner: screenA2);
 
@@ -178,7 +182,13 @@ void main() {
         // A roomId-only guard would have matched here and killed the live room
         // with nothing left to re-open it.
         expect(repo.activeRoomId, 'a');
-        expect(subsFor('a').where((s) => s.cancelled), isEmpty);
+        expect(
+          subsFor('a').where((s) => !s.cancelled),
+          isNotEmpty,
+          reason:
+              'the departing screen must leave its replacement a room that is '
+              'still on the wire',
+        );
       },
     );
 
@@ -362,6 +372,38 @@ void main() {
         expect(repo.hasLiveMessages('a'), isTrue);
       },
     );
+
+    test('clears for a NEW screen on the same room', () async {
+      // The notification tap for the chat you were already inside when the app
+      // went away. `openRoom` used to short-circuit on the roomId alone, so
+      // this flag survived from the previous screen's session — and it is the
+      // flag `RoomScreen._settleUnreadDivider` asks "has the transcript spoken
+      // yet?". Told yes while the socket was still frozen, it read a transcript
+      // that had not caught up, found nothing past the read cursor and settled
+      // on "nothing unread" for good, one frame before the tapped message
+      // landed. No UNREAD MESSAGES label, on the one entry that most needs one.
+      await repo.openRoom('a', owner: screenA);
+      cv.issued.firstWhere((s) => s.label == 'messages:list/a').fireOnData([
+        {
+          '_id': 'm1',
+          'roomId': 'a',
+          'userId': 'someone',
+          'createdAt': DateTime.now().millisecondsSinceEpoch,
+        },
+      ]);
+      expect(repo.hasLiveMessages('a'), isTrue);
+
+      await repo.openRoom('a', owner: Object());
+
+      expect(
+        repo.hasLiveMessages('a'),
+        isFalse,
+        reason:
+            'a second screen for the same room is a second reading session, '
+            'and nothing the first one learned from the wire is still true of '
+            'a socket that has been asleep since',
+      );
+    });
 
     test('clears on the next open, like hasLoadedInitial does', () async {
       await repo.openRoom('a', owner: screenA);

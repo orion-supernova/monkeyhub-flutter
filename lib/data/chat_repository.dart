@@ -371,6 +371,16 @@ class ChatRepository extends ChangeNotifier {
       if (r.id != id) continue;
       _unreadAnchor = r.lastReadAt;
       _unreadAnchorResolved = true;
+      // The cursor the divider will be drawn from, and the count that used to
+      // gate it. Logged because the two disagree on exactly the entry this is
+      // for — a warm notification tap resolves with a true cursor and a stale
+      // zero — and because a room list that never carries the room is the one
+      // shape that leaves the divider undecided with nothing else to show it.
+      DiagLog.roomOpen(
+        'unread-anchor',
+        '$id cursor=${_unreadAnchor?.toIso8601String() ?? 'none'} '
+        'listUnread=${r.unreadCount}',
+      );
       return;
     }
   }
@@ -1686,8 +1696,32 @@ class ChatRepository extends ChangeNotifier {
     // Before the short-circuit on purpose: a second screen for the room
     // already open still has to take ownership, or the first screen's dispose
     // will close the room out from under it.
+    //
+    // And a new owner now defeats the short-circuit outright, because a second
+    // screen for the same room is a second READING SESSION, not a repeat of
+    // the first. That distinction has one entry: tapping the banner for the
+    // chat you were already inside when the app went away. `_openRoomFromPush`
+    // pops to the shell and pushes a fresh `RoomScreen`, which lands here with
+    // `_activeRoomId` still equal to `roomId` — so this used to return having
+    // done nothing at all, and the new screen inherited a room that was set up
+    // for the old one. `_liveMessagesLoaded` is the field that hurt: it still
+    // said the subscription had delivered, from a delivery that happened
+    // before the app was suspended. The new screen asked "has the transcript
+    // spoken yet?", was told yes, looked at a transcript the frozen socket had
+    // not yet caught up on, found nothing past the read cursor and settled on
+    // "nothing unread" — permanently, one frame before the message the reader
+    // had tapped the notification for arrived. No divider, on the one entry
+    // where the reader most expects one.
+    //
+    // Everything else this re-runs is wanted too: the push inbox is drained so
+    // the tapped message is on screen before the network answers, and the
+    // entry read fires for a room whose banner was just tapped. It costs one
+    // re-registration of the room's subscriptions, on a path that happens once
+    // per notification tap — `resubscribe` has taken the same cost on every
+    // reconnect for far longer.
+    final newReader = owner != null && !identical(_openOwner, owner);
     if (owner != null) _openOwner = owner;
-    if (_activeRoomId == roomId && !force) return;
+    if (_activeRoomId == roomId && !force && !newReader) return;
     if (_activeRoomId != roomId) {
       // The room being left still has a typing heartbeat and a pending clear,
       // both of which read `_activeRoomId` when they fire — so stop it here,

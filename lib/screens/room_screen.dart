@@ -22,6 +22,7 @@ import '../calls/group_call_banner.dart';
 import '../calls/group_call_button.dart';
 import '../calls/group_call_service.dart';
 import '../data/chat_repository.dart';
+import '../diagnostics/diag_log.dart';
 import '../data/mention_session.dart';
 import '../data/room_content_selection.dart';
 import '../companions/companion.dart';
@@ -1053,9 +1054,21 @@ class _RoomScreenState extends State<RoomScreen>
       if (!m.createdAt.isAfter(anchor)) continue;
       _unreadDividerId = m.id;
       _unreadDividerSettled = true;
+      DiagLog.roomOpen('unread-divider', '${widget.roomId} at ${m.id}');
       return;
     }
-    if (repo.hasLiveMessages(widget.roomId)) _unreadDividerSettled = true;
+    if (repo.hasLiveMessages(widget.roomId)) {
+      _unreadDividerSettled = true;
+      // Not a failure on its own — a room genuinely read to the end settles
+      // here every time. It is only news next to an `unread-anchor` line whose
+      // cursor is older than the message the reader was just notified about,
+      // which is what a log has to be able to tell apart.
+      DiagLog.roomOpen(
+        'unread-divider',
+        '${widget.roomId} none past ${anchor.toIso8601String()} '
+        'in ${repo.timelineFor(widget.roomId).length} msgs',
+      );
+    }
   }
 
   /// Snaps the transcript to the first unread message once, as soon as its
