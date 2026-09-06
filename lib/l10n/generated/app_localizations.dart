@@ -14100,6 +14100,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nothing to share yet — allow screen recording in System Settings and try again'**
   String get screenSharePickerEmpty;
+
+  /// All-caps action on a finished game's result card; sends a push notification with this result to the player's friends. Distinct from gameShare, which only copies text.
+  ///
+  /// In en, this message translates to:
+  /// **'TELL FRIENDS'**
+  String get gameTellFriends;
+
+  /// Replaces the TELL FRIENDS action once it has been used. The server allows one send per result.
+  ///
+  /// In en, this message translates to:
+  /// **'friends told'**
+  String get gameToldFriends;
+
+  /// Title of the confirmation asked before notifying every friend about a game result.
+  ///
+  /// In en, this message translates to:
+  /// **'tell your friends?'**
+  String get gameTellFriendsTitle;
+
+  /// Body of that confirmation. States both facts: friends receive a notification, and it can only be sent once.
+  ///
+  /// In en, this message translates to:
+  /// **'they get a notification with this result. it can only be sent once.'**
+  String get gameTellFriendsBody;
+
+  /// All-caps dismissal on the tell-friends confirmation; sends nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT NOW'**
+  String get gameTellFriendsCancel;
+
+  /// All-caps confirmation on the tell-friends dialog; sends the notification.
+  ///
+  /// In en, this message translates to:
+  /// **'SEND IT'**
+  String get gameTellFriendsConfirm;
+
+  /// Toast shown after a game result was pushed to the player's friends.
+  ///
+  /// In en, this message translates to:
+  /// **'sent — they know'**
+  String get gameTellFriendsSent;
+
+  /// Toast shown when the send was refused because the player's own daily-score visibility is set to nobody, so friends could not see the result anyway. The fix is a setting they own.
+  ///
+  /// In en, this message translates to:
+  /// **'your daily scores are private, so nobody would see this'**
+  String get gameTellFriendsPrivate;
+
+  /// Toast shown when the send failed for any other reason — offline, or the server refused.
+  ///
+  /// In en, this message translates to:
+  /// **'couldn’t send that'**
+  String get gameTellFriendsFailed;
+
+  /// All-caps label of the per-device switch for notifications about what friends post and finish.
+  ///
+  /// In en, this message translates to:
+  /// **'FRIEND ACTIVITY'**
+  String get settingsScreenFriendActivityLabel;
+
+  /// Sub-line when friend-activity notifications are on.
+  ///
+  /// In en, this message translates to:
+  /// **'highlights, points and game results as friends post them'**
+  String get settingsScreenFriendActivityOnBody;
+
+  /// Sub-line when friend-activity notifications are off.
+  ///
+  /// In en, this message translates to:
+  /// **'nothing — their boards are still there when you look'**
+  String get settingsScreenFriendActivityOffBody;
 }
 
 class _AppLocalizationsDelegate

@@ -127,6 +127,23 @@
         });
       };
 
+      // Friend activity — a highlight, a point, or a shared game result. A
+      // second listener rather than a wider `mhPushOnOpenRoom`, because these
+      // taps open the Feed and not a room, and folding them into a callback
+      // whose one argument is a room id is how an empty string ends up
+      // standing for two different destinations.
+      window.mhPushOnOpenTarget = function (cb) {
+        if (!('serviceWorker' in navigator)) return;
+        navigator.serviceWorker.addEventListener('message', function (event) {
+          try {
+            var d = event.data || {};
+            if (d.mh === 'openTarget') {
+              cb(String(d.kind || ''), d.momentId ? String(d.momentId) : '');
+            }
+          } catch (e) {}
+        });
+      };
+
       // The previous vendor's service worker outlives its script tag, and it
       // keeps a live push subscription. Left alone it could still deliver, or
       // double up with ours.

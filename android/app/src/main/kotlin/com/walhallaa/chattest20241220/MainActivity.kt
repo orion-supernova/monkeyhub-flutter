@@ -526,10 +526,12 @@ class MainActivity : FlutterActivity() {
         val extras = intent?.extras ?: return
         val roomId = extras.getString(ChatNotifications.EXTRA_ROOM_ID).orEmpty()
         val kind = extras.getString(ChatNotifications.EXTRA_KIND).orEmpty()
+        val momentId = extras.getString(ChatNotifications.EXTRA_MOMENT_ID).orEmpty()
         if (roomId.isEmpty() && kind.isEmpty()) return
         // Consume it, or rotating the device replays the same navigation.
         intent.removeExtra(ChatNotifications.EXTRA_ROOM_ID)
         intent.removeExtra(ChatNotifications.EXTRA_KIND)
+        intent.removeExtra(ChatNotifications.EXTRA_MOMENT_ID)
 
         val event: Map<String, Any?> = when {
             roomId.isNotEmpty() -> mapOf("method" to "onOpenRoom", "roomId" to roomId)
@@ -537,6 +539,16 @@ class MainActivity : FlutterActivity() {
             // The daily games nudge: the Feed, with today's games open. It
             // carries no roomId, which is why it falls past the first branch.
             kind == "daily_games" -> mapOf("method" to "onOpenGames")
+            // A friend's highlight or point. Opens that card's viewer, so the
+            // tap lands on the thing the banner named rather than on the board
+            // it happens to be somewhere on. A payload that somehow lost its
+            // momentId falls through to the games/else branches rather than
+            // invoking with an empty id — Dart would ignore it anyway, and
+            // raising the app is the better failure.
+            kind == "friend_moment" && momentId.isNotEmpty() ->
+                mapOf("method" to "onOpenMoment", "momentId" to momentId)
+            // A friend's shared game result: the games shelf and its standings.
+            kind == "game_result" -> mapOf("method" to "onOpenGames")
             else -> return
         }
         val method = event["method"] as String

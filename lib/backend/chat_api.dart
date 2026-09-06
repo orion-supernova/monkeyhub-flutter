@@ -518,6 +518,23 @@ class ChatApi {
     });
   }
 
+  /// The friend-activity toggle, per device. Suppresses highlights, points and
+  /// shared game results — the pushes other PEOPLE cause — and nothing else.
+  ///
+  /// A third switch because it is the only class of notification whose volume
+  /// somebody else sets. See socialPush.ts.
+  Future<void> setFriendActivity({
+    required String userId,
+    required String deviceId,
+    required bool enabled,
+  }) async {
+    await _cv.mutation('voipTokens:setFriendActivity', {
+      'userId': userId,
+      'deviceId': deviceId,
+      'enabled': enabled,
+    });
+  }
+
   /// This device's language and time zone, as the running app resolved them.
   ///
   /// The backend composes the daily nudge itself, so it needs both: the

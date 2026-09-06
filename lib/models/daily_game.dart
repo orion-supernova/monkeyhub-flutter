@@ -216,6 +216,7 @@ class GameResult {
     this.mistakes = 0,
     this.userId = '',
     this.name = '',
+    this.shared = false,
   });
 
   final DailyGame game;
@@ -242,6 +243,15 @@ class GameResult {
   /// "you" there rather than echoing the player their own name.
   final String name;
 
+  /// Whether this result has already been pushed to the player's friends.
+  ///
+  /// Only ever true on the viewer's OWN row: the backend puts it on `mine` and
+  /// deliberately not on the standings rows, because whether somebody pressed
+  /// "tell friends" is a fact about their notification habits and not about the
+  /// board. Its one job is to stop the result card offering an action the
+  /// server would now refuse with `ALREADY_SHARED`.
+  final bool shared;
+
   static GameResult? fromJson(Map<String, dynamic>? j, {DailyGame? game}) {
     if (j == null) return null;
     final id = game ?? DailyGame.parse(j['game']?.toString());
@@ -256,6 +266,7 @@ class GameResult {
       mistakes: (j['mistakes'] as num?)?.toInt() ?? 0,
       userId: j['userId']?.toString() ?? '',
       name: j['name']?.toString() ?? '',
+      shared: j['shared'] == true,
     );
   }
 }

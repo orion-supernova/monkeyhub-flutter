@@ -1,4 +1,5 @@
 import { mutation, query } from "./functions";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 
@@ -473,7 +474,7 @@ export const post = mutation({
     }
 
     const now = Date.now();
-    return await ctx.db.insert("moments", {
+    const momentId = await ctx.db.insert("moments", {
       userId,
       dayKey,
       // Written only when set — an untagged row must have NO tag field at all,
@@ -490,6 +491,79 @@ export const post = mutation({
       ...(user.avatarStorageId
         ? { authorAvatarStorageId: user.avatarStorageId }
         : {}),
+    });
+
+    // Tell their friends. Scheduled rather than awaited, exactly as
+    // `messages.send` schedules its own push: the fan-out reads one row per
+    // friend and talks to APNs, FCM and Web Push, and none of that may sit
+    // inside the transaction that decides whether this person's post exists.
+    // A push that cannot be assembled is a push that does not arrive, not a
+    // post that failed.
+    //
+    // Every gate lives in `socialPush._momentAudience` — the author's own
+    // `feed`/`points` visibility included — so this line is unconditional on
+    // purpose. A caller that has to remember to check something is a caller
+    // that eventually forgets.
+    await ctx.scheduler.runAfter(0, internal.socialPush.sendMomentPush, {
+      momentId,
+    });
+
+    return momentId;
+  },
+});
+
+/**
+ * One moment, by id, for a notification tap to land on.
+ *
+ * `board` cannot answer this. It range-scans `by_user_day` with the VIEWER's
+ * `dayKey`, so a friend far enough east or west is posting under a different
+ * key and their moment is simply not in the payload — which would make a
+ * tapped notification land on a board that does not contain the thing it named,
+ * intermittently, by timezone, for a minority of pairs. That is exactly the bug
+ * class nobody reproduces.
+ *
+ * Access is `canSeeMoment` and nothing else: the same function the board and
+ * the archive go through, so a row this returns is a row the caller could have
+ * reached anyway. Returns `null` rather than throwing for every failure — gone,
+ * unfriended, made private since the push went out — because the caller is a
+ * tap on a notification that may be hours old, and there is nothing for the
+ * person to do about any of them. The Feed falls back to opening the board.
+ */
+export const moment = query({
+  args: { userId: v.id("users"), momentId: v.id("moments") },
+  handler: async (ctx, { userId, momentId }) => {
+    const m = await ctx.db.get(momentId);
+    if (!m) return null;
+    if (!(await canSeeMoment(ctx, userId, m))) return null;
+
+    const reactions = await ctx.db
+      .query("momentReactions")
+      .withIndex("by_moment", (q: any) => q.eq("momentId", momentId))
+      .collect();
+    const mine = m.userId === userId;
+    const seen = mine
+      ? true
+      : (await ctx.db
+          .query("momentViews")
+          .withIndex("by_moment_viewer", (q: any) =>
+            q.eq("momentId", momentId).eq("viewerId", userId)
+          )
+          .first()) !== null;
+
+    let authorAvatarVisible = true;
+    if (!mine) {
+      const author = await ctx.db.get(m.userId);
+      if (!author) return null;
+      const lens = await lensFor(ctx, userId);
+      authorAvatarVisible = lens.canSee(author, "avatar");
+    }
+
+    return momentView(m, {
+      reactions,
+      seen,
+      mine,
+      viewerId: userId,
+      authorAvatarVisible,
     });
   },
 });

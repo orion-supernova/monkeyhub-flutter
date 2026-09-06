@@ -76,6 +76,29 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const data = event.notification.data || {};
   const roomId = data.roomId || '';
+  const kind = data.kind || '';
+  const momentId = data.momentId || '';
+
+  // Friend activity has no room to open, so it travels as its own message
+  // rather than as an `openRoom` with an empty id — which the page treats as
+  // "nothing to do" and would silently swallow. See socialPush.ts.
+  //
+  // A separate message name rather than an extra field on `openRoom`, because
+  // `mhPushOnOpenRoom` is wired by a build that predates these kinds: a tab
+  // running the old bundle ignores what it does not recognise and merely
+  // focuses, instead of navigating somewhere on a partly-read payload.
+  const social =
+    kind === 'friend_moment' || kind === 'game_result'
+      ? { mh: 'openTarget', kind: kind, momentId: momentId }
+      : null;
+  const hash = social
+    ? kind === 'friend_moment' && momentId
+      ? '#moment=' + encodeURIComponent(momentId)
+      : '#games'
+    : roomId
+      ? '#room=' + encodeURIComponent(roomId)
+      : '';
+
   event.waitUntil(
     self.clients
       .matchAll({ type: 'window', includeUncontrolled: true })
@@ -85,13 +108,11 @@ self.addEventListener('notificationclick', (event) => {
         // the narrow scope above harmless.
         for (const c of clients) {
           if (c.url.includes('/web/')) {
-            c.postMessage({ mh: 'openRoom', roomId: roomId });
+            c.postMessage(social || { mh: 'openRoom', roomId: roomId });
             return c.focus();
           }
         }
-        return self.clients.openWindow(
-          '/web/' + (roomId ? '#room=' + encodeURIComponent(roomId) : ''),
-        );
+        return self.clients.openWindow('/web/' + hash);
       }),
   );
 });

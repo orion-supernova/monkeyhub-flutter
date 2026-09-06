@@ -2324,5 +2324,17 @@
   "screenSharePickerTitle": "Partagez votre écran",
   "screenSharePickerScreens": "Écrans",
   "screenSharePickerWindows": "Fenêtres",
-  "screenSharePickerEmpty": "Rien à partager pour l'instant — autorisez l'enregistrement de l'écran dans Réglages Système et réessayez"
+  "screenSharePickerEmpty": "Rien à partager pour l'instant — autorisez l'enregistrement de l'écran dans Réglages Système et réessayez",
+  "gameTellFriends": "PRÉVENIR TES AMIS",
+  "gameToldFriends": "amis prévenus",
+  "gameTellFriendsTitle": "prévenir tes amis ?",
+  "gameTellFriendsBody": "ils reçoivent une notification avec ce résultat. envoi unique.",
+  "gameTellFriendsCancel": "PAS MAINTENANT",
+  "gameTellFriendsConfirm": "ENVOYER",
+  "gameTellFriendsSent": "envoyé — ils sont au courant",
+  "gameTellFriendsPrivate": "tes scores du jour sont privés, personne ne le verrait",
+  "gameTellFriendsFailed": "envoi impossible",
+  "settingsScreenFriendActivityLabel": "ACTIVITÉ DES AMIS",
+  "settingsScreenFriendActivityOnBody": "moments, points et résultats au fil de leurs publications",
+  "settingsScreenFriendActivityOffBody": "rien — leurs tableaux sont toujours là quand tu regardes"
 }

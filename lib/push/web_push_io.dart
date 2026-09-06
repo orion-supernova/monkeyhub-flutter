@@ -5,6 +5,10 @@ class WebPush {
   const WebPush._();
 
   static void setOnOpenRoom(void Function(String roomId) cb) {}
+  static void setOnOpenTarget({
+    required void Function(String momentId) onMoment,
+    required void Function() onGames,
+  }) {}
   static Future<WebPushSubscription?> subscribe(String vapidPublicKey) async =>
       null;
   static void promptPermission() {}

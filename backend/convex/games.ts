@@ -1,4 +1,5 @@
 import { mutation, query } from "./functions";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 
 import * as queens from "./games/queens";
@@ -202,7 +203,12 @@ export const standings = query({
     const mine: Record<string, any> = {};
     const progress: Record<string, number[]> = {};
     for (const [game, row] of mineRows) {
-      mine[game] = resultView(row);
+      // `shared` rides on the viewer's OWN rows only, and is deliberately not
+      // in `resultView`: that shape is what friends see too, and whether
+      // somebody pressed "tell friends" is a fact about their notification
+      // habits rather than about the board. The client needs it to stop
+      // offering a button that would now be refused.
+      mine[game] = { ...resultView(row), shared: row.sharedAt !== undefined };
       if (row.progress) progress[game] = row.progress;
     }
 
@@ -475,6 +481,64 @@ export const submit = mutation({
       progress: solution,
     });
     return { solved: true, durationMs, replay: false };
+  },
+});
+
+/**
+ * Pushes a finished result to the player's friends, because they asked.
+ *
+ * The counterpart to `feed.post`'s automatic fan-out, and deliberately not
+ * automatic itself. A moment is something you published; a game result is
+ * something you happened to do, and a notification about it is a boast — which
+ * is fine when you press the button and obnoxious when the app presses it for
+ * you. So this exists as a mutation with no caller but a tap on the result
+ * card.
+ *
+ * Four refusals, each closing a different way to notify people twice:
+ *
+ *   * `NOT_STARTED` / `NOT_FINISHED` — there is no result to share. A board
+ *     still in progress is private (see `standings`), and sharing one would
+ *     leak a time that has not stopped.
+ *   * `ALREADY_SHARED` — `sharedAt` is the whole gate, and it is stored on the
+ *     row rather than remembered by the client for the obvious reason: the
+ *     client that would remember is a reinstall away from notifying fifty
+ *     people again.
+ *   * `RESULT_PRIVATE` — the player's own `visibility.puzzle` is "nobody", so
+ *     their friends cannot see this result in the standings the push would
+ *     open. Refused loudly here, where the player is standing, rather than
+ *     silently dropped in the fan-out — the audience query checks it too, but
+ *     that check cannot tell anybody why nothing happened.
+ */
+export const shareResult = mutation({
+  args: { userId: v.id("users"), dayKey: v.string(), game: v.string() },
+  handler: async (ctx, { userId, dayKey, game }) => {
+    if (!isGameId(game)) throw new Error("UNKNOWN_GAME");
+    const row = await ctx.db
+      .query("gameResults")
+      .withIndex("by_user_day_game", (q: any) =>
+        q.eq("userId", userId).eq("dayKey", dayKey).eq("game", game)
+      )
+      .first();
+    if (!row) throw new Error("NOT_STARTED");
+    if (row.finishedAt === undefined) throw new Error("NOT_FINISHED");
+    if (row.sharedAt !== undefined) throw new Error("ALREADY_SHARED");
+
+    const player = await ctx.db.get(userId);
+    if (!player) throw new Error("USER_NOT_FOUND");
+    if ((player.visibility?.puzzle ?? "friends") === "nobody") {
+      throw new Error("RESULT_PRIVATE");
+    }
+
+    // Stamped BEFORE the schedule, inside the same transaction. The other
+    // order would let two taps that arrive together both read an unshared row
+    // and both schedule a fan-out.
+    await ctx.db.patch(row._id, { sharedAt: Date.now() });
+    await ctx.scheduler.runAfter(0, internal.socialPush.sendGameResultPush, {
+      userId,
+      dayKey,
+      game,
+    });
+    return { shared: true };
   },
 });
 

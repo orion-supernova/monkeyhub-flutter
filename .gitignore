@@ -12,6 +12,8 @@
 .swiftpm/
 migrate_working_dir/
 backend/node_modules/**
+# Running npx from the repo root (rather than backend/) leaves one here.
+node_modules/
 
 # IntelliJ related
 *.iml

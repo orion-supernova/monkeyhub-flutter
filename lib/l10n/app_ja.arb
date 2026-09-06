@@ -2324,5 +2324,17 @@
   "screenSharePickerTitle": "画面を共有",
   "screenSharePickerScreens": "画面",
   "screenSharePickerWindows": "ウィンドウ",
-  "screenSharePickerEmpty": "共有できるものがまだありません — システム設定で画面収録を許可してからもう一度お試しください"
+  "screenSharePickerEmpty": "共有できるものがまだありません — システム設定で画面収録を許可してからもう一度お試しください",
+  "gameTellFriends": "友だちに知らせる",
+  "gameToldFriends": "知らせました",
+  "gameTellFriendsTitle": "友だちに知らせますか？",
+  "gameTellFriendsBody": "この結果が通知で届きます。送れるのは一度だけです。",
+  "gameTellFriendsCancel": "今はしない",
+  "gameTellFriendsConfirm": "送る",
+  "gameTellFriendsSent": "送りました",
+  "gameTellFriendsPrivate": "デイリーの成績が非公開なので、誰にも表示されません",
+  "gameTellFriendsFailed": "送れませんでした",
+  "settingsScreenFriendActivityLabel": "友だちの動き",
+  "settingsScreenFriendActivityOnBody": "投稿されたハイライト・ポイント・ゲーム結果",
+  "settingsScreenFriendActivityOffBody": "通知なし — ボードは見に行けばあります"
 }

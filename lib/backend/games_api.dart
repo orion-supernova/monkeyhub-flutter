@@ -170,6 +170,29 @@ class GamesApi {
     );
   }
 
+  /// Pushes a finished result to the player's friends.
+  ///
+  /// Reached only from the "tell friends" action on the result card — this is
+  /// the one notification in the app a person deliberately sends about
+  /// themselves, and nothing calls it automatically.
+  ///
+  /// Throws `ALREADY_SHARED` if this result has been sent once already (the
+  /// server remembers, so a reinstall does not re-notify everyone),
+  /// `NOT_FINISHED` for a board still in progress, and `RESULT_PRIVATE` when
+  /// the player's own daily-score visibility is set to nobody — their friends
+  /// could not see the standings the notification opens.
+  Future<void> shareResult({
+    required String userId,
+    required String dayKey,
+    required DailyGame game,
+  }) async {
+    await _cv.mutation('games:shareResult', {
+      'userId': userId,
+      'dayKey': dayKey,
+      'game': game.wire,
+    });
+  }
+
   /// Gives up and returns the answer.
   ///
   /// Recorded as a result, not left blank — and it closes the board, so the

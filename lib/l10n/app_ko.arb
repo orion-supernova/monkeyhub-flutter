@@ -2324,5 +2324,17 @@
   "screenSharePickerTitle": "화면 공유",
   "screenSharePickerScreens": "화면",
   "screenSharePickerWindows": "창",
-  "screenSharePickerEmpty": "아직 공유할 것이 없어요 — 시스템 설정에서 화면 기록을 허용한 뒤 다시 시도하세요"
+  "screenSharePickerEmpty": "아직 공유할 것이 없어요 — 시스템 설정에서 화면 기록을 허용한 뒤 다시 시도하세요",
+  "gameTellFriends": "친구들에게 알리기",
+  "gameToldFriends": "알렸어요",
+  "gameTellFriendsTitle": "친구들에게 알릴까요?",
+  "gameTellFriendsBody": "이 결과가 알림으로 가요. 한 번만 보낼 수 있어요.",
+  "gameTellFriendsCancel": "나중에",
+  "gameTellFriendsConfirm": "보내기",
+  "gameTellFriendsSent": "보냈어요",
+  "gameTellFriendsPrivate": "데일리 점수가 비공개라 아무도 못 봐요",
+  "gameTellFriendsFailed": "보내지 못했어요",
+  "settingsScreenFriendActivityLabel": "친구 소식",
+  "settingsScreenFriendActivityOnBody": "올라오는 대로 하이라이트, 포인트, 게임 결과",
+  "settingsScreenFriendActivityOffBody": "없음 — 보드는 찾아가면 그대로 있어요"
 }

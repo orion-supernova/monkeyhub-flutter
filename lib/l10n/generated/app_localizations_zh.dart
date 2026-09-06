@@ -7891,4 +7891,40 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get screenSharePickerEmpty => '暂时没有可共享的内容——请在系统设置中允许屏幕录制后重试';
+
+  @override
+  String get gameTellFriends => '告诉好友';
+
+  @override
+  String get gameToldFriends => '已告诉';
+
+  @override
+  String get gameTellFriendsTitle => '告诉好友吗？';
+
+  @override
+  String get gameTellFriendsBody => '他们会收到这条结果的通知。只能发一次。';
+
+  @override
+  String get gameTellFriendsCancel => '暂不';
+
+  @override
+  String get gameTellFriendsConfirm => '发送';
+
+  @override
+  String get gameTellFriendsSent => '已发送';
+
+  @override
+  String get gameTellFriendsPrivate => '你的每日成绩不公开，没人看得到';
+
+  @override
+  String get gameTellFriendsFailed => '发送失败';
+
+  @override
+  String get settingsScreenFriendActivityLabel => '好友动态';
+
+  @override
+  String get settingsScreenFriendActivityOnBody => '好友发布的动态、点数和游戏成绩';
+
+  @override
+  String get settingsScreenFriendActivityOffBody => '没有通知 — 你去看时他们的板子还在';
 }

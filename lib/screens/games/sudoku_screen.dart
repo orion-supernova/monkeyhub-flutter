@@ -284,6 +284,9 @@ class _SudokuScreenState extends State<SudokuScreen>
               durationMs: _play.durationMs,
             )
           : null,
+      onTellFriends: _play.finished
+          ? () => tellFriendsAboutGame(context, controller: _play)
+          : null,
     );
   }
 }

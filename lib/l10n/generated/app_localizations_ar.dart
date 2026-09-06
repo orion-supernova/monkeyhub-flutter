@@ -8413,4 +8413,43 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get screenSharePickerEmpty =>
       'لا شيء للمشاركة بعد — اسمح بتسجيل الشاشة في إعدادات النظام وحاول مجددًا';
+
+  @override
+  String get gameTellFriends => 'أخبر أصدقاءك';
+
+  @override
+  String get gameToldFriends => 'تم إخبارهم';
+
+  @override
+  String get gameTellFriendsTitle => 'نُخبر أصدقاءك؟';
+
+  @override
+  String get gameTellFriendsBody =>
+      'سيصلهم إشعار بهذه النتيجة. يمكن إرساله مرة واحدة فقط.';
+
+  @override
+  String get gameTellFriendsCancel => 'ليس الآن';
+
+  @override
+  String get gameTellFriendsConfirm => 'أرسِل';
+
+  @override
+  String get gameTellFriendsSent => 'أُرسل — صاروا يعرفون';
+
+  @override
+  String get gameTellFriendsPrivate => 'نتائجك اليومية خاصة، لن يراها أحد';
+
+  @override
+  String get gameTellFriendsFailed => 'تعذّر الإرسال';
+
+  @override
+  String get settingsScreenFriendActivityLabel => 'نشاط الأصدقاء';
+
+  @override
+  String get settingsScreenFriendActivityOnBody =>
+      'اللحظات والنقاط ونتائج الألعاب فور نشرها';
+
+  @override
+  String get settingsScreenFriendActivityOffBody =>
+      'لا شيء — لوحاتهم موجودة متى نظرت';
 }

@@ -30,6 +30,7 @@ class GameScaffold extends StatelessWidget {
     required this.viewerId,
     this.footer,
     this.onShare,
+    this.onTellFriends,
   });
 
   final GamePlayController controller;
@@ -53,6 +54,12 @@ class GameScaffold extends StatelessWidget {
 
   /// Copies the result to the clipboard. Absent until the board is finished.
   final VoidCallback? onShare;
+
+  /// Pushes the result to the player's friends. Absent until the board is
+  /// finished, and gone again once it has been used — unlike [onShare], which
+  /// copies text and can be done all day, this one notifies other people and
+  /// the server allows it once.
+  final VoidCallback? onTellFriends;
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +108,12 @@ class GameScaffold extends StatelessWidget {
         footer!,
       ],
       if (controller.finished) ...[
-        _ResultCard(controller: controller, viewerId: viewerId, onShare: onShare),
+        _ResultCard(
+          controller: controller,
+          viewerId: viewerId,
+          onShare: onShare,
+          onTellFriends: onTellFriends,
+        ),
         const SizedBox(height: 24),
       ],
     ];
@@ -234,11 +246,13 @@ class _ResultCard extends StatelessWidget {
     required this.controller,
     required this.viewerId,
     required this.onShare,
+    required this.onTellFriends,
   });
 
   final GamePlayController controller;
   final String viewerId;
   final VoidCallback? onShare;
+  final VoidCallback? onTellFriends;
 
   @override
   Widget build(BuildContext context) {
@@ -284,30 +298,86 @@ class _ResultCard extends StatelessWidget {
               style: theme.monoTiny.copyWith(color: theme.inkMuted),
             ),
           ],
-          if (onShare != null) ...[
+          if (onShare != null || onTellFriends != null) ...[
             const SizedBox(height: 14),
-            FocusableTap(
-              onTap: onShare,
-              semanticLabel: l10n.gameShare,
-              radius: theme.radiusMd,
-              child: GestureDetector(
-                onTap: onShare,
-                behavior: HitTestBehavior.opaque,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.copy_outlined, size: 14, color: theme.accent),
-                    const SizedBox(width: 6),
-                    Text(
-                      l10n.gameShare,
-                      style: theme.label.copyWith(color: theme.accent),
-                    ),
-                  ],
-                ),
-              ),
+            // Wrapped rather than a Row: two actions plus a long localized
+            // label is wider than a narrow phone in several of the twelve
+            // languages, and the second one silently overflowing is how a
+            // feature ends up invisible in Turkish only.
+            Wrap(
+              spacing: 18,
+              runSpacing: 10,
+              children: [
+                if (onShare != null)
+                  _CardAction(
+                    icon: Icons.copy_outlined,
+                    label: l10n.gameShare,
+                    onTap: onShare,
+                  ),
+                // Retired once used — the server allows one send per result,
+                // so an action that stayed put would be a button whose only
+                // remaining outcome is an error.
+                if (onTellFriends != null && !controller.shared)
+                  _CardAction(
+                    icon: Icons.notifications_active_outlined,
+                    label: l10n.gameTellFriends,
+                    onTap: onTellFriends,
+                  ),
+                if (onTellFriends != null && controller.shared)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check, size: 14, color: theme.inkMuted),
+                      const SizedBox(width: 6),
+                      Text(
+                        l10n.gameToldFriends,
+                        style: theme.label.copyWith(color: theme.inkMuted),
+                      ),
+                    ],
+                  ),
+              ],
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// One tappable action on the result card.
+///
+/// Extracted when the card grew a second one: the original was a `FocusableTap`
+/// wrapping a `GestureDetector` wrapping a `Row`, and a second hand-rolled copy
+/// of that is a second place for the keyboard affordance to be forgotten.
+class _CardAction extends StatelessWidget {
+  const _CardAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: label,
+      radius: theme.radiusMd,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: theme.accent),
+            const SizedBox(width: 6),
+            Text(label, style: theme.label.copyWith(color: theme.accent)),
+          ],
+        ),
       ),
     );
   }
@@ -534,6 +604,47 @@ Future<bool> confirmGiveUp(BuildContext context) async {
   return ok ?? false;
 }
 
+/// Asks before notifying everybody.
+///
+/// Modelled on [confirmGiveUp] and irreversible for the same kind of reason,
+/// one step further out: giving up ends the board for the day, and this rings
+/// other people's phones. The server allows one send per result precisely so a
+/// mistap cannot become two notifications — which also means a mistap is the
+/// only send this result will ever get, and is why there is a dialog in front
+/// of a button nobody presses by accident twice.
+Future<bool> confirmTellFriends(BuildContext context) async {
+  final theme = ThemeScope.of(context);
+  final l10n = AppLocalizations.of(context);
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: theme.surfaceRaised,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(theme.radiusLg),
+      ),
+      title: Text(l10n.gameTellFriendsTitle, style: theme.displaySmall),
+      content: Text(l10n.gameTellFriendsBody, style: theme.bodySoft),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: Text(
+            l10n.gameTellFriendsCancel,
+            style: theme.label.copyWith(color: theme.inkSoft),
+          ),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: Text(
+            l10n.gameTellFriendsConfirm,
+            style: theme.label.copyWith(color: theme.accent),
+          ),
+        ),
+      ],
+    ),
+  );
+  return ok ?? false;
+}
+
 /// Copies one finished board's result to the clipboard.
 ///
 /// Text, not a screenshot: it pastes into any chat, it costs nothing to
@@ -559,5 +670,43 @@ Future<void> copyGameResult(
   toast.show(
     l10n.gameShareCopied,
     tone: ToastTone.success,
+  );
+}
+
+/// Asks first, then pushes one finished board's result to the player's friends.
+///
+/// The confirm is not ceremony. Every other action on this screen changes what
+/// is on the player's own phone; this one lights up everybody else's, and it
+/// cannot be taken back — the server allows one send per result precisely so
+/// that a mistap cannot become two notifications, which also means a mistap is
+/// the only send that result will ever get.
+///
+Future<void> tellFriendsAboutGame(
+  BuildContext context, {
+  required GamePlayController controller,
+}) async {
+  final l10n = AppLocalizations.of(context);
+  final toast = AppToast.of(context);
+  final ok = await confirmTellFriends(context);
+  if (!ok || !context.mounted) return;
+
+  final error = await controller.shareWithFriends();
+  if (!context.mounted) return;
+  if (error == null) {
+    toast.show(l10n.gameTellFriendsSent, tone: ToastTone.success);
+    return;
+  }
+  toast.show(
+    switch (error) {
+      // The one refusal with a fix the player owns, so it gets its own line
+      // instead of the generic failure — the setting is three taps away and
+      // nothing else would tell them it is the reason.
+      'RESULT_PRIVATE' => l10n.gameTellFriendsPrivate,
+      // Already sent, from another device or a tap this one did not see. Not
+      // an error worth alarming anybody with: the friends were told.
+      'ALREADY_SHARED' => l10n.gameToldFriends,
+      _ => l10n.gameTellFriendsFailed,
+    },
+    tone: error == 'ALREADY_SHARED' ? ToastTone.neutral : ToastTone.danger,
   );
 }

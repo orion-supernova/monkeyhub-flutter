@@ -231,6 +231,9 @@ class _TangoScreenState extends State<TangoScreen>
               durationMs: _play.durationMs,
             )
           : null,
+      onTellFriends: _play.finished
+          ? () => tellFriendsAboutGame(context, controller: _play)
+          : null,
     );
   }
 }

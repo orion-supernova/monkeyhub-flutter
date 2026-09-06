@@ -267,6 +267,9 @@ class _QueensScreenState extends State<QueensScreen>
               durationMs: _play.durationMs,
             )
           : null,
+      onTellFriends: _play.finished
+          ? () => tellFriendsAboutGame(context, controller: _play)
+          : null,
     );
   }
 }

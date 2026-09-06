@@ -2324,5 +2324,17 @@
   "screenSharePickerTitle": "Dela din skärm",
   "screenSharePickerScreens": "Skärmar",
   "screenSharePickerWindows": "Fönster",
-  "screenSharePickerEmpty": "Inget att dela än — tillåt skärminspelning i Systeminställningar och försök igen"
+  "screenSharePickerEmpty": "Inget att dela än — tillåt skärminspelning i Systeminställningar och försök igen",
+  "gameTellFriends": "BERÄTTA FÖR VÄNNER",
+  "gameToldFriends": "vännerna vet",
+  "gameTellFriendsTitle": "berätta för dina vänner?",
+  "gameTellFriendsBody": "de får en avisering med det här resultatet. kan bara skickas en gång.",
+  "gameTellFriendsCancel": "INTE NU",
+  "gameTellFriendsConfirm": "SKICKA",
+  "gameTellFriendsSent": "skickat — de vet",
+  "gameTellFriendsPrivate": "dina dagsresultat är privata, ingen skulle se det här",
+  "gameTellFriendsFailed": "kunde inte skicka",
+  "settingsScreenFriendActivityLabel": "VÄNNERS AKTIVITET",
+  "settingsScreenFriendActivityOnBody": "ögonblick, poäng och resultat när de läggs upp",
+  "settingsScreenFriendActivityOffBody": "inget — deras tavlor finns kvar när du tittar"
 }

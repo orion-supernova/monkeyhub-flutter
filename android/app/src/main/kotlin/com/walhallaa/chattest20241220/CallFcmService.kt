@@ -24,7 +24,8 @@ import java.util.UUID
 /// Six kinds, two families:
 ///   kind=invite/taken            ringing — flutter_callkit_incoming
 ///                                (voipPush.ts, mirrors iOS PushKit)
-///   kind=message/approval/daily_games/…  banners — ChatNotifications
+///   kind=message/approval/daily_games/friend_moment/game_result/…
+///                                banners — ChatNotifications
 ///                                (push.ts, mirrors iOS UNNotification)
 ///
 /// The one cost of data-only is that a FORCE-stopped app receives nothing
@@ -73,7 +74,7 @@ class CallFcmService : FirebaseMessagingService() {
             "group_invite" -> handleInvite(data, groupCallId = data["groupCallId"])
             "group_taken" -> handleTaken(data, groupCallId = data["groupCallId"])
             "message", "approval", "call_invite", "group_call_invite",
-            "daily_games" ->
+            "daily_games", "friend_moment", "game_result" ->
                 ChatNotifications.show(this, data)
             "dismiss" -> ChatNotifications.dismiss(this, data)
             else -> Log.d(TAG, "ignoring message kind=${data["kind"]}")

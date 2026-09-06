@@ -8440,4 +8440,44 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get screenSharePickerEmpty =>
       'Rien à partager pour l\'instant — autorisez l\'enregistrement de l\'écran dans Réglages Système et réessayez';
+
+  @override
+  String get gameTellFriends => 'PRÉVENIR TES AMIS';
+
+  @override
+  String get gameToldFriends => 'amis prévenus';
+
+  @override
+  String get gameTellFriendsTitle => 'prévenir tes amis ?';
+
+  @override
+  String get gameTellFriendsBody =>
+      'ils reçoivent une notification avec ce résultat. envoi unique.';
+
+  @override
+  String get gameTellFriendsCancel => 'PAS MAINTENANT';
+
+  @override
+  String get gameTellFriendsConfirm => 'ENVOYER';
+
+  @override
+  String get gameTellFriendsSent => 'envoyé — ils sont au courant';
+
+  @override
+  String get gameTellFriendsPrivate =>
+      'tes scores du jour sont privés, personne ne le verrait';
+
+  @override
+  String get gameTellFriendsFailed => 'envoi impossible';
+
+  @override
+  String get settingsScreenFriendActivityLabel => 'ACTIVITÉ DES AMIS';
+
+  @override
+  String get settingsScreenFriendActivityOnBody =>
+      'moments, points et résultats au fil de leurs publications';
+
+  @override
+  String get settingsScreenFriendActivityOffBody =>
+      'rien — leurs tableaux sont toujours là quand tu regardes';
 }

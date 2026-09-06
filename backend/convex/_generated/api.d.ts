@@ -58,6 +58,7 @@ import type * as serverDirectory from "../serverDirectory.js";
 import type * as sessionCore from "../sessionCore.js";
 import type * as sessions from "../sessions.js";
 import type * as socialAuth from "../socialAuth.js";
+import type * as socialPush from "../socialPush.js";
 import type * as speakerColors from "../speakerColors.js";
 import type * as systemAccount from "../systemAccount.js";
 import type * as typing from "../typing.js";
@@ -124,6 +125,7 @@ declare const fullApi: ApiFromModules<{
   sessionCore: typeof sessionCore;
   sessions: typeof sessions;
   socialAuth: typeof socialAuth;
+  socialPush: typeof socialPush;
   speakerColors: typeof speakerColors;
   systemAccount: typeof systemAccount;
   typing: typeof typing;

@@ -514,6 +514,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 // who has turned notifications off entirely is a control with
                 // nothing to control.
                 _GameRemindersToggle(),
+                _FriendActivityToggle(),
                 // Android's two call-delivery settings. Renders nothing at all
                 // when there is nothing to fix — see _CallDeliveryRows.
                 const _CallDeliveryRows(),
@@ -1214,6 +1215,94 @@ class _GameRemindersToggleState extends State<_GameRemindersToggle> {
                           on
                               ? l10n.settingsScreenGameRemindersOnBody
                               : l10n.settingsScreenGameRemindersOffBody,
+                          style: theme.bodySoft,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Switch.adaptive(
+                    value: on,
+                    onChanged: _toggle,
+                    activeThumbColor: theme.accent,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// "Tell me when friends post" — a third switch, under the other two.
+///
+/// The narrowest of the three and the only one whose volume is set by other
+/// people: a person with twelve chatty friends needs a way to quiet highlights,
+/// points and shared game results that does not also cost them the daily
+/// reminder they still want, or the messages those same friends send them
+/// directly. Folding it into either of the switches above would make that
+/// unrepresentable, which is how somebody ends up turning the whole app's
+/// notifications off instead.
+///
+/// Per device, like the two above and for the same reason — the preference
+/// lives on this device's `userDevices` row, where socialPush.ts reads it.
+class _FriendActivityToggle extends StatefulWidget {
+  @override
+  State<_FriendActivityToggle> createState() => _FriendActivityToggleState();
+}
+
+class _FriendActivityToggleState extends State<_FriendActivityToggle> {
+  Future<void> _toggle(bool v) async {
+    await SettingsStore.instance.setFriendActivity(v);
+    await PushManager.instance.setFriendActivity(v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return AnimatedBuilder(
+      animation: SettingsStore.instance,
+      builder: (context, _) {
+        // Notifications off means there is nothing here to decide.
+        if (!SettingsStore.instance.pushEnabled) {
+          return const SizedBox.shrink();
+        }
+        final l10n = AppLocalizations.of(context);
+        final on = SettingsStore.instance.friendActivity;
+        return Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: GestureDetector(
+            onTap: () => _toggle(!on),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+              decoration: BoxDecoration(
+                color: theme.surface,
+                border: Border.all(color: theme.divider),
+                borderRadius: BorderRadius.circular(theme.radiusMd),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.people_outline,
+                    size: 16,
+                    color: on ? theme.accent : theme.inkMuted,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.settingsScreenFriendActivityLabel,
+                          style: theme.label,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          on
+                              ? l10n.settingsScreenFriendActivityOnBody
+                              : l10n.settingsScreenFriendActivityOffBody,
                           style: theme.bodySoft,
                         ),
                       ],

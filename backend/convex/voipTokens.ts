@@ -34,6 +34,7 @@ type DevicePatch = Partial<
     | "webAuth"
     | "pushEnabled"
     | "gameRemindersEnabled"
+    | "friendActivityEnabled"
     | "locale"
     | "tzOffsetMinutes"
   >
@@ -407,6 +408,37 @@ export const setGameReminders = mutation({
     // preference immediately after the next login creates one.
     if (!row) return;
     await ctx.db.patch(row._id, { gameRemindersEnabled: enabled });
+  },
+});
+
+/**
+ * Per-device opt-out for friend activity — highlights, points and shared game
+ * results — and nothing else.
+ *
+ * A third switch rather than a wider one, for the reason the second exists:
+ * this is the only class of push whose VOLUME is set by other people, so the
+ * person with twelve chatty friends has to be able to quiet it without also
+ * quieting the twelve people talking to them, or the daily reminder they do
+ * still want. See socialPush.ts.
+ */
+export const setFriendActivity = mutation({
+  args: {
+    userId: v.id("users"),
+    deviceId: v.string(),
+    enabled: v.boolean(),
+  },
+  handler: async (ctx, { userId, deviceId, enabled }) => {
+    const row = await ctx.db
+      .query("userDevices")
+      .withIndex("by_user_device", (q) =>
+        q.eq("userId", userId).eq("deviceId", deviceId),
+      )
+      .first();
+    // No row means this device has not registered yet, and nothing is lost —
+    // app.dart re-asserts the stored preference after the next login creates
+    // one. Same as `setGameReminders` above.
+    if (!row) return;
+    await ctx.db.patch(row._id, { friendActivityEnabled: enabled });
   },
 });
 

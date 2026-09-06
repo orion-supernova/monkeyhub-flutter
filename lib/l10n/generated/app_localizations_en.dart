@@ -8296,4 +8296,44 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get screenSharePickerEmpty =>
       'Nothing to share yet — allow screen recording in System Settings and try again';
+
+  @override
+  String get gameTellFriends => 'TELL FRIENDS';
+
+  @override
+  String get gameToldFriends => 'friends told';
+
+  @override
+  String get gameTellFriendsTitle => 'tell your friends?';
+
+  @override
+  String get gameTellFriendsBody =>
+      'they get a notification with this result. it can only be sent once.';
+
+  @override
+  String get gameTellFriendsCancel => 'NOT NOW';
+
+  @override
+  String get gameTellFriendsConfirm => 'SEND IT';
+
+  @override
+  String get gameTellFriendsSent => 'sent — they know';
+
+  @override
+  String get gameTellFriendsPrivate =>
+      'your daily scores are private, so nobody would see this';
+
+  @override
+  String get gameTellFriendsFailed => 'couldn’t send that';
+
+  @override
+  String get settingsScreenFriendActivityLabel => 'FRIEND ACTIVITY';
+
+  @override
+  String get settingsScreenFriendActivityOnBody =>
+      'highlights, points and game results as friends post them';
+
+  @override
+  String get settingsScreenFriendActivityOffBody =>
+      'nothing — their boards are still there when you look';
 }

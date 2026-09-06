@@ -39,6 +39,7 @@ class PushManager {
   void Function(String roomId)? _onOpenRoom;
   VoidCallback? _onOpenRequests;
   VoidCallback? _onOpenGames;
+  void Function(String momentId)? _onOpenMoment;
   String? Function()? _activeRoomIdProvider;
 
   /// The language the app SETTLED on, reported by app.dart's `MaterialApp`
@@ -107,6 +108,17 @@ class PushManager {
   /// without this a tap merely raises the app.
   void setOnOpenGames(VoidCallback handler) {
     _onOpenGames = handler;
+  }
+
+  /// Where a friend-activity tap should land: the Feed, with that moment's
+  /// viewer open on top of it.
+  ///
+  /// Unlike [setOnOpenGames] this one carries an argument, because the whole
+  /// point of the notification is that it names a particular card — landing on
+  /// today's board and leaving the person to find the photo they were just
+  /// shown is the outcome this exists to avoid. See socialPush.ts.
+  void setOnOpenMoment(void Function(String momentId) handler) {
+    _onOpenMoment = handler;
   }
 
   /// Bind a new room-open handler (call after the navigator is mounted).
@@ -235,6 +247,13 @@ class PushManager {
         return null;
       case 'onOpenGames':
         _onOpenGames?.call();
+        return null;
+      case 'onOpenMoment':
+        final args = (call.arguments as Map?) ?? const {};
+        final momentId = args['momentId']?.toString();
+        if (momentId != null && momentId.isNotEmpty) {
+          _onOpenMoment?.call(momentId);
+        }
         return null;
     }
     return null;
@@ -703,6 +722,27 @@ class PushManager {
       );
     } catch (e) {
       debugPrint('PushManager: setGameReminders($enabled) failed: $e');
+    }
+  }
+
+  /// The friend-activity switch, per device.
+  ///
+  /// Narrower again than [setGameReminders]: stop hearing about what friends
+  /// post and finish, keep the daily reminder and everything anybody sends you
+  /// directly.
+  Future<void> setFriendActivity(bool enabled) async {
+    final userId = _userId;
+    final api = _api;
+    final deviceId = _deviceId;
+    if (userId == null || api == null || deviceId == null) return;
+    try {
+      await api.setFriendActivity(
+        userId: userId,
+        deviceId: deviceId,
+        enabled: enabled,
+      );
+    } catch (e) {
+      debugPrint('PushManager: setFriendActivity($enabled) failed: $e');
     }
   }
 

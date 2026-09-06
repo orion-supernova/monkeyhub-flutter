@@ -47,6 +47,7 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
   bool _finished = false;
   bool _solved = false;
   bool _gaveUp = false;
+  bool _shared = false;
   int _mistakes = 0;
   int _hints = 0;
   int? _durationMs;
@@ -85,6 +86,14 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
   /// The board as the player left it last time, empty on a fresh start.
   List<int> get restored => _restored;
 
+  /// Whether this result has already been pushed to the player's friends.
+  ///
+  /// Seeded from the standings on [begin] so reopening a board finished and
+  /// shared this morning does not offer the action again, and set locally by
+  /// [shareWithFriends] so the button retires the moment it is used rather
+  /// than waiting for the standings to come back.
+  bool get shared => _shared;
+
   /// The stopwatch. Ticks only while the board is open, in the foreground and
   /// unpaused.
   Duration get elapsed {
@@ -116,6 +125,7 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
         _durationMs = GamesStore.instance.standings.mine[game]?.durationMs;
         _solved = GamesStore.instance.standings.mine[game]?.solved ?? false;
         _gaveUp = GamesStore.instance.standings.mine[game]?.gaveUp ?? false;
+        _shared = GamesStore.instance.standings.mine[game]?.shared ?? false;
       } else {
         _resume();
       }
@@ -272,6 +282,37 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
       if (!_paused) _resume();
       notifyListeners();
       return null;
+    }
+  }
+
+  /// Pushes this result to the player's friends, once.
+  ///
+  /// The only outbound notification in the app a person sends about themselves,
+  /// and the reason it is a button rather than something [submit] does: a
+  /// moment is published on purpose, but finishing a board is just Tuesday, and
+  /// an app that announced it unasked would be turned off by the people who
+  /// play most.
+  ///
+  /// [shared] flips BEFORE the round trip and stays flipped on failure, which
+  /// is deliberate. The server refuses a second send (`ALREADY_SHARED`) off a
+  /// column it has already written, so the honest ambiguity here — did the
+  /// mutation land, or the reply get lost? — resolves the same way either way:
+  /// leave the button retired and let them find out from their friends. The
+  /// opposite choice, re-offering it, is the one that notifies fifty people
+  /// twice.
+  ///
+  /// Returns the error code when the server refused, so the caller can say
+  /// which of the refusals it was — `RESULT_PRIVATE` in particular is worth
+  /// telling somebody about, because the fix is a setting they own.
+  Future<String?> shareWithFriends() async {
+    if (!_finished || _shared || _busy) return null;
+    _shared = true;
+    notifyListeners();
+    try {
+      await _api.shareResult(userId: userId, dayKey: _dayKey, game: game);
+      return null;
+    } catch (e) {
+      return _codeOf(e);
     }
   }
 

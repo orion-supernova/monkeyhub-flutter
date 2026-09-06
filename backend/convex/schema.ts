@@ -168,6 +168,14 @@ export default defineSchema({
     // not also cost you your messages. `undefined` means enabled, so every row
     // predating the field keeps working. See dailyNudge.ts.
     gameRemindersEnabled: v.optional(v.boolean()),
+    // Per-device opt-out for FRIEND ACTIVITY — "Ada posted a highlight",
+    // "Ada finished Queens in 2:14". Its own switch for the same reason
+    // `gameRemindersEnabled` has one: this is the only class of push in the
+    // app whose volume is set by other people, so the person who has twelve
+    // chatty friends must be able to quiet it without also quieting the
+    // twelve people talking to them. `undefined` means enabled, so every row
+    // predating the field keeps working. See socialPush.ts.
+    friendActivityEnabled: v.optional(v.boolean()),
     // Human-readable label shown in the "Move call here" pill. Captured
     // from `UIDevice.current.name` / `Host.current().localizedName` /
     // `Settings.Global.DEVICE_NAME` etc. at login. Optional — clients
@@ -1817,6 +1825,16 @@ export default defineSchema({
     // out at four minutes and returns is handed a clock reading zero, which is
     // a better time than anyone who sat still and finished it.
     elapsedMs: v.optional(v.number()),
+    // When the player pushed this result to their friends, via the "tell
+    // friends" action on the result card. Absent until they do, and the whole
+    // gate on doing it twice.
+    //
+    // Stored rather than tracked client-side because the client that would
+    // remember is the one being defended against: the share is a fan-out to
+    // every friend, and a button that survives a reinstall is a button that
+    // notifies fifty people again. `games:shareResult` refuses a row that
+    // already carries this.
+    sharedAt: v.optional(v.number()),
   }).index("by_user_day_game", ["userId", "dayKey", "game"]),
 
   // `pushReceipts` used to live here. It held a OneSignal notification id per

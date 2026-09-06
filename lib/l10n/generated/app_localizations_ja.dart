@@ -7983,4 +7983,40 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get screenSharePickerEmpty =>
       '共有できるものがまだありません — システム設定で画面収録を許可してからもう一度お試しください';
+
+  @override
+  String get gameTellFriends => '友だちに知らせる';
+
+  @override
+  String get gameToldFriends => '知らせました';
+
+  @override
+  String get gameTellFriendsTitle => '友だちに知らせますか？';
+
+  @override
+  String get gameTellFriendsBody => 'この結果が通知で届きます。送れるのは一度だけです。';
+
+  @override
+  String get gameTellFriendsCancel => '今はしない';
+
+  @override
+  String get gameTellFriendsConfirm => '送る';
+
+  @override
+  String get gameTellFriendsSent => '送りました';
+
+  @override
+  String get gameTellFriendsPrivate => 'デイリーの成績が非公開なので、誰にも表示されません';
+
+  @override
+  String get gameTellFriendsFailed => '送れませんでした';
+
+  @override
+  String get settingsScreenFriendActivityLabel => '友だちの動き';
+
+  @override
+  String get settingsScreenFriendActivityOnBody => '投稿されたハイライト・ポイント・ゲーム結果';
+
+  @override
+  String get settingsScreenFriendActivityOffBody => '通知なし — ボードは見に行けばあります';
 }

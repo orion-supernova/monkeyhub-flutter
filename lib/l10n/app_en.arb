@@ -9572,5 +9572,53 @@
   "screenSharePickerEmpty": "Nothing to share yet — allow screen recording in System Settings and try again",
   "@screenSharePickerEmpty": {
       "description": "Empty state of the desktop share picker when no source could be listed (macOS needs the Screen Recording permission)."
+  },
+  "gameTellFriends": "TELL FRIENDS",
+  "@gameTellFriends": {
+    "description": "All-caps action on a finished game's result card; sends a push notification with this result to the player's friends. Distinct from gameShare, which only copies text."
+  },
+  "gameToldFriends": "friends told",
+  "@gameToldFriends": {
+    "description": "Replaces the TELL FRIENDS action once it has been used. The server allows one send per result."
+  },
+  "gameTellFriendsTitle": "tell your friends?",
+  "@gameTellFriendsTitle": {
+    "description": "Title of the confirmation asked before notifying every friend about a game result."
+  },
+  "gameTellFriendsBody": "they get a notification with this result. it can only be sent once.",
+  "@gameTellFriendsBody": {
+    "description": "Body of that confirmation. States both facts: friends receive a notification, and it can only be sent once."
+  },
+  "gameTellFriendsCancel": "NOT NOW",
+  "@gameTellFriendsCancel": {
+    "description": "All-caps dismissal on the tell-friends confirmation; sends nothing."
+  },
+  "gameTellFriendsConfirm": "SEND IT",
+  "@gameTellFriendsConfirm": {
+    "description": "All-caps confirmation on the tell-friends dialog; sends the notification."
+  },
+  "gameTellFriendsSent": "sent — they know",
+  "@gameTellFriendsSent": {
+    "description": "Toast shown after a game result was pushed to the player's friends."
+  },
+  "gameTellFriendsPrivate": "your daily scores are private, so nobody would see this",
+  "@gameTellFriendsPrivate": {
+    "description": "Toast shown when the send was refused because the player's own daily-score visibility is set to nobody, so friends could not see the result anyway. The fix is a setting they own."
+  },
+  "gameTellFriendsFailed": "couldn’t send that",
+  "@gameTellFriendsFailed": {
+    "description": "Toast shown when the send failed for any other reason — offline, or the server refused."
+  },
+  "settingsScreenFriendActivityLabel": "FRIEND ACTIVITY",
+  "@settingsScreenFriendActivityLabel": {
+    "description": "All-caps label of the per-device switch for notifications about what friends post and finish."
+  },
+  "settingsScreenFriendActivityOnBody": "highlights, points and game results as friends post them",
+  "@settingsScreenFriendActivityOnBody": {
+    "description": "Sub-line when friend-activity notifications are on."
+  },
+  "settingsScreenFriendActivityOffBody": "nothing — their boards are still there when you look",
+  "@settingsScreenFriendActivityOffBody": {
+    "description": "Sub-line when friend-activity notifications are off."
   }
 }

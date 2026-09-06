@@ -100,6 +100,32 @@ class UiSelectionStore extends ChangeNotifier {
     return pending;
   }
 
+  /// The same one-shot for a friend-activity notification: open THIS moment's
+  /// viewer on the Feed.
+  ///
+  /// Carries an id where the two above carry only a bit, which is the whole
+  /// difference between this notification and the nudge — it names a card, and
+  /// landing on the board without opening it would throw away the only thing
+  /// the banner said.
+  ///
+  /// The last one wins if two arrive before anything consumes them. Two taps
+  /// that fast means the person tapped the second banner, and steering them to
+  /// the first would be answering a question they have already changed.
+  String? _momentIdPending;
+  String? get momentIdPending => _momentIdPending;
+
+  void requestMoment(String momentId) {
+    _momentIdPending = momentId;
+    _notify();
+  }
+
+  /// Returns the pending moment id, clearing it either way.
+  String? consumeMoment() {
+    final pending = _momentIdPending;
+    _momentIdPending = null;
+    return pending;
+  }
+
   /// [notifyListeners], deferred to the end of the frame when we are inside
   /// one.
   ///

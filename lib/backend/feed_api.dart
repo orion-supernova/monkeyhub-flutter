@@ -148,6 +148,29 @@ class FeedApi {
     return PuzzleAttempt.fromJson((res as Map).cast<String, dynamic>())!;
   }
 
+  /// One moment by id, or null if it is gone or no longer visible.
+  ///
+  /// Exists for the notification tap, which is the one caller that knows an id
+  /// without already holding the row. The board cannot be asked: it is scanned
+  /// by the VIEWER's `dayKey`, so a friend in a distant enough timezone posts
+  /// under a different one and is legitimately absent from it.
+  ///
+  /// Never throws for "you can't see this" — a tap on a push that is hours old
+  /// can find the moment deleted, the friendship gone, or the setting changed,
+  /// and none of those is something the person tapping can act on. Null is the
+  /// answer to all three and the caller falls back to the board.
+  Future<Moment?> moment({
+    required String userId,
+    required String momentId,
+  }) async {
+    final res = await _cv.query('feed:moment', {
+      'userId': userId,
+      'momentId': momentId,
+    });
+    if (res == null) return null;
+    return Moment.fromJson((res as Map).cast<String, dynamic>());
+  }
+
   /// A page of moment history, newest first.
   ///
   /// One-shot, not a subscription — the archive is cold data and a second live

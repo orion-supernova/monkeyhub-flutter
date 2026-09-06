@@ -2324,5 +2324,17 @@
   "screenSharePickerTitle": "شارك شاشتك",
   "screenSharePickerScreens": "الشاشات",
   "screenSharePickerWindows": "النوافذ",
-  "screenSharePickerEmpty": "لا شيء للمشاركة بعد — اسمح بتسجيل الشاشة في إعدادات النظام وحاول مجددًا"
+  "screenSharePickerEmpty": "لا شيء للمشاركة بعد — اسمح بتسجيل الشاشة في إعدادات النظام وحاول مجددًا",
+  "gameTellFriends": "أخبر أصدقاءك",
+  "gameToldFriends": "تم إخبارهم",
+  "gameTellFriendsTitle": "نُخبر أصدقاءك؟",
+  "gameTellFriendsBody": "سيصلهم إشعار بهذه النتيجة. يمكن إرساله مرة واحدة فقط.",
+  "gameTellFriendsCancel": "ليس الآن",
+  "gameTellFriendsConfirm": "أرسِل",
+  "gameTellFriendsSent": "أُرسل — صاروا يعرفون",
+  "gameTellFriendsPrivate": "نتائجك اليومية خاصة، لن يراها أحد",
+  "gameTellFriendsFailed": "تعذّر الإرسال",
+  "settingsScreenFriendActivityLabel": "نشاط الأصدقاء",
+  "settingsScreenFriendActivityOnBody": "اللحظات والنقاط ونتائج الألعاب فور نشرها",
+  "settingsScreenFriendActivityOffBody": "لا شيء — لوحاتهم موجودة متى نظرت"
 }

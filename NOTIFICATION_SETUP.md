@@ -262,6 +262,69 @@ object and used `"—"` for "none", which Convex rejects as a field name — so 
 one command for finding out whether anybody was being missed threw on every
 deployment that had a single device with no locale. Counts are arrays now.)
 
+## Friend activity
+
+Two kinds, one audience, one file — `backend/convex/socialPush.ts`. Nothing
+needs configuring: both ride the APNs key, FCM service account and VAPID pair
+that are already set up.
+
+| kind | what causes it | where a tap lands |
+|---|---|---|
+| `friend_moment` | a friend posted a highlight or scored a point | that moment's viewer, by `momentId` |
+| `game_result` | a friend finished a daily game **and pressed TELL FRIENDS** | the games shelf and its standings |
+
+**One is automatic and the other is never automatic, and the asymmetry is the
+design.** A moment is something you published, so telling your friends is
+finishing the act. A game result is just Tuesday — a notification about it is a
+boast, which is fine when you press the button and obnoxious when the app
+presses it for you. `feed.post` schedules its push unconditionally;
+`games.shareResult` has no caller but a tap on the result card, and refuses a
+second one off `gameResults.sharedAt` (server-side, so a reinstall cannot
+re-notify fifty people).
+
+**Every moment sends, and the shade still holds one row per person per day.**
+The `collapseId` is `friend_moment:<author>:<dayKey>`, which each transport
+honours as *replace what is already displayed* — the `apns-collapse-id` header
+on iOS, the notification tag on Android, the `Topic` header on web. So a friend
+who posts five times produces five deliveries and one row, whose body counts up
+("3 new things today") instead of five near-identical banners. The count is
+re-read per send off `moments.by_user_day`, so a dropped delivery does not leave
+it short. Each delivery does alert — that is deliberate, and it is the knob to
+turn if this ever reads as too loud (drop `sound` and set
+`interruption-level: passive` on the follow-ups, `setOnlyAlertOnce` on Android).
+
+**Three gates, and the second is the one to be careful with.** The friendship
+must be `accepted`; the AUTHOR's own visibility setting must allow it — `feed`
+for an untagged highlight, `points` for a tagged one, `puzzle` for a game result,
+the same keys `feed.canSeeMoment` and `games.standings` read; and the RECIPIENT's
+`pushEnabled` and `friendActivityEnabled` must both be on. A push is a read path
+with a louder surface, so a notification about a row the recipient then cannot
+open is strictly worse than silence. `backend/convex/socialPush.test.ts` holds
+each of those.
+
+**Web IS included here, unlike the nudge.** That is not an oversight and the
+difference is real: the nudge is a scheduled broadcast whose audience would
+silently become "whoever left a tab open", with the people it missed
+indistinguishable from the people who ignored it. These two are consequences —
+somebody just did something — which is the same shape as a chat message, and
+chat messages have always gone to the web.
+
+**Copy** lives in `SOCIAL_COPY` in `socialPush.ts`, one row per shipped
+language, resolved per DEVICE off `userDevices.locale` exactly as the nudge is.
+Its tag and game names are lifted from `lib/l10n/app_*.arb` rather than
+re-translated — `momentTagJinx` and `gameQueensName` are already on the screen
+the notification opens. `test/social_push_copy_test.dart` fails if a language is
+missing, and fails too if a row's tag or game table is short, which would
+otherwise fall back to the raw id (`"calledIt"`, `"sudoku"`) for one entry in
+one language.
+
+Off switches: the per-device `userDevices.friendActivityEnabled` (Settings ▸
+Notifications ▸ FRIEND ACTIVITY), the Android `mh_social` channel, and
+`pushEnabled`. A third switch rather than a wider one because this is the only
+class of push in the app whose VOLUME is set by other people: somebody with
+twelve chatty friends has to be able to quiet it without also losing the daily
+reminder, or the messages those same friends send them directly.
+
 ## 1. Apple: APNs key and the Time Sensitive capability
 
 The APNs auth key (`.p8`) is already set and signs **both** topics — nothing new

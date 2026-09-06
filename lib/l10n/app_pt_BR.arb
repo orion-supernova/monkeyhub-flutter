@@ -2324,5 +2324,17 @@
   "screenSharePickerTitle": "Compartilhe sua tela",
   "screenSharePickerScreens": "Telas",
   "screenSharePickerWindows": "Janelas",
-  "screenSharePickerEmpty": "Nada para compartilhar ainda — permita a gravação de tela nos Ajustes do Sistema e tente de novo"
+  "screenSharePickerEmpty": "Nada para compartilhar ainda — permita a gravação de tela nos Ajustes do Sistema e tente de novo",
+  "gameTellFriends": "AVISAR OS AMIGOS",
+  "gameToldFriends": "já sabem",
+  "gameTellFriendsTitle": "avisar seus amigos?",
+  "gameTellFriendsBody": "eles recebem uma notificação com este resultado. só dá para enviar uma vez.",
+  "gameTellFriendsCancel": "AGORA NÃO",
+  "gameTellFriendsConfirm": "ENVIAR",
+  "gameTellFriendsSent": "enviado — eles já sabem",
+  "gameTellFriendsPrivate": "seus resultados diários são privados, ninguém veria isso",
+  "gameTellFriendsFailed": "não deu para enviar",
+  "settingsScreenFriendActivityLabel": "ATIVIDADE DOS AMIGOS",
+  "settingsScreenFriendActivityOnBody": "momentos, pontos e resultados conforme eles postam",
+  "settingsScreenFriendActivityOffBody": "nada — os quadros deles continuam lá quando você olhar"
 }

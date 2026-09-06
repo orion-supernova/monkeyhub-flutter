@@ -44,6 +44,7 @@ object ChatNotifications {
     const val CH_REQUESTS = "mh_requests"
     const val CH_CALLS = "mh_call_banner"
     const val CH_GAMES = "mh_games"
+    const val CH_SOCIAL = "mh_social"
 
     /// Every notification shares one id and is distinguished by TAG instead.
     /// (tag, id) is the identity NotificationManager uses, so a tag of
@@ -100,6 +101,22 @@ object ChatNotifications {
                 // promise the in-app switch makes.
                 NotificationManager.IMPORTANCE_DEFAULT,
             ).apply { description = "A reminder to play today's puzzle and boards" }
+        )
+        nm.createNotificationChannel(
+            NotificationChannel(
+                CH_SOCIAL,
+                "Friend activity",
+                // DEFAULT for the same reason CH_GAMES is: nobody sent this TO
+                // you. Its own channel rather than sharing the games one
+                // because the two are opted out of for opposite reasons — the
+                // daily reminder is turned off by people who do not want to be
+                // told to play, and this is turned off by people with a lot of
+                // friends. Sharing a channel would make each switch silence
+                // the other's notifications.
+                NotificationManager.IMPORTANCE_DEFAULT,
+            ).apply {
+                description = "Highlights, points and game results from friends"
+            }
         )
         nm.createNotificationChannel(
             NotificationChannel(
@@ -348,13 +365,14 @@ object ChatNotifications {
             "approval" -> CH_REQUESTS
             "call_invite", "group_call_invite" -> CH_CALLS
             "daily_games" -> CH_GAMES
+            "friend_moment", "game_result" -> CH_SOCIAL
             else -> CH_MESSAGES
         }
         val tag = data["collapseId"]?.takeIf { it.isNotEmpty() }
             ?: roomId.takeIf { it.isNotEmpty() }
             ?: kind
 
-        val pi = contentIntent(ctx, kind, roomId) ?: return
+        val pi = contentIntent(ctx, kind, roomId, data["momentId"].orEmpty()) ?: return
         val body = data["body"].orEmpty()
 
         val builder = NotificationCompat.Builder(ctx, channel)
@@ -369,7 +387,8 @@ object ChatNotifications {
             .setWhen(data["createdAt"]?.toLongOrNull() ?: System.currentTimeMillis())
             .setContentIntent(pi)
             .setPriority(
-                if (channel == CH_GAMES) NotificationCompat.PRIORITY_DEFAULT
+                if (channel == CH_GAMES || channel == CH_SOCIAL)
+                    NotificationCompat.PRIORITY_DEFAULT
                 else NotificationCompat.PRIORITY_HIGH
             )
             .setCategory(
@@ -379,6 +398,11 @@ object ChatNotifications {
                     // it puts a daily broadcast in the same bucket Do Not Disturb
                     // rules and conversation surfaces treat as people talking.
                     CH_GAMES -> NotificationCompat.CATEGORY_REMINDER
+                    // A real person did this, but they did not do it TO the
+                    // reader — SOCIAL is the bucket for exactly that, and it
+                    // keeps friend activity out of the conversation surfaces
+                    // CATEGORY_MESSAGE feeds.
+                    CH_SOCIAL -> NotificationCompat.CATEGORY_SOCIAL
                     else -> NotificationCompat.CATEGORY_MESSAGE
                 }
             )
@@ -555,7 +579,16 @@ object ChatNotifications {
         }
     }
 
-    private fun contentIntent(ctx: Context, kind: String, roomId: String): PendingIntent? {
+    /// [momentId] is set only by `friend_moment`, and is what lets that tap
+    /// open one card instead of today's board in general. Empty for every
+    /// other kind, which is why it is not part of the request code below —
+    /// see there for what that code has to distinguish.
+    private fun contentIntent(
+        ctx: Context,
+        kind: String,
+        roomId: String,
+        momentId: String = "",
+    ): PendingIntent? {
         // MUST resolve the launcher intent rather than naming MainActivity
         // explicitly: applyAlternateIcon disables .MainActivity whenever an
         // <activity-alias> is the active launcher entry, and an explicit intent
@@ -569,11 +602,23 @@ object ChatNotifications {
         launch.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         launch.putExtra(EXTRA_KIND, kind)
         launch.putExtra(EXTRA_ROOM_ID, roomId)
+        launch.putExtra(EXTRA_MOMENT_ID, momentId)
         return PendingIntent.getActivity(
             ctx,
             // Per-room request code. With one shared code, FLAG_UPDATE_CURRENT
             // makes every room's tap open whichever room was notified last.
-            if (roomId.isEmpty()) kind.hashCode() else roomId.hashCode(),
+            //
+            // A moment needs the same separation for the same reason and gets
+            // it from its own id: two friends posting produce two notifications
+            // that must not share a PendingIntent, or FLAG_UPDATE_CURRENT
+            // rewrites the first one's extras and both taps open the second
+            // person's photo. The room case above is exactly this bug, already
+            // fixed once.
+            when {
+                roomId.isNotEmpty() -> roomId.hashCode()
+                momentId.isNotEmpty() -> momentId.hashCode()
+                else -> kind.hashCode()
+            },
             launch,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
@@ -591,4 +636,7 @@ object ChatNotifications {
 
     const val EXTRA_KIND = "mh.notif.kind"
     const val EXTRA_ROOM_ID = "mh.notif.roomId"
+    /// Set by `friend_moment` only. MainActivity reads it to route the tap to
+    /// `onOpenMoment` with the card to open.
+    const val EXTRA_MOMENT_ID = "mh.notif.momentId"
 }

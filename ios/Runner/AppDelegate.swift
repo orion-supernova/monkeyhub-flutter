@@ -310,6 +310,24 @@ import flutter_callkit_incoming
       completionHandler()
       return
     }
+    // A friend posted a highlight or scored a point. Carries the moment's own
+    // id, so the tap opens THAT card rather than merely landing on today's
+    // board and leaving the person to find the thing they were told about.
+    // See backend/convex/socialPush.ts.
+    if (info["kind"] as? String) == "friend_moment",
+       let momentId = info["momentId"] as? String, !momentId.isEmpty {
+      invokeNotifOrQueue("onOpenMoment", args: ["momentId": momentId])
+      completionHandler()
+      return
+    }
+    // A friend shared a game result. Lands on the games shelf, where the
+    // standings they are now on top of live — the same destination as the
+    // nudge, because there is no per-result screen to open.
+    if (info["kind"] as? String) == "game_result" {
+      invokeNotifOrQueue("onOpenGames", args: [:])
+      completionHandler()
+      return
+    }
     super.userNotificationCenter(
       center,
       didReceive: response,

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../auth/auth_service.dart';
@@ -106,12 +108,17 @@ class _FeedScreenState extends State<FeedScreen>
     // the store — including on a cold start, where the tap lands long before
     // any widget mounts.
     WidgetsBinding.instance.addPostFrameCallback((_) => _consumePendingGames());
+    // …and the same for a tapped friend-activity notification, which names one
+    // card rather than the shelf.
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _consumePendingMoment());
     // …and the same request arriving while this screen is ALREADY on it. The
     // post-frame callback above only fires on mount, and steering the shell to
     // a section it is already showing remounts nothing — so a nudge tapped by
     // somebody who happened to be looking at the Feed would have set the
     // one-shot and then had nobody left to consume it.
     UiSelectionStore.instance.addListener(_consumePendingGames);
+    UiSelectionStore.instance.addListener(_consumePendingMoment);
   }
 
   /// Whether the games hub is already up, so a second request does not stack a
@@ -141,11 +148,71 @@ class _FeedScreenState extends State<FeedScreen>
     _openGamesHub();
   }
 
+  /// Whether a tapped moment is already being fetched or shown, so a rebuild
+  /// mid-fetch does not start a second one or stack a second viewer.
+  bool _momentOpening = false;
+
+  /// Opens the moment a friend-activity notification named.
+  ///
+  /// Peeks before consuming for the same cold-start reason
+  /// [_consumePendingGames] does — the Feed can mount before the repo has a
+  /// userId, and consuming there would drop the tap with nothing left to retry
+  /// it. [_onChange] re-runs this once the repo attaches.
+  ///
+  /// The board is tried FIRST and the network only if it misses. That is not
+  /// just a saved round trip: a moment already on the board arrives with its
+  /// siblings, so the viewer opens as a swipeable run of the day rather than as
+  /// one card in isolation — the same thing a tap on the rail gets. The fetch
+  /// is the fallback for the case the board structurally cannot cover (a friend
+  /// whose local day is not ours) and for a board that has not landed yet.
+  void _consumePendingMoment() {
+    if (!mounted || _momentOpening) return;
+    final pending = UiSelectionStore.instance.momentIdPending;
+    if (pending == null) return;
+    final userId = widget.repo.userId;
+    if (userId == null) return;
+    if (UiSelectionStore.instance.consumeMoment() == null) return;
+
+    Moment? known;
+    for (final m in FeedStore.instance.moments) {
+      if (m.id == pending) {
+        known = m;
+        break;
+      }
+    }
+    if (known != null) {
+      _openFromActivity(known, null);
+      return;
+    }
+    _momentOpening = true;
+    unawaited(_openFetchedMoment(userId, pending));
+  }
+
+  Future<void> _openFetchedMoment(String userId, String momentId) async {
+    try {
+      final moment = await widget.feedApi.moment(
+        userId: userId,
+        momentId: momentId,
+      );
+      // Deleted, unfriended, or made private since the push went out. The
+      // person is already on the Feed, which is the right place to have been
+      // sent — saying "that's gone" about something they never saw would be
+      // noise about a thing they cannot act on.
+      if (!mounted || moment == null) return;
+      _open(moment);
+    } catch (_) {
+      // Offline, or the fetch lost a race with a sign-out. Same reasoning.
+    } finally {
+      _momentOpening = false;
+    }
+  }
+
   @override
   void dispose() {
     FeedStore.instance.removeListener(_onChange);
     GamesStore.instance.removeListener(_onChange);
     UiSelectionStore.instance.removeListener(_consumePendingGames);
+    UiSelectionStore.instance.removeListener(_consumePendingMoment);
     widget.repo.removeListener(_onChange);
     _scroll.dispose();
     super.dispose();
@@ -157,6 +224,7 @@ class _FeedScreenState extends State<FeedScreen>
     // The repo attaching (userId becoming available) is one of the reasons
     // this fires — see [_consumePendingGames].
     _consumePendingGames();
+    _consumePendingMoment();
   }
 
   /// Whether this account may publish media.

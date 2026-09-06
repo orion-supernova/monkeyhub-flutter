@@ -8271,4 +8271,44 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get screenSharePickerEmpty =>
       'Paylaşacak bir şey yok — Sistem Ayarları\'nda ekran kaydına izin verip yeniden dene';
+
+  @override
+  String get gameTellFriends => 'ARKADAŞLARA SÖYLE';
+
+  @override
+  String get gameToldFriends => 'söylendi';
+
+  @override
+  String get gameTellFriendsTitle => 'arkadaşlarına söylensin mi?';
+
+  @override
+  String get gameTellFriendsBody =>
+      'bu sonuçla bir bildirim alıyorlar. yalnızca bir kez gönderilebilir.';
+
+  @override
+  String get gameTellFriendsCancel => 'ŞİMDİ OLMAZ';
+
+  @override
+  String get gameTellFriendsConfirm => 'GÖNDER';
+
+  @override
+  String get gameTellFriendsSent => 'gönderildi — haberleri var';
+
+  @override
+  String get gameTellFriendsPrivate =>
+      'günlük skorların gizli, kimse bunu göremezdi';
+
+  @override
+  String get gameTellFriendsFailed => 'gönderilemedi';
+
+  @override
+  String get settingsScreenFriendActivityLabel => 'ARKADAŞ HAREKETLERİ';
+
+  @override
+  String get settingsScreenFriendActivityOnBody =>
+      'arkadaşların paylaştıkça kareler, puanlar ve oyun sonuçları';
+
+  @override
+  String get settingsScreenFriendActivityOffBody =>
+      'hiçbir şey — panoları baktığında yine orada';
 }

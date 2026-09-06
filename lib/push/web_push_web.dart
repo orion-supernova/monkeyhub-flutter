@@ -27,6 +27,9 @@ external void _jsPrompt();
 @JS('mhPushOnOpenRoom')
 external void _jsOnOpenRoom(JSFunction cb);
 
+@JS('mhPushOnOpenTarget')
+external void _jsOnOpenTarget(JSFunction cb);
+
 @JS('mhPushUnregisterLegacy')
 external void _jsUnregisterLegacy();
 
@@ -47,6 +50,43 @@ class WebPush {
         ((JSString roomId) {
           final r = roomId.toDart;
           if (r.isNotEmpty) _onOpenRoom?.call(r);
+        }).toJS,
+      );
+    } catch (_) {}
+  }
+
+  static void Function(String momentId)? _onOpenMoment;
+  static void Function()? _onOpenGames;
+  static bool _targetWired = false;
+
+  /// Route a friend-activity notification click — a highlight or point to its
+  /// card, a shared game result to the games shelf.
+  ///
+  /// Wired once like [setOnOpenRoom], and for the same reason: the bridge adds
+  /// a `message` listener per call and the service worker fans one click out
+  /// to every listener, so a second wiring is a second navigation.
+  ///
+  /// A payload whose kind we don't know is dropped rather than defaulted to
+  /// either destination. This callback is reached from a service worker that
+  /// outlives the page and can be a build older than this one.
+  static void setOnOpenTarget({
+    required void Function(String momentId) onMoment,
+    required void Function() onGames,
+  }) {
+    _onOpenMoment = onMoment;
+    _onOpenGames = onGames;
+    if (_targetWired) return;
+    _targetWired = true;
+    try {
+      _jsOnOpenTarget(
+        ((JSString kind, JSString momentId) {
+          switch (kind.toDart) {
+            case 'friend_moment':
+              final id = momentId.toDart;
+              if (id.isNotEmpty) _onOpenMoment?.call(id);
+            case 'game_result':
+              _onOpenGames?.call();
+          }
         }).toJS,
       );
     } catch (_) {}

@@ -8314,4 +8314,44 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get screenSharePickerEmpty =>
       'अभी साझा करने को कुछ नहीं — सिस्टम सेटिंग्स में स्क्रीन रिकॉर्डिंग की अनुमति दें और फिर कोशिश करें';
+
+  @override
+  String get gameTellFriends => 'दोस्तों को बताएँ';
+
+  @override
+  String get gameToldFriends => 'बता दिया';
+
+  @override
+  String get gameTellFriendsTitle => 'दोस्तों को बताएँ?';
+
+  @override
+  String get gameTellFriendsBody =>
+      'उन्हें इस नतीजे की सूचना मिलेगी। यह सिर्फ़ एक बार भेजा जा सकता है।';
+
+  @override
+  String get gameTellFriendsCancel => 'अभी नहीं';
+
+  @override
+  String get gameTellFriendsConfirm => 'भेजें';
+
+  @override
+  String get gameTellFriendsSent => 'भेज दिया — उन्हें पता है';
+
+  @override
+  String get gameTellFriendsPrivate =>
+      'आपके रोज़ के स्कोर निजी हैं, इसे कोई नहीं देखता';
+
+  @override
+  String get gameTellFriendsFailed => 'भेजा नहीं जा सका';
+
+  @override
+  String get settingsScreenFriendActivityLabel => 'दोस्तों की गतिविधि';
+
+  @override
+  String get settingsScreenFriendActivityOnBody =>
+      'जैसे ही वे डालें — पल, पॉइंट और खेल के नतीजे';
+
+  @override
+  String get settingsScreenFriendActivityOffBody =>
+      'कुछ नहीं — देखने जाएँ तो उनके बोर्ड वहीं हैं';
 }

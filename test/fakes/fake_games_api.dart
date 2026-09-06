@@ -73,4 +73,21 @@ class FakeGamesApi implements GamesApi {
     required String dayKey,
     required DailyGame game,
   }) async => const [];
+
+  /// Every game whose result this fake was asked to share, in order.
+  ///
+  /// Recorded rather than swallowed because the interesting property of the
+  /// share is that it happens EXACTLY once per result — a test that only
+  /// checked "no throw" would pass just as happily against a button that fired
+  /// on every rebuild.
+  final List<DailyGame> shared = [];
+
+  @override
+  Future<void> shareResult({
+    required String userId,
+    required String dayKey,
+    required DailyGame game,
+  }) async {
+    shared.add(game);
+  }
 }

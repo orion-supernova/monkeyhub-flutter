@@ -41,7 +41,25 @@ export type AlertKind =
   | "call_invite"
   | "group_call_invite"
   | "dismiss"
-  | "daily_games";
+  | "daily_games"
+  | "friend_moment"
+  | "game_result";
+
+/**
+ * The kinds that are not an unread item and therefore carry no badge.
+ *
+ * A set rather than a chain of `!==` because it is now four kinds across three
+ * transports, and the failure mode of getting one of them wrong is silent: a
+ * badge count that includes things the app has no list of, which nothing in
+ * the app can then clear. `buildApnsBody` expresses the same rule as an
+ * allow-list on the other side (`message`/`approval` only) — the two are
+ * complements and must stay so.
+ */
+const UNBADGED_KINDS: ReadonlySet<AlertKind> = new Set<AlertKind>([
+  "daily_games",
+  "friend_moment",
+  "game_result",
+]);
 
 export type AlertSpec = {
   kind: AlertKind;
@@ -89,6 +107,15 @@ const KIND_TTL_SECONDS: Record<AlertKind, number> = {
   // that has passed. Unlike a chat message, nothing is lost by dropping it —
   // there is another one tomorrow.
   daily_games: 10800,
+  // Exactly as long as the thing it announces is on the board. A moment drops
+  // off friends' boards after 24h (`feed.ts` VISIBLE_MS), so a push that
+  // outlived that would be tappable straight into an empty screen — the one
+  // outcome worse than not being told at all.
+  friend_moment: 86400,
+  // The rest of the day, near enough. A daily game's standings reset at the
+  // player's local midnight, and a result that lands tomorrow is a boast about
+  // a board nobody can still be beaten on.
+  game_result: 43200,
 };
 
 // APNs and FCM both cap a payload at 4096 bytes and Web Push has less than
@@ -204,11 +231,12 @@ export function buildFcmMessage(
 ): Record<string, unknown> {
   const data: Record<string, string> = {
     ...spec.data,
-    // Omitted for the daily nudge, which is not an unread item and has no
-    // count of its own to report. iOS already skips it (see `buildApnsBody`);
-    // sending a number here would make the two platforms disagree about what
-    // a nudge means, for a key neither of them renders on one.
-    ...(spec.kind === "daily_games" ? {} : { badge: String(spec.badge) }),
+    // Omitted for the nudge and the two friend-activity kinds, none of which
+    // is an unread item with a count of its own to report. iOS already skips
+    // them (see `buildApnsBody`); sending a number here would make the two
+    // platforms disagree about what they mean, for a key neither renders on
+    // one.
+    ...(UNBADGED_KINDS.has(spec.kind) ? {} : { badge: String(spec.badge) }),
   };
   if (spec.title) data.title = clamp(spec.title, TITLE_MAX);
   if (spec.body) data.body = clamp(spec.body, BODY_MAX);
@@ -232,7 +260,7 @@ export function buildFcmMessage(
 export function buildWebPushPayload(spec: AlertSpec): Record<string, string> {
   const out: Record<string, string> = {
     ...spec.data,
-    ...(spec.kind === "daily_games" ? {} : { badge: String(spec.badge) }),
+    ...(UNBADGED_KINDS.has(spec.kind) ? {} : { badge: String(spec.badge) }),
   };
   if (spec.title) out.title = clamp(spec.title, TITLE_MAX);
   if (spec.body) out.body = clamp(spec.body, BODY_MAX);

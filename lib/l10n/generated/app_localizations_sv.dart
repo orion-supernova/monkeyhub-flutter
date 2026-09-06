@@ -8330,4 +8330,44 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get screenSharePickerEmpty =>
       'Inget att dela än — tillåt skärminspelning i Systeminställningar och försök igen';
+
+  @override
+  String get gameTellFriends => 'BERÄTTA FÖR VÄNNER';
+
+  @override
+  String get gameToldFriends => 'vännerna vet';
+
+  @override
+  String get gameTellFriendsTitle => 'berätta för dina vänner?';
+
+  @override
+  String get gameTellFriendsBody =>
+      'de får en avisering med det här resultatet. kan bara skickas en gång.';
+
+  @override
+  String get gameTellFriendsCancel => 'INTE NU';
+
+  @override
+  String get gameTellFriendsConfirm => 'SKICKA';
+
+  @override
+  String get gameTellFriendsSent => 'skickat — de vet';
+
+  @override
+  String get gameTellFriendsPrivate =>
+      'dina dagsresultat är privata, ingen skulle se det här';
+
+  @override
+  String get gameTellFriendsFailed => 'kunde inte skicka';
+
+  @override
+  String get settingsScreenFriendActivityLabel => 'VÄNNERS AKTIVITET';
+
+  @override
+  String get settingsScreenFriendActivityOnBody =>
+      'ögonblick, poäng och resultat när de läggs upp';
+
+  @override
+  String get settingsScreenFriendActivityOffBody =>
+      'inget — deras tavlor finns kvar när du tittar';
 }

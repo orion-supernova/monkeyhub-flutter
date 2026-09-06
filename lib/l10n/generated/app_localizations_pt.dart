@@ -8400,6 +8400,46 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get screenSharePickerEmpty =>
       'Ainda nada para partilhar — permita a gravação do ecrã nas Definições do Sistema e tente de novo';
+
+  @override
+  String get gameTellFriends => 'AVISAR OS AMIGOS';
+
+  @override
+  String get gameToldFriends => 'já sabem';
+
+  @override
+  String get gameTellFriendsTitle => 'avisar os teus amigos?';
+
+  @override
+  String get gameTellFriendsBody =>
+      'recebem uma notificação com este resultado. só pode ser enviado uma vez.';
+
+  @override
+  String get gameTellFriendsCancel => 'AGORA NÃO';
+
+  @override
+  String get gameTellFriendsConfirm => 'ENVIAR';
+
+  @override
+  String get gameTellFriendsSent => 'enviado — já sabem';
+
+  @override
+  String get gameTellFriendsPrivate =>
+      'os teus resultados diários são privados, ninguém veria isto';
+
+  @override
+  String get gameTellFriendsFailed => 'não foi possível enviar';
+
+  @override
+  String get settingsScreenFriendActivityLabel => 'ATIVIDADE DOS AMIGOS';
+
+  @override
+  String get settingsScreenFriendActivityOnBody =>
+      'momentos, pontos e resultados à medida que publicam';
+
+  @override
+  String get settingsScreenFriendActivityOffBody =>
+      'nada — os quadros deles continuam lá quando olhares';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -16794,4 +16834,44 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get screenSharePickerEmpty =>
       'Nada para compartilhar ainda — permita a gravação de tela nos Ajustes do Sistema e tente de novo';
+
+  @override
+  String get gameTellFriends => 'AVISAR OS AMIGOS';
+
+  @override
+  String get gameToldFriends => 'já sabem';
+
+  @override
+  String get gameTellFriendsTitle => 'avisar seus amigos?';
+
+  @override
+  String get gameTellFriendsBody =>
+      'eles recebem uma notificação com este resultado. só dá para enviar uma vez.';
+
+  @override
+  String get gameTellFriendsCancel => 'AGORA NÃO';
+
+  @override
+  String get gameTellFriendsConfirm => 'ENVIAR';
+
+  @override
+  String get gameTellFriendsSent => 'enviado — eles já sabem';
+
+  @override
+  String get gameTellFriendsPrivate =>
+      'seus resultados diários são privados, ninguém veria isso';
+
+  @override
+  String get gameTellFriendsFailed => 'não deu para enviar';
+
+  @override
+  String get settingsScreenFriendActivityLabel => 'ATIVIDADE DOS AMIGOS';
+
+  @override
+  String get settingsScreenFriendActivityOnBody =>
+      'momentos, pontos e resultados conforme eles postam';
+
+  @override
+  String get settingsScreenFriendActivityOffBody =>
+      'nada — os quadros deles continuam lá quando você olhar';
 }

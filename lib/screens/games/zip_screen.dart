@@ -245,6 +245,9 @@ class _ZipScreenState extends State<ZipScreen> with TickerProviderStateMixin {
               durationMs: _play.durationMs,
             )
           : null,
+      onTellFriends: _play.finished
+          ? () => tellFriendsAboutGame(context, controller: _play)
+          : null,
     );
   }
 }

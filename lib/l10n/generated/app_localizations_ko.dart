@@ -8005,4 +8005,40 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get screenSharePickerEmpty =>
       '아직 공유할 것이 없어요 — 시스템 설정에서 화면 기록을 허용한 뒤 다시 시도하세요';
+
+  @override
+  String get gameTellFriends => '친구들에게 알리기';
+
+  @override
+  String get gameToldFriends => '알렸어요';
+
+  @override
+  String get gameTellFriendsTitle => '친구들에게 알릴까요?';
+
+  @override
+  String get gameTellFriendsBody => '이 결과가 알림으로 가요. 한 번만 보낼 수 있어요.';
+
+  @override
+  String get gameTellFriendsCancel => '나중에';
+
+  @override
+  String get gameTellFriendsConfirm => '보내기';
+
+  @override
+  String get gameTellFriendsSent => '보냈어요';
+
+  @override
+  String get gameTellFriendsPrivate => '데일리 점수가 비공개라 아무도 못 봐요';
+
+  @override
+  String get gameTellFriendsFailed => '보내지 못했어요';
+
+  @override
+  String get settingsScreenFriendActivityLabel => '친구 소식';
+
+  @override
+  String get settingsScreenFriendActivityOnBody => '올라오는 대로 하이라이트, 포인트, 게임 결과';
+
+  @override
+  String get settingsScreenFriendActivityOffBody => '없음 — 보드는 찾아가면 그대로 있어요';
 }

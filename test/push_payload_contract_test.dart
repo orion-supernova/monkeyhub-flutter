@@ -26,6 +26,9 @@ void main() {
       'chattest20241220/MainActivity.kt';
   const web = 'web/mh-push-sw.js';
   const nudge = 'backend/convex/dailyNudge.ts';
+  // Friend activity — the two kinds another PERSON causes. Same shape as the
+  // nudge (our own words, composed per device) and a different audience.
+  const social = 'backend/convex/socialPush.ts';
   // The Notification Service Extension, which redraws a banner with the
   // sender's face. A fifth reader of the same flat map, in a fourth language.
   const iosNse = 'ios/NotificationService/NotificationService.swift';
@@ -144,6 +147,17 @@ void main() {
     // same picture as `callerAvatarUrl` in the push; without this key the
     // in-app path drew a card with no face where the push path drew one.
     'starterAvatarUrl': [groupCalls, dartApp],
+    // WHICH card a friend-activity tap opens. The one key in this table whose
+    // absence is not visible anywhere: the notification still arrives, still
+    // reads correctly, and still opens the app — it just lands on the board
+    // instead of on the thing it named, which looks like the feature working
+    // to everyone except the person who tapped it.
+    //
+    // Five readers. Android needs it twice because the render and the route are
+    // different files: ChatNotifications puts it in the PendingIntent's extras
+    // (and in the request code, so two friends' notifications do not share
+    // one), and MainActivity reads it back out.
+    'momentId': [social, ios, androidRender, androidActivity, web],
   };
 
   contract.forEach((key, consumers) {
@@ -197,6 +211,8 @@ void main() {
       'call_invite',
       'group_call_invite',
       'daily_games',
+      'friend_moment',
+      'game_result',
     ];
     for (final kind in kinds) {
       test('"$kind" is dispatched on Android', () {
@@ -244,6 +260,55 @@ void main() {
       expect(source(ios).contains('onOpenGames'), isTrue);
       expect(source(androidActivity).contains('"daily_games"'), isTrue);
       expect(source(androidActivity).contains('onOpenGames'), isTrue);
+    });
+
+    test('"friend_moment" opens the card it names, on both phone platforms', () {
+      // Both halves matter and they fail differently. Miss the KIND and the tap
+      // merely raises the app; miss the momentId and it opens the Feed but not
+      // the card — which is indistinguishable from the feature working until
+      // somebody says "it doesn't open the photo".
+      expect(source(ios).contains('"friend_moment"'), isTrue);
+      expect(source(ios).contains('onOpenMoment'), isTrue);
+      expect(source(androidActivity).contains('"friend_moment"'), isTrue);
+      expect(source(androidActivity).contains('onOpenMoment'), isTrue);
+      // The id has to survive the trip through the PendingIntent, which is a
+      // different file from the one that routes the tap.
+      expect(source(androidRender).contains('EXTRA_MOMENT_ID'), isTrue);
+      expect(source(androidActivity).contains('EXTRA_MOMENT_ID'), isTrue);
+    });
+
+    test('"game_result" routes to the games shelf on both phone platforms', () {
+      // Same destination as the nudge — there is no per-result screen — so the
+      // failure is the same one: a tap that only raises the app.
+      expect(source(ios).contains('"game_result"'), isTrue);
+      expect(source(androidActivity).contains('"game_result"'), isTrue);
+      expect(source(androidActivity).contains('onOpenGames'), isTrue);
+    });
+
+    test('friend activity gets its own Android channel', () {
+      // Rendered on the games channel, "turn off friend activity" would also
+      // turn off the daily reminder, and vice versa. The two are opted out of
+      // for opposite reasons — one by people who do not want to be told to
+      // play, the other by people with a lot of friends — so sharing a channel
+      // makes each switch silence the other's notifications.
+      final src = source(androidRender);
+      expect(src.contains('CH_SOCIAL'), isTrue);
+      expect(src.contains('mh_social'), isTrue);
+    });
+
+    test('friend activity IS sent to the web, unlike the nudge', () {
+      // The nudge skips browsers because a scheduled broadcast's audience would
+      // silently become "whoever left a tab open". These two are consequences,
+      // like a chat message, and chat messages have always gone to the web — so
+      // the service worker must recognise them or a tap there does nothing.
+      final src = source(web);
+      expect(src.contains('friend_moment'), isTrue);
+      expect(src.contains('game_result'), isTrue);
+      // …and the audience filter must actually select web subscriptions, which
+      // is the half that decides whether anything is ever delivered to them.
+      expect(source(social).contains('webEndpoint'), isTrue,
+          reason: 'socialPush stopped selecting web subscriptions — friend '
+              'activity is silently dead in the browser');
     });
 
     test('"daily_games" gets its own Android channel', () {

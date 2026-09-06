@@ -8392,4 +8392,44 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get screenSharePickerEmpty =>
       'Nada que compartir todavía — permite la grabación de pantalla en Ajustes del Sistema e inténtalo de nuevo';
+
+  @override
+  String get gameTellFriends => 'AVISAR A TUS AMIGOS';
+
+  @override
+  String get gameToldFriends => 'ya lo saben';
+
+  @override
+  String get gameTellFriendsTitle => '¿avisar a tus amigos?';
+
+  @override
+  String get gameTellFriendsBody =>
+      'reciben una notificación con este resultado. solo se puede enviar una vez.';
+
+  @override
+  String get gameTellFriendsCancel => 'AHORA NO';
+
+  @override
+  String get gameTellFriendsConfirm => 'ENVIAR';
+
+  @override
+  String get gameTellFriendsSent => 'enviado — ya lo saben';
+
+  @override
+  String get gameTellFriendsPrivate =>
+      'tus resultados diarios son privados, nadie lo vería';
+
+  @override
+  String get gameTellFriendsFailed => 'no se pudo enviar';
+
+  @override
+  String get settingsScreenFriendActivityLabel => 'ACTIVIDAD DE AMIGOS';
+
+  @override
+  String get settingsScreenFriendActivityOnBody =>
+      'momentos, puntos y resultados según los publican';
+
+  @override
+  String get settingsScreenFriendActivityOffBody =>
+      'nada — sus tableros siguen ahí cuando mires';
 }

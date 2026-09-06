@@ -2324,5 +2324,17 @@
   "screenSharePickerTitle": "अपनी स्क्रीन साझा करें",
   "screenSharePickerScreens": "स्क्रीन",
   "screenSharePickerWindows": "विंडो",
-  "screenSharePickerEmpty": "अभी साझा करने को कुछ नहीं — सिस्टम सेटिंग्स में स्क्रीन रिकॉर्डिंग की अनुमति दें और फिर कोशिश करें"
+  "screenSharePickerEmpty": "अभी साझा करने को कुछ नहीं — सिस्टम सेटिंग्स में स्क्रीन रिकॉर्डिंग की अनुमति दें और फिर कोशिश करें",
+  "gameTellFriends": "दोस्तों को बताएँ",
+  "gameToldFriends": "बता दिया",
+  "gameTellFriendsTitle": "दोस्तों को बताएँ?",
+  "gameTellFriendsBody": "उन्हें इस नतीजे की सूचना मिलेगी। यह सिर्फ़ एक बार भेजा जा सकता है।",
+  "gameTellFriendsCancel": "अभी नहीं",
+  "gameTellFriendsConfirm": "भेजें",
+  "gameTellFriendsSent": "भेज दिया — उन्हें पता है",
+  "gameTellFriendsPrivate": "आपके रोज़ के स्कोर निजी हैं, इसे कोई नहीं देखता",
+  "gameTellFriendsFailed": "भेजा नहीं जा सका",
+  "settingsScreenFriendActivityLabel": "दोस्तों की गतिविधि",
+  "settingsScreenFriendActivityOnBody": "जैसे ही वे डालें — पल, पॉइंट और खेल के नतीजे",
+  "settingsScreenFriendActivityOffBody": "कुछ नहीं — देखने जाएँ तो उनके बोर्ड वहीं हैं"
 }

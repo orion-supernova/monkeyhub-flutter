@@ -2324,5 +2324,17 @@
   "screenSharePickerTitle": "Comparte tu pantalla",
   "screenSharePickerScreens": "Pantallas",
   "screenSharePickerWindows": "Ventanas",
-  "screenSharePickerEmpty": "Nada que compartir todavía — permite la grabación de pantalla en Ajustes del Sistema e inténtalo de nuevo"
+  "screenSharePickerEmpty": "Nada que compartir todavía — permite la grabación de pantalla en Ajustes del Sistema e inténtalo de nuevo",
+  "gameTellFriends": "AVISAR A TUS AMIGOS",
+  "gameToldFriends": "ya lo saben",
+  "gameTellFriendsTitle": "¿avisar a tus amigos?",
+  "gameTellFriendsBody": "reciben una notificación con este resultado. solo se puede enviar una vez.",
+  "gameTellFriendsCancel": "AHORA NO",
+  "gameTellFriendsConfirm": "ENVIAR",
+  "gameTellFriendsSent": "enviado — ya lo saben",
+  "gameTellFriendsPrivate": "tus resultados diarios son privados, nadie lo vería",
+  "gameTellFriendsFailed": "no se pudo enviar",
+  "settingsScreenFriendActivityLabel": "ACTIVIDAD DE AMIGOS",
+  "settingsScreenFriendActivityOnBody": "momentos, puntos y resultados según los publican",
+  "settingsScreenFriendActivityOffBody": "nada — sus tableros siguen ahí cuando mires"
 }

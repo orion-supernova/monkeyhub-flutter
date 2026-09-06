@@ -27,6 +27,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kSection = 'mh.section';
   static const _kPushEnabled = 'mh.pushEnabled';
   static const _kGameReminders = 'mh.gameReminders';
+  static const _kFriendActivity = 'mh.friendActivity';
   static const _kCaptureProtection = 'mh.captureProtection';
   static const _kChatStyle = 'mh.chatStyle';
   static const _kReplyStyle = 'mh.replyStyle';
@@ -84,6 +85,11 @@ class SettingsStore extends ChangeNotifier {
   // where the sender actually reads it; this copy exists so the switch renders
   // instantly and correctly with no round trip, exactly like [_pushEnabled].
   bool _gameReminders = true;
+  // Highlights, points and shared game results from friends. On by default for
+  // the same reason the nudge is: a board nobody is told about is a board
+  // nobody opens. Mirrored on this device's backend row
+  // (userDevices.friendActivityEnabled), which is where the sender reads it.
+  bool _friendActivity = true;
   bool _captureProtection = false;
   ChatStyle _chatStyle = ChatStyle.compact;
   ReplyStyle _replyStyle = ReplyStyle.phantomEcho;
@@ -142,6 +148,7 @@ class SettingsStore extends ChangeNotifier {
   HomeSection get section => _section;
   bool get pushEnabled => _pushEnabled;
   bool get gameReminders => _gameReminders;
+  bool get friendActivity => _friendActivity;
   bool get captureProtection => _captureProtection;
   ChatStyle get chatStyle => _chatStyle;
   ReplyStyle get replyStyle => _replyStyle;
@@ -329,6 +336,8 @@ class SettingsStore extends ChangeNotifier {
       _pushEnabled = push != 'false'; // default true
       final nudge = await _storage.read(key: _kGameReminders);
       _gameReminders = nudge != 'false'; // default true
+      final social = await _storage.read(key: _kFriendActivity);
+      _friendActivity = social != 'false'; // default true
       final cap = await _storage.read(key: _kCaptureProtection);
       _captureProtection = cap == 'true'; // default false
       final cs = await _storage.read(key: _kChatStyle);
@@ -554,6 +563,13 @@ class SettingsStore extends ChangeNotifier {
     _gameReminders = v;
     notifyListeners();
     await _storage.write(key: _kGameReminders, value: v ? 'true' : 'false');
+  }
+
+  Future<void> setFriendActivity(bool v) async {
+    if (_friendActivity == v) return;
+    _friendActivity = v;
+    notifyListeners();
+    await _storage.write(key: _kFriendActivity, value: v ? 'true' : 'false');
   }
 
   Future<void> setCaptureProtection(bool v) async {

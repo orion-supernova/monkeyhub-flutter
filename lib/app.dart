@@ -429,6 +429,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     PushManager.instance.setOnOpenRoom(_openRoomFromPush);
     PushManager.instance.setOnOpenRequests(_openRequestsFromPush);
     PushManager.instance.setOnOpenGames(_openGamesFromPush);
+    PushManager.instance.setOnOpenMoment(_openMomentFromPush);
     // Midnight passed with the app open. Daylight saving moves at 3am, when
     // nobody resumes anything, so without this a phone left on a nightstand
     // would keep reporting yesterday's offset until it was next picked up —
@@ -442,6 +443,12 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     // Web Push banner clicks (background/closed tab) open the room too — the
     // service worker posts the roomId to whichever tab it focuses.
     WebPush.setOnOpenRoom(_openRoomFromPush);
+    // …and friend activity, which has no room to open: a highlight or point
+    // goes to its own card, a shared game result to the games shelf.
+    WebPush.setOnOpenTarget(
+      onMoment: _openMomentFromPush,
+      onGames: _openGamesFromPush,
+    );
     // Inbound universal links / App Links. Reported here rather than acted on:
     // `_openInvite` decides whether the app is ready and stashes if not.
     // A revoked or unknown token means this device is no longer signed in —
@@ -614,6 +621,24 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   /// tab the user is being sent to is actually the thing they see.
   void _openGamesFromPush() {
     UiSelectionStore.instance.requestGamesView();
+    SettingsStore.instance.setSection(HomeSection.feed, persist: false);
+    final nav = rootNavigatorKey.currentState;
+    if (nav == null) return;
+    nav.popUntil((r) => r.isFirst);
+  }
+
+  /// A tapped friend-activity notification: the Feed, with that moment's
+  /// viewer open over it.
+  ///
+  /// The same three moves as the two taps above — and, like them, nothing is
+  /// stashed for a cold start. [UiSelectionStore] holds the id until
+  /// [FeedScreen] mounts and consumes it, which covers launch-from-notification
+  /// for free; that is exactly why the id lives there rather than in a field
+  /// here the way `_pendingPushRoomId` does. (A room has to be stashed locally
+  /// because its destination is a `Navigator.push` this widget performs; the
+  /// Feed's viewer is opened by the Feed, inside its own nested navigator.)
+  void _openMomentFromPush(String momentId) {
+    UiSelectionStore.instance.requestMoment(momentId);
     SettingsStore.instance.setSection(HomeSection.feed, persist: false);
     final nav = rootNavigatorKey.currentState;
     if (nav == null) return;
@@ -1395,6 +1420,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
             // otherwise start getting it back.
             if (!SettingsStore.instance.gameReminders) {
               await PushManager.instance.setGameReminders(false);
+            }
+            // And once more for friend activity, one field further along the
+            // same row and lost on login for the same reason.
+            if (!SettingsStore.instance.friendActivity) {
+              await PushManager.instance.setFriendActivity(false);
             }
           } catch (e, st) {
             DiagLog.error('push login failed', e, stack: st);

@@ -2324,5 +2324,17 @@
   "screenSharePickerTitle": "Ekranını paylaş",
   "screenSharePickerScreens": "Ekranlar",
   "screenSharePickerWindows": "Pencereler",
-  "screenSharePickerEmpty": "Paylaşacak bir şey yok — Sistem Ayarları'nda ekran kaydına izin verip yeniden dene"
+  "screenSharePickerEmpty": "Paylaşacak bir şey yok — Sistem Ayarları'nda ekran kaydına izin verip yeniden dene",
+  "gameTellFriends": "ARKADAŞLARA SÖYLE",
+  "gameToldFriends": "söylendi",
+  "gameTellFriendsTitle": "arkadaşlarına söylensin mi?",
+  "gameTellFriendsBody": "bu sonuçla bir bildirim alıyorlar. yalnızca bir kez gönderilebilir.",
+  "gameTellFriendsCancel": "ŞİMDİ OLMAZ",
+  "gameTellFriendsConfirm": "GÖNDER",
+  "gameTellFriendsSent": "gönderildi — haberleri var",
+  "gameTellFriendsPrivate": "günlük skorların gizli, kimse bunu göremezdi",
+  "gameTellFriendsFailed": "gönderilemedi",
+  "settingsScreenFriendActivityLabel": "ARKADAŞ HAREKETLERİ",
+  "settingsScreenFriendActivityOnBody": "arkadaşların paylaştıkça kareler, puanlar ve oyun sonuçları",
+  "settingsScreenFriendActivityOffBody": "hiçbir şey — panoları baktığında yine orada"
 }
