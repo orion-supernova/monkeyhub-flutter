@@ -33,6 +33,18 @@
 	<array>
 		<string>$(AppIdentifierPrefix)$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	</array>
+	<!-- Sign in with Apple. macOS shows the button too — SocialSignIn.appleAvailable
+	     is true for iOS *and* macOS — so this key has to be here as well as in
+	     ios/Runner/Runner.entitlements. Without it ASAuthorizationController
+	     refuses every request with a bare "The operation couldn't be completed"
+	     (AuthorizationError 1000): no sheet, no account picker, nothing to tell
+	     the user or us that a capability is missing rather than Apple being
+	     down. The Mac Team profile already grants it, so nothing changes in the
+	     developer portal. -->
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
 	<!-- Universal links. `applinks:` is the invite link
 	     (https://monkeyhub.walhallaa.com/j/<code>) — see
 	     lib/invites/invite_link.dart and DEEP_LINKS.md.
