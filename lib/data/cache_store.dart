@@ -19,6 +19,9 @@ import '../models/message_interaction.dart';
 ///   - `friends.json` — the friends list, which is also what resolves a DM
 ///     room's real name and avatar (see [ChatUser.toJson])
 ///   - `messages_<roomId>.json` — last ~120 messages per room
+///   - `members_<roomId>.json` — that room's roster, which is what resolves
+///     every sender's name, avatar and speaker colour
+///   - `speaker_colors.json` — this reader's manual speaker-colour pins
 ///
 /// Writes are debounced to avoid disk thrash; reads are best-effort and
 /// swallow errors (a corrupted cache shouldn't break the app).
@@ -212,6 +215,148 @@ class CacheStore {
     });
   }
 
+  // ────────────────────────────── room rosters ──────────────────────────────
+  //
+  // Who is in the room, beside the messages they sent.
+  //
+  // This is the file that makes a re-opened room paint ONCE. The transcript
+  // above restores what was said; this restores who said it — and until it
+  // lands there is no sender name, no avatar and, above all, no speaker
+  // colour, because `SpeakerSlots.forMembers` is a function of the roster.
+  // Without it, opening a room you have read a hundred times draws the whole
+  // transcript in theme ink and then repaints every bubble the moment
+  // `rooms:getMembers` answers. That repaint is the "colours arrive late"
+  // everybody notices, and it is not the transcript's fault.
+  //
+  // Uncapped, like the interactions above and unlike the transcript, and here
+  // the reason is correctness rather than size. Slot assignment resolves
+  // collisions by probing FORWARD through the palette in join order, so
+  // dropping any member frees a slot that somebody later in the order would
+  // otherwise have been pushed off. A truncated roster is therefore not a
+  // smaller answer, it is a DIFFERENT one — and a seed that settles the room
+  // to different colours than the live roster will is worse than no seed at
+  // all. A roster row is a few hundred bytes; even a large room is smaller
+  // than the transcript sitting next to it.
+
+  Future<List<ChatUser>> loadMembers(String userId, String roomId) async {
+    if (kIsWeb) return const []; // no path_provider on web — live data only
+    try {
+      final dir = await _ensureDir(userId);
+      final f = File('${dir.path}/members_$roomId.json');
+      if (!await f.exists()) return const [];
+      final raw = await f.readAsString();
+      final list = (jsonDecode(raw) as List?) ?? const [];
+      return list
+          .whereType<Map>()
+          .map((e) => ChatUser.fromJson(e.cast<String, dynamic>()))
+          .toList();
+    } catch (e) {
+      debugPrint('cache loadMembers failed: $e');
+      return const [];
+    }
+  }
+
+  void scheduleSaveMembers(
+    String userId,
+    String roomId,
+    List<ChatUser> members,
+  ) {
+    if (kIsWeb) return; // no disk cache on web
+    // Presence is stripped rather than persisted, which is two wins at once.
+    //
+    // The honest one: `status` and `lastSeen` describe where somebody was when
+    // this file was written, and a cold start hours later that painted them
+    // from disk would light a green dot beside a person who is not there. No
+    // presence reads correctly as "not known yet"; stale presence reads as a
+    // lie, and it is a lie the live subscription then visibly corrects.
+    //
+    // The cheap one: presence is also the ONLY field on a roster row that
+    // changes minute to minute. Dropping it means this file is rewritten when
+    // somebody joins, leaves, is promoted or changes their name or avatar —
+    // rare — instead of every time a member's dot goes amber.
+    final rows = [
+      for (final u in members)
+        u.toJson()
+          ..remove('status')
+          ..remove('lastSeen'),
+    ];
+    _debounce('mem:$roomId', () async {
+      try {
+        final dir = await _ensureDir(userId);
+        final f = File('${dir.path}/members_$roomId.json');
+        await f.writeAsString(jsonEncode(rows));
+      } catch (e) {
+        debugPrint('cache saveMembers failed: $e');
+      }
+    });
+  }
+
+  // ─────────────────────── speaker colour overrides ───────────────────────
+  //
+  // This reader's manual pins, roomId → subjectId → palette slot.
+  //
+  // Cached for one reason, and it is not the round trip: pins are applied
+  // FIRST and absolutely by `SpeakerSlots.forMembers`, and the slots they
+  // occupy are then off-limits to everyone the room places automatically. So a
+  // roster restored from disk without them does not settle to a nearly-right
+  // palette that the pins later refine — it settles to a DIFFERENT one, and
+  // the reader watches the room rearrange itself when `speakerColors:mine`
+  // lands. For anybody who has ever opened the picker, caching the roster
+  // without also caching this would trade a fade-in for a reshuffle.
+  //
+  // One file for every room rather than one per room: the whole map is bounded
+  // at twelve entries per room by the server and is empty for almost every
+  // reader, and it arrives as a single app-wide subscription (see
+  // `ChatRepository._speakerColors`) that has no per-room delivery to hang a
+  // per-room write off.
+
+  Future<Map<String, Map<String, int>>> loadSpeakerColors(String userId) async {
+    if (kIsWeb) return const {}; // no path_provider on web — live data only
+    try {
+      final dir = await _ensureDir(userId);
+      final f = File('${dir.path}/speaker_colors.json');
+      if (!await f.exists()) return const {};
+      final decoded = jsonDecode(await f.readAsString());
+      if (decoded is! Map) return const {};
+      final out = <String, Map<String, int>>{};
+      decoded.forEach((roomId, byUser) {
+        if (byUser is! Map) return;
+        final inner = <String, int>{};
+        byUser.forEach((subjectId, slot) {
+          if (slot is num) inner[subjectId.toString()] = slot.toInt();
+        });
+        if (inner.isNotEmpty) out[roomId.toString()] = inner;
+      });
+      return out;
+    } catch (e) {
+      debugPrint('cache loadSpeakerColors failed: $e');
+      return const {};
+    }
+  }
+
+  void scheduleSaveSpeakerColors(
+    String userId,
+    Map<String, Map<String, int>> colors,
+  ) {
+    if (kIsWeb) return; // no disk cache on web
+    // Deep-copied at schedule time, not read at fire time: the repository
+    // replaces this map wholesale on every optimistic pin and every
+    // subscription echo, and the debounce means the write lands ~600ms after
+    // the call that asked for it.
+    final snapshot = {
+      for (final e in colors.entries) e.key: Map<String, int>.from(e.value),
+    };
+    _debounce('speakerColors', () async {
+      try {
+        final dir = await _ensureDir(userId);
+        final f = File('${dir.path}/speaker_colors.json');
+        await f.writeAsString(jsonEncode(snapshot));
+      } catch (e) {
+        debugPrint('cache saveSpeakerColors failed: $e');
+      }
+    });
+  }
+
   // ─────────────────────────── today's game boards ───────────────────────────
 
   /// Today's four puzzles, kept between launches.
@@ -267,8 +412,19 @@ class CacheStore {
   // ─────────────────────────────── cleanup ───────────────────────────────
 
   /// Drop all cached data for the given user. Called on signOut + deleteAccount.
+  ///
+  /// Pending writes are dropped BEFORE the directory goes, and that ordering is
+  /// load-bearing rather than tidy. Every save on this class is debounced by
+  /// [_writeDebounce], so at the moment somebody signs out there is very likely
+  /// a timer holding the last roster, transcript or pin map the departing
+  /// account produced. Deleting the directory without cancelling it leaves the
+  /// timer to fire ~600ms later, and `_ensureDir` will happily RECREATE the
+  /// directory it just deleted and write that account's data back into it —
+  /// which on a shared handset is the previous person's transcript reappearing
+  /// under the next person's login.
   Future<void> clearFor(String userId) async {
     if (kIsWeb) return; // nothing cached on disk on web
+    discardPendingWrites();
     try {
       final dir = await _ensureDir(userId);
       if (await dir.exists()) await dir.delete(recursive: true);
@@ -287,9 +443,15 @@ class CacheStore {
     });
   }
 
-  /// Flush all pending writes synchronously (used on signOut to make sure
-  /// the last snapshot lands before the cache is cleared).
-  Future<void> flush() async {
+  /// Abandon every debounced write that has not fired yet.
+  ///
+  /// Dropped, not flushed — the name says which, because the doc that used to
+  /// sit here said "flush" while the body did exactly this, and the difference
+  /// matters. The only caller is [clearFor], and on that path a write that
+  /// lands is a write that resurrects the cache the caller is deleting; see
+  /// the note there.
+  @visibleForTesting
+  void discardPendingWrites() {
     final timers = _pendingWrites.values.toList();
     _pendingWrites.clear();
     for (final t in timers) {

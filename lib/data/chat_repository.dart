@@ -376,8 +376,9 @@ class ChatRepository extends ChangeNotifier {
   Subscription? _bookmarksSub;
   Subscription? _scheduledSub;
   Subscription? _interactionsSub;
+  Subscription? _membersSub;
 
-  /// How long the room's other six subscriptions wait for the transcript
+  /// How long the room's other seven subscriptions wait for the transcript
   /// before registering anyway. See [_scheduleSecondaryRoomSubscriptions].
   ///
   /// Long enough that a healthy backend always answers first and the deferral
@@ -403,6 +404,77 @@ class ChatRepository extends ChangeNotifier {
   /// entered. `_activeReadState` is the counter-example this avoids — it is not
   /// keyed, which is why `openRoom` has to clear it by hand.
   final Map<String, List<RoomPin>> _pins = {};
+
+  /// Who is in each room — the roster behind every sender name, avatar and
+  /// speaker colour in the transcript. Keyed by room for the same reason
+  /// [_pins] is.
+  ///
+  /// It lives HERE, and not on the room screen where it used to, for three
+  /// reasons that all point the same way.
+  ///
+  ///   * It can be seeded from disk. `rooms:getMembers` was the last input the
+  ///     transcript needs that had no cache at all, so a room the reader had
+  ///     opened a hundred times still painted every bubble in theme ink and
+  ///     then repainted the lot when the network answered. See
+  ///     `CacheStore.loadMembers`.
+  ///   * It survives leaving the room, exactly as [_pins] and `_interactions`
+  ///     do, so stepping out of a chat and back into it is a zero-frame
+  ///     re-entry rather than a second disk read.
+  ///   * There was more than one subscription to it. The transcript held one
+  ///     and Room Info opened a second on the same query; now both read this.
+  final Map<String, List<ChatUser>> _roomMembers = {};
+
+  /// Fingerprint of the last roster actually published per room, so the
+  /// dedup the two screens each used to keep survives the move up here.
+  ///
+  /// Convex refires `rooms:getMembers` whenever ANY `roomMembers` row is
+  /// written, and `markRoomRead` patches `lastReadAt` on that table for every
+  /// incoming message while somebody is in the room. Nothing rendered from
+  /// this roster reads `lastReadAt`, so without the dedup an active group chat
+  /// would rebuild the transcript once per message on top of the rebuild the
+  /// message itself causes — which is what used to fight the overscroll bounce
+  /// physics and visibly jitter the list at its edges.
+  final Map<String, String> _roomMembersSig = {};
+
+  /// The roster of [roomId] — empty until either the disk seed or
+  /// `rooms:getMembers` has landed.
+  ///
+  /// Order is the server's. Callers that render a list sort it themselves;
+  /// callers that settle speaker colours must NOT, because
+  /// `SpeakerSlots.forMembers` owns that ordering and is the only thing whose
+  /// answer has to match on every device.
+  List<ChatUser> membersFor(String roomId) =>
+      _roomMembers[roomId] ?? const <ChatUser>[];
+
+  /// Stable fingerprint over the roster fields anything downstream renders or
+  /// settles colours from. See [_roomMembersSig] for why the dedup exists.
+  ///
+  /// The UNION of what the two screens each used to fingerprint separately,
+  /// which is the one thing that had to be got right when their subscriptions
+  /// were merged into this one: a field only the transcript reads (`username`,
+  /// which the @-picker filters and inserts on, and which
+  /// `users.applyUsernameChange` made load-bearing) has to survive a dedup that
+  /// now also serves Room Info, and vice versa. Dropping one would silently
+  /// stop that screen updating.
+  ///
+  /// `joinedAt` is in here for a different reason than the rest: nothing
+  /// displays it, but `SpeakerSlots.forMembers` settles the whole palette from
+  /// it, so a roster whose join instants moved is a roster that must re-paint
+  /// even when every visible field is identical.
+  ///
+  /// Order-insensitive, because no reader of [membersFor] renders in server
+  /// order — the colour picker sorts by name, Room Info sorts its own list, the
+  /// @-picker ranks, and the palette sorts internally. A reorder from the
+  /// backend is therefore not a change anybody can see.
+  static String _roomMemberSignature(List<ChatUser> users) {
+    final parts = [
+      for (final u in users)
+        '${u.id}|${u.status ?? ''}|${u.lastSeen?.millisecondsSinceEpoch ?? 0}'
+            '|${u.name}|${u.username}|${u.avatarStorageId ?? ''}|${u.role ?? ''}'
+            '|${u.joinedAt?.millisecondsSinceEpoch ?? 0}',
+    ]..sort();
+    return parts.join(';');
+  }
 
   /// This viewer's saved messages, keyed by room. Room-keyed for the same
   /// reason [_pins] is.
@@ -579,13 +651,24 @@ class ChatRepository extends ChangeNotifier {
     //    frame with rooms but no friends yet paints every DM by its raw
     //    `dm:<id>_<id>` name until the network round trip in step 2 lands —
     //    exactly the flash this hydration step exists to avoid.
+    //
+    //    The speaker pins ride along for a reason of their own, and it is not
+    //    the round trip. They are applied FIRST and absolutely by
+    //    `SpeakerSlots.forMembers`, and the slots they take are then off-limits
+    //    to everyone the room places automatically — so a room that paints its
+    //    roster from disk (see [openRoom]) without them settles to a genuinely
+    //    DIFFERENT palette, not a nearly-right one, and the reader watches the
+    //    whole room rearrange when `speakerColors:mine` answers. Cached here
+    //    rather than beside the roster because the subscription is app-wide.
     try {
       final results = await Future.wait<dynamic>([
         CacheStore.instance.loadRooms(userId),
         CacheStore.instance.loadFriends(userId),
+        CacheStore.instance.loadSpeakerColors(userId),
       ]);
       final cachedRooms = results[0] as List<ChatRoom>;
       final cachedFriends = results[1] as List<ChatUser>;
+      final cachedColors = results[2] as Map<String, Map<String, int>>;
       // A non-empty cache is an answer; an empty one is indistinguishable from
       // never having cached anything, so it does not clear the skeleton.
       if (cachedRooms.isNotEmpty) {
@@ -593,7 +676,12 @@ class ChatRepository extends ChangeNotifier {
         _roomsLoaded = true;
       }
       if (cachedFriends.isNotEmpty) _friends = cachedFriends;
-      if (cachedRooms.isNotEmpty || cachedFriends.isNotEmpty) notifyListeners();
+      if (cachedColors.isNotEmpty) _speakerColors = cachedColors;
+      if (cachedRooms.isNotEmpty ||
+          cachedFriends.isNotEmpty ||
+          cachedColors.isNotEmpty) {
+        notifyListeners();
+      }
     } catch (_) {}
 
     // 2) Seed from parallel API hits before subscriptions take over.
@@ -787,6 +875,13 @@ class ChatRepository extends ChangeNotifier {
           });
         }
         _speakerColors = fresh;
+        // Written on the SERVER's word, not on the optimistic apply in
+        // [setSpeakerSlot] — a pin that the round trip then refuses (the
+        // per-room cap) must not be the one a relaunch settles the palette
+        // from. [_persistSpeakerColors] is called again after each successful
+        // mutation, which closes the only gap this leaves: an app killed
+        // between the mutation landing and its echo arriving.
+        _persistSpeakerColors();
         notifyListeners();
       },
       onError: (err) => debugPrint('speaker colors sub error: $err'),
@@ -805,7 +900,7 @@ class ChatRepository extends ChangeNotifier {
     // room list has landed by now (hydrate and seed both ran above), so the
     // unread anchor is already latched and re-opening cannot move it; what the
     // re-open buys is the rest of the room: the disk cache, the read cursor,
-    // the notification dismiss and the six secondary subscriptions.
+    // the notification dismiss and the seven secondary subscriptions.
     //
     // `force` for [resubscribe]'s reason: ownership stays with the screen that
     // holds it, and `activeRoomId` never blinks off — which is what keeps push
@@ -1056,6 +1151,11 @@ class ChatRepository extends ChangeNotifier {
     _pinsSub?.cancel();
     _bookmarksSub?.cancel();
     _scheduledSub?.cancel();
+    // Left live it would keep writing the previous account's roster into
+    // `_roomMembers`, and its `onData` re-reads `_userId` to decide where to
+    // cache it — so a delivery arriving after the next sign-in would file the
+    // departing account's roster under the arriving account's id.
+    _membersSub?.cancel();
     _speakerColorsSub?.cancel();
     _typingHeartbeat?.cancel();
     _roomsSub = null;
@@ -1069,6 +1169,7 @@ class ChatRepository extends ChangeNotifier {
     _pinsSub = null;
     _bookmarksSub = null;
     _scheduledSub = null;
+    _membersSub = null;
     _speakerColorsSub = null;
     _typingHeartbeat = null;
     _secondaryFallback?.cancel();
@@ -1095,6 +1196,14 @@ class ChatRepository extends ChangeNotifier {
     // Unlike [closeRoom], which keeps these so re-entry paints instantly, this
     // is a sign-out: they are the previous account's room state.
     _pins.clear();
+    // The roster the same way, and with a sharper edge than the pins have: a
+    // `rooms:getMembers` row is scoped to a viewer who is a member, so keeping
+    // it would hand the next person on this handset the membership of a room
+    // they may not be in. The signature goes with it or the next account's
+    // first delivery for the same room would dedup against a roster it never
+    // saw and never paint.
+    _roomMembers.clear();
+    _roomMembersSig.clear();
     // And these are the previous account's PRIVATE room state, so if anything
     // the case for dropping them is stronger.
     _bookmarks.clear();
@@ -1559,6 +1668,7 @@ class ChatRepository extends ChangeNotifier {
     _bookmarksSub?.cancel();
     _scheduledSub?.cancel();
     _interactionsSub?.cancel();
+    _membersSub?.cancel();
     // Nulled immediately, not just reassigned at the end: this open can now
     // bail at any of the `gen` checks below, and [closeRoom] would otherwise
     // find and re-cancel a handle that is already dead.
@@ -1569,6 +1679,7 @@ class ChatRepository extends ChangeNotifier {
     _bookmarksSub = null;
     _scheduledSub = null;
     _interactionsSub = null;
+    _membersSub = null;
     // Dropped here rather than beside the new subscription below: several
     // awaits separate the two, and until then the old room would keep serving
     // whoever was typing in it when we left.
@@ -1608,24 +1719,60 @@ class ChatRepository extends ChangeNotifier {
     await takePushedMessages();
     if (gen != _openGen) return;
     // Hydrate from disk first for an instant render.
-    if (me != null && (_messages[roomId] == null || _messages[roomId]!.isEmpty)) {
+    //
+    // Both files read together and behind ONE `notifyListeners`, and that is
+    // the substance of this rather than a tidy-up. The transcript and
+    // the roster have to reach the same frame: what a bubble says comes from
+    // the first, and who said it — their name, their avatar, the colour they
+    // speak in — comes entirely from the second. Painting the messages and
+    // then the roster a beat later would not remove the two-stage render this
+    // cache exists to delete, it would just move it earlier.
+    final wantMessages =
+        me != null && (_messages[roomId] == null || _messages[roomId]!.isEmpty);
+    // Kept across [closeRoom] like the transcript, so stepping out of a room
+    // and back in skips the disk entirely and re-enters on one frame.
+    final wantMembers = me != null && membersFor(roomId).isEmpty;
+    if (me != null && (wantMessages || wantMembers)) {
       try {
-        final cached = await CacheStore.instance.loadMessages(me, roomId);
-        if (cached.isNotEmpty) {
-          _messages[roomId] = cached;
-          _initialLoaded.add(roomId);
-          // How stale the first painted frame is. Read against the
-          // `messages:list` `first` event that follows: the gap between them is
-          // how long the reader sat looking at this snapshot.
-          DiagLog.roomOpen(
-            'cache',
-            '${cached.length} msgs, newest '
-            '${DateTime.now().difference(cached.last.createdAt).inSeconds}s old',
-          );
-          notifyListeners();
-        } else {
-          DiagLog.roomOpen('cache', 'empty');
+        // Both started before either is awaited, so the two reads overlap;
+        // awaiting them in sequence below does not serialise them.
+        final messagesRead =
+            wantMessages ? CacheStore.instance.loadMessages(me, roomId) : null;
+        final membersRead =
+            wantMembers ? CacheStore.instance.loadMembers(me, roomId) : null;
+        var painted = false;
+        if (messagesRead != null) {
+          final cached = await messagesRead;
+          if (cached.isNotEmpty) {
+            _messages[roomId] = cached;
+            _initialLoaded.add(roomId);
+            // How stale the first painted frame is. Read against the
+            // `messages:list` `first` event that follows: the gap between them
+            // is how long the reader sat looking at this snapshot.
+            DiagLog.roomOpen(
+              'cache',
+              '${cached.length} msgs, newest '
+              '${DateTime.now().difference(cached.last.createdAt).inSeconds}s old',
+            );
+            painted = true;
+          } else {
+            DiagLog.roomOpen('cache', 'empty');
+          }
         }
+        if (membersRead != null) {
+          final roster = await membersRead;
+          if (roster.isNotEmpty) {
+            _roomMembers[roomId] = roster;
+            // Deliberately NOT seeding `_roomMembersSig`. The seed carries no
+            // presence (see `CacheStore.scheduleSaveMembers`), so the first
+            // live delivery is genuinely different from it and must be allowed
+            // through the dedup to light everybody's status dot. Leaving the
+            // signature empty says exactly that: nothing live has landed yet.
+            DiagLog.roomOpen('cache', '${roster.length} members');
+            painted = true;
+          }
+        }
+        if (painted) notifyListeners();
       } catch (_) {}
     }
     // Superseded while reading disk: bail before registering anything.
@@ -1745,17 +1892,29 @@ class ChatRepository extends ChangeNotifier {
   ///
   /// `messages:list` is the only query anybody is waiting on when a room opens:
   /// until it answers there is nothing on screen but a disk snapshot that
-  /// predates whatever the reader came here to see. The other six —
-  /// pins, interactions, bookmarks, scheduled messages, read state, typing —
-  /// paint furniture around a transcript that is not there yet, and on a
-  /// resource-constrained backend every one of them is a query competing with
-  /// the one that matters.
+  /// predates whatever the reader came here to see. The other seven —
+  /// the roster, pins, interactions, bookmarks, scheduled messages, read
+  /// state, typing — paint furniture around a transcript that is not there
+  /// yet, and on a resource-constrained backend every one of them is a query
+  /// competing with the one that matters.
   ///
   /// So they are gated: whichever comes first, the transcript's own first
   /// delivery or [secondaryFallback]. The fallback is not a nicety — a room
   /// opened offline, or one whose subscription never answers, must still get
   /// its typing indicator and its read state rather than waiting forever on a
   /// signal that is not coming.
+  ///
+  /// The roster joined this set rather than staying on the room screen, and it
+  /// is the one member of it whose deferral is worth defending, because unlike
+  /// the other six it changes something the reader can already see. Two things
+  /// make it the right call anyway. It used to be issued in the same tick as
+  /// `messages:list` and simply raced it, so on a backend that answers one
+  /// query at a time it was making the transcript — the thing nobody can read
+  /// without — arrive later. And a room that has been opened before now paints
+  /// its roster from disk on the first frame, so for the overwhelmingly common
+  /// case this subscription no longer has a first impression to make: it
+  /// arrives to confirm what is already on screen and to light the presence
+  /// dots the cache deliberately does not keep.
   void _scheduleSecondaryRoomSubscriptions(String roomId, int gen, String? me) {
     _secondaryFallback?.cancel();
     _secondaryFallback = Timer(
@@ -1784,6 +1943,57 @@ class ChatRepository extends ChangeNotifier {
     int gen,
     String? me,
   ) async {
+    // The roster — who is in the room. FIRST in this method, and the order is
+    // deliberate: it is the only query here that changes pixels already on
+    // screen. Everything else registered below paints chrome that is currently
+    // absent (a zero-height pin banner, a bookmark tick, a scheduled-send
+    // pill), so a reader cannot tell whether it arrived early or late. This one
+    // decides every sender's name, avatar and speaker colour, so on the one
+    // path where the disk seed had nothing to offer — a room being opened for
+    // the very first time — it is the query whose latency the reader actually
+    // sees.
+    //
+    // Registered here rather than by the room screen so the `gen` guard and
+    // `SubscriptionRegistry`'s reconnect rebinding cover it for free, exactly
+    // like the six around it — and so Room Info, which used to open a second
+    // live subscription to this same query, can read the one answer instead.
+    final membersSub = await cv.subscribe(
+      'rooms:getMembers',
+      {'roomId': roomId, 'viewerUserId': ?me},
+      onData: (data) {
+        final list = (data as List?) ?? const [];
+        final fresh = list
+            .whereType<Map>()
+            .map((e) => ChatUser.fromJson(e.cast<String, dynamic>()))
+            .toList();
+        // See [_roomMembersSig]: `markRoomRead` writes a `roomMembers` row for
+        // every incoming message, so this query refires constantly in an
+        // active group chat while saying nothing this app renders.
+        final sig = _roomMemberSignature(fresh);
+        if (sig == _roomMembersSig[roomId]) return;
+        _roomMembersSig[roomId] = sig;
+        _roomMembers[roomId] = fresh;
+        // Re-read rather than the `me` captured by this registration, for the
+        // reason the transcript's own closure re-reads it: on a cold start
+        // from a notification tap the open that made this ran before [attach]
+        // published an id. The repair at the end of [_attach] re-opens the
+        // room and would eventually cache it anyway, but taking the id as it
+        // stands now means the roster this reader is looking at RIGHT NOW is
+        // the one on disk for the next launch.
+        final viewer = _userId;
+        if (viewer != null) {
+          CacheStore.instance.scheduleSaveMembers(viewer, roomId, fresh);
+        }
+        notifyListeners();
+      },
+      onError: (err) => debugPrint('members sub error: $err'),
+    );
+    if (gen != _openGen) {
+      membersSub.cancel();
+      return;
+    }
+    _membersSub = membersSub;
+
     // Pinned messages. Registered here rather than by the room screen so the
     // `gen` guard and `SubscriptionRegistry`'s reconnect rebinding cover it for
     // free, exactly like the three around it.
@@ -2060,6 +2270,7 @@ class ChatRepository extends ChangeNotifier {
     _bookmarksSub?.cancel();
     _scheduledSub?.cancel();
     _interactionsSub?.cancel();
+    _membersSub?.cancel();
     // The `_openGen` bump above already makes a late firing a no-op; this stops
     // it holding the closure for the rest of the fallback window.
     _secondaryFallback?.cancel();
@@ -2071,6 +2282,7 @@ class ChatRepository extends ChangeNotifier {
     _bookmarksSub = null;
     _scheduledSub = null;
     _interactionsSub = null;
+    _membersSub = null;
     _activeRoomId = null;
     // Nothing left for [_attach]'s repair to re-open. The anchor itself stays:
     // a route transition disposes the OUTGOING screen after its replacement has
@@ -2099,6 +2311,15 @@ class ChatRepository extends ChangeNotifier {
     // an old page's ids should be re-fetched if the reader scrolls back to
     // them again — a poll they last saw a week ago has moved on.
     _interactionsAsked.clear();
+    // `_roomMembers` and `_roomMembersSig` are NOT cleared here, on the same
+    // argument as `_pins`, `_messages` and `_interactions` above, and they are
+    // the pair that argument pays off hardest for: the roster is what a bubble
+    // gets its sender's name, avatar and colour from, so dropping it would
+    // make stepping out of a room and straight back into it repaint the whole
+    // transcript in theme ink for as long as the round trip takes. Kept
+    // together on purpose — a roster held without its signature would let the
+    // re-entry's first identical delivery through the dedup and rebuild the
+    // list for nothing.
     _clearHistoryWindows();
   }
 
@@ -4227,6 +4448,19 @@ class ChatRepository extends ChangeNotifier {
   Map<String, int> speakerColorsFor(String roomId) =>
       _speakerColors[roomId] ?? const {};
 
+  /// Snapshot the pins to disk, so the next cold start settles a cached roster
+  /// to the same palette this session is showing rather than to the derived one
+  /// the pins override. See `CacheStore.scheduleSaveSpeakerColors`.
+  ///
+  /// Only ever called where `_speakerColors` holds state the server has agreed
+  /// to — the subscription's own delivery, and each mutation that returned
+  /// without throwing. Never from the optimistic apply.
+  void _persistSpeakerColors() {
+    final id = _userId;
+    if (id == null) return;
+    CacheStore.instance.scheduleSaveSpeakerColors(id, _speakerColors);
+  }
+
   /// Pins [subjectId] to [slot] for this reader in [roomId], or clears the pin
   /// when [slot] is null. Returns null on success, or an error code to surface.
   ///
@@ -4262,6 +4496,10 @@ class ChatRepository extends ChangeNotifier {
         subjectId: subjectId,
         slot: slot,
       );
+      // The mutation landed, so the optimistic map is now the server's answer
+      // whether or not the echo has arrived — and an app killed in that window
+      // would otherwise relaunch onto the pre-pin palette.
+      _persistSpeakerColors();
       return null;
     } catch (e) {
       // Put the old map back rather than leaving the optimistic one to be
@@ -4290,6 +4528,9 @@ class ChatRepository extends ChangeNotifier {
     notifyListeners();
     try {
       await api.clearSpeakerSlots(viewerId: id, roomId: roomId);
+      // Same reason as [setSpeakerSlot]: confirmed, so it is safe — and
+      // necessary — to let the snapshot follow.
+      _persistSpeakerColors();
     } catch (_) {
       _speakerColors = before;
       notifyListeners();

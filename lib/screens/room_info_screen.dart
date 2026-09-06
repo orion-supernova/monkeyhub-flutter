@@ -107,7 +107,22 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   bool _leaving = false;
   bool _deleting = false;
   String? _error;
+
+  /// The room's roster, read from the repository rather than subscribed to
+  /// here.
+  ///
+  /// This screen used to hold its own `rooms:getMembers` — a second live query
+  /// on exactly the rows the transcript behind it was already watching, both
+  /// of them refiring on every read receipt in the room. There is one now, on
+  /// the repository, and both screens read it. It also means this list is
+  /// populated the moment the screen mounts (the room is open, so the roster
+  /// is in hand) instead of after a round trip, so Room Info no longer opens
+  /// on an empty member list.
   List<ChatUser> _members = const [];
+
+  /// The exact list instance [_members] was last taken from — see
+  /// `_RoomScreenState._rosterSource` for why identity is the whole test.
+  List<ChatUser>? _rosterSource;
 
   /// Who speaks in which colour, settled the same way the transcript settles
   /// it — same roster, same pins, same pure function — so the roster below is a
@@ -137,8 +152,17 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     final parts = [for (final e in pins.entries) '${e.key}:${e.value}']..sort();
     return parts.join(',');
   }
-  Subscription? _membersSub;
-  String _membersSig = '';
+
+  /// Re-take the roster from the repository. True when it actually moved.
+  bool _syncMembers() {
+    final roster = widget.repo.membersFor(widget.roomId);
+    if (identical(roster, _rosterSource)) return false;
+    _rosterSource = roster;
+    _members = roster;
+    _rebuildSpeakerSlots();
+    return true;
+  }
+
   ChatRoom? _lastObservedRoom;
 
   // ── Group administration ────────────────────────────────────────────────
@@ -334,6 +358,12 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   void _onRepo() {
     if (!mounted) return;
     final r = _room;
+    // The roster arrives through the repository now, so it has to survive the
+    // same-fields early return below for the same reason the pins do: the room
+    // ROW is unchanged when somebody joins, leaves or comes online, and the
+    // member list on this screen is not. Identity-gated, so this is one
+    // reference comparison on the notifications that carry no roster change.
+    final rosterMoved = _syncMembers();
     // A colour pinned on this very screen comes back through the repository,
     // so it has to survive the same-fields early return below — the room row
     // has not changed at all, and the rings and the section value have.
@@ -341,6 +371,11 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     if (pinsSig != _speakerPinsSig) {
       _speakerPinsSig = pinsSig;
       _rebuildSpeakerSlots();
+      setState(() {});
+      _lastObservedRoom = r;
+      return;
+    }
+    if (rosterMoved) {
       setState(() {});
       _lastObservedRoom = r;
       return;
@@ -386,59 +421,16 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     _appliedSig =
         '${r.name.trim()}|${(r.description ?? '').trim()}|${r.isPrivate}|${r.isEphemeral ? r.messageLifetime : null}';
     _loaded = true;
-    _loadMembers();
-  }
-
-  Future<void> _loadMembers() async {
-    // Live subscription so presence (status/lastSeen) and any member-list
-    // changes propagate without needing the screen to be re-opened.
-    //
-    // Convex re-fires this whenever any roomMembers row in the room is
-    // written — including read-receipts (`markRoomRead` patches lastReadAt),
-    // which can fire often during active chat. We don't render lastReadAt
-    // here, so a content-signature dedup avoids gratuitous rebuilds. Without
-    // it, rebuilds during overscroll fight the bounce physics and the
-    // scroll view visibly jitters at top/bottom edges.
-    try {
-      _membersSub?.cancel();
-      _membersSub = await widget.repo.cv.subscribe(
-        'rooms:getMembers',
-        {'roomId': widget.roomId, 'viewerUserId': ?widget.repo.userId},
-        onData: (data) {
-          if (!mounted) return;
-          final list = (data as List?) ?? const [];
-          final fresh = list
-              .map((e) => ChatUser.fromJson((e as Map).cast<String, dynamic>()))
-              .toList();
-          final sig = _signatureFor(fresh);
-          if (sig == _membersSig) return;
-          _membersSig = sig;
-          setState(() {
-            _members = fresh;
-            _rebuildSpeakerSlots();
-          });
-        },
-        onError: (err) => debugPrint('members sub error: $err'),
-      );
-    } catch (_) {/* offline — leave empty */}
-  }
-
-  /// Stable string fingerprint over the fields this screen actually renders.
-  /// Order-insensitive so reorders from the server don't trigger a rebuild
-  /// (the screen sorts members locally for display).
-  String _signatureFor(List<ChatUser> users) {
-    final parts = users
-        .map((u) =>
-            '${u.id}|${u.status ?? ''}|${u.lastSeen?.millisecondsSinceEpoch ?? 0}|${u.name}|${u.avatarStorageId ?? ''}|${u.role ?? ''}')
-        .toList()
-      ..sort();
-    return parts.join(';');
+    // The roster is already in hand — this screen is only ever pushed from the
+    // room it describes, so the repository is holding that room's members by
+    // the time we get here. Nothing to fetch and nothing to wait for; the live
+    // updates arrive through [_onRepo] like everything else.
+    _syncMembers();
   }
 
   @override
   void dispose() {
     _newPassword.removeListener(_onPasswordTyped);
-    _membersSub?.cancel();
     _permsSub?.cancel();
     widget.repo.removeListener(_onRepo);
     _name.dispose();

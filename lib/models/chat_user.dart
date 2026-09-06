@@ -275,13 +275,14 @@ class ChatUser {
     );
   }
 
-  /// For [CacheStore]'s on-disk friends list — the offline seed that lets a
-  /// DM's real name paint on the very first cold-start frame instead of the
-  /// raw `dm:<id>_<id>` room name while `friends:listFriends` is still in
-  /// flight. Deliberately skips the self-only fields ([visibility],
-  /// [childPolicy], [hasRecoveryKey], [hasPassword], [usernameChangedAt]):
-  /// `friends:listFriends` never populates them on someone else's row (see
-  /// [visibility]'s own doc), so there is nothing there to round-trip.
+  /// For [CacheStore]'s on-disk friends list and per-room rosters — the
+  /// offline seed that lets a DM's real name paint on the very first
+  /// cold-start frame instead of the raw `dm:<id>_<id>` room name while
+  /// `friends:listFriends` is still in flight. Deliberately skips the
+  /// self-only fields ([visibility], [childPolicy], [hasRecoveryKey],
+  /// [hasPassword], [usernameChangedAt]): `friends:listFriends` never
+  /// populates them on someone else's row (see [visibility]'s own doc), so
+  /// there is nothing there to round-trip.
   Map<String, dynamic> toJson() => {
         '_id': id,
         'username': username,
@@ -297,6 +298,23 @@ class ChatUser {
         'acceptsFriendRequests': acceptsFriendRequests,
         'accountType': accountType.wire,
         if (isSystem) 'isSystem': true,
+        // The same argument [copyWith] makes for carrying this through, and
+        // for the same reason — except that here the reshuffle it prevents is
+        // the one that happens across a RELAUNCH rather than mid-session.
+        //
+        // `CacheStore.loadMembers` seeds a room's speaker colours on the first
+        // frame, before `rooms:getMembers` has answered. That seed is only
+        // worth having if it settles the palette to the identical assignment
+        // the live roster will, and `SpeakerSlots.forMembers` settles
+        // collisions in JOIN order. Dropping this field here would have every
+        // cached member read back as `joinedAt: 0`, degrade the seed to id
+        // order, and repaint the whole room a different set of colours the
+        // instant the network landed — which is worse than the uncoloured
+        // frame the cache exists to replace.
+        //
+        // Null on every non-room fetch, so this is absent from `friends.json`
+        // exactly as it was before.
+        if (joinedAt != null) 'joinedAt': joinedAt!.millisecondsSinceEpoch,
       };
 
   ChatUser copyWith({

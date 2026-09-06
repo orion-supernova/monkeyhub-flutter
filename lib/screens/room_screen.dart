@@ -174,11 +174,29 @@ class _RoomScreenState extends State<RoomScreen>
   // screen rebuilds at 5Hz off _ticker already, so a setState here would make
   // the whole transcript pay for a pill.
   final BottomProximity _scrolledUp = BottomProximity();
-  final Map<String, ChatUser> _members = {}; // id → user (for sender names/avatars)
+
+  /// id → user, for sender names, avatars and speaker colours.
+  ///
+  /// A local index over `repo.membersFor(roomId)` rather than a roster of its
+  /// own. The subscription that used to fill this lives on the repository now,
+  /// which is what lets a room the reader has opened before paint its senders
+  /// from disk on the first frame instead of in theme ink — see
+  /// `ChatRepository._roomMembers`. Kept as a MAP because the read path is a
+  /// per-bubble lookup by sender id and the repository's list is not.
+  final Map<String, ChatUser> _members = {};
+
+  /// The exact list instance [_members] was last built from.
+  ///
+  /// Identity is a complete change signal here, and free: the repository only
+  /// replaces its roster list when the content actually changed (it holds the
+  /// signature dedup that both screens used to keep separately), so an
+  /// unchanged roster hands back the same instance on every one of the
+  /// notifications a live conversation produces.
+  List<ChatUser>? _rosterSource;
 
   /// Which colour each member speaks in, recomputed only when the roster
   /// itself changes — the assignment is a sort plus a walk, and doing it per
-  /// build would redo it on every keyboard frame. `_membersSig` already gates
+  /// build would redo it on every keyboard frame. [_rosterSource] already gates
   /// the roster rebuild, so this rides along on the one signal that matters.
   SpeakerSlots _speakerSlots = SpeakerSlots.none;
 
@@ -186,8 +204,6 @@ class _RoomScreenState extends State<RoomScreen>
   /// assignment is rebuilt when a pin changes and not on every one of the
   /// repository notifications that arrive while a conversation is live.
   String _speakerPinsSig = '';
-  Subscription? _membersSub;
-  String _membersSig = '';
   ChatRoom? _room;
   // True once we've pushed a CaptureProtection scope for this ephemeral
   // room — so dispose can pop exactly one and we don't double-push.
@@ -423,7 +439,15 @@ class _RoomScreenState extends State<RoomScreen>
     // RoomScreen well after the incoming one has opened its room, so an
     // unguarded close used to tear down the room now on screen.
     widget.repo.openRoom(widget.roomId, owner: this);
-    _loadMembers();
+    // Synchronously, and BELOW `openRoom` so a warm re-entry sees the roster
+    // that call did not have to go and fetch. `openRoom` is async from its
+    // first await onwards, but everything before that — including the roster
+    // it already holds from a previous visit — is in place by the time this
+    // runs, so the first frame of a re-entered room has every sender's name,
+    // avatar and colour rather than a transcript in theme ink. A first-ever
+    // open finds nothing here and picks the roster up from [_onRepoChange]
+    // when the disk seed or the subscription lands.
+    _syncMembers();
     // A room switched on in a previous session starts translating the moment
     // it opens, from the disk cache first — which is why reopening a room you
     // already read translated is instant rather than a second round of model
@@ -754,43 +778,28 @@ class _RoomScreenState extends State<RoomScreen>
     }
   }
 
-  Future<void> _loadMembers() async {
-    // Live subscription so each member's presence (status/lastSeen) and
-    // any add/remove flows through without needing to re-enter the room.
-    //
-    // Convex re-fires whenever any roomMembers row is written — including
-    // read-receipts from `markRoomRead`, which happen on every incoming
-    // message while someone is in the room. We don't render lastReadAt
-    // here, so we dedup on the fields we actually use and skip the rebuild
-    // when nothing material has changed. Without this, rebuilds during an
-    // active chat scroll can jitter the bouncing physics at edges.
-    try {
-      _membersSub?.cancel();
-      _membersSub = await widget.repo.cv.subscribe(
-        'rooms:getMembers',
-        {'roomId': widget.roomId, 'viewerUserId': ?widget.repo.userId},
-        onData: (data) {
-          if (!mounted) return;
-          final list = (data as List?) ?? const [];
-          final fresh = list
-              .map((e) => ChatUser.fromJson((e as Map).cast<String, dynamic>()))
-              .toList();
-          final sig = _signatureFor(fresh);
-          if (sig == _membersSig) return;
-          _membersSig = sig;
-          setState(() {
-            _members.clear();
-            for (final u in fresh) {
-              _members[u.id] = u;
-            }
-            _rebuildSpeakerSlots();
-          });
-        },
-        onError: (err) => debugPrint('members sub error: $err'),
-      );
-    } catch (_) {
-      /* ignore — initial fetch may fail offline */
-    }
+  /// Re-index [_members] from the repository's roster, and re-settle the
+  /// palette with it. Returns true when anything actually moved.
+  ///
+  /// Called once from `initState` — so a re-entered room, whose roster the
+  /// repository still holds, has its senders on the very first frame with no
+  /// await in between — and then from [_onRepoChange] for the disk seed and
+  /// the live subscription that follow it.
+  ///
+  /// The subscription itself used to live here. It is on the repository now
+  /// (`ChatRepository._registerSecondaryRoomSubscriptions`), which is what
+  /// gives the roster a disk cache, the `_openGen` guard, reconnect rebinding,
+  /// and one answer shared with Room Info instead of a second live query on
+  /// the same rows.
+  bool _syncMembers() {
+    final roster = widget.repo.membersFor(widget.roomId);
+    if (identical(roster, _rosterSource)) return false;
+    _rosterSource = roster;
+    _members
+      ..clear()
+      ..addEntries(roster.map((u) => MapEntry(u.id, u)));
+    _rebuildSpeakerSlots();
+    return true;
   }
 
   /// Re-settles who speaks in which colour.
@@ -816,20 +825,6 @@ class _RoomScreenState extends State<RoomScreen>
     if (pins.isEmpty) return '';
     final parts = [for (final e in pins.entries) '${e.key}:${e.value}']..sort();
     return parts.join(',');
-  }
-
-  String _signatureFor(List<ChatUser> users) {
-    final parts = users
-        .map((u) =>
-            // `username` is in here because the @-picker filters and inserts on
-            // it. Including it was once described as belt-and-braces, on the
-            // grounds that a handle could never change under the subscription;
-            // `users.applyUsernameChange` has since made it load-bearing, and a
-            // member who renames now correctly re-arms the picker.
-            '${u.id}|${u.status ?? ''}|${u.lastSeen?.millisecondsSinceEpoch ?? 0}|${u.name}|${u.username}|${u.avatarStorageId ?? ''}|${u.role ?? ''}')
-        .toList()
-      ..sort();
-    return parts.join(';');
   }
 
   /// Which rows are news and which are merely being drawn again — the ledger
@@ -887,10 +882,21 @@ class _RoomScreenState extends State<RoomScreen>
         outlineFor: _outlineFor,
       );
     }
+    // The roster lands through the repository too, so this is where the disk
+    // seed and the `rooms:getMembers` delivery both reach the transcript.
+    // [_syncMembers] is identity-gated and re-settles the palette itself, so
+    // this costs one reference comparison on the notifications — nearly all of
+    // them — that carry no roster change.
+    _syncMembers();
     // A pin lands through the repository like everything else, so this is where
     // a colour picked in room info reaches the transcript. Gated on the
     // signature because this handler runs on every repository notification and
     // re-settling the palette on each would be a sort per incoming message.
+    // Deliberately independent of the roster check above rather than an else:
+    // a cold start can land the seed and the pins on the same notification,
+    // and the palette is settled from both. Re-settling it twice in that one
+    // case is free — the function is pure in its two inputs, so the second
+    // call simply derives the same answer again.
     final pinsSig = _speakerPinsSignature();
     final pinsMoved = pinsSig != _speakerPinsSig;
     setState(() {
@@ -1187,7 +1193,9 @@ class _RoomScreenState extends State<RoomScreen>
     _jumpBack.dispose();
     _selection.removeListener(_onSelectionChanged);
     _selection.dispose();
-    _membersSub?.cancel();
+    // No roster subscription to cancel here any more — `closeRoom` below owns
+    // it now, beside the rest of the room's queries and under the same
+    // ownership guard.
     widget.repo.removeListener(_onRepoChange);
     SettingsStore.instance.removeListener(_onSettings);
     widget.repo.closeRoom(this);
