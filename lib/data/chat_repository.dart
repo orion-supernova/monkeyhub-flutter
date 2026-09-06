@@ -91,6 +91,31 @@ class ChatRepository extends ChangeNotifier {
   bool get roomsLoaded => _roomsLoaded;
   bool _roomsLoaded = false;
 
+  /// Whether the SERVER's own room list has been delivered — stronger than
+  /// [roomsLoaded], and the same distinction [hasLiveMessages] draws against
+  /// [hasLoadedInitial].
+  ///
+  /// [roomsLoaded] is satisfied by three things that are not the same: the disk
+  /// snapshot, the seed call, and this subscription. The first two are why it
+  /// cannot answer "is this room really gone?".
+  ///
+  ///   * The disk snapshot predates the launch, so a room this device has never
+  ///     seen — a group somebody added you to an hour ago, the first DM from a
+  ///     new person — is missing from it while very much existing.
+  ///   * The seed goes through `catchError((_) => <ChatRoom>[])`, so a call that
+  ///     failed outright is indistinguishable from an account with no rooms, and
+  ///     [_markRoomsLoaded] runs either way.
+  ///
+  /// A room opened from a notification tap is precisely the case both of those
+  /// get wrong: the push is proof the room exists, and it arrives before the
+  /// room list does. Anything about to tell the reader a room is GONE has to
+  /// wait for this instead — see `RoomScreen.build`.
+  ///
+  /// Never true offline, by construction, which is why the waits that gate on
+  /// it are bounded by [PendingPlaceholder] rather than open-ended.
+  bool get hasLiveRoomList => _hasLiveRoomList;
+  bool _hasLiveRoomList = false;
+
   /// Records that the rooms question has been answered, and tells anyone
   /// listening if that is news.
   void _markRoomsLoaded() {
@@ -747,6 +772,11 @@ class ChatRepository extends ChangeNotifier {
             .map((e) => ChatRoom.fromJson((e as Map).cast<String, dynamic>()))
             .toList();
         _roomsLoaded = true;
+        // The server has spoken — see [hasLiveRoomList]. Only here, and not
+        // beside the two weaker sources that also set `_roomsLoaded`: this is
+        // the one delivery that can be trusted to say a room is absent because
+        // it does not exist, rather than because nobody has looked yet.
+        _hasLiveRoomList = true;
         CacheStore.instance.scheduleSaveRooms(userId, _rooms);
         // This stream landing IS the delivery: the traffic it describes is on
         // this device now, whichever screen the user happens to be looking at.
@@ -1185,8 +1215,11 @@ class ChatRepository extends ChangeNotifier {
     _userId = null;
     _rooms = [];
     // The next account has not answered yet either, and inheriting this one's
-    // "answered" would show them an empty chat list instead of a skeleton.
+    // "answered" would show them an empty chat list instead of a skeleton — or,
+    // for the stronger flag, tell them a room they were pushed into is gone on
+    // the strength of a list belonging to somebody else.
     _roomsLoaded = false;
+    _hasLiveRoomList = false;
     _friends = [];
     _incomingRequests = [];
     _outgoingRequests = [];
@@ -1303,10 +1336,16 @@ class ChatRepository extends ChangeNotifier {
   /// Seeding IS an answer, empty list included — a test that hands this an
   /// empty list is describing an account with no rooms, not a network that has
   /// not replied, and must reach the empty state rather than a skeleton.
+  ///
+  /// Both flags, for that same reason: a test seeding no rooms and then opening
+  /// one is describing a room that genuinely is not there, and must reach "room
+  /// gone" rather than sit on the skeleton [hasLiveRoomList] would otherwise
+  /// hold it on.
   @visibleForTesting
   void debugSeedRooms(List<ChatRoom> rooms) {
     _rooms = List.of(rooms);
     _roomsLoaded = true;
+    _hasLiveRoomList = true;
   }
 
   Future<String> createRoom({

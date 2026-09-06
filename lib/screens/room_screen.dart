@@ -3247,12 +3247,47 @@ class _RoomScreenState extends State<RoomScreen>
     _composer.tint = theme.accent;
     final room = _room ?? widget.repo.roomById(widget.roomId);
     if (room == null) {
+      // Two different things used to come out of this branch as one sentence.
+      // A room that has been deleted is not in the list; neither is a room the
+      // list has not arrived for yet — and telling somebody their conversation
+      // is gone because their phone has not finished waking up is the worse of
+      // the two mistakes by a long way.
+      //
+      // The notification tap is where it showed. `_openRoomFromPush` waits for
+      // the session and the navigator and nothing else (see `app.dart`), and
+      // `_bootstrap` deliberately mounts the UI early "in <150ms from local
+      // cache" — so this screen is built, scans a `_rooms` that is still empty,
+      // and prints an epitaph for the conversation the reader just tapped a
+      // notification from. A list tap never showed it: you cannot tap a row
+      // that is not in the list.
+      //
+      // Gated on the STRONG flag, not `roomsLoaded`, and that is the whole
+      // point rather than caution. `roomsLoaded` is satisfied by the disk
+      // snapshot, and the sharpest case here — a group somebody added you to
+      // an hour ago, a first DM — is exactly a room that snapshot cannot
+      // contain. See [ChatRepository.hasLiveRoomList].
       return Scaffold(
         backgroundColor: theme.background,
-        body: Center(
-          child: Text(
-            AppLocalizations.of(context).roomScreenRoomGone,
-            style: theme.bodySoft,
+        body: PendingPlaceholder(
+          pending: !widget.repo.hasLiveRoomList,
+          // The transcript's own silhouette, for the reason the empty-room
+          // branch further down gives: it says "your conversation is coming,
+          // and it will be about here" rather than "something is happening",
+          // and it occupies the space the answer will, so the screen settles
+          // once instead of jumping.
+          loading: (context) => const Padding(
+            padding: EdgeInsets.fromLTRB(16, 24, 16, 24),
+            child: SkeletonBubbles(),
+          ),
+          // Reached either because the server's list genuinely does not have
+          // this room, or because `PendingPlaceholder` gave up waiting — which
+          // is the offline case, and which it is right to end on rather than
+          // shimmer forever. See its own doc for that bargain.
+          empty: (context) => Center(
+            child: Text(
+              AppLocalizations.of(context).roomScreenRoomGone,
+              style: theme.bodySoft,
+            ),
           ),
         ),
       );
