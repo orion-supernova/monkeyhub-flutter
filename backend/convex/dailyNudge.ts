@@ -7,6 +7,7 @@ import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { GAMES } from "./games";
+import { mayReachDevices } from "./deployment";
 import type { AlertSpec } from "./push";
 import { liveSessionDeviceIds } from "./sessionCore";
 
@@ -85,6 +86,16 @@ import { liveSessionDeviceIds } from "./sessionCore";
  * to. Reading the devices straight off the audience page instead — which is
  * what this did first — dropped every phone that happened to land on a later
  * page of a busy zone.
+ *
+ * Provably once per person per DEPLOYMENT, which is the qualifier that was
+ * missing and that cost every player a duplicate notification a day for eleven
+ * days. The claim is a row, the standby holds its own copy of every row and its
+ * own copy of every APNs and FCM credential, and it runs `crons.ts` because it
+ * is switched on — not because anybody is talking to it. Neither deployment
+ * could see the other's claim, so both sent. `run` now asks
+ * `deployment.mayReachDevices` first and the standby returns before it reads
+ * anything; `push.sendAlert*` asks the same question, so the rule holds for a
+ * caller that forgets.
  *
  * ## Phones, and phones only
  *
@@ -1245,6 +1256,17 @@ export const run = internalAction({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
+    // Before anything is read: is this box the one anybody is listening to?
+    //
+    // The standby runs this cron too — it is up, and a Convex deployment runs
+    // its crons because it is up. It also holds a copy of `userDevices` with
+    // the same live APNs and FCM credentials on it, so its nudge landed on the
+    // same real phones as the primary's, and `lastNudgedDayKey` could not
+    // notice: the claim is a row, and each deployment claims in its own. Two
+    // identical notifications every lunchtime, from 2026-08-28 until this
+    // returned early. See deployment.ts.
+    if (!(await mayReachDevices(ctx, "dailyNudge"))) return null;
+
     const now = Date.now();
     const cutoff = now - ACTIVE_WINDOW_DAYS * 86_400_000;
     const fallback = fallbackOffsetMinutes();

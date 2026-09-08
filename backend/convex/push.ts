@@ -9,6 +9,7 @@ import {
   type ApnsEnv,
 } from "./pushTransport";
 import { badgeTotalFor } from "./badges";
+import { mayReachDevices } from "./deployment";
 import { liveSessionDeviceIds } from "./sessionCore";
 import { resolveMute } from "./mute";
 
@@ -408,6 +409,11 @@ export const sendAlert = internalAction({
   returns: v.null(),
   handler: async (ctx, a) => {
     if (a.userIds.length === 0) return null;
+    // The standby deployment holds live push credentials and must not use
+    // them; see deployment.ts. Checked at the three actions that own the
+    // wire rather than inside `alertToDevice`, so the cost is one indexed
+    // read per fan-out and not one per handset.
+    if (!(await mayReachDevices(ctx, `sendAlert(${a.kind})`))) return null;
     const targets: AlertTarget[] = await ctx.runQuery(
       internal.push._loadAlertTargets,
       { userIds: a.userIds, roomId: a.roomId },
@@ -484,6 +490,7 @@ export const sendAlertToDevices = internalAction({
   returns: v.null(),
   handler: async (ctx, { targets }) => {
     if (targets.length === 0) return null;
+    if (!(await mayReachDevices(ctx, "sendAlertToDevices"))) return null;
     await Promise.allSettled(
       targets.map((t: any) =>
         alertToDevice(
@@ -506,6 +513,9 @@ export const retryAlertToDevice = internalAction({
   args: { userId: v.id("users"), device: v.any(), spec: v.any() },
   returns: v.null(),
   handler: async (ctx, { userId, device, spec }) => {
+    // A retry is scheduled two seconds out, which is long enough for a
+    // failover to have moved traffic to the other box in between.
+    if (!(await mayReachDevices(ctx, "retryAlertToDevice"))) return null;
     await alertToDevice(ctx, userId, device as AlertDevice, spec as AlertSpec, {
       isRetry: true,
     });
