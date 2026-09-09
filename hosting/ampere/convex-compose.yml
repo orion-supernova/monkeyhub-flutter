@@ -1,0 +1,133 @@
+# MonkeyHub's production Convex deployment on the Ampere box — the stack that
+# serves termio-api.walhallaa.com.
+#
+# Lives on the box at:
+#   /opt/stacks/monkeyhub-convex/docker-compose.yml   (ubuntu@belesampere)
+#
+# Managed from this repo the same way the other two are, so the file on the box
+# and the file in git cannot drift silently. `migrate-to-ampere.sh status`
+# compares their checksums.
+#
+# ───────── what this box is ─────────
+#
+# 129.151.223.191, Oracle Ampere A1: aarch64, 2 vCPU, 11.9 GB RAM, 45 GB disk,
+# no steal. It replaces the 956 MB Oracle VM that hosting/termio-docker-compose.yaml
+# describes — the box whose every setting was a clamp fighting for room, and
+# which the note in tune-termio-vm.sh said could only be fixed with RAM rather
+# than a digest. This is that RAM. It is also more than the home server has
+# (7.3 GB, shared with six other stacks), which is why the caches below are left
+# alone entirely.
+#
+# ───────── aarch64, and why the digest did not have to change ─────────
+#
+# This is the first ARM box in the fleet. The pin below is byte-identical to the
+# one the home server and the old VPS run, and that is not luck: the digest
+# names an OCI image INDEX, not an image —
+#
+#   sha256:1f2044e3…  ─┬─ amd64  sha256:46ff2712…   (home server, old VPS)
+#                      └─ arm64  sha256:7ee230b9…   (this box)
+#
+# so `docker pull` on aarch64 resolves the arm64 member on its own. The pin
+# still means "the 2026-08-10 build" on every box, which is the property that
+# matters: a Convex backend cannot read data a newer one wrote, and the data
+# copied onto this box was written by exactly this build. Verify a pin is
+# multi-arch before moving it — a single-platform digest would fail to pull
+# here with "no matching manifest for linux/arm64".
+#
+# The SQLite file and the storage blobs are architecture-neutral, so the x86_64
+# → aarch64 copy needs no conversion. SQLite's on-disk format is fixed-endian
+# by specification, and the storage/ tree is opaque blobs plus the pushed
+# modules.
+#
+# ───────── the caches are DELIBERATELY at their defaults ─────────
+#
+# hosting/termio-docker-compose.yaml caps six of them. Every one of those caps
+# exists because that box had 956 MB and the backend's default budget is
+# ~1.5 GB. Copying them here would make a box with twelve times the RAM behave
+# like the box we are leaving. Two settings are kept, because neither is about
+# memory — the same two the home server keeps:
+#
+#   DATABASE_UDF_USER_TIMEOUT_SECONDS=3
+#       A function that spends >1 s in JS is killed and its isolate restarted.
+#       On the small VPS that fed itself into restart storms. It has never
+#       fired for a legitimate function.
+#
+#   ISOLATE_ANALYZE_USER_TIMEOUT_SECONDS=10
+#       `npx convex deploy` loads the pushed bundle in a fresh isolate to list
+#       its functions, under this limit. The 4 s default fails cold on the
+#       first push after a recreate.
+#
+# No etcd service. The old VPS's compose runs one and the backend has never
+# spoken to it — it came from an upstream template for a mode this deployment
+# does not use. The home server has always run without it, which is the proof.
+#
+# ───────── ports are bound to loopback ─────────
+#
+# The old VPS published 3212/3213 on 0.0.0.0 because nestzone already held
+# 3210/3211 on that shared box. Nothing else lives here, so the canonical ports
+# are free — and they are bound to 127.0.0.1 rather than every interface,
+# because the only thing that needs to reach them from outside is cloudflared,
+# which reaches them over the `edge` Docker network by container name instead.
+# A published port on a box with a public IP is one Oracle security-list edit
+# away from being open to the internet; a loopback binding never is.
+
+name: monkeyhub-convex
+
+services:
+  backend:
+    container_name: monkeyhub-convex-backend
+    # Pinned by digest, never `:latest` — compose will not re-pull a tag it
+    # already has locally, which is how a box sits on a months-old build
+    # believing it is current. See the aarch64 note above before changing it,
+    # and read the one-way-door warning in hosting/termio-docker-compose.yaml:
+    # upgrading a Convex deployment cannot be undone.
+    image: ghcr.io/get-convex/convex-backend@sha256:1f2044e3eac463ac78973b136c0baf72d4ada602611d853d6f99f280e29e0a98
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3210:3210"
+      - "127.0.0.1:3211:3211"
+    volumes:
+      - monkeyhub-convex-data:/convex/data
+    environment:
+      # Both origins are the SAME hostname, which is what makes HTTP actions
+      # reachable at /http on the cloud port — env.local's CONVEX_SITE_URL
+      # (…/http) depends on this and would break if they diverged.
+      - CONVEX_CLOUD_ORIGIN=https://termio-api.walhallaa.com
+      - CONVEX_SITE_ORIGIN=https://termio-api.walhallaa.com
+      - DATABASE_UDF_USER_TIMEOUT_SECONDS=3
+      - ISOLATE_ANALYZE_USER_TIMEOUT_SECONDS=10
+    networks:
+      - edge
+
+  dashboard:
+    container_name: monkeyhub-convex-dashboard
+    image: ghcr.io/get-convex/convex-dashboard@sha256:da6b19b3d4202df0149d61a54deb8e56a258d7bdd6a7d186f4f1814bfc444ff5
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6791:6791"
+    environment:
+      - NEXT_PUBLIC_DEPLOYMENT_URL=https://termio-api.walhallaa.com
+    depends_on:
+      - backend
+    networks:
+      - edge
+
+volumes:
+  # Created by `migrate-to-ampere.sh prepare`, filled by `cutover`.
+  #
+  # NAMED, and external so that nothing in this file can create it by accident.
+  # The old VPS kept /convex/data on an ANONYMOUS volume (906c60d3…), which has
+  # no name to ask for, is invisible in any useful `docker volume ls` output,
+  # and is the first thing `docker compose down -v` removes. Production data
+  # should be addressable by name.
+  monkeyhub-convex-data:
+    name: monkeyhub-convex-data
+    external: true
+
+networks:
+  # Shared with the cloudflared stack (and with any stack added later) so that
+  # tunnels can address containers by name across compose projects. Created by
+  # `migrate-to-ampere.sh prepare`; external so no stack owns it.
+  edge:
+    name: edge
+    external: true

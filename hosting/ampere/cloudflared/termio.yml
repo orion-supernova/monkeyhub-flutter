@@ -1,0 +1,18 @@
+# termio-tunnel — MonkeyHub's API and its Convex dashboard.
+#
+# Installed on the box at /opt/stacks/edge/cloudflared/termio.yml by
+# `migrate-to-ampere.sh prepare`. The credentials JSON named below is copied
+# off the old VPS by the same step and is NOT in git — it is a secret.
+#
+# The services are container names on the shared `edge` Docker network, not
+# 127.0.0.1 ports as on the old VPS. Same effect, one fewer indirection, and it
+# keeps working if the loopback port bindings are ever dropped.
+tunnel: e970c8dc-30e5-4b6e-a3c7-d569b816ebd1
+credentials-file: /etc/cloudflared/e970c8dc-30e5-4b6e-a3c7-d569b816ebd1.json
+
+ingress:
+  - hostname: termio-api.walhallaa.com
+    service: http://monkeyhub-convex-backend:3210
+  - hostname: termio-dashboard.walhallaa.com
+    service: http://monkeyhub-convex-dashboard:6791
+  - service: http_status:404

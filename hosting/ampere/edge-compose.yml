@@ -1,0 +1,90 @@
+# Every Cloudflare tunnel that terminates on the Ampere box.
+#
+# Lives on the box at:
+#   /opt/stacks/edge/docker-compose.yml   (ubuntu@belesampere)
+#
+# ───────── why the tunnels moved rather than the DNS ─────────
+#
+# A named Cloudflare tunnel is a UUID plus a credentials file, and the public
+# DNS record for a tunnel hostname is a CNAME to `<uuid>.cfargotunnel.com`.
+# That record names the TUNNEL, not the machine running it — so moving a tunnel
+# between boxes is moving its credentials file, and the DNS does not change at
+# all. No A record to repoint, no propagation to wait out, no certificate to
+# reissue, and no Oracle security-list edit: cloudflared dials out.
+#
+# The two tunnels MonkeyHub owns, both created on the old VPS:
+#
+#   termio-tunnel      e970c8dc-30e5-4b6e-a3c7-d569b816ebd1
+#                      termio-api.walhallaa.com        → the Convex backend
+#                      termio-dashboard.walhallaa.com  → the Convex dashboard
+#
+#   monkeyhub-tunnel   96c30746-b8cf-41ff-b407-546e041363ea
+#                      monkeyhub.walhallaa.com         → Caddy :8081
+#
+# A third tunnel on that box, nestzone-tunnel (4ab9757f…), STAYS there: it
+# serves nestzone and couplezone, which are other apps. Its config also lists
+# termio-api and termio-dashboard — a leftover from before termio-tunnel
+# existed — and `migrate-to-ampere.sh ingress` strips those two entries, so
+# that after the move exactly one tunnel anywhere claims those hostnames.
+#
+# ───────── run a tunnel from ONE box at a time ─────────
+#
+# cloudflared registers outbound connections to the edge, and Cloudflare
+# load-balances a hostname across every connection a tunnel currently has. Two
+# machines running the SAME tunnel id therefore both receive live traffic,
+# split unpredictably — which during this migration would mean half the
+# requests answered by the new backend and half by the stale one. That is why
+# `migrate-to-ampere.sh ingress` stops the old box's units before it starts
+# these, and why it verifies afterwards that the answer comes from here.
+
+name: edge
+
+services:
+  # ── termio-tunnel: the API and its dashboard ────────────────────────────────
+  termio-tunnel:
+    container_name: edge-termio-tunnel
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    user: root
+    command: tunnel --no-autoupdate --config /etc/cloudflared/termio.yml run
+    volumes:
+      - ./cloudflared:/etc/cloudflared:ro
+    networks:
+      - edge
+
+  # ── monkeyhub-tunnel: the landing page, downloads and the web app ──────────
+  monkeyhub-tunnel:
+    container_name: edge-monkeyhub-tunnel
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    user: root
+    command: tunnel --no-autoupdate --config /etc/cloudflared/monkeyhub.yml run
+    volumes:
+      - ./cloudflared:/etc/cloudflared:ro
+    # HOST networking, so this reaches Caddy at plain 127.0.0.1:8081.
+    #
+    # Caddy is a host service on this box, not a container (see
+    # hosting/ampere/README.md — `deploy.sh --infra` drives it through
+    # systemctl). The obvious way to reach it from a container is
+    # host.docker.internal mapped to host-gateway, and on this box that FAILS:
+    #
+    #   dial tcp 172.17.0.1:8081: connect: no route to host
+    #
+    # The name resolves fine. Oracle's Ubuntu image ships an iptables INPUT
+    # chain that ends in a blanket REJECT, so packets arriving on the host from
+    # a Docker bridge are refused before they reach Caddy. The alternative fix
+    # is an ACCEPT rule for the bridge subnets, which means owning a firewall
+    # rule that has to survive reboots and every future bridge Docker creates.
+    # Host networking removes the hop instead: no bridge to traverse, no rule
+    # to maintain, and the tunnel still only ever dials OUT.
+    #
+    # The API tunnel above deliberately does NOT do this — it talks to
+    # containers by name on the `edge` network, which never touches the host.
+    network_mode: host
+
+networks:
+  # Shared with monkeyhub-convex (and anything added later) so a tunnel can
+  # address a backend by container name across compose projects.
+  edge:
+    name: edge
+    external: true

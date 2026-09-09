@@ -1,0 +1,18 @@
+# monkeyhub-tunnel — the landing page, the downloads page and the Flutter web
+# app, all of which are paths on Caddy's :8081 site block.
+#
+# Installed on the box at /opt/stacks/edge/cloudflared/monkeyhub.yml by
+# `migrate-to-ampere.sh prepare`.
+#
+# Caddy runs as a HOST service rather than a container, and this tunnel runs
+# with host networking (see edge-compose.yml), so plain 127.0.0.1 reaches it.
+# Going through the Docker bridge instead does NOT work on this box: Oracle's
+# iptables INPUT chain ends in a blanket REJECT, so a bridge-sourced packet to
+# the host's :8081 comes back "no route to host".
+tunnel: 96c30746-b8cf-41ff-b407-546e041363ea
+credentials-file: /etc/cloudflared/96c30746-b8cf-41ff-b407-546e041363ea.json
+
+ingress:
+  - hostname: monkeyhub.walhallaa.com
+    service: http://127.0.0.1:8081
+  - service: http_status:404

@@ -483,7 +483,7 @@ day the Play listing goes public.
 
 | Piece | Location |
 |---|---|
-| Files | `ubuntu@79.76.54.204:/srv/monkeyhub/{site,downloads,web}` |
+| Files | `ubuntu@129.151.223.191:/srv/monkeyhub/{site,downloads,web}` |
 | Web server | Caddy — the `:8081` block lives in this repo at `hosting/caddy-monkeyhub.conf`, installed to `/etc/caddy/monkeyhub.conf`, pulled in by `import monkeyhub.conf` |
 | Tunnel | `monkeyhub-tunnel` (`96c30746-…`), `/etc/cloudflared/config-monkeyhub.yml`, unit `cloudflared-monkeyhub` |
 | SSH key | `~/Documents/BelesMakinem/ssh-key-2024-12-04-2.key` |

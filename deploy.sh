@@ -47,11 +47,21 @@ cd "$SCRIPT_DIR"
 
 ANDROID_PACKAGE="com.walhallaa.chattest20241220"
 
-# ----- self-hosted site (Oracle VM + Caddy + cloudflared) -----
+# ----- self-hosted site (Oracle Ampere + Caddy + cloudflared) -----
 # Override any of these from .env.local if the box or key ever moves.
-VM_HOST="${VM_HOST:-79.76.54.204}"
+#
+# This is the Ampere box (belesampere), which took over from the 956 MB Oracle
+# VM at 79.76.54.204 on 2026-09-09 — see hosting/ampere/README.md and
+# hosting/migrate-to-ampere.sh. The site tree, the Caddy contract
+# (/etc/caddy/Caddyfile importing monkeyhub.conf) and the two Cloudflare
+# tunnels all moved with it, so --site, --web and --infra work here unchanged.
+#
+# The default is edited here rather than left to .env.local ON PURPOSE:
+# .env.local is gitignored, so a fresh checkout would otherwise deploy the site
+# to a machine that no longer serves it.
+VM_HOST="${VM_HOST:-129.151.223.191}"
 VM_USER="${VM_USER:-ubuntu}"
-VM_SSH_KEY="${VM_SSH_KEY:-$HOME/Documents/BelesMakinem/ssh-key-2024-12-04-2.key}"
+VM_SSH_KEY="${VM_SSH_KEY:-$HOME/Documents/BelesMakinem/BelesAmpere.key}"
 
 # ----- the home server -----
 # The second Convex deployment, primary since the 2026-08-28 migration. Reached

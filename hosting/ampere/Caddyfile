@@ -1,0 +1,18 @@
+# The root Caddyfile on the Ampere box — /etc/caddy/Caddyfile.
+#
+# Deliberately almost empty. The whole MonkeyHub site block lives in
+# hosting/caddy-monkeyhub.conf and is installed alongside this file as
+# /etc/caddy/monkeyhub.conf by `./deploy.sh --infra`, which validates the merged
+# config before it reloads. Edit the site THERE, not here and not on the box.
+#
+# `deploy.sh --infra` greps this file for the import line below and refuses to
+# run without it, so keep it.
+#
+# Unlike the old VPS's Caddyfile this has no nestzone block: nestzone and
+# couplezone stay on 79.76.54.204, which is still their box.
+#
+# Caddy therefore listens on :8081 only — no :80, no :443, no certificates to
+# manage. Everything public arrives through cloudflared, which dials out, so
+# this box needs no inbound port beyond SSH and no Oracle security-list change.
+
+import monkeyhub.conf

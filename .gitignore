@@ -89,3 +89,10 @@ firebase-debug.log
 /graphify-out/*
 !/graphify-out/GRAPH_REPORT.md
 /backend/graphify-out/
+
+# Cloudflare tunnel secrets. hosting/ampere/cloudflared/ holds the ingress
+# configs, which are safe to track — but the credentials JSON and the account
+# cert that migrate-to-ampere.sh copies alongside them are NOT. Whoever holds a
+# tunnel's credentials file can serve that hostname.
+hosting/ampere/cloudflared/*.json
+hosting/ampere/cloudflared/cert.pem
