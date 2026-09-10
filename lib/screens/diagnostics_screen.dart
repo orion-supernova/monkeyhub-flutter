@@ -123,6 +123,9 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
       final text = await DiagExport.build(
         events: events,
         dropped: DiagBuffer.instance.dropped,
+        // Same reason as the problem-report path: whoever is sharing a log
+        // after a crash is sharing the session that replaced it.
+        previous: await DiagBuffer.instance.readFile(previous: true),
       );
       await DiagExport.share(text: text, label: 'log', origin: origin);
     } finally {

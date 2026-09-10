@@ -313,6 +313,7 @@ class DeviceReport {
     required int uptimeMs,
     required String redactionVersion,
     String? connectionPhase,
+    int previousEvents = 0,
   }) {
     String v(String k) => d[k]?.toString() ?? '—';
     final b = StringBuffer();
@@ -351,6 +352,15 @@ class DeviceReport {
       'session     events $events (dropped $dropped)'
       ' · redaction $redactionVersion',
     );
+    // Only when there is one, so an ordinary report is not padded with a line
+    // that says nothing. Its presence IS the signal: the last run ended without
+    // rolling its own file, which on this platform means it was killed.
+    if (previousEvents > 0) {
+      b.writeln(
+        'previous    events $previousEvents · the run before this one,'
+        ' appended below',
+      );
+    }
     return b.toString();
   }
 

@@ -17,10 +17,23 @@ class DiagExport {
   static const int _maxShareBytes = 2 * 1024 * 1024;
 
   /// Builds the full text: header block, then one JSON object per line.
+  ///
+  /// [previous] is the run before this one, read back from `previous.ndjson`.
+  /// It is the whole reason a crash is reportable at all: a process that dies
+  /// takes its in-memory buffer with it, and whoever files the report is by
+  /// definition doing it from the session that came AFTER — which contains a
+  /// clean boot and nothing else. Passing it empty is the old behaviour and
+  /// costs nothing.
+  ///
+  /// Appended LAST, and that ordering is load-bearing. The size cap below keeps
+  /// the tail, so the bytes that survive truncation are the end of the crashed
+  /// run — which is exactly where the crash is. Putting it first would let a
+  /// long post-restart session push the evidence out of the file.
   static Future<String> build({
     required List<DiagEvent> events,
     required int dropped,
     String? connectionPhase,
+    List<DiagEvent> previous = const [],
   }) async {
     final device = await DeviceReport.gather();
     final header = DeviceReport.format(
@@ -30,11 +43,25 @@ class DiagExport {
       uptimeMs: DiagBuffer.instance.uptimeMs,
       redactionVersion: Redactor.version,
       connectionPhase: connectionPhase,
+      previousEvents: previous.length,
     );
 
     final body = StringBuffer();
     for (final e in events) {
       body.write(e.toNdjsonLine());
+    }
+    if (previous.isNotEmpty) {
+      // A plain-text marker rather than another JSON object: every line in this
+      // file parses as one event, and a reader splitting on newlines must not
+      // have to know about a sentinel that isn't one.
+      body.writeln();
+      body.writeln(
+        '--- previous session: ${previous.length} events, the run that ended '
+        'before this one started ---',
+      );
+      for (final e in previous) {
+        body.write(e.toNdjsonLine());
+      }
     }
 
     var text = '$header\n$body';

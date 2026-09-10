@@ -35,6 +35,8 @@ import 'package:flutter/foundation.dart' show kDebugMode, visibleForTesting;
 import 'package:flutter/widgets.dart';
 
 import '../data/settings_store.dart';
+import '../diagnostics/diag_event.dart';
+import '../diagnostics/diag_log.dart';
 import '../models/chat_message.dart';
 import '../models/enums.dart';
 import 'brain_gateway.dart';
@@ -830,7 +832,28 @@ class Sebastian extends ChangeNotifier {
     }
 
     // ── 3. Ask, and keep asking until something passes the contract.
+    //
+    // Flushed to disk BEFORE the call, not after. Everything below runs inside
+    // the on-device model, which is native: if it exhausts memory it takes the
+    // process with it, raising nothing Dart can catch and logging nothing the
+    // ordinary debounce would have had time to write. This line is what tells
+    // a crash report that the last thing the app did was ask the model to
+    // translate 340 characters in this room — see [DiagLog.breadcrumb].
+    final started = DateTime.now();
+    await DiagLog.breadcrumb(
+      'brain generate',
+      name: job.roomId,
+      detail: '${job.content.length} chars → ${target.code}',
+    );
     final result = await _ask(job, handle, target, detected);
+    DiagLog.add(
+      cat: DiagCat.device,
+      sev: DiagSev.debug,
+      event: 'brain done',
+      name: job.roomId,
+      ok: result != null,
+      durationMs: DateTime.now().difference(started).inMilliseconds,
+    );
     if (result == null) {
       handle._finish(TranslationState.failed);
       return;

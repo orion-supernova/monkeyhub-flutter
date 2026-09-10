@@ -276,6 +276,33 @@ class DiagLog {
     detail: detail,
   );
 
+  /// A breadcrumb written straight through to disk, for the moment before
+  /// control leaves Dart for native code.
+  ///
+  /// Everything else here rides the 600 ms write debounce, and that is right:
+  /// a Dart failure raises to [DiagSev.error], which flushes, so nothing that
+  /// can announce itself is ever lost. Native code cannot announce itself. An
+  /// on-device model that exhausts memory takes the process down without a
+  /// Dart exception, without reaching `PlatformDispatcher.onError`, and — with
+  /// the debounce — without the line that says what it was doing. Awaiting the
+  /// flush costs one write on a path that is about to spend seconds inside an
+  /// accelerator, and buys the only line of the log that names the culprit.
+  static Future<void> breadcrumb(
+    String event, {
+    String? name,
+    String? detail,
+  }) async {
+    if (!enabled) return;
+    add(
+      cat: DiagCat.device,
+      sev: DiagSev.info,
+      event: event,
+      name: name,
+      detail: detail,
+    );
+    await DiagBuffer.instance.flush();
+  }
+
   static void error(
     String event,
     Object err, {

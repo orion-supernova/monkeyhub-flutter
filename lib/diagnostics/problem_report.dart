@@ -122,9 +122,18 @@ class ProblemReport {
     required List<XFile> screenshots,
     required String deviceId,
   }) async {
+    // The run before this one, off disk. A report about a CRASH is always
+    // filed from the session after it — the buffer this snapshot reads was
+    // built by a fresh boot and holds nothing but that boot — so without this
+    // the one report that matters most is the one guaranteed to arrive empty.
+    // Failure here is swallowed by `readFile`, which answers with an empty
+    // list, so a missing or unreadable file cannot cost us the rest of the
+    // report.
+    final previous = await DiagBuffer.instance.readFile(previous: true);
     final log = await DiagExport.build(
       events: DiagBuffer.instance.snapshot(),
       dropped: DiagBuffer.instance.dropped,
+      previous: previous,
     );
     final logBytes = utf8.encode(log);
 
