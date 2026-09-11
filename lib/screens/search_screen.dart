@@ -116,8 +116,15 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  Future<void> _refresh() async {
-    setState(() => _loading = true);
+  /// Re-runs the current query.
+  ///
+  /// [silent] keeps the existing results on screen while the new ones are in
+  /// flight. Every refresh that happens because the user came BACK from
+  /// somewhere uses it: flipping `_loading` there would tear the whole list
+  /// down to a spinner and rebuild it, which on a returning transition reads
+  /// as the screen having lost its place.
+  Future<void> _refresh({bool silent = false}) async {
+    if (!silent) setState(() => _loading = true);
     final me = widget.repo.userId ?? '';
     try {
       if (_people) {
@@ -143,6 +150,15 @@ class _SearchScreenState extends State<SearchScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  /// Re-reads the results without a spinner, for a return from a pushed route.
+  ///
+  /// Rooms don't need it — a join already lands through `repo.addListener` —
+  /// so it is a no-op there rather than a pointless `listPublic` round trip.
+  void _refreshPeopleQuietly() {
+    if (!_people || _query.isEmpty) return;
+    _refresh(silent: true);
   }
 
   @override
@@ -257,10 +273,15 @@ class _SearchScreenState extends State<SearchScreen> {
       padding: EdgeInsets.fromLTRB(20, 0, 20, edgeToEdgeBottom(context)),
       itemCount: _users.length,
       itemBuilder: (_, i) => _PersonRow(
+        // Keyed by identity, not by position. These rows carry their own
+        // `_busy` state and the list is rebuilt under them by every refresh;
+        // without this, a re-ordered result set hands one person's row the
+        // state of whoever used to sit at that index.
+        key: ValueKey(_users[i].id),
         user: _users[i],
         repo: widget.repo,
         api: widget.api,
-        onChanged: _refresh,
+        onChanged: _refreshPeopleQuietly,
       ),
     );
   }
@@ -341,6 +362,7 @@ class _Header extends StatelessWidget {
 
 class _PersonRow extends StatefulWidget {
   const _PersonRow({
+    super.key,
     required this.user,
     required this.repo,
     required this.api,
@@ -357,15 +379,26 @@ class _PersonRow extends StatefulWidget {
 class _PersonRowState extends State<_PersonRow> {
   bool _busy = false;
 
+  /// True when a grown-up is still holding this request — the viewer's own
+  /// grown-up, never the other side's. Nothing here is actionable while that
+  /// is true, so the row states a fact instead of offering a button the
+  /// backend would refuse.
+  bool get _heldByGrownUp => widget.user.awaitingGuardian;
+
   Future<void> _act() async {
-    if (_busy) return;
+    if (_busy || _heldByGrownUp) return;
     setState(() => _busy = true);
     final nav = Navigator.of(context);
     try {
       switch (widget.user.friendshipStatus) {
         case FriendshipStatus.none:
           if (!mounted) return;
-          nav.push(
+          // AWAITED. Without this the `finally` below fired the instant the
+          // route was pushed — so the refresh ran against a request that had
+          // not been sent yet, and coming back from the draft screen left the
+          // row still saying SEND REQUEST for someone it had just been sent
+          // to. The refresh has to happen when the pushed route POPS.
+          await nav.push(
             MaterialPageRoute(
               builder: (_) => FriendRequestDraftScreen(
                 repo: widget.repo,
@@ -407,6 +440,9 @@ class _PersonRowState extends State<_PersonRow> {
 
   String _actionLabel() {
     final l10n = AppLocalizations.of(context);
+    // Beats every other state: whatever the row is, the answer right now is
+    // "a grown-up has it".
+    if (_heldByGrownUp) return l10n.searchScreenActionWithGrownUp;
     switch (widget.user.friendshipStatus) {
       case FriendshipStatus.none:
         // A child's request goes to their grown-up first, so promising to
@@ -424,21 +460,27 @@ class _PersonRowState extends State<_PersonRow> {
   }
 
   bool get _filled =>
+      !_heldByGrownUp &&
       widget.user.friendshipStatus != FriendshipStatus.outgoingPending;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     return GestureDetector(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => ProfileScreen(
-            user: widget.user,
-            repo: widget.repo,
-            api: widget.api,
+      // Also awaited: a request sent from the profile screen has to land back
+      // here, for the same reason the button's own push does.
+      onTap: () async {
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ProfileScreen(
+              user: widget.user,
+              repo: widget.repo,
+              api: widget.api,
+            ),
           ),
-        ),
-      ),
+        );
+        widget.onChanged();
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
@@ -460,7 +502,7 @@ class _PersonRowState extends State<_PersonRow> {
               ),
             ),
             GestureDetector(
-              onTap: _busy ? null : _act,
+              onTap: (_busy || _heldByGrownUp) ? null : _act,
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -471,7 +513,9 @@ class _PersonRowState extends State<_PersonRow> {
                       ? (_busy ? theme.accentSoft : theme.accent)
                       : Colors.transparent,
                   border: Border.all(
-                    color: _filled ? theme.accent : theme.divider,
+                    color: _heldByGrownUp
+                        ? theme.divider
+                        : (_filled ? theme.accent : theme.divider),
                     width: 1.2,
                   ),
                   borderRadius: BorderRadius.circular(theme.radiusMd),
@@ -479,7 +523,9 @@ class _PersonRowState extends State<_PersonRow> {
                 child: Text(
                   _actionLabel(),
                   style: theme.label.copyWith(
-                    color: _filled ? theme.accentInk : theme.ink,
+                    color: _heldByGrownUp
+                        ? theme.inkMuted
+                        : (_filled ? theme.accentInk : theme.ink),
                   ),
                 ),
               ),

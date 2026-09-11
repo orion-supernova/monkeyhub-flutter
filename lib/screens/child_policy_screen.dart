@@ -12,6 +12,8 @@ import '../widgets/adaptive_page_body.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/destructive_sheet.dart';
+import '../widgets/people_picker.dart';
+import '../widgets/search_field.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/password_field.dart';
 import '../widgets/remove_contact_sheet.dart';
@@ -45,6 +47,18 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
   ChildGrants? _grants;
   bool _saving = false;
 
+  /// The guardian's own friends, for the people picker.
+  ///
+  /// Fetched once on open rather than threaded in from a repository: this
+  /// screen is reached from Settings, which does not carry one, and the list
+  /// is small and static for the length of a visit. Null means "still
+  /// loading" — distinct from an empty list, which means "you have no friends
+  /// to add from", and the picker says different things for the two.
+  List<ChatUser>? _myFriends;
+
+  /// The guardian's own group rooms this child is not already in.
+  List<RoomBrief>? _grantableRooms;
+
   /// The live view of this child. `widget.child` is the snapshot the family
   /// screen was showing when this opened; FamilyService keeps the real one
   /// current, which matters here because a co-parent can add or remove a
@@ -59,6 +73,34 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
     super.initState();
     widget.family.addListener(_onFamilyChange);
     _loadGrants();
+    _loadPickerSources();
+  }
+
+  /// Both picker sources, in parallel.
+  ///
+  /// Neither blocks the screen: the policy toggles and the existing grants are
+  /// what a guardian usually came for, and they are already on screen while
+  /// these land. A failure leaves the corresponding ADD button saying it has
+  /// nothing to offer, which is survivable — the username path is still there.
+  Future<void> _loadPickerSources() async {
+    final results = await Future.wait([
+      widget.api
+          .listFriends(widget.guardianId)
+          .catchError((_) => <ChatUser>[]),
+      widget.api
+          .grantableRooms(
+            guardianId: widget.guardianId,
+            childId: widget.child.user.id,
+          )
+          .catchError((_) => <RoomBrief>[]),
+    ]);
+    if (!mounted) return;
+    setState(() {
+      _myFriends = (results[0] as List<ChatUser>)
+          .where((f) => !f.isSystem)
+          .toList(growable: false);
+      _grantableRooms = results[1] as List<RoomBrief>;
+    });
   }
 
   @override
@@ -198,22 +240,73 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
     }
   }
 
-  Future<void> _addByUsername() async {
+  /// "Allow someone", from the guardian's own friends.
+  ///
+  /// The list is the point. Typing a username from memory was the only way in
+  /// before, and it is the wrong shape for the commonest case by a mile: the
+  /// person a parent wants to allow is nearly always someone the PARENT
+  /// already knows — an aunt, a neighbour, the other kid's mum — which means
+  /// they are already in the parent's own friends list. Picking them from it
+  /// cannot be misspelled, cannot land on a stranger with a similar handle,
+  /// and shows a face before the decision instead of after it.
+  ///
+  /// Typing a handle is still there underneath, for the person a parent
+  /// genuinely does not have: [_addContactByUsername].
+  Future<void> _addContactFromFriends() async {
+    final l10n = AppLocalizations.of(context);
+    // Already-allowed people are filtered out here rather than greyed out in
+    // the sheet: a row that does nothing is worse than a shorter list.
+    final already = {
+      for (final c in _grants?.contacts ?? const <ChildContact>[]) c.user.id,
+    };
+    final pool = (_myFriends ?? const <ChatUser>[])
+        .where((f) => f.id != widget.child.user.id && !already.contains(f.id))
+        .toList(growable: false);
+
+    final picked = await showAdaptiveSheet<ChatUser>(
+      context,
+      useSafeArea: true,
+      builder: (_) => _PickPersonSheet(
+        people: pool,
+        api: widget.api,
+        guardianId: widget.guardianId,
+        loading: _myFriends == null,
+        childName: widget.child.user.displayName,
+      ),
+    );
+    if (picked == null || !mounted) return;
+    await _allowContact(picked.username, l10n);
+  }
+
+  /// The escape hatch: allow somebody by typing their handle.
+  Future<void> _addContactByUsername() async {
     final result = await showAdaptiveSheet<_AddContactResult>(
       context,
       builder: (_) =>
           _AddContactSheet(childName: widget.child.user.displayName),
     );
     if (result == null || !mounted) return;
+    await _allowContact(
+      result.username,
+      AppLocalizations.of(context),
+      sendNow: result.sendNow,
+    );
+  }
 
+  /// One write path for both doors above, so the toast and the error mapping
+  /// cannot drift between them.
+  Future<void> _allowContact(
+    String username,
+    AppLocalizations l10n, {
+    bool sendNow = true,
+  }) async {
     final toast = AppToast.of(context);
-    final l10n = AppLocalizations.of(context);
     try {
       final requested = await widget.api.allowContactByUsername(
         guardianId: widget.guardianId,
         childId: widget.child.user.id,
-        username: result.username,
-        sendRequestNow: result.sendNow,
+        username: username,
+        sendRequestNow: sendNow,
       );
       await _loadGrants();
       toast.show(
@@ -225,6 +318,68 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
     } catch (e) {
       toast.show(_humanizeAdd(e, l10n));
     }
+  }
+
+  /// Puts the child into one of the guardian's own rooms.
+  ///
+  /// This section had no ADD at all — it could only list and revoke, which
+  /// meant a room could only ever get there by the child asking for it or
+  /// somebody inviting them. A parent setting up a family group chat had to
+  /// go and invite their own child from the room, then approve their own
+  /// invite from the approvals queue: two screens and a round trip to say yes
+  /// to themselves.
+  ///
+  /// Only the guardian's OWN rooms are offered — see `grantableRooms` in
+  /// backend/convex/family.ts for why that is the whole safety argument here.
+  Future<void> _addRoom() async {
+    final l10n = AppLocalizations.of(context);
+    final picked = await showAdaptiveSheet<RoomBrief>(
+      context,
+      useSafeArea: true,
+      builder: (_) => _PickRoomSheet(
+        rooms: _grantableRooms ?? const [],
+        loading: _grantableRooms == null,
+        childName: widget.child.user.displayName,
+      ),
+    );
+    if (picked == null || !mounted) return;
+
+    final toast = AppToast.of(context);
+    try {
+      await widget.api.grantRoomToChild(
+        guardianId: widget.guardianId,
+        childId: widget.child.user.id,
+        roomId: picked.id,
+      );
+      // Both lists moved: the room is now granted, and it is no longer
+      // offerable. Refreshed together so the picker cannot show a room the
+      // list below already has.
+      await Future.wait([_loadGrants(), _loadPickerSources()]);
+      if (!mounted) return;
+      toast.show(
+        l10n.childPolicyScreenRoomAdded(
+          widget.child.user.displayName,
+          picked.name,
+        ),
+        tone: ToastTone.success,
+      );
+    } catch (e) {
+      toast.show(_humanizeAddRoom(e, l10n));
+    }
+  }
+
+  String _humanizeAddRoom(Object e, AppLocalizations l10n) {
+    final s = e.toString();
+    if (s.contains('NOT_A_GUARDIAN')) {
+      return l10n.childPolicyScreenErrorNotYours;
+    }
+    if (s.contains('CHILD_NOT_ALLOWED')) {
+      return l10n.childPolicyScreenErrorRoomNotAllowed;
+    }
+    if (s.contains('ROOM_NOT_FOUND')) {
+      return l10n.childPolicyScreenErrorRoomGone;
+    }
+    return l10n.childPolicyScreenErrorAddRoomGeneric;
   }
 
   String _humanizeAdd(Object e, AppLocalizations l10n) {
@@ -536,7 +691,17 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
                               ),
                               onRevoke: () => _takeBack(c),
                             ),
-                          _AddByUsernameButton(onTap: _addByUsername),
+                          // Two doors, on purpose. The picker is the one
+                          // almost everyone wants — the person is already in
+                          // your own friends, or one search away — and typing
+                          // a handle stays for the case where they are
+                          // neither, and for anyone who simply prefers it.
+                          _AddByUsernameButton(
+                            icon: Icons.person_search_outlined,
+                            label: l10n.childPolicyScreenAddSomeoneLabel,
+                            onTap: _addContactFromFriends,
+                          ),
+                          _AddByUsernameButton(onTap: _addContactByUsername),
                         ],
 
                         const SizedBox(height: 30),
@@ -546,33 +711,42 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
                         const SizedBox(height: 12),
                         if (grants == null)
                           _Placeholder(l10n.childPolicyScreenLoading)
-                        else if (grants.rooms.isEmpty)
-                          _Placeholder(l10n.childPolicyScreenNoRoomsYet)
-                        else
-                          for (final r in grants.rooms)
-                            _GrantRow(
-                              title: r.name,
-                              subtitle: l10n.childPolicyScreenRoomMemberCount(
-                                r.memberCount,
-                              ),
-                              leading: Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  color: theme.accentSoft,
-                                  borderRadius: BorderRadius.circular(
-                                    theme.radiusMd,
+                        else ...[
+                          if (grants.rooms.isEmpty)
+                            _Placeholder(l10n.childPolicyScreenNoRoomsYet)
+                          else
+                            for (final r in grants.rooms)
+                              _GrantRow(
+                                title: r.name,
+                                subtitle: l10n.childPolicyScreenRoomMemberCount(
+                                  r.memberCount,
+                                ),
+                                leading: Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: theme.accentSoft,
+                                    borderRadius: BorderRadius.circular(
+                                      theme.radiusMd,
+                                    ),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Icon(
+                                    Icons.tag,
+                                    size: 13,
+                                    color: theme.accent,
                                   ),
                                 ),
-                                alignment: Alignment.center,
-                                child: Icon(
-                                  Icons.tag,
-                                  size: 13,
-                                  color: theme.accent,
-                                ),
+                                onRevoke: () => _revokeRoom(r),
                               ),
-                              onRevoke: () => _revokeRoom(r),
-                            ),
+                          // The section could only ever take rooms AWAY before
+                          // this. See [_addRoom].
+                          _AddByUsernameButton(
+                            icon: Icons.add_circle_outline,
+                            label: l10n.childPolicyScreenAddRoomLabel,
+                            onTap: _addRoom,
+                          ),
+                        ],
                         const SizedBox(height: 24),
                         Text(
                           l10n.childPolicyScreenGrantsFooterNote,
@@ -666,13 +840,18 @@ class _AddContactResult {
 }
 
 class _AddByUsernameButton extends StatelessWidget {
-  const _AddByUsernameButton({required this.onTap, this.label});
+  const _AddByUsernameButton({required this.onTap, this.label, this.icon});
   final VoidCallback onTap;
 
   /// Null falls back to the default "ADD BY USERNAME" copy; callers that
-  /// reuse this button for a different action (e.g. adding a grown-up)
-  /// override it.
+  /// reuse this button for a different action (e.g. adding a grown-up, or
+  /// opening one of the pickers) override it.
   final String? label;
+
+  /// Likewise for the glyph — the same outline button now fronts four
+  /// different actions, and four identical person-plus icons would make them
+  /// indistinguishable at a glance.
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -694,7 +873,7 @@ class _AddByUsernameButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.person_add_alt, size: 14, color: theme.accent),
+            Icon(icon ?? Icons.person_add_alt, size: 14, color: theme.accent),
             const SizedBox(width: 8),
             Text(
               resolvedLabel,
@@ -1273,6 +1452,290 @@ class _Placeholder extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Text(text, style: theme.bodySoft),
+    );
+  }
+}
+
+// ─────────────────────────── the two pickers ───────────────────────────
+
+/// Height of a picker sheet, as a fraction of the window.
+///
+/// Fixed rather than fitted to the list, for the same reason the chat list's
+/// `+` sheet is: a box that shrinks as the filter narrows moves the rows out
+/// from under the finger reaching for them. Tall enough that a real list is
+/// worth scrolling, short enough that the sheet still reads as a sheet rather
+/// than a page that arrived from the bottom. Shared by both pickers so they
+/// open to the same size — two sheets reached from adjacent rows that differ
+/// in height read as a glitch.
+const double _pickerHeightFraction = 0.78;
+
+/// Chrome shared by both pickers: the panel, the grabber, a heading, a blurb,
+/// and a bounded body. Written once because the two sheets are the same
+/// object with a different list in it, and because the padding arithmetic
+/// below (keyboard, home indicator) is the kind that gets subtly wrong on the
+/// second copy.
+class _PickerShell extends StatelessWidget {
+  const _PickerShell({
+    required this.heading,
+    required this.blurb,
+    required this.child,
+  });
+
+  final String heading;
+  final String blurb;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final media = MediaQuery.of(context);
+    return Material(
+      type: MaterialType.transparency,
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.surface,
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(theme.radiusLg),
+          ),
+        ),
+        constraints: BoxConstraints(
+          maxHeight: media.size.height * _pickerHeightFraction,
+        ),
+        padding: EdgeInsets.fromLTRB(
+          20,
+          12,
+          20,
+          // `viewInsets` and `padding` are never both non-zero — raising the
+          // keyboard zeroes the second — so one expression covers a sheet at
+          // rest and a sheet being typed into.
+          12 + media.padding.bottom + media.viewInsets.bottom,
+        ),
+        child: DefaultTextStyle(
+          style: theme.body,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SheetGrabber(),
+              Text(
+                heading,
+                style: theme.label.copyWith(
+                  letterSpacing: 2.4,
+                  color: theme.accent,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(blurb, style: theme.bodySoft),
+              const SizedBox(height: 16),
+              // Flexible rather than Expanded so the heading and blurb above
+              // are laid out first and the list takes what is left. The sheet
+              // height itself is fixed on purpose — see [_pickerHeightFraction].
+              Flexible(child: child),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Allow someone" — the guardian's own friends first, then anyone they can
+/// find by searching.
+///
+/// Both halves matter and neither replaces the other. The friends list covers
+/// the overwhelmingly common case (the person is already someone the PARENT
+/// knows) with no typing and no chance of landing on a stranger with a
+/// similar handle; the search covers the classmate's parent they have never
+/// added. They are one box because they answer one question.
+class _PickPersonSheet extends StatelessWidget {
+  const _PickPersonSheet({
+    required this.people,
+    required this.api,
+    required this.guardianId,
+    required this.loading,
+    required this.childName,
+  });
+
+  final List<ChatUser> people;
+  final ChatApi api;
+  final String guardianId;
+  final bool loading;
+  final String childName;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return _PickerShell(
+      heading: l10n.childPolicyScreenAllowSomeoneHeading,
+      blurb: l10n.childPolicyScreenAllowSomeoneBlurb(childName),
+      child: loading
+          ? _Placeholder(l10n.childPolicyScreenLoading)
+          : PeoplePicker(
+              people: people,
+              api: api,
+              hintText: l10n.childPolicyScreenPickPersonHint,
+              emptyLabel: l10n.childPolicyScreenPickPersonEmpty,
+              noMatchLabel: l10n.childPolicyScreenPickPersonNoMatch,
+              localHeader: l10n.childPolicyScreenPickPersonFriendsHeader,
+              remoteHeader: l10n.childPolicyScreenPickPersonEveryoneHeader,
+              // The guardian's own search, run as the guardian — so their own
+              // blocks apply and a child's restricted search rules do not.
+              searchMore: (q) =>
+                  api.searchUsers(query: q, currentUserId: guardianId),
+              onPick: (u) => Navigator.of(context).pop(u),
+            ),
+    );
+  }
+}
+
+/// "Add a room" — the guardian's own group rooms, filtered as they type.
+///
+/// No search beyond that list, and that is the safety argument rather than an
+/// omission: a parent is vouching for the people in the room, and the only
+/// rooms they can vouch for are the ones they are standing in. See
+/// `grantableRooms` in backend/convex/family.ts, which does the same filtering
+/// server-side so the client is never handed a roster it has no reason to see.
+class _PickRoomSheet extends StatefulWidget {
+  const _PickRoomSheet({
+    required this.rooms,
+    required this.loading,
+    required this.childName,
+  });
+
+  final List<RoomBrief> rooms;
+  final bool loading;
+  final String childName;
+
+  @override
+  State<_PickRoomSheet> createState() => _PickRoomSheetState();
+}
+
+class _PickRoomSheetState extends State<_PickRoomSheet> {
+  final _q = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _q.dispose();
+    super.dispose();
+  }
+
+  List<RoomBrief> get _visible {
+    final needle = _query.trim().toLowerCase();
+    if (needle.isEmpty) return widget.rooms;
+    return widget.rooms
+        .where((r) => r.name.toLowerCase().contains(needle))
+        .toList(growable: false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final visible = _visible;
+    final searching = _query.trim().isNotEmpty;
+    return _PickerShell(
+      heading: l10n.childPolicyScreenPickRoomHeading,
+      blurb: l10n.childPolicyScreenPickRoomBlurb(widget.childName),
+      child: widget.loading
+          ? _Placeholder(l10n.childPolicyScreenLoading)
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SearchField(
+                  controller: _q,
+                  hintText: l10n.childPolicyScreenPickRoomHint,
+                  onChanged: (v) => setState(() => _query = v),
+                  onClear: () => setState(() => _query = ''),
+                ),
+                const SizedBox(height: 10),
+                Expanded(
+                  child: visible.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 30),
+                            child: Text(
+                              searching
+                                  ? l10n.childPolicyScreenPickRoomNoMatch
+                                  : l10n.childPolicyScreenPickRoomEmpty,
+                              style: theme.bodySoft,
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        )
+                      : ListView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(
+                            parent: BouncingScrollPhysics(),
+                          ),
+                          padding: EdgeInsets.zero,
+                          itemCount: visible.length,
+                          itemBuilder: (_, i) {
+                            final r = visible[i];
+                            return _RoomTile(
+                              key: ValueKey(r.id),
+                              room: r,
+                              onTap: () => Navigator.of(context).pop(r),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+    );
+  }
+}
+
+class _RoomTile extends StatelessWidget {
+  const _RoomTile({super.key, required this.room, required this.onTap});
+
+  final RoomBrief room;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 9),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: theme.accentSoft,
+                borderRadius: BorderRadius.circular(theme.radiusMd),
+              ),
+              alignment: Alignment.center,
+              child: Icon(Icons.tag, size: 15, color: theme.accent),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    room.name,
+                    style: theme.body,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    l10n.childPolicyScreenRoomMemberCount(room.memberCount),
+                    style: theme.monoTiny,
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
+          ],
+        ),
+      ),
     );
   }
 }

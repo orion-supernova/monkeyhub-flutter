@@ -9620,5 +9620,105 @@
   "settingsScreenFriendActivityOffBody": "nothing — their boards are still there when you look",
   "@settingsScreenFriendActivityOffBody": {
     "description": "Sub-line when friend-activity notifications are off."
+  },
+  "searchScreenActionWithGrownUp": "WITH A GROWN-UP",
+  "@searchScreenActionWithGrownUp": {
+    "description": "Shown in place of an action button when a request between the viewer and this person is still parked at the VIEWER'S OWN guardian. Never shown for the other side's guardian — that would reveal that the other person is a child."
+  },
+  "newChatMenuSearchHint": "search your friends",
+  "@newChatMenuSearchHint": {
+    "description": "Hint in the new-chat sheet's search bar."
+  },
+  "newChatMenuNoFriendsYet": "no friends yet —\\nfind people in Discover",
+  "@newChatMenuNoFriendsYet": {
+    "description": "Empty state in the new-chat sheet when the account has no friends at all."
+  },
+  "newChatMenuNoFriendsMatch": "no friends match",
+  "@newChatMenuNoFriendsMatch": {
+    "description": "Empty state in the new-chat sheet when the search filtered everyone out."
+  },
+  "newChatMenuOpenDmFailed": "couldn’t open that chat — try again",
+  "@newChatMenuOpenDmFailed": {
+    "description": "Toast shown when opening a DM from the new-chat sheet fails."
+  },
+  "childPolicyScreenAddSomeoneLabel": "PICK FROM YOUR PEOPLE",
+  "@childPolicyScreenAddSomeoneLabel": {
+    "description": "Outline button on the child settings screen that opens the person picker."
+  },
+  "childPolicyScreenPickPersonHint": "search a name or username",
+  "@childPolicyScreenPickPersonHint": {
+    "description": "Hint in the guardian's person picker."
+  },
+  "childPolicyScreenPickPersonEmpty": "no one left to add from your friends —\\nsearch for anyone else",
+  "@childPolicyScreenPickPersonEmpty": {
+    "description": "Shown when every one of the guardian's own friends is already allowed."
+  },
+  "childPolicyScreenPickPersonNoMatch": "no one matches",
+  "@childPolicyScreenPickPersonNoMatch": {
+    "description": "Shown when the guardian's person search found nobody."
+  },
+  "childPolicyScreenPickPersonFriendsHeader": "YOUR FRIENDS",
+  "@childPolicyScreenPickPersonFriendsHeader": {
+    "description": "Heading over the guardian's own friends in the person picker."
+  },
+  "childPolicyScreenPickPersonEveryoneHeader": "EVERYONE ELSE",
+  "@childPolicyScreenPickPersonEveryoneHeader": {
+    "description": "Heading over search results beyond the guardian's own friends."
+  },
+  "childPolicyScreenAddRoomLabel": "ADD A ROOM",
+  "@childPolicyScreenAddRoomLabel": {
+    "description": "Outline button on the child settings screen that opens the room picker."
+  },
+  "childPolicyScreenPickRoomHeading": "ADD A ROOM",
+  "@childPolicyScreenPickRoomHeading": {
+    "description": "Heading of the guardian's room picker sheet."
+  },
+  "childPolicyScreenPickRoomBlurb": "One of your own rooms. {name} joins straight away and can read and post there until you take it back.",
+  "@childPolicyScreenPickRoomBlurb": {
+    "description": "See the string.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "description": "The child's display name."
+      }
+    }
+  },
+  "childPolicyScreenPickRoomHint": "search your rooms",
+  "@childPolicyScreenPickRoomHint": {
+    "description": "Hint in the guardian's room picker."
+  },
+  "childPolicyScreenPickRoomEmpty": "no rooms of yours left to add",
+  "@childPolicyScreenPickRoomEmpty": {
+    "description": "Shown when every room the guardian is in has already been granted to this child."
+  },
+  "childPolicyScreenPickRoomNoMatch": "no rooms match",
+  "@childPolicyScreenPickRoomNoMatch": {
+    "description": "Shown when the room filter matched nothing."
+  },
+  "childPolicyScreenRoomAdded": "{name} is in {room} now",
+  "@childPolicyScreenRoomAdded": {
+    "description": "See the string.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "description": "The child's display name."
+      },
+      "room": {
+        "type": "String",
+        "description": "The room's name."
+      }
+    }
+  },
+  "childPolicyScreenErrorAddRoomGeneric": "couldn’t add that room — try again",
+  "@childPolicyScreenErrorAddRoomGeneric": {
+    "description": "Generic failure adding a room to a child."
+  },
+  "childPolicyScreenErrorRoomNotAllowed": "that room can’t be added this way",
+  "@childPolicyScreenErrorRoomNotAllowed": {
+    "description": "Refused because the target is a DM or a system room."
+  },
+  "childPolicyScreenErrorRoomGone": "that room no longer exists",
+  "@childPolicyScreenErrorRoomGone": {
+    "description": "Refused because the room was deleted between opening the picker and tapping."
   }
 }

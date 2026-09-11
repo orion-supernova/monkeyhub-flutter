@@ -8336,4 +8336,75 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsScreenFriendActivityOffBody =>
       'nothing — their boards are still there when you look';
+
+  @override
+  String get searchScreenActionWithGrownUp => 'WITH A GROWN-UP';
+
+  @override
+  String get newChatMenuSearchHint => 'search your friends';
+
+  @override
+  String get newChatMenuNoFriendsYet =>
+      'no friends yet —\\nfind people in Discover';
+
+  @override
+  String get newChatMenuNoFriendsMatch => 'no friends match';
+
+  @override
+  String get newChatMenuOpenDmFailed => 'couldn’t open that chat — try again';
+
+  @override
+  String get childPolicyScreenAddSomeoneLabel => 'PICK FROM YOUR PEOPLE';
+
+  @override
+  String get childPolicyScreenPickPersonHint => 'search a name or username';
+
+  @override
+  String get childPolicyScreenPickPersonEmpty =>
+      'no one left to add from your friends —\\nsearch for anyone else';
+
+  @override
+  String get childPolicyScreenPickPersonNoMatch => 'no one matches';
+
+  @override
+  String get childPolicyScreenPickPersonFriendsHeader => 'YOUR FRIENDS';
+
+  @override
+  String get childPolicyScreenPickPersonEveryoneHeader => 'EVERYONE ELSE';
+
+  @override
+  String get childPolicyScreenAddRoomLabel => 'ADD A ROOM';
+
+  @override
+  String get childPolicyScreenPickRoomHeading => 'ADD A ROOM';
+
+  @override
+  String childPolicyScreenPickRoomBlurb(String name) {
+    return 'One of your own rooms. $name joins straight away and can read and post there until you take it back.';
+  }
+
+  @override
+  String get childPolicyScreenPickRoomHint => 'search your rooms';
+
+  @override
+  String get childPolicyScreenPickRoomEmpty => 'no rooms of yours left to add';
+
+  @override
+  String get childPolicyScreenPickRoomNoMatch => 'no rooms match';
+
+  @override
+  String childPolicyScreenRoomAdded(String name, String room) {
+    return '$name is in $room now';
+  }
+
+  @override
+  String get childPolicyScreenErrorAddRoomGeneric =>
+      'couldn’t add that room — try again';
+
+  @override
+  String get childPolicyScreenErrorRoomNotAllowed =>
+      'that room can’t be added this way';
+
+  @override
+  String get childPolicyScreenErrorRoomGone => 'that room no longer exists';
 }

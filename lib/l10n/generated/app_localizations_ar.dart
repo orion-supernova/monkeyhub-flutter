@@ -8452,4 +8452,76 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get settingsScreenFriendActivityOffBody =>
       'لا شيء — لوحاتهم موجودة متى نظرت';
+
+  @override
+  String get searchScreenActionWithGrownUp => 'عند وليّ الأمر';
+
+  @override
+  String get newChatMenuSearchHint => 'ابحث في أصدقائك';
+
+  @override
+  String get newChatMenuNoFriendsYet =>
+      'لا أصدقاء بعد —\\nابحث عن أشخاص في الاستكشاف';
+
+  @override
+  String get newChatMenuNoFriendsMatch => 'لا يوجد صديق مطابق';
+
+  @override
+  String get newChatMenuOpenDmFailed =>
+      'تعذّر فتح تلك المحادثة — حاول مرة أخرى';
+
+  @override
+  String get childPolicyScreenAddSomeoneLabel => 'اختر من أشخاصك';
+
+  @override
+  String get childPolicyScreenPickPersonHint => 'ابحث باسم أو باسم مستخدم';
+
+  @override
+  String get childPolicyScreenPickPersonEmpty =>
+      'لم يبق أحد لإضافته من أصدقائك —\\nابحث عن أي شخص آخر';
+
+  @override
+  String get childPolicyScreenPickPersonNoMatch => 'لا أحد مطابق';
+
+  @override
+  String get childPolicyScreenPickPersonFriendsHeader => 'أصدقاؤك';
+
+  @override
+  String get childPolicyScreenPickPersonEveryoneHeader => 'بقية الأشخاص';
+
+  @override
+  String get childPolicyScreenAddRoomLabel => 'أضف غرفة';
+
+  @override
+  String get childPolicyScreenPickRoomHeading => 'أضف غرفة';
+
+  @override
+  String childPolicyScreenPickRoomBlurb(String name) {
+    return 'إحدى غرفك أنت. سينضم $name فورًا ويمكنه القراءة والنشر فيها حتى تسحب ذلك.';
+  }
+
+  @override
+  String get childPolicyScreenPickRoomHint => 'ابحث في غرفك';
+
+  @override
+  String get childPolicyScreenPickRoomEmpty => 'لم تبق لك غرفة لإضافتها';
+
+  @override
+  String get childPolicyScreenPickRoomNoMatch => 'لا توجد غرفة مطابقة';
+
+  @override
+  String childPolicyScreenRoomAdded(String name, String room) {
+    return '$name الآن في $room';
+  }
+
+  @override
+  String get childPolicyScreenErrorAddRoomGeneric =>
+      'تعذّر إضافة تلك الغرفة — حاول مرة أخرى';
+
+  @override
+  String get childPolicyScreenErrorRoomNotAllowed =>
+      'لا يمكن إضافة تلك الغرفة بهذه الطريقة';
+
+  @override
+  String get childPolicyScreenErrorRoomGone => 'تلك الغرفة لم تعد موجودة';
 }

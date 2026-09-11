@@ -16,6 +16,8 @@ import {
   DEFAULT_CHILD_POLICY,
   ERR_MUST_PAIR,
   ERR_NOT_ALLOWED,
+  STAGE_RECIPIENT_GUARDIAN,
+  STAGE_SENDER_GUARDIAN,
   familyOf,
   isChild,
 } from "./childGuard";
@@ -71,6 +73,38 @@ export const getProfile = query({
 
     const vis = user.visibility ?? {};
     const identity = lens.identity(user, Date.now());
+
+    // Whether a pending request between the viewer and this profile is parked
+    // at the VIEWER'S OWN guardian hop — see the long note in
+    // `searchUsersCore`, which computes the same flag for the same reason and
+    // under the same "own guardian only" restriction.
+    //
+    // The profile screen cannot derive this for itself: it resolves friendship
+    // from the repository's live request lists, and those are filtered
+    // server-side to released rows only. So a child looking at the profile of
+    // someone whose request their parent is still holding saw a clean SEND
+    // REQUEST button, and tapping it failed with REQUEST_ALREADY_RECEIVED.
+    let awaitingGuardian = false;
+    if (viewerUserId && !isSelf) {
+      const outgoing = await ctx.db
+        .query("friendships")
+        .withIndex("by_pair", (q: any) =>
+          q.eq("userId", viewerUserId).eq("friendId", userId),
+        )
+        .first();
+      const incoming = await ctx.db
+        .query("friendships")
+        .withIndex("by_pair", (q: any) =>
+          q.eq("userId", userId).eq("friendId", viewerUserId),
+        )
+        .first();
+      awaitingGuardian =
+        (outgoing?.status === "pending" &&
+          outgoing.stage === STAGE_SENDER_GUARDIAN) ||
+        (incoming?.status === "pending" &&
+          incoming.stage === STAGE_RECIPIENT_GUARDIAN);
+    }
+
     return {
       _id: user._id,
       username: user.username,
@@ -137,6 +171,7 @@ export const getProfile = query({
           !lens.canSee(user, "status") ||
           !lens.canSee(user, "lastSeen")),
       acceptsFriendRequests: (vis.friendRequests ?? "public") === "public",
+      awaitingGuardian,
     };
   },
 });
@@ -687,6 +722,27 @@ export async function searchUsersCore(
         requestId = incoming._id;
       }
 
+      // Is this row parked at the VIEWER'S OWN guardian hop?
+      //
+      // Narrowly the viewer's own, and that restriction is the whole design.
+      // A row held at the OTHER end's guardian would tell an adult sender that
+      // the person they asked for is a child, which nothing in this app is
+      // allowed to reveal (see `RequestStage.senderLabel` on the client, which
+      // deliberately collapses that case into a flat "waiting for them").
+      //
+      // Here it says something the viewer already knows about themselves, and
+      // it fixes a live lie: a child searching for the exact handle of someone
+      // who has asked to add them got an actionable APPROVE, because the
+      // status above reads the row's existence and not its stage. Tapping it
+      // called `approveDirectRequest`, which refuses anything a guardian has
+      // not released, so the button could only ever fail. The row is already
+      // visible on this surface; what was missing was the truth about it.
+      const awaitingGuardian =
+        (outgoing?.status === "pending" &&
+          outgoing.stage === STAGE_SENDER_GUARDIAN) ||
+        (incoming?.status === "pending" &&
+          incoming.stage === STAGE_RECIPIENT_GUARDIAN);
+
       return {
         _id: u._id,
         username: u.username,
@@ -698,6 +754,7 @@ export async function searchUsersCore(
         ...lens.identity(u, now),
         friendshipStatus,
         requestId,
+        awaitingGuardian,
       };
     })
   );

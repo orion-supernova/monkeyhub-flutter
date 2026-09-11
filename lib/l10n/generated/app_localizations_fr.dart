@@ -8480,4 +8480,77 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get settingsScreenFriendActivityOffBody =>
       'rien — leurs tableaux sont toujours là quand tu regardes';
+
+  @override
+  String get searchScreenActionWithGrownUp => 'CHEZ UN GRAND';
+
+  @override
+  String get newChatMenuSearchHint => 'cherche dans tes amis';
+
+  @override
+  String get newChatMenuNoFriendsYet =>
+      'pas encore d’amis —\\ntrouve du monde dans Découvrir';
+
+  @override
+  String get newChatMenuNoFriendsMatch => 'aucun ami ne correspond';
+
+  @override
+  String get newChatMenuOpenDmFailed =>
+      'impossible d’ouvrir ce chat — réessaie';
+
+  @override
+  String get childPolicyScreenAddSomeoneLabel => 'CHOISIR PARMI TES CONTACTS';
+
+  @override
+  String get childPolicyScreenPickPersonHint => 'cherche un nom ou un pseudo';
+
+  @override
+  String get childPolicyScreenPickPersonEmpty =>
+      'plus personne à ajouter parmi tes amis —\\ncherche quelqu’un d’autre';
+
+  @override
+  String get childPolicyScreenPickPersonNoMatch => 'personne ne correspond';
+
+  @override
+  String get childPolicyScreenPickPersonFriendsHeader => 'TES AMIS';
+
+  @override
+  String get childPolicyScreenPickPersonEveryoneHeader => 'TOUS LES AUTRES';
+
+  @override
+  String get childPolicyScreenAddRoomLabel => 'AJOUTER UN SALON';
+
+  @override
+  String get childPolicyScreenPickRoomHeading => 'AJOUTER UN SALON';
+
+  @override
+  String childPolicyScreenPickRoomBlurb(String name) {
+    return 'Un de tes propres salons. $name y entre tout de suite et peut y lire et écrire jusqu’à ce que tu le retires.';
+  }
+
+  @override
+  String get childPolicyScreenPickRoomHint => 'cherche dans tes salons';
+
+  @override
+  String get childPolicyScreenPickRoomEmpty =>
+      'plus aucun de tes salons à ajouter';
+
+  @override
+  String get childPolicyScreenPickRoomNoMatch => 'aucun salon ne correspond';
+
+  @override
+  String childPolicyScreenRoomAdded(String name, String room) {
+    return '$name est maintenant dans $room';
+  }
+
+  @override
+  String get childPolicyScreenErrorAddRoomGeneric =>
+      'impossible d’ajouter ce salon — réessaie';
+
+  @override
+  String get childPolicyScreenErrorRoomNotAllowed =>
+      'ce salon ne peut pas être ajouté ainsi';
+
+  @override
+  String get childPolicyScreenErrorRoomGone => 'ce salon n’existe plus';
 }

@@ -117,17 +117,27 @@ class _FamilyScreenState extends State<FamilyScreen> {
                         edgeToEdgeBottom(context, 40),
                       ),
                       children: [
-                        if (ctx.pendingCount > 0) ...[
-                          _PendingBanner(
-                            count: ctx.pendingCount,
-                            onTap: () => _open(ApprovalsScreen(
-                              api: widget.api,
-                              guardianId: widget.userId,
-                              family: widget.family,
-                            )),
-                          ),
-                          const SizedBox(height: 20),
-                        ],
+                        // ALWAYS drawn, count or no count.
+                        //
+                        // It used to appear only while `pendingCount > 0`, and
+                        // that count was itself incomplete — it never included
+                        // room invitations (see `pendingCountFor` in
+                        // backend/convex/family.ts). So "someone invited your
+                        // child to a group chat" arrived as a push notification
+                        // pointing at a screen with no way in: no banner, and
+                        // the approvals list was reachable through nothing else.
+                        // A door that exists only when the app already knows
+                        // there is something behind it is a door that cannot be
+                        // used to check.
+                        _ApprovalsRow(
+                          count: ctx.pendingCount,
+                          onTap: () => _open(ApprovalsScreen(
+                            api: widget.api,
+                            guardianId: widget.userId,
+                            family: widget.family,
+                          )),
+                        ),
+                        const SizedBox(height: 20),
                         if (children.isEmpty)
                           _EmptyState()
                         else
@@ -174,35 +184,70 @@ class _FamilyScreenState extends State<FamilyScreen> {
   }
 }
 
-class _PendingBanner extends StatelessWidget {
-  const _PendingBanner({required this.count, required this.onTap});
+/// The permanent way into [ApprovalsScreen].
+///
+/// Two appearances, one row: it shouts in accent when something is waiting and
+/// sits quietly in the ordinary surface colour when nothing is. The quiet
+/// state is the point — it is what makes "let me go and check" a thing a
+/// parent can do, rather than something the app decides for them.
+class _ApprovalsRow extends StatelessWidget {
+  const _ApprovalsRow({required this.count, required this.onTap});
   final int count;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final loc = AppLocalizations.of(context);
+    final waiting = count > 0;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: theme.accentSoft,
-          border: Border.all(color: theme.accent.withValues(alpha: 0.4)),
+          color: waiting ? theme.accentSoft : theme.surface,
+          border: Border.all(
+            color: waiting ? theme.accent.withValues(alpha: 0.4) : theme.divider,
+          ),
           borderRadius: BorderRadius.circular(theme.radiusMd),
         ),
         child: Row(
           children: [
-            Icon(Icons.pending_actions, size: 18, color: theme.accent),
+            Icon(
+              Icons.pending_actions,
+              size: 18,
+              color: waiting ? theme.accent : theme.inkSoft,
+            ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                AppLocalizations.of(context).familyScreenPendingBanner(count),
-                style: theme.body.copyWith(color: theme.accent),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    loc.approvalsScreenTitle,
+                    style: theme.label.copyWith(
+                      letterSpacing: 2.2,
+                      color: waiting ? theme.accent : theme.ink,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    waiting
+                        ? loc.familyScreenPendingBanner(count)
+                        : loc.approvalsScreenEmptyTitle,
+                    style: theme.monoTiny.copyWith(
+                      color: waiting ? theme.accent : theme.inkMuted,
+                    ),
+                  ),
+                ],
               ),
             ),
-            Icon(Icons.chevron_right, size: 16, color: theme.accent),
+            Icon(
+              Icons.chevron_right,
+              size: 16,
+              color: waiting ? theme.accent : theme.inkMuted,
+            ),
           ],
         ),
       ),

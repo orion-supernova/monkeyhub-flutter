@@ -27,12 +27,14 @@ import {
   initialStageFor,
   isChild,
   isGuardianOf,
+  pendingForChild,
 } from "./childGuard";
 import {
   findDmRoomsBetween,
   summariseRooms,
   wipeRoomCompletely,
 } from "./roomCleanup";
+import { addMembership } from "./roomAdmin";
 
 /** Pairing codes are deliberately short-lived — they're six digits read aloud. */
 const PAIRING_TTL_MS = 5 * 60 * 1000;
@@ -94,6 +96,14 @@ async function linkFamilyFriendship(ctx: any, a: any, b: any) {
 // ───────────────────────────── accounts & pairing ─────────────────────────────
 
 export const createChildAccount = mutation({
+  // The caller IS the guardian. Without this the wrapper injects `userId`,
+  // which this handler does not read, and `guardianId` stays whatever the
+  // CLIENT sent — so `assertGuardian` was checking that the claimed guardian
+  // supervises the child, never that the caller is that guardian. Anyone
+  // signed in could name somebody else's guardian id and act as them. See
+  // `functions.ts`; this is the same fix `users.getProfile` applies to
+  // `viewerUserId`.
+  identityArg: "guardianId" as const,
   args: {
     guardianId: v.id("users"),
     username: v.string(),
@@ -166,6 +176,7 @@ export const createChildAccount = mutation({
  * this; approvals are never quorum-based, so the new guardian has equal say.
  */
 export const addGuardian = mutation({
+  identityArg: "guardianId" as const,
   args: {
     guardianId: v.id("users"),
     childId: v.id("users"),
@@ -203,6 +214,7 @@ export const addGuardian = mutation({
  * migration or a "repair" button the user has to find.
  */
 export const backfillFamilyFriendships = mutation({
+  identityArg: "guardianId" as const,
   args: { guardianId: v.id("users") },
   handler: async (ctx, { guardianId }) => {
     const kids = await childrenOf(ctx, guardianId);
@@ -230,6 +242,7 @@ export const backfillFamilyFriendships = mutation({
  * child is invalidated so only one code is ever live.
  */
 export const createPairingCode = mutation({
+  identityArg: "guardianId" as const,
   args: {
     guardianId: v.id("users"),
     childId: v.id("users"),
@@ -258,6 +271,7 @@ export const createPairingCode = mutation({
 });
 
 export const revokePairingCode = mutation({
+  identityArg: "guardianId" as const,
   args: { guardianId: v.id("users"), childId: v.id("users") },
   handler: async (ctx, { guardianId, childId }) => {
     await assertGuardian(ctx, guardianId, childId);
@@ -366,6 +380,7 @@ async function releaseDevice(ctx: any, childId: any, deviceId: string) {
 
 /** Guardian-side: mint a release code, exactly as `createPairingCode` does. */
 export const createReleaseCode = mutation({
+  identityArg: "guardianId" as const,
   args: {
     guardianId: v.id("users"),
     childId: v.id("users"),
@@ -449,6 +464,7 @@ export const releaseDeviceByGuardianPassword = mutation({
 // ───────────────────────────────── policy ─────────────────────────────────
 
 export const setChildPolicy = mutation({
+  identityArg: "guardianId" as const,
   args: {
     guardianId: v.id("users"),
     childId: v.id("users"),
@@ -504,6 +520,7 @@ export const setChildPolicy = mutation({
  * Approving never creates the friendship: the recipient still decides.
  */
 export const advanceContactRequest = mutation({
+  identityArg: "guardianId" as const,
   args: {
     friendshipId: v.id("friendships"),
     guardianId: v.id("users"),
@@ -578,6 +595,7 @@ export const advanceContactRequest = mutation({
  * "Leo wants to join #minecraft".
  */
 export const listGuardianQueue = query({
+  identityArg: "guardianId" as const,
   args: { guardianId: v.id("users") },
   handler: async (ctx, { guardianId }) => {
     const kids = await childrenOf(ctx, guardianId);
@@ -749,6 +767,9 @@ function briefOf(lens: any, u: any) {
  * parent.
  */
 export const requestApproval = mutation({
+  // The caller IS the child. Same reasoning as the guardian-keyed functions
+  // above: the id must come from the session, not the payload.
+  identityArg: "childId" as const,
   args: {
     childId: v.id("users"),
     kind: v.string(), // "joinRoom"
@@ -802,6 +823,7 @@ export const requestApproval = mutation({
  * request without clearing the password prompt client-side.
  */
 export const decideApproval = mutation({
+  identityArg: "guardianId" as const,
   args: {
     approvalId: v.id("approvalRequests"),
     guardianId: v.id("users"),
@@ -866,6 +888,7 @@ export const decideApproval = mutation({
  * pre-approval revoked but the conversation still live.
  */
 export const revokeApproval = mutation({
+  identityArg: "guardianId" as const,
   args: { guardianId: v.id("users"), approvalId: v.id("approvalRequests") },
   handler: async (ctx, { guardianId, approvalId }) => {
     const req = await ctx.db.get(approvalId);
@@ -914,6 +937,7 @@ export const revokeApproval = mutation({
  * over for the child to do it.
  */
 export const allowContactByUsername = mutation({
+  identityArg: "guardianId" as const,
   args: {
     guardianId: v.id("users"),
     childId: v.id("users"),
@@ -1054,6 +1078,7 @@ async function severContact(ctx: any, childId: any, contactUserId: any) {
 }
 
 export const revokeContact = mutation({
+  identityArg: "guardianId" as const,
   args: {
     guardianId: v.id("users"),
     childId: v.id("users"),
@@ -1073,6 +1098,7 @@ export const revokeContact = mutation({
  * knows the two still share a space, and can revoke that separately.
  */
 export const previewContactRemoval = query({
+  identityArg: "guardianId" as const,
   args: {
     guardianId: v.id("users"),
     childId: v.id("users"),
@@ -1148,7 +1174,7 @@ export const getFamilyContext = query({
     for (const k of kidIds) {
       const u: any = await ctx.db.get(k);
       if (!u) continue;
-      const n = await pendingCountFor(ctx, k);
+      const n = await pendingForChild(ctx, k);
       pendingCount += n;
 
       // Who else supervises this child. Lets the guardian screen list
@@ -1181,35 +1207,9 @@ export const getFamilyContext = query({
   },
 });
 
-/** How many things are sitting in a guardian's queue for this one child. */
-async function pendingCountFor(ctx: any, childId: any): Promise<number> {
-  const rooms = await ctx.db
-    .query("approvalRequests")
-    .withIndex("by_child_status", (q: any) =>
-      q.eq("childId", childId).eq("status", "pending"),
-    )
-    .collect();
-  const outgoing = await ctx.db
-    .query("friendships")
-    .withIndex("by_stage_user", (q: any) =>
-      q.eq("stage", STAGE_SENDER_GUARDIAN).eq("userId", childId),
-    )
-    .collect();
-  const incoming = await ctx.db
-    .query("friendships")
-    .withIndex("by_stage_friend", (q: any) =>
-      q.eq("stage", STAGE_RECIPIENT_GUARDIAN).eq("friendId", childId),
-    )
-    .collect();
-  return (
-    rooms.length +
-    outgoing.filter((r: any) => r.status === "pending").length +
-    incoming.filter((r: any) => r.status === "pending").length
-  );
-}
-
 /** The child's own "waiting on a grown-up" list. */
 export const listMyApprovals = query({
+  identityArg: "childId" as const,
   args: { childId: v.id("users") },
   handler: async (ctx, { childId }) => {
     const rows = await ctx.db
@@ -1233,8 +1233,157 @@ export const listMyApprovals = query({
   },
 });
 
+/**
+ * Rooms a guardian could hand this child, for the picker on the child's
+ * settings screen.
+ *
+ * Deliberately the guardian's OWN group rooms and nothing else — not a public
+ * directory, not a search over every room on the deployment. A parent adding a
+ * child to a room is vouching for the people in it, and the only rooms they
+ * are in a position to vouch for are the ones they are standing in. It is also
+ * the same shape as `roomInvitations.invitableFriends`: pick from what you
+ * already have, filtered server-side so the client never has to hold a roster
+ * it has no other reason to see.
+ *
+ * DMs are excluded (a two-person room is not something to add a third person
+ * to), as are rooms the child is already in or already granted — a picker
+ * whose rows do nothing is worse than a shorter picker.
+ */
+export const grantableRooms = query({
+  identityArg: "guardianId" as const,
+  args: { guardianId: v.id("users"), childId: v.id("users") },
+  handler: async (ctx, { guardianId, childId }) => {
+    if (!(await isGuardianOf(ctx, guardianId, childId))) {
+      throw new Error(ERR_NOT_GUARDIAN);
+    }
+
+    // Every room the child is already in, or already has a live grant for.
+    const taken = new Set<string>();
+    for (const m of await ctx.db
+      .query("roomMembers")
+      .withIndex("by_user", (q) => q.eq("userId", childId))
+      .collect()) {
+      taken.add(m.roomId.toString());
+    }
+    for (const a of await ctx.db
+      .query("approvalRequests")
+      .withIndex("by_child_status", (q) =>
+        q.eq("childId", childId).eq("status", "approved"),
+      )
+      .collect()) {
+      if (a.kind === "joinRoom" && a.targetRoomId) {
+        taken.add(a.targetRoomId.toString());
+      }
+    }
+
+    const mine = await ctx.db
+      .query("roomMembers")
+      .withIndex("by_user", (q) => q.eq("userId", guardianId))
+      .collect();
+
+    const out = [];
+    for (const m of mine) {
+      if (taken.has(m.roomId.toString())) continue;
+      const room: any = await ctx.db.get(m.roomId);
+      if (!room) continue;
+      // DMs and the system log room are not places to add a child to.
+      if (typeof room.name === "string" && room.name.startsWith("dm:")) continue;
+      if (room.system) continue;
+      out.push(roomBriefOf(room));
+    }
+    out.sort((a: any, b: any) => a.name.localeCompare(b.name));
+    return out;
+  },
+});
+
+/**
+ * A guardian putting their child into a room directly, with no request from
+ * the child and no invite from the room.
+ *
+ * The counterpart of `decideApproval`, reached from the other end: there, a
+ * child asked and a parent said yes; here the parent never needed asking. Both
+ * write the same `approvalRequests` row — kind `joinRoom`, status `approved` —
+ * so `childMayUseRoom` finds it without knowing which door it came through,
+ * and the existing TAKE BACK on the child's settings screen revokes it with
+ * the cascade already written for it (`revokeApproval` removes the membership
+ * too).
+ *
+ * The guardian must be in the room themselves. That is what makes this safe to
+ * offer at all: they are adding their child to a room they can see, not to an
+ * id they typed. `addMembership` performs the join, idempotently, so the child
+ * is in the room the moment this returns rather than after some later tap.
+ */
+export const grantRoomToChild = mutation({
+  identityArg: "guardianId" as const,
+  args: {
+    guardianId: v.id("users"),
+    childId: v.id("users"),
+    roomId: v.id("rooms"),
+  },
+  handler: async (ctx, { guardianId, childId, roomId }) => {
+    await assertGuardian(ctx, guardianId, childId);
+
+    const room: any = await ctx.db.get(roomId);
+    if (!room) throw new Error("ROOM_NOT_FOUND");
+    if (typeof room.name === "string" && room.name.startsWith("dm:")) {
+      throw new Error(ERR_NOT_ALLOWED);
+    }
+    if (room.system) throw new Error(ERR_NOT_ALLOWED);
+
+    // The guardian's own membership is the authorisation. Without it this
+    // would let anybody's child be dropped into any room whose id leaked.
+    const mine = await ctx.db
+      .query("roomMembers")
+      .withIndex("by_room_user", (q) =>
+        q.eq("roomId", roomId).eq("userId", guardianId),
+      )
+      .first();
+    if (!mine) throw new Error(ERR_NOT_ALLOWED);
+
+    // Idempotent, and it REUSES a superseded row rather than piling up a
+    // second one — the same shape `roomInvitations.grantRoomAccess` uses, for
+    // the same reason: a parent who grants, revokes and re-grants should end
+    // up with one live decision to take back, not three.
+    const existing = await ctx.db
+      .query("approvalRequests")
+      .withIndex("by_child_room", (q) =>
+        q.eq("childId", childId).eq("targetRoomId", roomId),
+      )
+      .collect();
+    const now = Date.now();
+    const live = existing.find(
+      (r: any) => r.kind === "joinRoom" && r.status === "approved",
+    );
+    if (!live) {
+      const reusable = existing.find((r: any) => r.kind === "joinRoom");
+      if (reusable) {
+        await ctx.db.patch(reusable._id, {
+          status: "approved",
+          decidedAt: now,
+          decidedByGuardianId: guardianId,
+        });
+      } else {
+        await ctx.db.insert("approvalRequests", {
+          childId,
+          kind: "joinRoom",
+          status: "approved",
+          targetRoomId: roomId,
+          note: "",
+          createdAt: now,
+          decidedAt: now,
+          decidedByGuardianId: guardianId,
+        });
+      }
+    }
+
+    const joined = await addMembership(ctx, roomId, childId);
+    return { roomId, joined };
+  },
+});
+
 /** Rooms and people a guardian has let this child have, for the dashboard. */
 export const listChildGrants = query({
+  identityArg: "guardianId" as const,
   args: { guardianId: v.id("users"), childId: v.id("users") },
   handler: async (ctx, { guardianId, childId }) => {
     if (!(await isGuardianOf(ctx, guardianId, childId))) {
@@ -1316,9 +1465,22 @@ export const listChildGrants = query({
  * `promoteToAdult` and `deleteChildAccount`; a guardian who wants out while
  * someone else stays responsible has to add that someone else first.
  */
+/**
+ * Removes ONE guardianship. The only family mutation that does not bind its
+ * identity to `guardianId`, because `guardianId` here names the grown-up being
+ * REMOVED, which is legitimately somebody else: this is both "step away
+ * myself" and "remove my co-parent", and the child settings screen uses it for
+ * both.
+ *
+ * So the caller is checked separately, and it is checked — the wrapper's
+ * injected `userId` is the session, and only another guardian of the same
+ * child may do this. Without that line the function would take a guardianship
+ * id from a stranger and delete it.
+ */
 export const unlinkChild = mutation({
   args: { guardianId: v.id("users"), childId: v.id("users") },
-  handler: async (ctx, { guardianId, childId }) => {
+  handler: async (ctx, { userId, guardianId, childId }) => {
+    await assertGuardian(ctx, userId, childId);
     await assertGuardian(ctx, guardianId, childId);
 
     const all = await ctx.db
@@ -1350,6 +1512,7 @@ export const unlinkChild = mutation({
  * supervision shouldn't silently unfriend the family.
  */
 export const promoteToAdult = mutation({
+  identityArg: "guardianId" as const,
   args: {
     guardianId: v.id("users"),
     childId: v.id("users"),
@@ -1393,6 +1556,7 @@ export const promoteToAdult = mutation({
  * list to keep in sync.
  */
 export const deleteChildAccount = mutation({
+  identityArg: "guardianId" as const,
   args: { guardianId: v.id("users"), childId: v.id("users") },
   handler: async (ctx, { guardianId, childId }) => {
     await assertGuardian(ctx, guardianId, childId);

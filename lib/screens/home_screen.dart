@@ -33,6 +33,7 @@ import '../widgets/user_avatar.dart';
 import 'navigation/destinations.dart';
 import 'navigation/open_room.dart';
 import 'navigation/tab_reselect.dart';
+import '../widgets/app_toast.dart';
 import '../widgets/new_chat_menu.dart';
 import 'create_room_sheet.dart';
 import 'join_by_invite_screen.dart';
@@ -322,12 +323,17 @@ class _HomeScreenState extends State<HomeScreen>
     SettingsStore.instance.setRoomFilter(RoomFilter.empty);
   }
 
-  /// The `+`. Offers both ways a new chat starts, rather than assuming one.
+  /// The `+`. Every way a new chat starts, in the order people want them.
   ///
-  /// It opened the create-room sheet directly, which left "join with a code"
-  /// living only in Discover — a tab away, under a row most people never
-  /// scroll to. Somebody handed a code does not go looking under "discover";
-  /// they go to the button new chats come from.
+  /// Friends first, with a search bar over them, then create-a-room and
+  /// join-with-a-code underneath — see [showNewChatMenu] for why messaging a
+  /// person you already know belongs on the button new chats come from rather
+  /// than a tab away in Discover.
+  ///
+  /// The old shortcut that skipped the sheet when only one ROOM action was
+  /// available is gone with it: there is now always a third thing in the
+  /// sheet (the people), so there is no longer a case where the menu has one
+  /// entry in it.
   Future<void> _openNewChat() async {
     final canCreate = widget.family.canCreateRooms;
     // Matches the rest of the child model rather than inventing a new rule:
@@ -335,29 +341,48 @@ class _HomeScreenState extends State<HomeScreen>
     // from children outright, so this door is too. Redeeming a code still
     // needs a guardian's yes server-side either way (`roomInvites.redeem`).
     final canJoin = !widget.family.isChild;
-    if (!canCreate && !canJoin) return;
 
-    // One option is not a menu. Skip straight to it.
-    if (canCreate && !canJoin) {
-      _showCreateRoom();
-      return;
-    }
-    if (canJoin && !canCreate) {
-      _showJoinByCode();
-      return;
-    }
-
-    final choice = await showNewChatMenu(
+    final outcome = await showNewChatMenu(
       context,
+      repo: widget.repo,
+      api: widget.api,
       canCreateRoom: canCreate,
       canJoinByCode: canJoin,
     );
-    if (!mounted || choice == null) return;
-    switch (choice) {
+    if (!mounted || outcome == null) return;
+
+    final friend = outcome.friend;
+    if (friend != null) {
+      await _openDmWith(friend);
+      return;
+    }
+    switch (outcome.choice) {
       case NewChatChoice.createRoom:
         _showCreateRoom();
       case NewChatChoice.joinWithCode:
         _showJoinByCode();
+      case null:
+        break;
+    }
+  }
+
+  /// Opens (or mints) the DM with [friend] and lands in it.
+  ///
+  /// `getOrCreateDM` is idempotent and always returns the same room for the
+  /// same pair, so tapping a friend twice reopens the conversation rather than
+  /// starting a second one.
+  Future<void> _openDmWith(ChatUser friend) async {
+    final toast = AppToast.of(context);
+    try {
+      final roomId = await widget.repo.openDmWith(friend);
+      if (!mounted) return;
+      openRoom(context, roomId: roomId, repo: widget.repo, api: widget.api);
+    } catch (_) {
+      if (!mounted) return;
+      toast.show(
+        AppLocalizations.of(context).newChatMenuOpenDmFailed,
+        tone: ToastTone.danger,
+      );
     }
   }
 
@@ -457,10 +482,13 @@ class _HomeScreenState extends State<HomeScreen>
                   // No longer conditional on which tab you're looking at — the
                   // create affordance used to appear and vanish as you moved
                   // between Rooms and Friends, which made it feel unreliable.
-                  onCreateTap: (widget.family.canCreateRooms ||
-                          !widget.family.isChild)
-                      ? _openNewChat
-                      : null,
+                  // Unconditional now. It used to be hidden unless the account
+                  // could create a room or join by code, which meant a
+                  // locked-down child account had no `+` at all — and starting
+                  // a chat with someone their guardian has already approved is
+                  // the one thing that account exists to do. The sheet itself
+                  // draws only the actions the account actually has.
+                  onCreateTap: _openNewChat,
                   filterButton: chipsStyle
                       ? null
                       : RoomFilterButton(

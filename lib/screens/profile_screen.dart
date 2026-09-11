@@ -15,6 +15,7 @@ import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../data/username_availability_controller.dart';
 import '../family/family_service.dart';
+import '../models/family.dart' show RequestStage;
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../media/file_url_cache.dart';
@@ -155,7 +156,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Eagerly resolve friendship from the repo so the first frame is correct
     // (chat-context entry points like getMembers don't compute it).
     final resolved = _resolveFriendship(widget.user.id);
-    _user = widget.user.copyWith(friendshipStatus: resolved.status, requestId: resolved.requestId);
+    _user = widget.user.copyWith(
+      friendshipStatus: resolved.status,
+      requestId: resolved.requestId,
+      awaitingGuardian: resolved.held,
+    );
     // The account type can change underneath an open profile: a guardian
     // graduating this child from their own phone lands over the live family
     // subscription. Everything on the me-view keys off it — the ACCOUNT
@@ -192,11 +197,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _onFriendship() {
     if (!mounted) return;
     final resolved = _resolveFriendship(widget.user.id);
-    if (resolved.status == _u.friendshipStatus) return;
+    // The hold is compared too, not just the status. A guardian releasing a
+    // request changes only the stage — the status stays `outgoingPending` —
+    // and bailing out on an unchanged status left the button inert until the
+    // screen was reopened.
+    final held = resolved.held ?? _u.awaitingGuardian;
+    if (resolved.status == _u.friendshipStatus && held == _u.awaitingGuardian) {
+      return;
+    }
     setState(() {
       _user = _u.copyWith(
         friendshipStatus: resolved.status,
         requestId: resolved.requestId,
+        awaitingGuardian: held,
       );
     });
   }
@@ -215,7 +228,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // DM header) where getMembers didn't compute it.
       final resolved = _resolveFriendship(widget.user.id);
       setState(() {
-        _user = fresh.copyWith(friendshipStatus: resolved.status, requestId: resolved.requestId);
+        _user = fresh.copyWith(
+          friendshipStatus: resolved.status,
+          requestId: resolved.requestId,
+          // Null keeps what the fetch said — the only source that can see an
+          // unreleased incoming request. See [_resolveFriendship].
+          awaitingGuardian: resolved.held,
+        );
       });
     } catch (_) {
     } finally {
@@ -223,23 +242,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  ({FriendshipStatus status, String? requestId}) _resolveFriendship(String userId) {
+  /// Friendship as the repository's live lists see it, plus whether the
+  /// viewer's own grown-up is still holding it.
+  ///
+  /// `held` is null for "the lists can't say" — which is the `none` case, and
+  /// exactly the case that matters: an unreleased INCOMING request is filtered
+  /// out server-side, so the repo reports `none` for a relationship that very
+  /// much exists. The caller keeps whatever `users:getProfile` said there,
+  /// since that is the only source that can see it.
+  ///
+  /// Everywhere else the lists are authoritative and beat the fetched flag,
+  /// which is what lets the button come alive the moment a guardian releases
+  /// the request — the release arrives on these subscriptions, not on a
+  /// re-fetch of the profile.
+  ({FriendshipStatus status, String? requestId, bool? held})
+      _resolveFriendship(String userId) {
     final repo = widget.repo;
     if (repo == null) {
-      return (status: widget.user.friendshipStatus, requestId: widget.user.requestId);
+      return (
+        status: widget.user.friendshipStatus,
+        requestId: widget.user.requestId,
+        held: null,
+      );
     }
     if (repo.friends.any((f) => f.id == userId)) {
-      return (status: FriendshipStatus.friend, requestId: null);
+      return (status: FriendshipStatus.friend, requestId: null, held: false);
     }
     final outgoing = repo.outgoingRequests.where((r) => r.user.id == userId).firstOrNull;
     if (outgoing != null) {
-      return (status: FriendshipStatus.outgoingPending, requestId: outgoing.id);
+      // `listOutgoingDirectRequests` does NOT filter by stage — a child sees
+      // their own request while their grown-up still has it — so the stage on
+      // the row is what decides, not the row's presence.
+      return (
+        status: FriendshipStatus.outgoingPending,
+        requestId: outgoing.id,
+        held: outgoing.stage == RequestStage.senderGuardian,
+      );
     }
     final incoming = repo.incomingRequests.where((r) => r.user.id == userId).firstOrNull;
     if (incoming != null) {
-      return (status: FriendshipStatus.incomingPending, requestId: incoming.id);
+      // Released by construction: `listIncomingDirectRequests` drops anything
+      // a guardian still holds.
+      return (
+        status: FriendshipStatus.incomingPending,
+        requestId: incoming.id,
+        held: false,
+      );
     }
-    return (status: FriendshipStatus.none, requestId: null);
+    return (status: FriendshipStatus.none, requestId: null, held: null);
   }
 
   Future<void> _updateName(String next) async {
@@ -651,6 +701,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final toast = AppToast.of(context);
     setState(() => _busy = true);
     try {
+      if (_heldByGrownUp) return;
       switch (_u.friendshipStatus) {
         case FriendshipStatus.none:
           if (!mounted) return;
@@ -1027,8 +1078,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  /// True when the viewer's OWN grown-up is still holding a request between
+  /// these two. See `ChatUser.awaitingGuardian`.
+  ///
+  /// This screen cannot work it out for itself: it resolves friendship from
+  /// the repository's live request lists, and those carry only rows a guardian
+  /// has already released. So an unreleased request looked like no request at
+  /// all, and the button offered to send one that the backend would refuse
+  /// with REQUEST_ALREADY_RECEIVED. `users:getProfile` supplies the flag.
+  bool get _heldByGrownUp => _u.awaitingGuardian;
+
   String _actionLabel() {
     final l10n = AppLocalizations.of(context);
+    if (_heldByGrownUp) return l10n.searchScreenActionWithGrownUp;
     switch (_u.friendshipStatus) {
       case FriendshipStatus.none:
         return l10n.profileScreenSendRequestAction;
@@ -1304,11 +1366,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: _Action(
                           label: _busy
                               ? '…'
-                              : (_u.friendshipStatus == FriendshipStatus.none && !_u.acceptsFriendRequests
+                              : (!_heldByGrownUp &&
+                                        _u.friendshipStatus == FriendshipStatus.none &&
+                                        !_u.acceptsFriendRequests
                                     ? AppLocalizations.of(context).profileScreenNotAcceptingRequestsAction
                                     : _actionLabel()),
-                          filled: _u.friendshipStatus != FriendshipStatus.outgoingPending,
-                          onTap: (_busy || (_u.friendshipStatus == FriendshipStatus.none && !_u.acceptsFriendRequests))
+                          filled: !_heldByGrownUp &&
+                              _u.friendshipStatus != FriendshipStatus.outgoingPending,
+                          onTap: (_busy ||
+                                  _heldByGrownUp ||
+                                  (_u.friendshipStatus == FriendshipStatus.none && !_u.acceptsFriendRequests))
                               ? null
                               : _friendshipAction,
                         ),

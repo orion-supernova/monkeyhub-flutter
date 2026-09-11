@@ -8354,4 +8354,76 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get settingsScreenFriendActivityOffBody =>
       'कुछ नहीं — देखने जाएँ तो उनके बोर्ड वहीं हैं';
+
+  @override
+  String get searchScreenActionWithGrownUp => 'बड़े के पास';
+
+  @override
+  String get newChatMenuSearchHint => 'अपने दोस्तों में खोजो';
+
+  @override
+  String get newChatMenuNoFriendsYet =>
+      'अभी कोई दोस्त नहीं —\\nखोजो में लोगों को ढूँढो';
+
+  @override
+  String get newChatMenuNoFriendsMatch => 'कोई दोस्त मेल नहीं खाता';
+
+  @override
+  String get newChatMenuOpenDmFailed => 'वह चैट नहीं खुल सकी — फिर कोशिश करो';
+
+  @override
+  String get childPolicyScreenAddSomeoneLabel => 'अपने लोगों में से चुनो';
+
+  @override
+  String get childPolicyScreenPickPersonHint => 'नाम या यूज़रनेम खोजो';
+
+  @override
+  String get childPolicyScreenPickPersonEmpty =>
+      'तुम्हारे दोस्तों में जोड़ने को कोई नहीं बचा —\\nकिसी और को खोजो';
+
+  @override
+  String get childPolicyScreenPickPersonNoMatch => 'कोई मेल नहीं खाता';
+
+  @override
+  String get childPolicyScreenPickPersonFriendsHeader => 'तुम्हारे दोस्त';
+
+  @override
+  String get childPolicyScreenPickPersonEveryoneHeader => 'बाकी सब';
+
+  @override
+  String get childPolicyScreenAddRoomLabel => 'रूम जोड़ो';
+
+  @override
+  String get childPolicyScreenPickRoomHeading => 'रूम जोड़ो';
+
+  @override
+  String childPolicyScreenPickRoomBlurb(String name) {
+    return 'तुम्हारा ही कोई रूम। $name तुरंत शामिल हो जाएगा और जब तक तुम वापस न लो, वहाँ पढ़ और लिख सकेगा।';
+  }
+
+  @override
+  String get childPolicyScreenPickRoomHint => 'अपने रूम्स में खोजो';
+
+  @override
+  String get childPolicyScreenPickRoomEmpty =>
+      'जोड़ने के लिए तुम्हारा कोई रूम नहीं बचा';
+
+  @override
+  String get childPolicyScreenPickRoomNoMatch => 'कोई रूम मेल नहीं खाता';
+
+  @override
+  String childPolicyScreenRoomAdded(String name, String room) {
+    return '$name अब $room में है';
+  }
+
+  @override
+  String get childPolicyScreenErrorAddRoomGeneric =>
+      'वह रूम नहीं जुड़ सका — फिर कोशिश करो';
+
+  @override
+  String get childPolicyScreenErrorRoomNotAllowed =>
+      'वह रूम इस तरह नहीं जोड़ा जा सकता';
+
+  @override
+  String get childPolicyScreenErrorRoomGone => 'वह रूम अब मौजूद नहीं है';
 }

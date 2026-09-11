@@ -7927,4 +7927,71 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsScreenFriendActivityOffBody => '没有通知 — 你去看时他们的板子还在';
+
+  @override
+  String get searchScreenActionWithGrownUp => '等大人确认';
+
+  @override
+  String get newChatMenuSearchHint => '搜索你的好友';
+
+  @override
+  String get newChatMenuNoFriendsYet => '还没有好友 —\\n去发现页找找人';
+
+  @override
+  String get newChatMenuNoFriendsMatch => '没有匹配的好友';
+
+  @override
+  String get newChatMenuOpenDmFailed => '打不开那个聊天 — 请重试';
+
+  @override
+  String get childPolicyScreenAddSomeoneLabel => '从你的联系人里挑';
+
+  @override
+  String get childPolicyScreenPickPersonHint => '搜索名字或用户名';
+
+  @override
+  String get childPolicyScreenPickPersonEmpty => '好友里没有可添加的人了 —\\n可以搜索其他人';
+
+  @override
+  String get childPolicyScreenPickPersonNoMatch => '没有匹配的人';
+
+  @override
+  String get childPolicyScreenPickPersonFriendsHeader => '你的好友';
+
+  @override
+  String get childPolicyScreenPickPersonEveryoneHeader => '其他人';
+
+  @override
+  String get childPolicyScreenAddRoomLabel => '添加房间';
+
+  @override
+  String get childPolicyScreenPickRoomHeading => '添加房间';
+
+  @override
+  String childPolicyScreenPickRoomBlurb(String name) {
+    return '你自己的房间。$name 会立刻加入，在你收回之前都能在那里阅读和发言。';
+  }
+
+  @override
+  String get childPolicyScreenPickRoomHint => '搜索你的房间';
+
+  @override
+  String get childPolicyScreenPickRoomEmpty => '没有可添加的房间了';
+
+  @override
+  String get childPolicyScreenPickRoomNoMatch => '没有匹配的房间';
+
+  @override
+  String childPolicyScreenRoomAdded(String name, String room) {
+    return '$name 现在在 $room 里';
+  }
+
+  @override
+  String get childPolicyScreenErrorAddRoomGeneric => '添加那个房间失败 — 请重试';
+
+  @override
+  String get childPolicyScreenErrorRoomNotAllowed => '那个房间不能这样添加';
+
+  @override
+  String get childPolicyScreenErrorRoomGone => '那个房间已经不存在了';
 }

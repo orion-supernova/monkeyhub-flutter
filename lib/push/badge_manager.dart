@@ -5,11 +5,15 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import '../data/chat_repository.dart';
+import '../family/family_service.dart';
 import 'web_badge.dart';
 
 /// Computes a single "needs attention" number for this user and pushes it to
 /// the platform app icon. The number aggregates:
 ///   - count of incoming friend / direct requests
+///   - pending group invites this user may actually answer
+///   - anything waiting on this user AS A GUARDIAN — their children's
+///     approvals queue
 ///   - total unread messages across every room, from the server-computed
 ///     per-room `unreadCount` (see backend `badges.ts`)
 ///
@@ -34,6 +38,15 @@ class BadgeManager extends ChangeNotifier {
   static const _ch = MethodChannel('monkeyhub/badge');
 
   ChatRepository? _repo;
+
+  /// The guardian half of the number.
+  ///
+  /// Separate from [_repo] because it lives on a different subscription — the
+  /// family context — and because most accounts never have one. Null simply
+  /// contributes zero, so a caller that does not bind it is not wrong, only
+  /// incomplete.
+  FamilyService? _family;
+
   int _total = 0;
   int get total => _total;
 
@@ -61,19 +74,30 @@ class BadgeManager extends ChangeNotifier {
   /// a push's newer one.
   Object? _lastCounts;
 
-  void bind(ChatRepository repo) {
-    if (identical(_repo, repo)) return;
-    _repo?.removeListener(_recompute);
-    _repo = repo;
+  void bind(ChatRepository repo, {FamilyService? family}) {
+    final sameRepo = identical(_repo, repo);
+    final sameFamily = identical(_family, family);
+    if (sameRepo && sameFamily) return;
+    if (!sameRepo) {
+      _repo?.removeListener(_recompute);
+      _repo = repo;
+      repo.addListener(_recompute);
+    }
+    if (!sameFamily) {
+      _family?.removeListener(_recompute);
+      _family = family;
+      family?.addListener(_recompute);
+    }
     _platformUnknown = true;
     _lastCounts = null;
-    repo.addListener(_recompute);
     _recompute();
   }
 
   void unbind() {
     _repo?.removeListener(_recompute);
     _repo = null;
+    _family?.removeListener(_recompute);
+    _family = null;
     _total = 0;
     _platformUnknown = true;
     _lastCounts = null;
@@ -93,7 +117,16 @@ class BadgeManager extends ChangeNotifier {
     final counts = repo.facetCounts;
     final listMoved = !identical(counts, _lastCounts);
     _lastCounts = counts;
-    final next = repo.incomingRequests.length + repo.unreadMessageTotal;
+    // The same four terms `badges.badgeTotalFor` sums server-side, in the same
+    // order. They are two independent computations of one number and they are
+    // visibly wrong the moment they disagree: every push stamps an absolute
+    // count onto the icon, and this is what re-asserts it on resume — so a
+    // term missing here does not merely under-count, it ERASES whatever the
+    // push had correctly put there.
+    final next = repo.incomingRequests.length +
+        repo.roomInvitations.length +
+        (_family?.pendingCount ?? 0) +
+        repo.unreadMessageTotal;
     final numberMoved = next != _total;
     // Two reasons to write, and the second is the whole point of the flag: the
     // number moved, or it did not but the icon is not known to be showing it
@@ -101,6 +134,7 @@ class BadgeManager extends ChangeNotifier {
     // asserting. Everything else — a typing notify, a reaction, a room-list
     // fire that changed nothing on an icon we already trust — writes nothing.
     if (!numberMoved && !(listMoved && _platformUnknown)) return;
+
     _total = next;
     _platformUnknown = false;
     if (numberMoved) notifyListeners();

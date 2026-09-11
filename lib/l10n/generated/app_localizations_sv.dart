@@ -8370,4 +8370,77 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get settingsScreenFriendActivityOffBody =>
       'inget — deras tavlor finns kvar när du tittar';
+
+  @override
+  String get searchScreenActionWithGrownUp => 'HOS EN VUXEN';
+
+  @override
+  String get newChatMenuSearchHint => 'sök bland dina vänner';
+
+  @override
+  String get newChatMenuNoFriendsYet =>
+      'inga vänner än —\\nhitta folk i Upptäck';
+
+  @override
+  String get newChatMenuNoFriendsMatch => 'ingen vän matchar';
+
+  @override
+  String get newChatMenuOpenDmFailed =>
+      'kunde inte öppna den chatten — försök igen';
+
+  @override
+  String get childPolicyScreenAddSomeoneLabel => 'VÄLJ BLAND DINA PERSONER';
+
+  @override
+  String get childPolicyScreenPickPersonHint =>
+      'sök på namn eller användarnamn';
+
+  @override
+  String get childPolicyScreenPickPersonEmpty =>
+      'ingen kvar att lägga till bland dina vänner —\\nsök efter någon annan';
+
+  @override
+  String get childPolicyScreenPickPersonNoMatch => 'ingen matchar';
+
+  @override
+  String get childPolicyScreenPickPersonFriendsHeader => 'DINA VÄNNER';
+
+  @override
+  String get childPolicyScreenPickPersonEveryoneHeader => 'ALLA ANDRA';
+
+  @override
+  String get childPolicyScreenAddRoomLabel => 'LÄGG TILL ETT RUM';
+
+  @override
+  String get childPolicyScreenPickRoomHeading => 'LÄGG TILL ETT RUM';
+
+  @override
+  String childPolicyScreenPickRoomBlurb(String name) {
+    return 'Ett av dina egna rum. $name går med direkt och kan läsa och skriva där tills du tar tillbaka det.';
+  }
+
+  @override
+  String get childPolicyScreenPickRoomHint => 'sök bland dina rum';
+
+  @override
+  String get childPolicyScreenPickRoomEmpty => 'inga rum kvar att lägga till';
+
+  @override
+  String get childPolicyScreenPickRoomNoMatch => 'inget rum matchar';
+
+  @override
+  String childPolicyScreenRoomAdded(String name, String room) {
+    return '$name är nu i $room';
+  }
+
+  @override
+  String get childPolicyScreenErrorAddRoomGeneric =>
+      'kunde inte lägga till det rummet — försök igen';
+
+  @override
+  String get childPolicyScreenErrorRoomNotAllowed =>
+      'det rummet kan inte läggas till så här';
+
+  @override
+  String get childPolicyScreenErrorRoomGone => 'det rummet finns inte längre';
 }

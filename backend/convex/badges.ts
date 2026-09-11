@@ -1,4 +1,7 @@
-import { isReleasedToRecipient } from "./childGuard";
+import {
+  guardianPendingCount,
+  isReleasedToRecipient,
+} from "./childGuard";
 import { resolveMute } from "./mute";
 
 /**
@@ -140,7 +143,30 @@ export async function badgeTotalFor(
     (f: any) => f.status === "pending" && isReleasedToRecipient(f.stage),
   ).length;
 
-  return { total: unread + requests, perRoom };
+  // Group invites, on the same terms as friend requests: only the ones a
+  // guardian has actually released to this person. An invite still sitting at
+  // a guardian hop belongs on the GUARDIAN's badge, counted below, and must
+  // not appear on the invitee's — they are not allowed to know it exists yet.
+  const inviteRows = await ctx.db
+    .query("roomInvitations")
+    .withIndex("by_invitee_status", (q: any) =>
+      q.eq("inviteeId", userId).eq("status", "pending"),
+    )
+    .collect();
+  const invites = inviteRows.filter((r: any) =>
+    isReleasedToRecipient(r.stage),
+  ).length;
+
+  // Anything waiting on this person AS A GUARDIAN.
+  //
+  // Without it the app icon was silent about the one category of push this
+  // app sends that somebody else is blocked on. A parent who missed the
+  // banner had nothing left telling them their child was waiting — the icon
+  // said zero, and the icon is what people actually look at. One indexed
+  // lookup for the ~everyone who has no children; see `guardianPendingCount`.
+  const approvals = await guardianPendingCount(ctx, userId);
+
+  return { total: unread + requests + invites + approvals, perRoom };
 }
 
 // `badgeSnapshot` used to live here: a batched internalQuery the push actions

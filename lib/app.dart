@@ -1456,7 +1456,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         ) {
           _lastSentStatus = null;
         });
-        BadgeManager.instance.bind(_repo);
+        // The family service is bound too: a guardian's pending approvals are
+        // part of the app-icon number the backend now stamps into every push,
+        // and a client that re-asserted without them would wipe it on resume.
+        BadgeManager.instance.bind(_repo, family: _family);
         MessageAlerts.instance.bind(_repo);
         _consumePendingPushRoom();
         // The sign-in that a tapped invite sent someone through. This is the

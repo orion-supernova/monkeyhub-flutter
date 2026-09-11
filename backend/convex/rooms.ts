@@ -811,11 +811,23 @@ export const getOrCreateDM = mutation({
     const ordered = [userId.toString(), friendId.toString()].sort();
     const name = `dm:${roomKey}:${ordered[0]}:${ordered[1]}`;
 
+    // Both "already exists" paths re-seat the two members before handing the
+    // id back. A DM's room row outlives either member leaving it — a
+    // two-person room only gets wiped when the LAST member goes — so a room
+    // found by name here can be one the caller is no longer in. Returning it
+    // bare is what left a re-established friendship visible in one chat list
+    // and not the other's: `listUserRooms` reads membership rows, and nothing
+    // else would ever put the missing one back. `addMembership` is idempotent,
+    // so the ordinary case writes nothing.
     const existingByName = await ctx.db
       .query("rooms")
       .withIndex("by_name", (q) => q.eq("name", name))
       .first();
-    if (existingByName) return existingByName._id;
+    if (existingByName) {
+      await addMembership(ctx, existingByName._id, userId);
+      await addMembership(ctx, existingByName._id, friendId);
+      return existingByName._id;
+    }
 
     if (roomKey === "regular") {
       const legacyName = `dm:${ordered[0]}:${ordered[1]}`;
@@ -823,7 +835,11 @@ export const getOrCreateDM = mutation({
         .query("rooms")
         .withIndex("by_name", (q) => q.eq("name", legacyName))
         .first();
-      if (legacyRoom) return legacyRoom._id;
+      if (legacyRoom) {
+        await addMembership(ctx, legacyRoom._id, userId);
+        await addMembership(ctx, legacyRoom._id, friendId);
+        return legacyRoom._id;
+      }
     }
 
     // No NEW DM with a system account — deliberately here, below every lookup

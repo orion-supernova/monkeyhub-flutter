@@ -8311,4 +8311,75 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get settingsScreenFriendActivityOffBody =>
       'hiçbir şey — panoları baktığında yine orada';
+
+  @override
+  String get searchScreenActionWithGrownUp => 'BİR BÜYÜKTE';
+
+  @override
+  String get newChatMenuSearchHint => 'arkadaşlarında ara';
+
+  @override
+  String get newChatMenuNoFriendsYet =>
+      'henüz arkadaş yok —\\nKeşfet’ten birilerini bul';
+
+  @override
+  String get newChatMenuNoFriendsMatch => 'eşleşen arkadaş yok';
+
+  @override
+  String get newChatMenuOpenDmFailed => 'o sohbet açılamadı — tekrar dene';
+
+  @override
+  String get childPolicyScreenAddSomeoneLabel => 'KENDİ KİŞİLERİNDEN SEÇ';
+
+  @override
+  String get childPolicyScreenPickPersonHint => 'ad veya kullanıcı adı ara';
+
+  @override
+  String get childPolicyScreenPickPersonEmpty =>
+      'arkadaşlarından eklenecek kimse kalmadı —\\nbaşkasını aratabilirsin';
+
+  @override
+  String get childPolicyScreenPickPersonNoMatch => 'eşleşen kimse yok';
+
+  @override
+  String get childPolicyScreenPickPersonFriendsHeader => 'ARKADAŞLARIN';
+
+  @override
+  String get childPolicyScreenPickPersonEveryoneHeader => 'DİĞER HERKES';
+
+  @override
+  String get childPolicyScreenAddRoomLabel => 'ODA EKLE';
+
+  @override
+  String get childPolicyScreenPickRoomHeading => 'ODA EKLE';
+
+  @override
+  String childPolicyScreenPickRoomBlurb(String name) {
+    return 'Kendi odalarından biri. $name hemen katılır; sen geri alana kadar orada okuyup yazabilir.';
+  }
+
+  @override
+  String get childPolicyScreenPickRoomHint => 'odalarında ara';
+
+  @override
+  String get childPolicyScreenPickRoomEmpty => 'eklenecek başka odan kalmadı';
+
+  @override
+  String get childPolicyScreenPickRoomNoMatch => 'eşleşen oda yok';
+
+  @override
+  String childPolicyScreenRoomAdded(String name, String room) {
+    return '$name artık $room odasında';
+  }
+
+  @override
+  String get childPolicyScreenErrorAddRoomGeneric =>
+      'o oda eklenemedi — tekrar dene';
+
+  @override
+  String get childPolicyScreenErrorRoomNotAllowed =>
+      'o oda bu şekilde eklenemez';
+
+  @override
+  String get childPolicyScreenErrorRoomGone => 'o oda artık yok';
 }

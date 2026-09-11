@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
+import '../backend/convex_client.dart';
 import '../family/family_service.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/family.dart';
@@ -39,10 +40,62 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
   /// Ids currently being decided, so a double-tap can't fire twice.
   final _deciding = <String>{};
 
+  /// The queue, live.
+  ///
+  /// This screen read it once and never again, which made it wrong in three
+  /// ordinary situations: a request arriving while a parent had it open, a
+  /// co-parent deciding the same item from their own phone, and a child's
+  /// request being withdrawn. All three already travel over the socket this
+  /// app keeps open — see [ChatApi.subscribeGuardianQueue].
+  Subscription? _sub;
+
   @override
   void initState() {
     super.initState();
-    _load();
+    _attach();
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _attach() async {
+    try {
+      final sub = await widget.api.subscribeGuardianQueue(
+        guardianId: widget.guardianId,
+        onItems: (items) {
+          if (!mounted) return;
+          setState(() {
+            _items = items;
+            _loading = false;
+            // A decision that has landed is no longer in flight. Without this
+            // an item the server has already dropped could leave its id stuck
+            // in the set, and a re-raised request would open disabled.
+            _deciding.removeWhere(
+              (id) => !items.any((i) => i.id == id),
+            );
+          });
+        },
+        // Transient socket trouble. Keep whatever is on screen and let the
+        // pull-to-refresh below be the way out — clearing the list here would
+        // tell a parent they have nothing waiting, which is the one wrong
+        // answer this screen must not give.
+        onError: (_) {
+          if (mounted) setState(() => _loading = false);
+        },
+      );
+      if (!mounted) {
+        sub.cancel();
+        return;
+      }
+      _sub = sub;
+    } catch (_) {
+      // Subscribing failed outright — fall back to the one-shot read so the
+      // screen still works on a flaky connection.
+      await _load();
+    }
   }
 
   Future<void> _load() async {
@@ -91,6 +144,9 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
           );
       }
       if (!mounted) return;
+      // Optimistic, and kept even though the subscription will say the same
+      // thing a moment later: the card should leave under the thumb, not after
+      // a round trip. The live update is idempotent with it.
       setState(() => _items = _items.where((i) => i.id != item.id).toList());
       // Keep the badge in Settings honest.
       widget.family.refresh();

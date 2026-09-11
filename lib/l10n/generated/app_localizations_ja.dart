@@ -8019,4 +8019,73 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsScreenFriendActivityOffBody => '通知なし — ボードは見に行けばあります';
+
+  @override
+  String get searchScreenActionWithGrownUp => 'おとなが確認中';
+
+  @override
+  String get newChatMenuSearchHint => '友だちを検索';
+
+  @override
+  String get newChatMenuNoFriendsYet => 'まだ友だちがいません —\\n「見つける」で探してみよう';
+
+  @override
+  String get newChatMenuNoFriendsMatch => '該当する友だちがいません';
+
+  @override
+  String get newChatMenuOpenDmFailed => 'そのチャットを開けませんでした — もう一度お試しください';
+
+  @override
+  String get childPolicyScreenAddSomeoneLabel => '自分の知り合いから選ぶ';
+
+  @override
+  String get childPolicyScreenPickPersonHint => '名前かユーザー名で検索';
+
+  @override
+  String get childPolicyScreenPickPersonEmpty =>
+      '友だちから追加できる人はもういません —\\nほかの人を検索できます';
+
+  @override
+  String get childPolicyScreenPickPersonNoMatch => '該当する人がいません';
+
+  @override
+  String get childPolicyScreenPickPersonFriendsHeader => 'あなたの友だち';
+
+  @override
+  String get childPolicyScreenPickPersonEveryoneHeader => 'そのほかの人';
+
+  @override
+  String get childPolicyScreenAddRoomLabel => 'ルームを追加';
+
+  @override
+  String get childPolicyScreenPickRoomHeading => 'ルームを追加';
+
+  @override
+  String childPolicyScreenPickRoomBlurb(String name) {
+    return 'あなた自身のルームです。$name はすぐに参加し、あなたが取り消すまで読み書きできます。';
+  }
+
+  @override
+  String get childPolicyScreenPickRoomHint => '自分のルームを検索';
+
+  @override
+  String get childPolicyScreenPickRoomEmpty => '追加できるルームはもうありません';
+
+  @override
+  String get childPolicyScreenPickRoomNoMatch => '該当するルームがありません';
+
+  @override
+  String childPolicyScreenRoomAdded(String name, String room) {
+    return '$name が $room に参加しました';
+  }
+
+  @override
+  String get childPolicyScreenErrorAddRoomGeneric =>
+      'そのルームを追加できませんでした — もう一度お試しください';
+
+  @override
+  String get childPolicyScreenErrorRoomNotAllowed => 'そのルームはこの方法では追加できません';
+
+  @override
+  String get childPolicyScreenErrorRoomGone => 'そのルームはもう存在しません';
 }

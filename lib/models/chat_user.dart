@@ -136,6 +136,7 @@ class ChatUser {
     this.usernameChangedAt,
     this.isSystem = false,
     this.joinedAt,
+    this.awaitingGuardian = false,
   });
 
   final String id;
@@ -223,6 +224,22 @@ class ChatUser {
   /// one deploy window, not the reverse.
   final bool isSystem;
 
+  /// True when a pending request between the viewer and this person is parked
+  /// at the VIEWER'S OWN guardian — i.e. "a grown-up is still deciding this".
+  ///
+  /// Only ever the viewer's own hop. A request held at the OTHER end's
+  /// guardian is reported as an ordinary pending one, because saying otherwise
+  /// would tell the sender that the person they asked for is a child — see
+  /// `searchUsersCore` in `backend/convex/users.ts`, which is where this is
+  /// computed and where that restriction is argued.
+  ///
+  /// It exists because the friendship status alone reads the row's existence
+  /// and not its stage, so a supervised request rendered as an actionable
+  /// APPROVE / SEND REQUEST that the backend could only ever refuse.
+  ///
+  /// Defaults false, which is also what a backend predating the field sends.
+  bool awaitingGuardian;
+
   bool get isChild => accountType == AccountType.child;
 
   String get displayName => name.trim().isNotEmpty ? name : username;
@@ -272,6 +289,7 @@ class ChatUser {
         final num ms => DateTime.fromMillisecondsSinceEpoch(ms.toInt()),
         _ => null,
       },
+      awaitingGuardian: (j['awaitingGuardian'] as bool?) ?? false,
     );
   }
 
@@ -331,6 +349,7 @@ class ChatUser {
     AccountType? accountType,
     ChildPolicy? childPolicy,
     bool? hasRecoveryKey,
+    bool? awaitingGuardian,
   }) => ChatUser(
         id: id,
         username: username,
@@ -361,5 +380,8 @@ class ChatUser {
         // the join instant their speaker colour is settled from, or the room
         // would reshuffle its colours under the reader.
         joinedAt: joinedAt,
+        // Overridable: ProfileScreen grafts friendship state from the live
+        // request lists onto a fresh fetch, and this travels with it.
+        awaitingGuardian: awaitingGuardian ?? this.awaitingGuardian,
       );
 }

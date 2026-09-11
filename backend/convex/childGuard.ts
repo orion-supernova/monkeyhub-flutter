@@ -372,3 +372,122 @@ export async function assertChildPolicy(
   if (policy === null) return; // adult
   if (!policy[flag]) throw new Error(ERR_NOT_ALLOWED);
 }
+
+/**
+ * [initialStageFor], for a ROOM INVITE rather than a contact request.
+ *
+ * A separate function because the recipient's side asks a different question,
+ * and answering it with the contact whitelist was a real hole: a guardian who
+ * approved Grandma as a contact had thereby — silently — agreed that Grandma
+ * may drop the child into any group chat, with anybody else in it. Those are
+ * not the same decision. "I trust this person to talk to my kid" says nothing
+ * about the twelve strangers in the room they are being added to.
+ *
+ * So the recipient hop is skipped only when the child may ALREADY be in that
+ * exact room — an existing `joinRoom` grant, or a room whose other members are
+ * all family (see [childMayUseRoom]). That is the one case where asking would
+ * be asking a question the guardian has already answered.
+ *
+ * The sender's side keeps the contact whitelist, because there the question
+ * genuinely is "may my child reach this person", which is what the whitelist
+ * answers.
+ */
+export async function initialStageForRoomInvite(
+  ctx: any,
+  inviterId: any,
+  inviteeId: any,
+  roomId: any,
+): Promise<string | undefined> {
+  if (await isChild(ctx, inviterId)) {
+    if (!(await hasContactPreApproval(ctx, inviterId, inviteeId))) {
+      return STAGE_SENDER_GUARDIAN;
+    }
+  }
+  if (await isChild(ctx, inviteeId)) {
+    if (!(await childMayUseRoom(ctx, inviteeId, roomId))) {
+      return STAGE_RECIPIENT_GUARDIAN;
+    }
+  }
+  return undefined;
+}
+
+// ─────────────────────────── what's waiting ───────────────────────────
+
+/**
+ * How many things are sitting in a guardian's queue for this ONE child.
+ *
+ * Lives here, rather than in `family.ts` where it was born, because three
+ * separate surfaces now need the same number and a fourth will: the family
+ * dashboard's banner and per-child pill (`family.getFamilyContext`), the
+ * Settings tab badge, and the app-icon badge (`badges.badgeTotalFor`). Two
+ * copies of "what counts as waiting" is how a parent ends up with a red dot
+ * that disagrees with the list behind it.
+ *
+ * Must stay in lockstep with `family.listGuardianQueue` — the five shapes
+ * counted here are exactly the five that query returns. It previously counted
+ * three: both room-invitation hops were missing, which is why "someone invited
+ * your child to a group chat" produced a push and then no badge, no banner,
+ * and no door into the queue at all.
+ */
+export async function pendingForChild(ctx: any, childId: any): Promise<number> {
+  const rooms = await ctx.db
+    .query("approvalRequests")
+    .withIndex("by_child_status", (q: any) =>
+      q.eq("childId", childId).eq("status", "pending"),
+    )
+    .collect();
+  const outgoing = await ctx.db
+    .query("friendships")
+    .withIndex("by_stage_user", (q: any) =>
+      q.eq("stage", STAGE_SENDER_GUARDIAN).eq("userId", childId),
+    )
+    .collect();
+  const incoming = await ctx.db
+    .query("friendships")
+    .withIndex("by_stage_friend", (q: any) =>
+      q.eq("stage", STAGE_RECIPIENT_GUARDIAN).eq("friendId", childId),
+    )
+    .collect();
+  const roomOutgoing = await ctx.db
+    .query("roomInvitations")
+    .withIndex("by_stage_inviter", (q: any) =>
+      q.eq("stage", STAGE_SENDER_GUARDIAN).eq("inviterId", childId),
+    )
+    .collect();
+  const roomIncoming = await ctx.db
+    .query("roomInvitations")
+    .withIndex("by_stage_invitee", (q: any) =>
+      q.eq("stage", STAGE_RECIPIENT_GUARDIAN).eq("inviteeId", childId),
+    )
+    .collect();
+  const live = (rows: any[]) =>
+    rows.filter((r: any) => r.status === "pending").length;
+  return (
+    rooms.length +
+    live(outgoing) +
+    live(incoming) +
+    live(roomOutgoing) +
+    live(roomIncoming)
+  );
+}
+
+/**
+ * Everything waiting on [guardianId], across every child they look after.
+ *
+ * Returns 0 after a single indexed lookup for the overwhelming majority of
+ * accounts, which have no children at all — worth stating because this is
+ * called per recipient on the push path (`badges.badgeTotalFor`), i.e. once
+ * for every person in a busy room on every message. The expensive part only
+ * runs for someone who actually is a guardian, and then it is five indexed
+ * queries per child.
+ */
+export async function guardianPendingCount(
+  ctx: any,
+  guardianId: any,
+): Promise<number> {
+  const kids = await childrenOf(ctx, guardianId);
+  if (kids.length === 0) return 0;
+  let total = 0;
+  for (const childId of kids) total += await pendingForChild(ctx, childId);
+  return total;
+}

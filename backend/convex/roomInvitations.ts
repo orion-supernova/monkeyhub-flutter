@@ -25,7 +25,7 @@ import {
   assertGuardian,
   childMayUseRoom,
   guardiansOf,
-  initialStageFor,
+  initialStageForRoomInvite,
   isChild,
   isReleasedToRecipient,
   ERR_APPROVAL_REQUIRED,
@@ -122,7 +122,9 @@ export const invite = mutation({
       }
     }
 
-    const stage = await initialStageFor(ctx, userId, inviteeId);
+    // NOT `initialStageFor`: a contact whitelist must not silently waive the
+    // question "may my child be in THIS room". See `initialStageForRoomInvite`.
+    const stage = await initialStageForRoomInvite(ctx, userId, inviteeId, roomId);
     const invitationId = await ctx.db.insert("roomInvitations", {
       roomId,
       inviterId: userId,
@@ -280,6 +282,11 @@ export const cancel = mutation({
  * knowing invitations exist.
  */
 export const advance = mutation({
+  // The caller IS the guardian — see the note on `family.advanceContactRequest`,
+  // which this mutation is the exact counterpart of. Without it `guardianId`
+  // stays whatever the client sent and `assertGuardian` below asks the wrong
+  // question.
+  identityArg: "guardianId" as const,
   args: {
     invitationId: v.id("roomInvitations"),
     guardianId: v.id("users"),

@@ -14172,6 +14172,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'nothing — their boards are still there when you look'**
   String get settingsScreenFriendActivityOffBody;
+
+  /// Shown in place of an action button when a request between the viewer and this person is still parked at the VIEWER'S OWN guardian. Never shown for the other side's guardian — that would reveal that the other person is a child.
+  ///
+  /// In en, this message translates to:
+  /// **'WITH A GROWN-UP'**
+  String get searchScreenActionWithGrownUp;
+
+  /// Hint in the new-chat sheet's search bar.
+  ///
+  /// In en, this message translates to:
+  /// **'search your friends'**
+  String get newChatMenuSearchHint;
+
+  /// Empty state in the new-chat sheet when the account has no friends at all.
+  ///
+  /// In en, this message translates to:
+  /// **'no friends yet —\\nfind people in Discover'**
+  String get newChatMenuNoFriendsYet;
+
+  /// Empty state in the new-chat sheet when the search filtered everyone out.
+  ///
+  /// In en, this message translates to:
+  /// **'no friends match'**
+  String get newChatMenuNoFriendsMatch;
+
+  /// Toast shown when opening a DM from the new-chat sheet fails.
+  ///
+  /// In en, this message translates to:
+  /// **'couldn’t open that chat — try again'**
+  String get newChatMenuOpenDmFailed;
+
+  /// Outline button on the child settings screen that opens the person picker.
+  ///
+  /// In en, this message translates to:
+  /// **'PICK FROM YOUR PEOPLE'**
+  String get childPolicyScreenAddSomeoneLabel;
+
+  /// Hint in the guardian's person picker.
+  ///
+  /// In en, this message translates to:
+  /// **'search a name or username'**
+  String get childPolicyScreenPickPersonHint;
+
+  /// Shown when every one of the guardian's own friends is already allowed.
+  ///
+  /// In en, this message translates to:
+  /// **'no one left to add from your friends —\\nsearch for anyone else'**
+  String get childPolicyScreenPickPersonEmpty;
+
+  /// Shown when the guardian's person search found nobody.
+  ///
+  /// In en, this message translates to:
+  /// **'no one matches'**
+  String get childPolicyScreenPickPersonNoMatch;
+
+  /// Heading over the guardian's own friends in the person picker.
+  ///
+  /// In en, this message translates to:
+  /// **'YOUR FRIENDS'**
+  String get childPolicyScreenPickPersonFriendsHeader;
+
+  /// Heading over search results beyond the guardian's own friends.
+  ///
+  /// In en, this message translates to:
+  /// **'EVERYONE ELSE'**
+  String get childPolicyScreenPickPersonEveryoneHeader;
+
+  /// Outline button on the child settings screen that opens the room picker.
+  ///
+  /// In en, this message translates to:
+  /// **'ADD A ROOM'**
+  String get childPolicyScreenAddRoomLabel;
+
+  /// Heading of the guardian's room picker sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'ADD A ROOM'**
+  String get childPolicyScreenPickRoomHeading;
+
+  /// See the string.
+  ///
+  /// In en, this message translates to:
+  /// **'One of your own rooms. {name} joins straight away and can read and post there until you take it back.'**
+  String childPolicyScreenPickRoomBlurb(String name);
+
+  /// Hint in the guardian's room picker.
+  ///
+  /// In en, this message translates to:
+  /// **'search your rooms'**
+  String get childPolicyScreenPickRoomHint;
+
+  /// Shown when every room the guardian is in has already been granted to this child.
+  ///
+  /// In en, this message translates to:
+  /// **'no rooms of yours left to add'**
+  String get childPolicyScreenPickRoomEmpty;
+
+  /// Shown when the room filter matched nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'no rooms match'**
+  String get childPolicyScreenPickRoomNoMatch;
+
+  /// See the string.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is in {room} now'**
+  String childPolicyScreenRoomAdded(String name, String room);
+
+  /// Generic failure adding a room to a child.
+  ///
+  /// In en, this message translates to:
+  /// **'couldn’t add that room — try again'**
+  String get childPolicyScreenErrorAddRoomGeneric;
+
+  /// Refused because the target is a DM or a system room.
+  ///
+  /// In en, this message translates to:
+  /// **'that room can’t be added this way'**
+  String get childPolicyScreenErrorRoomNotAllowed;
+
+  /// Refused because the room was deleted between opening the picker and tapping.
+  ///
+  /// In en, this message translates to:
+  /// **'that room no longer exists'**
+  String get childPolicyScreenErrorRoomGone;
 }
 
 class _AppLocalizationsDelegate

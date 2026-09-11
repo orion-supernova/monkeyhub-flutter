@@ -8041,4 +8041,73 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get settingsScreenFriendActivityOffBody => '없음 — 보드는 찾아가면 그대로 있어요';
+
+  @override
+  String get searchScreenActionWithGrownUp => '보호자 확인 중';
+
+  @override
+  String get newChatMenuSearchHint => '친구 검색';
+
+  @override
+  String get newChatMenuNoFriendsYet => '아직 친구가 없어요 —\\n탐색에서 사람을 찾아보세요';
+
+  @override
+  String get newChatMenuNoFriendsMatch => '일치하는 친구가 없어요';
+
+  @override
+  String get newChatMenuOpenDmFailed => '그 채팅을 열지 못했어요 — 다시 시도해 주세요';
+
+  @override
+  String get childPolicyScreenAddSomeoneLabel => '내 사람 중에서 고르기';
+
+  @override
+  String get childPolicyScreenPickPersonHint => '이름이나 사용자 이름 검색';
+
+  @override
+  String get childPolicyScreenPickPersonEmpty =>
+      '친구 중에 더 추가할 사람이 없어요 —\\n다른 사람을 검색해 보세요';
+
+  @override
+  String get childPolicyScreenPickPersonNoMatch => '일치하는 사람이 없어요';
+
+  @override
+  String get childPolicyScreenPickPersonFriendsHeader => '내 친구';
+
+  @override
+  String get childPolicyScreenPickPersonEveryoneHeader => '그 밖의 사람';
+
+  @override
+  String get childPolicyScreenAddRoomLabel => '방 추가';
+
+  @override
+  String get childPolicyScreenPickRoomHeading => '방 추가';
+
+  @override
+  String childPolicyScreenPickRoomBlurb(String name) {
+    return '내가 있는 방이에요. $name 은(는) 바로 들어가고, 되돌리기 전까지 읽고 쓸 수 있어요.';
+  }
+
+  @override
+  String get childPolicyScreenPickRoomHint => '내 방 검색';
+
+  @override
+  String get childPolicyScreenPickRoomEmpty => '추가할 방이 더 없어요';
+
+  @override
+  String get childPolicyScreenPickRoomNoMatch => '일치하는 방이 없어요';
+
+  @override
+  String childPolicyScreenRoomAdded(String name, String room) {
+    return '$name 이(가) 이제 $room 에 있어요';
+  }
+
+  @override
+  String get childPolicyScreenErrorAddRoomGeneric =>
+      '그 방을 추가하지 못했어요 — 다시 시도해 주세요';
+
+  @override
+  String get childPolicyScreenErrorRoomNotAllowed => '그 방은 이렇게 추가할 수 없어요';
+
+  @override
+  String get childPolicyScreenErrorRoomGone => '그 방은 더 이상 없어요';
 }

@@ -8440,6 +8440,80 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get settingsScreenFriendActivityOffBody =>
       'nada — os quadros deles continuam lá quando olhares';
+
+  @override
+  String get searchScreenActionWithGrownUp => 'COM UM GRANDE';
+
+  @override
+  String get newChatMenuSearchHint => 'procura nos teus amigos';
+
+  @override
+  String get newChatMenuNoFriendsYet =>
+      'ainda sem amigos —\\nencontra pessoas em Descobrir';
+
+  @override
+  String get newChatMenuNoFriendsMatch => 'nenhum amigo corresponde';
+
+  @override
+  String get newChatMenuOpenDmFailed =>
+      'não foi possível abrir esse chat — tenta de novo';
+
+  @override
+  String get childPolicyScreenAddSomeoneLabel => 'ESCOLHER DAS TUAS PESSOAS';
+
+  @override
+  String get childPolicyScreenPickPersonHint =>
+      'procura um nome ou nome de utilizador';
+
+  @override
+  String get childPolicyScreenPickPersonEmpty =>
+      'já não há ninguém para adicionar dos teus amigos —\\nprocura outra pessoa';
+
+  @override
+  String get childPolicyScreenPickPersonNoMatch => 'ninguém corresponde';
+
+  @override
+  String get childPolicyScreenPickPersonFriendsHeader => 'OS TEUS AMIGOS';
+
+  @override
+  String get childPolicyScreenPickPersonEveryoneHeader => 'TODOS OS OUTROS';
+
+  @override
+  String get childPolicyScreenAddRoomLabel => 'ADICIONAR UMA SALA';
+
+  @override
+  String get childPolicyScreenPickRoomHeading => 'ADICIONAR UMA SALA';
+
+  @override
+  String childPolicyScreenPickRoomBlurb(String name) {
+    return 'Uma das tuas próprias salas. $name entra já e pode ler e escrever lá até lhe retirares.';
+  }
+
+  @override
+  String get childPolicyScreenPickRoomHint => 'procura nas tuas salas';
+
+  @override
+  String get childPolicyScreenPickRoomEmpty =>
+      'não te restam salas para adicionar';
+
+  @override
+  String get childPolicyScreenPickRoomNoMatch => 'nenhuma sala corresponde';
+
+  @override
+  String childPolicyScreenRoomAdded(String name, String room) {
+    return '$name já está em $room';
+  }
+
+  @override
+  String get childPolicyScreenErrorAddRoomGeneric =>
+      'não foi possível adicionar essa sala — tenta de novo';
+
+  @override
+  String get childPolicyScreenErrorRoomNotAllowed =>
+      'essa sala não pode ser adicionada assim';
+
+  @override
+  String get childPolicyScreenErrorRoomGone => 'essa sala já não existe';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -16874,4 +16948,78 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get settingsScreenFriendActivityOffBody =>
       'nada — os quadros deles continuam lá quando você olhar';
+
+  @override
+  String get searchScreenActionWithGrownUp => 'COM UM ADULTO';
+
+  @override
+  String get newChatMenuSearchHint => 'busque nos seus amigos';
+
+  @override
+  String get newChatMenuNoFriendsYet =>
+      'ainda sem amigos —\\nencontre pessoas em Descobrir';
+
+  @override
+  String get newChatMenuNoFriendsMatch => 'nenhum amigo corresponde';
+
+  @override
+  String get newChatMenuOpenDmFailed =>
+      'não deu para abrir esse chat — tente de novo';
+
+  @override
+  String get childPolicyScreenAddSomeoneLabel => 'ESCOLHER DAS SUAS PESSOAS';
+
+  @override
+  String get childPolicyScreenPickPersonHint =>
+      'busque um nome ou nome de usuário';
+
+  @override
+  String get childPolicyScreenPickPersonEmpty =>
+      'não sobrou ninguém para adicionar dos seus amigos —\\nbusque outra pessoa';
+
+  @override
+  String get childPolicyScreenPickPersonNoMatch => 'ninguém corresponde';
+
+  @override
+  String get childPolicyScreenPickPersonFriendsHeader => 'SEUS AMIGOS';
+
+  @override
+  String get childPolicyScreenPickPersonEveryoneHeader => 'TODO MUNDO MAIS';
+
+  @override
+  String get childPolicyScreenAddRoomLabel => 'ADICIONAR UMA SALA';
+
+  @override
+  String get childPolicyScreenPickRoomHeading => 'ADICIONAR UMA SALA';
+
+  @override
+  String childPolicyScreenPickRoomBlurb(String name) {
+    return 'Uma das suas próprias salas. $name entra na hora e pode ler e escrever lá até você retirar.';
+  }
+
+  @override
+  String get childPolicyScreenPickRoomHint => 'busque nas suas salas';
+
+  @override
+  String get childPolicyScreenPickRoomEmpty =>
+      'não restam salas suas para adicionar';
+
+  @override
+  String get childPolicyScreenPickRoomNoMatch => 'nenhuma sala corresponde';
+
+  @override
+  String childPolicyScreenRoomAdded(String name, String room) {
+    return '$name está em $room agora';
+  }
+
+  @override
+  String get childPolicyScreenErrorAddRoomGeneric =>
+      'não deu para adicionar essa sala — tente de novo';
+
+  @override
+  String get childPolicyScreenErrorRoomNotAllowed =>
+      'essa sala não pode ser adicionada assim';
+
+  @override
+  String get childPolicyScreenErrorRoomGone => 'essa sala não existe mais';
 }

@@ -14,6 +14,7 @@ import {
 } from "./childGuard";
 import { ERR_SYSTEM_ACCOUNT, isSystemAccount } from "./systemAccount";
 import { lensFor, publicUserView, seenVisibilityOf } from "./visibility";
+import { addMembership } from "./roomAdmin";
 import { searchUsersCore } from "./users";
 
 /**
@@ -96,6 +97,30 @@ async function getDirectFriendship(ctx: any, userId: any, otherUserId: any) {
   return { outgoing, incoming };
 }
 
+/**
+ * Put BOTH people back in a DM room that already exists.
+ *
+ * A DM's room row outlives either member walking out of it: `removeMembership`
+ * only wipes a room when the LAST member goes, so one person leaving a
+ * two-person DM leaves the room standing with a single member. Every path that
+ * later reopens that conversation finds it by name — `dm:<key>:<a>:<b>` is
+ * derived from the two user ids, so it is always the same room for the same
+ * pair — and used to hand the id straight back.
+ *
+ * That is the bug where a re-established friendship showed up in one person's
+ * chat list and not the other's: the room was found, the absent membership was
+ * never restored, and `listUserRooms` is driven entirely by membership rows.
+ * Whoever still had theirs saw the chat; whoever did not saw nothing, forever,
+ * with no way to ask for it again.
+ *
+ * `addMembership` is idempotent and keeps `memberCount` honest, so the common
+ * case (both rows already present) costs two point reads and writes nothing.
+ */
+async function ensureDmMembers(ctx: any, roomId: any, a: any, b: any) {
+  await addMembership(ctx, roomId, a);
+  await addMembership(ctx, roomId, b);
+}
+
 async function createDirectRoom(
   ctx: any,
   requesterId: any,
@@ -112,7 +137,10 @@ async function createDirectRoom(
     .query("rooms")
     .withIndex("by_name", (q: any) => q.eq("name", roomName))
     .first();
-  if (existingRoom) return existingRoom._id;
+  if (existingRoom) {
+    await ensureDmMembers(ctx, existingRoom._id, requesterId, receiverId);
+    return existingRoom._id;
+  }
 
   if (roomKey === "regular") {
     const legacyName = `dm:${ordered[0]}:${ordered[1]}`;
@@ -120,7 +148,10 @@ async function createDirectRoom(
       .query("rooms")
       .withIndex("by_name", (q: any) => q.eq("name", legacyName))
       .first();
-    if (legacyRoom) return legacyRoom._id;
+    if (legacyRoom) {
+      await ensureDmMembers(ctx, legacyRoom._id, requesterId, receiverId);
+      return legacyRoom._id;
+    }
   }
 
   const roomId = await ctx.db.insert("rooms", {

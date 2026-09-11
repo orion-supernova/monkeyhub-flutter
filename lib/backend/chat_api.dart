@@ -2558,6 +2558,62 @@ class ChatApi {
         .toList();
   }
 
+  /// Live version of [listGuardianQueue].
+  ///
+  /// The approvals screen used to read the queue exactly once, on open. A
+  /// request arriving while a parent had the screen up simply did not appear,
+  /// and neither did one a co-parent had just decided from their own phone —
+  /// the parent was looking at a list that had stopped being true. Everything
+  /// the queue is built from is a live Convex subscription already; this just
+  /// stops throwing that away.
+  Future<Subscription> subscribeGuardianQueue({
+    required String guardianId,
+    required void Function(List<QueueItem> items) onItems,
+    void Function(Object error)? onError,
+  }) {
+    return _cv.subscribe(
+      'family:listGuardianQueue',
+      {'guardianId': guardianId},
+      onData: (raw) {
+        onItems(
+          ((raw as List?) ?? const [])
+              .map((e) => QueueItem.fromJson((e as Map).cast<String, dynamic>()))
+              .whereType<QueueItem>()
+              .toList(),
+        );
+      },
+      onError: onError,
+    );
+  }
+
+  /// The guardian's own group rooms that this child is not already in.
+  Future<List<RoomBrief>> grantableRooms({
+    required String guardianId,
+    required String childId,
+  }) async {
+    final res = await _cv.query('family:grantableRooms', {
+      'guardianId': guardianId,
+      'childId': childId,
+    });
+    return ((res as List?) ?? const [])
+        .map((e) => RoomBrief.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
+  /// Puts the child in one of the guardian's own rooms and records the grant,
+  /// so the child settings screen can take it back later like any other.
+  Future<void> grantRoomToChild({
+    required String guardianId,
+    required String childId,
+    required String roomId,
+  }) async {
+    await _cv.mutation('family:grantRoomToChild', {
+      'guardianId': guardianId,
+      'childId': childId,
+      'roomId': roomId,
+    });
+  }
+
   /// Moves a contact request one hop along the guardian relay, or kills it.
   /// Used for both [QueueItemType.contactOutgoing] and `contactIncoming`.
   Future<void> advanceContactRequest({
