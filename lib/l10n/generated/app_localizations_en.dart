@@ -8407,4 +8407,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get childPolicyScreenErrorRoomGone => 'that room no longer exists';
+
+  @override
+  String get newChatMenuFriendsHeader => 'FRIENDS';
 }

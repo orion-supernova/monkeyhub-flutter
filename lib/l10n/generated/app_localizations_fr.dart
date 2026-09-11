@@ -8553,4 +8553,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get childPolicyScreenErrorRoomGone => 'ce salon n’existe plus';
+
+  @override
+  String get newChatMenuFriendsHeader => 'AMIS';
 }

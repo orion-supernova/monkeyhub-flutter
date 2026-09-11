@@ -8514,6 +8514,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get childPolicyScreenErrorRoomGone => 'essa sala já não existe';
+
+  @override
+  String get newChatMenuFriendsHeader => 'AMIGOS';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -17022,4 +17025,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get childPolicyScreenErrorRoomGone => 'essa sala não existe mais';
+
+  @override
+  String get newChatMenuFriendsHeader => 'AMIGOS';
 }

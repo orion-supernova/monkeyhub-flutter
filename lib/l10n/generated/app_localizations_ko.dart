@@ -8110,4 +8110,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get childPolicyScreenErrorRoomGone => '그 방은 더 이상 없어요';
+
+  @override
+  String get newChatMenuFriendsHeader => '친구';
 }

@@ -2357,5 +2357,6 @@
   "childPolicyScreenRoomAdded": "{name} est maintenant dans {room}",
   "childPolicyScreenErrorAddRoomGeneric": "impossible d’ajouter ce salon — réessaie",
   "childPolicyScreenErrorRoomNotAllowed": "ce salon ne peut pas être ajouté ainsi",
-  "childPolicyScreenErrorRoomGone": "ce salon n’existe plus"
+  "childPolicyScreenErrorRoomGone": "ce salon n’existe plus",
+  "newChatMenuFriendsHeader": "AMIS"
 }

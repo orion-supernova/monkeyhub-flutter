@@ -14298,6 +14298,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'that room no longer exists'**
   String get childPolicyScreenErrorRoomGone;
+
+  /// Heading over the friends list in the new-chat sheet, drawn below the create/join rows so the list does not run straight on from them.
+  ///
+  /// In en, this message translates to:
+  /// **'FRIENDS'**
+  String get newChatMenuFriendsHeader;
 }
 
 class _AppLocalizationsDelegate

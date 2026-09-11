@@ -2357,5 +2357,6 @@
   "childPolicyScreenRoomAdded": "{name} が {room} に参加しました",
   "childPolicyScreenErrorAddRoomGeneric": "そのルームを追加できませんでした — もう一度お試しください",
   "childPolicyScreenErrorRoomNotAllowed": "そのルームはこの方法では追加できません",
-  "childPolicyScreenErrorRoomGone": "そのルームはもう存在しません"
+  "childPolicyScreenErrorRoomGone": "そのルームはもう存在しません",
+  "newChatMenuFriendsHeader": "友だち"
 }

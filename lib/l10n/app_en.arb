@@ -9720,5 +9720,9 @@
   "childPolicyScreenErrorRoomGone": "that room no longer exists",
   "@childPolicyScreenErrorRoomGone": {
     "description": "Refused because the room was deleted between opening the picker and tapping."
+  },
+  "newChatMenuFriendsHeader": "FRIENDS",
+  "@newChatMenuFriendsHeader": {
+    "description": "Heading over the friends list in the new-chat sheet, drawn below the create/join rows so the list does not run straight on from them."
   }
 }

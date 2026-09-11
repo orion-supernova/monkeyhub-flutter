@@ -7994,4 +7994,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get childPolicyScreenErrorRoomGone => '那个房间已经不存在了';
+
+  @override
+  String get newChatMenuFriendsHeader => '好友';
 }

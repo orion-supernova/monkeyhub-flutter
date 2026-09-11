@@ -2357,5 +2357,6 @@
   "childPolicyScreenRoomAdded": "{name} الآن في {room}",
   "childPolicyScreenErrorAddRoomGeneric": "تعذّر إضافة تلك الغرفة — حاول مرة أخرى",
   "childPolicyScreenErrorRoomNotAllowed": "لا يمكن إضافة تلك الغرفة بهذه الطريقة",
-  "childPolicyScreenErrorRoomGone": "تلك الغرفة لم تعد موجودة"
+  "childPolicyScreenErrorRoomGone": "تلك الغرفة لم تعد موجودة",
+  "newChatMenuFriendsHeader": "الأصدقاء"
 }

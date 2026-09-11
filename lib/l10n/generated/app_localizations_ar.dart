@@ -8524,4 +8524,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get childPolicyScreenErrorRoomGone => 'تلك الغرفة لم تعد موجودة';
+
+  @override
+  String get newChatMenuFriendsHeader => 'الأصدقاء';
 }

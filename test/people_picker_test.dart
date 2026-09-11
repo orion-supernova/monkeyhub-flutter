@@ -45,6 +45,7 @@ void main() {
     required List<ChatUser> people,
     ValueChanged<ChatUser>? onPick,
     Future<List<ChatUser>> Function(String)? searchMore,
+    List<Widget> leading = const [],
   }) => PeoplePicker(
     people: people,
     api: api,
@@ -55,6 +56,7 @@ void main() {
     localHeader: 'YOUR FRIENDS',
     remoteHeader: 'EVERYONE ELSE',
     searchMore: searchMore,
+    leading: leading,
   );
 
   group('the local list', () {
@@ -245,6 +247,85 @@ void main() {
       // empty — it never came back at all.
       expect(find.text('@ada'), findsOneWidget);
       expect(find.text('no friends match'), findsNothing);
+    });
+  });
+
+  group('the host rows above the people', () {
+    // The layout this pins is the one the pinned-footer version got wrong: the
+    // host's actions belong INSIDE the scroller, above the people, so the list
+    // gets the whole sheet instead of a band between two fixed blocks.
+    testWidgets('scroll with the list rather than sitting in a fixed block', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        host(
+          picker(
+            people: List.generate(30, (i) => _user('friend$i')),
+            leading: const [Text('CREATE A ROOM')],
+          ),
+        ),
+      );
+      expect(find.text('CREATE A ROOM'), findsOneWidget);
+
+      // Far enough that a row pinned outside the scroller would still be
+      // showing. This one goes with the list.
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, -600));
+      await tester.pump();
+      expect(find.text('CREATE A ROOM'), findsNothing);
+    });
+
+    testWidgets('step aside the moment a person is being searched for', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        host(
+          picker(
+            people: [_user('ada')],
+            leading: const [Text('CREATE A ROOM')],
+          ),
+        ),
+      );
+      expect(find.text('CREATE A ROOM'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'ada');
+      await tester.pump();
+      // "Create a room" is not an answer to "find me ada", and it would be
+      // sitting on top of the row that is.
+      expect(find.text('CREATE A ROOM'), findsNothing);
+      expect(find.text('@ada'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), '');
+      await tester.pump();
+      expect(find.text('CREATE A ROOM'), findsOneWidget);
+    });
+
+    testWidgets('a heading separates them from the people', (tester) async {
+      await tester.pumpWidget(
+        host(
+          picker(
+            people: [_user('ada')],
+            leading: const [Text('CREATE A ROOM')],
+          ),
+        ),
+      );
+      // Without it the list runs straight on from the buttons with nothing
+      // saying what changed. It is NOT drawn when there are no host rows and
+      // only one section — see the test above in the local group.
+      expect(find.text('YOUR FRIENDS'), findsOneWidget);
+    });
+
+    testWidgets('survive an empty friends list, so the actions stay reachable',
+        (tester) async {
+      await tester.pumpWidget(
+        host(
+          picker(people: const [], leading: const [Text('CREATE A ROOM')]),
+        ),
+      );
+      // Someone with no friends yet still came here to make a room. Replacing
+      // the whole scroller with a centred "no friends yet" would take that
+      // away from them.
+      expect(find.text('CREATE A ROOM'), findsOneWidget);
+      expect(find.text('no friends yet'), findsOneWidget);
     });
   });
 }

@@ -2357,5 +2357,6 @@
   "childPolicyScreenRoomAdded": "{name} 이(가) 이제 {room} 에 있어요",
   "childPolicyScreenErrorAddRoomGeneric": "그 방을 추가하지 못했어요 — 다시 시도해 주세요",
   "childPolicyScreenErrorRoomNotAllowed": "그 방은 이렇게 추가할 수 없어요",
-  "childPolicyScreenErrorRoomGone": "그 방은 더 이상 없어요"
+  "childPolicyScreenErrorRoomGone": "그 방은 더 이상 없어요",
+  "newChatMenuFriendsHeader": "친구"
 }

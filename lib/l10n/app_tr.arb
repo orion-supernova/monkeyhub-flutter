@@ -2357,5 +2357,6 @@
   "childPolicyScreenRoomAdded": "{name} artık {room} odasında",
   "childPolicyScreenErrorAddRoomGeneric": "o oda eklenemedi — tekrar dene",
   "childPolicyScreenErrorRoomNotAllowed": "o oda bu şekilde eklenemez",
-  "childPolicyScreenErrorRoomGone": "o oda artık yok"
+  "childPolicyScreenErrorRoomGone": "o oda artık yok",
+  "newChatMenuFriendsHeader": "ARKADAŞLAR"
 }

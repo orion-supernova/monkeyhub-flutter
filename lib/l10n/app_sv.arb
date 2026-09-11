@@ -2357,5 +2357,6 @@
   "childPolicyScreenRoomAdded": "{name} är nu i {room}",
   "childPolicyScreenErrorAddRoomGeneric": "kunde inte lägga till det rummet — försök igen",
   "childPolicyScreenErrorRoomNotAllowed": "det rummet kan inte läggas till så här",
-  "childPolicyScreenErrorRoomGone": "det rummet finns inte längre"
+  "childPolicyScreenErrorRoomGone": "det rummet finns inte längre",
+  "newChatMenuFriendsHeader": "VÄNNER"
 }

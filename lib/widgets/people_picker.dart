@@ -49,6 +49,7 @@ class PeoplePicker extends StatefulWidget {
     this.searchMore,
     this.localHeader,
     this.remoteHeader,
+    this.leading = const [],
     this.minQueryForRemote = 2,
   });
 
@@ -67,6 +68,20 @@ class PeoplePicker extends StatefulWidget {
   final String noMatchLabel;
 
   final bool autofocus;
+
+  /// Rows drawn above the people, INSIDE the scroller.
+  ///
+  /// The host's own actions — "create a room", "join with a code" — go here
+  /// rather than in a pinned block under the list. Pinning them is what makes
+  /// a sheet feel cramped: the list ends up a narrow band squeezed between the
+  /// search bar and a footer, with barely a few rows visible and nowhere to
+  /// scroll. Scrolling them away gives the people the whole sheet, which is
+  /// the arrangement WhatsApp uses and the reason its list feels roomy.
+  ///
+  /// Hidden the moment a query is typed. Once you are searching for a person,
+  /// "create a room" is not an answer to what you asked, and it would be
+  /// sitting on top of the rows that are.
+  final List<Widget> leading;
 
   /// Finds people beyond [people]. Omit to keep the picker purely local.
   ///
@@ -174,21 +189,44 @@ class _PeoplePickerState extends State<PeoplePicker> {
         : const <ChatUser>[];
 
     final searching = needle.isNotEmpty;
-    final showHeaders = widget.localHeader != null &&
+    final showLeading = widget.leading.isNotEmpty && !searching;
+
+    // The "everyone else" heading only earns its place when both sections have
+    // rows to separate. The "your friends" one also earns it whenever the
+    // host's own actions are sitting above the people — without it the list
+    // runs straight on from the buttons with nothing saying what changed.
+    final bothSections = widget.localHeader != null &&
         widget.remoteHeader != null &&
         local.isNotEmpty &&
         remote.isNotEmpty;
+    final showLocalHeader = widget.localHeader != null &&
+        local.isNotEmpty &&
+        (bothSections || showLeading);
 
     // ── flatten into one virtualised list ──────────────────────────────────
-    // Headers ride in the same builder as the rows rather than sitting in a
-    // Column above it, so a long friends list scrolls its own heading away
-    // instead of pinning two of them to the top.
+    // Everything rides in the one builder — the host's rows, the headings and
+    // the people — rather than stacking fixed blocks around a short list. That
+    // is what lets the people have the whole sheet to scroll in, and it keeps
+    // every row lazily built no matter how many friends there are.
     final rows = <_Row>[
-      if (showHeaders) _Row.header(widget.localHeader!),
+      if (showLeading) ...widget.leading.map(_Row.widget),
+      if (showLocalHeader) _Row.header(widget.localHeader!),
       for (final u in local) _Row.person(u),
-      if (showHeaders) _Row.header(widget.remoteHeader!),
+      if (bothSections) _Row.header(widget.remoteHeader!),
       for (final u in remote) _Row.person(u),
     ];
+
+    // No people, and nothing on its way. Said INSIDE the list so the host's
+    // rows above it stay reachable — a bare centred message in place of the
+    // whole scroller would take "create a room" away from someone whose only
+    // problem is having no friends yet.
+    if (local.isEmpty && remote.isEmpty && !_searching) {
+      rows.add(
+        _Row.widget(
+          _Empty(label: searching ? widget.noMatchLabel : widget.emptyLabel),
+        ),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -203,81 +241,78 @@ class _PeoplePickerState extends State<PeoplePicker> {
           onChanged: _onChanged,
           onClear: () => _onChanged(''),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 6),
         Expanded(
-          child: rows.isEmpty
-              ? _Empty(
-                  // A search still in flight must not report "no one matches":
-                  // that is an answer, and we do not have one yet.
-                  label: _searching
-                      ? null
-                      : (searching ? widget.noMatchLabel : widget.emptyLabel),
-                )
-              : ListView.builder(
-                  physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),
+          child: ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            padding: EdgeInsets.zero,
+            itemCount: rows.length + (_searching ? 1 : 0),
+            itemBuilder: (_, i) {
+              if (i == rows.length) return const _Searching();
+              final row = rows[i];
+              final child = row.child;
+              if (child != null) return child;
+              final u = row.user;
+              if (u == null) {
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 16, 0, 6),
+                  child: Text(
+                    row.header!,
+                    style: theme.label.copyWith(
+                      letterSpacing: 2.2,
+                      color: theme.inkMuted,
+                    ),
                   ),
-                  padding: EdgeInsets.zero,
-                  itemCount: rows.length + (_searching ? 1 : 0),
-                  itemBuilder: (_, i) {
-                    if (i == rows.length) return const _Searching();
-                    final row = rows[i];
-                    final u = row.user;
-                    if (u == null) {
-                      return Padding(
-                        padding: const EdgeInsets.fromLTRB(0, 14, 0, 6),
-                        child: Text(
-                          row.header!,
-                          style: theme.label.copyWith(
-                            letterSpacing: 2.2,
-                            color: theme.inkMuted,
-                          ),
-                        ),
-                      );
-                    }
-                    return _PersonTile(
-                      // Keyed by identity: the list is re-filtered on every
-                      // keystroke, and an unkeyed row would let the framework
-                      // reuse one person's element for another's data.
-                      key: ValueKey(u.id),
-                      user: u,
-                      api: widget.api,
-                      onTap: () => widget.onPick(u),
-                    );
-                  },
-                ),
+                );
+              }
+              return _PersonTile(
+                // Keyed by identity: the list is re-filtered on every
+                // keystroke, and an unkeyed row would let the framework
+                // reuse one person's element for another's data.
+                key: ValueKey(u.id),
+                user: u,
+                api: widget.api,
+                onTap: () => widget.onPick(u),
+              );
+            },
+          ),
         ),
       ],
     );
   }
 }
 
-/// One entry in the flattened list: a heading or a person, never both.
+/// One entry in the flattened list: a heading, a person, or a widget the host
+/// supplied. Exactly one of the three.
 class _Row {
-  const _Row.header(this.header) : user = null;
-  const _Row.person(this.user) : header = null;
+  const _Row.header(String this.header) : user = null, child = null;
+  const _Row.person(ChatUser this.user) : header = null, child = null;
+  const _Row.widget(Widget this.child) : header = null, user = null;
   final String? header;
   final ChatUser? user;
+  final Widget? child;
 }
 
+/// "Nobody here" — only ever built once a lookup has actually answered. A
+/// search still in flight must not report "no one matches": that is an answer,
+/// and we do not have one yet. The caller enforces that; see the `_searching`
+/// guard where this row is appended.
 class _Empty extends StatelessWidget {
   const _Empty({required this.label});
 
-  /// Null while an answer is still on its way.
-  final String? label;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    if (label == null) return const _Searching();
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
-        child: Text(
-          label!,
-          style: theme.bodySoft,
-          textAlign: TextAlign.center,
-        ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 34),
+      child: Text(
+        label,
+        style: theme.bodySoft,
+        textAlign: TextAlign.center,
       ),
     );
   }

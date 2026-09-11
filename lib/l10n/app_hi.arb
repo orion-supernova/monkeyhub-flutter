@@ -2357,5 +2357,6 @@
   "childPolicyScreenRoomAdded": "{name} अब {room} में है",
   "childPolicyScreenErrorAddRoomGeneric": "वह रूम नहीं जुड़ सका — फिर कोशिश करो",
   "childPolicyScreenErrorRoomNotAllowed": "वह रूम इस तरह नहीं जोड़ा जा सकता",
-  "childPolicyScreenErrorRoomGone": "वह रूम अब मौजूद नहीं है"
+  "childPolicyScreenErrorRoomGone": "वह रूम अब मौजूद नहीं है",
+  "newChatMenuFriendsHeader": "दोस्त"
 }

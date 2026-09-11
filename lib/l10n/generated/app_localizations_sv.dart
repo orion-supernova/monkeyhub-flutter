@@ -8443,4 +8443,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get childPolicyScreenErrorRoomGone => 'det rummet finns inte längre';
+
+  @override
+  String get newChatMenuFriendsHeader => 'VÄNNER';
 }

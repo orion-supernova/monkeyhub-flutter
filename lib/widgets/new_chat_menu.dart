@@ -6,7 +6,6 @@ import '../data/chat_repository.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
-import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'destructive_sheet.dart' show SheetGrabber;
@@ -28,11 +27,18 @@ typedef NewChatOutcome = ({NewChatChoice? choice, ChatUser? friend});
 /// search. That is a long way round for the single most common thing anyone
 /// opens a messenger to do.
 ///
-/// So the friends come first, with a search bar over them, and the two room
-/// actions sit underneath as the less common case. It is the shape WhatsApp,
-/// Telegram and Signal all converged on, for the reason they converged on it:
-/// the list you want is nearly always short enough to tap without typing, and
-/// the search bar is there for the day it isn't.
+/// The layout, top to bottom: a search bar that stays put, then the two room
+/// actions, then the friends — with the actions and the friends sharing ONE
+/// scroller. That last part is the whole trick. The first cut pinned the room
+/// actions to the bottom instead, which left the friends a narrow band
+/// squeezed between two fixed blocks: four or five rows visible, and scrolling
+/// them felt like reading through a letterbox. Letting the actions scroll away
+/// gives the people the entire sheet.
+///
+/// It is the shape WhatsApp, Telegram and Signal all converged on, for the
+/// reason they converged on it: the list you want is nearly always short
+/// enough to tap without typing, the actions are one flick away, and the
+/// search bar is there for the day the list isn't short.
 ///
 /// The list is virtualised and filtered locally — see [PeoplePicker]. Nothing
 /// here issues a network call: `repo.friends` is already live in memory
@@ -111,11 +117,6 @@ class _NewChatMenuState extends State<_NewChatMenu> {
     final media = MediaQuery.of(context);
     final friends = _friends;
 
-    // Autofocus only once the list is long enough that typing beats looking.
-    // Below that the keyboard is pure obstruction: it covers the very rows
-    // the sheet opened to show.
-    final autofocusSearch = friends.length >= 8 && context.isCompact;
-
     return Material(
       type: MaterialType.transparency,
       child: Container(
@@ -125,16 +126,17 @@ class _NewChatMenuState extends State<_NewChatMenu> {
             top: Radius.circular(theme.radiusLg),
           ),
         ),
-        // A FIXED height, not one that fits the list.
+        // Nearly the whole window, and a FIXED size.
         //
-        // The obvious alternative — shrink-wrap to however many friends there
-        // are — resizes the sheet on every keystroke as the filter narrows,
-        // which walks the rows out from under the finger that is reaching for
-        // them. A stable box that scrolls is the calmer answer, and it is what
-        // every messenger's new-chat sheet does. Short of full height, because
-        // a sheet that fills the screen is a page and this is not one.
+        // Tall because this is a list you scroll, and a sheet that stops
+        // halfway shows a handful of rows and makes the rest feel like work.
+        // Fixed because the alternative — fitting the list — resizes the sheet
+        // on every keystroke as the filter narrows, which walks the rows out
+        // from under the finger reaching for them. `useSafeArea` on the route
+        // keeps it clear of the status bar, so this never actually reaches the
+        // top of the screen.
         constraints: BoxConstraints(
-          maxHeight: media.size.height * 0.78,
+          maxHeight: media.size.height * 0.92,
         ),
         padding: EdgeInsets.fromLTRB(
           20,
@@ -154,45 +156,47 @@ class _NewChatMenuState extends State<_NewChatMenu> {
               padding: const EdgeInsets.only(bottom: 12),
               child: Text(l10n.newChatMenuTitle, style: theme.displaySmall),
             ),
-            // Flexible rather than Expanded so the two room rows below always
-            // get the height they ask for first; the list takes what is left.
-            Flexible(
+            // Expanded, not Flexible: the picker owns everything below the
+            // title, and there is no longer a pinned footer competing with it
+            // for height. The room actions live INSIDE its scroller now — see
+            // `leading` below.
+            Expanded(
               child: PeoplePicker(
                 people: friends,
                 api: widget.api,
-                autofocus: autofocusSearch,
+                // Never autofocused. The sheet opens onto a list you can just
+                // tap; raising the keyboard on arrival would cover the bottom
+                // half of it to answer a question nobody asked.
                 hintText: l10n.newChatMenuSearchHint,
                 emptyLabel: l10n.newChatMenuNoFriendsYet,
                 noMatchLabel: l10n.newChatMenuNoFriendsMatch,
+                localHeader: l10n.newChatMenuFriendsHeader,
+                leading: [
+                  if (widget.canCreateRoom)
+                    _Choice(
+                      icon: Icons.add_comment_outlined,
+                      title: l10n.newChatMenuCreateTitle,
+                      sub: l10n.newChatMenuCreateSub,
+                      onTap: () => Navigator.of(context).pop((
+                        choice: NewChatChoice.createRoom,
+                        friend: null,
+                      )),
+                    ),
+                  if (widget.canJoinByCode)
+                    _Choice(
+                      icon: Icons.vpn_key_outlined,
+                      title: l10n.newChatMenuJoinTitle,
+                      sub: l10n.newChatMenuJoinSub,
+                      onTap: () => Navigator.of(context).pop((
+                        choice: NewChatChoice.joinWithCode,
+                        friend: null,
+                      )),
+                    ),
+                ],
                 onPick: (u) =>
                     Navigator.of(context).pop((choice: null, friend: u)),
               ),
             ),
-            if (widget.canCreateRoom || widget.canJoinByCode) ...[
-              const SizedBox(height: 6),
-              Container(height: 1, color: theme.divider),
-              const SizedBox(height: 6),
-              if (widget.canCreateRoom)
-                _Choice(
-                  icon: Icons.add_comment_outlined,
-                  title: l10n.newChatMenuCreateTitle,
-                  sub: l10n.newChatMenuCreateSub,
-                  onTap: () => Navigator.of(context).pop((
-                    choice: NewChatChoice.createRoom,
-                    friend: null,
-                  )),
-                ),
-              if (widget.canJoinByCode)
-                _Choice(
-                  icon: Icons.vpn_key_outlined,
-                  title: l10n.newChatMenuJoinTitle,
-                  sub: l10n.newChatMenuJoinSub,
-                  onTap: () => Navigator.of(context).pop((
-                    choice: NewChatChoice.joinWithCode,
-                    friend: null,
-                  )),
-                ),
-            ],
           ],
         ),
       ),

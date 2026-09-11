@@ -2357,5 +2357,6 @@
   "childPolicyScreenRoomAdded": "{name} 现在在 {room} 里",
   "childPolicyScreenErrorAddRoomGeneric": "添加那个房间失败 — 请重试",
   "childPolicyScreenErrorRoomNotAllowed": "那个房间不能这样添加",
-  "childPolicyScreenErrorRoomGone": "那个房间已经不存在了"
+  "childPolicyScreenErrorRoomGone": "那个房间已经不存在了",
+  "newChatMenuFriendsHeader": "好友"
 }

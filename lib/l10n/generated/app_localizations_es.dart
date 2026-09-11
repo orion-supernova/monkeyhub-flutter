@@ -8504,4 +8504,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get childPolicyScreenErrorRoomGone => 'esa sala ya no existe';
+
+  @override
+  String get newChatMenuFriendsHeader => 'AMIGOS';
 }

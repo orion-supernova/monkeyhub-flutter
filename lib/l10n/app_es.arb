@@ -2357,5 +2357,6 @@
   "childPolicyScreenRoomAdded": "{name} ya está en {room}",
   "childPolicyScreenErrorAddRoomGeneric": "no se pudo añadir esa sala — inténtalo de nuevo",
   "childPolicyScreenErrorRoomNotAllowed": "esa sala no se puede añadir así",
-  "childPolicyScreenErrorRoomGone": "esa sala ya no existe"
+  "childPolicyScreenErrorRoomGone": "esa sala ya no existe",
+  "newChatMenuFriendsHeader": "AMIGOS"
 }

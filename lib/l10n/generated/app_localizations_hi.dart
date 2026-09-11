@@ -8426,4 +8426,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get childPolicyScreenErrorRoomGone => 'वह रूम अब मौजूद नहीं है';
+
+  @override
+  String get newChatMenuFriendsHeader => 'दोस्त';
 }

@@ -8382,4 +8382,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get childPolicyScreenErrorRoomGone => 'o oda artık yok';
+
+  @override
+  String get newChatMenuFriendsHeader => 'ARKADAŞLAR';
 }
