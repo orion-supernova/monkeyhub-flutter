@@ -50,6 +50,29 @@ Map<String, String> roomAdminErrorMessages(AppLocalizations l10n) => {
       'JOIN_REQUEST_PENDING': l10n.roomInviteErrorRequestPending,
       'JOIN_REQUEST_NOT_FOUND': l10n.roomInviteErrorRequestGone,
 
+      // ── Suggested changes ─────────────────────────────────────────────────
+      //
+      // Prefixed `CHANGE_REQUEST_` server-side precisely so none of these can
+      // be shadowed by the shared map's `REQUEST_NOT_FOUND` (a friend request)
+      // the way `JOIN_REQUEST_NOT_FOUND` above has to be rescued by override
+      // precedence. Worded separately from the join-request copy because the
+      // right next move differs: a gone suggestion usually means an admin
+      // answered it while you were looking at it, not that anything failed.
+      'CHANGE_REQUEST_NOT_FOUND': l10n.roomChangeErrorGone,
+      'CHANGE_REQUEST_NOT_YOURS': l10n.roomChangeErrorNotYours,
+      'CHANGE_REQUEST_NO_CHANGE': l10n.roomChangeErrorNoChange,
+      'CHANGE_REQUEST_MISSING_VALUE': l10n.roomChangeErrorMissingValue,
+      // Only reachable from a hand-made call — the client sends one of three
+      // literals — but worded rather than left to the generic fallback, which
+      // would send whoever hit it looking for a bug in their own code.
+      'CHANGE_REQUEST_INVALID_FIELD': l10n.roomChangeErrorMissingValue,
+      // `applyChange` re-runs the room's own rules at approval time, so an
+      // admin can meet either of these on a name that was free when it was
+      // suggested — an outcome the join-request sheet never had, which is why
+      // neither was in this map before.
+      'ROOM_NAME_REQUIRED': l10n.roomChangeErrorMissingValue,
+      'ROOM_EXISTS': l10n.roomInfoScreenErrorRoomExists,
+
       // Reachable from the Discover door, which no longer opens onto a private
       // room — the only ways in are a link somebody handed out and an invite
       // somebody sent.

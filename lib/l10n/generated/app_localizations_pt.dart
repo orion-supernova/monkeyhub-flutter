@@ -8517,6 +8517,104 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get newChatMenuFriendsHeader => 'AMIGOS';
+
+  @override
+  String get roomChangeErrorGone =>
+      'Essa sugestão já não existe — um admin pode tê-la respondido.';
+
+  @override
+  String get roomChangeErrorNotYours => 'Só quem sugeriu pode retirá-la.';
+
+  @override
+  String get roomChangeErrorNoChange => 'Já é isso que está escrito.';
+
+  @override
+  String get roomChangeErrorMissingValue => 'Assim não dá para guardar.';
+
+  @override
+  String get roomChangeRequestsTitle => 'Sugestões';
+
+  @override
+  String get roomChangeRequestsBlurb =>
+      'Foram os membros que sugeriram. Nada muda até dizeres que sim.';
+
+  @override
+  String get roomChangeRequestsEmpty => 'Não há sugestões.';
+
+  @override
+  String get roomChangeRequestsApprove => 'USAR';
+
+  @override
+  String get roomChangeRequestsReject => 'NÃO';
+
+  @override
+  String get roomChangeRequestsPhotoLabel => 'Nova foto do grupo';
+
+  @override
+  String get roomChangeRequestsNameLabel => 'Novo nome';
+
+  @override
+  String get roomChangeRequestsDescriptionLabel => 'Nova descrição';
+
+  @override
+  String get roomChangeRequestsUnknownLabel =>
+      'Uma alteração que esta app ainda não sabe mostrar';
+
+  @override
+  String get roomChangeRequestsClearedValue => 'nada — tirar';
+
+  @override
+  String roomChangeRequestsSuggestedBy(Object name) {
+    return '$name sugeriu';
+  }
+
+  @override
+  String get roomAdminChangeRequestsRow => 'Sugestões';
+
+  @override
+  String get roomInfoScreenSuggestNote =>
+      'isto tem de ser aprovado por um admin';
+
+  @override
+  String get roomInfoScreenSuggestAvatarNote =>
+      'as fotos novas são aprovadas por um admin';
+
+  @override
+  String get roomInfoScreenSuggestRoomPictureSemantic =>
+      'Sugerir uma foto do grupo';
+
+  @override
+  String get roomInfoScreenSuggestionSentToast => 'Enviado aos admins';
+
+  @override
+  String get roomInfoScreenSuggestionAppliedToast =>
+      'Pronto — podes editar este grupo';
+
+  @override
+  String get roomInfoScreenSuggestionWithdrawnToast => 'Retirado';
+
+  @override
+  String get roomInfoScreenSuggestionsLabel => 'SUGERISTE';
+
+  @override
+  String get roomInfoScreenSuggestionPhoto => 'Uma foto nova do grupo';
+
+  @override
+  String roomInfoScreenSuggestionName(Object value) {
+    return 'Nome: $value';
+  }
+
+  @override
+  String get roomInfoScreenSuggestionDescription => 'Uma descrição nova';
+
+  @override
+  String get roomInfoScreenSuggestionOther => 'Uma alteração';
+
+  @override
+  String get roomInfoScreenSuggestionPending => 'à espera de um admin';
+
+  @override
+  String get roomInfoScreenSuggestionWithdraw => 'RETIRAR';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -17028,4 +17126,102 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get newChatMenuFriendsHeader => 'AMIGOS';
+
+  @override
+  String get roomChangeErrorGone =>
+      'Essa sugestão sumiu — algum admin deve ter respondido.';
+
+  @override
+  String get roomChangeErrorNotYours => 'Só quem sugeriu pode retirar.';
+
+  @override
+  String get roomChangeErrorNoChange => 'Já é isso que está escrito.';
+
+  @override
+  String get roomChangeErrorMissingValue => 'Assim não dá para salvar.';
+
+  @override
+  String get roomChangeRequestsTitle => 'Sugestões';
+
+  @override
+  String get roomChangeRequestsBlurb =>
+      'Quem sugeriu foram os membros. Nada muda até você dizer que sim.';
+
+  @override
+  String get roomChangeRequestsEmpty => 'Nenhuma sugestão.';
+
+  @override
+  String get roomChangeRequestsApprove => 'USAR';
+
+  @override
+  String get roomChangeRequestsReject => 'NÃO';
+
+  @override
+  String get roomChangeRequestsPhotoLabel => 'Nova foto do grupo';
+
+  @override
+  String get roomChangeRequestsNameLabel => 'Novo nome';
+
+  @override
+  String get roomChangeRequestsDescriptionLabel => 'Nova descrição';
+
+  @override
+  String get roomChangeRequestsUnknownLabel =>
+      'Uma mudança que este app ainda não sabe mostrar';
+
+  @override
+  String get roomChangeRequestsClearedValue => 'nada — tirar';
+
+  @override
+  String roomChangeRequestsSuggestedBy(Object name) {
+    return '$name sugeriu';
+  }
+
+  @override
+  String get roomAdminChangeRequestsRow => 'Sugestões';
+
+  @override
+  String get roomInfoScreenSuggestNote =>
+      'isso precisa da aprovação de um admin';
+
+  @override
+  String get roomInfoScreenSuggestAvatarNote =>
+      'fotos novas passam por um admin';
+
+  @override
+  String get roomInfoScreenSuggestRoomPictureSemantic =>
+      'Sugerir uma foto do grupo';
+
+  @override
+  String get roomInfoScreenSuggestionSentToast => 'Enviado para os admins';
+
+  @override
+  String get roomInfoScreenSuggestionAppliedToast =>
+      'Pronto — você pode editar este grupo';
+
+  @override
+  String get roomInfoScreenSuggestionWithdrawnToast => 'Retirado';
+
+  @override
+  String get roomInfoScreenSuggestionsLabel => 'VOCÊ SUGERIU';
+
+  @override
+  String get roomInfoScreenSuggestionPhoto => 'Uma foto nova do grupo';
+
+  @override
+  String roomInfoScreenSuggestionName(Object value) {
+    return 'Nome: $value';
+  }
+
+  @override
+  String get roomInfoScreenSuggestionDescription => 'Uma descrição nova';
+
+  @override
+  String get roomInfoScreenSuggestionOther => 'Uma mudança';
+
+  @override
+  String get roomInfoScreenSuggestionPending => 'esperando um admin';
+
+  @override
+  String get roomInfoScreenSuggestionWithdraw => 'RETIRAR';
 }

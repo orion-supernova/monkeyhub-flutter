@@ -38,6 +38,7 @@ import '../widgets/remote_image.dart';
 import '../widgets/room_invite_friends_sheet.dart';
 import '../widgets/room_invite_sheet.dart';
 import '../widgets/skeleton_rows.dart';
+import '../widgets/room_change_requests_sheet.dart';
 import '../widgets/room_join_requests_sheet.dart';
 import '../widgets/room_member_actions_sheet.dart';
 import '../widgets/steady_hero.dart';
@@ -57,10 +58,21 @@ class RoomInfoScreen extends StatefulWidget {
     required this.roomId,
     required this.repo,
     required this.api,
+    this.openChangeRequests = false,
   });
   final String roomId;
   final ChatRepository repo;
   final ChatApi api;
+
+  /// Open the suggested-changes queue as soon as the screen has one to show.
+  ///
+  /// Set only by the notification tap (`app.dart` → `RoomScreen`), which is
+  /// what makes "somebody suggested a new group photo" land on approve/reject
+  /// rather than in the transcript with no sign of why. Ignored for anybody
+  /// who cannot review — an old build, a demoted admin, or a member who
+  /// somehow received the push — because a sheet that would refuse them is a
+  /// worse landing than the room itself.
+  final bool openChangeRequests;
 
   @override
   State<RoomInfoScreen> createState() => _RoomInfoScreenState();
@@ -203,6 +215,25 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   /// question to the person reading it. Same one-shot reasoning as above.
   List<PendingRoomInvite> _pendingInvites = const [];
 
+  /// Suggested changes to the group's name, description or picture, waiting on
+  /// an admin — `roomChangeRequests.ts`. Admin-only; empty for everybody else,
+  /// because the query returns [] for them rather than throwing.
+  List<RoomChangeRequest> _changeRequests = const [];
+
+  /// The SAME table read from the other end: what THIS viewer has suggested
+  /// and nobody has answered. A member sees only this list; an admin never has
+  /// one, because their own edits land directly.
+  ///
+  /// Two lists rather than one filtered, because they answer different
+  /// questions and are gated on different permissions — an admin's queue is
+  /// about other people, and reusing one list would mean every read had to
+  /// remember which end it was looking at.
+  List<RoomChangeRequest> _mySuggestions = const [];
+
+  /// Which suggestion is mid-withdrawal, so a second tap cannot race the
+  /// first and the row can say it is working.
+  final _withdrawing = <String>{};
+
   ChatRoom? get _room => widget.repo.roomById(widget.roomId);
 
   /// May this viewer delete the room.
@@ -302,14 +333,46 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
           ? await widget.repo.listJoinRequests(widget.roomId)
           : const <RoomJoinRequest>[];
       final invites = await widget.repo.pendingRoomInvites(widget.roomId);
+      // The two ends of the suggestion table, and only ever one of them per
+      // viewer: an admin has a queue and no suggestions of their own, a member
+      // the reverse. Asked for conditionally rather than both-and-filter,
+      // because the admin query is the one that costs a roster scan.
+      final changes = _perms.canReviewChangeRequests
+          ? await widget.repo.listRoomChangeRequests(widget.roomId)
+          : const <RoomChangeRequest>[];
+      final mine = _perms.canSuggestChanges
+          ? await widget.repo.myRoomChangeRequests(widget.roomId)
+          : const <RoomChangeRequest>[];
       if (!mounted) return;
       setState(() {
         _joinRequests = requests;
         _pendingInvites = invites;
+        _changeRequests = changes;
+        _mySuggestions = mine;
       });
+      // The notification's last step. Deferred to HERE, the first moment both
+      // the permission and the queue are actually known, rather than to
+      // initState — opening from there would race the two queries and show an
+      // empty sheet to an admin who has one waiting.
+      if (widget.openChangeRequests && changes.isNotEmpty) _autoOpenChanges();
     } catch (e) {
       debugPrint('room admin lists unavailable: $e');
     }
+  }
+
+  /// Whether [RoomInfoScreen.openChangeRequests] has already been honoured.
+  ///
+  /// One-shot: [_refreshAdminLists] runs again after every action on this
+  /// screen, and without the latch answering one suggestion would reopen the
+  /// sheet on top of whatever the admin did next.
+  bool _autoOpened = false;
+
+  void _autoOpenChanges() {
+    if (_autoOpened) return;
+    _autoOpened = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_openChangeRequests());
+    });
   }
 
   /// Everything this screen actually renders from a [RoomPermissions].
@@ -324,6 +387,8 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
         p.canAssignAdmins,
         p.canManageLink,
         p.canReviewJoinRequests,
+        p.canReviewChangeRequests,
+        p.canSuggestChanges,
         p.canInvite,
         p.membersCanInvite,
         p.linkJoinPolicy.wire,
@@ -456,6 +521,107 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   /// field silently rewrite another with a stale value — the controllers are
   /// seeded once, so a rename by another admin would be undone by the next
   /// description edit.
+  /// Where a committed name or description edit actually goes.
+  ///
+  /// The same row, the same gesture, two destinations. An admin's tick writes
+  /// the room; a member's files a suggestion the admins answer. Routed here,
+  /// once, rather than at the two call sites, so the pair can never drift —
+  /// and routed on [RoomPermissions] rather than on which branch drew the row,
+  /// because the permission is what the server will actually check.
+  ///
+  /// A DM keeps the admin path: it has no admins to ask, and `updateRoom` lets
+  /// either participant through.
+  Future<void> _commitText(RoomChangeField field, String value) {
+    final r = _room;
+    final direct = r == null || !r.isGroupChat || _perms.canEditRoom;
+    if (direct) {
+      return field == RoomChangeField.name
+          ? _pushRoom(name: value)
+          : _pushRoom(description: value);
+    }
+    return _suggest(field: field, value: value);
+  }
+
+  /// File a suggestion and say so.
+  ///
+  /// Errors land in [_error] like every other write on this screen rather than
+  /// in a toast, because the row that produced them is still on screen and the
+  /// message belongs beside it — a toast would float over the member list
+  /// while the field it is about sat two hundred pixels up.
+  Future<void> _suggest({
+    required RoomChangeField field,
+    String? value,
+    String? storageId,
+  }) async {
+    final r = _room;
+    if (r == null) return;
+    if (mounted) setState(() => _error = null);
+    try {
+      final queued = await widget.repo.proposeRoomChange(
+        roomId: r.id,
+        field: field,
+        value: value,
+        storageId: storageId,
+      );
+      if (!mounted) return;
+      // `queued` is false only when the caller turned out to be an admin after
+      // all — promoted while they were picking. Saying "sent to the admins"
+      // there would be a lie about a change that is already live.
+      showAppToast(
+        context,
+        queued
+            ? AppLocalizations.of(context).roomInfoScreenSuggestionSentToast
+            : AppLocalizations.of(context).roomInfoScreenSuggestionAppliedToast,
+        tone: ToastTone.success,
+      );
+      await _refreshAdminLists();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = _humanize(context, e));
+    }
+  }
+
+  /// Take one of your own suggestions back. Deletes it outright server-side —
+  /// see `roomChangeRequests.withdraw` for why it is not kept as "withdrawn".
+  Future<void> _withdrawSuggestion(RoomChangeRequest s) async {
+    if (_withdrawing.contains(s.requestId)) return;
+    setState(() => _withdrawing.add(s.requestId));
+    try {
+      await widget.repo.withdrawRoomChange(s.requestId);
+      if (!mounted) return;
+      setState(() {
+        _withdrawing.remove(s.requestId);
+        _mySuggestions =
+            _mySuggestions.where((x) => x.requestId != s.requestId).toList();
+      });
+      showAppToast(
+        context,
+        AppLocalizations.of(context).roomInfoScreenSuggestionWithdrawnToast,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _withdrawing.remove(s.requestId);
+        _error = _humanize(context, e);
+      });
+      // Usually means an admin answered it while this screen was open. Re-read
+      // rather than leaving a row whose button will refuse again.
+      await _refreshAdminLists();
+    }
+  }
+
+  /// The admin's queue, and a refresh of everything it could have changed —
+  /// an approval renames the room behind the sheet.
+  Future<void> _openChangeRequests() async {
+    await showRoomChangeRequestsSheet(
+      context,
+      repo: widget.repo,
+      api: widget.api,
+      roomId: widget.roomId,
+    );
+    await _refreshAdminLists();
+  }
+
   Future<void> _pushRoom({String? name, String? description}) async {
     final r = _room;
     final me = widget.repo.userId;
@@ -711,6 +877,13 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
         bytes: cropped.bytes,
         contentType: cropped.contentType,
       );
+      // Same two destinations as a committed name edit — see [_commitText].
+      // The upload happens either way and is the slow part; who gets to say
+      // whether it becomes the group's face is the only thing that differs.
+      if (r.isGroupChat && !_perms.canEditRoom) {
+        await _suggest(field: RoomChangeField.avatar, storageId: storageId);
+        return;
+      }
       await widget.api.updateRoomAvatar(
         roomId: r.id,
         userId: me,
@@ -978,8 +1151,19 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                             controller: _name,
                             placeholder:
                                 AppLocalizations.of(context).roomInfoScreenNameHint,
-                            enabled: _perms.canEditRoom || !r.isGroupChat,
-                            onCommit: (v) => _pushRoom(name: v),
+                            // A member who may SUGGEST gets the same editable
+                            // row an admin gets, with a line underneath saying
+                            // where the edit goes. Locking them out and hiding
+                            // the affordance would be the honest rendering of
+                            // "you cannot change this", but it is the wrong
+                            // one now — the ask exists precisely so the answer
+                            // to "can I fix the name" is not "no".
+                            enabled: _perms.canEditRoom ||
+                                !r.isGroupChat ||
+                                _perms.canSuggestChanges,
+                            note: _suggestNote(),
+                            onCommit: (v) =>
+                                _commitText(RoomChangeField.name, v),
                           ),
                           const SizedBox(height: 14),
                         ],
@@ -997,11 +1181,20 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                             controller: _desc,
                             placeholder: AppLocalizations.of(context)
                                 .roomInfoScreenDescriptionHint,
-                            enabled: _perms.canEditRoom || !r.isGroupChat,
+                            enabled: _perms.canEditRoom ||
+                                !r.isGroupChat ||
+                                _perms.canSuggestChanges,
+                            note: _suggestNote(),
                             maxLines: 3,
-                            onCommit: (v) => _pushRoom(description: v),
+                            onCommit: (v) =>
+                                _commitText(RoomChangeField.description, v),
                           ),
                         ],
+                        // Directly under the fields it is about, above the
+                        // admin-only block below — a member never sees that
+                        // one, so for them this reads as the next thing after
+                        // the description rather than as an orphan.
+                        _mySuggestionsBlock(theme),
                         // Eased, not popped. These appear one round trip after
                         // the screen does, and a hard insert of three controls
                         // under the description is the jump this screen was
@@ -1462,92 +1655,239 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
               child: Icon(Icons.tag, color: theme.inkMuted, size: 32),
             ),
     );
+    // The badge means two different things now — "set this" for an admin,
+    // "ask for this" for everybody else — and the badge itself cannot say
+    // which. A camera glyph that quietly files a request would be the one
+    // control on this screen that lies about what a tap does, so the caption
+    // below says it out loud, before the tap rather than after it.
+    final suggesting = r.isGroupChat &&
+        !_perms.canEditRoom &&
+        _perms.canSuggestChanges;
     return Center(
       // The picture is for looking at; editing lives on the badge. Tapping the
       // image itself used to open the picker, which meant a room's avatar was
       // the one picture in the app you could never actually see.
-      child: SizedBox(
-        width: size + _badgeOverhang,
-        height: size + _badgeOverhang,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned(
-              left: 0,
-              top: 0,
-              width: size,
-              height: size,
-              child: hasAvatar
-                  ? FocusableTap(
-                      onTap: () => _openAvatarFullscreen(
-                        storageId: r.avatarStorageId!,
-                        heroTag: heroTag,
-                      ),
-                      shape: FocusRingShape.circle,
-                      semanticLabel: AppLocalizations.of(context).roomInfoScreenViewRoomPictureSemantic,
-                      child: GestureDetector(
-                        onTap: () => _openAvatarFullscreen(
-                          storageId: r.avatarStorageId!,
-                          heroTag: heroTag,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: size + _badgeOverhang,
+            height: size + _badgeOverhang,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  width: size,
+                  height: size,
+                  child: hasAvatar
+                      ? FocusableTap(
+                          onTap: () => _openAvatarFullscreen(
+                            storageId: r.avatarStorageId!,
+                            heroTag: heroTag,
+                          ),
+                          shape: FocusRingShape.circle,
+                          semanticLabel: AppLocalizations.of(context).roomInfoScreenViewRoomPictureSemantic,
+                          child: GestureDetector(
+                            onTap: () => _openAvatarFullscreen(
+                              storageId: r.avatarStorageId!,
+                              heroTag: heroTag,
+                            ),
+                            child: picture,
+                          ),
+                        )
+                      : picture,
+                ),
+                if (_changingAvatar)
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    width: size,
+                    height: size,
+                    // Must not swallow taps meant for the badge.
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.black.withValues(alpha: 0.45),
                         ),
-                        child: picture,
+                        child: Center(
+                          child: PhotoSpinner(
+                            size: 26,
+                            color: Colors.white.withValues(alpha: 0.95),
+                          ),
+                        ),
                       ),
-                    )
-                  : picture,
+                    ),
+                  ),
+                // The badge, for people who may change the picture — and now also
+                // for people who may ASK to. `rooms.updateRoomAvatar` stays
+                // admin-only; a member's tap ends in `roomChangeRequests.propose`
+                // instead (see [_changeAvatar]), which is why the gate widened
+                // rather than the mutation loosening.
+                //
+                // Still gated: without it somebody who can do NEITHER would pick a
+                // photo, sit through the upload, and be refused at the last step.
+                if (!r.isGroupChat || _perms.canEditRoom || _perms.canSuggestChanges)
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: FocusableTap(
+                    onTap: _working ? null : _changeAvatar,
+                    shape: FocusRingShape.circle,
+                    semanticLabel: r.isGroupChat && !_perms.canEditRoom
+                        ? AppLocalizations.of(context).roomInfoScreenSuggestRoomPictureSemantic
+                        : hasAvatar
+                            ? AppLocalizations.of(context).roomInfoScreenChangeRoomPictureSemantic
+                            : AppLocalizations.of(context).roomInfoScreenAddRoomPictureSemantic,
+                    child: GestureDetector(
+                      onTap: _working ? null : _changeAvatar,
+                      behavior: HitTestBehavior.opaque,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: theme.accent,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: theme.background, width: 2),
+                        ),
+                        child: Icon(Icons.camera_alt_outlined, size: 14, color: theme.accentInk),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            if (_changingAvatar)
-              Positioned(
-                left: 0,
-                top: 0,
-                width: size,
-                height: size,
-                // Must not swallow taps meant for the badge.
-                child: IgnorePointer(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.black.withValues(alpha: 0.45),
-                    ),
-                    child: Center(
-                      child: PhotoSpinner(
-                        size: 26,
-                        color: Colors.white.withValues(alpha: 0.95),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            // The edit badge, only for people who may actually change it.
-            // `rooms.updateRoomAvatar` is admin-only for a group now, and
-            // without this gate a member could pick a photo, sit through the
-            // upload, and be refused at the very last step.
-            if (!r.isGroupChat || _perms.canEditRoom)
-            Positioned(
-              right: 0,
-              bottom: 0,
-              child: FocusableTap(
-                onTap: _working ? null : _changeAvatar,
-                shape: FocusRingShape.circle,
-                semanticLabel: hasAvatar
-                    ? AppLocalizations.of(context).roomInfoScreenChangeRoomPictureSemantic
-                    : AppLocalizations.of(context).roomInfoScreenAddRoomPictureSemantic,
-                child: GestureDetector(
-                  onTap: _working ? null : _changeAvatar,
-                  behavior: HitTestBehavior.opaque,
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: theme.accent,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: theme.background, width: 2),
-                    ),
-                    child: Icon(Icons.camera_alt_outlined, size: 14, color: theme.accentInk),
-                  ),
-                ),
-              ),
+          ),
+          if (suggesting) ...[
+            const SizedBox(height: 8),
+            Text(
+              AppLocalizations.of(context).roomInfoScreenSuggestAvatarNote,
+              style: theme.monoTiny.copyWith(color: theme.inkMuted),
+              textAlign: TextAlign.center,
             ),
           ],
-        ),
+        ],
+      ),
+    );
+  }
+
+  /// The line under a name or description row that says where a member's edit
+  /// actually goes. Null for anybody whose tick writes the room directly — an
+  /// admin does not need telling that their own edit is their own edit.
+  String? _suggestNote() {
+    final r = _room;
+    if (r == null || !r.isGroupChat) return null;
+    if (_perms.canEditRoom || !_perms.canSuggestChanges) return null;
+    return AppLocalizations.of(context).roomInfoScreenSuggestNote;
+  }
+
+  /// What this viewer has asked for and nobody has answered.
+  ///
+  /// Only ever drawn for a member — an admin's edits land directly, so they
+  /// can never have one. Zero height when there is nothing outstanding, which
+  /// is the usual case, so it costs nothing to leave unconditional at the call
+  /// site.
+  Widget _mySuggestionsBlock(AppTheme theme) {
+    if (_mySuggestions.isEmpty) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FieldLabel(l10n.roomInfoScreenSuggestionsLabel),
+          const SizedBox(height: 6),
+          for (final s in _mySuggestions)
+            _suggestionRow(theme, s),
+        ],
+      ),
+    );
+  }
+
+  Widget _suggestionRow(AppTheme theme, RoomChangeRequest s) {
+    final l10n = AppLocalizations.of(context);
+    final busy = _withdrawing.contains(s.requestId);
+    final what = switch (s.field) {
+      RoomChangeField.avatar => l10n.roomInfoScreenSuggestionPhoto,
+      RoomChangeField.name =>
+        l10n.roomInfoScreenSuggestionName(s.value ?? ''),
+      RoomChangeField.description => l10n.roomInfoScreenSuggestionDescription,
+      // A field a newer server grew. Named vaguely rather than hidden: the
+      // row's whole job here is to make sure nothing of yours is pending
+      // without you being able to see and cancel it.
+      RoomChangeField.unknown => l10n.roomInfoScreenSuggestionOther,
+    };
+    return Padding(
+      key: ValueKey('suggestion-${s.requestId}'),
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: theme.accentSoft,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              s.field == RoomChangeField.avatar
+                  ? Icons.photo_camera_back_outlined
+                  : Icons.edit_outlined,
+              size: 16,
+              color: theme.accent,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  what,
+                  style: theme.body,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(l10n.roomInfoScreenSuggestionPending,
+                    style: theme.monoTiny),
+              ],
+            ),
+          ),
+          if (busy)
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: theme.accent,
+              ),
+            )
+          else
+            FocusableTap(
+              onTap: () => _withdrawSuggestion(s),
+              semanticLabel: l10n.roomInfoScreenSuggestionWithdraw,
+              radius: theme.radiusSm,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _withdrawSuggestion(s),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: theme.inkMuted, width: 1.2),
+                    borderRadius: BorderRadius.circular(theme.radiusSm),
+                  ),
+                  child: Text(
+                    l10n.roomInfoScreenSuggestionWithdraw,
+                    style: theme.monoTiny.copyWith(color: theme.inkSoft),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -1949,6 +2289,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   Widget _groupAdmin(AppTheme theme) {
     final l10n = AppLocalizations.of(context);
     final pendingRequests = _joinRequests.length;
+    final pendingChanges = _changeRequests.length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1997,6 +2338,17 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
               );
               await _refreshAdminLists();
             },
+          ),
+        // Beside the join queue and on the same condition: only when there is
+        // something to review. Two work queues that both announce themselves
+        // by appearing, rather than two permanent rows reading "0".
+        if (_perms.canReviewChangeRequests && pendingChanges > 0)
+          _adminRow(
+            theme,
+            icon: Icons.published_with_changes_outlined,
+            label: l10n.roomAdminChangeRequestsRow,
+            badge: pendingChanges,
+            onTap: _openChangeRequests,
           ),
       ],
     );

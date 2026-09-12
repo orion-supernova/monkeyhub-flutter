@@ -512,6 +512,51 @@ export default defineSchema({
     // Account teardown: requests this user ruled on.
     .index("by_decider", ["decidedBy"]),
 
+  // A member who may NOT edit the room asking for it to be edited anyway —
+  // "use this photo instead", "call it Trip 2026". See `roomChangeRequests.ts`
+  // for why the admin-only rule on `rooms.updateRoom` grew an answer rather
+  // than being loosened.
+  //
+  // Separate from `roomJoinRequests` even though both are a person asking an
+  // admin for something: that one is answered by a membership and comes from
+  // somebody who cannot see the room, this one is answered by a patch to the
+  // room document and comes from somebody already inside it. One table would
+  // mean half the columns null depending on a discriminator.
+  //
+  // At most ONE pending row per (room, user, field) — `propose` replaces
+  // rather than queueing, which is both the flood control and what somebody
+  // who picks a second photo actually meant.
+  roomChangeRequests: defineTable({
+    roomId: v.id("rooms"),
+    userId: v.id("users"),
+    // "avatar" | "name" | "description". A field this build has never heard of
+    // is refused at `propose`; nothing reads this without matching it.
+    field: v.string(),
+    // The proposed text, for "name" and "description". An empty string is a
+    // real proposal on a description — "take it off" — and is why this is not
+    // collapsed into "absent means unset".
+    value: v.optional(v.string()),
+    // The proposed picture, for "avatar". Already uploaded: the file exists
+    // from the moment the row does, and every ending except approval releases
+    // it (see `releaseProposal`), because the row is then its last pointer.
+    storageId: v.optional(v.id("_storage")),
+    // "pending" | "approved" | "rejected". A WITHDRAWN row is deleted rather
+    // than stamped — "forget I asked" that leaves something for an admin to
+    // read later is not a withdrawal.
+    status: v.string(),
+    createdAt: v.number(),
+    decidedAt: v.optional(v.number()),
+    decidedBy: v.optional(v.id("users")),
+  })
+    // The admin queue for one room.
+    .index("by_room_status", ["roomId", "status"])
+    // The replace-my-own-suggestion guard, the proposer's own view, and —
+    // prefix-scanned on roomId alone — the room teardown sweep.
+    .index("by_room_user", ["roomId", "userId"])
+    // Account teardown, both directions.
+    .index("by_user", ["userId"])
+    .index("by_decider", ["decidedBy"]),
+
   // ── Family ────────────────────────────────────────────────────────────────
 
   // Who supervises whom. A child may have several guardians; ANY of them can

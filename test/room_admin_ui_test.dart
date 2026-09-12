@@ -89,6 +89,8 @@ void main() {
         canAssignAdmins: true,
         canManageLink: true,
         canReviewJoinRequests: true,
+        canReviewChangeRequests: true,
+        canSuggestChanges: false,
         canInvite: true,
         membersCanInvite: true,
         linkJoinPolicy: RoomJoinPolicy.open,

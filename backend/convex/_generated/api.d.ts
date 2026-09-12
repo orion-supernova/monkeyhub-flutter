@@ -49,6 +49,7 @@ import type * as rateLimit from "../rateLimit.js";
 import type * as reactions from "../reactions.js";
 import type * as releases from "../releases.js";
 import type * as roomAdmin from "../roomAdmin.js";
+import type * as roomChangeRequests from "../roomChangeRequests.js";
 import type * as roomCleanup from "../roomCleanup.js";
 import type * as roomContent from "../roomContent.js";
 import type * as roomInvitations from "../roomInvitations.js";
@@ -117,6 +118,7 @@ declare const fullApi: ApiFromModules<{
   reactions: typeof reactions;
   releases: typeof releases;
   roomAdmin: typeof roomAdmin;
+  roomChangeRequests: typeof roomChangeRequests;
   roomCleanup: typeof roomCleanup;
   roomContent: typeof roomContent;
   roomInvitations: typeof roomInvitations;

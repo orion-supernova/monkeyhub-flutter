@@ -14304,6 +14304,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'FRIENDS'**
   String get newChatMenuFriendsHeader;
+
+  /// Error shown when a suggested room change can no longer be found — usually because another admin already answered it.
+  ///
+  /// In en, this message translates to:
+  /// **'That suggestion is gone — an admin may have answered it.'**
+  String get roomChangeErrorGone;
+
+  /// Error shown when somebody tries to withdraw a suggestion they did not make.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the person who suggested it can take it back.'**
+  String get roomChangeErrorNotYours;
+
+  /// Error shown when a member suggests exactly what the room already says.
+  ///
+  /// In en, this message translates to:
+  /// **'That\'s already what it says.'**
+  String get roomChangeErrorNoChange;
+
+  /// Error shown when a suggested name or description is empty, too long, or otherwise unusable.
+  ///
+  /// In en, this message translates to:
+  /// **'That can\'t be saved as it is.'**
+  String get roomChangeErrorMissingValue;
+
+  /// Title of the admin sheet listing members' suggested changes to the group's name, description and picture.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions'**
+  String get roomChangeRequestsTitle;
+
+  /// Blurb under the suggestions title, saying that nothing is applied until an admin approves it.
+  ///
+  /// In en, this message translates to:
+  /// **'Members suggested these. Nothing changes until you say yes.'**
+  String get roomChangeRequestsBlurb;
+
+  /// Empty state for the suggested-changes queue.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing suggested.'**
+  String get roomChangeRequestsEmpty;
+
+  /// Per-row button that approves a suggested change and applies it to the group.
+  ///
+  /// In en, this message translates to:
+  /// **'USE IT'**
+  String get roomChangeRequestsApprove;
+
+  /// Per-row button that rejects a suggested change.
+  ///
+  /// In en, this message translates to:
+  /// **'NO'**
+  String get roomChangeRequestsReject;
+
+  /// Row heading when the suggestion is a new group picture.
+  ///
+  /// In en, this message translates to:
+  /// **'New group picture'**
+  String get roomChangeRequestsPhotoLabel;
+
+  /// Row heading when the suggestion is a new group name.
+  ///
+  /// In en, this message translates to:
+  /// **'New name'**
+  String get roomChangeRequestsNameLabel;
+
+  /// Row heading when the suggestion is a new group description.
+  ///
+  /// In en, this message translates to:
+  /// **'New description'**
+  String get roomChangeRequestsDescriptionLabel;
+
+  /// Row heading for a suggested change whose kind this build does not recognise, so the admin can still answer it.
+  ///
+  /// In en, this message translates to:
+  /// **'A change this app can\'t show yet'**
+  String get roomChangeRequestsUnknownLabel;
+
+  /// Stands in for an empty proposed description — the suggestion is to remove it altogether.
+  ///
+  /// In en, this message translates to:
+  /// **'nothing — take it off'**
+  String get roomChangeRequestsClearedValue;
+
+  /// Attribution line above a suggested change. {name} is the member's display name.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} suggested'**
+  String roomChangeRequestsSuggestedBy(Object name);
+
+  /// Admin-only room-info row that opens the queue of members' suggested changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions'**
+  String get roomAdminChangeRequestsRow;
+
+  /// Line under the editable name and description rows, for a member whose edit becomes a suggestion instead of a change.
+  ///
+  /// In en, this message translates to:
+  /// **'an admin has to approve this'**
+  String get roomInfoScreenSuggestNote;
+
+  /// Caption under the group picture, for a member whose picture tap files a suggestion instead of setting it.
+  ///
+  /// In en, this message translates to:
+  /// **'an admin approves new pictures'**
+  String get roomInfoScreenSuggestAvatarNote;
+
+  /// Accessibility label for the picture button when tapping it suggests a group picture rather than setting one.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggest a group picture'**
+  String get roomInfoScreenSuggestRoomPictureSemantic;
+
+  /// Toast confirming a suggested change is now waiting on the group's admins.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent to the admins'**
+  String get roomInfoScreenSuggestionSentToast;
+
+  /// Toast shown when a suggestion applied straight away because the sender turned out to be an admin.
+  ///
+  /// In en, this message translates to:
+  /// **'Done — you can edit this group'**
+  String get roomInfoScreenSuggestionAppliedToast;
+
+  /// Toast confirming a suggestion was taken back.
+  ///
+  /// In en, this message translates to:
+  /// **'Taken back'**
+  String get roomInfoScreenSuggestionWithdrawnToast;
+
+  /// All-caps label above this viewer's own outstanding suggestions for the group.
+  ///
+  /// In en, this message translates to:
+  /// **'YOU SUGGESTED'**
+  String get roomInfoScreenSuggestionsLabel;
+
+  /// Row describing this viewer's pending suggestion of a new group picture.
+  ///
+  /// In en, this message translates to:
+  /// **'A new group picture'**
+  String get roomInfoScreenSuggestionPhoto;
+
+  /// Row describing this viewer's pending suggestion of a new group name. {value} is the suggested name.
+  ///
+  /// In en, this message translates to:
+  /// **'Name: {value}'**
+  String roomInfoScreenSuggestionName(Object value);
+
+  /// Row describing this viewer's pending suggestion of a new group description.
+  ///
+  /// In en, this message translates to:
+  /// **'A new description'**
+  String get roomInfoScreenSuggestionDescription;
+
+  /// Row describing a pending suggestion whose kind this build does not recognise.
+  ///
+  /// In en, this message translates to:
+  /// **'A change'**
+  String get roomInfoScreenSuggestionOther;
+
+  /// Status line under a pending suggestion, saying it is waiting on an admin.
+  ///
+  /// In en, this message translates to:
+  /// **'waiting on an admin'**
+  String get roomInfoScreenSuggestionPending;
+
+  /// Button on a pending suggestion that takes it back.
+  ///
+  /// In en, this message translates to:
+  /// **'TAKE BACK'**
+  String get roomInfoScreenSuggestionWithdraw;
 }
 
 class _AppLocalizationsDelegate

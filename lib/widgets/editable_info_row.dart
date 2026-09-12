@@ -45,6 +45,7 @@ class EditableInfoRow extends StatefulWidget {
     this.enabled = true,
     this.maxLines = 1,
     this.emptyIsPlaceholder = true,
+    this.note,
   });
 
   /// Small caps above the value, matching [FieldLabel] elsewhere.
@@ -85,6 +86,17 @@ class EditableInfoRow extends StatefulWidget {
   /// When false an empty value renders as nothing rather than as [placeholder]
   /// — for rows where "unset" is a normal, unremarkable state.
   final bool emptyIsPlaceholder;
+
+  /// A quiet line under the value saying what committing will actually DO.
+  ///
+  /// Exists for the one case where an editable-looking row does not write the
+  /// thing it is showing: a group member's name or description edit becomes a
+  /// suggestion the admins answer. Shown in BOTH states, display and edit —
+  /// the point is to be read before the tap, and dropping it once the field is
+  /// open would take it away at the exact moment it is being acted on.
+  ///
+  /// Null on every ordinary row, which is most of them.
+  final String? note;
 
   @override
   State<EditableInfoRow> createState() => _EditableInfoRowState();
@@ -227,7 +239,20 @@ class _EditableInfoRowState extends State<EditableInfoRow> {
             ),
           ),
         ),
+        _note(theme),
       ],
+    );
+  }
+
+  Widget _note(AppTheme theme) {
+    final note = widget.note;
+    if (note == null || note.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Text(
+        note,
+        style: theme.monoTiny.copyWith(color: theme.inkMuted),
+      ),
     );
   }
 
@@ -270,6 +295,7 @@ class _EditableInfoRowState extends State<EditableInfoRow> {
               ],
             ],
           ),
+          _note(theme),
         ],
       ),
     );

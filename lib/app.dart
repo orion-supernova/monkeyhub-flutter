@@ -645,11 +645,30 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     nav.popUntil((r) => r.isFirst);
   }
 
-  void _openRoomFromPush(String roomId) {
+  /// [focus] is the optional "and then show this" hint a push can carry —
+  /// `data.focus`, forwarded by both native handlers beside the roomId. Only
+  /// `"roomChanges"` exists today: a member suggested a new group name,
+  /// description or picture, and the admin tapping the banner should land on
+  /// approve/reject rather than in the transcript with no sign of why.
+  ///
+  /// Recorded in [UiSelectionStore] rather than acted on here, for the reason
+  /// the games and moment taps are: the destination is opened by the ROOM
+  /// screen, which exists on both window classes and knows its own navigator,
+  /// where this method has two different ways of getting a room on screen and
+  /// neither of them can push a second route onto the right one.
+  ///
+  /// An unrecognised value is ignored rather than guessed at, so a newer
+  /// server's hint degrades to "opens the room" — which is still correct.
+  void _openRoomFromPush(String roomId, {String? focus}) {
+    if (focus == 'roomChanges') {
+      UiSelectionStore.instance.requestRoomChangeReview(roomId);
+    }
     // On a cold start from a notification tap, the platform's tap event can
     // fire before _bootstrap finishes restoring auth and before the root
     // navigator's state is mounted. Stash the roomId and let
-    // [_consumePendingPushRoom] flush it once both are ready.
+    // [_consumePendingPushRoom] flush it once both are ready. The focus
+    // request above survives that wait on its own — it is one-shot state on
+    // the store, consumed by whichever RoomScreen eventually mounts.
     if (_auth.session == null || rootNavigatorKey.currentState == null) {
       _pendingPushRoomId = roomId;
       return;

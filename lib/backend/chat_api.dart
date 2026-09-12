@@ -1032,6 +1032,84 @@ class ChatApi {
     });
   }
 
+  // ── Change requests (a member asking to redecorate the group) ────────────
+
+  /// Ask for the group's name, description or picture to change.
+  ///
+  /// Returns true when it went into the admins' queue, false when it applied
+  /// straight away — which happens only if the caller turned out to be an
+  /// admin after all (promoted while they were picking a photo). The client
+  /// never chooses this path for somebody it knows can edit; see
+  /// `roomChangeRequests.propose`.
+  Future<bool> proposeRoomChange({
+    required String roomId,
+    required String userId,
+    required RoomChangeField field,
+    String? value,
+    String? storageId,
+  }) async {
+    final res = await _cv.mutation('roomChangeRequests:propose', {
+      'roomId': roomId,
+      'userId': userId,
+      'field': field.wire,
+      'value': ?value,
+      'storageId': ?storageId,
+    });
+    return ((res as Map?) ?? const {})['status'] != 'applied';
+  }
+
+  Future<void> withdrawRoomChange({
+    required String requestId,
+    required String userId,
+  }) async {
+    await _cv.mutation('roomChangeRequests:withdraw', {
+      'requestId': requestId,
+      'userId': userId,
+    });
+  }
+
+  Future<void> decideRoomChange({
+    required String requestId,
+    required String userId,
+    required bool approve,
+  }) async {
+    await _cv.mutation('roomChangeRequests:decide', {
+      'requestId': requestId,
+      'userId': userId,
+      'approve': approve,
+    });
+  }
+
+  /// The admin queue for one room. Empty, never an error, for anyone else.
+  Future<List<RoomChangeRequest>> listRoomChangeRequests({
+    required String roomId,
+    required String userId,
+  }) async {
+    final res = await _cv.query('roomChangeRequests:listPending', {
+      'roomId': roomId,
+      'userId': userId,
+    });
+    return ((res as List?) ?? const [])
+        .map((e) =>
+            RoomChangeRequest.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
+  /// The caller's own outstanding suggestions for one room.
+  Future<List<RoomChangeRequest>> myRoomChangeRequests({
+    required String roomId,
+    required String userId,
+  }) async {
+    final res = await _cv.query('roomChangeRequests:mine', {
+      'roomId': roomId,
+      'userId': userId,
+    });
+    return ((res as List?) ?? const [])
+        .map((e) =>
+            RoomChangeRequest.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
   // ── Direct invites (a member naming a friend) ────────────────────────────
 
   /// The friend picker's list: friends not already in the room and not

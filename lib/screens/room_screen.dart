@@ -435,6 +435,25 @@ class _RoomScreenState extends State<RoomScreen>
     widget.repo.beginUnreadAnchor(widget.roomId);
     _unreadLandingPending = true;
     _unreadLandingDeadline = DateTime.now().add(_kUnreadLandingWindow);
+    // "Somebody suggested a new group photo", tapped. The push routed the tap
+    // into this room by its roomId; this is the last hop, and it has to happen
+    // from HERE because Room Info is pushed onto this screen's navigator — the
+    // handler in app.dart has two ways of getting a room on screen and cannot
+    // stack a route on either of them.
+    //
+    // Post-frame so the push lands on a mounted route rather than during our
+    // own initState, and guarded by roomId so a request left over from a
+    // notification the user navigated away from cannot ambush a different
+    // room. `openChangeRequests` is only honoured for somebody who can
+    // actually review — see RoomInfoScreen.
+    if (UiSelectionStore.instance.consumeRoomChangeReview(widget.roomId)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final room = _room;
+        if (mounted && room != null) {
+          unawaited(_openRoomInfo(room, openChangeRequests: true));
+        }
+      });
+    }
     // `this` is the ownership token: whichever State opened the room is the
     // only one allowed to close it. Route transitions dispose the outgoing
     // RoomScreen well after the incoming one has opened its room, so an
@@ -3729,10 +3748,15 @@ class _RoomScreenState extends State<RoomScreen>
   /// this screen down with it — so on those paths the future completes into a
   /// disposed state. Both pop null, so the null guard covers correctness and
   /// this one covers the `setState` inside `_travelTo`.
-  Future<void> _openRoomInfo(ChatRoom room) async {
+  Future<void> _openRoomInfo(ChatRoom room, {bool openChangeRequests = false}) async {
     final jump = await Navigator.of(context).push<ChatMessage>(
       MaterialPageRoute(
-        builder: (_) => RoomInfoScreen(roomId: room.id, repo: widget.repo, api: widget.api),
+        builder: (_) => RoomInfoScreen(
+          roomId: room.id,
+          repo: widget.repo,
+          api: widget.api,
+          openChangeRequests: openChangeRequests,
+        ),
       ),
     );
     if (!mounted || jump == null) return;

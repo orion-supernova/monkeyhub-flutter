@@ -8113,4 +8113,96 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get newChatMenuFriendsHeader => '친구';
+
+  @override
+  String get roomChangeErrorGone => '그 제안은 사라졌어요 — 관리자가 이미 처리했을 수 있어요.';
+
+  @override
+  String get roomChangeErrorNotYours => '제안한 사람만 취소할 수 있어요.';
+
+  @override
+  String get roomChangeErrorNoChange => '이미 그렇게 되어 있어요.';
+
+  @override
+  String get roomChangeErrorMissingValue => '이대로는 저장할 수 없어요.';
+
+  @override
+  String get roomChangeRequestsTitle => '제안';
+
+  @override
+  String get roomChangeRequestsBlurb =>
+      '멤버들이 제안한 것들이에요. 승인하기 전까지는 아무것도 바뀌지 않아요.';
+
+  @override
+  String get roomChangeRequestsEmpty => '제안이 없어요.';
+
+  @override
+  String get roomChangeRequestsApprove => '적용';
+
+  @override
+  String get roomChangeRequestsReject => '아니요';
+
+  @override
+  String get roomChangeRequestsPhotoLabel => '새 그룹 사진';
+
+  @override
+  String get roomChangeRequestsNameLabel => '새 이름';
+
+  @override
+  String get roomChangeRequestsDescriptionLabel => '새 소개';
+
+  @override
+  String get roomChangeRequestsUnknownLabel => '이 앱이 아직 보여줄 수 없는 변경';
+
+  @override
+  String get roomChangeRequestsClearedValue => '없음 — 지우기';
+
+  @override
+  String roomChangeRequestsSuggestedBy(Object name) {
+    return '$name 님의 제안';
+  }
+
+  @override
+  String get roomAdminChangeRequestsRow => '제안';
+
+  @override
+  String get roomInfoScreenSuggestNote => '관리자 승인이 필요해요';
+
+  @override
+  String get roomInfoScreenSuggestAvatarNote => '새 사진은 관리자가 승인해요';
+
+  @override
+  String get roomInfoScreenSuggestRoomPictureSemantic => '그룹 사진 제안하기';
+
+  @override
+  String get roomInfoScreenSuggestionSentToast => '관리자에게 보냈어요';
+
+  @override
+  String get roomInfoScreenSuggestionAppliedToast => '완료 — 이 그룹을 편집할 수 있어요';
+
+  @override
+  String get roomInfoScreenSuggestionWithdrawnToast => '취소했어요';
+
+  @override
+  String get roomInfoScreenSuggestionsLabel => '내 제안';
+
+  @override
+  String get roomInfoScreenSuggestionPhoto => '새 그룹 사진';
+
+  @override
+  String roomInfoScreenSuggestionName(Object value) {
+    return '이름: $value';
+  }
+
+  @override
+  String get roomInfoScreenSuggestionDescription => '새 소개';
+
+  @override
+  String get roomInfoScreenSuggestionOther => '변경';
+
+  @override
+  String get roomInfoScreenSuggestionPending => '관리자 기다리는 중';
+
+  @override
+  String get roomInfoScreenSuggestionWithdraw => '취소';
 }

@@ -1516,6 +1516,59 @@ class ChatRepository extends ChangeNotifier {
     await api.decideJoinRequest(requestId: requestId, userId: id, approve: approve);
   }
 
+  // ── Change requests (a member asking to redecorate the group) ────────────
+
+  /// Ask for the group's name, description or picture to change. Resolves to
+  /// true when an admin now has to answer — see [ChatApi.proposeRoomChange]
+  /// for the one case where that is false.
+  Future<bool> proposeRoomChange({
+    required String roomId,
+    required RoomChangeField field,
+    String? value,
+    String? storageId,
+  }) async {
+    final id = _userId;
+    if (id == null) return false;
+    return api.proposeRoomChange(
+      roomId: roomId,
+      userId: id,
+      field: field,
+      value: value,
+      storageId: storageId,
+    );
+  }
+
+  Future<void> withdrawRoomChange(String requestId) async {
+    final id = _userId;
+    if (id == null) return;
+    await api.withdrawRoomChange(requestId: requestId, userId: id);
+  }
+
+  Future<void> decideRoomChange({
+    required String requestId,
+    required bool approve,
+  }) async {
+    final id = _userId;
+    if (id == null) return;
+    await api.decideRoomChange(
+      requestId: requestId,
+      userId: id,
+      approve: approve,
+    );
+  }
+
+  Future<List<RoomChangeRequest>> listRoomChangeRequests(String roomId) async {
+    final id = _userId;
+    if (id == null) return const [];
+    return api.listRoomChangeRequests(roomId: roomId, userId: id);
+  }
+
+  Future<List<RoomChangeRequest>> myRoomChangeRequests(String roomId) async {
+    final id = _userId;
+    if (id == null) return const [];
+    return api.myRoomChangeRequests(roomId: roomId, userId: id);
+  }
+
   Future<List<ChatUser>> invitableFriends(String roomId) async {
     final id = _userId;
     if (id == null) return const [];
