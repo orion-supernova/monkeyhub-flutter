@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+// For RenderAbstractViewport: the pull-reveal panel's drop is decided against
+// the viewport it's scrolling inside, not against the scroll offset.
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
 import '../auth/auth_service.dart';
@@ -115,6 +118,7 @@ class _HomeScreenState extends State<HomeScreen>
   // every tab switch, and the framework's own PageStorage restore is what
   // produced the settle-bounce on return. See [ScrollMemory].
   final _scroll = ScrollMemory.controller();
+  static const _scrollMemoryKey = 'chat';
 
   // ───────── in-place search ─────────
 
@@ -129,17 +133,24 @@ class _HomeScreenState extends State<HomeScreen>
   double _pullDrag = 0;
 
   /// True only between the first live drag sample and release — see
-  /// [PullRevealSlot] for what this changes about the reveal's timing.
+  /// [PullRevealSlot.instant] for what this changes about the reveal's
+  /// timing.
   bool _dragging = false;
   bool _pullPanelOpen = false;
 
-  /// True from the first forward-scroll sample of a close-by-swipe gesture
-  /// until release — see `_onScrollNotification`. Distinct from
-  /// [_pullPanelOpen] because that flips to `false` the moment the gesture
-  /// starts (so [PullRevealSlot]'s progress tracks the drag instead of
-  /// staying pinned at 1.0), while this has to keep routing later samples of
-  /// the *same* gesture back into the closing branch.
-  bool _closingPanel = false;
+  /// True from the frame the panel is dropped for having been scrolled away
+  /// until the next pull starts. The drop is the one height change that is
+  /// neither a gesture nor a button press, and the only one that has to
+  /// happen off-screen in a single frame; keeping it out of [_dragging]
+  /// keeps that field meaning exactly what it says.
+  bool _pullDropped = false;
+
+  /// Sits on the panel itself so [_dropScrolledAwayPanel] can measure it.
+  /// Nothing here can know that height any other way: the panel is as tall as
+  /// whatever is in it — a search field, an Archived Chats row only when
+  /// something is archived, both at the reader's own text scale.
+  final _pullPanelKey = GlobalKey();
+
   static const _pullOpenThreshold = 64.0;
   static const _pullMaxDrag = 96.0;
 
@@ -151,7 +162,7 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void initState() {
     super.initState();
-    ScrollMemory.attach('chat', _scroll);
+    ScrollMemory.attach(_scrollMemoryKey, _scroll);
     widget.repo.addListener(_onChange);
     widget.family.addListener(_onChange);
     // The filter and its style both live in SettingsStore. HomeShell also
@@ -213,11 +224,22 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   /// Tracks the overscroll-at-the-top gesture that reveals [PullRevealSlot],
-  /// and — once it's open — the ordinary forward drag that closes it again.
-  /// Both directions track the finger 1:1 (`_dragging` gates the reveal to
-  /// `Duration.zero`, see [PullRevealSlot]) rather than the close firing a
-  /// canned collapse animation on its own fixed clock, disconnected from how
-  /// fast the list is actually being scrolled.
+  /// and — once it's open — watches for the scroll that has carried it away.
+  ///
+  /// Only the opening is a gesture this has to interpret, and it tracks the
+  /// finger 1:1 (`_dragging` gates the reveal to `Duration.zero`, see
+  /// [PullRevealSlot]) rather than popping open on a clock of its own. The
+  /// close isn't interpreted at all: the panel is a real item at the top of
+  /// the list, so an ordinary upward scroll carries it off the top edge the
+  /// same way, and at the same speed, as it carries the first chat row.
+  ///
+  /// Not interpreting it is the point. The close used to drive the panel's
+  /// height from the scroll offset, collapsing it to nothing over
+  /// [_pullOpenThreshold] pixels of scrolling — and that landed in the same
+  /// frames as the scrolling itself, so the list moved up by the finger's
+  /// distance AND by whatever height the panel had just given back. Content
+  /// left the screen two to three times faster than the finger dragging it,
+  /// in a gesture that had tracked that same finger exactly on the way open.
   ///
   /// The list runs on [_TopClampScrollPhysics], which pins `pixels` at the
   /// top boundary instead of letting it go negative, so a pull-past-the-top
@@ -229,33 +251,15 @@ class _HomeScreenState extends State<HomeScreen>
   /// otherwise be misread as a second pull while the position animates back
   /// to zero.
   bool _onScrollNotification(ScrollNotification n) {
-    if (_pullPanelOpen || _closingPanel) {
-      if (n is ScrollUpdateNotification && n.dragDetails != null) {
-        setState(() {
-          _pullPanelOpen = false;
-          _closingPanel = true;
-          _dragging = true;
-          // Remaining "openness": full at the top (pixels 0, matching the
-          // 1.0 progress the panel was already showing, so there's no jump
-          // the instant this branch takes over) and gone by the same
-          // distance the opening pull commits at.
-          _pullDrag = (_pullOpenThreshold - n.metrics.pixels).clamp(
-            0.0,
-            _pullOpenThreshold,
-          );
-        });
-      } else if (n is ScrollEndNotification && _closingPanel) {
-        // Dragged past the halfway point: commit closed. Short of that:
-        // spring back open, the same forgiveness an opening pull that
-        // doesn't reach its own threshold gets.
-        final reopen = _pullDrag > _pullOpenThreshold / 2;
-        setState(() {
-          _dragging = false;
-          _closingPanel = false;
-          _pullDrag = 0;
-          _pullPanelOpen = reopen;
-        });
-        if (!reopen) _searchFocus.unfocus();
+    if (_pullPanelOpen) {
+      // Mid-drag as well as on the settle. Mid-drag is where the panel
+      // normally clears the top edge, and dropping it there is safe because a
+      // drag moves `pixels` by deltas from wherever it currently is. A fling
+      // can't be corrected underneath (see [_dropScrolledAwayPanel]), so the
+      // settle is the backstop for one.
+      if (n is ScrollEndNotification ||
+          (n is ScrollUpdateNotification && n.dragDetails != null)) {
+        _dropScrolledAwayPanel();
       }
       return false;
     }
@@ -265,6 +269,7 @@ class _HomeScreenState extends State<HomeScreen>
         n.metrics.pixels <= n.metrics.minScrollExtent) {
       setState(() {
         _dragging = true;
+        _pullDropped = false;
         _pullDrag = (_pullDrag - n.overscroll).clamp(0.0, _pullMaxDrag);
       });
     } else if (n is ScrollEndNotification && _dragging) {
@@ -281,6 +286,59 @@ class _HomeScreenState extends State<HomeScreen>
   void _collapsePullPanel() {
     _searchFocus.unfocus();
     setState(() => _pullPanelOpen = false);
+  }
+
+  /// Takes the open panel back out of the list once scrolling has carried it
+  /// entirely off the top — the one moment removing it costs nothing to look
+  /// at, because its height is already content nobody can see.
+  ///
+  /// Removing it does move everything below it up by that height, which is
+  /// why the offset hands the same amount back in the same frame. That's a
+  /// [ScrollPosition.correctBy] — the silent, layout-level offset fix — and
+  /// not a `jumpTo`: a jump would dispatch a fresh round of scroll
+  /// notifications from inside the one being handled, and swap the position's
+  /// activity out from under the dispatch that is still running.
+  ///
+  /// Not correctable under a fling, which is why this is never called from
+  /// one: a ballistic simulation holds absolute offsets and writes the next
+  /// one straight over the correction, jumping the list by exactly the height
+  /// being corrected for.
+  ///
+  /// Nothing is lost by waiting, because this is a standing offer rather than
+  /// a single chance — every drag sample and every settle asks again for as
+  /// long as the panel is open. A fling that lands within the sliver's cache
+  /// extent drops the panel the moment it stops; one that outruns the cache
+  /// takes the panel's element with it, and the drop waits for the sliver to
+  /// build it again on the way back, which it does a cache extent before the
+  /// panel would be visible. Either way it lands off-screen.
+  ///
+  /// A query in the field keeps the panel. The query outlives the panel
+  /// either way, so dropping the field would leave the list silently filtered
+  /// with nothing on screen to explain it — and scrolling through your own
+  /// results is the most ordinary thing to do right after typing one.
+  void _dropScrolledAwayPanel() {
+    if (!_scroll.hasClients || _searchCtrl.text.isNotEmpty) return;
+    final box = _pullPanelKey.currentContext?.findRenderObject();
+    final viewport = box == null ? null : RenderAbstractViewport.maybeOf(box);
+    if (box is! RenderBox || !box.hasSize || viewport is! RenderBox) return;
+    final height = box.size.height;
+    // Against the viewport's own top edge rather than against the scroll
+    // offset: the list's top padding sits above the panel, so "how far the
+    // list has scrolled" and "how far the panel's bottom edge still is from
+    // the top of the viewport" are two different numbers.
+    if (height <= 0 ||
+        box.localToGlobal(Offset(0, height), ancestor: viewport).dy > 0) {
+      return;
+    }
+    _searchFocus.unfocus();
+    _scroll.position.correctBy(-height);
+    // A correction notifies nobody by design, ScrollMemory's listener
+    // included, so hand it the offset it would otherwise go on remembering.
+    ScrollMemory.record(_scrollMemoryKey, _scroll.position.pixels);
+    setState(() {
+      _pullPanelOpen = false;
+      _pullDropped = true;
+    });
   }
 
   void _onChange() {
@@ -539,9 +597,10 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                         children: [
                           PullRevealSlot(
+                            panelKey: _pullPanelKey,
                             dragExtent: _pullDrag,
                             dragThreshold: _pullOpenThreshold,
-                            dragging: _dragging,
+                            instant: _dragging || _pullDropped,
                             open: _pullPanelOpen,
                             searchCtrl: _searchCtrl,
                             searchFocus: _searchFocus,

@@ -21,12 +21,19 @@ import 'search_field.dart';
 /// showed only a small static hint glyph during the drag and mounted the real
 /// panel afterwards, which made the reveal feel like it arrived late no
 /// matter how far or confidently you pulled.
+///
+/// Once it's [open], the reveal is pinned at full height and this widget
+/// stops having a say: the panel is simply the first thing in the list, and an
+/// upward scroll carries it off the top edge at the speed of the finger doing
+/// the scrolling. The only heights that animate are the ones a gesture
+/// released on, and the collapse the close button asks for — see [instant].
 class PullRevealSlot extends StatelessWidget {
   const PullRevealSlot({
     super.key,
+    this.panelKey,
     required this.dragExtent,
     required this.dragThreshold,
-    required this.dragging,
+    required this.instant,
     required this.open,
     required this.searchCtrl,
     required this.searchFocus,
@@ -37,14 +44,29 @@ class PullRevealSlot extends StatelessWidget {
     required this.onCollapse,
   });
 
+  /// Goes on the panel inside the clip, not on the clip itself, so the owner
+  /// can measure the height a full reveal actually comes to — which is
+  /// whatever a search field plus an optional archived row measure at the
+  /// reader's text scale, and which the clipped slot can't report.
+  final GlobalKey? panelKey;
+
   /// Live drag distance while pulling at the top, 0 when idle or settled.
   final double dragExtent;
   final double dragThreshold;
 
-  /// True only between the first live drag sample and release. While true,
-  /// height changes are instant (tracking the finger); once false, the same
-  /// height change animates toward wherever it landed (open or closed).
-  final bool dragging;
+  /// Whether a height change has to land in a single frame instead of
+  /// animating toward wherever it ended up.
+  ///
+  /// True while the finger is dragging the reveal open, which is what makes
+  /// it track that finger. True again when the owner drops an open panel that
+  /// scrolling has carried off the top of the list: that collapse happens
+  /// *above* the viewport, where animating it would spend a quarter second
+  /// hauling everything below it up — see
+  /// `_HomeScreenState._dropScrolledAwayPanel`.
+  ///
+  /// False for a height a gesture released on, and for the collapse the close
+  /// button asks for, which are the two the reader is meant to watch.
+  final bool instant;
   final bool open;
   final TextEditingController searchCtrl;
   final FocusNode searchFocus;
@@ -72,12 +94,13 @@ class PullRevealSlot extends StatelessWidget {
       child: TweenAnimationBuilder<double>(
         // Same rule the constant-height version followed: instant while the
         // finger is down so the reveal tracks it, animated on release.
-        duration: dragging ? Duration.zero : theme.motionMed,
+        duration: instant ? Duration.zero : theme.motionMed,
         curve: Curves.easeOutCubic,
         tween: Tween<double>(end: progress),
         builder: (context, factor, child) =>
             Align(alignment: Alignment.topCenter, heightFactor: factor, child: child),
         child: _PullRevealPanel(
+          key: panelKey,
           searchCtrl: searchCtrl,
           searchFocus: searchFocus,
           onSearchChanged: onSearchChanged,
@@ -93,6 +116,7 @@ class PullRevealSlot extends StatelessWidget {
 
 class _PullRevealPanel extends StatelessWidget {
   const _PullRevealPanel({
+    super.key,
     required this.searchCtrl,
     required this.searchFocus,
     required this.onSearchChanged,

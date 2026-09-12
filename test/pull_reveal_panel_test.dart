@@ -22,7 +22,11 @@ void main() {
   /// beneath it (`_PullRevealPanel`'s EdgeInsets.fromLTRB(20, 4, 20, 18)).
   const bottomPadding = 18.0;
 
-  Widget host({required int archivedCount, required bool open}) => MaterialApp(
+  Widget host({
+    required int archivedCount,
+    required bool open,
+    bool instant = false,
+  }) => MaterialApp(
     locale: const Locale('en'),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
@@ -37,7 +41,7 @@ void main() {
             PullRevealSlot(
               dragExtent: 0,
               dragThreshold: 64,
-              dragging: false,
+              instant: instant,
               open: open,
               searchCtrl: TextEditingController(),
               searchFocus: FocusNode(),
@@ -86,6 +90,43 @@ void main() {
     final slot = tester.getRect(find.byType(PullRevealSlot));
     final archivedRow = tester.getRect(find.textContaining('3'));
     expect(archivedRow.bottom, lessThanOrEqualTo(slot.bottom));
+  });
+
+  testWidgets('an instant close is over in the frame it is asked for', (
+    tester,
+  ) async {
+    await tester.pumpWidget(host(archivedCount: 3, open: true, instant: true));
+    await tester.pumpAndSettle();
+    final list = tester.getRect(find.byType(ListView));
+    expect(tester.getRect(find.byKey(firstRow)).top, greaterThan(list.top));
+
+    // One frame, no settle: the row the panel was holding down is already at
+    // the top of the list.
+    //
+    // This is what the chat list drops a scrolled-away panel with, and the
+    // drop is paired with a scroll-offset correction of exactly the height
+    // being given up. Spread that height change over an animation instead and
+    // the correction lands a frame ahead of it: the list jumps by the panel's
+    // height and then crawls back over motionMed, which is the "extra closing
+    // animation" a close is supposed to have none of.
+    await tester.pumpWidget(host(archivedCount: 3, open: false, instant: true));
+    await tester.pump();
+    expect(tester.getRect(find.byKey(firstRow)).top, list.top);
+  });
+
+  testWidgets('a close that is not instant still animates', (tester) async {
+    await tester.pumpWidget(host(archivedCount: 3, open: true));
+    await tester.pumpAndSettle();
+    final list = tester.getRect(find.byType(ListView));
+
+    // The close button's collapse, which the reader is meant to watch: a frame
+    // in, the panel is still taking room.
+    await tester.pumpWidget(host(archivedCount: 3, open: false));
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(tester.getRect(find.byKey(firstRow)).top, greaterThan(list.top));
+
+    await tester.pumpAndSettle();
+    expect(tester.getRect(find.byKey(firstRow)).top, list.top);
   });
 
   testWidgets('closed and not being dragged, it takes no space at all', (

@@ -75,6 +75,16 @@ class ScrollMemory {
     });
   }
 
+  /// Overwrites what a section has on record.
+  ///
+  /// The listener [attach] installs covers every ordinary scroll, because
+  /// every ordinary scroll notifies. A [ScrollPosition.correctBy] — the
+  /// layout-level offset fix, used on the chat list when the pull-reveal
+  /// panel is dropped out from above the viewport — deliberately notifies
+  /// nobody, and would otherwise leave the record pointing at an offset
+  /// measured against content that no longer exists.
+  static void record(String key, double pixels) => _offsets[key] = pixels;
+
   /// Applies the remembered offset after the first layout, so there is a real
   /// extent to clamp against.
   static void restore(String key, ScrollController c) {
