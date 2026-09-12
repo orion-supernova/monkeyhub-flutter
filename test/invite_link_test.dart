@@ -152,6 +152,48 @@ void main() {
     });
   });
 
+  /// The in-app tap has a different threat model from the OS one: the URL was
+  /// typed by whoever is in the room, not delivered by a platform that only
+  /// routes our own verified domains here.
+  group('parseOwnInviteUrl — what may take a tap away from the browser', () {
+    test('claims our own canonical invite', () {
+      final link = parseOwnInviteUrl('$kInviteSiteUrl/j/K7M2XQ94RB');
+      expect(link?.code, 'K7M2XQ94RB');
+    });
+
+    test('claims the private-scheme fallback', () {
+      expect(parseOwnInviteUrl('monkeyhub://join/K7M2XQ94RB')?.code,
+          'K7M2XQ94RB');
+    });
+
+    test('refuses the same path on somebody else\'s host', () {
+      // The one that matters. `parseInviteLink` reads `/j/<code>` off any
+      // host, which is right for a link the OS delivered and wrong for one a
+      // stranger pasted into a room: without the host test they could dress a
+      // link up as an invite and take a tap meant for their own site.
+      expect(parseInviteLink('https://evil.example/j/K7M2XQ94RB'), isNotNull);
+      expect(parseOwnInviteUrl('https://evil.example/j/K7M2XQ94RB'), isNull);
+    });
+
+    test('refuses a bare code, however code-shaped', () {
+      // Prose is not the join box. `parseInviteLink` accepts these because
+      // somebody types one in by hand; a message full of words must not have
+      // one of them swallowed.
+      expect(parseInviteLink('K7M2XQ94RB'), isNotNull);
+      expect(parseOwnInviteUrl('K7M2XQ94RB'), isNull);
+      expect(parseOwnInviteUrl('example.com'), isNull);
+    });
+
+    test('refuses our own non-invite pages', () {
+      expect(parseOwnInviteUrl('$kInviteSiteUrl/download'), isNull);
+      expect(parseOwnInviteUrl(kInviteSiteUrl), isNull);
+    });
+
+    test('refuses a scheme with no browser surface to leave', () {
+      expect(parseOwnInviteUrl('mailto:someone@example.com'), isNull);
+    });
+  });
+
   group('inviteUrl', () {
     test('builds the canonical shared form', () {
       expect(inviteUrl('K7M2XQ94RB'), '$kInviteSiteUrl/j/K7M2XQ94RB');

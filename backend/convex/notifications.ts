@@ -26,15 +26,32 @@ export const sendApprovalPush = internalAction({
     userIds: v.array(v.string()),
     title: v.string(),
     body: v.string(),
+    /**
+     * Where the tap should land, when it is a room.
+     *
+     * Both native handlers test `data.roomId` BEFORE `kind` (AppDelegate.swift,
+     * MainActivity.kt), so supplying it is the whole of routing a tap into the
+     * room instead of onto the requests view.
+     *
+     * Pass it only when the recipient is already a member and the room is what
+     * they are being told about — "they joined", "you're an admin". Leave it
+     * off for anything still waiting on a decision: those belong on the
+     * requests view, and a guardian holding a hop is not in the room at all.
+     */
+    roomId: v.optional(v.id("rooms")),
   },
-  handler: async (ctx, { userIds, title, body }) => {
+  handler: async (ctx, { userIds, title, body, roomId }) => {
     if (userIds.length === 0) return;
     await ctx.runAction(internal.push.sendAlert, {
       userIds: userIds as any,
       kind: "approval",
       title,
       body,
-      data: { kind: "approval" },
+      data: {
+        kind: "approval",
+        ...(roomId ? { roomId: roomId.toString() } : {}),
+      },
+      roomId,
     });
   },
 });

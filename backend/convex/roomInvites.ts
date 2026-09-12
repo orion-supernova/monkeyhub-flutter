@@ -272,6 +272,29 @@ export const revoke = mutation({
  * and an exception there surfaces as a crash-shaped failure for something as
  * ordinary as a typo.
  */
+/**
+ * Where one child stands with one room: may they already use it, have they
+ * asked and not been answered yet, or has nobody heard of it. The three states
+ * the join screen has to tell apart to stay honest about what its button does.
+ *
+ * Not derivable on the client. `family.listMyApprovals` lists PENDING requests
+ * only, so it cannot distinguish "approved" from "never asked" — and those are
+ * the two states whose buttons differ most.
+ */
+async function childGateFor(ctx: any, childId: any, roomId: any) {
+  if (await childMayUseRoom(ctx, childId, roomId)) return "granted";
+  const rows = await ctx.db
+    .query("approvalRequests")
+    .withIndex("by_child_room", (q: any) =>
+      q.eq("childId", childId).eq("targetRoomId", roomId),
+    )
+    .collect();
+  const asked = rows.some(
+    (r: any) => r.kind === "joinRoom" && r.status === "pending",
+  );
+  return asked ? "asked" : "needed";
+}
+
 export const preview = query({
   args: { code: v.string(), userId: v.optional(v.id("users")) },
   handler: async (ctx, { code, userId }) => {
@@ -303,12 +326,24 @@ export const preview = query({
         ).find((r: any) => r.status === "pending")
       : null;
 
+    // Answered here rather than guessed at by the client: a child must not be
+    // shown a JOIN button `redeem` is certain to refuse, and once a guardian
+    // has said yes the same button has to start working. Null for everyone
+    // else, so an adult — or a signed-out visitor — pays no extra reads.
+    const childGate =
+      userId && !membership && (await isChild(ctx, userId))
+        ? await childGateFor(ctx, userId, room._id)
+        : null;
+
     return {
       status: membership
         ? ERR_ALREADY_MEMBER
         : pending
           ? ERR_REQUEST_PENDING
           : "ok",
+      // About the VIEWER, not the room, so it sits beside `status` rather than
+      // inside the room payload everyone gets the same copy of.
+      childGate,
       room: {
         roomId: room._id,
         name: room.name,
@@ -429,6 +464,10 @@ async function notifyAdmins(
     userIds: admins,
     title: "Someone wants to join",
     body: `${who?.name ?? who?.username ?? "Someone"} asked to join ${roomName}`,
+    // Admins, who are members. The queue they need is inside the room's own
+    // info sheet, so the room is the near side of it; the requests view is not
+    // on the way at all.
+    roomId,
   });
 }
 
@@ -514,6 +553,8 @@ export const decideJoinRequest = mutation({
       userIds: [request.userId.toString()],
       title: "You're in",
       body: `You were added to ${room?.name ?? "the group"}`,
+      // "You're in" that lands anywhere other than in is a broken sentence.
+      roomId: request.roomId,
     });
   },
 });

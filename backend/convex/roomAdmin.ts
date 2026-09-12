@@ -369,6 +369,8 @@ export const setAdmin = mutation({
         userIds: [targetUserId.toString()],
         title: "You're an admin",
         body: `You can now manage ${room?.name ?? "the group"}`,
+        // Already a member, and the new controls are in there.
+        roomId,
       });
     }
   },
@@ -409,6 +411,7 @@ export const transferOwnership = mutation({
       userIds: [targetUserId.toString()],
       title: "You own this group",
       body: `${room?.name ?? "A group"} was handed to you`,
+      roomId,
     });
   },
 });

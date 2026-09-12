@@ -212,6 +212,32 @@ class RoomInviteLink {
       );
 }
 
+/// Where a supervised viewer stands with the room behind a code. Decided by
+/// the server, because the child-facing approvals query lists pending rows
+/// only and so cannot tell [granted] from [needed].
+enum ChildGate {
+  /// Not a supervised viewer at all — the ordinary join rules apply.
+  none,
+
+  /// A grown-up has to say yes before this one can be joined.
+  needed,
+
+  /// Asked, and nobody has answered yet.
+  asked,
+
+  /// Cleared: a guardian said yes, or the room is family-only. Joins normally.
+  granted,
+}
+
+extension ChildGateWire on ChildGate {
+  static ChildGate parse(String? s) => switch (s) {
+        'needed' => ChildGate.needed,
+        'asked' => ChildGate.asked,
+        'granted' => ChildGate.granted,
+        _ => ChildGate.none,
+      };
+}
+
 /// The room behind a code, for the confirmation screen — everything ABOUT the
 /// room and nothing from inside it.
 class InvitePreview {
@@ -224,6 +250,7 @@ class InvitePreview {
     this.isPrivate = false,
     this.avatarStorageId,
     this.joinPolicy = RoomJoinPolicy.open,
+    this.childGate = ChildGate.none,
   });
 
   final InviteProblem problem;
@@ -241,6 +268,10 @@ class InvitePreview {
   /// Lets the button read "Request to join" before the tap rather than after.
   final RoomJoinPolicy joinPolicy;
 
+  /// Lets it read "ask a grown-up" for a child who has not been cleared, so
+  /// the tap files a request instead of bouncing off the server's refusal.
+  final ChildGate childGate;
+
   bool get isJoinable => problem == InviteProblem.none && roomId != null;
 
   factory InvitePreview.fromJson(Map<String, dynamic> j) {
@@ -254,6 +285,7 @@ class InvitePreview {
       isPrivate: room?['isPrivate'] == true,
       avatarStorageId: room?['avatarStorageId'] as String?,
       joinPolicy: RoomJoinPolicyWire.parse(room?['joinPolicy'] as String?),
+      childGate: ChildGateWire.parse(j['childGate'] as String?),
     );
   }
 }

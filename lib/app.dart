@@ -47,6 +47,7 @@ import 'l10n/generated/app_localizations.dart';
 import 'invites/deep_link_service.dart';
 import 'invites/invite_link.dart';
 import 'main.dart' show rootNavigatorKey;
+import 'services/link_opener.dart';
 import 'screens/device_login_scan_screen.dart';
 import 'screens/join_by_invite_screen.dart';
 import 'screens/navigation/route_return.dart' show appRoutes;
@@ -713,6 +714,13 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     _lastInviteCode = invite.code;
     _lastInviteAt = now;
 
+    // The user followed an "open in app" button from a page we put in front of
+    // them. Honour it: the browser surface is a platform view the navigator
+    // cannot pop, so it otherwise stays up and the join screen opens behind a
+    // browser they have to dismiss by hand. Before the readiness check below,
+    // because a link that arrives too early still came from that same tap.
+    unawaited(LinkOpener.dismiss());
+
     if (_auth.session == null || rootNavigatorKey.currentState == null) {
       _pendingInvite = invite;
       return;
@@ -752,6 +760,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     // A supervised device has no business handing out full account sessions —
     // the same rule `profile_screen.dart` applies to the entry point it owns.
     if (_auth.isChild) return;
+    // Same reasoning as `_openInvite`: a QR can be scanned from a page open in
+    // the tab, and the confirmation must not appear behind it.
+    unawaited(LinkOpener.dismiss());
     final nav = rootNavigatorKey.currentState!;
     nav.popUntil((r) => r.isFirst);
     nav.push(

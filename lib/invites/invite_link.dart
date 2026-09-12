@@ -154,6 +154,33 @@ String inviteUrlForCurrentServer(String code, {ServerStore? store}) {
   return inviteUrl(code, serverUrl: onDefault ? null : s.deploymentUrl);
 }
 
+/// The stricter question a link tapped INSIDE the app has to answer: did we
+/// mint this URL ourselves?
+///
+/// Deliberately narrower than [parseInviteLink] in two ways, because its
+/// caller is a chat message rather than the OS:
+///
+///  * No bare codes. That spelling exists for the join box, where a lone word
+///    can only be a code; in prose it is a word, and `acme.com` reaching a
+///    join screen instead of the browser would be a plain bug.
+///  * The host must be ours. [parseInviteLink] reads `/j/<code>` off any host,
+///    which is right for a URL the OS delivered — it only routes our own
+///    domains here — and wrong for one an untrusted stranger typed into a
+///    room, where it would let them capture a tap meant for their own site.
+///
+/// Returns null for everything else, including our own non-invite pages, which
+/// are ordinary links and belong in a browser like any other.
+InviteLink? parseOwnInviteUrl(String raw) {
+  final uri = Uri.tryParse(raw.trim());
+  if (uri == null || !uri.hasScheme) return null;
+  if (uri.scheme == kInviteScheme) return parseInviteLink(raw);
+  if (uri.scheme != 'https' && uri.scheme != 'http') return null;
+  final site = Uri.tryParse(kInviteSiteUrl);
+  if (site == null) return null;
+  if (uri.host.toLowerCase() != site.host.toLowerCase()) return null;
+  return parseInviteLink(raw);
+}
+
 /// Pull an invite out of anything the OS might hand us, or null.
 ///
 /// Accepts the shared https form, the private-scheme fallback in both the

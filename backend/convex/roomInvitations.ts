@@ -239,6 +239,11 @@ export const respond = mutation({
       userIds: [row.inviterId.toString()],
       title: "Invite accepted",
       body: `${invitee?.name ?? invitee?.username ?? "They"} joined ${room.name}`,
+      // The inviter is a member and the news IS the room, so the tap opens it.
+      // Without this the push fell through to the requests view — which sits
+      // under Discover, and had nothing waiting on it: the invite it would
+      // have shown is the one that was just answered.
+      roomId: row.roomId,
     });
     return { status: "accepted", roomId: row.roomId };
   },

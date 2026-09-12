@@ -15,6 +15,7 @@ import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
+import '../widgets/approval_gate.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/sheet_buttons.dart';
@@ -62,6 +63,12 @@ class _JoinByInviteScreenState extends State<JoinByInviteScreen> {
   bool _joining = false;
   String? _error;
 
+  /// Set when the ask below succeeds, so the button becomes the waiting notice
+  /// without a second round trip. The preview's own [ChildGate.asked] covers
+  /// every other way of arriving here already waiting — including a child who
+  /// asked yesterday, whom this screen must not offer the ask again.
+  bool _justAsked = false;
+
   /// Set when the invite belongs to a different backend. Held as a field
   /// rather than folded into [_error] because the copy needs the host name and
   /// the screen offers no retry — there is nothing to try again.
@@ -105,6 +112,7 @@ class _JoinByInviteScreenState extends State<JoinByInviteScreen> {
       if (!mounted) return;
       setState(() {
         _preview = preview;
+        _justAsked = false;
         _loading = false;
       });
     } catch (e) {
@@ -122,9 +130,72 @@ class _JoinByInviteScreenState extends State<JoinByInviteScreen> {
     }
   }
 
+  /// Whether a grown-up has to answer before this one can be joined at all.
+  /// Straight from the server: [ChildGate.none] for an adult, and
+  /// [ChildGate.granted] once a guardian has said yes, both of which join the
+  /// ordinary way.
+  bool get _mustAsk =>
+      _preview?.childGate == ChildGate.needed ||
+      _preview?.childGate == ChildGate.asked;
+
+  /// Asked and not yet answered — on this tap or on an earlier one.
+  bool get _waiting => _justAsked || _preview?.childGate == ChildGate.asked;
+
+  /// The child's half of the join: raise it with a grown-up, and stop. The
+  /// room is entered later, by the child, from the invite their guardian
+  /// releases — never from here.
+  Future<void> _askGrownUp(InvitePreview preview) async {
+    final uid = widget.repo.userId;
+    final roomId = preview.roomId;
+    if (uid == null || roomId == null) return;
+    final l10n = AppLocalizations.of(context);
+    final wantsToAsk = await showApprovalGate(
+      context,
+      what: l10n.enterPublicRoomJoinWhat(preview.name ?? ''),
+      detail: preview.description,
+      alreadyAsked: _waiting,
+    );
+    // Both halves load-bearing, as in `enterPublicRoom`: the already-asked
+    // state suppresses a second request even when the gate returns true, which
+    // is what stops a re-tap reaching the guardian's queue twice.
+    if (!mounted || !wantsToAsk || _waiting) return;
+    setState(() => _joining = true);
+    try {
+      await widget.api.requestApproval(
+        childId: uid,
+        kind: 'joinRoom',
+        targetRoomId: roomId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _joining = false;
+        _justAsked = true;
+        _error = null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _joining = false;
+        // Its own message: "couldn't join" is the wrong verb for an action
+        // they cannot perform in the first place.
+        _error = l10n.enterPublicRoomAskFailedMessage;
+      });
+    }
+  }
+
   Future<void> _join() async {
     final preview = _preview;
     if (preview == null || !preview.isJoinable) return;
+    // A child never redeems. A link is not a way around a guardian — the
+    // server refuses it in `roomInvites.redeem` — but this screen used to let
+    // them discover that by tapping JOIN and getting a generic failure, with
+    // no request filed and no way to ask anyone. It is the third door onto the
+    // flow `navigation/enter_public_room.dart` already fixed for Discover and
+    // Search; see the note there, which counted two.
+    if (_mustAsk) {
+      await _askGrownUp(preview);
+      return;
+    }
     setState(() => _joining = true);
     try {
       final result = await widget.repo.redeemInvite(_codeField.text.trim());
@@ -146,6 +217,7 @@ class _JoinByInviteScreenState extends State<JoinByInviteScreen> {
               isPrivate: preview.isPrivate,
               avatarStorageId: preview.avatarStorageId,
               joinPolicy: preview.joinPolicy,
+              childGate: preview.childGate,
             );
           });
       }
@@ -349,6 +421,15 @@ class _JoinByInviteScreenState extends State<JoinByInviteScreen> {
             label: l10n.joinInviteOpenRoom,
             onTap: () => _leaveForRoom(preview.roomId!),
           )
+        // Waiting on a grown-up, not on an admin: the same shape as the
+        // `pending` notice above, because from here they are the same wait.
+        else if (_waiting)
+          _Notice(
+            icon: Icons.hourglass_top,
+            tone: theme.accent,
+            headline: l10n.approvalGateAlreadyAskedLabel,
+            body: l10n.approvalGateAlreadyAskedFooter,
+          )
         else ...[
           if (_error != null) ...[
             Text(_error!, style: theme.bodySoft.copyWith(color: theme.danger)),
@@ -357,18 +438,23 @@ class _JoinByInviteScreenState extends State<JoinByInviteScreen> {
           // The button says what will actually happen. Under the approval
           // policy this is a request, and finding that out only after tapping
           // "Join" is the kind of small dishonesty that makes a product feel
-          // untrustworthy.
+          // untrustworthy. For a child it is an ask, whatever the room's own
+          // policy says, because the grown-up answers first either way.
           SheetPrimaryButton(
-            label: preview.joinPolicy == RoomJoinPolicy.approval
-                ? l10n.joinInviteRequestButton
-                : l10n.joinInviteJoinButton,
+            label: _mustAsk
+                ? l10n.approvalGateAskButton
+                : preview.joinPolicy == RoomJoinPolicy.approval
+                    ? l10n.joinInviteRequestButton
+                    : l10n.joinInviteJoinButton,
             onTap: _joining ? null : _join,
           ),
           const SizedBox(height: 10),
           Text(
-            preview.joinPolicy == RoomJoinPolicy.approval
-                ? l10n.joinInviteApprovalNote
-                : l10n.joinInviteOpenNote,
+            _mustAsk
+                ? l10n.approvalGateWillNotifyFooter
+                : preview.joinPolicy == RoomJoinPolicy.approval
+                    ? l10n.joinInviteApprovalNote
+                    : l10n.joinInviteOpenNote,
             style: theme.monoTiny,
             textAlign: TextAlign.center,
           ),
