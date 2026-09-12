@@ -2384,7 +2384,7 @@
   "roomInfoScreenSuggestionsLabel": "اقتراحاتك",
   "roomInfoScreenSuggestionPhoto": "صورة جديدة للمجموعة",
   "roomInfoScreenSuggestionName": "الاسم: {value}",
-  "roomInfoScreenSuggestionDescription": "وصف جديد",
+  "roomInfoScreenSuggestionDescription": "الوصف: {value}",
   "roomInfoScreenSuggestionOther": "تغيير",
   "roomInfoScreenSuggestionPending": "بانتظار مشرف",
   "roomInfoScreenSuggestionWithdraw": "اسحبه"

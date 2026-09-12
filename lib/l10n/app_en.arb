@@ -9825,9 +9825,9 @@
   "@roomInfoScreenSuggestionName": {
     "description": "Row describing this viewer's pending suggestion of a new group name. {value} is the suggested name."
   },
-  "roomInfoScreenSuggestionDescription": "A new description",
+  "roomInfoScreenSuggestionDescription": "Description: {value}",
   "@roomInfoScreenSuggestionDescription": {
-    "description": "Row describing this viewer's pending suggestion of a new group description."
+    "description": "Row describing this viewer's pending suggestion of a new group description. {value} is the suggested text, or the 'remove it' stand-in when they suggested clearing it."
   },
   "roomInfoScreenSuggestionOther": "A change",
   "@roomInfoScreenSuggestionOther": {

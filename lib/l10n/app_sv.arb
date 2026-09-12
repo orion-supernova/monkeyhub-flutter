@@ -2384,7 +2384,7 @@
   "roomInfoScreenSuggestionsLabel": "DU FÖRESLOG",
   "roomInfoScreenSuggestionPhoto": "En ny gruppbild",
   "roomInfoScreenSuggestionName": "Namn: {value}",
-  "roomInfoScreenSuggestionDescription": "En ny beskrivning",
+  "roomInfoScreenSuggestionDescription": "Beskrivning: {value}",
   "roomInfoScreenSuggestionOther": "En ändring",
   "roomInfoScreenSuggestionPending": "väntar på en admin",
   "roomInfoScreenSuggestionWithdraw": "TA TILLBAKA"

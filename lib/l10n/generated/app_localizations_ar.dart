@@ -8613,7 +8613,9 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get roomInfoScreenSuggestionDescription => 'وصف جديد';
+  String roomInfoScreenSuggestionDescription(Object value) {
+    return 'الوصف: $value';
+  }
 
   @override
   String get roomInfoScreenSuggestionOther => 'تغيير';

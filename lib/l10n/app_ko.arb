@@ -2384,7 +2384,7 @@
   "roomInfoScreenSuggestionsLabel": "내 제안",
   "roomInfoScreenSuggestionPhoto": "새 그룹 사진",
   "roomInfoScreenSuggestionName": "이름: {value}",
-  "roomInfoScreenSuggestionDescription": "새 소개",
+  "roomInfoScreenSuggestionDescription": "소개: {value}",
   "roomInfoScreenSuggestionOther": "변경",
   "roomInfoScreenSuggestionPending": "관리자 기다리는 중",
   "roomInfoScreenSuggestionWithdraw": "취소"

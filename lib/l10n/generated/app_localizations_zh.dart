@@ -8078,7 +8078,9 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get roomInfoScreenSuggestionDescription => '一段新简介';
+  String roomInfoScreenSuggestionDescription(Object value) {
+    return '简介：$value';
+  }
 
   @override
   String get roomInfoScreenSuggestionOther => '一处改动';

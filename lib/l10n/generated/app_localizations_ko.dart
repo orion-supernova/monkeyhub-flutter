@@ -8195,7 +8195,9 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get roomInfoScreenSuggestionDescription => '새 소개';
+  String roomInfoScreenSuggestionDescription(Object value) {
+    return '소개: $value';
+  }
 
   @override
   String get roomInfoScreenSuggestionOther => '변경';

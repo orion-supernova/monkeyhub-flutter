@@ -8532,7 +8532,9 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
-  String get roomInfoScreenSuggestionDescription => 'En ny beskrivning';
+  String roomInfoScreenSuggestionDescription(Object value) {
+    return 'Beskrivning: $value';
+  }
 
   @override
   String get roomInfoScreenSuggestionOther => 'En ändring';

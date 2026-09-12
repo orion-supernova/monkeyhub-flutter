@@ -290,13 +290,27 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
           // this the screen rebuilt per message to be told nothing new.
           final sig = _permsSignature(next);
           if (sig == _permsSig) return;
-          final wasAdmin = _perms.isAdmin;
           _permsSig = sig;
           setState(() => _perms = next);
-          // Newly an admin (or newly not): the two queues below are gated on
-          // that, so refresh them rather than leave a promoted admin looking
-          // at an empty queue until they reopen the screen.
-          if (next.isAdmin != wasAdmin) unawaited(_refreshAdminLists());
+          // ALWAYS refresh, not just when `isAdmin` flipped.
+          //
+          // Every list [_refreshAdminLists] loads is gated on a permission,
+          // and the first answer from this subscription arrives AFTER the
+          // one-shot load at the end of [_loadAdminState] — which therefore
+          // ran while `_perms` was still `RoomPermissions.none` and fetched
+          // nothing. The old `isAdmin != wasAdmin` gate then declined to fix
+          // that for the one person it mattered to: a plain member, whose
+          // `isAdmin` is false before and after, so their own pending
+          // suggestions stayed empty until something else happened to
+          // refresh. It looked like it worked because proposing refreshes
+          // explicitly — and then vanished the moment they left the screen
+          // and came back.
+          //
+          // Cheap despite the "always": the signature dedup above is the real
+          // gate, and it only lets a genuine permission change through. This
+          // query re-fires on every message in the room and almost all of
+          // those return here.
+          unawaited(_refreshAdminLists());
         },
         onError: (err) => debugPrint('permissions sub error: $err'),
       );
@@ -1809,16 +1823,32 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   Widget _suggestionRow(AppTheme theme, RoomChangeRequest s) {
     final l10n = AppLocalizations.of(context);
     final busy = _withdrawing.contains(s.requestId);
+    // The row has to SHOW the suggestion, not merely report that one exists.
+    // It used to say "A new group picture" beside a generic camera glyph,
+    // which tells you nothing you did not already know — you are the person
+    // who picked it — and left no way to check WHICH picture is pending
+    // before deciding whether to take it back.
+    final proposed = (s.value ?? '').trim();
     final what = switch (s.field) {
+      // The thumbnail to the left IS the answer here, so the line beside it
+      // stays a label rather than repeating it in words.
       RoomChangeField.avatar => l10n.roomInfoScreenSuggestionPhoto,
       RoomChangeField.name =>
         l10n.roomInfoScreenSuggestionName(s.value ?? ''),
-      RoomChangeField.description => l10n.roomInfoScreenSuggestionDescription,
+      // An empty description proposal is a real one — "take it off" — and is
+      // worded rather than rendered as a blank line, which reads as broken.
+      RoomChangeField.description => l10n.roomInfoScreenSuggestionDescription(
+          proposed.isEmpty ? l10n.roomChangeRequestsClearedValue : proposed,
+        ),
       // A field a newer server grew. Named vaguely rather than hidden: the
       // row's whole job here is to make sure nothing of yours is pending
       // without you being able to see and cancel it.
       RoomChangeField.unknown => l10n.roomInfoScreenSuggestionOther,
     };
+    final storageId = s.storageId;
+    final hasThumb = s.field == RoomChangeField.avatar &&
+        storageId != null &&
+        storageId.isNotEmpty;
     return Padding(
       key: ValueKey('suggestion-${s.requestId}'),
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -1832,13 +1862,26 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
               color: theme.accentSoft,
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              s.field == RoomChangeField.avatar
-                  ? Icons.photo_camera_back_outlined
-                  : Icons.edit_outlined,
-              size: 16,
-              color: theme.accent,
-            ),
+            clipBehavior: hasThumb ? Clip.antiAlias : Clip.none,
+            child: hasThumb
+                // The picture itself, through `RemoteImage` like every other
+                // avatar on this screen — so it comes off the same on-disk
+                // cache the upload just populated rather than being fetched
+                // again.
+                ? RemoteImage(
+                    storageId: storageId,
+                    api: widget.api,
+                    width: 32,
+                    height: 32,
+                    borderRadius: BorderRadius.circular(32),
+                  )
+                : Icon(
+                    s.field == RoomChangeField.avatar
+                        ? Icons.photo_camera_back_outlined
+                        : Icons.edit_outlined,
+                    size: 16,
+                    color: theme.accent,
+                  ),
           ),
           const SizedBox(width: 10),
           Expanded(

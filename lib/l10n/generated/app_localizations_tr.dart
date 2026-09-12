@@ -8473,7 +8473,9 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get roomInfoScreenSuggestionDescription => 'Yeni bir açıklama';
+  String roomInfoScreenSuggestionDescription(Object value) {
+    return 'Açıklama: $value';
+  }
 
   @override
   String get roomInfoScreenSuggestionOther => 'Bir değişiklik';

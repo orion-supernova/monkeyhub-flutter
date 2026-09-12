@@ -2384,7 +2384,7 @@
   "roomInfoScreenSuggestionsLabel": "ÖNERDİKLERİN",
   "roomInfoScreenSuggestionPhoto": "Yeni bir grup fotoğrafı",
   "roomInfoScreenSuggestionName": "İsim: {value}",
-  "roomInfoScreenSuggestionDescription": "Yeni bir açıklama",
+  "roomInfoScreenSuggestionDescription": "Açıklama: {value}",
   "roomInfoScreenSuggestionOther": "Bir değişiklik",
   "roomInfoScreenSuggestionPending": "yönetici bekleniyor",
   "roomInfoScreenSuggestionWithdraw": "GERİ AL"

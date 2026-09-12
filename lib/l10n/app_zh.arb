@@ -2384,7 +2384,7 @@
   "roomInfoScreenSuggestionsLabel": "你提的建议",
   "roomInfoScreenSuggestionPhoto": "一张新的群组照片",
   "roomInfoScreenSuggestionName": "名字：{value}",
-  "roomInfoScreenSuggestionDescription": "一段新简介",
+  "roomInfoScreenSuggestionDescription": "简介：{value}",
   "roomInfoScreenSuggestionOther": "一处改动",
   "roomInfoScreenSuggestionPending": "等管理员",
   "roomInfoScreenSuggestionWithdraw": "收回"

@@ -14455,11 +14455,11 @@ abstract class AppLocalizations {
   /// **'Name: {value}'**
   String roomInfoScreenSuggestionName(Object value);
 
-  /// Row describing this viewer's pending suggestion of a new group description.
+  /// Row describing this viewer's pending suggestion of a new group description. {value} is the suggested text, or the 'remove it' stand-in when they suggested clearing it.
   ///
   /// In en, this message translates to:
-  /// **'A new description'**
-  String get roomInfoScreenSuggestionDescription;
+  /// **'Description: {value}'**
+  String roomInfoScreenSuggestionDescription(Object value);
 
   /// Row describing a pending suggestion whose kind this build does not recognise.
   ///

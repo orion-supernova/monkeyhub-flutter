@@ -8172,7 +8172,9 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get roomInfoScreenSuggestionDescription => '新しい説明';
+  String roomInfoScreenSuggestionDescription(Object value) {
+    return '説明: $value';
+  }
 
   @override
   String get roomInfoScreenSuggestionOther => '変更';

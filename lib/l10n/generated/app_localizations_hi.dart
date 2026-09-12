@@ -8516,7 +8516,9 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get roomInfoScreenSuggestionDescription => 'एक नया विवरण';
+  String roomInfoScreenSuggestionDescription(Object value) {
+    return 'विवरण: $value';
+  }
 
   @override
   String get roomInfoScreenSuggestionOther => 'एक बदलाव';

@@ -8605,7 +8605,9 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get roomInfoScreenSuggestionDescription => 'Uma descrição nova';
+  String roomInfoScreenSuggestionDescription(Object value) {
+    return 'Descrição: $value';
+  }
 
   @override
   String get roomInfoScreenSuggestionOther => 'Uma alteração';
@@ -17214,7 +17216,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   }
 
   @override
-  String get roomInfoScreenSuggestionDescription => 'Uma descrição nova';
+  String roomInfoScreenSuggestionDescription(Object value) {
+    return 'Descrição: $value';
+  }
 
   @override
   String get roomInfoScreenSuggestionOther => 'Uma mudança';

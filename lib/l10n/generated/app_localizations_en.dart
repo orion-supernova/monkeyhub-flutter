@@ -8498,7 +8498,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get roomInfoScreenSuggestionDescription => 'A new description';
+  String roomInfoScreenSuggestionDescription(Object value) {
+    return 'Description: $value';
+  }
 
   @override
   String get roomInfoScreenSuggestionOther => 'A change';

@@ -2384,7 +2384,7 @@
   "roomInfoScreenSuggestionsLabel": "TES SUGGESTIONS",
   "roomInfoScreenSuggestionPhoto": "Une nouvelle photo de groupe",
   "roomInfoScreenSuggestionName": "Nom : {value}",
-  "roomInfoScreenSuggestionDescription": "Une nouvelle description",
+  "roomInfoScreenSuggestionDescription": "Description : {value}",
   "roomInfoScreenSuggestionOther": "Un changement",
   "roomInfoScreenSuggestionPending": "en attente d'un admin",
   "roomInfoScreenSuggestionWithdraw": "RETIRER"

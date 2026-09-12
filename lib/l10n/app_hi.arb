@@ -2384,7 +2384,7 @@
   "roomInfoScreenSuggestionsLabel": "तुम्हारे सुझाव",
   "roomInfoScreenSuggestionPhoto": "एक नई ग्रुप फ़ोटो",
   "roomInfoScreenSuggestionName": "नाम: {value}",
-  "roomInfoScreenSuggestionDescription": "एक नया विवरण",
+  "roomInfoScreenSuggestionDescription": "विवरण: {value}",
   "roomInfoScreenSuggestionOther": "एक बदलाव",
   "roomInfoScreenSuggestionPending": "एडमिन का इंतज़ार",
   "roomInfoScreenSuggestionWithdraw": "वापस लो"

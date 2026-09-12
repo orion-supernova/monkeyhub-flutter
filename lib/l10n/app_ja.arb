@@ -2384,7 +2384,7 @@
   "roomInfoScreenSuggestionsLabel": "あなたの提案",
   "roomInfoScreenSuggestionPhoto": "新しいグループ写真",
   "roomInfoScreenSuggestionName": "名前: {value}",
-  "roomInfoScreenSuggestionDescription": "新しい説明",
+  "roomInfoScreenSuggestionDescription": "説明: {value}",
   "roomInfoScreenSuggestionOther": "変更",
   "roomInfoScreenSuggestionPending": "管理者の返事待ち",
   "roomInfoScreenSuggestionWithdraw": "取り下げる"
