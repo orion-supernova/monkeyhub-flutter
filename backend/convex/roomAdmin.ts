@@ -37,6 +37,7 @@ import { assertNotSystemRoom } from "./systemAccount";
 import { seenVisibilityOf } from "./visibility";
 import { wipeRoomCompletely } from "./roomCleanup";
 import { purgeSpeakerColorsForMember } from "./speakerColors";
+import { deleteStored } from "./files";
 
 export const ROLE_OWNER = "owner";
 export const ROLE_ADMIN = "admin";
@@ -291,6 +292,25 @@ export async function clearPendingFor(ctx: any, roomId: any, userId: any) {
   for (const row of requests) {
     if (row.status === "pending") await ctx.db.delete(row._id);
   }
+  // Their outstanding suggestions for the room's name, description or picture
+  // — see `roomChangeRequests.ts`. A suggestion from somebody who has left is
+  // not one an admin should still be ruling on, and unanswered it is a
+  // permanent badge on a queue with nothing actionable in it.
+  //
+  // The BLOB goes with the row. A pending avatar proposal is the only pointer
+  // to the file it uploaded, so deleting the row alone bills forever for a
+  // picture nobody chose.
+  const proposals = await ctx.db
+    .query("roomChangeRequests")
+    .withIndex("by_room_user", (q: any) =>
+      q.eq("roomId", roomId).eq("userId", userId),
+    )
+    .collect();
+  for (const row of proposals) {
+    if (row.status !== "pending") continue;
+    if (row.storageId) await deleteStored(ctx, row.storageId);
+    await ctx.db.delete(row._id);
+  }
 }
 
 /**
@@ -515,6 +535,14 @@ export const myPermissions = query({
       canAssignAdmins: admin,
       canManageLink: admin,
       canReviewJoinRequests: admin,
+      // The two halves of `roomChangeRequests.ts`, and they are deliberately
+      // complements rather than one flag read two ways: an admin reviews and
+      // never suggests (their edit lands directly), a member suggests and
+      // never reviews. A client that collapsed them into `!canEditRoom` would
+      // be right today and wrong the moment a room gains a "members may not
+      // suggest either" switch — which is the obvious next ask here.
+      canReviewChangeRequests: admin,
+      canSuggestChanges: group && !admin,
       canInvite: group && (admin || membersMayInvite(room)),
       membersCanInvite: membersMayInvite(room),
       linkJoinPolicy: linkJoinPolicyOf(room),

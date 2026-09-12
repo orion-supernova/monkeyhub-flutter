@@ -36,6 +36,11 @@ void main() {
     browser = File('lib/screens/room_content_screen.dart').readAsStringSync();
   });
 
+  /// [signature] is matched as a PREFIX and deliberately stops before the
+  /// closing paren: what this test is about is the body of a named method, not
+  /// its parameter list, and pinning the full list meant adding an unrelated
+  /// optional flag to `_openRoomInfo` failed four assertions about pops and
+  /// mounted checks that had not changed at all.
   String bodyOf(String source, String signature) {
     final start = source.indexOf(signature);
     expect(start, isNonNegative, reason: '$signature was renamed or removed');
@@ -62,7 +67,7 @@ void main() {
   test('_openRoomInfo awaits a ChatMessage rather than discarding the pop', () {
     final body = bodyOf(
       roomScreen,
-      'Future<void> _openRoomInfo(ChatRoom room)',
+      'Future<void> _openRoomInfo(ChatRoom room',
     );
     expect(
       body.contains('push<ChatMessage>'),
@@ -77,7 +82,7 @@ void main() {
   test('it re-checks mounted after the await, before travelling', () {
     final body = bodyOf(
       roomScreen,
-      'Future<void> _openRoomInfo(ChatRoom room)',
+      'Future<void> _openRoomInfo(ChatRoom room',
     );
     final awaitAt = body.indexOf('await Navigator');
     final guardAt = body.indexOf('if (!mounted');
@@ -101,7 +106,7 @@ void main() {
   test('a null result is a no-op, which is what leave and delete pop', () {
     final body = bodyOf(
       roomScreen,
-      'Future<void> _openRoomInfo(ChatRoom room)',
+      'Future<void> _openRoomInfo(ChatRoom room',
     );
     expect(
       body.contains('jump == null'),
@@ -115,7 +120,7 @@ void main() {
   test('it leaves NO back-trail entry, unlike the pin and reply jumps', () {
     final code = codeOf(
       roomScreen,
-      'Future<void> _openRoomInfo(ChatRoom room)',
+      'Future<void> _openRoomInfo(ChatRoom room',
     );
     expect(
       code.contains('_jumpBack.push'),

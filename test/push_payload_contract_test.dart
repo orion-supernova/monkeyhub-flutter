@@ -158,6 +158,21 @@ void main() {
     // (and in the request code, so two friends' notifications do not share
     // one), and MainActivity reads it back out.
     'momentId': [social, ios, androidRender, androidActivity, web],
+    // What to show ON TOP of the room a tap opens. Only `roomChanges` sends it
+    // today — a member suggested a new group name, description or picture and
+    // the admin tapping the banner should land on approve/reject rather than
+    // in the transcript with no sign of why they were sent there.
+    //
+    // Rides beside `roomId` rather than branching on `kind`, so "which room"
+    // and "what to show once you are in it" stay separate questions and a new
+    // destination never needs a native release on two platforms.
+    //
+    // Android needs it twice for the same reason `momentId` does: the render
+    // and the route are different files. Absent from `web` on purpose — the
+    // service worker has no per-surface hook for anything, so a browser tap
+    // opens the room and the admin takes one more step, which is correct
+    // rather than broken.
+    'focus': [senders, ios, androidRender, androidActivity],
   };
 
   contract.forEach((key, consumers) {

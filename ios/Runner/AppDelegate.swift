@@ -293,7 +293,14 @@ import flutter_callkit_incoming
     }
     let info = response.notification.request.content.userInfo
     if let roomId = info["roomId"] as? String, !roomId.isEmpty {
-      invokeNotifOrQueue("onOpenRoom", args: ["roomId": roomId])
+      // `focus` rides alongside: what to show ON TOP of the room once it is
+      // open. Only `roomChanges` sends it today — a member suggested a new
+      // group name, description or picture and the admin tapping this should
+      // land on approve/reject. Forwarded verbatim and empty when absent, so
+      // Dart owns the whole vocabulary and a value this build has never heard
+      // of simply opens the room.
+      let focus = info["focus"] as? String ?? ""
+      invokeNotifOrQueue("onOpenRoom", args: ["roomId": roomId, "focus": focus])
       completionHandler()
       return
     }

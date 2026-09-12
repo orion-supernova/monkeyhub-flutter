@@ -118,6 +118,23 @@ async function wipeRoomContents(ctx: any, roomId: any) {
     .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId))
     .collect();
   for (const r of joinRequests) await ctx.db.delete(r._id);
+  // Suggestions for this room's name, description or picture — see
+  // `roomChangeRequests.ts`. Every status, not just pending: an approved row
+  // is an audit trail of a room that no longer exists.
+  //
+  // A pending avatar proposal carries a FILE, and this row is its only
+  // pointer. Deleting the rows without releasing the blobs is the same leak
+  // the room's own avatar has two functions down, at a spot that is much
+  // easier to miss because the pointer is one field on one row in a table
+  // most of whose rows have no file at all.
+  const proposals = await ctx.db
+    .query("roomChangeRequests")
+    .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId))
+    .collect();
+  for (const r of proposals) {
+    if (r.storageId) await deleteStored(ctx, r.storageId);
+    await ctx.db.delete(r._id);
+  }
   // Messages staged for a room that is about to stop existing — every member's,
   // not just the caller's. Left behind, each would wake up on its own schedule,
   // fail `guardOutgoing` against a room with no memberships, and settle as a

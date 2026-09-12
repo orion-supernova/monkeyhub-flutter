@@ -126,6 +126,40 @@ class UiSelectionStore extends ChangeNotifier {
     return pending;
   }
 
+  /// "Once you are in this room, open the suggested-changes queue."
+  ///
+  /// The last hop of a `roomChangeRequests` notification. The tap itself is
+  /// already routed by `data.roomId` — every push carrying one opens its room
+  /// on both platforms — so all this carries is what to show ON TOP of the
+  /// room, which is the difference between an admin landing on approve/reject
+  /// and landing in a transcript with no sign of why they were sent there.
+  ///
+  /// Keyed by room, unlike the three one-shots above, because it is consumed
+  /// by [RoomScreen] — one of which exists per room, any of which may be the
+  /// one that mounts next, and the WRONG one must not act on it. A stale id
+  /// simply never matches and ages out with the session.
+  ///
+  /// Outlives widget mounting for the same reason the others do: a
+  /// notification tapped on a cold start lands long before any screen exists.
+  String? _roomChangeReviewPending;
+  String? get roomChangeReviewPending => _roomChangeReviewPending;
+
+  void requestRoomChangeReview(String roomId) {
+    _roomChangeReviewPending = roomId;
+    _notify();
+  }
+
+  /// True when [roomId] was the room asked for, clearing the request either
+  /// way. Clearing on a MISS is deliberate: the only way to reach here is by
+  /// opening a room, so a request that names a different one has already been
+  /// overtaken by the user going somewhere else, and keeping it would ambush
+  /// them later.
+  bool consumeRoomChangeReview(String roomId) {
+    final pending = _roomChangeReviewPending;
+    _roomChangeReviewPending = null;
+    return pending == roomId;
+  }
+
   /// [notifyListeners], deferred to the end of the frame when we are inside
   /// one.
   ///

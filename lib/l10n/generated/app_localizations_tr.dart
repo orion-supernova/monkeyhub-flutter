@@ -8385,4 +8385,102 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get newChatMenuFriendsHeader => 'ARKADAŞLAR';
+
+  @override
+  String get roomChangeErrorGone =>
+      'O öneri artık yok — bir yönetici cevaplamış olabilir.';
+
+  @override
+  String get roomChangeErrorNotYours =>
+      'Öneriyi sadece öneren kişi geri alabilir.';
+
+  @override
+  String get roomChangeErrorNoChange => 'Zaten öyle yazıyor.';
+
+  @override
+  String get roomChangeErrorMissingValue => 'Bu hâliyle kaydedilemez.';
+
+  @override
+  String get roomChangeRequestsTitle => 'Öneriler';
+
+  @override
+  String get roomChangeRequestsBlurb =>
+      'Bunları üyeler önerdi. Sen evet demeden hiçbir şey değişmez.';
+
+  @override
+  String get roomChangeRequestsEmpty => 'Öneri yok.';
+
+  @override
+  String get roomChangeRequestsApprove => 'UYGULA';
+
+  @override
+  String get roomChangeRequestsReject => 'OLMAZ';
+
+  @override
+  String get roomChangeRequestsPhotoLabel => 'Yeni grup fotoğrafı';
+
+  @override
+  String get roomChangeRequestsNameLabel => 'Yeni isim';
+
+  @override
+  String get roomChangeRequestsDescriptionLabel => 'Yeni açıklama';
+
+  @override
+  String get roomChangeRequestsUnknownLabel =>
+      'Bu uygulamanın henüz gösteremediği bir değişiklik';
+
+  @override
+  String get roomChangeRequestsClearedValue => 'hiçbir şey — kaldır';
+
+  @override
+  String roomChangeRequestsSuggestedBy(Object name) {
+    return '$name önerdi';
+  }
+
+  @override
+  String get roomAdminChangeRequestsRow => 'Öneriler';
+
+  @override
+  String get roomInfoScreenSuggestNote =>
+      'bunu bir yöneticinin onaylaması gerek';
+
+  @override
+  String get roomInfoScreenSuggestAvatarNote =>
+      'yeni fotoğrafları yöneticiler onaylar';
+
+  @override
+  String get roomInfoScreenSuggestRoomPictureSemantic => 'Grup fotoğrafı öner';
+
+  @override
+  String get roomInfoScreenSuggestionSentToast => 'Yöneticilere gönderildi';
+
+  @override
+  String get roomInfoScreenSuggestionAppliedToast =>
+      'Tamam — bu grubu düzenleyebiliyorsun';
+
+  @override
+  String get roomInfoScreenSuggestionWithdrawnToast => 'Geri alındı';
+
+  @override
+  String get roomInfoScreenSuggestionsLabel => 'ÖNERDİKLERİN';
+
+  @override
+  String get roomInfoScreenSuggestionPhoto => 'Yeni bir grup fotoğrafı';
+
+  @override
+  String roomInfoScreenSuggestionName(Object value) {
+    return 'İsim: $value';
+  }
+
+  @override
+  String get roomInfoScreenSuggestionDescription => 'Yeni bir açıklama';
+
+  @override
+  String get roomInfoScreenSuggestionOther => 'Bir değişiklik';
+
+  @override
+  String get roomInfoScreenSuggestionPending => 'yönetici bekleniyor';
+
+  @override
+  String get roomInfoScreenSuggestionWithdraw => 'GERİ AL';
 }

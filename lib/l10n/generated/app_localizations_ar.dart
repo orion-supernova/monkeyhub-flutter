@@ -8527,4 +8527,100 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get newChatMenuFriendsHeader => 'الأصدقاء';
+
+  @override
+  String get roomChangeErrorGone =>
+      'الاقتراح لم يعد موجودًا — ربما ردّ عليه أحد المشرفين.';
+
+  @override
+  String get roomChangeErrorNotYours => 'لا يسحب الاقتراح إلا صاحبه.';
+
+  @override
+  String get roomChangeErrorNoChange => 'هذا هو المكتوب أصلًا.';
+
+  @override
+  String get roomChangeErrorMissingValue => 'لا يمكن حفظ هذا بهذا الشكل.';
+
+  @override
+  String get roomChangeRequestsTitle => 'الاقتراحات';
+
+  @override
+  String get roomChangeRequestsBlurb =>
+      'اقترحها الأعضاء. لا يتغير شيء حتى توافق.';
+
+  @override
+  String get roomChangeRequestsEmpty => 'لا اقتراحات.';
+
+  @override
+  String get roomChangeRequestsApprove => 'اعتمدها';
+
+  @override
+  String get roomChangeRequestsReject => 'لا';
+
+  @override
+  String get roomChangeRequestsPhotoLabel => 'صورة جديدة للمجموعة';
+
+  @override
+  String get roomChangeRequestsNameLabel => 'اسم جديد';
+
+  @override
+  String get roomChangeRequestsDescriptionLabel => 'وصف جديد';
+
+  @override
+  String get roomChangeRequestsUnknownLabel =>
+      'تغيير لا يستطيع التطبيق عرضه بعد';
+
+  @override
+  String get roomChangeRequestsClearedValue => 'لا شيء — احذفه';
+
+  @override
+  String roomChangeRequestsSuggestedBy(Object name) {
+    return 'اقترحه $name';
+  }
+
+  @override
+  String get roomAdminChangeRequestsRow => 'الاقتراحات';
+
+  @override
+  String get roomInfoScreenSuggestNote => 'يحتاج هذا إلى موافقة مشرف';
+
+  @override
+  String get roomInfoScreenSuggestAvatarNote =>
+      'المشرفون يوافقون على الصور الجديدة';
+
+  @override
+  String get roomInfoScreenSuggestRoomPictureSemantic => 'اقترح صورة للمجموعة';
+
+  @override
+  String get roomInfoScreenSuggestionSentToast => 'أُرسل إلى المشرفين';
+
+  @override
+  String get roomInfoScreenSuggestionAppliedToast =>
+      'تم — يمكنك تعديل هذه المجموعة';
+
+  @override
+  String get roomInfoScreenSuggestionWithdrawnToast => 'سُحب';
+
+  @override
+  String get roomInfoScreenSuggestionsLabel => 'اقتراحاتك';
+
+  @override
+  String get roomInfoScreenSuggestionPhoto => 'صورة جديدة للمجموعة';
+
+  @override
+  String roomInfoScreenSuggestionName(Object value) {
+    return 'الاسم: $value';
+  }
+
+  @override
+  String get roomInfoScreenSuggestionDescription => 'وصف جديد';
+
+  @override
+  String get roomInfoScreenSuggestionOther => 'تغيير';
+
+  @override
+  String get roomInfoScreenSuggestionPending => 'بانتظار مشرف';
+
+  @override
+  String get roomInfoScreenSuggestionWithdraw => 'اسحبه';
 }

@@ -10,9 +10,9 @@ import { v } from "convex/values";
 // request must not leak before a guardian releases it, a sender never notifies
 // themselves — and none of those belong next to an APNs header.
 //
-// The four exports here are the entire notification surface of the backend.
-// Their names and signatures are load-bearing: messages.ts, friends.ts and
-// family.ts schedule them by name from ten call sites.
+// The exports here are the entire notification surface of the backend. Their
+// names and signatures are load-bearing: messages.ts, friends.ts, family.ts
+// and roomChangeRequests.ts schedule them by name from a dozen call sites.
 
 /**
  * Push for anything sitting in a guardian's approval queue, and for a request
@@ -51,6 +51,120 @@ export const sendApprovalPush = internalAction({
         kind: "approval",
         ...(roomId ? { roomId: roomId.toString() } : {}),
       },
+      roomId,
+    });
+  },
+});
+
+/**
+ * "Somebody wants to change this group" — to every admin of the room.
+ *
+ * Sent as `kind: "approval"`, because that is precisely what it is: an item
+ * waiting on a decision, worth a badge, worth a day of retries, and belonging
+ * in Android's requests channel rather than beside chat messages. Inventing a
+ * ninth [AlertKind] for it would have bought a different string and the same
+ * behaviour in five files.
+ *
+ * `roomId` is what routes the tap. Both native handlers test `data.roomId`
+ * BEFORE `kind` (AppDelegate.swift, MainActivity.kt), so supplying it lands
+ * the admin in the room instead of on the friend-requests view — which is
+ * where an approval with no room goes and would be nonsense here.
+ *
+ * `focus` is what takes them the last step, onto the review sheet rather than
+ * into the transcript with no sign of why they were sent there. It is a
+ * separate key from `kind` on purpose: "which room" and "what to show once
+ * you are in it" are different questions, and a client too old to know this
+ * value simply opens the room — which is still the right place.
+ *
+ * NOT suppressed by the room's mute, which gates `kind: "message"` and nothing
+ * else — see `push.sendAlert`. That is the existing rule for every approval
+ * push and this one keeps it rather than quietly becoming the exception: a
+ * suggestion is bounded by the membership (one pending row per person per
+ * field, see `roomChangeRequests`), so it cannot be the thing a muted group is
+ * muted to escape.
+ */
+export const sendRoomChangePush = internalAction({
+  args: {
+    userIds: v.array(v.string()),
+    roomId: v.id("rooms"),
+    roomName: v.string(),
+    who: v.string(),
+    field: v.string(), // "avatar" | "name" | "description"
+    /** The proposed name, so a rename can be read without opening anything. */
+    value: v.optional(v.string()),
+  },
+  handler: async (ctx, { userIds, roomId, roomName, who, field, value }) => {
+    if (userIds.length === 0) return;
+    // Named in the body rather than left to a generic "suggested a change",
+    // because the three differ in how urgent they feel and an admin should be
+    // able to decide whether to look now from the lock screen alone.
+    const body =
+      field === "avatar"
+        ? `${who} suggested a new group photo`
+        : field === "name"
+          ? value
+            ? `${who} suggested renaming this to “${value}”`
+            : `${who} suggested a new name`
+          : `${who} suggested a new description`;
+    await ctx.runAction(internal.push.sendAlert, {
+      userIds: userIds as any,
+      kind: "approval",
+      // The room, not "MonkeyHub" — an admin of six groups needs to know which
+      // one before the body tells them what about it.
+      title: roomName,
+      body,
+      data: {
+        kind: "approval",
+        roomId: roomId.toString(),
+        focus: "roomChanges",
+      },
+      roomId,
+    });
+  },
+});
+
+/**
+ * The answer, to the person who asked.
+ *
+ * Sent for a rejection as well as an approval. Silence after a suggestion is
+ * worse than a no: the proposer is left watching a group photo that never
+ * changes, with no way to tell whether anybody looked. `roomId` routes the tap
+ * into the room, where an approval is already visible and a rejection at least
+ * lands them somewhere they can ask about it.
+ *
+ * No `focus`: the review sheet is admin-only, and sending somebody to a
+ * surface that will refuse them is a worse landing than the room itself.
+ *
+ * Which leaves this all but identical to `sendApprovalPush` with a roomId, and
+ * it stays its own export for the one thing that differs: the copy is composed
+ * from the FIELD. Pushing that to the caller would put three sentences about
+ * pictures and descriptions in `roomChangeRequests.ts`, where the rest of this
+ * file's wording deliberately is not.
+ */
+export const sendRoomChangeDecidedPush = internalAction({
+  args: {
+    userIds: v.array(v.string()),
+    roomId: v.id("rooms"),
+    roomName: v.string(),
+    field: v.string(),
+    approved: v.boolean(),
+  },
+  handler: async (ctx, { userIds, roomId, roomName, field, approved }) => {
+    if (userIds.length === 0) return;
+    const what =
+      field === "avatar"
+        ? "photo"
+        : field === "name"
+          ? "name"
+          : "description";
+    await ctx.runAction(internal.push.sendAlert, {
+      userIds: userIds as any,
+      kind: "approval",
+      title: roomName,
+      body: approved
+        ? `Your suggested ${what} is live`
+        : `An admin passed on your suggested ${what}`,
+      data: { kind: "approval", roomId: roomId.toString() },
       roomId,
     });
   },

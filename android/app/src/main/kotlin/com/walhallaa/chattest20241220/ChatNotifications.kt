@@ -372,7 +372,13 @@ object ChatNotifications {
             ?: roomId.takeIf { it.isNotEmpty() }
             ?: kind
 
-        val pi = contentIntent(ctx, kind, roomId, data["momentId"].orEmpty()) ?: return
+        val pi = contentIntent(
+            ctx,
+            kind,
+            roomId,
+            data["momentId"].orEmpty(),
+            data["focus"].orEmpty(),
+        ) ?: return
         val body = data["body"].orEmpty()
 
         val builder = NotificationCompat.Builder(ctx, channel)
@@ -583,11 +589,17 @@ object ChatNotifications {
     /// open one card instead of today's board in general. Empty for every
     /// other kind, which is why it is not part of the request code below —
     /// see there for what that code has to distinguish.
+    /// [focus] is what to show ON TOP of the room once the tap has opened it —
+    /// `roomChanges` for a suggested group name/description/picture waiting on
+    /// an admin. Empty for every other notification, and carried verbatim so
+    /// the vocabulary lives in Dart rather than being split across three
+    /// languages.
     private fun contentIntent(
         ctx: Context,
         kind: String,
         roomId: String,
         momentId: String = "",
+        focus: String = "",
     ): PendingIntent? {
         // MUST resolve the launcher intent rather than naming MainActivity
         // explicitly: applyAlternateIcon disables .MainActivity whenever an
@@ -603,6 +615,7 @@ object ChatNotifications {
         launch.putExtra(EXTRA_KIND, kind)
         launch.putExtra(EXTRA_ROOM_ID, roomId)
         launch.putExtra(EXTRA_MOMENT_ID, momentId)
+        launch.putExtra(EXTRA_FOCUS, focus)
         return PendingIntent.getActivity(
             ctx,
             // Per-room request code. With one shared code, FLAG_UPDATE_CURRENT
@@ -639,4 +652,9 @@ object ChatNotifications {
     /// Set by `friend_moment` only. MainActivity reads it to route the tap to
     /// `onOpenMoment` with the card to open.
     const val EXTRA_MOMENT_ID = "mh.notif.momentId"
+    /// What to show on top of the room a tap opens — `roomChanges` today, for
+    /// a suggested group name/description/picture waiting on an admin. Empty
+    /// on every other notification; MainActivity forwards it to Dart, which
+    /// owns the vocabulary.
+    const val EXTRA_FOCUS = "mh.notif.focus"
 }

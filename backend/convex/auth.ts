@@ -705,6 +705,34 @@ async function purgeUser(ctx: any, userId: any) {
       .withIndex("by_creator", (q: any) => q.eq("createdBy", userId))
       .collect(),
   );
+
+  // Suggestions this account made about a room's name, description or picture,
+  // and the ones it ruled on — see `roomChangeRequests.ts`. Both directions,
+  // for the same reason the invite tables above take both: a pending row
+  // addressed to nobody is a queue item no admin can ever resolve, and a
+  // decided row still names a person who no longer exists.
+  //
+  // The blob is released for PENDING rows ONLY, and that distinction is
+  // load-bearing rather than tidy. A pending proposal's file is referenced by
+  // nothing else, so it must go. An APPROVED one's file is the room's live
+  // avatar — the room survives this account, and freeing that blob would leave
+  // a group everybody is still in with a broken picture.
+  const proposals = [
+    ...(await ctx.db
+      .query("roomChangeRequests")
+      .withIndex("by_user", byUser(userId))
+      .collect()),
+    ...(await ctx.db
+      .query("roomChangeRequests")
+      .withIndex("by_decider", (q: any) => q.eq("decidedBy", userId))
+      .collect()),
+  ];
+  for (const row of proposals) {
+    if (row.status === "pending" && row.storageId) {
+      await deleteStored(ctx, row.storageId);
+    }
+  }
+  await deleteRows(ctx, proposals);
   await deleteRows(
     ctx,
     await ctx.db.query("blocks").withIndex("by_user", byUser(userId)).collect(),

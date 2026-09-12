@@ -9724,5 +9724,121 @@
   "newChatMenuFriendsHeader": "FRIENDS",
   "@newChatMenuFriendsHeader": {
     "description": "Heading over the friends list in the new-chat sheet, drawn below the create/join rows so the list does not run straight on from them."
+  },
+  "roomChangeErrorGone": "That suggestion is gone — an admin may have answered it.",
+  "@roomChangeErrorGone": {
+    "description": "Error shown when a suggested room change can no longer be found — usually because another admin already answered it."
+  },
+  "roomChangeErrorNotYours": "Only the person who suggested it can take it back.",
+  "@roomChangeErrorNotYours": {
+    "description": "Error shown when somebody tries to withdraw a suggestion they did not make."
+  },
+  "roomChangeErrorNoChange": "That's already what it says.",
+  "@roomChangeErrorNoChange": {
+    "description": "Error shown when a member suggests exactly what the room already says."
+  },
+  "roomChangeErrorMissingValue": "That can't be saved as it is.",
+  "@roomChangeErrorMissingValue": {
+    "description": "Error shown when a suggested name or description is empty, too long, or otherwise unusable."
+  },
+  "roomChangeRequestsTitle": "Suggestions",
+  "@roomChangeRequestsTitle": {
+    "description": "Title of the admin sheet listing members' suggested changes to the group's name, description and picture."
+  },
+  "roomChangeRequestsBlurb": "Members suggested these. Nothing changes until you say yes.",
+  "@roomChangeRequestsBlurb": {
+    "description": "Blurb under the suggestions title, saying that nothing is applied until an admin approves it."
+  },
+  "roomChangeRequestsEmpty": "Nothing suggested.",
+  "@roomChangeRequestsEmpty": {
+    "description": "Empty state for the suggested-changes queue."
+  },
+  "roomChangeRequestsApprove": "USE IT",
+  "@roomChangeRequestsApprove": {
+    "description": "Per-row button that approves a suggested change and applies it to the group."
+  },
+  "roomChangeRequestsReject": "NO",
+  "@roomChangeRequestsReject": {
+    "description": "Per-row button that rejects a suggested change."
+  },
+  "roomChangeRequestsPhotoLabel": "New group picture",
+  "@roomChangeRequestsPhotoLabel": {
+    "description": "Row heading when the suggestion is a new group picture."
+  },
+  "roomChangeRequestsNameLabel": "New name",
+  "@roomChangeRequestsNameLabel": {
+    "description": "Row heading when the suggestion is a new group name."
+  },
+  "roomChangeRequestsDescriptionLabel": "New description",
+  "@roomChangeRequestsDescriptionLabel": {
+    "description": "Row heading when the suggestion is a new group description."
+  },
+  "roomChangeRequestsUnknownLabel": "A change this app can't show yet",
+  "@roomChangeRequestsUnknownLabel": {
+    "description": "Row heading for a suggested change whose kind this build does not recognise, so the admin can still answer it."
+  },
+  "roomChangeRequestsClearedValue": "nothing — take it off",
+  "@roomChangeRequestsClearedValue": {
+    "description": "Stands in for an empty proposed description — the suggestion is to remove it altogether."
+  },
+  "roomChangeRequestsSuggestedBy": "{name} suggested",
+  "@roomChangeRequestsSuggestedBy": {
+    "description": "Attribution line above a suggested change. {name} is the member's display name."
+  },
+  "roomAdminChangeRequestsRow": "Suggestions",
+  "@roomAdminChangeRequestsRow": {
+    "description": "Admin-only room-info row that opens the queue of members' suggested changes."
+  },
+  "roomInfoScreenSuggestNote": "an admin has to approve this",
+  "@roomInfoScreenSuggestNote": {
+    "description": "Line under the editable name and description rows, for a member whose edit becomes a suggestion instead of a change."
+  },
+  "roomInfoScreenSuggestAvatarNote": "an admin approves new pictures",
+  "@roomInfoScreenSuggestAvatarNote": {
+    "description": "Caption under the group picture, for a member whose picture tap files a suggestion instead of setting it."
+  },
+  "roomInfoScreenSuggestRoomPictureSemantic": "Suggest a group picture",
+  "@roomInfoScreenSuggestRoomPictureSemantic": {
+    "description": "Accessibility label for the picture button when tapping it suggests a group picture rather than setting one."
+  },
+  "roomInfoScreenSuggestionSentToast": "Sent to the admins",
+  "@roomInfoScreenSuggestionSentToast": {
+    "description": "Toast confirming a suggested change is now waiting on the group's admins."
+  },
+  "roomInfoScreenSuggestionAppliedToast": "Done — you can edit this group",
+  "@roomInfoScreenSuggestionAppliedToast": {
+    "description": "Toast shown when a suggestion applied straight away because the sender turned out to be an admin."
+  },
+  "roomInfoScreenSuggestionWithdrawnToast": "Taken back",
+  "@roomInfoScreenSuggestionWithdrawnToast": {
+    "description": "Toast confirming a suggestion was taken back."
+  },
+  "roomInfoScreenSuggestionsLabel": "YOU SUGGESTED",
+  "@roomInfoScreenSuggestionsLabel": {
+    "description": "All-caps label above this viewer's own outstanding suggestions for the group."
+  },
+  "roomInfoScreenSuggestionPhoto": "A new group picture",
+  "@roomInfoScreenSuggestionPhoto": {
+    "description": "Row describing this viewer's pending suggestion of a new group picture."
+  },
+  "roomInfoScreenSuggestionName": "Name: {value}",
+  "@roomInfoScreenSuggestionName": {
+    "description": "Row describing this viewer's pending suggestion of a new group name. {value} is the suggested name."
+  },
+  "roomInfoScreenSuggestionDescription": "A new description",
+  "@roomInfoScreenSuggestionDescription": {
+    "description": "Row describing this viewer's pending suggestion of a new group description."
+  },
+  "roomInfoScreenSuggestionOther": "A change",
+  "@roomInfoScreenSuggestionOther": {
+    "description": "Row describing a pending suggestion whose kind this build does not recognise."
+  },
+  "roomInfoScreenSuggestionPending": "waiting on an admin",
+  "@roomInfoScreenSuggestionPending": {
+    "description": "Status line under a pending suggestion, saying it is waiting on an admin."
+  },
+  "roomInfoScreenSuggestionWithdraw": "TAKE BACK",
+  "@roomInfoScreenSuggestionWithdraw": {
+    "description": "Button on a pending suggestion that takes it back."
   }
 }

@@ -8091,4 +8091,95 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get newChatMenuFriendsHeader => '友だち';
+
+  @override
+  String get roomChangeErrorGone => 'その提案はもうありません。管理者が答えたのかもしれません。';
+
+  @override
+  String get roomChangeErrorNotYours => '提案した本人だけが取り下げられます。';
+
+  @override
+  String get roomChangeErrorNoChange => 'すでにそうなっています。';
+
+  @override
+  String get roomChangeErrorMissingValue => 'このままでは保存できません。';
+
+  @override
+  String get roomChangeRequestsTitle => '提案';
+
+  @override
+  String get roomChangeRequestsBlurb => 'メンバーからの提案です。あなたが承認するまで何も変わりません。';
+
+  @override
+  String get roomChangeRequestsEmpty => '提案はありません。';
+
+  @override
+  String get roomChangeRequestsApprove => '採用';
+
+  @override
+  String get roomChangeRequestsReject => '見送る';
+
+  @override
+  String get roomChangeRequestsPhotoLabel => '新しいグループ写真';
+
+  @override
+  String get roomChangeRequestsNameLabel => '新しい名前';
+
+  @override
+  String get roomChangeRequestsDescriptionLabel => '新しい説明';
+
+  @override
+  String get roomChangeRequestsUnknownLabel => 'このアプリではまだ表示できない変更';
+
+  @override
+  String get roomChangeRequestsClearedValue => 'なし — 削除する';
+
+  @override
+  String roomChangeRequestsSuggestedBy(Object name) {
+    return '$name の提案';
+  }
+
+  @override
+  String get roomAdminChangeRequestsRow => '提案';
+
+  @override
+  String get roomInfoScreenSuggestNote => '管理者の承認が必要です';
+
+  @override
+  String get roomInfoScreenSuggestAvatarNote => '新しい写真は管理者が承認します';
+
+  @override
+  String get roomInfoScreenSuggestRoomPictureSemantic => 'グループ写真を提案';
+
+  @override
+  String get roomInfoScreenSuggestionSentToast => '管理者に送りました';
+
+  @override
+  String get roomInfoScreenSuggestionAppliedToast => '完了 — このグループは編集できます';
+
+  @override
+  String get roomInfoScreenSuggestionWithdrawnToast => '取り下げました';
+
+  @override
+  String get roomInfoScreenSuggestionsLabel => 'あなたの提案';
+
+  @override
+  String get roomInfoScreenSuggestionPhoto => '新しいグループ写真';
+
+  @override
+  String roomInfoScreenSuggestionName(Object value) {
+    return '名前: $value';
+  }
+
+  @override
+  String get roomInfoScreenSuggestionDescription => '新しい説明';
+
+  @override
+  String get roomInfoScreenSuggestionOther => '変更';
+
+  @override
+  String get roomInfoScreenSuggestionPending => '管理者の返事待ち';
+
+  @override
+  String get roomInfoScreenSuggestionWithdraw => '取り下げる';
 }

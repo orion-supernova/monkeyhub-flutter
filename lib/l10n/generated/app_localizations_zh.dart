@@ -7997,4 +7997,95 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get newChatMenuFriendsHeader => '好友';
+
+  @override
+  String get roomChangeErrorGone => '这条建议已经没了——可能有管理员处理过了。';
+
+  @override
+  String get roomChangeErrorNotYours => '只有提出的人才能收回。';
+
+  @override
+  String get roomChangeErrorNoChange => '现在就是这样写的。';
+
+  @override
+  String get roomChangeErrorMissingValue => '这样没法保存。';
+
+  @override
+  String get roomChangeRequestsTitle => '建议';
+
+  @override
+  String get roomChangeRequestsBlurb => '这些是成员提的。你同意之前什么都不会变。';
+
+  @override
+  String get roomChangeRequestsEmpty => '没有建议。';
+
+  @override
+  String get roomChangeRequestsApprove => '采用';
+
+  @override
+  String get roomChangeRequestsReject => '不用';
+
+  @override
+  String get roomChangeRequestsPhotoLabel => '新的群组照片';
+
+  @override
+  String get roomChangeRequestsNameLabel => '新名字';
+
+  @override
+  String get roomChangeRequestsDescriptionLabel => '新简介';
+
+  @override
+  String get roomChangeRequestsUnknownLabel => '这个版本还显示不了的改动';
+
+  @override
+  String get roomChangeRequestsClearedValue => '留空——删掉';
+
+  @override
+  String roomChangeRequestsSuggestedBy(Object name) {
+    return '$name 提的';
+  }
+
+  @override
+  String get roomAdminChangeRequestsRow => '建议';
+
+  @override
+  String get roomInfoScreenSuggestNote => '这个要管理员同意';
+
+  @override
+  String get roomInfoScreenSuggestAvatarNote => '新照片由管理员批准';
+
+  @override
+  String get roomInfoScreenSuggestRoomPictureSemantic => '建议一张群组照片';
+
+  @override
+  String get roomInfoScreenSuggestionSentToast => '已发给管理员';
+
+  @override
+  String get roomInfoScreenSuggestionAppliedToast => '好了——这个群你可以直接改';
+
+  @override
+  String get roomInfoScreenSuggestionWithdrawnToast => '已收回';
+
+  @override
+  String get roomInfoScreenSuggestionsLabel => '你提的建议';
+
+  @override
+  String get roomInfoScreenSuggestionPhoto => '一张新的群组照片';
+
+  @override
+  String roomInfoScreenSuggestionName(Object value) {
+    return '名字：$value';
+  }
+
+  @override
+  String get roomInfoScreenSuggestionDescription => '一段新简介';
+
+  @override
+  String get roomInfoScreenSuggestionOther => '一处改动';
+
+  @override
+  String get roomInfoScreenSuggestionPending => '等管理员';
+
+  @override
+  String get roomInfoScreenSuggestionWithdraw => '收回';
 }

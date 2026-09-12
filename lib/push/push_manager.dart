@@ -36,7 +36,16 @@ class PushManager {
   static final PushManager instance = PushManager._();
 
   bool _initialized = false;
-  void Function(String roomId)? _onOpenRoom;
+
+  /// Where a room-bearing notification tap lands.
+  ///
+  /// [focus] is the optional "and then show this" hint — `data.focus` off the
+  /// payload, forwarded by both native handlers alongside the roomId. Named
+  /// and optional rather than a second positional, so a plain
+  /// `void Function(String)` is still assignable here: the web and in-app
+  /// notifier bridges hand over the same handler and neither has a focus to
+  /// pass.
+  void Function(String roomId, {String? focus})? _onOpenRoom;
   VoidCallback? _onOpenRequests;
   VoidCallback? _onOpenGames;
   void Function(String momentId)? _onOpenMoment;
@@ -123,7 +132,7 @@ class PushManager {
 
   /// Bind a new room-open handler (call after the navigator is mounted).
   /// Safe to call any number of times — the latest wins.
-  void setOnOpenRoom(void Function(String roomId) handler) {
+  void setOnOpenRoom(void Function(String roomId, {String? focus}) handler) {
     _onOpenRoom = handler;
   }
 
@@ -159,7 +168,7 @@ class PushManager {
   }
 
   Future<void> initialize({
-    void Function(String roomId)? onOpenRoom,
+    void Function(String roomId, {String? focus})? onOpenRoom,
     ChatApi? api,
   }) async {
     if (onOpenRoom != null) _onOpenRoom = onOpenRoom;
@@ -240,7 +249,18 @@ class PushManager {
       case 'onOpenRoom':
         final args = (call.arguments as Map?) ?? const {};
         final roomId = args['roomId']?.toString();
-        if (roomId != null && roomId.isNotEmpty) _onOpenRoom?.call(roomId);
+        // `focus` is absent on every ordinary message tap and empty is the
+        // same as absent — both platforms send "" rather than omitting the
+        // key, because a missing extra and an empty one are the same thing to
+        // an Android Bundle and spelling it one way on each side is how these
+        // contracts rot.
+        final focus = args['focus']?.toString();
+        if (roomId != null && roomId.isNotEmpty) {
+          _onOpenRoom?.call(
+            roomId,
+            focus: (focus == null || focus.isEmpty) ? null : focus,
+          );
+        }
         return null;
       case 'onOpenRequests':
         _onOpenRequests?.call();

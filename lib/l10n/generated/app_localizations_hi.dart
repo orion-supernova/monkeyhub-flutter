@@ -8429,4 +8429,101 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get newChatMenuFriendsHeader => 'दोस्त';
+
+  @override
+  String get roomChangeErrorGone =>
+      'वह सुझाव अब नहीं है — शायद किसी एडमिन ने जवाब दे दिया।';
+
+  @override
+  String get roomChangeErrorNotYours =>
+      'सुझाव सिर्फ़ वही वापस ले सकता है जिसने दिया था।';
+
+  @override
+  String get roomChangeErrorNoChange => 'अभी वही तो लिखा है।';
+
+  @override
+  String get roomChangeErrorMissingValue => 'ऐसे सेव नहीं हो सकता।';
+
+  @override
+  String get roomChangeRequestsTitle => 'सुझाव';
+
+  @override
+  String get roomChangeRequestsBlurb =>
+      'ये मेंबर्स ने सुझाए हैं। तुम्हारे हाँ कहने तक कुछ नहीं बदलेगा।';
+
+  @override
+  String get roomChangeRequestsEmpty => 'कोई सुझाव नहीं।';
+
+  @override
+  String get roomChangeRequestsApprove => 'लगा दो';
+
+  @override
+  String get roomChangeRequestsReject => 'नहीं';
+
+  @override
+  String get roomChangeRequestsPhotoLabel => 'नई ग्रुप फ़ोटो';
+
+  @override
+  String get roomChangeRequestsNameLabel => 'नया नाम';
+
+  @override
+  String get roomChangeRequestsDescriptionLabel => 'नया विवरण';
+
+  @override
+  String get roomChangeRequestsUnknownLabel =>
+      'एक बदलाव जो यह ऐप अभी दिखा नहीं सकती';
+
+  @override
+  String get roomChangeRequestsClearedValue => 'कुछ नहीं — हटा दो';
+
+  @override
+  String roomChangeRequestsSuggestedBy(Object name) {
+    return '$name ने सुझाया';
+  }
+
+  @override
+  String get roomAdminChangeRequestsRow => 'सुझाव';
+
+  @override
+  String get roomInfoScreenSuggestNote => 'इसे किसी एडमिन को मंज़ूर करना होगा';
+
+  @override
+  String get roomInfoScreenSuggestAvatarNote =>
+      'नई फ़ोटो एडमिन मंज़ूर करते हैं';
+
+  @override
+  String get roomInfoScreenSuggestRoomPictureSemantic => 'ग्रुप फ़ोटो सुझाओ';
+
+  @override
+  String get roomInfoScreenSuggestionSentToast => 'एडमिन्स को भेज दिया';
+
+  @override
+  String get roomInfoScreenSuggestionAppliedToast =>
+      'हो गया — यह ग्रुप तुम बदल सकते हो';
+
+  @override
+  String get roomInfoScreenSuggestionWithdrawnToast => 'वापस ले लिया';
+
+  @override
+  String get roomInfoScreenSuggestionsLabel => 'तुम्हारे सुझाव';
+
+  @override
+  String get roomInfoScreenSuggestionPhoto => 'एक नई ग्रुप फ़ोटो';
+
+  @override
+  String roomInfoScreenSuggestionName(Object value) {
+    return 'नाम: $value';
+  }
+
+  @override
+  String get roomInfoScreenSuggestionDescription => 'एक नया विवरण';
+
+  @override
+  String get roomInfoScreenSuggestionOther => 'एक बदलाव';
+
+  @override
+  String get roomInfoScreenSuggestionPending => 'एडमिन का इंतज़ार';
+
+  @override
+  String get roomInfoScreenSuggestionWithdraw => 'वापस लो';
 }

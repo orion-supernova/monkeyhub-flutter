@@ -8446,4 +8446,100 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get newChatMenuFriendsHeader => 'VÄNNER';
+
+  @override
+  String get roomChangeErrorGone =>
+      'Förslaget är borta — en admin kan ha svarat på det.';
+
+  @override
+  String get roomChangeErrorNotYours =>
+      'Bara den som föreslog det kan ta tillbaka det.';
+
+  @override
+  String get roomChangeErrorNoChange => 'Det står redan så.';
+
+  @override
+  String get roomChangeErrorMissingValue => 'Det går inte att spara så här.';
+
+  @override
+  String get roomChangeRequestsTitle => 'Förslag';
+
+  @override
+  String get roomChangeRequestsBlurb =>
+      'Medlemmar har föreslagit det här. Inget ändras förrän du säger ja.';
+
+  @override
+  String get roomChangeRequestsEmpty => 'Inga förslag.';
+
+  @override
+  String get roomChangeRequestsApprove => 'TA DEN';
+
+  @override
+  String get roomChangeRequestsReject => 'NEJ';
+
+  @override
+  String get roomChangeRequestsPhotoLabel => 'Ny gruppbild';
+
+  @override
+  String get roomChangeRequestsNameLabel => 'Nytt namn';
+
+  @override
+  String get roomChangeRequestsDescriptionLabel => 'Ny beskrivning';
+
+  @override
+  String get roomChangeRequestsUnknownLabel =>
+      'En ändring appen inte kan visa än';
+
+  @override
+  String get roomChangeRequestsClearedValue => 'inget — ta bort den';
+
+  @override
+  String roomChangeRequestsSuggestedBy(Object name) {
+    return '$name föreslog';
+  }
+
+  @override
+  String get roomAdminChangeRequestsRow => 'Förslag';
+
+  @override
+  String get roomInfoScreenSuggestNote => 'en admin måste godkänna det här';
+
+  @override
+  String get roomInfoScreenSuggestAvatarNote => 'en admin godkänner nya bilder';
+
+  @override
+  String get roomInfoScreenSuggestRoomPictureSemantic => 'Föreslå en gruppbild';
+
+  @override
+  String get roomInfoScreenSuggestionSentToast => 'Skickat till adminerna';
+
+  @override
+  String get roomInfoScreenSuggestionAppliedToast =>
+      'Klart — du kan redigera gruppen';
+
+  @override
+  String get roomInfoScreenSuggestionWithdrawnToast => 'Tillbakataget';
+
+  @override
+  String get roomInfoScreenSuggestionsLabel => 'DU FÖRESLOG';
+
+  @override
+  String get roomInfoScreenSuggestionPhoto => 'En ny gruppbild';
+
+  @override
+  String roomInfoScreenSuggestionName(Object value) {
+    return 'Namn: $value';
+  }
+
+  @override
+  String get roomInfoScreenSuggestionDescription => 'En ny beskrivning';
+
+  @override
+  String get roomInfoScreenSuggestionOther => 'En ändring';
+
+  @override
+  String get roomInfoScreenSuggestionPending => 'väntar på en admin';
+
+  @override
+  String get roomInfoScreenSuggestionWithdraw => 'TA TILLBAKA';
 }

@@ -527,14 +527,22 @@ class MainActivity : FlutterActivity() {
         val roomId = extras.getString(ChatNotifications.EXTRA_ROOM_ID).orEmpty()
         val kind = extras.getString(ChatNotifications.EXTRA_KIND).orEmpty()
         val momentId = extras.getString(ChatNotifications.EXTRA_MOMENT_ID).orEmpty()
+        val focus = extras.getString(ChatNotifications.EXTRA_FOCUS).orEmpty()
         if (roomId.isEmpty() && kind.isEmpty()) return
         // Consume it, or rotating the device replays the same navigation.
         intent.removeExtra(ChatNotifications.EXTRA_ROOM_ID)
         intent.removeExtra(ChatNotifications.EXTRA_KIND)
         intent.removeExtra(ChatNotifications.EXTRA_MOMENT_ID)
+        intent.removeExtra(ChatNotifications.EXTRA_FOCUS)
 
         val event: Map<String, Any?> = when {
-            roomId.isNotEmpty() -> mapOf("method" to "onOpenRoom", "roomId" to roomId)
+            // `focus` rides along rather than branching: "which room" and
+            // "what to show once you are in it" are different questions, and
+            // making the second a separate method would mean every new
+            // destination needs a native release on two platforms. Empty on
+            // every ordinary message tap, and Dart treats empty as absent.
+            roomId.isNotEmpty() ->
+                mapOf("method" to "onOpenRoom", "roomId" to roomId, "focus" to focus)
             kind == "approval" -> mapOf("method" to "onOpenRequests")
             // The daily games nudge: the Feed, with today's games open. It
             // carries no roomId, which is why it falls past the first branch.

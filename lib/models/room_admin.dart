@@ -69,6 +69,8 @@ class RoomPermissions {
     required this.canAssignAdmins,
     required this.canManageLink,
     required this.canReviewJoinRequests,
+    required this.canReviewChangeRequests,
+    required this.canSuggestChanges,
     required this.canInvite,
     required this.membersCanInvite,
     required this.linkJoinPolicy,
@@ -82,6 +84,8 @@ class RoomPermissions {
     canAssignAdmins: false,
     canManageLink: false,
     canReviewJoinRequests: false,
+    canReviewChangeRequests: false,
+    canSuggestChanges: false,
     canInvite: false,
     membersCanInvite: true,
     linkJoinPolicy: RoomJoinPolicy.open,
@@ -94,6 +98,21 @@ class RoomPermissions {
   final bool canAssignAdmins;
   final bool canManageLink;
   final bool canReviewJoinRequests;
+
+  /// May rule on the group's suggested name/description/picture changes.
+  final bool canReviewChangeRequests;
+
+  /// May ASK for those changes — a group member who is not an admin.
+  ///
+  /// Deliberately not derived from `!canEditRoom` at the call site, even
+  /// though the server computes exactly that today. The two are complements
+  /// only while suggesting is unconditional; the obvious next ask here is a
+  /// room switch that turns suggestions off, and every screen that had
+  /// inferred the flag would keep drawing the control.
+  ///
+  /// False in [none], like every other flag, so the first frame of a slow
+  /// query offers nothing rather than offering something that will be refused.
+  final bool canSuggestChanges;
 
   /// May send a direct invite. True for admins always, and for a plain member
   /// while [membersCanInvite] is on.
@@ -116,6 +135,8 @@ class RoomPermissions {
         canAssignAdmins: j['canAssignAdmins'] == true,
         canManageLink: j['canManageLink'] == true,
         canReviewJoinRequests: j['canReviewJoinRequests'] == true,
+        canReviewChangeRequests: j['canReviewChangeRequests'] == true,
+        canSuggestChanges: j['canSuggestChanges'] == true,
         canInvite: j['canInvite'] == true,
         membersCanInvite: j['membersCanInvite'] != false,
         linkJoinPolicy: RoomJoinPolicyWire.parse(j['linkJoinPolicy'] as String?),
@@ -398,5 +419,91 @@ class RoomJoinRequest {
         requestId: j['requestId'].toString(),
         user: ChatUser.fromJson((j['user'] as Map).cast<String, dynamic>()),
         createdAt: DateTime.fromMillisecondsSinceEpoch((j['createdAt'] as num).toInt()),
+      );
+}
+
+/// Which of the group's three public facts a suggestion is about.
+///
+/// Parsed leniently, like [RoomRole]: a field this build has never heard of
+/// resolves to [unknown] rather than throwing, so a server that grows a fourth
+/// one degrades an old client to "there is a suggestion here it cannot draw"
+/// instead of crashing the review sheet on somebody else's queue.
+enum RoomChangeField { avatar, name, description, unknown }
+
+extension RoomChangeFieldWire on RoomChangeField {
+  String get wire => this == RoomChangeField.unknown ? '' : name;
+
+  static RoomChangeField parse(String? s) {
+    switch (s) {
+      case 'avatar':
+        return RoomChangeField.avatar;
+      case 'name':
+        return RoomChangeField.name;
+      case 'description':
+        return RoomChangeField.description;
+      default:
+        return RoomChangeField.unknown;
+    }
+  }
+}
+
+/// A member asking for the group to look different — `roomChangeRequests.ts`.
+///
+/// One class for both directions, because the two views differ by exactly two
+/// things: the admin's queue carries [user] (who asked) and the room's
+/// [currentValue] to compare against, while the author's own view carries
+/// neither — they know who they are, and the room is on the screen behind
+/// them. Splitting it would be two classes with one `fromJson` each and the
+/// same seven fields.
+class RoomChangeRequest {
+  const RoomChangeRequest({
+    required this.requestId,
+    required this.field,
+    required this.createdAt,
+    this.value,
+    this.storageId,
+    this.currentValue,
+    this.currentStorageId,
+    this.user,
+  });
+
+  final String requestId;
+  final RoomChangeField field;
+  final DateTime createdAt;
+
+  /// The proposed text, for [RoomChangeField.name] and
+  /// [RoomChangeField.description]. An empty string is a real proposal on a
+  /// description — "take it off" — which is why this is nullable by FIELD
+  /// rather than by emptiness.
+  final String? value;
+
+  /// The proposed picture, for [RoomChangeField.avatar]. A Convex storage id,
+  /// not a URL: drawn through `RemoteImage`, which caches the bytes on disk
+  /// and decodes to the painted size.
+  final String? storageId;
+
+  /// What the room says NOW, for the field this is about. Sent alongside the
+  /// proposal so the review row can read "the group → Trip 2026" without a
+  /// second query the two could disagree about for a frame. Admin view only.
+  final String? currentValue;
+  final String? currentStorageId;
+
+  /// Who asked, through the reading admin's visibility lens. Null in the
+  /// author's own view of their own suggestion.
+  final ChatUser? user;
+
+  factory RoomChangeRequest.fromJson(Map<String, dynamic> j) =>
+      RoomChangeRequest(
+        requestId: j['requestId'].toString(),
+        field: RoomChangeFieldWire.parse(j['field'] as String?),
+        createdAt:
+            DateTime.fromMillisecondsSinceEpoch((j['createdAt'] as num).toInt()),
+        value: j['value'] as String?,
+        storageId: j['storageId']?.toString(),
+        currentValue: j['currentValue'] as String?,
+        currentStorageId: j['currentStorageId']?.toString(),
+        user: j['user'] == null
+            ? null
+            : ChatUser.fromJson((j['user'] as Map).cast<String, dynamic>()),
       );
 }
