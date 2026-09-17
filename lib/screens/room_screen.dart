@@ -67,6 +67,7 @@ import '../widgets/approval_gate.dart';
 import '../widgets/attachment_menu.dart';
 import '../widgets/bulk_action_bar.dart';
 import '../widgets/busy_scrim.dart';
+import '../widgets/chat_bottom_inset.dart';
 import '../composer/capture_machine.dart';
 import '../composer/capture_recorder.dart';
 import '../widgets/chat_composer.dart';
@@ -175,6 +176,16 @@ class _RoomScreenState extends State<RoomScreen>
   // screen rebuilds at 5Hz off _ticker already, so a setState here would make
   // the whole transcript pay for a pill.
   final BottomProximity _scrolledUp = BottomProximity();
+
+  /// The room the liquid style's floating bottom chrome is taking, measured
+  /// rather than assumed — see `chat_bottom_inset.dart`.
+  ///
+  /// Null until the chrome has been laid out once, which is the whole reason
+  /// [ChatBottomChrome] carries an estimate alongside it. A listenable, not a
+  /// field, for the reason [_scrolledUp] above is one: the composer gains a
+  /// line several times per message, and the transcript must move for it
+  /// WITHOUT every bubble in the viewport being rebuilt.
+  final ChatBottomInset _bottomChrome = ChatBottomInset();
 
   /// id → user, for sender names, avatars and speaker colours.
   ///
@@ -1221,6 +1232,7 @@ class _RoomScreenState extends State<RoomScreen>
     _scroll.dispose();
     _scrolledUp.removeListener(_onBottomProximity);
     _scrolledUp.dispose();
+    _bottomChrome.dispose();
     _jumpBack.removeListener(_onJumpBackChanged);
     _jumpBack.dispose();
     _selection.removeListener(_onSelectionChanged);
@@ -3566,25 +3578,36 @@ class _RoomScreenState extends State<RoomScreen>
     final topChromeH = 60.0 +
         (pins.isEmpty ? 0.0 : kPinnedBannerHeight) +
         (translating ? kCompanionStripHeight : 0.0);
-    // The scheduled pill grows only the BOTTOM chrome — the exact case the
-    // split above exists for. In the classic style the composer stack sits in a
-    // real Column above an `Expanded` transcript, so a pill pushes the list and
-    // covers nothing; here the chrome FLOATS over a `Positioned.fill`
-    // transcript and this constant is the only thing holding the newest bubble
-    // clear of it. Left at 60 the pill would sit on top of the last message.
+    // The BOTTOM chrome is measured, not computed — the exact case the split
+    // above exists for, and the one place a constant could not be made to work.
+    // In the classic style the composer stack sits in a real `Column` above an
+    // `Expanded` transcript, so anything it grows by pushes the list and covers
+    // nothing; here it FLOATS over a `Positioned.fill` transcript, and whatever
+    // the transcript reserves is the only thing holding the newest bubble clear
+    // of the glass.
     //
-    // The reply card and the mention picker beside it are deliberately NOT
-    // reserved: both are transient and keyboard-adjacent, and reserving them
-    // would leave a permanent gap above the composer for chrome that is usually
-    // absent. The pill is persistent, so it owns its space.
+    // A constant was right for exactly one composer: an empty one, on one line.
+    // A second line grows the field UPWARD and put it straight over the last
+    // thing anybody said. The reply card, the @-picker and the scheduled pill
+    // are the same bug wearing different hats, and they were being triaged one
+    // constant at a time — the pill reserved, the other two knowingly not.
+    // `MeasureChatBottomInset` below publishes the real height of all of it on
+    // the frame it changes, so growth and shrink are one path and nothing has
+    // to be remembered.
     final scheduled = widget.repo.scheduledFor(room.id);
     final indicator = SettingsStore.instance.scheduledIndicator;
-    // The SAME condition the pill itself is built under, deliberately spelled
-    // once into a local both read. Reserving for a pill that is switched off
-    // leaves a permanent gap; building one whose space is not reserved puts it
-    // on top of the newest message.
-    final bottomChromeH = 60.0 +
+    // What the FIRST frame spends, before the chrome has been laid out once.
+    // Built from the same constants the chrome is, so it lands on the resting
+    // height of a one-line composer exactly and a room opens with its newest
+    // message already in place rather than correcting itself a frame later.
+    // The composer adds the bottom safe area itself, so this must too.
+    final bottomChromeEstimate = 60.0 +
+        bottomSafe +
         (indicator.showsPill && scheduled.isNotEmpty ? kScheduledPillHeight : 0.0);
+    final ChatBottomChrome bottomChrome = (
+      inset: _bottomChrome,
+      estimate: bottomChromeEstimate,
+    );
     final listPadding = EdgeInsets.fromLTRB(
       20,
       // The +12 is breathing room under the HEADER, and only under the header.
@@ -3594,7 +3617,12 @@ class _RoomScreenState extends State<RoomScreen>
       // above it. The banner's own 44pt already separates them.
       topSafe + topChromeH + (pins.isEmpty ? 12.0 : 0.0),
       20,
-      bottomChromeH + 16 + bottomSafe,
+      // Breathing room over the composer and NOTHING else: the chrome's own
+      // height is spent inside the list, by the spacer `bottomChrome` buys at
+      // its bottom edge. Padding could not do that job — it is a property of
+      // the `ListView` widget, so tracking a live height through it would
+      // rebuild every bubble in the viewport on every frame of the growth.
+      16,
     );
     // BackdropGroup batches the seven BackdropFilters in the chrome (header
     // pill + 2 buttons + composer attach + camera + field + send) into a
@@ -3603,7 +3631,15 @@ class _RoomScreenState extends State<RoomScreen>
       child: Stack(
         children: [
           Positioned.fill(
-            child: _messageBody(context, room, messages, items, me, listPadding: listPadding),
+            child: _messageBody(
+              context,
+              room,
+              messages,
+              items,
+              me,
+              listPadding: listPadding,
+              bottomChrome: bottomChrome,
+            ),
           ),
           Positioned(
             top: 0,
@@ -3657,14 +3693,30 @@ class _RoomScreenState extends State<RoomScreen>
             bottom: 0,
             left: 0,
             right: 0,
-            child: ChatColumn(
+            // Everything inside is what the transcript reserves for, measured
+            // as one box: the composer, whichever card is above it, the
+            // @-picker, the scheduled pill, the selection bar that replaces the
+            // lot — and the bottom safe area, which the liquid composer adds
+            // itself.
+            //
+            // Measured TWICE, outside the growth animation and in, because the
+            // two answers differ on every frame of it and the transcript needs
+            // both — see [ChatChromeHeight]. Neither wrapper affects layout;
+            // they are proxies that report the size their child already had.
+            child: MeasureChatBottomInset(
+              inset: _bottomChrome,
+              which: ChatChromeHeight.drawn,
+              child: ChatColumn(
               // See the classic composer: grows the reply card up out of the
               // bar instead of snapping the bar taller.
               child: AnimatedSize(
                 duration: theme.motionFast,
                 curve: theme.motionEntrance,
                 alignment: Alignment.bottomCenter,
-                child: _selection.active
+                child: MeasureChatBottomInset(
+                  inset: _bottomChrome,
+                  which: ChatChromeHeight.target,
+                  child: _selection.active
                     ? _selectionBar(room, me)
                     : Column(
               mainAxisSize: MainAxisSize.min,
@@ -3683,9 +3735,9 @@ class _RoomScreenState extends State<RoomScreen>
                   ),
                 if (_mention.isOpen)
                   MentionPicker(session: _mention, api: widget.api),
-                // Mirrors the classic column above. Unlike the reply card and
-                // the mention picker beside it, this one has its space reserved
-                // in `bottomChromeH` — see the note there.
+                // Mirrors the classic column above. Its space, like the reply
+                // card's and the picker's, comes out of the measured chrome
+                // height — see the note by `bottomChromeEstimate`.
                 if (indicator.showsPill && scheduled.isNotEmpty)
                   ScheduledPill(
                     scheduled: scheduled,
@@ -3709,6 +3761,8 @@ class _RoomScreenState extends State<RoomScreen>
                 ),
               ],
                 ),
+                ),
+              ),
               ),
             ),
           ),
@@ -3783,6 +3837,12 @@ class _RoomScreenState extends State<RoomScreen>
     List<RoomItem> items,
     String me, {
     required EdgeInsets listPadding,
+    // The chrome floating over the transcript's bottom edge, for the styles
+    // that have any. Null in the classic style, where the composer stack sits
+    // in a real `Column` above an `Expanded` transcript and the viewport
+    // already shrinks by exactly the right amount — and then this costs a
+    // branch, no listener and no extra row. See `chat_bottom_inset.dart`.
+    ChatBottomChrome? bottomChrome,
     bool showTypingRow = true,
   }) {
     final theme = ThemeScope.of(context);
@@ -3807,6 +3867,20 @@ class _RoomScreenState extends State<RoomScreen>
     // height on its own when nobody is typing, so the item count stays fixed
     // and every index below shifts by exactly this much.
     final typingRows = showTypingRow ? 1 : 0;
+    // The floating chrome's own height, spent INSIDE the list rather than as
+    // padding on it. `reverse: true` makes index 0 the bottom of the
+    // transcript, so a spacer there is layout-identical to leading padding —
+    // with the one difference that matters: the spacer owns its height through
+    // a notifier, so a composer growing a line relayouts the sliver and
+    // rebuilds one `SizedBox`, instead of rebuilding every bubble in the
+    // viewport the way a new `padding` on the `ListView` would.
+    final insetRows = bottomChrome == null ? 0 : 1;
+    // The list's own bottom padding sits BELOW the spacer, so it reads as the
+    // gap between the glass and the newest bubble — which is what it is.
+    Widget insetSpacer() => ChatBottomInsetBuilder(
+          chrome: bottomChrome,
+          builder: (context, inset, _) => SizedBox(height: inset),
+        );
     Widget typingRow() => TypingRow(
           typists: widget.repo.typingIn(room.id),
           api: widget.api,
@@ -3835,11 +3909,15 @@ class _RoomScreenState extends State<RoomScreen>
                     // they will be about here" — and because it occupies the
                     // space the answer will, the screen settles once instead
                     // of jumping when the backlog lands.
-                    loading: (context) => Padding(
-                      padding: EdgeInsets.only(
-                        left: listPadding.left + 8,
-                        right: listPadding.right + 8,
-                        bottom: listPadding.bottom + 8,
+                    loading: (context) => ChatBottomInsetBuilder(
+                      chrome: bottomChrome,
+                      builder: (context, inset, child) => Padding(
+                        padding: EdgeInsets.only(
+                          left: listPadding.left + 8,
+                          right: listPadding.right + 8,
+                          bottom: listPadding.bottom + inset + 8,
+                        ),
+                        child: child,
                       ),
                       child: const SkeletonBubbles(),
                     ),
@@ -3854,8 +3932,16 @@ class _RoomScreenState extends State<RoomScreen>
                   Positioned(
                     left: listPadding.left,
                     right: listPadding.right,
-                    bottom: listPadding.bottom,
-                    child: ChatColumn(child: typingRow()),
+                    bottom: 0,
+                    child: ChatBottomInsetBuilder(
+                      chrome: bottomChrome,
+                      builder: (context, inset, child) => Padding(
+                        padding:
+                            EdgeInsets.only(bottom: listPadding.bottom + inset),
+                        child: child,
+                      ),
+                      child: ChatColumn(child: typingRow()),
+                    ),
                   ),
               ],
             )
@@ -3877,15 +3963,21 @@ class _RoomScreenState extends State<RoomScreen>
                   reverse: true,
                   keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: listPadding,
-                  itemCount: items.length + typingRows,
+                  itemCount: items.length + typingRows + insetRows,
                   itemBuilder: (context, i) {
-                    // reverse: true — index 0 is the bottom of the transcript,
-                    // which is where a message that hasn't been sent yet
-                    // belongs.
-                    if (typingRows == 1 && i == 0) {
+                    // reverse: true — index 0 is the BOTTOM of the transcript.
+                    // The glass floats over exactly that edge, so its measured
+                    // height goes first and everything else stands on top of
+                    // it, typing row included.
+                    if (insetRows == 1 && i == 0) {
+                      return insetSpacer();
+                    }
+                    // Still the bottom of the conversation, which is where a
+                    // message that hasn't been sent yet belongs.
+                    if (typingRows == 1 && i == insetRows) {
                       return typingRow();
                     }
-                    final item = items[i - typingRows];
+                    final item = items[i - typingRows - insetRows];
                     if (item is IntroItem) {
                       return _RoomIntro(
                         room: room,
@@ -4539,14 +4631,29 @@ class _RoomScreenState extends State<RoomScreen>
                   ),
                 ),
                 Positioned(
-                  // Clears the composer in both styles. In liquid the composer
-                  // floats OVER this stack, and listPadding.bottom is exactly
-                  // the room reserved for it; the old hardcoded 12 put the pill
-                  // behind the glass.
-                  bottom: math.max(8, listPadding.bottom - 8),
+                  bottom: 0,
                   left: 0,
                   right: 0,
-                  child: Center(
+                  // Clears the composer in both styles. In liquid the composer
+                  // floats OVER this stack and grows with what is typed, so the
+                  // offset has to track it live — a hardcoded 12 used to put
+                  // the pill behind the glass, and a hardcoded 76 put it behind
+                  // the glass again the moment the field wrapped. In classic
+                  // the chrome is null, this folds to listPadding.bottom - 8,
+                  // and the layout is what it always was.
+                  //
+                  // The pills go through `child` rather than the builder: both
+                  // carry their own entrance animations and have no business
+                  // rebuilding because somebody typed a line.
+                  child: ChatBottomInsetBuilder(
+                    chrome: bottomChrome,
+                    builder: (context, inset, child) => Padding(
+                      padding: EdgeInsets.only(
+                        bottom: math.max(8, listPadding.bottom + inset - 8),
+                      ),
+                      child: child,
+                    ),
+                    child: Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -4581,6 +4688,7 @@ class _RoomScreenState extends State<RoomScreen>
                         ),
                       ],
                     ),
+                  ),
                   ),
                 ),
               ],
