@@ -339,9 +339,16 @@ function fill(line: string, vars: Record<string, string>): string {
  * `m:ss`, matching `formatGameTime` in lib/games — the same clock the result
  * card and the standings row already show. An hour-long board reads "63:07"
  * rather than growing an hours field nobody will ever see.
+ *
+ * Truncating, not rounding, because `formatGameTime` truncates: an 11.7s solve
+ * is the 0:11 the stopwatch stopped on and the 0:11 the standings row shows,
+ * so a push saying 0:12 reads as a different, worse time than the one the
+ * player just watched themselves set. Exported so `socialPush.test.ts` can
+ * hold it to that, since the drift between the two was invisible for as long
+ * as nothing compared them.
  */
-function formatDuration(ms: number | undefined): string {
-  const total = Math.max(0, Math.round((ms ?? 0) / 1000));
+export function formatDuration(ms: number | undefined): string {
+  const total = Math.max(0, Math.floor((ms ?? 0) / 1000));
   const mins = Math.floor(total / 60);
   const secs = total % 60;
   return `${mins}:${secs.toString().padStart(2, "0")}`;

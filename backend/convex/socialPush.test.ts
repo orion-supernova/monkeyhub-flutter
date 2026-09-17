@@ -2,6 +2,7 @@ import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
+import { formatDuration } from "./socialPush";
 
 /**
  * Who gets told when a friend posts, and who deliberately does not.
@@ -440,5 +441,23 @@ describe("a shared game result", () => {
       dayKey: DAY,
     });
     expect(theirs.mine.queens.shared).toBe(false);
+  });
+});
+
+describe("the time in the body", () => {
+  /**
+   * The push and the result card have to read the same, and the app's
+   * `formatGameTime` truncates. Rounding here once made an 11.7s Zip solve
+   * arrive as 0:12 next to the 0:11 the player had just watched the stopwatch
+   * stop on, which reads as the wrong time rather than as a rounded one.
+   */
+  test("truncates like formatGameTime, never rounds up", () => {
+    expect(formatDuration(11_700)).toBe("0:11");
+    expect(formatDuration(11_000)).toBe("0:11");
+    expect(formatDuration(59_999)).toBe("0:59");
+    expect(formatDuration(134_000)).toBe("2:14");
+    expect(formatDuration(3_787_400)).toBe("63:07");
+    expect(formatDuration(undefined)).toBe("0:00");
+    expect(formatDuration(-5)).toBe("0:00");
   });
 });
