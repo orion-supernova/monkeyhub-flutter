@@ -64,6 +64,23 @@ class CallFcmService : FirebaseMessagingService() {
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
+        // Nothing below may take the process with it.
+        //
+        // This runs with no Activity, no Dart and no user watching, so an
+        // escaping exception is not a red screen — it is a silent process
+        // death that lands in Play Console as a crash somewhere the user was
+        // not, and takes out whatever else the app was doing at the time.
+        // Every branch is already best-effort by nature: the worst honest
+        // outcome for a push we cannot render is that one notification is
+        // missing, which is strictly better than killing the app to say so.
+        try {
+            dispatch(message)
+        } catch (t: Throwable) {
+            Log.e(TAG, "push kind=${message.data["kind"]} failed to handle", t)
+        }
+    }
+
+    private fun dispatch(message: RemoteMessage) {
         val data = message.data
         when (data["kind"]) {
             "invite" -> handleInvite(data)

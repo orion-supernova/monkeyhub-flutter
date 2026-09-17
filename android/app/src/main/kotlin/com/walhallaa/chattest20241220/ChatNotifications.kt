@@ -10,7 +10,10 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.os.Build
+import android.os.Looper
+import android.service.notification.StatusBarNotification
 import android.util.Log
+import android.util.LruCache
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
@@ -213,11 +216,20 @@ object ChatNotifications {
         runCatching { java.io.File(ctx.filesDir, INBOX_DIR).deleteRecursively() }
     }
 
-    /// Longest this will block a background thread fetching the sender's
-    /// avatar before giving up and posting without one. `onMessageReceived`
-    /// itself is never blocked (see below) — this only bounds how late a
-    /// banner can land relative to a text-only one.
+    /// Longest this will block fetching the sender's avatar before giving up
+    /// and leaving the text-only notification that is already on screen.
+    /// Bounds how late a FACE can land, never whether the banner does.
     private const val AVATAR_FETCH_TIMEOUT_MS = 2_500
+
+    /// Faces, reused for as long as this process lives.
+    ///
+    /// A burst from one sender used to refetch the same picture once per
+    /// message, each on its own thread, on the notification path. Sized in
+    /// bytes rather than entries because these are bitmaps — sixteen 512px
+    /// faces is 16 MB, which is not a cache, it is a leak.
+    private val avatarCache = object : LruCache<String, Bitmap>(4 * 1024 * 1024) {
+        override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount
+    }
 
     fun show(ctx: Context, data: Map<String, String>) {
         ensureChannels(ctx)
@@ -243,17 +255,70 @@ object ChatNotifications {
             post(ctx, kind, roomId, data, avatar = null)
             return
         }
-        // `onMessageReceived` calls this on the main thread, so a blocking
-        // fetch has to happen off it — a real network call there risks an
-        // ANR, not just a slow banner. Bounded and best-effort: the message
-        // itself must never wait on a face that fails to load in time, the
-        // way the banner text would if this were synchronous up top.
-        Thread {
+        // Already have the face: one post, complete, no network at all.
+        val cached = avatarCache.get(avatarUrl)
+        if (cached != null) {
+            post(ctx, kind, roomId, data, cached)
+            return
+        }
+
+        // TEXT FIRST, and this ordering is the whole fix.
+        //
+        // This used to hand the fetch to a bare `Thread` and return, on the
+        // stated grounds that `onMessageReceived` runs on the main thread and
+        // a blocking call there risks an ANR. That premise is simply false —
+        // FirebaseMessagingService dispatches onMessageReceived on its own
+        // worker ("Firebase-Messaging-Intent-Handle"), never the main thread —
+        // and the thread it bought to avoid a non-existent ANR cost us the
+        // notification instead.
+        //
+        // The moment onMessageReceived returns, the service stops itself and
+        // the process drops to cached, where a running thread does nothing for
+        // its oom_adj. On a low-memory handset or any of the aggressive OEM
+        // power managers (MIUI, EMUI, ColorOS, One UI) the process is then
+        // reaped while that thread is still waiting on a socket, and the
+        // banner it was going to post never happens.
+        //
+        // That is the exact shape of "some people get game notifications but
+        // not room ones": `daily_games` carries no avatar and took the
+        // synchronous branch six lines up, so it always landed, while a chat
+        // message — which carries the sender's face whenever they have one —
+        // took this branch and raced the reaper on every single delivery.
+        //
+        // So: post the notification now, while we are still on the stack and
+        // the service is still holding the process up. The face is an upgrade
+        // applied below, and losing it costs a picture rather than the message.
+        post(ctx, kind, roomId, data, avatar = null)
+
+        // Then the face. Re-posting under the same tag replaces the
+        // notification in place; `setOnlyAlertOnce` in [post] keeps that
+        // second post silent.
+        val upgrade = {
             val avatar = runCatching { fetchAvatar(avatarUrl) }
                 .onFailure { Log.w(TAG, "avatar fetch failed: ${it.message}") }
                 .getOrNull()
-            post(ctx, kind, roomId, data, avatar)
-        }.start()
+            if (avatar != null) {
+                avatarCache.put(avatarUrl, avatar)
+                post(ctx, kind, roomId, data, avatar)
+            }
+        }
+
+        // Inline on Firebase's worker, which is where the only caller today
+        // arrives: blocking is safe there (it is not the main thread), it is
+        // bounded by AVATAR_FETCH_TIMEOUT_MS against a service budget of tens
+        // of seconds, and staying on the stack is precisely what holds the
+        // process up long enough to finish.
+        //
+        // The main-thread branch exists so this function is safe to call from
+        // anywhere rather than only from where it happens to be called now —
+        // blocking the UI thread on a socket is an ANR. Detaching is the right
+        // answer there and not here, because a main-thread caller is by
+        // definition a live foreground process that nothing is about to reap.
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            Thread { upgrade() }.start()
+        } else {
+            upgrade()
+        }
     }
 
     /// Fetches an avatar, bounded and best-effort. Blocking, so it is only
@@ -387,6 +452,14 @@ object ChatNotifications {
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setAutoCancel(true)
+            // A message is posted twice: once as text the instant it arrives,
+            // then again with the sender's face once it has been fetched (see
+            // [show]). Both carry the same tag, so the second replaces the
+            // first — and without this it would also ring and buzz a second
+            // time for the same message. Never silences a NEW message: the tag
+            // is the messageId, so every message is a notification that is not
+            // already showing.
+            .setOnlyAlertOnce(true)
             // The message's own server-minted timestamp, so a burst of pushes
             // that FCM delivered out of order still sorts by when the messages
             // were sent. Same field the push seeds a bubble from.
@@ -554,20 +627,39 @@ object ChatNotifications {
     /// dismiss push does when it carries no explicit id list.
     fun cancelRoom(ctx: Context, roomId: String) {
         val nm = ctx.getSystemService(NotificationManager::class.java) ?: return
-        for (sb in nm.activeNotifications.orEmpty()) {
-            if (sb.notification.group == roomId) nm.cancel(sb.tag, sb.id)
+        for (sb in activeOrEmpty(nm)) {
+            if (sb.notification.group == roomId) {
+                runCatching { nm.cancel(sb.tag, sb.id) }
+            }
         }
     }
+
+    /// `getActiveNotifications()` with the OEMs accounted for.
+    ///
+    /// It reads as a plain getter and is a binder round trip into
+    /// NotificationManagerService, which throws for reasons that have nothing
+    /// to do with this app: a DeadSystemException while the system server is
+    /// restarting, and outright SecurityException/RuntimeException on several
+    /// OEM builds. Both call sites are reached from a dismiss push — i.e. from
+    /// `onMessageReceived`, in the background, with no Dart running — so an
+    /// escape there took the whole process down every time somebody deleted a
+    /// message. A dismiss that cannot enumerate is a stale banner; it is not
+    /// worth a crash.
+    private fun activeOrEmpty(nm: NotificationManager): List<StatusBarNotification> =
+        runCatching { nm.activeNotifications?.toList() }
+            .onFailure { Log.w(TAG, "activeNotifications unavailable: ${it.message}") }
+            .getOrNull()
+            .orEmpty()
 
     /// Drop a group summary once nothing is left under it, or it lingers as a
     /// row that expands into nothing.
     private fun reconcileSummary(ctx: Context, roomId: String) {
         val nm = ctx.getSystemService(NotificationManager::class.java) ?: return
         val tag = summaryTag(roomId)
-        val remaining = nm.activeNotifications.orEmpty().count {
+        val remaining = activeOrEmpty(nm).count {
             it.notification.group == roomId && it.tag != tag
         }
-        if (remaining == 0) nm.cancel(tag, ID)
+        if (remaining == 0) runCatching { nm.cancel(tag, ID) }
     }
 
     private fun summaryTag(roomId: String) = "summary:$roomId"
