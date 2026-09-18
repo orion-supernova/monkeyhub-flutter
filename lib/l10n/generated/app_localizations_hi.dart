@@ -8689,4 +8689,63 @@ class AppLocalizationsHi extends AppLocalizations {
   String recordsHolderSemantic(Object game, Object name, Object value) {
     return '$game: $name का रिकॉर्ड $value';
   }
+
+  @override
+  String get appearanceLabel => 'रूप';
+
+  @override
+  String get appearanceMatchDevice => 'डिवाइस जैसा';
+
+  @override
+  String get appearanceMatchDeviceSub =>
+      'दिन में लाइट, रात में डार्क — तुम्हारे फ़ोन के साथ';
+
+  @override
+  String get appearanceOneTheme => 'एक ही थीम';
+
+  @override
+  String get appearanceOneThemeSub => 'पूरे दिन एक जैसा लुक';
+
+  @override
+  String get appearanceLightSlot => 'लाइट मोड';
+
+  @override
+  String get appearanceDarkSlot => 'डार्क मोड';
+
+  @override
+  String get appearanceNow => 'अभी';
+
+  @override
+  String appearanceAutoValue(Object name) {
+    return 'ऑटो · $name';
+  }
+
+  @override
+  String get themeScreenAssignHint =>
+      'लाइट या डार्क मोड में लगाने के लिए थीम पर टैप करो · पूरे प्रीव्यू के लिए ⛶';
+
+  @override
+  String get themeScreenCarouselUseLight => 'लाइट मोड में लगाओ';
+
+  @override
+  String get themeScreenCarouselUseDark => 'डार्क मोड में लगाओ';
+
+  @override
+  String get themeScreenCarouselIsLight => 'तुम्हारी लाइट थीम';
+
+  @override
+  String get themeScreenCarouselIsDark => 'तुम्हारी डार्क थीम';
+
+  @override
+  String get onboardingThemeTitle => 'इसे अपना बनाओ।';
+
+  @override
+  String get onboardingThemeBody =>
+      'एक लुक चुनो। सेटिंग्स में कभी भी बदल सकते हो।';
+
+  @override
+  String get onboardingThemeYourTheme => 'तुम्हारी थीम';
+
+  @override
+  String get onboardingThemeContinue => 'आगे बढ़ो';
 }

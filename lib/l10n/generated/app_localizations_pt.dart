@@ -8779,6 +8779,65 @@ class AppLocalizationsPt extends AppLocalizations {
   String recordsHolderSemantic(Object game, Object name, Object value) {
     return '$game: recorde de $value por $name';
   }
+
+  @override
+  String get appearanceLabel => 'APARÊNCIA';
+
+  @override
+  String get appearanceMatchDevice => 'Como o dispositivo';
+
+  @override
+  String get appearanceMatchDeviceSub =>
+      'claro de dia, escuro à noite — como o teu telemóvel';
+
+  @override
+  String get appearanceOneTheme => 'Um só tema';
+
+  @override
+  String get appearanceOneThemeSub => 'o mesmo visual o dia todo';
+
+  @override
+  String get appearanceLightSlot => 'MODO CLARO';
+
+  @override
+  String get appearanceDarkSlot => 'MODO ESCURO';
+
+  @override
+  String get appearanceNow => 'AGORA';
+
+  @override
+  String appearanceAutoValue(Object name) {
+    return 'auto · $name';
+  }
+
+  @override
+  String get themeScreenAssignHint =>
+      'toca num tema para o usar no modo claro ou escuro · ⛶ para pré-visualizar';
+
+  @override
+  String get themeScreenCarouselUseLight => 'USAR NO MODO CLARO';
+
+  @override
+  String get themeScreenCarouselUseDark => 'USAR NO MODO ESCURO';
+
+  @override
+  String get themeScreenCarouselIsLight => 'O TEU TEMA CLARO';
+
+  @override
+  String get themeScreenCarouselIsDark => 'O TEU TEMA ESCURO';
+
+  @override
+  String get onboardingThemeTitle => 'à tua maneira.';
+
+  @override
+  String get onboardingThemeBody =>
+      'escolhe um visual. podes mudá-lo quando quiseres nas definições.';
+
+  @override
+  String get onboardingThemeYourTheme => 'O TEU TEMA';
+
+  @override
+  String get onboardingThemeContinue => 'CONTINUAR';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -17552,4 +17611,63 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String recordsHolderSemantic(Object game, Object name, Object value) {
     return '$game: recorde de $value por $name';
   }
+
+  @override
+  String get appearanceLabel => 'APARÊNCIA';
+
+  @override
+  String get appearanceMatchDevice => 'Igual ao aparelho';
+
+  @override
+  String get appearanceMatchDeviceSub =>
+      'claro de dia, escuro à noite — como o seu celular';
+
+  @override
+  String get appearanceOneTheme => 'Um só tema';
+
+  @override
+  String get appearanceOneThemeSub => 'o mesmo visual o dia todo';
+
+  @override
+  String get appearanceLightSlot => 'MODO CLARO';
+
+  @override
+  String get appearanceDarkSlot => 'MODO ESCURO';
+
+  @override
+  String get appearanceNow => 'AGORA';
+
+  @override
+  String appearanceAutoValue(Object name) {
+    return 'auto · $name';
+  }
+
+  @override
+  String get themeScreenAssignHint =>
+      'toque num tema para usar no modo claro ou escuro · ⛶ para ver inteiro';
+
+  @override
+  String get themeScreenCarouselUseLight => 'USAR NO MODO CLARO';
+
+  @override
+  String get themeScreenCarouselUseDark => 'USAR NO MODO ESCURO';
+
+  @override
+  String get themeScreenCarouselIsLight => 'SEU TEMA CLARO';
+
+  @override
+  String get themeScreenCarouselIsDark => 'SEU TEMA ESCURO';
+
+  @override
+  String get onboardingThemeTitle => 'do seu jeito.';
+
+  @override
+  String get onboardingThemeBody =>
+      'escolha um visual. dá para mudar quando quiser nos ajustes.';
+
+  @override
+  String get onboardingThemeYourTheme => 'SEU TEMA';
+
+  @override
+  String get onboardingThemeContinue => 'CONTINUAR';
 }

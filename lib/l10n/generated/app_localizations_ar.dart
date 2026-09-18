@@ -8805,4 +8805,62 @@ class AppLocalizationsAr extends AppLocalizations {
   String recordsHolderSemantic(Object game, Object name, Object value) {
     return '$game: رقم $value باسم $name';
   }
+
+  @override
+  String get appearanceLabel => 'المظهر';
+
+  @override
+  String get appearanceMatchDevice => 'مثل الجهاز';
+
+  @override
+  String get appearanceMatchDeviceSub => 'فاتح نهارًا، داكن ليلًا — مع هاتفك';
+
+  @override
+  String get appearanceOneTheme => 'مظهر واحد';
+
+  @override
+  String get appearanceOneThemeSub => 'المظهر نفسه طوال اليوم';
+
+  @override
+  String get appearanceLightSlot => 'الوضع الفاتح';
+
+  @override
+  String get appearanceDarkSlot => 'الوضع الداكن';
+
+  @override
+  String get appearanceNow => 'الآن';
+
+  @override
+  String appearanceAutoValue(Object name) {
+    return 'تلقائي · $name';
+  }
+
+  @override
+  String get themeScreenAssignHint =>
+      'اضغط على مظهر لاستخدامه في الوضع الفاتح أو الداكن · ⛶ للمعاينة الكاملة';
+
+  @override
+  String get themeScreenCarouselUseLight => 'استخدمه في الوضع الفاتح';
+
+  @override
+  String get themeScreenCarouselUseDark => 'استخدمه في الوضع الداكن';
+
+  @override
+  String get themeScreenCarouselIsLight => 'مظهرك الفاتح';
+
+  @override
+  String get themeScreenCarouselIsDark => 'مظهرك الداكن';
+
+  @override
+  String get onboardingThemeTitle => 'اجعله على ذوقك.';
+
+  @override
+  String get onboardingThemeBody =>
+      'اختر مظهرًا. يمكنك تغييره متى شئت من الإعدادات.';
+
+  @override
+  String get onboardingThemeYourTheme => 'مظهرك';
+
+  @override
+  String get onboardingThemeContinue => 'متابعة';
 }

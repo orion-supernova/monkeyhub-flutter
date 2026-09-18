@@ -7,6 +7,7 @@ import '../calls/call_models.dart' show VideoQualityTier, VideoQualityTierWire;
 import '../services/launcher_icon_service.dart';
 import '../theme/bubble_shape.dart';
 import '../theme/speaker_colors.dart';
+import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import 'glass_config.dart';
 import 'room_filter.dart';
@@ -21,6 +22,12 @@ class SettingsStore extends ChangeNotifier {
   static final SettingsStore instance = SettingsStore._();
 
   static const _kTheme = 'mh.theme';
+  // The device-following pair, and which of the two ways the theme is chosen.
+  // See [appearanceMode].
+  static const _kThemeMode = 'mh.theme.mode';
+  static const _kThemeLight = 'mh.theme.light';
+  static const _kThemeDark = 'mh.theme.dark';
+  static const _kThemeOnboarded = 'mh.theme.onboarded';
   static const _kLayout = 'mh.roomLayout';
   static const _kMonogram = 'mh.roomMonogram';
   static const _kNav = 'mh.nav';
@@ -69,6 +76,10 @@ class SettingsStore extends ChangeNotifier {
   final SettingsKeychain _storage = SettingsKeychain();
 
   String? _themeId;
+  AppearanceMode _appearanceMode = AppearanceMode.system;
+  String _lightThemeId = kDefaultLightThemeId;
+  String _darkThemeId = kDefaultDarkThemeId;
+  bool _themeOnboarded = false;
   RoomLayout _roomLayout = RoomLayout.list;
   // Off by default: the letter is a backdrop for a room with nothing to
   // show, and whether it reads as texture or as clutter is a matter of
@@ -139,7 +150,38 @@ class SettingsStore extends ChangeNotifier {
   // each time.
   bool _companionForceCpu = false;
 
+  /// The theme picked in [AppearanceMode.fixed]. Null for somebody who has
+  /// never picked one — the device-following pair is what they see.
   String? get themeId => _themeId;
+
+  /// Whether the theme follows the device's light and dark mode, or stays put.
+  ///
+  /// A fresh install follows the device, with Midnight and Daylight as the
+  /// pair. An install that already had a theme picked keeps it: the choice was
+  /// made, and quietly swapping it for a pair at dusk would read as the app
+  /// forgetting it.
+  AppearanceMode get appearanceMode => _appearanceMode;
+
+  /// The theme worn while the device is in light mode, under
+  /// [AppearanceMode.system].
+  String get lightThemeId => _lightThemeId;
+
+  /// The theme worn while the device is in dark mode, under
+  /// [AppearanceMode.system].
+  String get darkThemeId => _darkThemeId;
+
+  /// Whether the first-launch appearance picker has been answered — or never
+  /// needs to be, for an install that already had a theme, or a session.
+  bool get themeOnboarded => _themeOnboarded;
+
+  /// The theme id to wear right now, with the device in [platform] brightness.
+  String themeIdFor(Brightness platform) => resolveThemeId(
+        mode: _appearanceMode,
+        platform: platform,
+        fixedId: _themeId ?? _darkThemeId,
+        lightId: _lightThemeId,
+        darkId: _darkThemeId,
+      );
   RoomLayout get roomLayout => _roomLayout;
   bool get roomMonogram => _roomMonogram;
   NavStyle get navStyle => _navStyle;
@@ -384,7 +426,18 @@ class SettingsStore extends ChangeNotifier {
   }
 
   void _apply(Map<String, String> s) {
-    _themeId = s[_kTheme];
+    final look = StoredAppearance.parse(
+      theme: s[_kTheme],
+      mode: s[_kThemeMode],
+      light: s[_kThemeLight],
+      dark: s[_kThemeDark],
+      onboarded: s[_kThemeOnboarded],
+    );
+    _themeId = look.fixedId;
+    _appearanceMode = look.mode;
+    _lightThemeId = look.lightId;
+    _darkThemeId = look.darkId;
+    _themeOnboarded = look.onboarded;
     final lay = s[_kLayout];
     _roomLayout = lay == 'grid' ? RoomLayout.grid : RoomLayout.list;
     final mono = s[_kMonogram];
@@ -507,12 +560,55 @@ class SettingsStore extends ChangeNotifier {
     _companionForceCpu = s[_kCompanionForceCpu] == 'true';
   }
 
+  /// Wears [id] all day: [AppearanceMode.fixed].
   Future<void> setThemeId(String id) async {
-    if (_themeId == id) return;
+    if (_themeId == id && _appearanceMode == AppearanceMode.fixed) return;
+    final modeMoved = _appearanceMode != AppearanceMode.fixed;
     _themeId = id;
+    _appearanceMode = AppearanceMode.fixed;
     notifyListeners();
     await _storage.write(key: _kTheme, value: id);
+    if (modeMoved) await _storage.write(key: _kThemeMode, value: 'fixed');
     _applyLauncherIcon();
+  }
+
+  /// Switches between following the device and one fixed theme.
+  ///
+  /// Going to [AppearanceMode.fixed] fixes [current] — whatever the reader is
+  /// looking at — so the switch changes nothing on screen, only what happens
+  /// at dusk.
+  Future<void> setAppearanceMode(AppearanceMode mode, {String? current}) async {
+    if (_appearanceMode == mode) return;
+    _appearanceMode = mode;
+    if (mode == AppearanceMode.fixed && current != null) _themeId = current;
+    notifyListeners();
+    await _storage.write(key: _kThemeMode, value: mode.name);
+    if (mode == AppearanceMode.fixed && current != null) {
+      await _storage.write(key: _kTheme, value: current);
+    }
+    _applyLauncherIcon();
+  }
+
+  /// Sets the theme worn in light ([Brightness.light]) or dark mode.
+  Future<void> setSlotTheme(Brightness slot, String id) async {
+    final light = slot == Brightness.light;
+    if ((light ? _lightThemeId : _darkThemeId) == id) return;
+    if (light) {
+      _lightThemeId = id;
+    } else {
+      _darkThemeId = id;
+    }
+    notifyListeners();
+    await _storage.write(key: light ? _kThemeLight : _kThemeDark, value: id);
+    if (!light) _applyLauncherIcon();
+  }
+
+  /// Records that the first-launch appearance picker has been answered.
+  Future<void> markThemeOnboarded() async {
+    if (_themeOnboarded) return;
+    _themeOnboarded = true;
+    notifyListeners();
+    await _storage.write(key: _kThemeOnboarded, value: 'true');
   }
 
   Future<void> setRoomLayout(RoomLayout l) async {
@@ -988,6 +1084,17 @@ class SettingsStore extends ChangeNotifier {
   /// having to visit the logo screen.
   void reconcileLauncherIcon() => _applyLauncherIcon();
 
+  /// The theme the home-screen icon follows in `LogoMode.auto`.
+  ///
+  /// Under [AppearanceMode.system] that is the DARK half of the pair, always,
+  /// never "whichever is showing". The shown theme changes at dusk and dawn,
+  /// and on iOS every icon change raises a system alert — an icon that tracked
+  /// the device would announce itself twice a day, and on whatever launch
+  /// happened to reconcile it.
+  String get _iconThemeId => _appearanceMode == AppearanceMode.fixed
+      ? (_themeId ?? _darkThemeId)
+      : _darkThemeId;
+
   /// Fire-and-forget native launcher-icon swap. Reads the resolved icon name
   /// from the current store state; safe to call from any setter. Awaiting
   /// would block the UI on a non-essential side effect.
@@ -996,10 +1103,7 @@ class SettingsStore extends ChangeNotifier {
     // Midnight would swap the home-screen icon — and on iOS raise the system's
     // icon-changed alert — for a selection the person never made.
     if (_unread) return;
-    final active = ThemeController.byId(
-      _themeId ?? ThemeController.all.first.id,
-    );
-    LauncherIconService.applyFromSettings(active);
+    LauncherIconService.applyFromSettings(ThemeController.byId(_iconThemeId));
   }
 }
 

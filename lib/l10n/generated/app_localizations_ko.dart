@@ -8362,4 +8362,60 @@ class AppLocalizationsKo extends AppLocalizations {
   String recordsHolderSemantic(Object game, Object name, Object value) {
     return '$game: $name님의 기록 $value';
   }
+
+  @override
+  String get appearanceLabel => '화면 모드';
+
+  @override
+  String get appearanceMatchDevice => '기기 설정 따르기';
+
+  @override
+  String get appearanceMatchDeviceSub => '낮엔 밝게, 밤엔 어둡게 — 휴대폰에 맞춰서';
+
+  @override
+  String get appearanceOneTheme => '테마 하나';
+
+  @override
+  String get appearanceOneThemeSub => '하루 종일 같은 모습';
+
+  @override
+  String get appearanceLightSlot => '라이트 모드';
+
+  @override
+  String get appearanceDarkSlot => '다크 모드';
+
+  @override
+  String get appearanceNow => '지금';
+
+  @override
+  String appearanceAutoValue(Object name) {
+    return '자동 · $name';
+  }
+
+  @override
+  String get themeScreenAssignHint => '테마를 눌러 라이트·다크 모드에 적용 · ⛶ 전체 미리보기';
+
+  @override
+  String get themeScreenCarouselUseLight => '라이트 모드에 적용';
+
+  @override
+  String get themeScreenCarouselUseDark => '다크 모드에 적용';
+
+  @override
+  String get themeScreenCarouselIsLight => '내 라이트 테마';
+
+  @override
+  String get themeScreenCarouselIsDark => '내 다크 테마';
+
+  @override
+  String get onboardingThemeTitle => '나답게.';
+
+  @override
+  String get onboardingThemeBody => '원하는 모습을 골라요. 설정에서 언제든 바꿀 수 있어요.';
+
+  @override
+  String get onboardingThemeYourTheme => '내 테마';
+
+  @override
+  String get onboardingThemeContinue => '계속';
 }

@@ -8647,4 +8647,63 @@ class AppLocalizationsTr extends AppLocalizations {
   String recordsHolderSemantic(Object game, Object name, Object value) {
     return '$game: rekor $value, $name';
   }
+
+  @override
+  String get appearanceLabel => 'GÖRÜNÜM';
+
+  @override
+  String get appearanceMatchDevice => 'Cihaza uy';
+
+  @override
+  String get appearanceMatchDeviceSub =>
+      'gündüz açık, gece koyu — telefonunla birlikte';
+
+  @override
+  String get appearanceOneTheme => 'Tek tema';
+
+  @override
+  String get appearanceOneThemeSub => 'gün boyu aynı görünüm';
+
+  @override
+  String get appearanceLightSlot => 'AÇIK MOD';
+
+  @override
+  String get appearanceDarkSlot => 'KOYU MOD';
+
+  @override
+  String get appearanceNow => 'ŞU AN';
+
+  @override
+  String appearanceAutoValue(Object name) {
+    return 'otomatik · $name';
+  }
+
+  @override
+  String get themeScreenAssignHint =>
+      'açık ya da koyu modda kullanmak için bir temaya dokun · tam önizleme için ⛶';
+
+  @override
+  String get themeScreenCarouselUseLight => 'AÇIK MODDA KULLAN';
+
+  @override
+  String get themeScreenCarouselUseDark => 'KOYU MODDA KULLAN';
+
+  @override
+  String get themeScreenCarouselIsLight => 'AÇIK MOD TEMAN';
+
+  @override
+  String get themeScreenCarouselIsDark => 'KOYU MOD TEMAN';
+
+  @override
+  String get onboardingThemeTitle => 'sana göre olsun.';
+
+  @override
+  String get onboardingThemeBody =>
+      'bir görünüm seç. istediğin zaman ayarlardan değiştirebilirsin.';
+
+  @override
+  String get onboardingThemeYourTheme => 'TEMAN';
+
+  @override
+  String get onboardingThemeContinue => 'DEVAM';
 }

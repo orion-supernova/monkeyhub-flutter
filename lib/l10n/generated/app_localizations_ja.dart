@@ -8339,4 +8339,60 @@ class AppLocalizationsJa extends AppLocalizations {
   String recordsHolderSemantic(Object game, Object name, Object value) {
     return '$game：$name の記録 $value';
   }
+
+  @override
+  String get appearanceLabel => '外観';
+
+  @override
+  String get appearanceMatchDevice => '端末に合わせる';
+
+  @override
+  String get appearanceMatchDeviceSub => '昼はライト、夜はダーク — スマホに合わせて';
+
+  @override
+  String get appearanceOneTheme => 'ひとつのテーマ';
+
+  @override
+  String get appearanceOneThemeSub => '一日中同じ見た目';
+
+  @override
+  String get appearanceLightSlot => 'ライトモード';
+
+  @override
+  String get appearanceDarkSlot => 'ダークモード';
+
+  @override
+  String get appearanceNow => '表示中';
+
+  @override
+  String appearanceAutoValue(Object name) {
+    return '自動 · $name';
+  }
+
+  @override
+  String get themeScreenAssignHint => 'タップでライト／ダークモードに設定 · ⛶で全画面プレビュー';
+
+  @override
+  String get themeScreenCarouselUseLight => 'ライトモードで使う';
+
+  @override
+  String get themeScreenCarouselUseDark => 'ダークモードで使う';
+
+  @override
+  String get themeScreenCarouselIsLight => 'ライトモードのテーマ';
+
+  @override
+  String get themeScreenCarouselIsDark => 'ダークモードのテーマ';
+
+  @override
+  String get onboardingThemeTitle => '自分らしく。';
+
+  @override
+  String get onboardingThemeBody => '見た目を選びましょう。設定からいつでも変えられます。';
+
+  @override
+  String get onboardingThemeYourTheme => 'テーマ';
+
+  @override
+  String get onboardingThemeContinue => '続ける';
 }

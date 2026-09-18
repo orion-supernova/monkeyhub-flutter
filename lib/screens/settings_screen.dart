@@ -25,6 +25,7 @@ import '../services/mac_app_chrome.dart';
 import '../theme/bubble_shape.dart';
 import '../theme/speaker_colors.dart';
 import '../theme/layout.dart';
+import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import '../update/update_availability.dart';
 import '../update/update_checker.dart';
@@ -553,7 +554,12 @@ class _SettingsScreenState extends State<SettingsScreen>
                 const SizedBox(height: 12),
                 _DisclosureRow(
                   label: l10n.settingsScreenRowTheme,
-                  value: activeTheme.name,
+                  // "auto · Midnight" while it follows the device, so the row
+                  // says the theme will change by itself before it does.
+                  value: SettingsStore.instance.appearanceMode ==
+                          AppearanceMode.system
+                      ? l10n.appearanceAutoValue(activeTheme.name)
+                      : activeTheme.name,
                   selected: _isOpen('theme'),
                   leading: _SwatchDot(color: activeTheme.accent),
                   onTap: () => openSettingsDetail(

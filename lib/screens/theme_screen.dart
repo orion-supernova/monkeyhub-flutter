@@ -7,8 +7,10 @@ import '../data/settings_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
+import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
+import '../widgets/appearance_picker.dart';
 
 class ThemeScreen extends StatefulWidget {
   const ThemeScreen({super.key});
@@ -84,15 +86,41 @@ class _ThemeScreenState extends State<ThemeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Every choice on this screen lands in SettingsStore, and app.dart turns it
+    // into the theme on screen — so the store is what this rebuilds on, and
+    // nothing here sets the controller itself.
+    return AnimatedBuilder(
+      animation: SettingsStore.instance,
+      builder: (context, _) => _build(context),
+    );
+  }
+
+  Widget _build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final controller = ThemeScope.controllerOf(context);
     final themes = ThemeController.all;
     final l10n = AppLocalizations.of(context);
+    final store = SettingsStore.instance;
+    final system = store.appearanceMode == AppearanceMode.system;
+    final platform = MediaQuery.platformBrightnessOf(context);
 
+    /// Following the device, a tap files the theme under the mode it suits —
+    /// a light theme becomes the light-mode theme — so no tap can put a dark
+    /// palette in front of somebody's daytime screen. Fixed, it is the theme.
     void apply(AppTheme t) {
-      controller.theme = t;
-      SettingsStore.instance.setThemeId(t.id);
+      if (system) {
+        store.setSlotTheme(t.brightness, t.id);
+      } else {
+        store.setThemeId(t.id);
+      }
       HapticFeedback.selectionClick();
+    }
+
+    /// Which half of the pair [t] is, if it is either.
+    String? slotOf(AppTheme t) {
+      if (!system) return null;
+      if (t.id == store.lightThemeId) return l10n.appearanceLightSlot;
+      if (t.id == store.darkThemeId) return l10n.appearanceDarkSlot;
+      return null;
     }
 
     int globalIndexOf(String id) => themes.indexWhere((t) => t.id == id);
@@ -129,7 +157,14 @@ class _ThemeScreenState extends State<ThemeScreen> {
                       Row(children: [
                         Container(width: 18, height: 1, color: theme.accent),
                         const SizedBox(width: 8),
-                        Text(l10n.themeScreenTapToApplyHint, style: theme.caption),
+                        Expanded(
+                          child: Text(
+                            system
+                                ? l10n.themeScreenAssignHint
+                                : l10n.themeScreenTapToApplyHint,
+                            style: theme.caption,
+                          ),
+                        ),
                       ]),
                     ],
                   ),
@@ -151,6 +186,25 @@ class _ThemeScreenState extends State<ThemeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        _AppearanceSection(
+                          system: system,
+                          platform: platform,
+                          light: ThemeController.byId(store.lightThemeId),
+                          dark: ThemeController.byId(store.darkThemeId),
+                          onMode: (m) =>
+                              store.setAppearanceMode(m, current: theme.id),
+                          onTapSlot: (slot) => _openCarousel(
+                            context,
+                            globalIndexOf(
+                              slot == Brightness.light
+                                  ? store.lightThemeId
+                                  : store.darkThemeId,
+                            ).clamp(0, themes.length - 1),
+                            themes,
+                            apply,
+                          ),
+                        ),
+                        const SizedBox(height: 22),
                         for (final f in _families) ...[
                           _FamilyCard(
                             family: f,
@@ -159,6 +213,7 @@ class _ThemeScreenState extends State<ThemeScreen> {
                                 themes.firstWhere((t) => t.id == id),
                             ],
                             activeId: theme.id,
+                            slotOf: slotOf,
                             chipKey: _keyFor,
                             onSelect: apply,
                             onPreviewVariant: (id) => _openCarousel(
@@ -307,6 +362,7 @@ class _FamilyCard extends StatelessWidget {
     required this.family,
     required this.themes,
     required this.activeId,
+    required this.slotOf,
     required this.chipKey,
     required this.onSelect,
     required this.onPreviewVariant,
@@ -314,6 +370,10 @@ class _FamilyCard extends StatelessWidget {
   final _ThemeFamily family;
   final List<AppTheme> themes;
   final String activeId;
+
+  /// LIGHT MODE / DARK MODE for a theme that is half of the device-following
+  /// pair, null otherwise.
+  final String? Function(AppTheme) slotOf;
 
   /// Hook so the parent state can stash a stable GlobalKey per variant id —
   /// needed so the carousel's close transition can retreat into the exact
@@ -374,6 +434,7 @@ class _FamilyCard extends StatelessWidget {
                 key: chipKey(t.id),
                 candidate: t,
                 active: t.id == activeId,
+                slot: slotOf(t),
                 onApply: () => onSelect(t),
                 onPreview: () => onPreviewVariant(t.id),
               );
@@ -390,11 +451,15 @@ class _ThemeGridTile extends StatelessWidget {
     super.key,
     required this.candidate,
     required this.active,
+    required this.slot,
     required this.onApply,
     required this.onPreview,
   });
   final AppTheme candidate;
   final bool active;
+
+  /// Which half of the device-following pair this is, if either.
+  final String? slot;
   final VoidCallback onApply;
   final VoidCallback onPreview;
 
@@ -402,7 +467,8 @@ class _ThemeGridTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final outer = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    final borderWidth = active ? 1.6 : 1.0;
+    final chosen = active || slot != null;
+    final borderWidth = chosen ? 1.6 : 1.0;
     return GestureDetector(
       onTap: onApply,
       child: Container(
@@ -410,7 +476,7 @@ class _ThemeGridTile extends StatelessWidget {
           color: outer.surface,
           borderRadius: BorderRadius.circular(outer.radiusLg),
           border: Border.all(
-            color: active ? outer.accent : outer.divider,
+            color: chosen ? outer.accent : outer.divider,
             width: borderWidth,
           ),
           boxShadow: active
@@ -471,7 +537,28 @@ class _ThemeGridTile extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 6),
-                      if (active)
+                      if (slot != null)
+                        Row(children: [
+                          Icon(
+                            candidate.isLight
+                                ? Icons.light_mode_outlined
+                                : Icons.dark_mode_outlined,
+                            size: 10,
+                            color: outer.accent,
+                          ),
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: Text(
+                              active
+                                  ? '$slot · ${l10n.themeScreenActiveBadge}'
+                                  : slot!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: outer.monoTiny.copyWith(color: outer.accent),
+                            ),
+                          ),
+                        ])
+                      else if (active)
                         Row(children: [
                           Container(
                             width: 6,
@@ -573,7 +660,24 @@ class _ThemePreviewCarouselState extends State<_ThemePreviewCarousel> {
     final themes = ThemeController.all;
     final activeId = ThemeScope.of(context).id;
     final shown = themes[_index];
-    final isActive = shown.id == activeId;
+    final store = SettingsStore.instance;
+    final system = store.appearanceMode == AppearanceMode.system;
+    // Following the device, "active" means this theme already IS its mode's
+    // theme — whether or not that mode is the one showing right now.
+    final isActive = system
+        ? shown.id ==
+            (shown.isLight ? store.lightThemeId : store.darkThemeId)
+        : shown.id == activeId;
+    final label = switch ((system, isActive, shown.isLight)) {
+      (true, true, true) => l10n.themeScreenCarouselIsLight,
+      (true, true, false) => l10n.themeScreenCarouselIsDark,
+      (true, false, true) => l10n.themeScreenCarouselUseLight,
+      (true, false, false) => l10n.themeScreenCarouselUseDark,
+      (false, true, _) =>
+        l10n.themeScreenCarouselActiveLabel(shown.name.toUpperCase()),
+      (false, false, _) =>
+        l10n.themeScreenCarouselApplyLabel(shown.name.toUpperCase()),
+    };
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -654,9 +758,7 @@ class _ThemePreviewCarouselState extends State<_ThemePreviewCarousel> {
                         const SizedBox(width: 8),
                       ],
                       Text(
-                        isActive
-                            ? l10n.themeScreenCarouselActiveLabel(shown.name.toUpperCase())
-                            : l10n.themeScreenCarouselApplyLabel(shown.name.toUpperCase()),
+                        label,
                         style: TextStyle(
                           color: isActive ? shown.accent : shown.accentInk,
                           letterSpacing: 2,
@@ -831,6 +933,74 @@ class _PreviewPage extends StatelessWidget {
             color: mine ? theme.accentInk : theme.ink,
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// The top of the theme screen: follow the device or keep one theme, and —
+/// following — the pair it switches between, with NOW on the half showing.
+class _AppearanceSection extends StatelessWidget {
+  const _AppearanceSection({
+    required this.system,
+    required this.platform,
+    required this.light,
+    required this.dark,
+    required this.onMode,
+    required this.onTapSlot,
+  });
+
+  final bool system;
+  final Brightness platform;
+  final AppTheme light;
+  final AppTheme dark;
+  final ValueChanged<AppearanceMode> onMode;
+
+  /// Opens the full-screen preview on that half's theme.
+  final ValueChanged<Brightness> onTapSlot;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
+      decoration: BoxDecoration(
+        color: theme.surface,
+        borderRadius: BorderRadius.circular(theme.radiusLg),
+        border: Border.all(color: theme.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
+            child: Text(
+              l10n.appearanceLabel,
+              style: theme.label.copyWith(letterSpacing: 2.4),
+            ),
+          ),
+          AppearanceModeSwitch(
+            mode: system ? AppearanceMode.system : AppearanceMode.fixed,
+            onChanged: onMode,
+          ),
+          AnimatedSize(
+            duration: theme.motionMed,
+            curve: theme.motionEntrance,
+            alignment: Alignment.topCenter,
+            child: system
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 20),
+                    child: ThemeSlotPair(
+                      light: light,
+                      dark: dark,
+                      platform: platform,
+                      onTapSlot: onTapSlot,
+                    ),
+                  )
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
+        ],
       ),
     );
   }

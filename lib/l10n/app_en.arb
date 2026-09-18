@@ -9968,5 +9968,77 @@
   "recordsHolderSemantic": "{game}: record {value} by {name}",
   "@recordsHolderSemantic": {
     "description": "Screen-reader line for one game's row in the ALL-TIME section: who holds the record and with what."
+  },
+  "appearanceLabel": "APPEARANCE",
+  "@appearanceLabel": {
+    "description": "Section label above the choice between following the device's light/dark mode and one fixed theme."
+  },
+  "appearanceMatchDevice": "Match device",
+  "@appearanceMatchDevice": {
+    "description": "Option: the app's theme follows the device's light and dark mode."
+  },
+  "appearanceMatchDeviceSub": "light by day, dark by night — with your phone",
+  "@appearanceMatchDeviceSub": {
+    "description": "Line under 'Match device'."
+  },
+  "appearanceOneTheme": "One theme",
+  "@appearanceOneTheme": {
+    "description": "Option: one fixed theme regardless of the device's light/dark mode."
+  },
+  "appearanceOneThemeSub": "the same look all day",
+  "@appearanceOneThemeSub": {
+    "description": "Line under 'One theme'."
+  },
+  "appearanceLightSlot": "LIGHT MODE",
+  "@appearanceLightSlot": {
+    "description": "Label of the theme used while the device is in light mode."
+  },
+  "appearanceDarkSlot": "DARK MODE",
+  "@appearanceDarkSlot": {
+    "description": "Label of the theme used while the device is in dark mode."
+  },
+  "appearanceNow": "NOW",
+  "@appearanceNow": {
+    "description": "Badge on whichever of the light/dark themes is showing right now."
+  },
+  "appearanceAutoValue": "auto · {name}",
+  "@appearanceAutoValue": {
+    "description": "Value of the THEME row in Settings while the theme follows the device. {name} is the theme showing right now."
+  },
+  "themeScreenAssignHint": "tap a theme to use it in light or dark mode · ⛶ for full preview",
+  "@themeScreenAssignHint": {
+    "description": "Hint at the top of the theme screen while the theme follows the device."
+  },
+  "themeScreenCarouselUseLight": "USE IN LIGHT MODE",
+  "@themeScreenCarouselUseLight": {
+    "description": "Carousel button, while following the device: make this (light) theme the one used in light mode."
+  },
+  "themeScreenCarouselUseDark": "USE IN DARK MODE",
+  "@themeScreenCarouselUseDark": {
+    "description": "Carousel button, while following the device: make this (dark) theme the one used in dark mode."
+  },
+  "themeScreenCarouselIsLight": "YOUR LIGHT THEME",
+  "@themeScreenCarouselIsLight": {
+    "description": "Carousel button state: this theme is already the one used in light mode."
+  },
+  "themeScreenCarouselIsDark": "YOUR DARK THEME",
+  "@themeScreenCarouselIsDark": {
+    "description": "Carousel button state: this theme is already the one used in dark mode."
+  },
+  "onboardingThemeTitle": "make it yours.",
+  "@onboardingThemeTitle": {
+    "description": "Title of the first-launch appearance picker, shown before sign-in."
+  },
+  "onboardingThemeBody": "pick a look. you can change it any time in settings.",
+  "@onboardingThemeBody": {
+    "description": "Line under the first-launch appearance picker's title."
+  },
+  "onboardingThemeYourTheme": "YOUR THEME",
+  "@onboardingThemeYourTheme": {
+    "description": "Section label above the full list of themes, when 'One theme' is chosen in the first-launch picker."
+  },
+  "onboardingThemeContinue": "CONTINUE",
+  "@onboardingThemeContinue": {
+    "description": "Button that closes the first-launch appearance picker and goes on to sign-in."
   }
 }

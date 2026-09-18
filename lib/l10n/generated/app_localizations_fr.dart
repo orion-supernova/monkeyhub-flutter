@@ -8819,4 +8819,63 @@ class AppLocalizationsFr extends AppLocalizations {
   String recordsHolderSemantic(Object game, Object name, Object value) {
     return '$game : record de $value par $name';
   }
+
+  @override
+  String get appearanceLabel => 'APPARENCE';
+
+  @override
+  String get appearanceMatchDevice => 'Comme l’appareil';
+
+  @override
+  String get appearanceMatchDeviceSub =>
+      'clair le jour, sombre la nuit — comme ton téléphone';
+
+  @override
+  String get appearanceOneTheme => 'Un seul thème';
+
+  @override
+  String get appearanceOneThemeSub => 'le même look toute la journée';
+
+  @override
+  String get appearanceLightSlot => 'MODE CLAIR';
+
+  @override
+  String get appearanceDarkSlot => 'MODE SOMBRE';
+
+  @override
+  String get appearanceNow => 'ACTUEL';
+
+  @override
+  String appearanceAutoValue(Object name) {
+    return 'auto · $name';
+  }
+
+  @override
+  String get themeScreenAssignHint =>
+      'touche un thème pour l’utiliser en mode clair ou sombre · ⛶ pour l’aperçu complet';
+
+  @override
+  String get themeScreenCarouselUseLight => 'UTILISER EN MODE CLAIR';
+
+  @override
+  String get themeScreenCarouselUseDark => 'UTILISER EN MODE SOMBRE';
+
+  @override
+  String get themeScreenCarouselIsLight => 'TON THÈME CLAIR';
+
+  @override
+  String get themeScreenCarouselIsDark => 'TON THÈME SOMBRE';
+
+  @override
+  String get onboardingThemeTitle => 'à ton image.';
+
+  @override
+  String get onboardingThemeBody =>
+      'choisis un style. tu pourras le changer à tout moment dans les réglages.';
+
+  @override
+  String get onboardingThemeYourTheme => 'TON THÈME';
+
+  @override
+  String get onboardingThemeContinue => 'CONTINUER';
 }

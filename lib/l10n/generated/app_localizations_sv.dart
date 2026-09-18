@@ -8705,4 +8705,63 @@ class AppLocalizationsSv extends AppLocalizations {
   String recordsHolderSemantic(Object game, Object name, Object value) {
     return '$game: rekord $value av $name';
   }
+
+  @override
+  String get appearanceLabel => 'UTSEENDE';
+
+  @override
+  String get appearanceMatchDevice => 'Som enheten';
+
+  @override
+  String get appearanceMatchDeviceSub =>
+      'ljust på dagen, mörkt på natten — som din telefon';
+
+  @override
+  String get appearanceOneTheme => 'Ett tema';
+
+  @override
+  String get appearanceOneThemeSub => 'samma utseende hela dagen';
+
+  @override
+  String get appearanceLightSlot => 'LJUST LÄGE';
+
+  @override
+  String get appearanceDarkSlot => 'MÖRKT LÄGE';
+
+  @override
+  String get appearanceNow => 'NU';
+
+  @override
+  String appearanceAutoValue(Object name) {
+    return 'auto · $name';
+  }
+
+  @override
+  String get themeScreenAssignHint =>
+      'tryck på ett tema för att använda det i ljust eller mörkt läge · ⛶ för förhandsvisning';
+
+  @override
+  String get themeScreenCarouselUseLight => 'ANVÄND I LJUST LÄGE';
+
+  @override
+  String get themeScreenCarouselUseDark => 'ANVÄND I MÖRKT LÄGE';
+
+  @override
+  String get themeScreenCarouselIsLight => 'DITT LJUSA TEMA';
+
+  @override
+  String get themeScreenCarouselIsDark => 'DITT MÖRKA TEMA';
+
+  @override
+  String get onboardingThemeTitle => 'gör den till din.';
+
+  @override
+  String get onboardingThemeBody =>
+      'välj ett utseende. du kan ändra det när som helst i inställningarna.';
+
+  @override
+  String get onboardingThemeYourTheme => 'DITT TEMA';
+
+  @override
+  String get onboardingThemeContinue => 'FORTSÄTT';
 }

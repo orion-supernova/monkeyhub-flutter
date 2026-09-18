@@ -74,8 +74,10 @@ import 'screens/home_shell.dart';
 import 'screens/room_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/server_screen.dart';
+import 'screens/theme_onboarding_screen.dart';
 import 'theme/app_theme.dart';
 import 'theme/layout.dart';
+import 'theme/theme_preference.dart';
 import 'theme/theme_scope.dart';
 import 'update/update_checker.dart';
 import 'widgets/app_brand_mark.dart';
@@ -427,6 +429,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _auth.addListener(_onAuthChange);
+    // Every appearance change lands in SettingsStore — the settings screen,
+    // the first-launch picker, a keychain that became readable late — and this
+    // is the one place that turns it into the theme on screen.
+    SettingsStore.instance.addListener(_syncTheme);
     _family.addListener(_syncAccountType);
     PushManager.instance.setOnOpenRoom(_openRoomFromPush);
     PushManager.instance.setOnOpenRequests(_openRequestsFromPush);
@@ -972,11 +978,31 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   /// a locked launch — see [SettingsStore.retryIfUnread].
   Future<void> _retrySettings() async {
     if (!await SettingsStore.instance.retryIfUnread()) return;
-    _themeController.theme = _initialTheme();
+    // The theme re-resolves through [_syncTheme], which the retry's own
+    // notification already reached; capture protection has no listener.
     await CaptureProtection.instance.setUserEnabled(
       SettingsStore.instance.captureProtection,
     );
   }
+
+  /// Puts the theme the preferences call for on screen, if it is not already.
+  ///
+  /// Cheap on the notifications that change nothing — nearly all of them,
+  /// since SettingsStore notifies for every preference: one id comparison, and
+  /// the theme is only looked up when it actually moves.
+  void _syncTheme() {
+    final id = SettingsStore.instance.themeIdFor(
+      WidgetsBinding.instance.platformDispatcher.platformBrightness,
+    );
+    if (id == _themeController.theme.id) return;
+    _themeController.theme = ThemeController.byId(id);
+  }
+
+  /// The device switched between light and dark — at dusk on a schedule, from
+  /// Control Centre, or with the ambient light. Under
+  /// [AppearanceMode.system] the app goes with it, live, without a relaunch.
+  @override
+  void didChangePlatformBrightness() => _syncTheme();
 
   /// Window metrics changed — padding, insets, scale.
   ///
@@ -1396,6 +1422,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   Future<void> _applyAuthChange() async {
     final s = _auth.session;
     try {
+      // Somebody with a session has, by definition, been past the login
+      // screen the first-launch appearance picker sits in front of — an
+      // install from before it existed must not be shown it after a sign-out.
+      if (s != null) unawaited(SettingsStore.instance.markThemeOnboarded());
       if (s != null && _repo.userId != s.userId) {
         // ─────────── recovery is armed FIRST, above every await below ──
         //
@@ -1616,6 +1646,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     _health.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _auth.removeListener(_onAuthChange);
+    SettingsStore.instance.removeListener(_syncTheme);
     _family.removeListener(_syncAccountType);
     _shareTargetsSync?.dispose();
     _signaling.stop();
@@ -1631,7 +1662,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         animation: _appListenable,
         builder: (context, _) {
           final theme = _themeController.theme;
-          final isLight = theme.mood == ThemeMood.riso;
+          final isLight = theme.isLight;
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             navigatorKey: rootNavigatorKey,
@@ -1976,21 +2007,16 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     );
   }
 
-  /// Resolves the starting theme synchronously from preloaded settings:
-  ///   1. If the user has a saved themeId, use that.
-  ///   2. Otherwise default by the device's current system brightness —
-  ///      Dark → Midnight, Light → Daylight.
-  /// `SettingsStore.load()` MUST have been awaited before `runApp` for this
-  /// to return the right value on first frame (see `main.dart`).
-  static AppTheme _initialTheme() {
-    final saved = SettingsStore.instance.themeId;
-    if (saved != null) return ThemeController.byId(saved);
-    final brightness =
-        WidgetsBinding.instance.platformDispatcher.platformBrightness;
-    return ThemeController.byId(
-      brightness == Brightness.light ? 'basic_daylight' : 'basic',
-    );
-  }
+  /// Resolves the starting theme synchronously from preloaded settings: the
+  /// fixed theme, or the half of the device-following pair that matches the
+  /// device right now (Daylight and Midnight until somebody picks others).
+  /// `SettingsStore.load()` MUST have been awaited before `runApp` for this to
+  /// return the right value on the first frame (see `main.dart`).
+  static AppTheme _initialTheme() => ThemeController.byId(
+        SettingsStore.instance.themeIdFor(
+          WidgetsBinding.instance.platformDispatcher.platformBrightness,
+        ),
+      );
 }
 
 /// Hosts the app's single [LayoutBuilder], above the root navigator, and
@@ -2697,15 +2723,32 @@ class _AppHomeState extends State<_AppHome> {
     }
     final theme = widget.themeController.theme;
     final signedIn = widget.auth.isSignedIn;
-    return signedIn
-        ? HomeShell(
-            key: ValueKey('home_${theme.id}'),
-            repo: widget.repo,
-            api: widget.api,
-            feedApi: widget.feedApi,
-            auth: widget.auth,
-            family: widget.family,
-          )
-        : LoginScreen(key: ValueKey('login_${theme.id}'), auth: widget.auth);
+    if (signedIn) {
+      return HomeShell(
+        key: ValueKey('home_${theme.id}'),
+        repo: widget.repo,
+        api: widget.api,
+        feedApi: widget.feedApi,
+        auth: widget.auth,
+        family: widget.family,
+      );
+    }
+    // A new install is asked how the app should look before it is asked who
+    // it is — see [ThemeOnboardingScreen]. Crossfaded, keyed on which of the
+    // two is showing and nothing else: the login screen's own theme key still
+    // remounts it on a theme change exactly as before, without this switcher
+    // fading one login screen into another.
+    final onboarding = !SettingsStore.instance.themeOnboarded;
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 380),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      child: KeyedSubtree(
+        key: ValueKey(onboarding ? 'theme_onboarding' : 'login'),
+        child: onboarding
+            ? const ThemeOnboardingScreen()
+            : LoginScreen(key: ValueKey('login_${theme.id}'), auth: widget.auth),
+      ),
+    );
   }
 }

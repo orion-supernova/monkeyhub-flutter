@@ -8768,4 +8768,63 @@ class AppLocalizationsEs extends AppLocalizations {
   String recordsHolderSemantic(Object game, Object name, Object value) {
     return '$game: récord de $value de $name';
   }
+
+  @override
+  String get appearanceLabel => 'APARIENCIA';
+
+  @override
+  String get appearanceMatchDevice => 'Como el dispositivo';
+
+  @override
+  String get appearanceMatchDeviceSub =>
+      'claro de día, oscuro de noche — como tu móvil';
+
+  @override
+  String get appearanceOneTheme => 'Un solo tema';
+
+  @override
+  String get appearanceOneThemeSub => 'el mismo aspecto todo el día';
+
+  @override
+  String get appearanceLightSlot => 'MODO CLARO';
+
+  @override
+  String get appearanceDarkSlot => 'MODO OSCURO';
+
+  @override
+  String get appearanceNow => 'AHORA';
+
+  @override
+  String appearanceAutoValue(Object name) {
+    return 'auto · $name';
+  }
+
+  @override
+  String get themeScreenAssignHint =>
+      'toca un tema para usarlo en modo claro u oscuro · ⛶ para vista completa';
+
+  @override
+  String get themeScreenCarouselUseLight => 'USAR EN MODO CLARO';
+
+  @override
+  String get themeScreenCarouselUseDark => 'USAR EN MODO OSCURO';
+
+  @override
+  String get themeScreenCarouselIsLight => 'TU TEMA CLARO';
+
+  @override
+  String get themeScreenCarouselIsDark => 'TU TEMA OSCURO';
+
+  @override
+  String get onboardingThemeTitle => 'hazlo tuyo.';
+
+  @override
+  String get onboardingThemeBody =>
+      'elige un estilo. puedes cambiarlo cuando quieras en ajustes.';
+
+  @override
+  String get onboardingThemeYourTheme => 'TU TEMA';
+
+  @override
+  String get onboardingThemeContinue => 'CONTINUAR';
 }

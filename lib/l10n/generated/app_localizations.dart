@@ -14676,6 +14676,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{game}: record {value} by {name}'**
   String recordsHolderSemantic(Object game, Object name, Object value);
+
+  /// Section label above the choice between following the device's light/dark mode and one fixed theme.
+  ///
+  /// In en, this message translates to:
+  /// **'APPEARANCE'**
+  String get appearanceLabel;
+
+  /// Option: the app's theme follows the device's light and dark mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Match device'**
+  String get appearanceMatchDevice;
+
+  /// Line under 'Match device'.
+  ///
+  /// In en, this message translates to:
+  /// **'light by day, dark by night — with your phone'**
+  String get appearanceMatchDeviceSub;
+
+  /// Option: one fixed theme regardless of the device's light/dark mode.
+  ///
+  /// In en, this message translates to:
+  /// **'One theme'**
+  String get appearanceOneTheme;
+
+  /// Line under 'One theme'.
+  ///
+  /// In en, this message translates to:
+  /// **'the same look all day'**
+  String get appearanceOneThemeSub;
+
+  /// Label of the theme used while the device is in light mode.
+  ///
+  /// In en, this message translates to:
+  /// **'LIGHT MODE'**
+  String get appearanceLightSlot;
+
+  /// Label of the theme used while the device is in dark mode.
+  ///
+  /// In en, this message translates to:
+  /// **'DARK MODE'**
+  String get appearanceDarkSlot;
+
+  /// Badge on whichever of the light/dark themes is showing right now.
+  ///
+  /// In en, this message translates to:
+  /// **'NOW'**
+  String get appearanceNow;
+
+  /// Value of the THEME row in Settings while the theme follows the device. {name} is the theme showing right now.
+  ///
+  /// In en, this message translates to:
+  /// **'auto · {name}'**
+  String appearanceAutoValue(Object name);
+
+  /// Hint at the top of the theme screen while the theme follows the device.
+  ///
+  /// In en, this message translates to:
+  /// **'tap a theme to use it in light or dark mode · ⛶ for full preview'**
+  String get themeScreenAssignHint;
+
+  /// Carousel button, while following the device: make this (light) theme the one used in light mode.
+  ///
+  /// In en, this message translates to:
+  /// **'USE IN LIGHT MODE'**
+  String get themeScreenCarouselUseLight;
+
+  /// Carousel button, while following the device: make this (dark) theme the one used in dark mode.
+  ///
+  /// In en, this message translates to:
+  /// **'USE IN DARK MODE'**
+  String get themeScreenCarouselUseDark;
+
+  /// Carousel button state: this theme is already the one used in light mode.
+  ///
+  /// In en, this message translates to:
+  /// **'YOUR LIGHT THEME'**
+  String get themeScreenCarouselIsLight;
+
+  /// Carousel button state: this theme is already the one used in dark mode.
+  ///
+  /// In en, this message translates to:
+  /// **'YOUR DARK THEME'**
+  String get themeScreenCarouselIsDark;
+
+  /// Title of the first-launch appearance picker, shown before sign-in.
+  ///
+  /// In en, this message translates to:
+  /// **'make it yours.'**
+  String get onboardingThemeTitle;
+
+  /// Line under the first-launch appearance picker's title.
+  ///
+  /// In en, this message translates to:
+  /// **'pick a look. you can change it any time in settings.'**
+  String get onboardingThemeBody;
+
+  /// Section label above the full list of themes, when 'One theme' is chosen in the first-launch picker.
+  ///
+  /// In en, this message translates to:
+  /// **'YOUR THEME'**
+  String get onboardingThemeYourTheme;
+
+  /// Button that closes the first-launch appearance picker and goes on to sign-in.
+  ///
+  /// In en, this message translates to:
+  /// **'CONTINUE'**
+  String get onboardingThemeContinue;
 }
 
 class _AppLocalizationsDelegate

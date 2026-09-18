@@ -8245,4 +8245,60 @@ class AppLocalizationsZh extends AppLocalizations {
   String recordsHolderSemantic(Object game, Object name, Object value) {
     return '$game：$name 的纪录 $value';
   }
+
+  @override
+  String get appearanceLabel => '外观';
+
+  @override
+  String get appearanceMatchDevice => '跟随设备';
+
+  @override
+  String get appearanceMatchDeviceSub => '白天浅色，夜晚深色 — 跟着你的手机';
+
+  @override
+  String get appearanceOneTheme => '固定主题';
+
+  @override
+  String get appearanceOneThemeSub => '全天同一个样子';
+
+  @override
+  String get appearanceLightSlot => '浅色模式';
+
+  @override
+  String get appearanceDarkSlot => '深色模式';
+
+  @override
+  String get appearanceNow => '当前';
+
+  @override
+  String appearanceAutoValue(Object name) {
+    return '自动 · $name';
+  }
+
+  @override
+  String get themeScreenAssignHint => '点按主题用于浅色或深色模式 · ⛶ 全屏预览';
+
+  @override
+  String get themeScreenCarouselUseLight => '用于浅色模式';
+
+  @override
+  String get themeScreenCarouselUseDark => '用于深色模式';
+
+  @override
+  String get themeScreenCarouselIsLight => '你的浅色主题';
+
+  @override
+  String get themeScreenCarouselIsDark => '你的深色主题';
+
+  @override
+  String get onboardingThemeTitle => '由你定义。';
+
+  @override
+  String get onboardingThemeBody => '选一个风格。随时可以在设置里更改。';
+
+  @override
+  String get onboardingThemeYourTheme => '你的主题';
+
+  @override
+  String get onboardingThemeContinue => '继续';
 }
