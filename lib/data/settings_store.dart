@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../calls/call_models.dart' show VideoQualityTier, VideoQualityTierWire;
 import '../services/launcher_icon_service.dart';
@@ -11,6 +10,7 @@ import '../theme/speaker_colors.dart';
 import '../theme/theme_scope.dart';
 import 'glass_config.dart';
 import 'room_filter.dart';
+import 'settings_keychain.dart';
 
 /// User-selectable preferences persisted across launches.
 ///
@@ -66,9 +66,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kMarloweBrainId = 'mh.companion.marlowe.brain';
   static const _kCompanionForceCpu = 'mh.companion.forceCpu';
 
-  final _storage = const FlutterSecureStorage(
-    iOptions: IOSOptions(accessibility: KeychainAccessibility.unlocked),
-  );
+  final SettingsKeychain _storage = SettingsKeychain();
 
   String? _themeId;
   RoomLayout _roomLayout = RoomLayout.list;
@@ -321,143 +319,192 @@ class SettingsStore extends ChangeNotifier {
 
   Future<void> load() async {
     if (_loaded) return;
-    try {
-      _themeId = await _storage.read(key: _kTheme);
-      final lay = await _storage.read(key: _kLayout);
-      _roomLayout = lay == 'grid' ? RoomLayout.grid : RoomLayout.list;
-      final mono = await _storage.read(key: _kMonogram);
-      _roomMonogram = mono == 'true'; // default false
-      final nav = await _storage.read(key: _kNav);
-      // First-launch default is pill; honor an explicit 'radial' selection.
-      _navStyle = nav == 'radial' ? NavStyle.radial : NavStyle.pill;
-      final sec = await _storage.read(key: _kSection);
-      _section = HomeSection.parse(sec);
-      final push = await _storage.read(key: _kPushEnabled);
-      _pushEnabled = push != 'false'; // default true
-      final nudge = await _storage.read(key: _kGameReminders);
-      _gameReminders = nudge != 'false'; // default true
-      final social = await _storage.read(key: _kFriendActivity);
-      _friendActivity = social != 'false'; // default true
-      final cap = await _storage.read(key: _kCaptureProtection);
-      _captureProtection = cap == 'true'; // default false
-      final cs = await _storage.read(key: _kChatStyle);
-      // 'liquid' was the legacy name for compact — preserve the choice for
-      // anyone who had selected it before the rename.
-      _chatStyle = cs == 'classic' ? ChatStyle.classic : ChatStyle.compact;
-      final rs = await _storage.read(key: _kReplyStyle);
-      switch (rs) {
-        case 'stickyNote':
-          _replyStyle = ReplyStyle.stickyNote;
-          break;
-        case 'comicTail':
-          _replyStyle = ReplyStyle.comicTail;
-          break;
-        case 'classic':
-          _replyStyle = ReplyStyle.classic;
-          break;
-        default:
-          _replyStyle = ReplyStyle.phantomEcho;
-      }
-      final bs = await _storage.read(key: _kBubbleStyle);
-      switch (bs) {
-        case 'soft':
-          _bubbleStyle = BubbleStyle.soft;
-          break;
-        case 'pill':
-          _bubbleStyle = BubbleStyle.pill;
-          break;
-        case 'slab':
-          _bubbleStyle = BubbleStyle.slab;
-          break;
-        default:
-          _bubbleStyle = BubbleStyle.tailed;
-      }
-      final st = await _storage.read(key: _kSpeakerTint);
-      switch (st) {
-        case 'off':
-          _speakerTint = SpeakerTint.off;
-          break;
-        case 'name':
-          _speakerTint = SpeakerTint.name;
-          break;
-        default:
-          _speakerTint = SpeakerTint.bubble;
-      }
-      final vrr = await _storage.read(key: _kViewReadReceipts);
-      _viewReadReceipts = vrr == 'true'; // default false
-      final lm = await _storage.read(key: _kLogoMode);
-      switch (lm) {
-        case 'manual':
-          _logoMode = LogoMode.manual;
-          break;
-        case 'alwaysDefault':
-          _logoMode = LogoMode.alwaysDefault;
-          break;
-        default:
-          _logoMode = LogoMode.auto;
-      }
-      _manualLogoThemeId = await _storage.read(key: _kManualLogoThemeId);
-      final slu = await _storage.read(key: _kShowLinkUrls);
-      _showLinkUrls = slu == 'true'; // default false
-      final sns = await _storage.read(key: _kShowNetworkStats);
-      _showNetworkStats = sns == 'true'; // default false
-      final phd = await _storage.read(key: _kPhotoHd);
-      _photoHd = phd == 'true'; // default false — compressed
-      _videoQualityTier = VideoQualityTierWire.parse(
-        await _storage.read(key: _kVideoQualityTier),
-      );
-      _recoveryPromptDismissedFor = await _storage.read(
-        key: _kRecoveryPromptDismissed,
-      );
-      _composerModeHintSeenRoomIds = _decodeStringSet(
-        await _storage.read(key: _kComposerModeHintSeenRoomIds),
-      );
-      final fs = await _storage.read(key: _kFilterStyle);
-      // First-launch default is chips; honour an explicit 'drawer' selection.
-      _filterStyle = fs == 'drawer' ? FilterStyle.drawer : FilterStyle.chips;
-      _roomFilter = RoomFilter.decode(await _storage.read(key: _kRoomFilter));
-      _glassSlots = _decodeSlots(await _storage.read(key: _kGlassSlots));
-      final rawGlass = await _storage.read(key: _kGlassProfile);
-      // The stored profile wins, because a look can be selected and then
-      // nudged. Only fall back to the preset's own profile when there is no
-      // stored one at all — a fresh install, or a keychain wipe.
-      //
-      // The two are read together, and the preset pointer is only trusted when
-      // there IS a stored profile. Reading the pointer on its own overwrote the
-      // field's default with the null a fresh install returns, so a first
-      // launch came up wearing Frosted's values while labelled "Custom" — a
-      // state the UI otherwise cannot reach, and one that made the shipped
-      // default look like an unsaved edit.
-      if (rawGlass != null && rawGlass.isNotEmpty) {
-        _glass = GlassProfile.fromJson(jsonDecode(rawGlass));
-        // Legitimately null once the slot you were wearing is deleted.
-        _glassPresetId = await _storage.read(key: _kGlassPreset);
-      } else {
-        _glassPresetId = kDefaultGlassPresetId;
-        _glass = _resolvePreset(_glassPresetId).profile;
-      }
-      _localeCode = await _storage.read(key: _kLocale);
-      // Absent (and unrecognised) reads back as null = "follow the OS", which
-      // is the default every fresh install wants. Parsing cannot throw, so its
-      // position at the tail of this try block costs nothing.
-      _motionLevel = MotionLevel.parse(await _storage.read(key: _kMotionLevel));
-      _scheduledIndicator = ScheduledIndicator.parse(
-        await _storage.read(key: _kScheduledIndicator),
-      );
-      _sebastianEnabled =
-          (await _storage.read(key: _kSebastianEnabled)) == 'true';
-      _translationTarget = await _storage.read(key: _kTranslationTarget);
-      _translatedRoomIds = _decodeStringSet(
-        await _storage.read(key: _kTranslatedRoomIds),
-      );
-      _marloweBrainId = await _storage.read(key: _kMarloweBrainId);
-      _companionForceCpu =
-          (await _storage.read(key: _kCompanionForceCpu)) == 'true';
-    } catch (_) {
-      /* secure storage unavailable in test harness */
-    }
+    await _readStored();
     _loaded = true;
     notifyListeners();
+  }
+
+  /// Whether the last attempt to read the stored preferences failed, so every
+  /// getter is answering with a default rather than the user's choice.
+  ///
+  /// Not a test-harness curiosity. On iOS the next launch after an update is
+  /// often a background one on a locked phone, where the keychain can refuse —
+  /// and the process that launch starts is the one the person later opens.
+  /// See [SettingsKeychain].
+  bool _unread = false;
+  bool _retrying = false;
+
+  final Completer<void> _ready = Completer<void>();
+
+  /// Completes once the stored preferences have actually been read — which on
+  /// a locked cold start can be well after [load] returned.
+  ///
+  /// Anything that copies a preference somewhere else (the device row's push
+  /// switches, the launcher icon) waits on this, so it can never copy a
+  /// default that stood in for a value the keychain would not hand over yet.
+  Future<void> get ready => _ready.future;
+
+  Future<bool> _readStored() async {
+    final Map<String, String> s;
+    try {
+      s = await _storage.readAll();
+    } catch (e) {
+      _unread = true;
+      debugPrint('SettingsStore: preferences unreadable for now: $e');
+      return false;
+    }
+    _apply(s);
+    _unread = false;
+    if (!_ready.isCompleted) _ready.complete();
+    unawaited(_storage.migrate());
+    return true;
+  }
+
+  /// Reads the stored preferences again if the launch could not.
+  ///
+  /// Called on every resume, where it is free unless a read is outstanding.
+  /// On success the whole app re-renders under the real choices, the launcher
+  /// icon is reconciled against them, and any toggle flipped in the meantime is
+  /// persisted — it already won over the disk copy in [SettingsKeychain.readAll].
+  ///
+  /// True when this call is the one that finally read them, so a caller that
+  /// seeded something from the defaults at launch knows to seed it again.
+  Future<bool> retryIfUnread() async {
+    if (!_unread || _retrying) return false;
+    _retrying = true;
+    try {
+      if (!await _readStored()) return false;
+      notifyListeners();
+      _applyLauncherIcon();
+      unawaited(_storage.flush());
+      return true;
+    } finally {
+      _retrying = false;
+    }
+  }
+
+  void _apply(Map<String, String> s) {
+    _themeId = s[_kTheme];
+    final lay = s[_kLayout];
+    _roomLayout = lay == 'grid' ? RoomLayout.grid : RoomLayout.list;
+    final mono = s[_kMonogram];
+    _roomMonogram = mono == 'true'; // default false
+    final nav = s[_kNav];
+    // First-launch default is pill; honor an explicit 'radial' selection.
+    _navStyle = nav == 'radial' ? NavStyle.radial : NavStyle.pill;
+    final sec = s[_kSection];
+    _section = HomeSection.parse(sec);
+    final push = s[_kPushEnabled];
+    _pushEnabled = push != 'false'; // default true
+    final nudge = s[_kGameReminders];
+    _gameReminders = nudge != 'false'; // default true
+    final social = s[_kFriendActivity];
+    _friendActivity = social != 'false'; // default true
+    final cap = s[_kCaptureProtection];
+    _captureProtection = cap == 'true'; // default false
+    final cs = s[_kChatStyle];
+    // 'liquid' was the legacy name for compact — preserve the choice for
+    // anyone who had selected it before the rename.
+    _chatStyle = cs == 'classic' ? ChatStyle.classic : ChatStyle.compact;
+    final rs = s[_kReplyStyle];
+    switch (rs) {
+      case 'stickyNote':
+        _replyStyle = ReplyStyle.stickyNote;
+        break;
+      case 'comicTail':
+        _replyStyle = ReplyStyle.comicTail;
+        break;
+      case 'classic':
+        _replyStyle = ReplyStyle.classic;
+        break;
+      default:
+        _replyStyle = ReplyStyle.phantomEcho;
+    }
+    final bs = s[_kBubbleStyle];
+    switch (bs) {
+      case 'soft':
+        _bubbleStyle = BubbleStyle.soft;
+        break;
+      case 'pill':
+        _bubbleStyle = BubbleStyle.pill;
+        break;
+      case 'slab':
+        _bubbleStyle = BubbleStyle.slab;
+        break;
+      default:
+        _bubbleStyle = BubbleStyle.tailed;
+    }
+    final st = s[_kSpeakerTint];
+    switch (st) {
+      case 'off':
+        _speakerTint = SpeakerTint.off;
+        break;
+      case 'name':
+        _speakerTint = SpeakerTint.name;
+        break;
+      default:
+        _speakerTint = SpeakerTint.bubble;
+    }
+    final vrr = s[_kViewReadReceipts];
+    _viewReadReceipts = vrr == 'true'; // default false
+    final lm = s[_kLogoMode];
+    switch (lm) {
+      case 'manual':
+        _logoMode = LogoMode.manual;
+        break;
+      case 'alwaysDefault':
+        _logoMode = LogoMode.alwaysDefault;
+        break;
+      default:
+        _logoMode = LogoMode.auto;
+    }
+    _manualLogoThemeId = s[_kManualLogoThemeId];
+    final slu = s[_kShowLinkUrls];
+    _showLinkUrls = slu == 'true'; // default false
+    final sns = s[_kShowNetworkStats];
+    _showNetworkStats = sns == 'true'; // default false
+    final phd = s[_kPhotoHd];
+    _photoHd = phd == 'true'; // default false — compressed
+    _videoQualityTier = VideoQualityTierWire.parse(s[_kVideoQualityTier]);
+    _recoveryPromptDismissedFor = s[_kRecoveryPromptDismissed];
+    _composerModeHintSeenRoomIds = _decodeStringSet(
+      s[_kComposerModeHintSeenRoomIds],
+    );
+    final fs = s[_kFilterStyle];
+    // First-launch default is chips; honour an explicit 'drawer' selection.
+    _filterStyle = fs == 'drawer' ? FilterStyle.drawer : FilterStyle.chips;
+    _roomFilter = RoomFilter.decode(s[_kRoomFilter]);
+    _glassSlots = _decodeSlots(s[_kGlassSlots]);
+    final rawGlass = s[_kGlassProfile];
+    // The stored profile wins, because a look can be selected and then
+    // nudged. Only fall back to the preset's own profile when there is no
+    // stored one at all — a fresh install, or a keychain wipe.
+    //
+    // The two are read together, and the preset pointer is only trusted when
+    // there IS a stored profile. Reading the pointer on its own overwrote the
+    // field's default with the null a fresh install returns, so a first
+    // launch came up wearing Frosted's values while labelled "Custom" — a
+    // state the UI otherwise cannot reach, and one that made the shipped
+    // default look like an unsaved edit.
+    final stored = _decodeGlass(rawGlass);
+    if (stored != null) {
+      _glass = stored;
+      // Legitimately null once the slot you were wearing is deleted.
+      _glassPresetId = s[_kGlassPreset];
+    } else {
+      _glassPresetId = kDefaultGlassPresetId;
+      _glass = _resolvePreset(_glassPresetId).profile;
+    }
+    _localeCode = s[_kLocale];
+    // Absent (and unrecognised) reads back as null = "follow the OS", which
+    // is the default every fresh install wants.
+    _motionLevel = MotionLevel.parse(s[_kMotionLevel]);
+    _scheduledIndicator = ScheduledIndicator.parse(s[_kScheduledIndicator]);
+    _sebastianEnabled = s[_kSebastianEnabled] == 'true';
+    _translationTarget = s[_kTranslationTarget];
+    _translatedRoomIds = _decodeStringSet(s[_kTranslatedRoomIds]);
+    _marloweBrainId = s[_kMarloweBrainId];
+    _companionForceCpu = s[_kCompanionForceCpu] == 'true';
   }
 
   Future<void> setThemeId(String id) async {
@@ -755,6 +802,18 @@ class SettingsStore extends ChangeNotifier {
     orElse: () => kBuiltInGlassPresets.first,
   );
 
+  /// The stored live tuning, or null when there is none — or none that still
+  /// parses, which is treated the same: fall back to the default look rather
+  /// than let one bad blob abort the rest of the preferences.
+  static GlassProfile? _decodeGlass(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      return GlassProfile.fromJson(jsonDecode(raw));
+    } catch (_) {
+      return null;
+    }
+  }
+
   static List<GlassPreset> _decodeSlots(String? raw) {
     if (raw == null || raw.isEmpty) return const [];
     try {
@@ -933,6 +992,10 @@ class SettingsStore extends ChangeNotifier {
   /// from the current store state; safe to call from any setter. Awaiting
   /// would block the UI on a non-essential side effect.
   void _applyLauncherIcon() {
+    // Never from defaults: with the real choice still unread, "auto" and
+    // Midnight would swap the home-screen icon — and on iOS raise the system's
+    // icon-changed alert — for a selection the person never made.
+    if (_unread) return;
     final active = ThemeController.byId(
       _themeId ?? ThemeController.all.first.id,
     );

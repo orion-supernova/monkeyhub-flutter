@@ -966,6 +966,17 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     });
   }
 
+  /// Re-seeds what launch copied out of [SettingsStore] once the stored
+  /// preferences are actually readable. Free on every resume but the one after
+  /// a locked launch — see [SettingsStore.retryIfUnread].
+  Future<void> _retrySettings() async {
+    if (!await SettingsStore.instance.retryIfUnread()) return;
+    _themeController.theme = _initialTheme();
+    await CaptureProtection.instance.setUserEnabled(
+      SettingsStore.instance.captureProtection,
+    );
+  }
+
   /// Window metrics changed — padding, insets, scale.
   ///
   /// Nothing in this app implemented this before; it exists purely as a
@@ -999,6 +1010,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       // already shows it" — see [BadgeManager.invalidatePlatformBadge].
       BadgeManager.instance.invalidatePlatformBadge();
     }
+    // A launch on a locked phone can leave the preferences unread; the first
+    // resume is the first moment the keychain will certainly answer. Above the
+    // session check, because the login screen wears the theme too.
+    if (state == AppLifecycleState.resumed) unawaited(_retrySettings());
     // Above the session check on purpose: connection health must keep tracking
     // foreground/background across a signed-out window, so a sign-in that lands
     // right after a resume doesn't inherit a parked recovery loop.
@@ -1436,6 +1451,12 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         unawaited(() async {
           try {
             await PushManager.instance.login(s.userId);
+            // Only once the switches below are the user's, not the defaults
+            // standing in for them while a locked launch keeps the keychain
+            // shut. Every default is "on", so reading them here would skip the
+            // opt-outs and leave a freshly created device row notifying about
+            // exactly what the user had switched off.
+            await SettingsStore.instance.ready;
             // [PushManager.login] registers this device for push
             // unconditionally, so an account that turned notifications OFF
             // has to be opted back out straight afterwards or a cold start
