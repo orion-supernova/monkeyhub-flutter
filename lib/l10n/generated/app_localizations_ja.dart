@@ -8246,4 +8246,49 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get messageReceiptsStampDelivered => '配信';
+
+  @override
+  String get roomInviteCustom => 'カスタム';
+
+  @override
+  String roomInviteCustomHours(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 時間',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomInviteCustomDays(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 日',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomInviteCustomUses(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 回',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomInviteUnitHours => '時間';
+
+  @override
+  String get roomInviteUnitDays => '日';
+
+  @override
+  String get roomInviteStepperIncrease => '増やす';
+
+  @override
+  String get roomInviteStepperDecrease => '減らす';
 }

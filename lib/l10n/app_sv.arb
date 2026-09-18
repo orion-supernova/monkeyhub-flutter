@@ -2400,5 +2400,13 @@
   "messageReceiptsSentLabel": "SKICKAT",
   "messageReceiptsSemanticDeliveredThenRead": "{name} fick det här {deliveredDay} kl. {deliveredTime} och läste det {readDay} kl. {readTime}",
   "messageReceiptsStampRead": "läst",
-  "messageReceiptsStampDelivered": "levererat"
+  "messageReceiptsStampDelivered": "levererat",
+  "roomInviteCustom": "Annat",
+  "roomInviteCustomHours": "{count, plural, one{{count} timme} other{{count} timmar}}",
+  "roomInviteCustomDays": "{count, plural, one{{count} dag} other{{count} dagar}}",
+  "roomInviteCustomUses": "{count, plural, one{{count} gång} other{{count} gånger}}",
+  "roomInviteUnitHours": "Timmar",
+  "roomInviteUnitDays": "Dagar",
+  "roomInviteStepperIncrease": "Öka",
+  "roomInviteStepperDecrease": "Minska"
 }

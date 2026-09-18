@@ -2400,5 +2400,13 @@
   "messageReceiptsSentLabel": "보냄",
   "messageReceiptsSemanticDeliveredThenRead": "{name}님이 {deliveredDay} {deliveredTime}에 받고 {readDay} {readTime}에 읽었습니다",
   "messageReceiptsStampRead": "읽음",
-  "messageReceiptsStampDelivered": "전달됨"
+  "messageReceiptsStampDelivered": "전달됨",
+  "roomInviteCustom": "직접 설정",
+  "roomInviteCustomHours": "{count, plural, other{{count}시간}}",
+  "roomInviteCustomDays": "{count, plural, other{{count}일}}",
+  "roomInviteCustomUses": "{count, plural, other{{count}회}}",
+  "roomInviteUnitHours": "시간",
+  "roomInviteUnitDays": "일",
+  "roomInviteStepperIncrease": "늘리기",
+  "roomInviteStepperDecrease": "줄이기"
 }

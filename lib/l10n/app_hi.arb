@@ -2400,5 +2400,13 @@
   "messageReceiptsSentLabel": "भेजा",
   "messageReceiptsSemanticDeliveredThenRead": "{name} को यह {deliveredDay} को {deliveredTime} बजे मिला और {readDay} को {readTime} बजे पढ़ा",
   "messageReceiptsStampRead": "पढ़ा",
-  "messageReceiptsStampDelivered": "पहुँचा"
+  "messageReceiptsStampDelivered": "पहुँचा",
+  "roomInviteCustom": "अपना चुनो",
+  "roomInviteCustomHours": "{count, plural, one{{count} घंटा} other{{count} घंटे}}",
+  "roomInviteCustomDays": "{count, plural, one{{count} दिन} other{{count} दिन}}",
+  "roomInviteCustomUses": "{count, plural, one{{count} बार} other{{count} बार}}",
+  "roomInviteUnitHours": "घंटे",
+  "roomInviteUnitDays": "दिन",
+  "roomInviteStepperIncrease": "बढ़ाओ",
+  "roomInviteStepperDecrease": "घटाओ"
 }

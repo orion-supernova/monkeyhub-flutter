@@ -2400,5 +2400,13 @@
   "messageReceiptsSentLabel": "ENVIADO",
   "messageReceiptsSemanticDeliveredThenRead": "{name} lo recibió el {deliveredDay} a las {deliveredTime} y lo leyó el {readDay} a las {readTime}",
   "messageReceiptsStampRead": "leído",
-  "messageReceiptsStampDelivered": "entregado"
+  "messageReceiptsStampDelivered": "entregado",
+  "roomInviteCustom": "Otro",
+  "roomInviteCustomHours": "{count, plural, one{{count} hora} other{{count} horas}}",
+  "roomInviteCustomDays": "{count, plural, one{{count} día} other{{count} días}}",
+  "roomInviteCustomUses": "{count, plural, one{{count} uso} other{{count} usos}}",
+  "roomInviteUnitHours": "Horas",
+  "roomInviteUnitDays": "Días",
+  "roomInviteStepperIncrease": "Aumentar",
+  "roomInviteStepperDecrease": "Disminuir"
 }

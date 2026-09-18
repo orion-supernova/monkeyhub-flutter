@@ -8592,4 +8592,52 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get messageReceiptsStampDelivered => 'पहुँचा';
+
+  @override
+  String get roomInviteCustom => 'अपना चुनो';
+
+  @override
+  String roomInviteCustomHours(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count घंटे',
+      one: '$count घंटा',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomInviteCustomDays(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count दिन',
+      one: '$count दिन',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomInviteCustomUses(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count बार',
+      one: '$count बार',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomInviteUnitHours => 'घंटे';
+
+  @override
+  String get roomInviteUnitDays => 'दिन';
+
+  @override
+  String get roomInviteStepperIncrease => 'बढ़ाओ';
+
+  @override
+  String get roomInviteStepperDecrease => 'घटाओ';
 }

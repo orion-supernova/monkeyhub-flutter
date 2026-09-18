@@ -8269,4 +8269,49 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get messageReceiptsStampDelivered => '전달됨';
+
+  @override
+  String get roomInviteCustom => '직접 설정';
+
+  @override
+  String roomInviteCustomHours(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count시간',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomInviteCustomDays(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count일',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomInviteCustomUses(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count회',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomInviteUnitHours => '시간';
+
+  @override
+  String get roomInviteUnitDays => '일';
+
+  @override
+  String get roomInviteStepperIncrease => '늘리기';
+
+  @override
+  String get roomInviteStepperDecrease => '줄이기';
 }

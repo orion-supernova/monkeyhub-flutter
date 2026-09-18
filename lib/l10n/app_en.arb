@@ -9892,5 +9892,37 @@
   "messageReceiptsStampDelivered": "delivered",
   "@messageReceiptsStampDelivered": {
     "description": "Lower-case label beside the time your message reached a member's device, in their row on the message-info screen."
+  },
+  "roomInviteCustom": "Custom",
+  "@roomInviteCustom": {
+    "description": "Last chip in each invite-link limit row; opens a stepper for a value the preset chips don't offer."
+  },
+  "roomInviteCustomHours": "{count, plural, one{{count} hour} other{{count} hours}}",
+  "@roomInviteCustomHours": {
+    "description": "The value of a custom invite-link expiry in hours, as shown between the stepper's arrows."
+  },
+  "roomInviteCustomDays": "{count, plural, one{{count} day} other{{count} days}}",
+  "@roomInviteCustomDays": {
+    "description": "The value of a custom invite-link expiry in days, as shown between the stepper's arrows."
+  },
+  "roomInviteCustomUses": "{count, plural, one{{count} use} other{{count} uses}}",
+  "@roomInviteCustomUses": {
+    "description": "The value of a custom invite-link use limit, as shown between the stepper's arrows."
+  },
+  "roomInviteUnitHours": "Hours",
+  "@roomInviteUnitHours": {
+    "description": "Unit toggle beside the custom expiry stepper: count the expiry in hours."
+  },
+  "roomInviteUnitDays": "Days",
+  "@roomInviteUnitDays": {
+    "description": "Unit toggle beside the custom expiry stepper: count the expiry in days."
+  },
+  "roomInviteStepperIncrease": "Increase",
+  "@roomInviteStepperIncrease": {
+    "description": "Accessibility name of the up arrow on a number stepper."
+  },
+  "roomInviteStepperDecrease": "Decrease",
+  "@roomInviteStepperDecrease": {
+    "description": "Accessibility name of the down arrow on a number stepper."
   }
 }

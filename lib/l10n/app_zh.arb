@@ -2400,5 +2400,13 @@
   "messageReceiptsSentLabel": "已发送",
   "messageReceiptsSemanticDeliveredThenRead": "{name} 于 {deliveredDay} {deliveredTime} 收到，{readDay} {readTime} 已读",
   "messageReceiptsStampRead": "已读",
-  "messageReceiptsStampDelivered": "已送达"
+  "messageReceiptsStampDelivered": "已送达",
+  "roomInviteCustom": "自定义",
+  "roomInviteCustomHours": "{count, plural, other{{count} 小时}}",
+  "roomInviteCustomDays": "{count, plural, other{{count} 天}}",
+  "roomInviteCustomUses": "{count, plural, other{{count} 次}}",
+  "roomInviteUnitHours": "小时",
+  "roomInviteUnitDays": "天",
+  "roomInviteStepperIncrease": "增加",
+  "roomInviteStepperDecrease": "减少"
 }

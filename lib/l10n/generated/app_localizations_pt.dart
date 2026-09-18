@@ -8681,6 +8681,54 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get messageReceiptsStampDelivered => 'entregue';
+
+  @override
+  String get roomInviteCustom => 'Outro';
+
+  @override
+  String roomInviteCustomHours(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count horas',
+      one: '$count hora',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomInviteCustomDays(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dias',
+      one: '$count dia',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomInviteCustomUses(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count utilizações',
+      one: '$count utilização',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomInviteUnitHours => 'Horas';
+
+  @override
+  String get roomInviteUnitDays => 'Dias';
+
+  @override
+  String get roomInviteStepperIncrease => 'Aumentar';
+
+  @override
+  String get roomInviteStepperDecrease => 'Diminuir';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -17356,4 +17404,52 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get messageReceiptsStampDelivered => 'entregue';
+
+  @override
+  String get roomInviteCustom => 'Outro';
+
+  @override
+  String roomInviteCustomHours(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count horas',
+      one: '$count hora',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomInviteCustomDays(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dias',
+      one: '$count dia',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomInviteCustomUses(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count usos',
+      one: '$count uso',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomInviteUnitHours => 'Horas';
+
+  @override
+  String get roomInviteUnitDays => 'Dias';
+
+  @override
+  String get roomInviteStepperIncrease => 'Aumentar';
+
+  @override
+  String get roomInviteStepperDecrease => 'Diminuir';
 }

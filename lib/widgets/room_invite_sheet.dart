@@ -10,11 +10,14 @@ import '../invites/invite_link.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/room_admin.dart';
+import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'app_toast.dart';
 import 'sheet_surface.dart';
 import 'destructive_sheet.dart';
+import 'message_stamp.dart' show formatClockTime;
+import 'number_stepper.dart';
 import 'sheet_buttons.dart';
 
 /// The admin's invite-link sheet: the room's one live link, the limits on it,
@@ -66,6 +69,25 @@ const _expiryChoices = <Duration?>[
 /// Use caps, same reasoning. `null` is unlimited.
 const _useChoices = <int?>[null, 1, 5, 10, 25, 100];
 
+/// The unit a custom expiry is dialled in.
+enum _ExpiryUnit {
+  hours,
+  days;
+
+  Duration of(int amount) =>
+      this == hours ? Duration(hours: amount) : Duration(days: amount);
+
+  /// The stepper's ceiling. Days stop at the backend's own
+  /// `MAX_EXPIRY_MS` (a year); hours stop at three days, past which the days
+  /// unit says the same thing without asking for seventy taps.
+  int get max => this == hours ? 72 : 365;
+}
+
+/// The stepper's ceiling for a custom use count. The backend takes any whole
+/// number from one up; a thousand is well past any real group, and a bound is
+/// what lets a held arrow run to the end instead of forever.
+const _maxCustomUses = 1000;
+
 class _RoomInviteSheet extends StatefulWidget {
   const _RoomInviteSheet({
     required this.repo,
@@ -92,6 +114,20 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
   /// which is the opposite of what a limit is for.
   Duration? _pendingExpiry;
   int? _pendingMaxUses;
+
+  /// A custom limit, when the presets were not enough. Kept apart from the
+  /// preset values rather than written over them, so tapping a preset and
+  /// then Custom again brings back what the admin had dialled in.
+  bool _customExpiry = false;
+  _ExpiryUnit _customUnit = _ExpiryUnit.days;
+  int _customAmount = 3;
+  bool _customUses = false;
+  int _customUsesCount = 3;
+
+  /// What the next link will actually be made with.
+  Duration? get _nextExpiry =>
+      _customExpiry ? _customUnit.of(_customAmount) : _pendingExpiry;
+  int? get _nextMaxUses => _customUses ? _customUsesCount : _pendingMaxUses;
 
   late bool _membersCanInvite = widget.permissions.membersCanInvite;
   late RoomJoinPolicy _joinPolicy = widget.permissions.linkJoinPolicy;
@@ -135,8 +171,8 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
     try {
       final link = await widget.repo.rotateRoomInviteLink(
         widget.roomId,
-        expiresIn: _pendingExpiry,
-        maxUses: _pendingMaxUses,
+        expiresIn: _nextExpiry,
+        maxUses: _nextMaxUses,
       );
       await HapticFeedback.mediumImpact();
       if (!mounted) return;
@@ -327,7 +363,17 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
                 value: _pendingExpiry,
                 choices: _expiryChoices,
                 labelFor: (d) => _expiryLabel(l10n, d),
-                onChanged: (d) => setState(() => _pendingExpiry = d),
+                onChanged: (d) => setState(() {
+                  _pendingExpiry = d;
+                  _customExpiry = false;
+                }),
+                customLabel: l10n.roomInviteCustom,
+                customActive: _customExpiry,
+                onCustom: _openCustomExpiry,
+              ),
+              _CustomPanel(
+                open: _customExpiry,
+                child: _customExpiryControls(theme, l10n),
               ),
               const SizedBox(height: 10),
               _ChoiceRow<int?>(
@@ -336,7 +382,29 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
                 choices: _useChoices,
                 labelFor: (n) =>
                     n == null ? l10n.roomInviteUnlimited : n.toString(),
-                onChanged: (n) => setState(() => _pendingMaxUses = n),
+                onChanged: (n) => setState(() {
+                  _pendingMaxUses = n;
+                  _customUses = false;
+                }),
+                customLabel: l10n.roomInviteCustom,
+                customActive: _customUses,
+                onCustom: _openCustomUses,
+              ),
+              _CustomPanel(
+                open: _customUses,
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: NumberStepper(
+                    value: _customUsesCount,
+                    min: 1,
+                    max: _maxCustomUses,
+                    display: l10n.roomInviteCustomUses,
+                    semanticsLabel: l10n.roomInviteMaxUsesLabel,
+                    increaseLabel: l10n.roomInviteStepperIncrease,
+                    decreaseLabel: l10n.roomInviteStepperDecrease,
+                    onChanged: (n) => setState(() => _customUsesCount = n),
+                  ),
+                ),
               ),
               const SizedBox(height: 6),
               Text(
@@ -365,6 +433,106 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
             ],
           ],
       ),
+    );
+  }
+
+  /// Custom seeds itself from the preset it replaces, so the stepper starts
+  /// where the admin already was — "24h" opens on 1 day, not on a default.
+  void _openCustomExpiry() {
+    final from = _pendingExpiry;
+    setState(() {
+      if (!_customExpiry && from != null) {
+        if (from.inHours < 24) {
+          _customUnit = _ExpiryUnit.hours;
+          _customAmount = from.inHours.clamp(1, _ExpiryUnit.hours.max);
+        } else {
+          _customUnit = _ExpiryUnit.days;
+          _customAmount = from.inDays.clamp(1, _ExpiryUnit.days.max);
+        }
+      }
+      _customExpiry = true;
+    });
+    HapticFeedback.selectionClick();
+  }
+
+  void _openCustomUses() {
+    setState(() {
+      final from = _pendingMaxUses;
+      if (!_customUses && from != null) {
+        _customUsesCount = from.clamp(1, _maxCustomUses);
+      }
+      _customUses = true;
+    });
+    HapticFeedback.selectionClick();
+  }
+
+  /// Switching unit keeps the same span as nearly as the new unit can say it:
+  /// 36 hours becomes 2 days (rounded up — an expiry should never come early),
+  /// 5 days becomes the hours ceiling.
+  void _setUnit(_ExpiryUnit unit) {
+    if (unit == _customUnit) return;
+    final span = _customUnit.of(_customAmount);
+    setState(() {
+      _customUnit = unit;
+      _customAmount = (unit == _ExpiryUnit.hours
+              ? span.inHours
+              : (span.inHours / 24).ceil())
+          .clamp(1, unit.max);
+    });
+    HapticFeedback.selectionClick();
+  }
+
+  Widget _customExpiryControls(AppTheme theme, AppLocalizations l10n) {
+    final unit = _customUnit;
+    final until = DateTime.now().add(unit.of(_customAmount));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            NumberStepper(
+              value: _customAmount,
+              min: 1,
+              max: unit.max,
+              display: unit == _ExpiryUnit.hours
+                  ? l10n.roomInviteCustomHours
+                  : l10n.roomInviteCustomDays,
+              semanticsLabel: l10n.roomInviteExpiryLabel,
+              increaseLabel: l10n.roomInviteStepperIncrease,
+              decreaseLabel: l10n.roomInviteStepperDecrease,
+              onChanged: (n) => setState(() => _customAmount = n),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _Chip(
+                  label: l10n.roomInviteUnitHours,
+                  active: unit == _ExpiryUnit.hours,
+                  onTap: () => _setUnit(_ExpiryUnit.hours),
+                ),
+                const SizedBox(width: 6),
+                _Chip(
+                  label: l10n.roomInviteUnitDays,
+                  active: unit == _ExpiryUnit.days,
+                  onTap: () => _setUnit(_ExpiryUnit.days),
+                ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        // The answer to the question the stepper is really asking — "until
+        // when?" — so nobody has to count forward from today in their head.
+        Text(
+          l10n.roomInviteExpiresOn(
+            '${_shortDate(until)} ${formatClockTime(until)}',
+          ),
+          style: theme.monoTiny.copyWith(color: theme.inkMuted),
+        ),
+      ],
     );
   }
 
@@ -561,9 +729,10 @@ class _LinkCard extends StatelessWidget {
     return '$uses · ${l10n.roomInviteExpiresOn(_shortDate(link.expiresAt!))}';
   }
 
-  String _shortDate(DateTime d) =>
-      '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
 }
+
+String _shortDate(DateTime d) =>
+    '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
 
 class _MiniButton extends StatelessWidget {
   const _MiniButton({required this.icon, required this.label, required this.onTap});
@@ -635,6 +804,9 @@ class _ChoiceRow<T> extends StatelessWidget {
     required this.choices,
     required this.labelFor,
     required this.onChanged,
+    required this.customLabel,
+    required this.customActive,
+    required this.onCustom,
   });
 
   final String label;
@@ -642,6 +814,12 @@ class _ChoiceRow<T> extends StatelessWidget {
   final List<T> choices;
   final String Function(T) labelFor;
   final ValueChanged<T> onChanged;
+
+  /// The last chip, for a value the presets do not offer. While it is active
+  /// no preset is, whatever [value] still holds.
+  final String customLabel;
+  final bool customActive;
+  final VoidCallback onCustom;
 
   @override
   Widget build(BuildContext context) {
@@ -651,20 +829,26 @@ class _ChoiceRow<T> extends StatelessWidget {
       children: [
         Text(label, style: theme.bodySoft),
         const SizedBox(height: 6),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              for (final c in choices) ...[
-                _Chip(
-                  label: labelFor(c),
-                  active: c == value,
-                  onTap: () => onChanged(c),
-                ),
-                const SizedBox(width: 6),
-              ],
-            ],
-          ),
+        // Wrapped, not scrolled sideways: on a phone the last chips of a
+        // scrolling row sat past the edge, and the last one is Custom — the
+        // option least likely to be found by swiping for it.
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final c in choices)
+              _Chip(
+                label: labelFor(c),
+                active: !customActive && c == value,
+                onTap: () => onChanged(c),
+              ),
+            _Chip(
+              label: customLabel,
+              icon: Icons.tune_rounded,
+              active: customActive,
+              onTap: onCustom,
+            ),
+          ],
         ),
       ],
     );
@@ -672,10 +856,18 @@ class _ChoiceRow<T> extends StatelessWidget {
 }
 
 class _Chip extends StatelessWidget {
-  const _Chip({required this.label, required this.active, required this.onTap});
+  const _Chip({
+    required this.label,
+    required this.active,
+    required this.onTap,
+    this.icon,
+  });
   final String label;
   final bool active;
   final VoidCallback onTap;
+
+  /// Marks a chip that opens something rather than picking a value.
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -698,14 +890,52 @@ class _Chip extends StatelessWidget {
             ),
             borderRadius: BorderRadius.circular(theme.radiusSm),
           ),
-          child: Text(
-            label,
-            style: theme.monoTiny.copyWith(
-              color: active ? theme.accentInk : theme.inkSoft,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(
+                  icon,
+                  size: 12,
+                  color: active ? theme.accentInk : theme.inkSoft,
+                ),
+                const SizedBox(width: 5),
+              ],
+              Text(
+                label,
+                style: theme.monoTiny.copyWith(
+                  color: active ? theme.accentInk : theme.inkSoft,
+                ),
+              ),
+            ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Where a custom limit is dialled in, directly under the chips that opened
+/// it. Grows open and closed rather than snapping, so the rest of the sheet
+/// slides instead of jumping.
+class _CustomPanel extends StatelessWidget {
+  const _CustomPanel({required this.open, required this.child});
+  final bool open;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return AnimatedSize(
+      duration: theme.motionFast,
+      curve: theme.motionEntrance,
+      alignment: Alignment.topCenter,
+      child: open
+          ? Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: child,
+            )
+          : const SizedBox(width: double.infinity, height: 0),
     );
   }
 }

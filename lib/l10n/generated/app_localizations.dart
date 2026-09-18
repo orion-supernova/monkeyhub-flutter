@@ -14562,6 +14562,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'delivered'**
   String get messageReceiptsStampDelivered;
+
+  /// Last chip in each invite-link limit row; opens a stepper for a value the preset chips don't offer.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get roomInviteCustom;
+
+  /// The value of a custom invite-link expiry in hours, as shown between the stepper's arrows.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} hour} other{{count} hours}}'**
+  String roomInviteCustomHours(num count);
+
+  /// The value of a custom invite-link expiry in days, as shown between the stepper's arrows.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} day} other{{count} days}}'**
+  String roomInviteCustomDays(num count);
+
+  /// The value of a custom invite-link use limit, as shown between the stepper's arrows.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} use} other{{count} uses}}'**
+  String roomInviteCustomUses(num count);
+
+  /// Unit toggle beside the custom expiry stepper: count the expiry in hours.
+  ///
+  /// In en, this message translates to:
+  /// **'Hours'**
+  String get roomInviteUnitHours;
+
+  /// Unit toggle beside the custom expiry stepper: count the expiry in days.
+  ///
+  /// In en, this message translates to:
+  /// **'Days'**
+  String get roomInviteUnitDays;
+
+  /// Accessibility name of the up arrow on a number stepper.
+  ///
+  /// In en, this message translates to:
+  /// **'Increase'**
+  String get roomInviteStepperIncrease;
+
+  /// Accessibility name of the down arrow on a number stepper.
+  ///
+  /// In en, this message translates to:
+  /// **'Decrease'**
+  String get roomInviteStepperDecrease;
 }
 
 class _AppLocalizationsDelegate

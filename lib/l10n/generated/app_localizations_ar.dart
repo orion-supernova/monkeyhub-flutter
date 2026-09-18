@@ -8692,4 +8692,64 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get messageReceiptsStampDelivered => 'وصلت';
+
+  @override
+  String get roomInviteCustom => 'مخصص';
+
+  @override
+  String roomInviteCustomHours(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ساعة',
+      many: '$count ساعة',
+      few: '$count ساعات',
+      two: 'ساعتان',
+      one: 'ساعة واحدة',
+      zero: '$count ساعة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomInviteCustomDays(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count يوم',
+      many: '$count يومًا',
+      few: '$count أيام',
+      two: 'يومان',
+      one: 'يوم واحد',
+      zero: '$count يوم',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomInviteCustomUses(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count استخدام',
+      many: '$count استخدامًا',
+      few: '$count استخدامات',
+      two: 'استخدامان',
+      one: 'استخدام واحد',
+      zero: '$count استخدام',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomInviteUnitHours => 'ساعات';
+
+  @override
+  String get roomInviteUnitDays => 'أيام';
+
+  @override
+  String get roomInviteStepperIncrease => 'زيادة';
+
+  @override
+  String get roomInviteStepperDecrease => 'إنقاص';
 }

@@ -2400,5 +2400,13 @@
   "messageReceiptsSentLabel": "送信",
   "messageReceiptsSemanticDeliveredThenRead": "{name} が {deliveredDay} {deliveredTime} に受信し、{readDay} {readTime} に既読",
   "messageReceiptsStampRead": "既読",
-  "messageReceiptsStampDelivered": "配信"
+  "messageReceiptsStampDelivered": "配信",
+  "roomInviteCustom": "カスタム",
+  "roomInviteCustomHours": "{count, plural, other{{count} 時間}}",
+  "roomInviteCustomDays": "{count, plural, other{{count} 日}}",
+  "roomInviteCustomUses": "{count, plural, other{{count} 回}}",
+  "roomInviteUnitHours": "時間",
+  "roomInviteUnitDays": "日",
+  "roomInviteStepperIncrease": "増やす",
+  "roomInviteStepperDecrease": "減らす"
 }

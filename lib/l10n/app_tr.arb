@@ -2400,5 +2400,13 @@
   "messageReceiptsSentLabel": "GÖNDERİLDİ",
   "messageReceiptsSemanticDeliveredThenRead": "{name} bunu {deliveredDay} saat {deliveredTime} itibarıyla aldı ve {readDay} saat {readTime} itibarıyla okudu",
   "messageReceiptsStampRead": "okundu",
-  "messageReceiptsStampDelivered": "iletildi"
+  "messageReceiptsStampDelivered": "iletildi",
+  "roomInviteCustom": "Özel",
+  "roomInviteCustomHours": "{count, plural, one{{count} saat} other{{count} saat}}",
+  "roomInviteCustomDays": "{count, plural, one{{count} gün} other{{count} gün}}",
+  "roomInviteCustomUses": "{count, plural, one{{count} kullanım} other{{count} kullanım}}",
+  "roomInviteUnitHours": "Saat",
+  "roomInviteUnitDays": "Gün",
+  "roomInviteStepperIncrease": "Artır",
+  "roomInviteStepperDecrease": "Azalt"
 }

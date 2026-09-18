@@ -8608,4 +8608,52 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get messageReceiptsStampDelivered => 'levererat';
+
+  @override
+  String get roomInviteCustom => 'Annat';
+
+  @override
+  String roomInviteCustomHours(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count timmar',
+      one: '$count timme',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomInviteCustomDays(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dagar',
+      one: '$count dag',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomInviteCustomUses(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count gånger',
+      one: '$count gång',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomInviteUnitHours => 'Timmar';
+
+  @override
+  String get roomInviteUnitDays => 'Dagar';
+
+  @override
+  String get roomInviteStepperIncrease => 'Öka';
+
+  @override
+  String get roomInviteStepperDecrease => 'Minska';
 }

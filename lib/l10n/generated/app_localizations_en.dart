@@ -8574,4 +8574,52 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get messageReceiptsStampDelivered => 'delivered';
+
+  @override
+  String get roomInviteCustom => 'Custom';
+
+  @override
+  String roomInviteCustomHours(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count hours',
+      one: '$count hour',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomInviteCustomDays(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days',
+      one: '$count day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomInviteCustomUses(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count uses',
+      one: '$count use',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomInviteUnitHours => 'Hours';
+
+  @override
+  String get roomInviteUnitDays => 'Days';
+
+  @override
+  String get roomInviteStepperIncrease => 'Increase';
+
+  @override
+  String get roomInviteStepperDecrease => 'Decrease';
 }

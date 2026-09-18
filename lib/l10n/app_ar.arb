@@ -2400,5 +2400,13 @@
   "messageReceiptsSentLabel": "أُرسلت",
   "messageReceiptsSemanticDeliveredThenRead": "استلمها {name} {deliveredDay} في {deliveredTime} وقرأها {readDay} في {readTime}",
   "messageReceiptsStampRead": "قُرئت",
-  "messageReceiptsStampDelivered": "وصلت"
+  "messageReceiptsStampDelivered": "وصلت",
+  "roomInviteCustom": "مخصص",
+  "roomInviteCustomHours": "{count, plural, zero{{count} ساعة} one{ساعة واحدة} two{ساعتان} few{{count} ساعات} many{{count} ساعة} other{{count} ساعة}}",
+  "roomInviteCustomDays": "{count, plural, zero{{count} يوم} one{يوم واحد} two{يومان} few{{count} أيام} many{{count} يومًا} other{{count} يوم}}",
+  "roomInviteCustomUses": "{count, plural, zero{{count} استخدام} one{استخدام واحد} two{استخدامان} few{{count} استخدامات} many{{count} استخدامًا} other{{count} استخدام}}",
+  "roomInviteUnitHours": "ساعات",
+  "roomInviteUnitDays": "أيام",
+  "roomInviteStepperIncrease": "زيادة",
+  "roomInviteStepperDecrease": "إنقاص"
 }

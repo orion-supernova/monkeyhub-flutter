@@ -8152,4 +8152,49 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get messageReceiptsStampDelivered => '已送达';
+
+  @override
+  String get roomInviteCustom => '自定义';
+
+  @override
+  String roomInviteCustomHours(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 小时',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomInviteCustomDays(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 天',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomInviteCustomUses(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 次',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomInviteUnitHours => '小时';
+
+  @override
+  String get roomInviteUnitDays => '天';
+
+  @override
+  String get roomInviteStepperIncrease => '增加';
+
+  @override
+  String get roomInviteStepperDecrease => '减少';
 }
