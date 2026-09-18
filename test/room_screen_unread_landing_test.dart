@@ -148,4 +148,37 @@ void main() {
       reason: 'the divider must not be a frame behind the scroll onto it',
     );
   });
+
+  // Tap a pin inside the landing window, then the latest pill: the history
+  // the pin loaded and the window the pill left were each the change that let
+  // a still-pending landing fire, and "the bottom" became the UNREAD line.
+  // Every deliberate move has to retire the opening scroll first.
+  test('a deliberate move retires the opening scroll', () {
+    String bodyOf(String signature) {
+      final start = source.indexOf(signature);
+      expect(start, isNonNegative, reason: '$signature was renamed or removed');
+      return source.substring(start, source.indexOf('\n  }\n', start));
+    }
+
+    expect(
+      bodyOf('void _scrollToBottom() {').contains('_abandonUnreadLanding();'),
+      isTrue,
+      reason: 'the latest pill and every send go through here',
+    );
+    expect(
+      bodyOf('Future<bool> _travelTo(String messageId')
+          .contains('_abandonUnreadLanding();'),
+      isTrue,
+      reason: 'pins, reply tethers, the back pill and room-info jumps',
+    );
+    final onScroll = bodyOf('void _onScroll() {');
+    expect(
+      onScroll.contains('pos.userScrollDirection != ScrollDirection.idle') &&
+          onScroll.contains('_abandonUnreadLanding();'),
+      isTrue,
+      reason:
+          'a finger on the list outranks it too — and only a finger: the '
+          'landing\'s own programmatic scroll must not cancel itself',
+    );
+  });
 }

@@ -10,6 +10,7 @@ import 'package:file_selector/file_selector.dart' show openFile;
 import 'package:flutter/foundation.dart' show kIsWeb, listEquals;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -733,6 +734,13 @@ class _RoomScreenState extends State<RoomScreen>
       widget.repo.loadNewerTimeline(widget.roomId);
     }
 
+    // A finger on the list outranks the opening scroll. Programmatic moves —
+    // including the landing's own — leave the user direction idle.
+    if (_unreadLandingPending &&
+        pos.userScrollDirection != ScrollDirection.idle) {
+      _abandonUnreadLanding();
+    }
+
     // Scroll-to-latest pill. Hysteresis lives in BottomProximity and the
     // notifier swallows the no-change case, so the common frame ends here.
     _scrolledUp.update(pos);
@@ -1123,6 +1131,19 @@ class _RoomScreenState extends State<RoomScreen>
       );
     }
   }
+
+  /// The reader has taken the viewport somewhere on purpose — a pin, a reply,
+  /// the latest pill, a send, a drag. Whatever the opening scroll was still
+  /// waiting for (a room list that lands late, a first unread message older
+  /// than the rows loaded so far) must not arrive after that and drag them
+  /// back to the UNREAD line.
+  ///
+  /// That is exactly what it did: tap a pin within the landing window, and the
+  /// history the jump loaded was the change that finally let the landing fire;
+  /// tap the latest pill after it, and leaving the history window was. Either
+  /// way "go to the bottom" ended on the last message the reader had read. The
+  /// line itself stays — only the automatic scroll onto it is given up.
+  void _abandonUnreadLanding() => _unreadLandingPending = false;
 
   /// Snaps the transcript to the first unread message once, as soon as its
   /// row can be located — instead of the reverse:true default of opening at
@@ -1961,6 +1982,7 @@ class _RoomScreenState extends State<RoomScreen>
   /// button as its way back, and a failure went nowhere to come back from.
   Future<bool> _travelTo(String messageId, {required ChatMessage from}) async {
     final toast = AppToast.of(context);
+    _abandonUnreadLanding();
 
     // The pin exists to protect a jump in flight; handing the message over to
     // the thread overlay ends the flight, so drop it or the row stays
@@ -2054,6 +2076,7 @@ class _RoomScreenState extends State<RoomScreen>
   }
 
   void _scrollToBottom() {
+    _abandonUnreadLanding();
     // Reading history is the one state where "the bottom" isn't the newest
     // message — drop the window first so it is.
     if (widget.repo.inHistoryWindow(widget.roomId)) {
