@@ -112,6 +112,18 @@ void main() {
           'the line and the viewport have to be the same message, not two '
           'answers that agree by construction',
     );
+    expect(
+      body.contains('_unreadDividerKey.currentContext'),
+      isTrue,
+      reason: 'the landing aims at the UNREAD line itself, not the row under it',
+    );
+    expect(
+      body.contains('alignment: centredAlignment('),
+      isTrue,
+      reason:
+          'the line lands in the middle of what the reader can see, clear of '
+          'the floating header and composer, as far as the content allows',
+    );
   });
 
   test('the item pass is keyed on the divider row it was built with', () {

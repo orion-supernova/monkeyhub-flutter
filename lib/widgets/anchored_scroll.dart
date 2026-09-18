@@ -159,3 +159,33 @@ double? _estimateOffset({
           : highest;
   return anchor.value + (targetIndex - anchor.key) * perItem;
 }
+
+/// The [Scrollable.ensureVisible] alignment that centres an [extent]-tall row
+/// in what the reader can actually SEE of a [viewport]: the band left between
+/// chrome floating over its [top] and [bottom] edges.
+///
+/// A plain 0.5 centres the row in the viewport's box, and in the compact chat
+/// style that box runs under a glass header and a glass composer of different
+/// heights — so "centred" landed visibly off-centre, by half their difference.
+///
+/// [reverse] is the list's own flag. `ensureVisible` measures alignment from
+/// the viewport's LEADING edge, which is the bottom of a `reverse: true`
+/// transcript, so the same visual target needs the complementary fraction.
+///
+/// Clamped to 0..1; the scroll position clamps the resulting offset in turn,
+/// which is what makes this "as centred as the content allows" — a row with
+/// half a screen of messages below it cannot be lifted any higher than that.
+double centredAlignment({
+  required double viewport,
+  required double extent,
+  double top = 0,
+  double bottom = 0,
+  bool reverse = false,
+}) {
+  final free = viewport - extent;
+  if (free <= 0) return 0.5;
+  // Where the row's centre should sit, from the viewport's top edge.
+  final centre = (top + viewport - bottom) / 2;
+  final fromTop = (centre - extent / 2) / free;
+  return (reverse ? 1 - fromTop : fromTop).clamp(0.0, 1.0);
+}

@@ -312,6 +312,16 @@ class _RoomScreenState extends State<RoomScreen>
   String? _unreadDividerId;
   bool _unreadDividerSettled = false;
 
+  /// The UNREAD MESSAGES row itself, so the opening scroll can aim at the line
+  /// rather than at the message under it. Only ever one such row.
+  final GlobalKey _unreadDividerKey = GlobalKey(debugLabel: 'unread-divider');
+
+  /// What floats over the transcript's top and bottom edges, as the last build
+  /// laid it out — the band the landing centres the divider in. Both zero in
+  /// the classic style, whose header and composer sit outside the viewport.
+  double _topChromeOverList = 0;
+  double _bottomChromeOverList = 0;
+
   // True from mount until the initial landing has either succeeded or been
   // given up on — guards against re-triggering on a later notification (a
   // reaction, a typing update) once the reader has already scrolled off on
@@ -1143,17 +1153,32 @@ class _RoomScreenState extends State<RoomScreen>
     // Settled on a row that isn't built — folded into a thread chip, or a
     // rebuild away. Keep trying; the deadline above is what ends it.
     if (_rowIndexOf[id] == null) return;
+    if (!_scroll.hasClients) return;
     _unreadLandingPending = false;
     unawaited(snapToIndex(
       controller: _scroll,
       // Re-read every hop: a message arriving mid-jump shifts every index.
+      // The message's index, not the line's: the two are adjacent, and only
+      // messages are tracked for the estimate to calibrate against.
       targetIndex: () => _rowIndexOf[id],
       itemCount: () => _revItems.length,
-      targetContext: () => _dateTracks['m_$id']?.key.currentContext,
+      // The line itself once it is built — it is what the reader is looking
+      // for — and the message under it until then.
+      targetContext: () =>
+          _unreadDividerKey.currentContext ??
+          _dateTracks['m_$id']?.key.currentContext,
       probes: _mountedRowProbes,
-      // Lower than a reply jump's 0.3: the point is to show what's NEW below
-      // the divider, not to centre the divider itself.
-      alignment: 0.15,
+      // The line in the middle of what the reader can see: what they already
+      // read above it for context, what is new below it. When there is not
+      // that much below — two unread messages — the scroll clamps at the
+      // bottom and the line simply sits lower, with everything new in view.
+      alignment: centredAlignment(
+        viewport: _scroll.position.viewportDimension,
+        extent: _unreadDividerKey.currentContext?.size?.height ?? 36,
+        top: _topChromeOverList,
+        bottom: _bottomChromeOverList,
+        reverse: true,
+      ),
       // This is where the screen opens, not a jump the reader triggered —
       // landing already-scrolled reads as "here's where you left off",
       // where an animated scroll-past would read as scrolling through
@@ -3951,6 +3976,12 @@ class _RoomScreenState extends State<RoomScreen>
     // Recorded for _recomputePositionState — must match the Positioned.top
     // applied to the chip below so the overlap math reflects the real rect.
     _chipRestingY = listPadding.top + 4;
+    // The liquid style floats its header and composer OVER the list, and pays
+    // for them in padding and in the inset spacer; classic has neither over it.
+    _topChromeOverList = bottomChrome == null ? 0 : listPadding.top;
+    _bottomChromeOverList = bottomChrome == null
+        ? 0
+        : bottomChrome.inset.height ?? bottomChrome.estimate;
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       // Dismisses the soft keyboard when you tap the transcript. On desktop
@@ -4066,7 +4097,10 @@ class _RoomScreenState extends State<RoomScreen>
                       //
                       // Handed the list's own side padding because it is the
                       // one row that draws through it — see [_UnreadDivider].
-                      return _UnreadDivider(bleed: listPadding);
+                      return KeyedSubtree(
+                        key: _unreadDividerKey,
+                        child: _UnreadDivider(bleed: listPadding),
+                      );
                     }
                     if (item is ThreadFoldItem) {
                       // Deliberately not wrapped in _trackedDate: the chip
