@@ -285,20 +285,31 @@ class _InteractionComposeSheetState extends State<InteractionComposeSheet> {
 
   Future<void> _pickWhen({required bool end}) async {
     final now = DateTime.now();
-    final seed = (end ? _endsAt : _startsAt) ?? _startsAt ?? now;
+    // A year back, because an event card is also a record: somebody writing
+    // up last week's dinner should be able to date it correctly. Two years
+    // forward covers anything anybody plans in a group chat.
+    final first = DateTime(now.year - 1);
+    final last = DateTime(now.year + 2);
+    // Opens on what is already set, and otherwise on NOW — today's page, the
+    // current time. An unset END opens an hour after the start rather than on
+    // it: an end equal to its start is the one answer it can never be, so the
+    // most likely one is a better place to begin adjusting from.
+    final start = _startsAt;
+    final seed = (end ? _endsAt : start) ??
+        (end && start != null ? start.add(const Duration(hours: 1)) : now);
+    final initial = seed.isBefore(first)
+        ? first
+        : (seed.isAfter(last) ? last : seed);
     final date = await showDatePicker(
       context: context,
-      initialDate: seed,
-      // A year back, because an event card is also a record: somebody writing
-      // up last week's dinner should be able to date it correctly. Two years
-      // forward covers anything anybody plans in a group chat.
-      firstDate: DateTime(now.year - 1),
-      lastDate: DateTime(now.year + 2),
+      initialDate: initial,
+      firstDate: first,
+      lastDate: last,
     );
     if (date == null || !mounted) return;
     final time = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.fromDateTime(seed),
+      initialTime: TimeOfDay.fromDateTime(initial),
     );
     if (time == null || !mounted) return;
     final picked = DateTime(

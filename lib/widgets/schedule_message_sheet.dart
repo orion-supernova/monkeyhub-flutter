@@ -139,6 +139,10 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
   /// it simply stops being what [_resolved] reads.
   SchedulePreset _preset = SchedulePreset.inAnHour;
 
+  /// Whether [_preset] is the user's choice or only the default lit row.
+  /// Decides where the calendar opens — see [_openPicker].
+  bool _presetChosen = false;
+
   /// Whether the sheet is showing the calendar rather than its quick choices.
   bool _picking = false;
 
@@ -198,6 +202,7 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
     HapticFeedback.selectionClick();
     setState(() {
       _preset = p;
+      _presetChosen = true;
       _picking = false;
     });
   }
@@ -205,9 +210,13 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
   void _openPicker() {
     HapticFeedback.selectionClick();
     setState(() {
-      // Seeded from whatever row was lit, so opening the calendar continues the
-      // choice already made rather than resetting it to now.
-      _custom = _resolved;
+      // A row the user actually tapped is a choice, and the calendar continues
+      // it rather than resetting it. The row that is merely lit by default is
+      // not — opening the calendar from there opens on NOW: today's page, the
+      // current hour, the first minute that can still be scheduled. Starting
+      // an hour ahead made every "in twenty minutes" a matter of winding the
+      // clock backwards first.
+      _custom = _presetChosen ? _resolved : _clampToWindow(DateTime.now());
       _picking = true;
     });
   }

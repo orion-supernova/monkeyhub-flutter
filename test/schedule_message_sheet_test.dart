@@ -213,6 +213,58 @@ void main() {
     expect(find.text(en.schedulePresetInAnHour), findsOneWidget);
   });
 
+  // "Open current by default": a calendar that opened an hour ahead made every
+  // "in twenty minutes" a matter of winding the clock backwards first. The
+  // default-lit row is not a choice anybody made, so it does not seed it.
+  Future<ScheduleChoice?> customAndConfirm(
+    WidgetTester tester, {
+    String? rowFirst,
+  }) async {
+    ScheduleChoice? got;
+    phone(tester);
+    await tester.pumpWidget(host(Builder(
+      builder: (context) => TextButton(
+        onPressed: () async => got = await showScheduleMessageSheet(context),
+        child: const Text('open'),
+      ),
+    )));
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    if (rowFirst != null) {
+      await tester.tap(find.text(rowFirst));
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.text(en.scheduleSheetCustomChip));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(en.scheduleSheetConfirmButton));
+    await tester.pumpAndSettle();
+    return got;
+  }
+
+  testWidgets('the calendar opens on now when no row was chosen',
+      (tester) async {
+    final before = DateTime.now();
+    final got = await customAndConfirm(tester);
+
+    // The first minute that can still be scheduled — the lead time, rounded
+    // onto the picker's five-minute grid — not an hour out.
+    final delta = (got! as ScheduleAt).at.difference(before);
+    expect(delta, greaterThanOrEqualTo(kScheduleMinLead));
+    expect(delta, lessThan(const Duration(minutes: 10)));
+  });
+
+  testWidgets('a row the user tapped carries into the calendar',
+      (tester) async {
+    final before = DateTime.now();
+    final got = await customAndConfirm(
+      tester,
+      rowFirst: en.schedulePresetInAWeek,
+    );
+
+    final delta = (got! as ScheduleAt).at.difference(before);
+    expect(delta.inHours, closeTo(7 * 24, 1));
+  });
+
   testWidgets('reschedule mode says SAVE, not SCHEDULE', (tester) async {
     await open(
       tester,
