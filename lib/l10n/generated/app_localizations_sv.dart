@@ -7831,7 +7831,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get interactionRefused => 'Det gick inte igenom.';
 
   @override
-  String get messageReceiptsScreenTitle => 'SETT AV';
+  String get messageReceiptsScreenTitle => 'MEDDELANDEINFO';
 
   @override
   String messageReceiptsSummary(Object read, Object total) {
@@ -8583,4 +8583,29 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get gameInfoSeeResult => 'SE DITT RESULTAT';
+
+  @override
+  String messageReceiptsDeliveredSummary(Object delivered, Object total) {
+    return 'levererat till $delivered av $total';
+  }
+
+  @override
+  String get messageReceiptsSentLabel => 'SKICKAT';
+
+  @override
+  String messageReceiptsSemanticDeliveredThenRead(
+    Object deliveredDay,
+    Object deliveredTime,
+    Object name,
+    Object readDay,
+    Object readTime,
+  ) {
+    return '$name fick det här $deliveredDay kl. $deliveredTime och läste det $readDay kl. $readTime';
+  }
+
+  @override
+  String get messageReceiptsStampRead => 'läst';
+
+  @override
+  String get messageReceiptsStampDelivered => 'levererat';
 }

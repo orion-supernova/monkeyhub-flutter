@@ -7,6 +7,7 @@ import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/models/chat_message.dart';
 import 'package:monkeyhub/models/chat_user.dart';
 import 'package:monkeyhub/screens/message_receipts_screen.dart';
+import 'package:monkeyhub/screens/room_items.dart' show humanDay;
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -135,10 +136,11 @@ void main() {
     // Four other members, one of whom has read it.
     expect(find.text(l10n.messageReceiptsSummary(1, 4)), findsOneWidget);
 
-    // Ada's stamp: the day and the clock are two separate strings, deliberately
+    // Ada's stamps: the day and the clock are separate strings, deliberately
     // — they are set in different sizes, weights and inks, and one Text
-    // carrying "TODAY 14:21" could not be.
-    expect(find.text('14:21'), findsOneWidget);
+    // carrying "TODAY 14:21" could not be. Two of them, because she both
+    // received and read it at 14:21 and each is its own fact.
+    expect(find.text('14:21'), findsNWidgets(2));
 
     // Undated rows say why they are undated instead of showing a blank.
     expect(find.text(l10n.messageReceiptsStateWaiting), findsOneWidget);
@@ -159,6 +161,62 @@ void main() {
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
     expect(find.text(l10n.messageReceiptsSectionRead), findsOneWidget);
     expect(find.text(l10n.messageReceiptsSectionDelivered), findsNothing);
+  });
+
+  // The report: "sent and read are different things, I want to see all of it".
+  // A reader's row used to show only the read time — the furthest the message
+  // had got — and lost the moment it reached their phone.
+  testWidgets('a reader keeps their delivery time, each fact labelled', (
+    tester,
+  ) async {
+    await tester.pumpWidget(host(_FakeRepo(
+      message: message,
+      reads: {
+        'me': sentAt,
+        'ada': sentAt.add(const Duration(minutes: 15)),
+      },
+      delivers: {
+        'me': sentAt,
+        'ada': sentAt.add(const Duration(minutes: 2)),
+        'lin': sentAt.add(const Duration(minutes: 4)),
+      },
+    )));
+    await tester.pumpAndSettle();
+
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    // Ada: delivered 14:22, read 14:35 — both, and both labelled.
+    expect(find.text('14:35'), findsOneWidget);
+    expect(find.text('14:22'), findsOneWidget);
+    expect(find.text(l10n.messageReceiptsStampRead), findsOneWidget);
+    // Ada's delivery and Lin's.
+    expect(find.text(l10n.messageReceiptsStampDelivered), findsNWidgets(2));
+    expect(find.text('14:24'), findsOneWidget);
+
+    // The header counts both: one read, two reached (a reader counts as
+    // reached), of four others.
+    expect(find.text(l10n.messageReceiptsSummary(1, 4)), findsOneWidget);
+    expect(find.text(l10n.messageReceiptsDeliveredSummary(2, 4)),
+        findsOneWidget);
+    // And the card says when it was sent, in so many words.
+    expect(
+      find.textContaining('${l10n.messageReceiptsSentLabel} · '),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a stamp on another day says which day', (tester) async {
+    await tester.pumpWidget(host(_FakeRepo(
+      message: message,
+      reads: {'me': sentAt, 'ada': sentAt.add(const Duration(days: 1))},
+      delivers: {'me': sentAt, 'ada': sentAt.add(const Duration(minutes: 1))},
+    )));
+    await tester.pumpAndSettle();
+
+    // The delivery landed the same day as the send, so it is just a clock;
+    // the read did not, so it carries its day.
+    final nextDay = DateTime(sentAt.year, sentAt.month, sentAt.day + 1);
+    expect(find.text(humanDay(nextDay)), findsOneWidget);
+    expect(find.text('14:21'), findsOneWidget);
   });
 
   testWidgets('two empty maps mean "not loaded", not "nobody shares"', (

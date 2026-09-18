@@ -7901,7 +7901,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get interactionRefused => 'Não foi registado.';
 
   @override
-  String get messageReceiptsScreenTitle => 'VISTO POR';
+  String get messageReceiptsScreenTitle => 'INFO DA MENSAGEM';
 
   @override
   String messageReceiptsSummary(Object read, Object total) {
@@ -8656,6 +8656,31 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get gameInfoSeeResult => 'VER O TEU RESULTADO';
+
+  @override
+  String messageReceiptsDeliveredSummary(Object delivered, Object total) {
+    return 'entregue a $delivered de $total';
+  }
+
+  @override
+  String get messageReceiptsSentLabel => 'ENVIADO';
+
+  @override
+  String messageReceiptsSemanticDeliveredThenRead(
+    Object deliveredDay,
+    Object deliveredTime,
+    Object name,
+    Object readDay,
+    Object readTime,
+  ) {
+    return '$name recebeu isto $deliveredDay às $deliveredTime e leu $readDay às $readTime';
+  }
+
+  @override
+  String get messageReceiptsStampRead => 'lida';
+
+  @override
+  String get messageReceiptsStampDelivered => 'entregue';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -16551,7 +16576,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get interactionRefused => 'Não foi registrado.';
 
   @override
-  String get messageReceiptsScreenTitle => 'VISTO POR';
+  String get messageReceiptsScreenTitle => 'INFO DA MENSAGEM';
 
   @override
   String messageReceiptsSummary(Object read, Object total) {
@@ -17306,4 +17331,29 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get gameInfoSeeResult => 'VER SEU RESULTADO';
+
+  @override
+  String messageReceiptsDeliveredSummary(Object delivered, Object total) {
+    return 'entregue a $delivered de $total';
+  }
+
+  @override
+  String get messageReceiptsSentLabel => 'ENVIADO';
+
+  @override
+  String messageReceiptsSemanticDeliveredThenRead(
+    Object deliveredDay,
+    Object deliveredTime,
+    Object name,
+    Object readDay,
+    Object readTime,
+  ) {
+    return '$name recebeu isto $deliveredDay às $deliveredTime e leu $readDay às $readTime';
+  }
+
+  @override
+  String get messageReceiptsStampRead => 'lida';
+
+  @override
+  String get messageReceiptsStampDelivered => 'entregue';
 }

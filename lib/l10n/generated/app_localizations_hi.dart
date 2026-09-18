@@ -7821,7 +7821,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get interactionRefused => 'यह दर्ज नहीं हुआ।';
 
   @override
-  String get messageReceiptsScreenTitle => 'किसने देखा';
+  String get messageReceiptsScreenTitle => 'मैसेज की जानकारी';
 
   @override
   String messageReceiptsSummary(Object read, Object total) {
@@ -8567,4 +8567,29 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get gameInfoSeeResult => 'अपना नतीजा देखो';
+
+  @override
+  String messageReceiptsDeliveredSummary(Object delivered, Object total) {
+    return '$total में से $delivered तक पहुँचा';
+  }
+
+  @override
+  String get messageReceiptsSentLabel => 'भेजा';
+
+  @override
+  String messageReceiptsSemanticDeliveredThenRead(
+    Object deliveredDay,
+    Object deliveredTime,
+    Object name,
+    Object readDay,
+    Object readTime,
+  ) {
+    return '$name को यह $deliveredDay को $deliveredTime बजे मिला और $readDay को $readTime बजे पढ़ा';
+  }
+
+  @override
+  String get messageReceiptsStampRead => 'पढ़ा';
+
+  @override
+  String get messageReceiptsStampDelivered => 'पहुँचा';
 }

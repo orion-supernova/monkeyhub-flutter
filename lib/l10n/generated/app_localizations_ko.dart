@@ -7522,7 +7522,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get interactionRefused => '처리되지 않았어요.';
 
   @override
-  String get messageReceiptsScreenTitle => '읽은 사람';
+  String get messageReceiptsScreenTitle => '메시지 정보';
 
   @override
   String messageReceiptsSummary(Object read, Object total) {
@@ -8244,4 +8244,29 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get gameInfoSeeResult => '내 결과 보기';
+
+  @override
+  String messageReceiptsDeliveredSummary(Object delivered, Object total) {
+    return '$total명 중 $delivered명에게 전달됨';
+  }
+
+  @override
+  String get messageReceiptsSentLabel => '보냄';
+
+  @override
+  String messageReceiptsSemanticDeliveredThenRead(
+    Object deliveredDay,
+    Object deliveredTime,
+    Object name,
+    Object readDay,
+    Object readTime,
+  ) {
+    return '$name님이 $deliveredDay $deliveredTime에 받고 $readDay $readTime에 읽었습니다';
+  }
+
+  @override
+  String get messageReceiptsStampRead => '읽음';
+
+  @override
+  String get messageReceiptsStampDelivered => '전달됨';
 }

@@ -9034,9 +9034,9 @@
   "@interactionRefused": {
     "description": "Snack bar shown when an answer, a tick or an RSVP was refused: the poll closed, a quiz answer was already spent, the tick was somebody else's, or there is no connection."
   },
-  "messageReceiptsScreenTitle": "SEEN BY",
+  "messageReceiptsScreenTitle": "MESSAGE INFO",
   "@messageReceiptsScreenTitle": {
-    "description": "All-caps title of the read-receipts screen, dragged in from the side of your own chat bubble; it lists who has read that message."
+    "description": "All-caps title of the message-info screen, dragged in from the side of your own chat bubble: when the message was sent, and when it reached and was read by each member."
   },
   "messageReceiptsSummary": "{read} of {total} read",
   "@messageReceiptsSummary": {
@@ -9872,5 +9872,25 @@
   "gameInfoSeeResult": "SEE YOUR RESULT",
   "@gameInfoSeeResult": {
     "description": "Main button of the how-to-play sheet for a game already finished today. Closes the sheet and opens the finished board."
+  },
+  "messageReceiptsDeliveredSummary": "{delivered} of {total} delivered",
+  "@messageReceiptsDeliveredSummary": {
+    "description": "Second line of the message-info header, under the read count: how many of the other members' devices the message has reached. Reaching a device includes everyone who has read it."
+  },
+  "messageReceiptsSentLabel": "SENT",
+  "@messageReceiptsSentLabel": {
+    "description": "Tiny label on the message card of the message-info screen, before the day and time the message was sent."
+  },
+  "messageReceiptsSemanticDeliveredThenRead": "{name} received this {deliveredDay} at {deliveredTime} and read it {readDay} at {readTime}",
+  "@messageReceiptsSemanticDeliveredThenRead": {
+    "description": "Screen-reader sentence for one member on the message-info screen when both their delivery and read times are known."
+  },
+  "messageReceiptsStampRead": "read",
+  "@messageReceiptsStampRead": {
+    "description": "Lower-case label beside the time a member read your message, in their row on the message-info screen."
+  },
+  "messageReceiptsStampDelivered": "delivered",
+  "@messageReceiptsStampDelivered": {
+    "description": "Lower-case label beside the time your message reached a member's device, in their row on the message-info screen."
   }
 }

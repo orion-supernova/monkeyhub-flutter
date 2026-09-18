@@ -2194,7 +2194,7 @@
   "interactionComposeErrorEnd": "La fin doit venir après le début.",
   "interactionSendFailed": "Ça n'est pas parti.",
   "interactionRefused": "Ça n'a pas été pris en compte.",
-  "messageReceiptsScreenTitle": "VU PAR",
+  "messageReceiptsScreenTitle": "INFOS DU MESSAGE",
   "messageReceiptsSummary": "{read} sur {total} l’ont lu",
   "messageReceiptsEmptyState": "il n’y a encore personne d’autre dans ce salon",
   "messageReceiptsSectionRead": "LU",
@@ -2395,5 +2395,10 @@
   "roomSuggestionBannerSemantic": "Suggestions de membres en attente de ton avis",
   "gameInfoPlay": "JOUER",
   "gameInfoContinue": "CONTINUER",
-  "gameInfoSeeResult": "VOIR TON RÉSULTAT"
+  "gameInfoSeeResult": "VOIR TON RÉSULTAT",
+  "messageReceiptsDeliveredSummary": "remis à {delivered} sur {total}",
+  "messageReceiptsSentLabel": "ENVOYÉ",
+  "messageReceiptsSemanticDeliveredThenRead": "{name} l’a reçu {deliveredDay} à {deliveredTime} et l’a lu {readDay} à {readTime}",
+  "messageReceiptsStampRead": "lu",
+  "messageReceiptsStampDelivered": "remis"
 }

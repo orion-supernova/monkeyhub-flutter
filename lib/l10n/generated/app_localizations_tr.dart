@@ -7778,7 +7778,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get interactionRefused => 'İşlenemedi.';
 
   @override
-  String get messageReceiptsScreenTitle => 'GÖRENLER';
+  String get messageReceiptsScreenTitle => 'MESAJ BİLGİSİ';
 
   @override
   String messageReceiptsSummary(Object read, Object total) {
@@ -8524,4 +8524,29 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get gameInfoSeeResult => 'SONUCUNU GÖR';
+
+  @override
+  String messageReceiptsDeliveredSummary(Object delivered, Object total) {
+    return '$total kişiden $delivered kişiye iletildi';
+  }
+
+  @override
+  String get messageReceiptsSentLabel => 'GÖNDERİLDİ';
+
+  @override
+  String messageReceiptsSemanticDeliveredThenRead(
+    Object deliveredDay,
+    Object deliveredTime,
+    Object name,
+    Object readDay,
+    Object readTime,
+  ) {
+    return '$name bunu $deliveredDay saat $deliveredTime itibarıyla aldı ve $readDay saat $readTime itibarıyla okudu';
+  }
+
+  @override
+  String get messageReceiptsStampRead => 'okundu';
+
+  @override
+  String get messageReceiptsStampDelivered => 'iletildi';
 }

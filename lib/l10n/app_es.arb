@@ -2194,7 +2194,7 @@
   "interactionComposeErrorEnd": "El final tiene que ir después del inicio.",
   "interactionSendFailed": "No se envió.",
   "interactionRefused": "No se pudo registrar.",
-  "messageReceiptsScreenTitle": "VISTO POR",
+  "messageReceiptsScreenTitle": "INFO DEL MENSAJE",
   "messageReceiptsSummary": "{read} de {total} lo han leído",
   "messageReceiptsEmptyState": "todavía no hay nadie más en esta sala",
   "messageReceiptsSectionRead": "LEÍDO",
@@ -2395,5 +2395,10 @@
   "roomSuggestionBannerSemantic": "Sugerencias de miembros pendientes de tu revisión",
   "gameInfoPlay": "JUGAR",
   "gameInfoContinue": "CONTINUAR",
-  "gameInfoSeeResult": "VER TU RESULTADO"
+  "gameInfoSeeResult": "VER TU RESULTADO",
+  "messageReceiptsDeliveredSummary": "entregado a {delivered} de {total}",
+  "messageReceiptsSentLabel": "ENVIADO",
+  "messageReceiptsSemanticDeliveredThenRead": "{name} lo recibió el {deliveredDay} a las {deliveredTime} y lo leyó el {readDay} a las {readTime}",
+  "messageReceiptsStampRead": "leído",
+  "messageReceiptsStampDelivered": "entregado"
 }

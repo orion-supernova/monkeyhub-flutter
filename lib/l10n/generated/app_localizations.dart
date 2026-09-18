@@ -13315,10 +13315,10 @@ abstract class AppLocalizations {
   /// **'That didn\'t go through.'**
   String get interactionRefused;
 
-  /// All-caps title of the read-receipts screen, dragged in from the side of your own chat bubble; it lists who has read that message.
+  /// All-caps title of the message-info screen, dragged in from the side of your own chat bubble: when the message was sent, and when it reached and was read by each member.
   ///
   /// In en, this message translates to:
-  /// **'SEEN BY'**
+  /// **'MESSAGE INFO'**
   String get messageReceiptsScreenTitle;
 
   /// Line under the message on the read-receipts screen. {read} is how many other members have read it, {total} is how many other members the room has.
@@ -14526,6 +14526,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'SEE YOUR RESULT'**
   String get gameInfoSeeResult;
+
+  /// Second line of the message-info header, under the read count: how many of the other members' devices the message has reached. Reaching a device includes everyone who has read it.
+  ///
+  /// In en, this message translates to:
+  /// **'{delivered} of {total} delivered'**
+  String messageReceiptsDeliveredSummary(Object delivered, Object total);
+
+  /// Tiny label on the message card of the message-info screen, before the day and time the message was sent.
+  ///
+  /// In en, this message translates to:
+  /// **'SENT'**
+  String get messageReceiptsSentLabel;
+
+  /// Screen-reader sentence for one member on the message-info screen when both their delivery and read times are known.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} received this {deliveredDay} at {deliveredTime} and read it {readDay} at {readTime}'**
+  String messageReceiptsSemanticDeliveredThenRead(
+    Object deliveredDay,
+    Object deliveredTime,
+    Object name,
+    Object readDay,
+    Object readTime,
+  );
+
+  /// Lower-case label beside the time a member read your message, in their row on the message-info screen.
+  ///
+  /// In en, this message translates to:
+  /// **'read'**
+  String get messageReceiptsStampRead;
+
+  /// Lower-case label beside the time your message reached a member's device, in their row on the message-info screen.
+  ///
+  /// In en, this message translates to:
+  /// **'delivered'**
+  String get messageReceiptsStampDelivered;
 }
 
 class _AppLocalizationsDelegate

@@ -7940,7 +7940,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get interactionRefused => 'Ça n\'a pas été pris en compte.';
 
   @override
-  String get messageReceiptsScreenTitle => 'VU PAR';
+  String get messageReceiptsScreenTitle => 'INFOS DU MESSAGE';
 
   @override
   String messageReceiptsSummary(Object read, Object total) {
@@ -8696,4 +8696,29 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get gameInfoSeeResult => 'VOIR TON RÉSULTAT';
+
+  @override
+  String messageReceiptsDeliveredSummary(Object delivered, Object total) {
+    return 'remis à $delivered sur $total';
+  }
+
+  @override
+  String get messageReceiptsSentLabel => 'ENVOYÉ';
+
+  @override
+  String messageReceiptsSemanticDeliveredThenRead(
+    Object deliveredDay,
+    Object deliveredTime,
+    Object name,
+    Object readDay,
+    Object readTime,
+  ) {
+    return '$name l’a reçu $deliveredDay à $deliveredTime et l’a lu $readDay à $readTime';
+  }
+
+  @override
+  String get messageReceiptsStampRead => 'lu';
+
+  @override
+  String get messageReceiptsStampDelivered => 'remis';
 }

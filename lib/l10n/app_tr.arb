@@ -2194,7 +2194,7 @@
   "interactionComposeErrorEnd": "Bitiş, başlangıçtan sonra olmalı.",
   "interactionSendFailed": "Gönderilemedi.",
   "interactionRefused": "İşlenemedi.",
-  "messageReceiptsScreenTitle": "GÖRENLER",
+  "messageReceiptsScreenTitle": "MESAJ BİLGİSİ",
   "messageReceiptsSummary": "{total} kişiden {read} kişi okudu",
   "messageReceiptsEmptyState": "bu odada henüz başka kimse yok",
   "messageReceiptsSectionRead": "OKUNDU",
@@ -2395,5 +2395,10 @@
   "roomSuggestionBannerSemantic": "İncelemeni bekleyen üye önerileri",
   "gameInfoPlay": "OYNA",
   "gameInfoContinue": "DEVAM ET",
-  "gameInfoSeeResult": "SONUCUNU GÖR"
+  "gameInfoSeeResult": "SONUCUNU GÖR",
+  "messageReceiptsDeliveredSummary": "{total} kişiden {delivered} kişiye iletildi",
+  "messageReceiptsSentLabel": "GÖNDERİLDİ",
+  "messageReceiptsSemanticDeliveredThenRead": "{name} bunu {deliveredDay} saat {deliveredTime} itibarıyla aldı ve {readDay} saat {readTime} itibarıyla okudu",
+  "messageReceiptsStampRead": "okundu",
+  "messageReceiptsStampDelivered": "iletildi"
 }

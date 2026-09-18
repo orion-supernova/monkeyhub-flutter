@@ -2194,7 +2194,7 @@
   "interactionComposeErrorEnd": "يجب أن تكون النهاية بعد البداية.",
   "interactionSendFailed": "لم يُرسل.",
   "interactionRefused": "لم يُسجَّل.",
-  "messageReceiptsScreenTitle": "من قرأها",
+  "messageReceiptsScreenTitle": "معلومات الرسالة",
   "messageReceiptsSummary": "قرأها {read} من {total}",
   "messageReceiptsEmptyState": "لا يوجد أحد آخر في هذه الغرفة بعد",
   "messageReceiptsSectionRead": "مقروءة",
@@ -2395,5 +2395,10 @@
   "roomSuggestionBannerSemantic": "اقتراحات الأعضاء بانتظار مراجعتك",
   "gameInfoPlay": "العب",
   "gameInfoContinue": "تابع اللعب",
-  "gameInfoSeeResult": "شاهد نتيجتك"
+  "gameInfoSeeResult": "شاهد نتيجتك",
+  "messageReceiptsDeliveredSummary": "وصلت إلى {delivered} من {total}",
+  "messageReceiptsSentLabel": "أُرسلت",
+  "messageReceiptsSemanticDeliveredThenRead": "استلمها {name} {deliveredDay} في {deliveredTime} وقرأها {readDay} في {readTime}",
+  "messageReceiptsStampRead": "قُرئت",
+  "messageReceiptsStampDelivered": "وصلت"
 }

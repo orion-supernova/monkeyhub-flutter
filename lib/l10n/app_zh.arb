@@ -2194,7 +2194,7 @@
   "interactionComposeErrorEnd": "结束时间要在开始之后。",
   "interactionSendFailed": "没有发送成功。",
   "interactionRefused": "没有生效。",
-  "messageReceiptsScreenTitle": "已读成员",
+  "messageReceiptsScreenTitle": "消息详情",
   "messageReceiptsSummary": "{total} 人中 {read} 人已读",
   "messageReceiptsEmptyState": "这个房间里还没有其他人",
   "messageReceiptsSectionRead": "已读",
@@ -2395,5 +2395,10 @@
   "roomSuggestionBannerSemantic": "等你审核的成员建议",
   "gameInfoPlay": "开始玩",
   "gameInfoContinue": "继续玩",
-  "gameInfoSeeResult": "查看你的结果"
+  "gameInfoSeeResult": "查看你的结果",
+  "messageReceiptsDeliveredSummary": "已送达 {total} 人中的 {delivered} 人",
+  "messageReceiptsSentLabel": "已发送",
+  "messageReceiptsSemanticDeliveredThenRead": "{name} 于 {deliveredDay} {deliveredTime} 收到，{readDay} {readTime} 已读",
+  "messageReceiptsStampRead": "已读",
+  "messageReceiptsStampDelivered": "已送达"
 }

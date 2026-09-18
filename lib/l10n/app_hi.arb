@@ -2194,7 +2194,7 @@
   "interactionComposeErrorEnd": "अंत, शुरुआत के बाद होना चाहिए।",
   "interactionSendFailed": "यह भेजा नहीं गया।",
   "interactionRefused": "यह दर्ज नहीं हुआ।",
-  "messageReceiptsScreenTitle": "किसने देखा",
+  "messageReceiptsScreenTitle": "मैसेज की जानकारी",
   "messageReceiptsSummary": "{total} में से {read} ने पढ़ा",
   "messageReceiptsEmptyState": "इस रूम में अभी कोई और नहीं है",
   "messageReceiptsSectionRead": "पढ़ा गया",
@@ -2395,5 +2395,10 @@
   "roomSuggestionBannerSemantic": "मेंबर्स के सुझाव, तुम्हारी मंज़ूरी के इंतज़ार में",
   "gameInfoPlay": "खेलो",
   "gameInfoContinue": "जारी रखो",
-  "gameInfoSeeResult": "अपना नतीजा देखो"
+  "gameInfoSeeResult": "अपना नतीजा देखो",
+  "messageReceiptsDeliveredSummary": "{total} में से {delivered} तक पहुँचा",
+  "messageReceiptsSentLabel": "भेजा",
+  "messageReceiptsSemanticDeliveredThenRead": "{name} को यह {deliveredDay} को {deliveredTime} बजे मिला और {readDay} को {readTime} बजे पढ़ा",
+  "messageReceiptsStampRead": "पढ़ा",
+  "messageReceiptsStampDelivered": "पहुँचा"
 }

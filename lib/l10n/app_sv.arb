@@ -2194,7 +2194,7 @@
   "interactionComposeErrorEnd": "Slutet måste komma efter starten.",
   "interactionSendFailed": "Det skickades inte.",
   "interactionRefused": "Det gick inte igenom.",
-  "messageReceiptsScreenTitle": "SETT AV",
+  "messageReceiptsScreenTitle": "MEDDELANDEINFO",
   "messageReceiptsSummary": "{read} av {total} har läst",
   "messageReceiptsEmptyState": "det finns ingen annan i det här rummet än",
   "messageReceiptsSectionRead": "LÄST",
@@ -2395,5 +2395,10 @@
   "roomSuggestionBannerSemantic": "Medlemsförslag som väntar på din granskning",
   "gameInfoPlay": "SPELA",
   "gameInfoContinue": "FORTSÄTT",
-  "gameInfoSeeResult": "SE DITT RESULTAT"
+  "gameInfoSeeResult": "SE DITT RESULTAT",
+  "messageReceiptsDeliveredSummary": "levererat till {delivered} av {total}",
+  "messageReceiptsSentLabel": "SKICKAT",
+  "messageReceiptsSemanticDeliveredThenRead": "{name} fick det här {deliveredDay} kl. {deliveredTime} och läste det {readDay} kl. {readTime}",
+  "messageReceiptsStampRead": "läst",
+  "messageReceiptsStampDelivered": "levererat"
 }

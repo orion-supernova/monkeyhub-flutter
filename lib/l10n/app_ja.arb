@@ -2194,7 +2194,7 @@
   "interactionComposeErrorEnd": "終了は開始より後にしてください。",
   "interactionSendFailed": "送れませんでした。",
   "interactionRefused": "反映されませんでした。",
-  "messageReceiptsScreenTitle": "既読者",
+  "messageReceiptsScreenTitle": "メッセージ情報",
   "messageReceiptsSummary": "{total} 人中 {read} 人が既読",
   "messageReceiptsEmptyState": "このルームにはまだ他に誰もいません",
   "messageReceiptsSectionRead": "既読",
@@ -2395,5 +2395,10 @@
   "roomSuggestionBannerSemantic": "確認を待っているメンバーの提案",
   "gameInfoPlay": "プレイする",
   "gameInfoContinue": "続きをプレイ",
-  "gameInfoSeeResult": "結果を見る"
+  "gameInfoSeeResult": "結果を見る",
+  "messageReceiptsDeliveredSummary": "{total} 人中 {delivered} 人に配信済み",
+  "messageReceiptsSentLabel": "送信",
+  "messageReceiptsSemanticDeliveredThenRead": "{name} が {deliveredDay} {deliveredTime} に受信し、{readDay} {readTime} に既読",
+  "messageReceiptsStampRead": "既読",
+  "messageReceiptsStampDelivered": "配信"
 }

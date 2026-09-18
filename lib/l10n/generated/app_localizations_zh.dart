@@ -7414,7 +7414,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get interactionRefused => '没有生效。';
 
   @override
-  String get messageReceiptsScreenTitle => '已读成员';
+  String get messageReceiptsScreenTitle => '消息详情';
 
   @override
   String messageReceiptsSummary(Object read, Object total) {
@@ -8127,4 +8127,29 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get gameInfoSeeResult => '查看你的结果';
+
+  @override
+  String messageReceiptsDeliveredSummary(Object delivered, Object total) {
+    return '已送达 $total 人中的 $delivered 人';
+  }
+
+  @override
+  String get messageReceiptsSentLabel => '已发送';
+
+  @override
+  String messageReceiptsSemanticDeliveredThenRead(
+    Object deliveredDay,
+    Object deliveredTime,
+    Object name,
+    Object readDay,
+    Object readTime,
+  ) {
+    return '$name 于 $deliveredDay $deliveredTime 收到，$readDay $readTime 已读';
+  }
+
+  @override
+  String get messageReceiptsStampRead => '已读';
+
+  @override
+  String get messageReceiptsStampDelivered => '已送达';
 }

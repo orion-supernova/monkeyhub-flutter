@@ -2194,7 +2194,7 @@
   "interactionComposeErrorEnd": "종료는 시작보다 뒤여야 해요.",
   "interactionSendFailed": "보내지 못했어요.",
   "interactionRefused": "처리되지 않았어요.",
-  "messageReceiptsScreenTitle": "읽은 사람",
+  "messageReceiptsScreenTitle": "메시지 정보",
   "messageReceiptsSummary": "{total}명 중 {read}명 읽음",
   "messageReceiptsEmptyState": "이 방에는 아직 다른 사람이 없습니다",
   "messageReceiptsSectionRead": "읽음",
@@ -2395,5 +2395,10 @@
   "roomSuggestionBannerSemantic": "검토를 기다리는 멤버 제안",
   "gameInfoPlay": "플레이",
   "gameInfoContinue": "이어서 하기",
-  "gameInfoSeeResult": "내 결과 보기"
+  "gameInfoSeeResult": "내 결과 보기",
+  "messageReceiptsDeliveredSummary": "{total}명 중 {delivered}명에게 전달됨",
+  "messageReceiptsSentLabel": "보냄",
+  "messageReceiptsSemanticDeliveredThenRead": "{name}님이 {deliveredDay} {deliveredTime}에 받고 {readDay} {readTime}에 읽었습니다",
+  "messageReceiptsStampRead": "읽음",
+  "messageReceiptsStampDelivered": "전달됨"
 }

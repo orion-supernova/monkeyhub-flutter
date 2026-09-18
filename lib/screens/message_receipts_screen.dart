@@ -17,8 +17,15 @@ import '../widgets/remote_image.dart';
 import '../widgets/user_avatar.dart';
 import 'room_items.dart' show humanDay;
 
-/// Who has read one of your messages, and when — the screen behind a left pull
-/// on your own bubble.
+/// Everything that has happened to one of your messages, person by person —
+/// the screen behind a left pull on your own bubble.
+///
+/// Sent, delivered and read are three different facts, and the screen keeps
+/// them apart: the card says when it was SENT; each member's row says when it
+/// reached their device and, separately, when they read it. Folding the two
+/// into one stamp — the furthest either had got — hid the delivery time of
+/// everyone who had also read, which is the one row a sender most often wants
+/// to check.
 ///
 /// ── Where the numbers come from ────────────────────────────────────────────
 ///
@@ -116,6 +123,12 @@ class MessageReceiptsScreen extends StatelessWidget {
         repo.roomReadCursors.isEmpty && repo.roomDeliveredCursors.isEmpty;
     final entries = loading ? const <_Entry>[] : _entriesFor(message);
     final read = entries.where((e) => e.state == _ReceiptState.read).length;
+    // Reaching a device includes everyone who has read it.
+    final delivered = entries
+        .where((e) =>
+            e.state == _ReceiptState.read ||
+            e.state == _ReceiptState.delivered)
+        .length;
 
     return AdaptivePageBody(
       child: Column(
@@ -140,6 +153,7 @@ class MessageReceiptsScreen extends StatelessWidget {
                     message: message,
                     api: api,
                     read: read,
+                    delivered: delivered,
                     total: entries.length,
                     loading: loading,
                   );
@@ -149,6 +163,7 @@ class MessageReceiptsScreen extends StatelessWidget {
                 return _ReceiptRow(
                   index: i - 1,
                   entry: entry,
+                  sentAt: message.createdAt,
                   api: api,
                   // The section label rides on the first row of each run
                   // instead of being its own list item: the buckets are
@@ -180,19 +195,29 @@ class MessageReceiptsScreen extends StatelessWidget {
       if (user.id == currentUserId) continue;
       final readAt = reads[user.id];
       final deliveredAt = delivers[user.id];
-      if (readAt != null && !readAt.isBefore(at)) {
-        out.add(_Entry(user, _ReceiptState.read, readAt));
-      } else if (deliveredAt != null && !deliveredAt.isBefore(at)) {
-        out.add(_Entry(user, _ReceiptState.delivered, deliveredAt));
+      // Each cursor is kept only once it has reached THIS message — a cursor
+      // behind it is a fact about an older message and has no time to offer
+      // here. Kept independently: somebody who read it still has a delivery
+      // time, and the row shows both.
+      final hasRead = readAt != null && !readAt.isBefore(at);
+      final hasDelivered = deliveredAt != null && !deliveredAt.isBefore(at);
+      final stamps = (
+        readAt: hasRead ? readAt : null,
+        deliveredAt: hasDelivered ? deliveredAt : null,
+      );
+      if (hasRead) {
+        out.add(_Entry(user, _ReceiptState.read, stamps));
+      } else if (hasDelivered) {
+        out.add(_Entry(user, _ReceiptState.delivered, stamps));
       } else if (readAt == null && deliveredAt == null) {
         // Neither cursor was served for this member, which the server only
         // does for someone withholding both. Distinct from "behind": there is
         // nothing to wait for here, and a row that sat in SENT forever with no
         // reason given is the kind of thing people read as a bug in the app or
         // a slight from the person.
-        out.add(_Entry(user, _ReceiptState.hidden, null));
+        out.add(_Entry(user, _ReceiptState.hidden, stamps));
       } else {
-        out.add(_Entry(user, _ReceiptState.sent, null));
+        out.add(_Entry(user, _ReceiptState.sent, stamps));
       }
     }
 
@@ -215,14 +240,23 @@ class MessageReceiptsScreen extends StatelessWidget {
 /// shows them — [_Entry] sorts on `index`, so the enum IS the section order.
 enum _ReceiptState { read, delivered, sent, hidden }
 
+/// The two cursors a row can show, each null until it has reached this
+/// message. See the class comment on [MessageReceiptsScreen] for what a
+/// cursor's time means.
+typedef _Cursors = ({DateTime? readAt, DateTime? deliveredAt});
+
 class _Entry {
-  const _Entry(this.user, this.state, this.at);
+  const _Entry(this.user, this.state, this.stamps);
   final ChatUser user;
   final _ReceiptState state;
+  final _Cursors stamps;
 
-  /// The cursor behind [state], or null where there is no time to show. See
-  /// the class comment on [MessageReceiptsScreen] for what it means.
-  final DateTime? at;
+  DateTime? get readAt => stamps.readAt;
+  DateTime? get deliveredAt => stamps.deliveredAt;
+
+  /// The furthest the message got with them, for ordering within a bucket:
+  /// the read time for a reader, the delivery time otherwise.
+  DateTime? get at => readAt ?? deliveredAt;
 }
 
 /// Back control and title, in the same shape as every other pushed list screen
@@ -263,6 +297,7 @@ class _Preamble extends StatelessWidget {
     required this.message,
     required this.api,
     required this.read,
+    required this.delivered,
     required this.total,
     required this.loading,
   });
@@ -270,6 +305,9 @@ class _Preamble extends StatelessWidget {
   final ChatMessage message;
   final ChatApi api;
   final int read;
+
+  /// Whose device it has reached — readers included.
+  final int delivered;
   final int total;
 
   /// Whether the room's receipts have simply not arrived yet, as opposed to
@@ -305,6 +343,11 @@ class _Preamble extends StatelessWidget {
           Text(
             l10n.messageReceiptsSummary(read, total),
             style: theme.monoTiny,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            l10n.messageReceiptsDeliveredSummary(delivered, total),
+            style: theme.monoTiny.copyWith(color: theme.inkMuted),
           ),
           const SizedBox(height: 18),
         ] else ...[
@@ -389,15 +432,27 @@ class _MessageCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 4),
-              // The card's own stamp gets the day as well as the clock: a
-              // screen full of read times is unreadable if you can't see what
-              // it is measuring from.
-              Text(
-                '${humanDay(_dayOf(message.createdAt))} · '
-                '${formatClockTime(message.createdAt)}',
-                style: theme.monoTiny.copyWith(
-                  color: ink.withValues(alpha: 0.7),
-                ),
+              // The card's own stamp gets the day as well as the clock, and
+              // says what it is: every other time on this screen is measured
+              // from this one, and "sent" is the first of the three facts.
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.check_rounded,
+                    size: 12,
+                    color: ink.withValues(alpha: 0.7),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${AppLocalizations.of(context).messageReceiptsSentLabel} · '
+                    '${humanDay(_dayOf(message.createdAt))} · '
+                    '${formatClockTime(message.createdAt)}',
+                    style: theme.monoTiny.copyWith(
+                      color: ink.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -453,6 +508,7 @@ class _ReceiptRow extends StatefulWidget {
   const _ReceiptRow({
     required this.index,
     required this.entry,
+    required this.sentAt,
     required this.api,
     required this.showSection,
     required this.onOpenProfile,
@@ -460,6 +516,10 @@ class _ReceiptRow extends StatefulWidget {
 
   final int index;
   final _Entry entry;
+
+  /// When the message was sent, so a stamp only spells out its day when it
+  /// is not the same day — the card above already says which day that is.
+  final DateTime sentAt;
   final ChatApi api;
 
   /// Whether this row opens a new bucket and therefore carries its heading.
@@ -519,7 +579,7 @@ class _ReceiptRowState extends State<_ReceiptRow> {
           ),
         ),
         const SizedBox(width: 10),
-        _Stamp(entry: entry),
+        _Stamps(entry: entry, sentAt: widget.sentAt),
         SizedBox(
           width: 18,
           child: Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
@@ -589,38 +649,51 @@ class _ReceiptRowState extends State<_ReceiptRow> {
   /// the day and the clock readable apart is worth nothing read aloud.
   static String _semanticsFor(AppLocalizations l10n, _Entry entry) {
     final name = entry.user.displayName;
-    final at = entry.at;
-    if (at == null) {
-      return entry.state == _ReceiptState.hidden
-          ? l10n.messageReceiptsSemanticHidden(name)
-          : l10n.messageReceiptsSemanticSent(name);
+    final read = entry.readAt;
+    final delivered = entry.deliveredAt;
+    if (read != null && delivered != null) {
+      return l10n.messageReceiptsSemanticDeliveredThenRead(
+        name,
+        humanDay(_dayOf(delivered)),
+        formatClockTime(delivered),
+        humanDay(_dayOf(read)),
+        formatClockTime(read),
+      );
     }
-    final day = humanDay(_dayOf(at));
-    final clock = formatClockTime(at);
-    return entry.state == _ReceiptState.read
-        ? l10n.messageReceiptsSemanticRead(name, day, clock)
-        : l10n.messageReceiptsSemanticDelivered(name, day, clock);
+    if (read != null) {
+      return l10n.messageReceiptsSemanticRead(
+          name, humanDay(_dayOf(read)), formatClockTime(read));
+    }
+    if (delivered != null) {
+      return l10n.messageReceiptsSemanticDelivered(
+          name, humanDay(_dayOf(delivered)), formatClockTime(delivered));
+    }
+    return entry.state == _ReceiptState.hidden
+        ? l10n.messageReceiptsSemanticHidden(name)
+        : l10n.messageReceiptsSemanticSent(name);
   }
 }
 
-/// The right-hand column: when.
+/// The right-hand column: when — one line per fact that has happened.
 ///
-/// The day and the clock are two different facts and are drawn as two
-/// different things — the day small, muted, tracked out and upper-case, the
-/// time large, mono and in full ink under it. Setting them in one style is
-/// what makes a column of receipts unreadable: every row becomes the same
-/// length of grey, and the eye has nothing to sort on.
-class _Stamp extends StatelessWidget {
-  const _Stamp({required this.entry});
+/// READ above DELIVERED, because it is the one the eye is looking for and the
+/// later of the two. Each line is its own icon, word and time rather than a
+/// bare clock: two unlabelled times stacked on top of each other would be a
+/// puzzle about which is which. The day is spelled out only when it differs
+/// from the day the message was sent; the card above already names that one.
+class _Stamps extends StatelessWidget {
+  const _Stamps({required this.entry, required this.sentAt});
   final _Entry entry;
+  final DateTime sentAt;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    final at = entry.at;
+    final read = entry.readAt;
+    final delivered = entry.deliveredAt;
 
-    if (at == null) {
+    if (read == null && delivered == null) {
       return Text(
         entry.state == _ReceiptState.hidden
             ? l10n.messageReceiptsStateHidden
@@ -629,27 +702,86 @@ class _Stamp extends StatelessWidget {
       );
     }
 
-    final read = entry.state == _ReceiptState.read;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          humanDay(_dayOf(at)),
-          style: theme.monoTiny.copyWith(
-            color: theme.inkMuted,
-            fontSize: 9,
-            letterSpacing: 1.6,
+        if (read != null)
+          _StampLine(
+            icon: Icons.visibility_outlined,
+            label: l10n.messageReceiptsStampRead,
+            at: read,
+            sentAt: sentAt,
+            strong: true,
           ),
+        if (read != null && delivered != null) const SizedBox(height: 3),
+        if (delivered != null)
+          _StampLine(
+            icon: Icons.done_all_rounded,
+            label: l10n.messageReceiptsStampDelivered,
+            at: delivered,
+            sentAt: sentAt,
+            strong: read == null,
+          ),
+      ],
+    );
+  }
+}
+
+/// One fact and its time. The day and the clock stay two different things —
+/// the day small and tracked out, the clock in mono — for the reason the
+/// column always had them apart: set in one style, a column of receipts
+/// becomes the same length of grey on every row, and the eye has nothing to
+/// sort on.
+class _StampLine extends StatelessWidget {
+  const _StampLine({
+    required this.icon,
+    required this.label,
+    required this.at,
+    required this.sentAt,
+    required this.strong,
+  });
+
+  final IconData icon;
+  final String label;
+  final DateTime at;
+  final DateTime sentAt;
+
+  /// The row's headline fact, set in full ink; the other one steps back.
+  final bool strong;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final day = _dayOf(at);
+    final showDay = day != _dayOf(sentAt);
+    final tiny = theme.monoTiny.copyWith(
+      color: theme.inkMuted,
+      fontSize: 9,
+      letterSpacing: 1.4,
+    );
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          size: 12,
+          color: strong ? theme.accent : theme.inkMuted,
         ),
-        const SizedBox(height: 1),
+        const SizedBox(width: 5),
+        Text(label, style: tiny),
+        const SizedBox(width: 6),
+        if (showDay) ...[
+          Text(humanDay(day), style: tiny),
+          const SizedBox(width: 4),
+        ],
         Text(
           formatClockTime(at),
           style: theme.mono.copyWith(
-            fontSize: 15,
+            fontSize: strong ? 15 : 13,
             height: 1.1,
-            color: read ? theme.ink : theme.inkSoft,
-            fontWeight: read ? FontWeight.w600 : FontWeight.w400,
+            color: strong ? theme.ink : theme.inkSoft,
+            fontWeight: strong ? FontWeight.w600 : FontWeight.w400,
           ),
         ),
       ],

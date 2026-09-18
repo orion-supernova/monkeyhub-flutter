@@ -7501,7 +7501,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get interactionRefused => '反映されませんでした。';
 
   @override
-  String get messageReceiptsScreenTitle => '既読者';
+  String get messageReceiptsScreenTitle => 'メッセージ情報';
 
   @override
   String messageReceiptsSummary(Object read, Object total) {
@@ -8221,4 +8221,29 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get gameInfoSeeResult => '結果を見る';
+
+  @override
+  String messageReceiptsDeliveredSummary(Object delivered, Object total) {
+    return '$total 人中 $delivered 人に配信済み';
+  }
+
+  @override
+  String get messageReceiptsSentLabel => '送信';
+
+  @override
+  String messageReceiptsSemanticDeliveredThenRead(
+    Object deliveredDay,
+    Object deliveredTime,
+    Object name,
+    Object readDay,
+    Object readTime,
+  ) {
+    return '$name が $deliveredDay $deliveredTime に受信し、$readDay $readTime に既読';
+  }
+
+  @override
+  String get messageReceiptsStampRead => '既読';
+
+  @override
+  String get messageReceiptsStampDelivered => '配信';
 }

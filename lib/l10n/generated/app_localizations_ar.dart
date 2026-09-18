@@ -7916,7 +7916,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get interactionRefused => 'لم يُسجَّل.';
 
   @override
-  String get messageReceiptsScreenTitle => 'من قرأها';
+  String get messageReceiptsScreenTitle => 'معلومات الرسالة';
 
   @override
   String messageReceiptsSummary(Object read, Object total) {
@@ -8667,4 +8667,29 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get gameInfoSeeResult => 'شاهد نتيجتك';
+
+  @override
+  String messageReceiptsDeliveredSummary(Object delivered, Object total) {
+    return 'وصلت إلى $delivered من $total';
+  }
+
+  @override
+  String get messageReceiptsSentLabel => 'أُرسلت';
+
+  @override
+  String messageReceiptsSemanticDeliveredThenRead(
+    Object deliveredDay,
+    Object deliveredTime,
+    Object name,
+    Object readDay,
+    Object readTime,
+  ) {
+    return 'استلمها $name $deliveredDay في $deliveredTime وقرأها $readDay في $readTime';
+  }
+
+  @override
+  String get messageReceiptsStampRead => 'قُرئت';
+
+  @override
+  String get messageReceiptsStampDelivered => 'وصلت';
 }
