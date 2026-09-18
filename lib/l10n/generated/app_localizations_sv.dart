@@ -5735,9 +5735,6 @@ class AppLocalizationsSv extends AppLocalizations {
   String get gameInfoSameForEveryone => 'alla får samma bricka idag.';
 
   @override
-  String get gameInfoGotIt => 'OKEJ';
-
-  @override
   String get gameInfoQueensGoal =>
       'placera en krona i varje rad, kolumn och färg.';
 
@@ -8577,4 +8574,13 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get roomSuggestionBannerSemantic =>
       'Medlemsförslag som väntar på din granskning';
+
+  @override
+  String get gameInfoPlay => 'SPELA';
+
+  @override
+  String get gameInfoContinue => 'FORTSÄTT';
+
+  @override
+  String get gameInfoSeeResult => 'SE DITT RESULTAT';
 }

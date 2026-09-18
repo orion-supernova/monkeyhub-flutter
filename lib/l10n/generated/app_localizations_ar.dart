@@ -5792,9 +5792,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get gameInfoSameForEveryone => 'الجميع يحصل على نفس اللوح اليوم.';
 
   @override
-  String get gameInfoGotIt => 'فهمت';
-
-  @override
   String get gameInfoQueensGoal => 'ضع تاجًا واحدًا في كل صف وعمود ولون.';
 
   @override
@@ -8661,4 +8658,13 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get roomSuggestionBannerSemantic => 'اقتراحات الأعضاء بانتظار مراجعتك';
+
+  @override
+  String get gameInfoPlay => 'العب';
+
+  @override
+  String get gameInfoContinue => 'تابع اللعب';
+
+  @override
+  String get gameInfoSeeResult => 'شاهد نتيجتك';
 }

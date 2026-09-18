@@ -1607,7 +1607,6 @@
   "gameInfoScoringTimed": "tahta ekrandayken sayaç işler, duraklattığında ya da çıktığında durur. en hızlı olan bugünün listesinde başa geçer.",
   "gameInfoScoringGuesses": "puan, süreye göre değil kaç denemede bildiğine göre verilir.",
   "gameInfoSameForEveryone": "bugün herkese aynı tahta geliyor.",
-  "gameInfoGotIt": "ANLADIM",
   "gameInfoQueensGoal": "her satıra, sütuna ve renge birer taç yerleştir.",
   "gameInfoQueensRule1": "sekiz taç: her satırda bir, her sütunda bir.",
   "gameInfoQueensRule2": "her renk bloğunda da tam olarak bir taç bulunur.",
@@ -2393,5 +2392,8 @@
   "roomSuggestionBannerDescription": "{name} yeni bir açıklama önerdi",
   "roomSuggestionBannerMany": "{count, plural, one{{count} öneri seni bekliyor} other{{count} öneri seni bekliyor}}",
   "roomSuggestionBannerReview": "İNCELE",
-  "roomSuggestionBannerSemantic": "İncelemeni bekleyen üye önerileri"
+  "roomSuggestionBannerSemantic": "İncelemeni bekleyen üye önerileri",
+  "gameInfoPlay": "OYNA",
+  "gameInfoContinue": "DEVAM ET",
+  "gameInfoSeeResult": "SONUCUNU GÖR"
 }

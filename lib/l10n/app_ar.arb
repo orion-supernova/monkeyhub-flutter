@@ -1607,7 +1607,6 @@
   "gameInfoScoringTimed": "الوقت يعمل ما دام اللوح ظاهرًا، ويتوقّف عند الإيقاف أو الخروج. الأسرع يتصدّر قائمة اليوم.",
   "gameInfoScoringGuesses": "النتيجة بعدد المحاولات، لا بالوقت.",
   "gameInfoSameForEveryone": "الجميع يحصل على نفس اللوح اليوم.",
-  "gameInfoGotIt": "فهمت",
   "gameInfoQueensGoal": "ضع تاجًا واحدًا في كل صف وعمود ولون.",
   "gameInfoQueensRule1": "ثمانية تيجان: واحد في كل صف وواحد في كل عمود.",
   "gameInfoQueensRule2": "كل كتلة لونية تحصل أيضًا على تاج واحد بالضبط.",
@@ -2393,5 +2392,8 @@
   "roomSuggestionBannerDescription": "اقترح {name} وصفًا جديدًا",
   "roomSuggestionBannerMany": "{count, plural, zero{لا اقتراحات بانتظارك} one{اقتراح واحد بانتظارك} two{اقتراحان بانتظارك} few{{count} اقتراحات بانتظارك} many{{count} اقتراحًا بانتظارك} other{{count} اقتراح بانتظارك}}",
   "roomSuggestionBannerReview": "مراجعة",
-  "roomSuggestionBannerSemantic": "اقتراحات الأعضاء بانتظار مراجعتك"
+  "roomSuggestionBannerSemantic": "اقتراحات الأعضاء بانتظار مراجعتك",
+  "gameInfoPlay": "العب",
+  "gameInfoContinue": "تابع اللعب",
+  "gameInfoSeeResult": "شاهد نتيجتك"
 }

@@ -32,20 +32,74 @@ import 'puzzle_symbol.dart';
 ///
 /// Reachable from the ⓘ on every tile — on the Feed band and on the hub — which
 /// are the two places the question occurs.
-Future<void> showGameInfo(BuildContext context, DailyGame game) {
-  return showAdaptiveSheet<void>(
-    context,
-    builder: (_) => _GameInfoSheet(game: game),
-  );
-}
+///
+/// The main button is the way INTO the game, labelled for where the player is
+/// with it today ([entry]), and [onPlay] is what the tile itself would have
+/// done. Somebody who opened the rules was deciding whether to play; ending the
+/// sheet on "GOT IT" sent them back to the tile to tap it a second time.
+/// Closing without playing is the X, a swipe down, or a tap outside.
+Future<void> showGameInfo(
+  BuildContext context,
+  DailyGame game, {
+  required GameInfoEntry entry,
+  required VoidCallback onPlay,
+}) =>
+    _show(context, game, entry, onPlay);
 
 /// The same sheet for the symbol-code puzzle, which shares the hub with the
 /// four timed boards but is scored by guesses rather than by the clock.
-Future<void> showCodePuzzleInfo(BuildContext context) {
-  return showAdaptiveSheet<void>(
+Future<void> showCodePuzzleInfo(
+  BuildContext context, {
+  required GameInfoEntry entry,
+  required VoidCallback onPlay,
+}) =>
+    _show(context, null, entry, onPlay);
+
+/// Where the player stands with a game today, which is what the sheet's main
+/// button offers them.
+enum GameInfoEntry {
+  /// Not opened today.
+  play,
+
+  /// Opened and left unfinished.
+  resume,
+
+  /// Finished — solved, or given up on.
+  review;
+
+  /// For one of the four timed boards, from the player's row for today.
+  static GameInfoEntry forBoard(GameResult? today) => today == null
+      ? play
+      : today.finished
+      ? review
+      : resume;
+
+  /// For the code puzzle, from the player's attempt at today's code.
+  static GameInfoEntry forPuzzle(PuzzleAttempt? mine) =>
+      mine == null || !mine.started
+      ? play
+      : mine.done
+      ? review
+      : resume;
+}
+
+Future<void> _show(
+  BuildContext context,
+  DailyGame? game,
+  GameInfoEntry entry,
+  VoidCallback onPlay,
+) async {
+  final play = await showAdaptiveSheet<bool>(
     context,
-    builder: (_) => const _GameInfoSheet(game: null),
+    // The rules run long in a few languages; a sheet that can outgrow a small
+    // phone must stop at the status bar, which only the route can enforce.
+    useSafeArea: true,
+    builder: (_) => _GameInfoSheet(game: game, entry: entry),
   );
+  // After the sheet is fully gone, never from inside it: [onPlay] pushes the
+  // game on the TILE's navigator, and a push racing the sheet's own pop is how
+  // a route ends up under the one it was meant to replace.
+  if (play == true && context.mounted) onPlay();
 }
 
 /// The ⓘ that opens it.
@@ -143,117 +197,246 @@ class GameInfoButton extends StatelessWidget {
 }
 
 class _GameInfoSheet extends StatelessWidget {
-  const _GameInfoSheet({required this.game});
+  const _GameInfoSheet({required this.game, required this.entry});
 
   /// Null is the symbol-code puzzle — the one game on the hub that is not one
   /// of the four timed boards.
   final DailyGame? game;
+  final GameInfoEntry entry;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final copy = _copyFor(l10n, game);
+    final action = switch (entry) {
+      GameInfoEntry.play => l10n.gameInfoPlay,
+      GameInfoEntry.resume => l10n.gameInfoContinue,
+      GameInfoEntry.review => l10n.gameInfoSeeResult,
+    };
+    // `ModalBottomSheetRoute` strips only the TOP inset, so the home indicator
+    // is still ours to clear — under the button rather than under the panel,
+    // which stays attached to the bottom edge.
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
-    return Container(
+    // Bounded as a phone's bottom sheet, unbounded as the desktop popover —
+    // which already scrolls its whole content, so a Flexible there would have
+    // nothing to flex against and throw.
+    return LayoutBuilder(
+      builder: (context, constraints) => Container(
       decoration: theme.sheetDecoration(),
-      padding: const EdgeInsets.fromLTRB(22, 14, 22, 22),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Align(
-              alignment: Alignment.center,
-              child: SheetGrabber(),
-            ),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Fixed, above the scroll view: this is the part a thumb grabs to
+          // swipe the sheet away, and a grabber or a close button that scrolls
+          // off with the rules is one nobody can reach.
+          SizedBox(
+            height: 44,
+            child: Stack(
               children: [
-                // An example board rather than an icon. The words below are
-                // about crowns and colour regions and a line through squares,
-                // and every one of them is easier to read next to the thing it
-                // is describing.
-                SizedBox(
-                  width: 86,
-                  height: 86,
-                  child: _Example(game: game, theme: theme),
+                // Given its own 16pt so the bar sits at the top of the header
+                // rather than centred in it — the grabber pads itself below.
+                const Positioned(
+                  top: 10,
+                  left: 0,
+                  right: 0,
+                  height: 16,
+                  child: SheetGrabber(),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.gameInfoLabel,
-                        style: theme.label.copyWith(
-                          color: theme.accent,
-                          letterSpacing: 2,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(copy.name, style: theme.displayMedium),
-                      const SizedBox(height: 6),
-                      Text(copy.goal, style: theme.bodySoft),
-                    ],
+                Positioned(
+                  top: 6,
+                  right: 8,
+                  child: _CloseButton(
+                    label: l10n.photoChromeCloseSemanticLabel,
+                    onTap: () => Navigator.of(context).maybePop(false),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            Text(
-              l10n.gameInfoRulesLabel,
-              style: theme.label.copyWith(letterSpacing: 2),
-            ),
-            const SizedBox(height: 10),
-            for (final rule in copy.rules) ...[
-              _Bullet(text: rule),
-              const SizedBox(height: 8),
-            ],
-            const SizedBox(height: 10),
-            Text(
-              l10n.gameInfoControlsLabel,
-              style: theme.label.copyWith(letterSpacing: 2),
-            ),
-            const SizedBox(height: 8),
-            Text(copy.controls, style: theme.bodySoft),
-            const SizedBox(height: 16),
-            Container(height: 1, color: theme.divider),
-            const SizedBox(height: 14),
-            Text(
-              copy.scoring,
-              style: theme.bodySoft.copyWith(color: theme.inkMuted),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              l10n.gameInfoSameForEveryone,
-              style: theme.monoTiny.copyWith(color: theme.inkMuted),
-            ),
-            const SizedBox(height: 20),
-            FocusableTap(
-              onTap: () => Navigator.of(context).maybePop(),
-              autofocus: true,
-              semanticLabel: l10n.gameInfoGotIt,
-              radius: theme.radiusMd,
-              child: GestureDetector(
-                onTap: () => Navigator.of(context).maybePop(),
-                behavior: HitTestBehavior.opaque,
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(
-                    color: theme.accent,
-                    borderRadius: BorderRadius.circular(theme.radiusMd),
+          ),
+          _flexIfBounded(
+            constraints,
+            // Clamping, not the platform's bounce: when the rules overflow a
+            // short screen, a pull down at the top should read as the sheet
+            // being dragged, not as the text inside it stretching away.
+            SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(22, 0, 22, 4),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // An example board rather than an icon. The words below
+                      // are about crowns and colour regions and a line through
+                      // squares, and every one of them is easier to read next
+                      // to the thing it is describing.
+                      SizedBox(
+                        width: 86,
+                        height: 86,
+                        child: _Example(game: game, theme: theme),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.gameInfoLabel,
+                              style: theme.label.copyWith(
+                                color: theme.accent,
+                                letterSpacing: 2,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(copy.name, style: theme.displayMedium),
+                            const SizedBox(height: 6),
+                            Text(copy.goal, style: theme.bodySoft),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    l10n.gameInfoGotIt,
-                    style: theme.label.copyWith(color: theme.accentInk),
+                  const SizedBox(height: 20),
+                  Text(
+                    l10n.gameInfoRulesLabel,
+                    style: theme.label.copyWith(letterSpacing: 2),
                   ),
-                ),
+                  const SizedBox(height: 10),
+                  for (final rule in copy.rules) ...[
+                    _Bullet(text: rule),
+                    const SizedBox(height: 8),
+                  ],
+                  const SizedBox(height: 10),
+                  Text(
+                    l10n.gameInfoControlsLabel,
+                    style: theme.label.copyWith(letterSpacing: 2),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(copy.controls, style: theme.bodySoft),
+                  const SizedBox(height: 16),
+                  Container(height: 1, color: theme.divider),
+                  const SizedBox(height: 14),
+                  Text(
+                    copy.scoring,
+                    style: theme.bodySoft.copyWith(color: theme.inkMuted),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    l10n.gameInfoSameForEveryone,
+                    style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
+          // Pinned under the scroll view, so on a short screen the way in is
+          // on screen from the first frame instead of below the rules.
+          Padding(
+            padding: EdgeInsets.fromLTRB(22, 16, 22, 18 + bottomInset),
+            child: _PlayButton(
+              label: action,
+              onTap: () => Navigator.of(context).maybePop(true),
+            ),
+          ),
+        ],
+      ),
+      ),
+    );
+  }
+
+  static Widget _flexIfBounded(BoxConstraints c, Widget child) =>
+      c.hasBoundedHeight ? Flexible(child: child) : child;
+}
+
+/// The main button. Autofocused, so a keyboard user lands on the way in.
+class _PlayButton extends StatelessWidget {
+  const _PlayButton({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return FocusableTap(
+      onTap: onTap,
+      autofocus: true,
+      semanticLabel: label,
+      radius: theme.radiusMd,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color: theme.accent,
+            borderRadius: BorderRadius.circular(theme.radiusMd),
+          ),
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.play_arrow_rounded, size: 18, color: theme.accentInk),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.label.copyWith(color: theme.accentInk),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The X. A plain disc rather than [GlassCloseButton]: a bottom sheet slides
+/// in, and a blur inside it would re-rasterize on every frame of that — the
+/// jank `sheet_surface.dart` documents.
+class _CloseButton extends StatelessWidget {
+  const _CloseButton({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: label,
+      shape: FocusRingShape.circle,
+      radius: 16,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        // 32pt drawn, 40pt to a thumb.
+        child: SizedBox(
+          width: 40,
+          height: 40,
+          child: Center(
+            child: Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: theme.surfaceRaised,
+                shape: BoxShape.circle,
+                border: Border.all(color: theme.divider),
+              ),
+              alignment: Alignment.center,
+              child: Icon(Icons.close_rounded, size: 17, color: theme.inkSoft),
+            ),
+          ),
         ),
       ),
     );

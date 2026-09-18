@@ -5684,9 +5684,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String get gameInfoSameForEveryone => 'bugün herkese aynı tahta geliyor.';
 
   @override
-  String get gameInfoGotIt => 'ANLADIM';
-
-  @override
   String get gameInfoQueensGoal =>
       'her satıra, sütuna ve renge birer taç yerleştir.';
 
@@ -8518,4 +8515,13 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get roomSuggestionBannerSemantic =>
       'İncelemeni bekleyen üye önerileri';
+
+  @override
+  String get gameInfoPlay => 'OYNA';
+
+  @override
+  String get gameInfoContinue => 'DEVAM ET';
+
+  @override
+  String get gameInfoSeeResult => 'SONUCUNU GÖR';
 }

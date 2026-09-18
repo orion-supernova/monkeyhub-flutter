@@ -1607,7 +1607,6 @@
   "gameInfoScoringTimed": "जब तक बोर्ड स्क्रीन पर है घड़ी चलती है; रोकने या बाहर जाने पर रुक जाती है। सबसे तेज़ आज की सूची में सबसे ऊपर।",
   "gameInfoScoringGuesses": "स्कोर कम अनुमानों से बनता है, घड़ी से नहीं।",
   "gameInfoSameForEveryone": "आज सबको एक ही बोर्ड मिलता है।",
-  "gameInfoGotIt": "समझ गए",
   "gameInfoQueensGoal": "हर पंक्ति, स्तंभ और रंग में एक ताज रखें।",
   "gameInfoQueensRule1": "आठ ताज: हर पंक्ति में एक, हर स्तंभ में एक।",
   "gameInfoQueensRule2": "हर रंग-खंड में भी ठीक एक ताज होता है।",
@@ -2393,5 +2392,8 @@
   "roomSuggestionBannerDescription": "{name} ने नया विवरण सुझाया",
   "roomSuggestionBannerMany": "{count, plural, one{{count} सुझाव तुम्हारा इंतज़ार कर रहा है} other{{count} सुझाव तुम्हारा इंतज़ार कर रहे हैं}}",
   "roomSuggestionBannerReview": "देखो",
-  "roomSuggestionBannerSemantic": "मेंबर्स के सुझाव, तुम्हारी मंज़ूरी के इंतज़ार में"
+  "roomSuggestionBannerSemantic": "मेंबर्स के सुझाव, तुम्हारी मंज़ूरी के इंतज़ार में",
+  "gameInfoPlay": "खेलो",
+  "gameInfoContinue": "जारी रखो",
+  "gameInfoSeeResult": "अपना नतीजा देखो"
 }

@@ -1607,7 +1607,6 @@
   "gameInfoScoringTimed": "盤面を開いている間だけ時計が進み、一時停止や離脱で止まります。最速なら今日のトップです。",
   "gameInfoScoringGuesses": "スコアは推測回数の少なさで決まり、時間は関係ありません。",
   "gameInfoSameForEveryone": "今日は全員が同じ盤面です。",
-  "gameInfoGotIt": "わかった",
   "gameInfoQueensGoal": "各行・各列・各色に王冠を1つずつ置きます。",
   "gameInfoQueensRule1": "王冠は8つ。各行に1つ、各列に1つ。",
   "gameInfoQueensRule2": "色のかたまりごとにもちょうど1つずつ。",
@@ -2393,5 +2392,8 @@
   "roomSuggestionBannerDescription": "{name} が新しい説明を提案しました",
   "roomSuggestionBannerMany": "{count, plural, other{{count} 件の提案が確認を待っています}}",
   "roomSuggestionBannerReview": "確認",
-  "roomSuggestionBannerSemantic": "確認を待っているメンバーの提案"
+  "roomSuggestionBannerSemantic": "確認を待っているメンバーの提案",
+  "gameInfoPlay": "プレイする",
+  "gameInfoContinue": "続きをプレイ",
+  "gameInfoSeeResult": "結果を見る"
 }

@@ -1607,7 +1607,6 @@
   "gameInfoScoringTimed": "보드가 화면에 있는 동안만 시계가 돌고, 일시정지하거나 나가면 멈춰. 가장 빠르면 오늘 1위야.",
   "gameInfoScoringGuesses": "시간이 아니라 몇 번 만에 맞혔는지로 점수가 매겨져.",
   "gameInfoSameForEveryone": "오늘은 모두 같은 보드를 받아.",
-  "gameInfoGotIt": "알겠어",
   "gameInfoQueensGoal": "모든 행, 열, 색에 왕관을 하나씩 놓아.",
   "gameInfoQueensRule1": "왕관 여덟 개, 각 행에 하나 각 열에 하나.",
   "gameInfoQueensRule2": "색 덩어리마다도 정확히 하나씩.",
@@ -2393,5 +2392,8 @@
   "roomSuggestionBannerDescription": "{name} 님이 새 설명을 제안했어요",
   "roomSuggestionBannerMany": "{count, plural, other{제안 {count}개가 기다리고 있어요}}",
   "roomSuggestionBannerReview": "검토",
-  "roomSuggestionBannerSemantic": "검토를 기다리는 멤버 제안"
+  "roomSuggestionBannerSemantic": "검토를 기다리는 멤버 제안",
+  "gameInfoPlay": "플레이",
+  "gameInfoContinue": "이어서 하기",
+  "gameInfoSeeResult": "내 결과 보기"
 }

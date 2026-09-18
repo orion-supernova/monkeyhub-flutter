@@ -9,6 +9,7 @@ import 'package:monkeyhub/models/daily_game.dart';
 import 'package:monkeyhub/models/puzzle.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+import 'package:monkeyhub/widgets/destructive_sheet.dart' show SheetGrabber;
 import 'package:monkeyhub/widgets/game_info_sheet.dart';
 import 'package:monkeyhub/widgets/game_tile.dart';
 import 'package:monkeyhub/widgets/games_strip.dart';
@@ -297,26 +298,161 @@ void main() {
     expect(find.textContaining('the clock runs'), findsNothing);
   });
 
-  testWidgets('GOT IT closes it', (tester) async {
-    await tester.pumpWidget(
-      host(
-        GameTile(
-          game: DailyGame.sudoku,
-          boards: boards,
-          width: 170,
-          onTap: () {},
-        ),
-      ),
-    );
+  // The main button used to read GOT IT and only closed the sheet, which
+  // sent a player who had just read the rules back to the tile to tap it
+  // again. It is the way in now.
+  Future<void> openSheet(WidgetTester tester, Widget tile) async {
+    await tester.pumpWidget(host(tile));
     await tester.pumpAndSettle();
-
     await tester.tap(find.byType(GameInfoButton));
     await tester.pumpAndSettle();
     expect(find.text('THE RULES'), findsOneWidget);
+  }
 
-    await tester.tap(find.text('GOT IT'));
+  testWidgets('PLAY closes the sheet and opens the game', (tester) async {
+    var opened = 0;
+    await openSheet(
+      tester,
+      GameTile(
+        game: DailyGame.sudoku,
+        boards: boards,
+        width: 170,
+        onTap: () => opened++,
+      ),
+    );
+
+    await tester.tap(find.text('PLAY'));
     await tester.pumpAndSettle();
 
     expect(find.text('THE RULES'), findsNothing);
+    expect(opened, 1);
+  });
+
+  testWidgets('the X closes it without opening the game', (tester) async {
+    var opened = 0;
+    await openSheet(
+      tester,
+      GameTile(
+        game: DailyGame.sudoku,
+        boards: boards,
+        width: 170,
+        onTap: () => opened++,
+      ),
+    );
+
+    await tester.tap(find.bySemanticsLabel('Close'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('THE RULES'), findsNothing);
+    expect(opened, 0);
+  });
+
+  testWidgets('a swipe down closes it without opening the game',
+      (tester) async {
+    var opened = 0;
+    await openSheet(
+      tester,
+      GameTile(
+        game: DailyGame.queens,
+        boards: boards,
+        width: 170,
+        onTap: () => opened++,
+      ),
+    );
+
+    // From the grabber in the fixed header — the part of the sheet that never
+    // scrolls, so the drag is the sheet's and not a scroll view's.
+    final grabber = tester.getRect(find.byType(SheetGrabber));
+    await tester.flingFrom(
+      Offset(grabber.center.dx, grabber.top + 2),
+      const Offset(0, 500),
+      1500,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('THE RULES'), findsNothing);
+    expect(opened, 0);
+  });
+
+  // Where the rules fit, the whole sheet is the handle, not just the grabber —
+  // the scroll view holding them must not take a drag it has nothing to do
+  // with.
+  testWidgets('a swipe on the rules closes it too, when they fit',
+      (tester) async {
+    tester.view.physicalSize = const Size(430, 1100);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await openSheet(
+      tester,
+      GameTile(
+        game: DailyGame.queens,
+        boards: boards,
+        width: 170,
+        onTap: () {},
+      ),
+    );
+
+    await tester.fling(find.text('THE RULES'), const Offset(0, 600), 1500);
+    await tester.pumpAndSettle();
+
+    expect(find.text('THE RULES'), findsNothing);
+    // iOS, whose default physics are the ones most eager to take a drag.
+  }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
+
+  testWidgets('the button says where the player is with today\'s board',
+      (tester) async {
+    await openSheet(
+      tester,
+      GameTile(
+        game: DailyGame.zip,
+        boards: boards,
+        width: 170,
+        result: const GameResult(
+          game: DailyGame.zip,
+          solved: false,
+          gaveUp: false,
+          finished: false,
+        ),
+        onTap: () {},
+      ),
+    );
+    expect(find.text('CONTINUE'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel('Close'));
+    await tester.pumpAndSettle();
+    await openSheet(
+      tester,
+      GameTile(
+        game: DailyGame.zip,
+        boards: boards,
+        width: 170,
+        result: const GameResult(
+          game: DailyGame.zip,
+          solved: true,
+          gaveUp: false,
+          finished: true,
+          durationMs: 42000,
+        ),
+        onTap: () {},
+      ),
+    );
+    expect(find.text('SEE YOUR RESULT'), findsOneWidget);
+  });
+
+  testWidgets('the code puzzle offers the way in too', (tester) async {
+    var opened = 0;
+    await openSheet(
+      tester,
+      CodePuzzleTile(
+        puzzle: const PuzzleState(),
+        width: 170,
+        onTap: () => opened++,
+      ),
+    );
+
+    await tester.tap(find.text('PLAY'));
+    await tester.pumpAndSettle();
+
+    expect(opened, 1);
   });
 }

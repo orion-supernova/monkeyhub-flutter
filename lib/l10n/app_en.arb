@@ -6446,10 +6446,6 @@
   "@gameInfoSameForEveryone": {
     "description": "Muted footnote at the bottom of the how-to-play sheet. The point being made is that the boards are identical for every player worldwide, which is what makes comparing results meaningful."
   },
-  "gameInfoGotIt": "GOT IT",
-  "@gameInfoGotIt": {
-    "description": "All-caps button that closes the how-to-play sheet."
-  },
   "gameInfoQueensGoal": "place one crown in every row, column and colour.",
   "@gameInfoQueensGoal": {
     "description": "One-sentence description of what the player is trying to do in Queens, at the top of its how-to-play sheet."
@@ -9864,5 +9860,17 @@
   "roomSuggestionBannerSemantic": "Member suggestions waiting for your review",
   "@roomSuggestionBannerSemantic": {
     "description": "Screen-reader label for the admin suggestion strip as a whole."
+  },
+  "gameInfoPlay": "PLAY",
+  "@gameInfoPlay": {
+    "description": "Main button of the how-to-play sheet for a game not started today. Closes the sheet and opens the game."
+  },
+  "gameInfoContinue": "CONTINUE",
+  "@gameInfoContinue": {
+    "description": "Main button of the how-to-play sheet for a game started but not finished today. Closes the sheet and reopens the game."
+  },
+  "gameInfoSeeResult": "SEE YOUR RESULT",
+  "@gameInfoSeeResult": {
+    "description": "Main button of the how-to-play sheet for a game already finished today. Closes the sheet and opens the finished board."
   }
 }

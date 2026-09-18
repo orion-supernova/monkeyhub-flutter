@@ -242,7 +242,12 @@ class _StripTile extends StatelessWidget {
 
     return _StripCard(
       onTap: onTap,
-      onInfo: () => showGameInfo(context, game),
+      onInfo: () => showGameInfo(
+        context,
+        game,
+        entry: GameInfoEntry.forBoard(result),
+        onPlay: onTap,
+      ),
       semanticLabel: _name(l10n),
       accent: done && (row?.solved ?? false),
       preview: _preview(theme),
@@ -325,7 +330,11 @@ class _PuzzleStripTile extends StatelessWidget {
 
     return _StripCard(
       onTap: onTap,
-      onInfo: () => showCodePuzzleInfo(context),
+      onInfo: () => showCodePuzzleInfo(
+        context,
+        entry: GameInfoEntry.forPuzzle(state.mine),
+        onPlay: onTap,
+      ),
       semanticLabel: l10n.gameCodeName,
       accent: done && mine!.solved,
       preview: _symbolGrid(theme),

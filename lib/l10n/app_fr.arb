@@ -1607,7 +1607,6 @@
   "gameInfoScoringTimed": "le chrono tourne tant que la grille est à l'écran et s'arrête si tu mets en pause ou si tu sors. le plus rapide est en tête du jour.",
   "gameInfoScoringGuesses": "le score dépend du nombre d'essais, pas du chrono.",
   "gameInfoSameForEveryone": "tout le monde a la même grille aujourd'hui.",
-  "gameInfoGotIt": "COMPRIS",
   "gameInfoQueensGoal": "place une couronne dans chaque ligne, colonne et couleur.",
   "gameInfoQueensRule1": "huit couronnes : une par ligne et une par colonne.",
   "gameInfoQueensRule2": "chaque bloc de couleur reçoit aussi exactement une couronne.",
@@ -2393,5 +2392,8 @@
   "roomSuggestionBannerDescription": "{name} a proposé une nouvelle description",
   "roomSuggestionBannerMany": "{count, plural, one{{count} suggestion t'attend} other{{count} suggestions t'attendent}}",
   "roomSuggestionBannerReview": "VOIR",
-  "roomSuggestionBannerSemantic": "Suggestions de membres en attente de ton avis"
+  "roomSuggestionBannerSemantic": "Suggestions de membres en attente de ton avis",
+  "gameInfoPlay": "JOUER",
+  "gameInfoContinue": "CONTINUER",
+  "gameInfoSeeResult": "VOIR TON RÉSULTAT"
 }

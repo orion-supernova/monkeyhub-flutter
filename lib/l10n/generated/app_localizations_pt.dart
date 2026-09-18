@@ -5777,9 +5777,6 @@ class AppLocalizationsPt extends AppLocalizations {
       'hoje toda a gente joga o mesmo tabuleiro.';
 
   @override
-  String get gameInfoGotIt => 'ENTENDI';
-
-  @override
   String get gameInfoQueensGoal =>
       'coloca uma coroa em cada linha, coluna e cor.';
 
@@ -8650,6 +8647,15 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get roomSuggestionBannerSemantic =>
       'Sugestões de membros à espera da tua revisão';
+
+  @override
+  String get gameInfoPlay => 'JOGAR';
+
+  @override
+  String get gameInfoContinue => 'CONTINUAR';
+
+  @override
+  String get gameInfoSeeResult => 'VER O TEU RESULTADO';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -14423,9 +14429,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'hoje todo mundo joga o mesmo tabuleiro.';
 
   @override
-  String get gameInfoGotIt => 'ENTENDI';
-
-  @override
   String get gameInfoQueensGoal =>
       'coloque uma coroa em cada linha, coluna e cor.';
 
@@ -17294,4 +17297,13 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get roomSuggestionBannerSemantic =>
       'Sugestões de membros esperando sua revisão';
+
+  @override
+  String get gameInfoPlay => 'JOGAR';
+
+  @override
+  String get gameInfoContinue => 'CONTINUAR';
+
+  @override
+  String get gameInfoSeeResult => 'VER SEU RESULTADO';
 }

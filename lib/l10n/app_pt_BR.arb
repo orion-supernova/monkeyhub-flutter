@@ -1607,7 +1607,6 @@
   "gameInfoScoringTimed": "o relógio corre enquanto o tabuleiro está na tela e para se você pausar ou sair. quem for mais rápido lidera a lista de hoje.",
   "gameInfoScoringGuesses": "a pontuação é pelo número de tentativas, não pelo tempo.",
   "gameInfoSameForEveryone": "hoje todo mundo joga o mesmo tabuleiro.",
-  "gameInfoGotIt": "ENTENDI",
   "gameInfoQueensGoal": "coloque uma coroa em cada linha, coluna e cor.",
   "gameInfoQueensRule1": "oito coroas: uma em cada linha e uma em cada coluna.",
   "gameInfoQueensRule2": "cada bloco de cor recebe também exatamente uma coroa.",
@@ -2393,5 +2392,8 @@
   "roomSuggestionBannerDescription": "{name} sugeriu uma nova descrição",
   "roomSuggestionBannerMany": "{count, plural, one{{count} sugestão esperando você} other{{count} sugestões esperando você}}",
   "roomSuggestionBannerReview": "REVISAR",
-  "roomSuggestionBannerSemantic": "Sugestões de membros esperando sua revisão"
+  "roomSuggestionBannerSemantic": "Sugestões de membros esperando sua revisão",
+  "gameInfoPlay": "JOGAR",
+  "gameInfoContinue": "CONTINUAR",
+  "gameInfoSeeResult": "VER SEU RESULTADO"
 }

@@ -5498,9 +5498,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get gameInfoSameForEveryone => '今日は全員が同じ盤面です。';
 
   @override
-  String get gameInfoGotIt => 'わかった';
-
-  @override
   String get gameInfoQueensGoal => '各行・各列・各色に王冠を1つずつ置きます。';
 
   @override
@@ -8215,4 +8212,13 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get roomSuggestionBannerSemantic => '確認を待っているメンバーの提案';
+
+  @override
+  String get gameInfoPlay => 'プレイする';
+
+  @override
+  String get gameInfoContinue => '続きをプレイ';
+
+  @override
+  String get gameInfoSeeResult => '結果を見る';
 }

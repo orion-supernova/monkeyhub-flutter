@@ -1607,7 +1607,6 @@
   "gameInfoScoringTimed": "棋盘在屏幕上时计时进行，暂停或离开即停止。用时最短的人排在今天第一。",
   "gameInfoScoringGuesses": "按猜的次数计分，与用时无关。",
   "gameInfoSameForEveryone": "今天所有人拿到的是同一道题。",
-  "gameInfoGotIt": "知道了",
   "gameInfoQueensGoal": "在每一行、每一列和每种颜色中各放一顶王冠。",
   "gameInfoQueensRule1": "八顶王冠：每行一顶，每列一顶。",
   "gameInfoQueensRule2": "每个颜色块也恰好放一顶王冠。",
@@ -2393,5 +2392,8 @@
   "roomSuggestionBannerDescription": "{name} 提议换一段新的描述",
   "roomSuggestionBannerMany": "{count, plural, other{有 {count} 条建议等你处理}}",
   "roomSuggestionBannerReview": "查看",
-  "roomSuggestionBannerSemantic": "等你审核的成员建议"
+  "roomSuggestionBannerSemantic": "等你审核的成员建议",
+  "gameInfoPlay": "开始玩",
+  "gameInfoContinue": "继续玩",
+  "gameInfoSeeResult": "查看你的结果"
 }

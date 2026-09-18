@@ -5802,9 +5802,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'tout le monde a la même grille aujourd\'hui.';
 
   @override
-  String get gameInfoGotIt => 'COMPRIS';
-
-  @override
   String get gameInfoQueensGoal =>
       'place une couronne dans chaque ligne, colonne et couleur.';
 
@@ -8690,4 +8687,13 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get roomSuggestionBannerSemantic =>
       'Suggestions de membres en attente de ton avis';
+
+  @override
+  String get gameInfoPlay => 'JOUER';
+
+  @override
+  String get gameInfoContinue => 'CONTINUER';
+
+  @override
+  String get gameInfoSeeResult => 'VOIR TON RÉSULTAT';
 }

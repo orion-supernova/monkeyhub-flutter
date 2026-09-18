@@ -9785,12 +9785,6 @@ abstract class AppLocalizations {
   /// **'everyone gets the same board today.'**
   String get gameInfoSameForEveryone;
 
-  /// All-caps button that closes the how-to-play sheet.
-  ///
-  /// In en, this message translates to:
-  /// **'GOT IT'**
-  String get gameInfoGotIt;
-
   /// One-sentence description of what the player is trying to do in Queens, at the top of its how-to-play sheet.
   ///
   /// In en, this message translates to:
@@ -14514,6 +14508,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Member suggestions waiting for your review'**
   String get roomSuggestionBannerSemantic;
+
+  /// Main button of the how-to-play sheet for a game not started today. Closes the sheet and opens the game.
+  ///
+  /// In en, this message translates to:
+  /// **'PLAY'**
+  String get gameInfoPlay;
+
+  /// Main button of the how-to-play sheet for a game started but not finished today. Closes the sheet and reopens the game.
+  ///
+  /// In en, this message translates to:
+  /// **'CONTINUE'**
+  String get gameInfoContinue;
+
+  /// Main button of the how-to-play sheet for a game already finished today. Closes the sheet and opens the finished board.
+  ///
+  /// In en, this message translates to:
+  /// **'SEE YOUR RESULT'**
+  String get gameInfoSeeResult;
 }
 
 class _AppLocalizationsDelegate

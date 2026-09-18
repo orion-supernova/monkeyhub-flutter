@@ -5702,9 +5702,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gameInfoSameForEveryone => 'everyone gets the same board today.';
 
   @override
-  String get gameInfoGotIt => 'GOT IT';
-
-  @override
   String get gameInfoQueensGoal =>
       'place one crown in every row, column and colour.';
 
@@ -8543,4 +8540,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get roomSuggestionBannerSemantic =>
       'Member suggestions waiting for your review';
+
+  @override
+  String get gameInfoPlay => 'PLAY';
+
+  @override
+  String get gameInfoContinue => 'CONTINUE';
+
+  @override
+  String get gameInfoSeeResult => 'SEE YOUR RESULT';
 }

@@ -5516,9 +5516,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get gameInfoSameForEveryone => '오늘은 모두 같은 보드를 받아.';
 
   @override
-  String get gameInfoGotIt => '알겠어';
-
-  @override
   String get gameInfoQueensGoal => '모든 행, 열, 색에 왕관을 하나씩 놓아.';
 
   @override
@@ -8238,4 +8235,13 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get roomSuggestionBannerSemantic => '검토를 기다리는 멤버 제안';
+
+  @override
+  String get gameInfoPlay => '플레이';
+
+  @override
+  String get gameInfoContinue => '이어서 하기';
+
+  @override
+  String get gameInfoSeeResult => '내 결과 보기';
 }

@@ -1607,7 +1607,6 @@
   "gameInfoScoringTimed": "klockan går så länge brickan är uppe och stannar när du pausar eller lämnar. snabbast toppar dagens lista.",
   "gameInfoScoringGuesses": "poängen sätts av hur få gissningar du behöver, inte av klockan.",
   "gameInfoSameForEveryone": "alla får samma bricka idag.",
-  "gameInfoGotIt": "OKEJ",
   "gameInfoQueensGoal": "placera en krona i varje rad, kolumn och färg.",
   "gameInfoQueensRule1": "åtta kronor: en i varje rad och en i varje kolumn.",
   "gameInfoQueensRule2": "varje färgblock får också exakt en krona.",
@@ -2393,5 +2392,8 @@
   "roomSuggestionBannerDescription": "{name} föreslog en ny beskrivning",
   "roomSuggestionBannerMany": "{count, plural, one{{count} förslag väntar på dig} other{{count} förslag väntar på dig}}",
   "roomSuggestionBannerReview": "GRANSKA",
-  "roomSuggestionBannerSemantic": "Medlemsförslag som väntar på din granskning"
+  "roomSuggestionBannerSemantic": "Medlemsförslag som väntar på din granskning",
+  "gameInfoPlay": "SPELA",
+  "gameInfoContinue": "FORTSÄTT",
+  "gameInfoSeeResult": "SE DITT RESULTAT"
 }

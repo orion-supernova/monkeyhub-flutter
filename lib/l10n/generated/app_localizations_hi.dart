@@ -5721,9 +5721,6 @@ class AppLocalizationsHi extends AppLocalizations {
   String get gameInfoSameForEveryone => 'आज सबको एक ही बोर्ड मिलता है।';
 
   @override
-  String get gameInfoGotIt => 'समझ गए';
-
-  @override
   String get gameInfoQueensGoal => 'हर पंक्ति, स्तंभ और रंग में एक ताज रखें।';
 
   @override
@@ -8561,4 +8558,13 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get roomSuggestionBannerSemantic =>
       'मेंबर्स के सुझाव, तुम्हारी मंज़ूरी के इंतज़ार में';
+
+  @override
+  String get gameInfoPlay => 'खेलो';
+
+  @override
+  String get gameInfoContinue => 'जारी रखो';
+
+  @override
+  String get gameInfoSeeResult => 'अपना नतीजा देखो';
 }

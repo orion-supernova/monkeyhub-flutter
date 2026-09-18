@@ -5429,9 +5429,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get gameInfoSameForEveryone => '今天所有人拿到的是同一道题。';
 
   @override
-  String get gameInfoGotIt => '知道了';
-
-  @override
   String get gameInfoQueensGoal => '在每一行、每一列和每种颜色中各放一顶王冠。';
 
   @override
@@ -8121,4 +8118,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get roomSuggestionBannerSemantic => '等你审核的成员建议';
+
+  @override
+  String get gameInfoPlay => '开始玩';
+
+  @override
+  String get gameInfoContinue => '继续玩';
+
+  @override
+  String get gameInfoSeeResult => '查看你的结果';
 }

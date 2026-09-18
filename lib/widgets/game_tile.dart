@@ -53,7 +53,12 @@ class GameTile extends StatelessWidget {
     return _TileShell(
       width: width,
       onTap: onTap,
-      onInfo: () => showGameInfo(context, game),
+      onInfo: () => showGameInfo(
+        context,
+        game,
+        entry: GameInfoEntry.forBoard(result),
+        onPlay: onTap,
+      ),
       semanticLabel: _name(l10n),
       preview: _preview(theme),
       title: _name(l10n),
@@ -120,7 +125,11 @@ class CodePuzzleTile extends StatelessWidget {
     return _TileShell(
       width: width,
       onTap: onTap,
-      onInfo: () => showCodePuzzleInfo(context),
+      onInfo: () => showCodePuzzleInfo(
+        context,
+        entry: GameInfoEntry.forPuzzle(puzzle.mine),
+        onPlay: onTap,
+      ),
       semanticLabel: l10n.gameCodeName,
       title: l10n.gameCodeName,
       preview: Center(
