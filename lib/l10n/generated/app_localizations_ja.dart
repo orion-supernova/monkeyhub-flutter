@@ -8291,4 +8291,52 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get roomInviteStepperDecrease => '減らす';
+
+  @override
+  String get recordsLabel => '歴代記録';
+
+  @override
+  String get recordsBlurb => 'これまでのベスト — あなたと友達';
+
+  @override
+  String recordsYourBest(Object value) {
+    return 'あなた $value';
+  }
+
+  @override
+  String get recordsNoneYet => 'まだ誰もいません';
+
+  @override
+  String get recordsEmpty => 'どれかのゲームをクリアすると、ベストがここに載ります。';
+
+  @override
+  String recordsSolves(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 回クリア',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recordsSetOn(Object date) {
+    return '$date に達成';
+  }
+
+  @override
+  String recordsReactSemantic(Object name) {
+    return '$name の記録にリアクション';
+  }
+
+  @override
+  String get recordsReactFailed => 'リアクションできませんでした';
+
+  @override
+  String get recordsLoadFailed => '記録を読み込めませんでした';
+
+  @override
+  String recordsHolderSemantic(Object game, Object name, Object value) {
+    return '$game：$name の記録 $value';
+  }
 }

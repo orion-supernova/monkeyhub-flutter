@@ -7,10 +7,12 @@ import '../../games/game_play_controller.dart';
 import '../../keyboard/focusable_tap.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/daily_game.dart';
+import '../../models/game_record.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/app_toast.dart';
 import '../../widgets/game_layout_shell.dart';
+import '../../widgets/game_records.dart';
 
 /// The chrome every daily game wears: the back arrow, the running clock, the
 /// pause cover, the tool row, the result card and today's times.
@@ -411,11 +413,15 @@ class GameStandingsList extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(l10n.gameStandingsLabel, style: theme.label),
             const SizedBox(width: 8),
             Expanded(child: Container(height: 1, color: theme.divider)),
+            const SizedBox(width: 6),
+            // Today's times answer "who won today"; this is one tap from "is
+            // that actually good?".
+            AllTimeLink(game: RecordGame.of(game), viewerId: viewerId),
           ],
         ),
         const SizedBox(height: 12),

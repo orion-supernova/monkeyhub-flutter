@@ -2408,5 +2408,16 @@
   "roomInviteUnitHours": "時間",
   "roomInviteUnitDays": "日",
   "roomInviteStepperIncrease": "増やす",
-  "roomInviteStepperDecrease": "減らす"
+  "roomInviteStepperDecrease": "減らす",
+  "recordsLabel": "歴代記録",
+  "recordsBlurb": "これまでのベスト — あなたと友達",
+  "recordsYourBest": "あなた {value}",
+  "recordsNoneYet": "まだ誰もいません",
+  "recordsEmpty": "どれかのゲームをクリアすると、ベストがここに載ります。",
+  "recordsSolves": "{count, plural, other{{count} 回クリア}}",
+  "recordsSetOn": "{date} に達成",
+  "recordsReactSemantic": "{name} の記録にリアクション",
+  "recordsReactFailed": "リアクションできませんでした",
+  "recordsLoadFailed": "記録を読み込めませんでした",
+  "recordsHolderSemantic": "{game}：{name} の記録 {value}"
 }

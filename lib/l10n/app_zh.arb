@@ -2408,5 +2408,16 @@
   "roomInviteUnitHours": "小时",
   "roomInviteUnitDays": "天",
   "roomInviteStepperIncrease": "增加",
-  "roomInviteStepperDecrease": "减少"
+  "roomInviteStepperDecrease": "减少",
+  "recordsLabel": "历史纪录",
+  "recordsBlurb": "有史以来最好的成绩 — 你和你的朋友",
+  "recordsYourBest": "你的 {value}",
+  "recordsNoneYet": "暂无",
+  "recordsEmpty": "完成任意一个游戏，你的最佳成绩就会出现在这里。",
+  "recordsSolves": "{count, plural, other{完成 {count} 次}}",
+  "recordsSetOn": "{date} 创下",
+  "recordsReactSemantic": "回应 {name} 的纪录",
+  "recordsReactFailed": "无法回应",
+  "recordsLoadFailed": "无法加载纪录",
+  "recordsHolderSemantic": "{game}：{name} 的纪录 {value}"
 }

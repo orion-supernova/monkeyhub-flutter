@@ -8314,4 +8314,52 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get roomInviteStepperDecrease => '줄이기';
+
+  @override
+  String get recordsLabel => '역대 기록';
+
+  @override
+  String get recordsBlurb => '지금까지의 최고 기록 — 나와 친구들';
+
+  @override
+  String recordsYourBest(Object value) {
+    return '내 기록 $value';
+  }
+
+  @override
+  String get recordsNoneYet => '아직 없음';
+
+  @override
+  String get recordsEmpty => '아무 게임이나 풀면 최고 기록이 여기 올라와요.';
+
+  @override
+  String recordsSolves(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count회 성공',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recordsSetOn(Object date) {
+    return '$date 달성';
+  }
+
+  @override
+  String recordsReactSemantic(Object name) {
+    return '$name님의 기록에 반응하기';
+  }
+
+  @override
+  String get recordsReactFailed => '반응하지 못했어요';
+
+  @override
+  String get recordsLoadFailed => '기록을 불러오지 못했어요';
+
+  @override
+  String recordsHolderSemantic(Object game, Object name, Object value) {
+    return '$game: $name님의 기록 $value';
+  }
 }

@@ -8729,6 +8729,56 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get roomInviteStepperDecrease => 'Diminuir';
+
+  @override
+  String get recordsLabel => 'RECORDES';
+
+  @override
+  String get recordsBlurb => 'o melhor de sempre — tu e os teus amigos';
+
+  @override
+  String recordsYourBest(Object value) {
+    return 'o teu $value';
+  }
+
+  @override
+  String get recordsNoneYet => 'ninguém ainda';
+
+  @override
+  String get recordsEmpty =>
+      'Resolve qualquer jogo e o teu melhor resultado aparece aqui.';
+
+  @override
+  String recordsSolves(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count resolvidos',
+      one: '$count resolvido',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recordsSetOn(Object date) {
+    return 'feito a $date';
+  }
+
+  @override
+  String recordsReactSemantic(Object name) {
+    return 'Reagir ao recorde de $name';
+  }
+
+  @override
+  String get recordsReactFailed => 'não foi possível reagir';
+
+  @override
+  String get recordsLoadFailed => 'não foi possível carregar os recordes';
+
+  @override
+  String recordsHolderSemantic(Object game, Object name, Object value) {
+    return '$game: recorde de $value por $name';
+  }
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -17452,4 +17502,54 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get roomInviteStepperDecrease => 'Diminuir';
+
+  @override
+  String get recordsLabel => 'RECORDES';
+
+  @override
+  String get recordsBlurb => 'o melhor de todos os tempos — você e seus amigos';
+
+  @override
+  String recordsYourBest(Object value) {
+    return 'o seu $value';
+  }
+
+  @override
+  String get recordsNoneYet => 'ninguém ainda';
+
+  @override
+  String get recordsEmpty =>
+      'Resolva qualquer jogo e seu melhor resultado aparece aqui.';
+
+  @override
+  String recordsSolves(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count resolvidos',
+      one: '$count resolvido',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recordsSetOn(Object date) {
+    return 'feito em $date';
+  }
+
+  @override
+  String recordsReactSemantic(Object name) {
+    return 'Reagir ao recorde de $name';
+  }
+
+  @override
+  String get recordsReactFailed => 'não foi possível reagir';
+
+  @override
+  String get recordsLoadFailed => 'não foi possível carregar os recordes';
+
+  @override
+  String recordsHolderSemantic(Object game, Object name, Object value) {
+    return '$game: recorde de $value por $name';
+  }
 }

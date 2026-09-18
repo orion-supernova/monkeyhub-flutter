@@ -78,6 +78,11 @@ class FeedStore extends ChangeNotifier {
   /// them for free: neither is [_dayKey]'s any more the moment the day turns.
   PuzzleAttempt? _localAttempt;
   String _localAttemptDay = '';
+
+  /// The day the viewer told friends about their code, ahead of the board
+  /// catching up with it. Day-stamped like the two above. See
+  /// [markPuzzleShared].
+  String _puzzleSharedDay = '';
   Map<DailyGame, GameResult> _localGames = const {};
   String _localGamesDay = '';
 
@@ -128,6 +133,15 @@ class FeedStore extends ChangeNotifier {
   /// the moment the real one lands it takes over — it carries the revealed
   /// answer and the scoreboard, which a mutation reply never does.
   PuzzleState get puzzle {
+    final state = _mergedPuzzle();
+    final mine = state.mine;
+    if (_puzzleSharedDay != _dayKey || mine == null || mine.shared) {
+      return state;
+    }
+    return PuzzleState(mine: mine.markShared(), scores: state.scores);
+  }
+
+  PuzzleState _mergedPuzzle() {
     final local = _localAttemptDay == _dayKey ? _localAttempt : null;
     if (local == null) return _puzzle;
     final server = _puzzle.mine;
@@ -135,6 +149,17 @@ class FeedStore extends ChangeNotifier {
       return _puzzle;
     }
     return PuzzleState(mine: local, scores: _puzzle.scores);
+  }
+
+  /// Marks today's code as told to friends, the moment the server accepted it.
+  ///
+  /// The board subscription carries `shared` too and would catch up by itself;
+  /// this only closes the beat in between, where TELL FRIENDS would otherwise
+  /// sit there still offering a send the server now refuses.
+  void markPuzzleShared() {
+    if (_puzzleSharedDay == _dayKey) return;
+    _puzzleSharedDay = _dayKey;
+    notifyListeners();
   }
 
   /// How the viewer is doing on each daily game today.
@@ -309,6 +334,7 @@ class FeedStore extends ChangeNotifier {
     // shared handset would otherwise show the next account today's guesses.
     _localAttempt = null;
     _localAttemptDay = '';
+    _puzzleSharedDay = '';
     _localGames = const {};
     _localGamesDay = '';
     stop();

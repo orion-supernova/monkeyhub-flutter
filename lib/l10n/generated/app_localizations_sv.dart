@@ -8656,4 +8656,53 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get roomInviteStepperDecrease => 'Minska';
+
+  @override
+  String get recordsLabel => 'GENOM TIDERNA';
+
+  @override
+  String get recordsBlurb => 'det bästa någon har gjort — du och dina vänner';
+
+  @override
+  String recordsYourBest(Object value) {
+    return 'ditt $value';
+  }
+
+  @override
+  String get recordsNoneYet => 'ingen än';
+
+  @override
+  String get recordsEmpty => 'Lös valfritt spel så hamnar ditt bästa här.';
+
+  @override
+  String recordsSolves(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count lösta',
+      one: '$count löst',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recordsSetOn(Object date) {
+    return 'satt $date';
+  }
+
+  @override
+  String recordsReactSemantic(Object name) {
+    return 'Reagera på ${name}s rekord';
+  }
+
+  @override
+  String get recordsReactFailed => 'det gick inte att reagera';
+
+  @override
+  String get recordsLoadFailed => 'det gick inte att läsa in rekorden';
+
+  @override
+  String recordsHolderSemantic(Object game, Object name, Object value) {
+    return '$game: rekord $value av $name';
+  }
 }

@@ -5,12 +5,15 @@ import '../../backend/feed_api.dart';
 import '../../data/feed_store.dart';
 import '../../keyboard/focusable_tap.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../../models/game_record.dart';
 import '../../models/puzzle.dart';
 import '../../theme/layout.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/app_toast.dart';
+import '../games/game_scaffold.dart' show confirmTellFriends;
 import '../../widgets/game_layout_shell.dart';
+import '../../widgets/game_records.dart';
 import '../../widgets/puzzle_symbol.dart';
 
 /// Today's puzzle, full screen.
@@ -40,6 +43,9 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   final List<int> _draft = [];
   bool _busy = false;
   String? _errorCode;
+
+  /// A send to friends in flight, so a second tap cannot race the first.
+  bool _telling = false;
 
   @override
   void initState() {
@@ -127,6 +133,44 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     );
   }
 
+  /// Tells the player's friends how today's code went — the same confirm,
+  /// the same once-only rule and the same wording as the four timed boards,
+  /// because from a friend's side it is the same thing: how you did today.
+  Future<void> _tellFriends() async {
+    if (_telling) return;
+    final l10n = AppLocalizations.of(context);
+    final toast = AppToast.of(context);
+    final ok = await confirmTellFriends(context);
+    if (!ok || !mounted) return;
+    setState(() => _telling = true);
+    try {
+      await widget.feedApi.sharePuzzleResult(
+        userId: widget.userId,
+        dayKey: FeedStore.instance.dayKey,
+      );
+      FeedStore.instance.markPuzzleShared();
+      HapticFeedback.mediumImpact();
+      toast.show(l10n.gameTellFriendsSent, tone: ToastTone.success);
+    } catch (e) {
+      final code = e.toString();
+      if (code.contains('ALREADY_SHARED')) {
+        // Sent already — from another device, or a tap this one never saw
+        // answered. The friends were told; nothing to alarm anybody about.
+        FeedStore.instance.markPuzzleShared();
+        toast.show(l10n.gameToldFriends);
+      } else {
+        toast.show(
+          code.contains('RESULT_PRIVATE')
+              ? l10n.gameTellFriendsPrivate
+              : l10n.gameTellFriendsFailed,
+          tone: ToastTone.danger,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _telling = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -181,7 +225,11 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       ],
       const SizedBox(height: 20),
       if (done)
-        _Outcome(attempt: attempt!, onShare: () => _share(attempt))
+        _Outcome(
+          attempt: attempt!,
+          onShare: () => _share(attempt),
+          onTellFriends: _telling ? null : _tellFriends,
+        )
       else if (!context.isExpanded)
         _Keypad(
           draft: _draft,
@@ -569,10 +617,17 @@ class _Key extends StatelessWidget {
 
 /// Shown once the player can no longer act.
 class _Outcome extends StatelessWidget {
-  const _Outcome({required this.attempt, required this.onShare});
+  const _Outcome({
+    required this.attempt,
+    required this.onShare,
+    required this.onTellFriends,
+  });
 
   final PuzzleAttempt attempt;
   final VoidCallback onShare;
+
+  /// Null while a send is in flight.
+  final VoidCallback? onTellFriends;
 
   @override
   Widget build(BuildContext context) {
@@ -610,27 +665,77 @@ class _Outcome extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 14),
-          FocusableTap(
-            onTap: onShare,
-            semanticLabel: l10n.puzzleShare,
-            radius: theme.radiusMd,
-            child: GestureDetector(
-              onTap: onShare,
-              behavior: HitTestBehavior.opaque,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.copy_outlined, size: 14, color: theme.accent),
-                  const SizedBox(width: 6),
-                  Text(
-                    l10n.puzzleShare,
-                    style: theme.label.copyWith(color: theme.accent),
-                  ),
-                ],
+          // Wrapped, like the timed boards' result card: two actions and a
+          // long localized label are wider than a narrow phone in several of
+          // the twelve languages.
+          Wrap(
+            spacing: 18,
+            runSpacing: 10,
+            children: [
+              _OutcomeAction(
+                icon: Icons.copy_outlined,
+                label: l10n.puzzleShare,
+                onTap: onShare,
               ),
-            ),
+              // Retired once used: the server allows one send per result, so
+              // a button that stayed would only ever answer with an error.
+              if (!attempt.shared)
+                _OutcomeAction(
+                  icon: Icons.notifications_active_outlined,
+                  label: l10n.gameTellFriends,
+                  onTap: onTellFriends,
+                )
+              else
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.check, size: 14, color: theme.inkMuted),
+                    const SizedBox(width: 6),
+                    Text(
+                      l10n.gameToldFriends,
+                      style: theme.label.copyWith(color: theme.inkMuted),
+                    ),
+                  ],
+                ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// One tappable action on the outcome card.
+class _OutcomeAction extends StatelessWidget {
+  const _OutcomeAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final color = onTap == null ? theme.inkMuted : theme.accent;
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: label,
+      radius: theme.radiusMd,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 6),
+            Text(label, style: theme.label.copyWith(color: color)),
+          ],
+        ),
       ),
     );
   }
@@ -652,11 +757,13 @@ class _Scoreboard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(l10n.puzzleScoreboardLabel, style: theme.label),
             const SizedBox(width: 8),
             Expanded(child: Container(height: 1, color: theme.divider)),
+            const SizedBox(width: 6),
+            AllTimeLink(game: RecordGame.code, viewerId: viewerId),
           ],
         ),
         const SizedBox(height: 12),

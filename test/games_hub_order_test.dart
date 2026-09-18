@@ -8,6 +8,7 @@ import 'package:monkeyhub/backend/convex_client.dart';
 import 'package:monkeyhub/backend/feed_api.dart';
 import 'package:monkeyhub/data/feed_store.dart';
 import 'package:monkeyhub/data/games_store.dart';
+import 'package:monkeyhub/data/records_store.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/screens/games/games_hub_screen.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
@@ -43,6 +44,8 @@ void main() {
 
   setUp(() {
     GamesStore.instance.api = FakeGamesApi(payload);
+    RecordsStore.instance.api = FakeGamesApi(payload);
+    RecordsStore.instance.clear();
     GamesStore.instance.clear();
   });
   tearDown(GamesStore.instance.clear);

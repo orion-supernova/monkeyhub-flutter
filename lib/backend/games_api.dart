@@ -1,4 +1,5 @@
 import '../models/daily_game.dart';
+import '../models/game_record.dart';
 import 'convex_client.dart';
 
 /// Every Convex call the daily games make.
@@ -190,6 +191,41 @@ class GamesApi {
       'userId': userId,
       'dayKey': dayKey,
       'game': game.wire,
+    });
+  }
+
+  /// Everyone's all-time bests — the viewer's and their friends' — per game,
+  /// with the reactions on each. One-shot, like [standings]; see
+  /// `records.ts` for why it is not a subscription.
+  Future<RecordBoard> recordBoard({required String userId}) async {
+    final res = await _cv.query('records:board', {'userId': userId});
+    return RecordBoard.fromJson(res);
+  }
+
+  /// Reacts to a friend's record, or swaps the reaction already on it.
+  ///
+  /// Throws `OWN_RECORD`, `NOT_FRIENDS`, `RECORD_PRIVATE` or `BAD_REACTION`
+  /// for the cases the server refuses — none of which the UI offers.
+  Future<void> reactToRecord({
+    required String userId,
+    required String recordId,
+    required String emoji,
+  }) async {
+    await _cv.mutation('records:react', {
+      'userId': userId,
+      'recordId': recordId,
+      'emoji': emoji,
+    });
+  }
+
+  /// Takes the viewer's reaction off a record. Absent is not an error.
+  Future<void> unreactToRecord({
+    required String userId,
+    required String recordId,
+  }) async {
+    await _cv.mutation('records:unreact', {
+      'userId': userId,
+      'recordId': recordId,
     });
   }
 

@@ -2408,5 +2408,16 @@
   "roomInviteUnitHours": "Horas",
   "roomInviteUnitDays": "Dias",
   "roomInviteStepperIncrease": "Aumentar",
-  "roomInviteStepperDecrease": "Diminuir"
+  "roomInviteStepperDecrease": "Diminuir",
+  "recordsLabel": "RECORDES",
+  "recordsBlurb": "o melhor de todos os tempos — você e seus amigos",
+  "recordsYourBest": "o seu {value}",
+  "recordsNoneYet": "ninguém ainda",
+  "recordsEmpty": "Resolva qualquer jogo e seu melhor resultado aparece aqui.",
+  "recordsSolves": "{count, plural, one{{count} resolvido} other{{count} resolvidos}}",
+  "recordsSetOn": "feito em {date}",
+  "recordsReactSemantic": "Reagir ao recorde de {name}",
+  "recordsReactFailed": "não foi possível reagir",
+  "recordsLoadFailed": "não foi possível carregar os recordes",
+  "recordsHolderSemantic": "{game}: recorde de {value} por {name}"
 }

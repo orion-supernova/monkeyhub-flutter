@@ -1821,6 +1821,11 @@ export default defineSchema({
     updatedAt: v.number(),
     // Set once the player can no longer act: solved, or out of guesses.
     finishedAt: v.optional(v.number()),
+    // When the player told their friends about this result — the same gate,
+    // for the same reason, as `gameResults.sharedAt` below: a fan-out to every
+    // friend must be refused by the server the second time, not by a client a
+    // reinstall away from forgetting it pressed the button.
+    sharedAt: v.optional(v.number()),
   })
     .index("by_user_day", ["userId", "dayKey"])
     // Account teardown (auth.ts purgeUser).
@@ -1881,6 +1886,54 @@ export default defineSchema({
     // already carries this.
     sharedAt: v.optional(v.number()),
   }).index("by_user_day_game", ["userId", "dayKey", "game"]),
+
+  // One row per player per game, ALL TIME: their best, and how many times they
+  // have solved it. Kept by `records.noteSolve` from `games.submit` and
+  // `puzzle.guess`, and filled for history once by `records.backfill`.
+  //
+  // Denormalized on purpose. "Every friend's best Queens" computed from
+  // `gameResults` is a scan of each friend's entire history — a year of four
+  // games a day is ~1,500 rows per person, times two hundred friends, on every
+  // open of a screen. Here it is one indexed read per person.
+  gameRecords: defineTable({
+    userId: v.id("users"),
+    // One of the four dailies' ids (`games.GAMES`), or "code" for the symbol
+    // puzzle. A string for the reason `gameResults.game` is one.
+    game: v.string(),
+    // Lower wins in both units: milliseconds for the timed boards, guesses
+    // for the code.
+    best: v.number(),
+    // The day the best was set, and when — `achievedAt` is also what a
+    // reaction is FOR (see `recordReactions`), so a new best starts clean.
+    dayKey: v.string(),
+    achievedAt: v.number(),
+    // Every solve of this game, best or not. Surrenders do not count.
+    solves: v.number(),
+  })
+    // Its [userId] prefix is both "everything this person holds" (the board,
+    // account teardown) and, with the game, the upsert on every solve.
+    .index("by_user_game", ["userId", "game"]),
+
+  // A friend's reaction to somebody's all-time best. One per friend per record;
+  // choosing another emoji replaces it.
+  recordReactions: defineTable({
+    recordId: v.id("gameRecords"),
+    // The `gameRecords.achievedAt` this was a reaction TO. When the record is
+    // beaten the row is swept, and a straggler that survived would be filtered
+    // by this — cheering a time that no longer stands would be cheering the
+    // wrong thing.
+    achievedAt: v.number(),
+    userId: v.id("users"),
+    // Denormalized at write time, as `momentReactions.userName` is, so the
+    // board never reads a `users` document per reactor.
+    userName: v.optional(v.string()),
+    emoji: v.string(),
+    createdAt: v.number(),
+  })
+    // [recordId] prefix: everything on one record.
+    .index("by_record_user", ["recordId", "userId"])
+    // Account teardown of the reactor.
+    .index("by_user", ["userId"]),
 
   // `pushReceipts` used to live here. It held a OneSignal notification id per
   // (user, message) so a delete-or-read could call DELETE /notifications/{id}

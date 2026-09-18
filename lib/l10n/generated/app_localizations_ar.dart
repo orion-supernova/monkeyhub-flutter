@@ -8752,4 +8752,57 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get roomInviteStepperDecrease => 'إنقاص';
+
+  @override
+  String get recordsLabel => 'كل الأوقات';
+
+  @override
+  String get recordsBlurb => 'أفضل ما حققه أحد على الإطلاق — أنت وأصدقاؤك';
+
+  @override
+  String recordsYourBest(Object value) {
+    return 'رقمك $value';
+  }
+
+  @override
+  String get recordsNoneYet => 'لا أحد بعد';
+
+  @override
+  String get recordsEmpty => 'حُلّ أي لعبة وسيظهر أفضل رقم لك هنا.';
+
+  @override
+  String recordsSolves(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count حل',
+      many: '$count حلًا',
+      few: '$count حلول',
+      two: 'حلّان',
+      one: 'حل واحد',
+      zero: '$count حل',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recordsSetOn(Object date) {
+    return 'سُجّل في $date';
+  }
+
+  @override
+  String recordsReactSemantic(Object name) {
+    return 'تفاعل مع رقم $name';
+  }
+
+  @override
+  String get recordsReactFailed => 'تعذّر التفاعل';
+
+  @override
+  String get recordsLoadFailed => 'تعذّر تحميل الأرقام';
+
+  @override
+  String recordsHolderSemantic(Object game, Object name, Object value) {
+    return '$game: رقم $value باسم $name';
+  }
 }

@@ -13,6 +13,7 @@ import { wipeRoomCompletely } from "./roomCleanup";
 import { purgeSpeakerColorsForUser } from "./speakerColors";
 import { ensureOwner } from "./roomAdmin";
 import { purgeScheduledForUser } from "./scheduledMessages";
+import { purgeRecordsOf } from "./recordBook";
 import {
   ERR_DISPLAY_NAME_RESERVED,
   ERR_USERNAME_RESERVED,
@@ -801,6 +802,9 @@ async function purgeUser(ctx: any, userId: any) {
       .withIndex("by_user_day_game", byUser(userId))
       .collect(),
   );
+  // All-time records: theirs, the reactions on them, and the reactions they
+  // left on everybody else's.
+  await purgeRecordsOf(ctx, userId);
 
   // ── Family ───────────────────────────────────────────────────────────────
   // Both directions: this user may be the child OR the guardian.

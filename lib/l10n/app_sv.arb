@@ -2408,5 +2408,16 @@
   "roomInviteUnitHours": "Timmar",
   "roomInviteUnitDays": "Dagar",
   "roomInviteStepperIncrease": "Öka",
-  "roomInviteStepperDecrease": "Minska"
+  "roomInviteStepperDecrease": "Minska",
+  "recordsLabel": "GENOM TIDERNA",
+  "recordsBlurb": "det bästa någon har gjort — du och dina vänner",
+  "recordsYourBest": "ditt {value}",
+  "recordsNoneYet": "ingen än",
+  "recordsEmpty": "Lös valfritt spel så hamnar ditt bästa här.",
+  "recordsSolves": "{count, plural, one{{count} löst} other{{count} lösta}}",
+  "recordsSetOn": "satt {date}",
+  "recordsReactSemantic": "Reagera på {name}s rekord",
+  "recordsReactFailed": "det gick inte att reagera",
+  "recordsLoadFailed": "det gick inte att läsa in rekorden",
+  "recordsHolderSemantic": "{game}: rekord {value} av {name}"
 }

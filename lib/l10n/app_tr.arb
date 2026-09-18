@@ -2408,5 +2408,16 @@
   "roomInviteUnitHours": "Saat",
   "roomInviteUnitDays": "Gün",
   "roomInviteStepperIncrease": "Artır",
-  "roomInviteStepperDecrease": "Azalt"
+  "roomInviteStepperDecrease": "Azalt",
+  "recordsLabel": "TÜM ZAMANLAR",
+  "recordsBlurb": "şimdiye kadarki en iyiler — sen ve arkadaşların",
+  "recordsYourBest": "seninki {value}",
+  "recordsNoneYet": "henüz kimse",
+  "recordsEmpty": "Herhangi bir oyunu çöz, en iyi derecen buraya gelsin.",
+  "recordsSolves": "{count, plural, one{{count} çözüm} other{{count} çözüm}}",
+  "recordsSetOn": "{date} tarihinde",
+  "recordsReactSemantic": "{name} kişisinin rekoruna tepki ver",
+  "recordsReactFailed": "tepki verilemedi",
+  "recordsLoadFailed": "rekorlar yüklenemedi",
+  "recordsHolderSemantic": "{game}: rekor {value}, {name}"
 }

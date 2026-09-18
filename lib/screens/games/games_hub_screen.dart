@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import '../../backend/feed_api.dart';
 import '../../data/feed_store.dart';
 import '../../data/games_store.dart';
+import '../../data/records_store.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/daily_game.dart';
 import '../../theme/layout.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/adaptive_page_body.dart';
+import '../../widgets/game_records.dart';
 import '../../widgets/game_tile.dart';
 import '../feed/puzzle_screen.dart';
 import 'queens_screen.dart';
@@ -51,6 +53,7 @@ class _GamesHubScreenState extends State<GamesHubScreen> {
     GamesStore.instance.addListener(_onChange);
     FeedStore.instance.addListener(_onChange);
     GamesStore.instance.load(widget.userId);
+    RecordsStore.instance.load(widget.userId);
   }
 
   @override
@@ -73,6 +76,8 @@ class _GamesHubScreenState extends State<GamesHubScreen> {
     // count in the header, so the hub catches up on the way back rather than
     // showing a stale "not played" over a puzzle just solved.
     GamesStore.instance.load(widget.userId);
+    // …and a solve may just have set a record.
+    RecordsStore.instance.load(widget.userId, force: true);
   }
 
   void _openGame(DailyGame game) {
@@ -112,8 +117,10 @@ class _GamesHubScreenState extends State<GamesHubScreen> {
               child: RefreshIndicator(
                 color: theme.accent,
                 backgroundColor: theme.surfaceRaised,
-                onRefresh: () =>
-                    GamesStore.instance.load(widget.userId, force: true),
+                onRefresh: () => Future.wait([
+                  GamesStore.instance.load(widget.userId, force: true),
+                  RecordsStore.instance.load(widget.userId, force: true),
+                ]),
                 child: ListView(
                   padding: EdgeInsets.fromLTRB(
                     20,
@@ -244,6 +251,10 @@ class _GamesHubScreenState extends State<GamesHubScreen> {
                           );
                         },
                       ),
+                    // Below the shelf: today's games first, then how everyone
+                    // has ever done at them.
+                    const SizedBox(height: 30),
+                    RecordsSection(viewerId: widget.userId),
                   ],
                 ),
               ),

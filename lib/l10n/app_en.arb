@@ -9924,5 +9924,49 @@
   "roomInviteStepperDecrease": "Decrease",
   "@roomInviteStepperDecrease": {
     "description": "Accessibility name of the down arrow on a number stepper."
+  },
+  "recordsLabel": "ALL-TIME",
+  "@recordsLabel": {
+    "description": "Section label on the games hub and link beside each game's standings: everyone's all-time best scores."
+  },
+  "recordsBlurb": "the best anyone has ever done — you and your friends",
+  "@recordsBlurb": {
+    "description": "One line under the ALL-TIME label on the games hub."
+  },
+  "recordsYourBest": "yours {value}",
+  "@recordsYourBest": {
+    "description": "Under a game's record holder on the games hub: the viewer's own all-time best at that game. {value} is a time like 1:42 or a guess count like 3/6."
+  },
+  "recordsNoneYet": "nobody yet",
+  "@recordsNoneYet": {
+    "description": "In place of a record holder, for a game nobody among you and your friends has solved yet."
+  },
+  "recordsEmpty": "Solve any game and your best lands here.",
+  "@recordsEmpty": {
+    "description": "Shown on a records surface when neither you nor any friend has solved anything yet."
+  },
+  "recordsSolves": "{count, plural, one{{count} solve} other{{count} solves}}",
+  "@recordsSolves": {
+    "description": "How many times this person has solved this game, all time, on their all-time record row."
+  },
+  "recordsSetOn": "set {date}",
+  "@recordsSetOn": {
+    "description": "When an all-time best was set, on its row. {date} is a localized date."
+  },
+  "recordsReactSemantic": "React to {name}'s record",
+  "@recordsReactSemantic": {
+    "description": "Screen-reader label of the button that opens the reaction choices on a friend's all-time record."
+  },
+  "recordsReactFailed": "couldn’t react to that",
+  "@recordsReactFailed": {
+    "description": "Toast when a reaction to a record could not be saved."
+  },
+  "recordsLoadFailed": "couldn’t load the records",
+  "@recordsLoadFailed": {
+    "description": "Shown when the all-time records could not be fetched; a TRY AGAIN action follows."
+  },
+  "recordsHolderSemantic": "{game}: record {value} by {name}",
+  "@recordsHolderSemantic": {
+    "description": "Screen-reader line for one game's row in the ALL-TIME section: who holds the record and with what."
   }
 }

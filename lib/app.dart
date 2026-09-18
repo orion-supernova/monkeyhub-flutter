@@ -32,6 +32,7 @@ import 'calls/signaling_subscriber.dart';
 import 'data/chat_repository.dart';
 import 'data/feed_store.dart';
 import 'data/games_store.dart';
+import 'data/records_store.dart';
 import 'data/settings_store.dart';
 import 'diagnostics/device_report.dart';
 import 'diagnostics/diag_buffer.dart';
@@ -1555,6 +1556,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         await FeedStore.instance.detach();
         // Same rule for the daily games: the standings carry friends' names.
         GamesStore.instance.clear();
+        RecordsStore.instance.clear();
         // And for the share-sheet suggestions, which name people and live
         // OUTSIDE the app — in the system's shortcut store and in Siri's
         // donation history. Left behind, the next account on this handset

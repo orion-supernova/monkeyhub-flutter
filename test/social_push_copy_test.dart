@@ -22,8 +22,15 @@ void main() {
   // replaces the tail with "…".
   const bodyMax = 200;
 
-  /// The four one-line fields. Every row needs all four.
-  const lines = ['highlight', 'more', 'gameSolved', 'gameGaveUp'];
+  /// The one-line fields. Every row needs all of them.
+  const lines = [
+    'highlight',
+    'more',
+    'gameSolved',
+    'gameGaveUp',
+    'codeSolved',
+    'codeFailed',
+  ];
 
   /// What each line MUST interpolate. A missing placeholder is not a crash —
   /// `fill` leaves the text alone — so "finished in 2:14" silently becomes
@@ -32,6 +39,7 @@ void main() {
     'more': ['{count}'],
     'gameSolved': ['{game}', '{time}'],
     'gameGaveUp': ['{game}'],
+    'codeSolved': ['{score}'],
   };
 
   /// The five tags `feed.ts` accepts and the four games `games.ts` serves.
@@ -112,7 +120,7 @@ void main() {
     }
   });
 
-  test('every row carries all four lines, none of them empty', () {
+  test('every row carries every line, none of them empty', () {
     rows().forEach((locale, row) {
       for (final name in lines) {
         final value = field(row, name);

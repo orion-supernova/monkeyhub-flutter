@@ -2408,5 +2408,16 @@
   "roomInviteUnitHours": "घंटे",
   "roomInviteUnitDays": "दिन",
   "roomInviteStepperIncrease": "बढ़ाओ",
-  "roomInviteStepperDecrease": "घटाओ"
+  "roomInviteStepperDecrease": "घटाओ",
+  "recordsLabel": "अब तक के रिकॉर्ड",
+  "recordsBlurb": "अब तक का सबसे बढ़िया — तुम और तुम्हारे दोस्त",
+  "recordsYourBest": "तुम्हारा {value}",
+  "recordsNoneYet": "अभी कोई नहीं",
+  "recordsEmpty": "कोई भी गेम हल करो, तुम्हारा बेस्ट यहाँ दिखेगा।",
+  "recordsSolves": "{count, plural, one{{count} बार हल} other{{count} बार हल}}",
+  "recordsSetOn": "{date} को बना",
+  "recordsReactSemantic": "{name} के रिकॉर्ड पर रिएक्ट करो",
+  "recordsReactFailed": "रिएक्ट नहीं हो पाया",
+  "recordsLoadFailed": "रिकॉर्ड लोड नहीं हो पाए",
+  "recordsHolderSemantic": "{game}: {name} का रिकॉर्ड {value}"
 }

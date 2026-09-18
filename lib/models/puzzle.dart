@@ -93,6 +93,7 @@ class PuzzleAttempt {
     required this.solved,
     required this.done,
     this.answer,
+    this.shared = false,
   });
 
   /// Each guess, oldest first, as symbol indices.
@@ -108,6 +109,21 @@ class PuzzleAttempt {
 
   /// Revealed only on a loss, and only once [done]. Null while playing.
   final List<int>? answer;
+
+  /// Whether this result has been told to the player's friends. The server
+  /// allows one send per result, so this is what retires the action.
+  final bool shared;
+
+  /// The same attempt, marked as told — the moment the send is accepted,
+  /// rather than a board round trip later.
+  PuzzleAttempt markShared() => PuzzleAttempt(
+        guesses: guesses,
+        feedback: feedback,
+        solved: solved,
+        done: done,
+        answer: answer,
+        shared: true,
+      );
 
   bool get started => guesses.isNotEmpty;
   int get remaining => kPuzzleMaxGuesses - guesses.length;
@@ -131,6 +147,7 @@ class PuzzleAttempt {
       answer: j['answer'] == null
           ? null
           : [for (final s in j['answer'] as List) (s as num).toInt()],
+      shared: j['shared'] == true,
     );
   }
 }

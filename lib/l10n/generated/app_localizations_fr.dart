@@ -8769,4 +8769,54 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get roomInviteStepperDecrease => 'Diminuer';
+
+  @override
+  String get recordsLabel => 'RECORDS';
+
+  @override
+  String get recordsBlurb => 'le meilleur jamais réalisé — toi et tes amis';
+
+  @override
+  String recordsYourBest(Object value) {
+    return 'le tien $value';
+  }
+
+  @override
+  String get recordsNoneYet => 'personne encore';
+
+  @override
+  String get recordsEmpty =>
+      'Résous un jeu et ton meilleur score arrivera ici.';
+
+  @override
+  String recordsSolves(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count réussites',
+      one: '$count réussite',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recordsSetOn(Object date) {
+    return 'établi le $date';
+  }
+
+  @override
+  String recordsReactSemantic(Object name) {
+    return 'Réagir au record de $name';
+  }
+
+  @override
+  String get recordsReactFailed => 'impossible de réagir';
+
+  @override
+  String get recordsLoadFailed => 'impossible de charger les records';
+
+  @override
+  String recordsHolderSemantic(Object game, Object name, Object value) {
+    return '$game : record de $value par $name';
+  }
 }

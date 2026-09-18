@@ -6,6 +6,7 @@ import * as queens from "./games/queens";
 import * as sudoku from "./games/sudoku";
 import * as tango from "./games/tango";
 import * as zip from "./games/zip";
+import { noteSolve } from "./recordBook";
 
 /**
  * THE DAILY GAMES — Queens, Tango, Zip and Mini Sudoku.
@@ -479,6 +480,16 @@ export const submit = mutation({
       // already solved shows the solved board rather than the state you were in
       // when you last happened to leave the screen.
       progress: solution,
+    });
+    // In the same transaction as the result, so the all-time board and the
+    // day's standings can never disagree about a time. A replay returned above
+    // and never reaches here, so a flaky socket cannot count a solve twice.
+    await noteSolve(ctx, {
+      userId,
+      game,
+      score: durationMs,
+      dayKey,
+      achievedAt: now,
     });
     return { solved: true, durationMs, replay: false };
   },

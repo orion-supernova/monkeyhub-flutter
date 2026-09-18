@@ -148,6 +148,19 @@ class FeedApi {
     return PuzzleAttempt.fromJson((res as Map).cast<String, dynamic>())!;
   }
 
+  /// Tells the player's friends how today's code went. The code puzzle's
+  /// counterpart to `GamesApi.shareResult`, refused the same four ways:
+  /// `NOT_STARTED`, `NOT_FINISHED`, `ALREADY_SHARED` and `RESULT_PRIVATE`.
+  Future<void> sharePuzzleResult({
+    required String userId,
+    required String dayKey,
+  }) async {
+    await _cv.mutation('puzzle:shareResult', {
+      'userId': userId,
+      'dayKey': dayKey,
+    });
+  }
+
   /// One moment by id, or null if it is gone or no longer visible.
   ///
   /// Exists for the notification tap, which is the one caller that knows an id

@@ -8597,4 +8597,54 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get roomInviteStepperDecrease => 'Azalt';
+
+  @override
+  String get recordsLabel => 'TÜM ZAMANLAR';
+
+  @override
+  String get recordsBlurb => 'şimdiye kadarki en iyiler — sen ve arkadaşların';
+
+  @override
+  String recordsYourBest(Object value) {
+    return 'seninki $value';
+  }
+
+  @override
+  String get recordsNoneYet => 'henüz kimse';
+
+  @override
+  String get recordsEmpty =>
+      'Herhangi bir oyunu çöz, en iyi derecen buraya gelsin.';
+
+  @override
+  String recordsSolves(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count çözüm',
+      one: '$count çözüm',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recordsSetOn(Object date) {
+    return '$date tarihinde';
+  }
+
+  @override
+  String recordsReactSemantic(Object name) {
+    return '$name kişisinin rekoruna tepki ver';
+  }
+
+  @override
+  String get recordsReactFailed => 'tepki verilemedi';
+
+  @override
+  String get recordsLoadFailed => 'rekorlar yüklenemedi';
+
+  @override
+  String recordsHolderSemantic(Object game, Object name, Object value) {
+    return '$game: rekor $value, $name';
+  }
 }

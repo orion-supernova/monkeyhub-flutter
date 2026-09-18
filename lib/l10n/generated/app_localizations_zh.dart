@@ -8197,4 +8197,52 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get roomInviteStepperDecrease => '减少';
+
+  @override
+  String get recordsLabel => '历史纪录';
+
+  @override
+  String get recordsBlurb => '有史以来最好的成绩 — 你和你的朋友';
+
+  @override
+  String recordsYourBest(Object value) {
+    return '你的 $value';
+  }
+
+  @override
+  String get recordsNoneYet => '暂无';
+
+  @override
+  String get recordsEmpty => '完成任意一个游戏，你的最佳成绩就会出现在这里。';
+
+  @override
+  String recordsSolves(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '完成 $count 次',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recordsSetOn(Object date) {
+    return '$date 创下';
+  }
+
+  @override
+  String recordsReactSemantic(Object name) {
+    return '回应 $name 的纪录';
+  }
+
+  @override
+  String get recordsReactFailed => '无法回应';
+
+  @override
+  String get recordsLoadFailed => '无法加载纪录';
+
+  @override
+  String recordsHolderSemantic(Object game, Object name, Object value) {
+    return '$game：$name 的纪录 $value';
+  }
 }

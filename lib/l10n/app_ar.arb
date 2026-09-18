@@ -2408,5 +2408,16 @@
   "roomInviteUnitHours": "ساعات",
   "roomInviteUnitDays": "أيام",
   "roomInviteStepperIncrease": "زيادة",
-  "roomInviteStepperDecrease": "إنقاص"
+  "roomInviteStepperDecrease": "إنقاص",
+  "recordsLabel": "كل الأوقات",
+  "recordsBlurb": "أفضل ما حققه أحد على الإطلاق — أنت وأصدقاؤك",
+  "recordsYourBest": "رقمك {value}",
+  "recordsNoneYet": "لا أحد بعد",
+  "recordsEmpty": "حُلّ أي لعبة وسيظهر أفضل رقم لك هنا.",
+  "recordsSolves": "{count, plural, zero{{count} حل} one{حل واحد} two{حلّان} few{{count} حلول} many{{count} حلًا} other{{count} حل}}",
+  "recordsSetOn": "سُجّل في {date}",
+  "recordsReactSemantic": "تفاعل مع رقم {name}",
+  "recordsReactFailed": "تعذّر التفاعل",
+  "recordsLoadFailed": "تعذّر تحميل الأرقام",
+  "recordsHolderSemantic": "{game}: رقم {value} باسم {name}"
 }

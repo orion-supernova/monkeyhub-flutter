@@ -1,5 +1,6 @@
 import 'package:monkeyhub/backend/games_api.dart';
 import 'package:monkeyhub/models/daily_game.dart';
+import 'package:monkeyhub/models/game_record.dart';
 
 /// Answers every call instantly with today's real boards and nobody's times.
 ///
@@ -89,5 +90,36 @@ class FakeGamesApi implements GamesApi {
     required DailyGame game,
   }) async {
     shared.add(game);
+  }
+
+  /// The all-time board this fake answers with. Empty unless a test sets it.
+  RecordBoard records = const RecordBoard();
+
+  /// Every reaction sent, as `recordId:emoji` — or `recordId:-` for a removal.
+  final List<String> reactions = [];
+
+  /// When set, reactions fail with this — for the revert path.
+  Object? reactError;
+
+  @override
+  Future<RecordBoard> recordBoard({required String userId}) async => records;
+
+  @override
+  Future<void> reactToRecord({
+    required String userId,
+    required String recordId,
+    required String emoji,
+  }) async {
+    if (reactError != null) throw reactError!;
+    reactions.add('$recordId:$emoji');
+  }
+
+  @override
+  Future<void> unreactToRecord({
+    required String userId,
+    required String recordId,
+  }) async {
+    if (reactError != null) throw reactError!;
+    reactions.add('$recordId:-');
   }
 }

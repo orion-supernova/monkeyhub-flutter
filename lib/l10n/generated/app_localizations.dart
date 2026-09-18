@@ -14610,6 +14610,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Decrease'**
   String get roomInviteStepperDecrease;
+
+  /// Section label on the games hub and link beside each game's standings: everyone's all-time best scores.
+  ///
+  /// In en, this message translates to:
+  /// **'ALL-TIME'**
+  String get recordsLabel;
+
+  /// One line under the ALL-TIME label on the games hub.
+  ///
+  /// In en, this message translates to:
+  /// **'the best anyone has ever done — you and your friends'**
+  String get recordsBlurb;
+
+  /// Under a game's record holder on the games hub: the viewer's own all-time best at that game. {value} is a time like 1:42 or a guess count like 3/6.
+  ///
+  /// In en, this message translates to:
+  /// **'yours {value}'**
+  String recordsYourBest(Object value);
+
+  /// In place of a record holder, for a game nobody among you and your friends has solved yet.
+  ///
+  /// In en, this message translates to:
+  /// **'nobody yet'**
+  String get recordsNoneYet;
+
+  /// Shown on a records surface when neither you nor any friend has solved anything yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Solve any game and your best lands here.'**
+  String get recordsEmpty;
+
+  /// How many times this person has solved this game, all time, on their all-time record row.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} solve} other{{count} solves}}'**
+  String recordsSolves(num count);
+
+  /// When an all-time best was set, on its row. {date} is a localized date.
+  ///
+  /// In en, this message translates to:
+  /// **'set {date}'**
+  String recordsSetOn(Object date);
+
+  /// Screen-reader label of the button that opens the reaction choices on a friend's all-time record.
+  ///
+  /// In en, this message translates to:
+  /// **'React to {name}\'s record'**
+  String recordsReactSemantic(Object name);
+
+  /// Toast when a reaction to a record could not be saved.
+  ///
+  /// In en, this message translates to:
+  /// **'couldn’t react to that'**
+  String get recordsReactFailed;
+
+  /// Shown when the all-time records could not be fetched; a TRY AGAIN action follows.
+  ///
+  /// In en, this message translates to:
+  /// **'couldn’t load the records'**
+  String get recordsLoadFailed;
+
+  /// Screen-reader line for one game's row in the ALL-TIME section: who holds the record and with what.
+  ///
+  /// In en, this message translates to:
+  /// **'{game}: record {value} by {name}'**
+  String recordsHolderSemantic(Object game, Object name, Object value);
 }
 
 class _AppLocalizationsDelegate

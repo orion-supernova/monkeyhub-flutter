@@ -1,5 +1,7 @@
 import { mutation } from "./functions";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import { CODE_GAME, noteSolve } from "./recordBook";
 
 /**
  * The daily puzzle.
@@ -222,6 +224,18 @@ export const guess = mutation({
         ...(done ? { finishedAt: now } : {}),
       });
     }
+    // The all-time board, scored by guesses — fewer wins, as it does today.
+    // Reached once per result: a second call after a solve is refused above
+    // with ALREADY_SOLVED before anything is written.
+    if (solved) {
+      await noteSolve(ctx, {
+        userId,
+        game: CODE_GAME,
+        score: guesses.length,
+        dayKey,
+        achievedAt: now,
+      });
+    }
 
     return {
       // Feedback for every guess so far, not just this one — a client that
@@ -239,6 +253,50 @@ export const guess = mutation({
       // Returning it a moment early would put it in the response of the guess
       // that used their last try, which is exactly when it matters.
       answer: done && !solved ? answer : undefined,
+      shared: existing?.sharedAt !== undefined,
     };
+  },
+});
+
+/**
+ * Tells the player's friends how today's code went, because they asked.
+ *
+ * The code puzzle's half of `games.shareResult`, with the same four refusals
+ * for the same reasons: nothing finished to share (`NOT_STARTED`,
+ * `NOT_FINISHED` — an attempt still in play is private, and sharing it would
+ * hand over a guess count that has not stopped), a second send
+ * (`ALREADY_SHARED`, stamped on the row so a reinstall cannot re-notify
+ * everybody), and scores the player keeps to themselves (`RESULT_PRIVATE`,
+ * refused here where they can be told why, and again in the audience query).
+ */
+export const shareResult = mutation({
+  args: { userId: v.id("users"), dayKey: v.string() },
+  handler: async (ctx, { userId, dayKey }) => {
+    const row = await ctx.db
+      .query("puzzleResults")
+      .withIndex("by_user_day", (q: any) =>
+        q.eq("userId", userId).eq("dayKey", dayKey)
+      )
+      .first();
+    if (!row) throw new Error("NOT_STARTED");
+    if (!row.solved && row.guesses.length < MAX_GUESSES) {
+      throw new Error("NOT_FINISHED");
+    }
+    if (row.sharedAt !== undefined) throw new Error("ALREADY_SHARED");
+
+    const player = await ctx.db.get(userId);
+    if (!player) throw new Error("USER_NOT_FOUND");
+    if ((player.visibility?.puzzle ?? "friends") === "nobody") {
+      throw new Error("RESULT_PRIVATE");
+    }
+
+    // Stamped BEFORE the schedule, in the same transaction, so two taps that
+    // land together cannot both read an unshared row and both fan out.
+    await ctx.db.patch(row._id, { sharedAt: Date.now() });
+    await ctx.scheduler.runAfter(0, internal.socialPush.sendPuzzleResultPush, {
+      userId,
+      dayKey,
+    });
+    return { shared: true };
   },
 });

@@ -47,6 +47,8 @@ import type * as pushTransport from "../pushTransport.js";
 import type * as puzzle from "../puzzle.js";
 import type * as rateLimit from "../rateLimit.js";
 import type * as reactions from "../reactions.js";
+import type * as recordBook from "../recordBook.js";
+import type * as records from "../records.js";
 import type * as releases from "../releases.js";
 import type * as roomAdmin from "../roomAdmin.js";
 import type * as roomChangeRequests from "../roomChangeRequests.js";
@@ -116,6 +118,8 @@ declare const fullApi: ApiFromModules<{
   puzzle: typeof puzzle;
   rateLimit: typeof rateLimit;
   reactions: typeof reactions;
+  recordBook: typeof recordBook;
+  records: typeof records;
   releases: typeof releases;
   roomAdmin: typeof roomAdmin;
   roomChangeRequests: typeof roomChangeRequests;

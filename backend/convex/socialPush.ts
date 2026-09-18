@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { AlertSpec } from "./push";
 import { liveSessionDeviceIds } from "./sessionCore";
+import { MAX_GUESSES } from "./puzzle";
 
 /**
  * Friend activity — the two pushes another PERSON causes on your phone.
@@ -78,6 +79,10 @@ type SocialCopy = {
   gameSolved: string;
   /** A surrendered one. `{game}` is its name. */
   gameGaveUp: string;
+  /** The code puzzle, cracked. `{score}` is guesses over the limit: "3/6". */
+  codeSolved: string;
+  /** The code puzzle, out of guesses. */
+  codeFailed: string;
   /** The five point tags, as the composer spells them. */
   tags: Record<string, string>;
   /** The four daily games, as their tiles spell them. */
@@ -90,6 +95,8 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     more: "{count} new things today",
     gameSolved: "finished {game} in {time}",
     gameGaveUp: "gave up on {game}",
+    codeSolved: "cracked the code in {score}",
+    codeFailed: "couldn’t crack today’s code",
     tags: {
       fate: "FATE",
       jinx: "JINX",
@@ -109,6 +116,8 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     more: "bugün {count} yeni şey",
     gameSolved: "{game} oyununu {time} içinde bitirdi",
     gameGaveUp: "{game} oyununda pes etti",
+    codeSolved: "şifreyi {score} denemede çözdü",
+    codeFailed: "bugünkü şifreyi çözemedi",
     tags: {
       fate: "TESADÜF",
       jinx: "KERİZLİK",
@@ -128,6 +137,8 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     more: "{count} cosas nuevas hoy",
     gameSolved: "terminó {game} en {time}",
     gameGaveUp: "se rindió en {game}",
+    codeSolved: "descifró el código en {score}",
+    codeFailed: "no pudo descifrar el código de hoy",
     tags: {
       fate: "DESTINO",
       jinx: "GAFE",
@@ -147,6 +158,8 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     more: "{count} nouveautés aujourd’hui",
     gameSolved: "a fini {game} en {time}",
     gameGaveUp: "a abandonné {game}",
+    codeSolved: "a déchiffré le code en {score}",
+    codeFailed: "n’a pas réussi à déchiffrer le code du jour",
     tags: {
       fate: "DESTIN",
       jinx: "POISSE",
@@ -166,6 +179,8 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     more: "{count} coisas novas hoje",
     gameSolved: "terminou {game} em {time}",
     gameGaveUp: "desistiu de {game}",
+    codeSolved: "decifrou o código em {score}",
+    codeFailed: "não conseguiu decifrar o código de hoje",
     tags: {
       fate: "DESTINO",
       jinx: "AZAR",
@@ -185,6 +200,8 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     more: "{count} coisas novas hoje",
     gameSolved: "terminou {game} em {time}",
     gameGaveUp: "desistiu de {game}",
+    codeSolved: "decifrou o código em {score}",
+    codeFailed: "não conseguiu decifrar o código de hoje",
     tags: {
       fate: "DESTINO",
       jinx: "AZAR",
@@ -204,6 +221,8 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     more: "{count} nya saker idag",
     gameSolved: "klarade {game} på {time}",
     gameGaveUp: "gav upp {game}",
+    codeSolved: "knäckte koden på {score}",
+    codeFailed: "knäckte inte dagens kod",
     tags: {
       fate: "ÖDE",
       jinx: "OTUR",
@@ -223,6 +242,8 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     more: "{count} أشياء جديدة اليوم",
     gameSolved: "أنهى {game} في {time}",
     gameGaveUp: "استسلم في {game}",
+    codeSolved: "فكّ الرمز في {score}",
+    codeFailed: "لم يتمكن من فكّ رمز اليوم",
     tags: {
       fate: "مصادفة",
       jinx: "نحس",
@@ -242,6 +263,8 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     more: "आज {count} नई चीज़ें",
     gameSolved: "{game} को {time} में पूरा किया",
     gameGaveUp: "{game} छोड़ दिया",
+    codeSolved: "{score} में कोड तोड़ दिया",
+    codeFailed: "आज का कोड नहीं तोड़ पाया",
     tags: {
       fate: "संयोग",
       jinx: "अपनी करनी",
@@ -261,6 +284,8 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     more: "今日の新着 {count} 件",
     gameSolved: "{game}を{time}でクリアしました",
     gameGaveUp: "{game}をあきらめました",
+    codeSolved: "{score}でコードを解読しました",
+    codeFailed: "今日のコードを解読できませんでした",
     tags: {
       fate: "偶然",
       jinx: "自爆",
@@ -280,6 +305,8 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     more: "오늘 새 소식 {count}개",
     gameSolved: "{game}을(를) {time}에 끝냈어요",
     gameGaveUp: "{game}을(를) 포기했어요",
+    codeSolved: "{score} 만에 코드를 풀었어요",
+    codeFailed: "오늘의 코드를 풀지 못했어요",
     tags: {
       fate: "우연",
       jinx: "자충수",
@@ -299,6 +326,8 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     more: "今天有 {count} 条新动态",
     gameSolved: "用 {time} 完成了{game}",
     gameGaveUp: "放弃了{game}",
+    codeSolved: "用 {score} 破解了密码",
+    codeFailed: "没能破解今天的密码",
     tags: {
       fate: "巧合",
       jinx: "自作自受",
@@ -724,6 +753,107 @@ export const sendGameResultPush = internalAction({
             // and shares each one is one row that keeps updating to their most
             // recent result — four rows from one person in one afternoon is
             // the behaviour this feature would be turned off over.
+            collapseId: `game_result:${plan.playerId}:${plan.dayKey}`,
+          },
+        });
+      }
+    }
+    if (targets.length > 0) {
+      await ctx.runAction(internal.push.sendAlertToDevices, { targets });
+    }
+    return null;
+  },
+});
+
+// ────────────────────────── a shared code puzzle ──────────────────────────
+
+/**
+ * Everything one shared code-puzzle result needs, in a single query.
+ *
+ * The code puzzle's half of [_gameAudience], and gated identically: a finished
+ * row, the player still exists, their `visibility.puzzle` is not "nobody"
+ * (`puzzle.shareResult` refuses loudly on that; this is the check a future
+ * caller cannot forget), and somebody reachable to tell.
+ */
+export const _puzzleAudience = internalQuery({
+  args: { userId: v.id("users"), dayKey: v.string() },
+  returns: v.any(),
+  handler: async (ctx, { userId, dayKey }) => {
+    const row = await ctx.db
+      .query("puzzleResults")
+      .withIndex("by_user_day", (q: any) =>
+        q.eq("userId", userId).eq("dayKey", dayKey),
+      )
+      .first();
+    if (!row) return null;
+    if (!row.solved && row.guesses.length < MAX_GUESSES) return null;
+
+    const player = await ctx.db.get(userId);
+    if (!player) return null;
+    if ((player.visibility?.puzzle ?? "friends") === "nobody") return null;
+
+    const recipients = await audienceOf(ctx, userId);
+    if (recipients.length === 0) return null;
+
+    return {
+      playerId: userId,
+      playerName: player.name ?? player.username ?? "",
+      playerAvatarUrl: await actorFace(ctx, player),
+      dayKey,
+      solved: row.solved,
+      guessCount: row.guesses.length,
+      recipients,
+    };
+  },
+});
+
+/**
+ * Tells a player's friends how today's code went, because they asked.
+ *
+ * Same kind, same tap target and the same per-player-per-day collapse row as
+ * [sendGameResultPush]: from a friend's side these are all "how they did on
+ * today's games", and a code result arriving as a different kind of banner —
+ * one the shade would not fold together with the rest of that person's day —
+ * would read as a different product.
+ */
+export const sendPuzzleResultPush = internalAction({
+  args: { userId: v.id("users"), dayKey: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { userId, dayKey }) => {
+    const plan: any = await ctx.runQuery(internal.socialPush._puzzleAudience, {
+      userId,
+      dayKey,
+    });
+    if (!plan) return null;
+
+    const score = `${plan.guessCount}/${MAX_GUESSES}`;
+    const targets: Array<{
+      userId: Id<"users">;
+      device: SocialDevice;
+      spec: AlertSpec;
+    }> = [];
+    for (const r of plan.recipients as Recipient[]) {
+      for (const device of r.devices) {
+        const copy = socialCopyFor(device.locale);
+        targets.push({
+          userId: r.userId,
+          device,
+          spec: {
+            kind: "game_result",
+            title: plan.playerName,
+            body: plan.solved
+              ? fill(copy.codeSolved, { score })
+              : copy.codeFailed,
+            data: {
+              kind: "game_result",
+              game: "code",
+              dayKey: plan.dayKey,
+              playerId: plan.playerId.toString(),
+              ...(plan.playerAvatarUrl
+                ? { senderAvatarUrl: plan.playerAvatarUrl }
+                : {}),
+            },
+            badge: 0,
             collapseId: `game_result:${plan.playerId}:${plan.dayKey}`,
           },
         });

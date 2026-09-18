@@ -2408,5 +2408,16 @@
   "roomInviteUnitHours": "시간",
   "roomInviteUnitDays": "일",
   "roomInviteStepperIncrease": "늘리기",
-  "roomInviteStepperDecrease": "줄이기"
+  "roomInviteStepperDecrease": "줄이기",
+  "recordsLabel": "역대 기록",
+  "recordsBlurb": "지금까지의 최고 기록 — 나와 친구들",
+  "recordsYourBest": "내 기록 {value}",
+  "recordsNoneYet": "아직 없음",
+  "recordsEmpty": "아무 게임이나 풀면 최고 기록이 여기 올라와요.",
+  "recordsSolves": "{count, plural, other{{count}회 성공}}",
+  "recordsSetOn": "{date} 달성",
+  "recordsReactSemantic": "{name}님의 기록에 반응하기",
+  "recordsReactFailed": "반응하지 못했어요",
+  "recordsLoadFailed": "기록을 불러오지 못했어요",
+  "recordsHolderSemantic": "{game}: {name}님의 기록 {value}"
 }

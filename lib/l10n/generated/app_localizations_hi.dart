@@ -8640,4 +8640,53 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get roomInviteStepperDecrease => 'घटाओ';
+
+  @override
+  String get recordsLabel => 'अब तक के रिकॉर्ड';
+
+  @override
+  String get recordsBlurb => 'अब तक का सबसे बढ़िया — तुम और तुम्हारे दोस्त';
+
+  @override
+  String recordsYourBest(Object value) {
+    return 'तुम्हारा $value';
+  }
+
+  @override
+  String get recordsNoneYet => 'अभी कोई नहीं';
+
+  @override
+  String get recordsEmpty => 'कोई भी गेम हल करो, तुम्हारा बेस्ट यहाँ दिखेगा।';
+
+  @override
+  String recordsSolves(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count बार हल',
+      one: '$count बार हल',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recordsSetOn(Object date) {
+    return '$date को बना';
+  }
+
+  @override
+  String recordsReactSemantic(Object name) {
+    return '$name के रिकॉर्ड पर रिएक्ट करो';
+  }
+
+  @override
+  String get recordsReactFailed => 'रिएक्ट नहीं हो पाया';
+
+  @override
+  String get recordsLoadFailed => 'रिकॉर्ड लोड नहीं हो पाए';
+
+  @override
+  String recordsHolderSemantic(Object game, Object name, Object value) {
+    return '$game: $name का रिकॉर्ड $value';
+  }
 }

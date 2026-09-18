@@ -363,6 +363,10 @@ export const board = query({
           // Same rule as the guess mutation: the code is revealed only once
           // the player can no longer act on it.
           answer: finished && !row.solved ? answer : undefined,
+          // The viewer's own "told friends" state, for the same reason
+          // `games.standings` carries it on `mine` only: whether somebody
+          // pressed that is about their notification habits, not the board.
+          shared: row.sharedAt !== undefined,
         };
       }
       // A friend's IN-PROGRESS attempt is deliberately not exposed — not the
