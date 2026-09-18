@@ -8207,4 +8207,35 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get roomInfoScreenSuggestionWithdraw => '취소';
+
+  @override
+  String roomSuggestionBannerPhoto(Object name) {
+    return '$name 님이 새 그룹 사진을 제안했어요';
+  }
+
+  @override
+  String roomSuggestionBannerName(Object name) {
+    return '$name 님이 새 이름을 제안했어요';
+  }
+
+  @override
+  String roomSuggestionBannerDescription(Object name) {
+    return '$name 님이 새 설명을 제안했어요';
+  }
+
+  @override
+  String roomSuggestionBannerMany(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '제안 $count개가 기다리고 있어요',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomSuggestionBannerReview => '검토';
+
+  @override
+  String get roomSuggestionBannerSemantic => '검토를 기다리는 멤버 제안';
 }

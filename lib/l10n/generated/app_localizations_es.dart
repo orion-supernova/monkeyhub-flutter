@@ -8606,4 +8606,37 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get roomInfoScreenSuggestionWithdraw => 'RETIRAR';
+
+  @override
+  String roomSuggestionBannerPhoto(Object name) {
+    return '$name sugirió una nueva foto del grupo';
+  }
+
+  @override
+  String roomSuggestionBannerName(Object name) {
+    return '$name sugirió un nuevo nombre';
+  }
+
+  @override
+  String roomSuggestionBannerDescription(Object name) {
+    return '$name sugirió una nueva descripción';
+  }
+
+  @override
+  String roomSuggestionBannerMany(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sugerencias te esperan',
+      one: '$count sugerencia te espera',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomSuggestionBannerReview => 'REVISAR';
+
+  @override
+  String get roomSuggestionBannerSemantic =>
+      'Sugerencias de miembros pendientes de tu revisión';
 }

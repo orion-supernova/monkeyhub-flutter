@@ -22,6 +22,7 @@ import '../calls/group_call_banner.dart';
 import '../calls/group_call_button.dart';
 import '../calls/group_call_service.dart';
 import '../data/chat_repository.dart';
+import '../data/room_suggestion_queue.dart';
 import '../diagnostics/diag_log.dart';
 import '../data/mention_session.dart';
 import '../data/room_content_selection.dart';
@@ -86,6 +87,8 @@ import '../widgets/mention_picker.dart';
 import '../widgets/photo_mosaic.dart' show mosaicHeroTag;
 import '../widgets/companion_strip.dart' show kCompanionStripHeight;
 import '../widgets/pinned_banner.dart';
+import '../widgets/room_change_requests_sheet.dart';
+import '../widgets/room_suggestions_banner.dart';
 import '../widgets/pinned_list_sheet.dart';
 import '../widgets/mention_text_controller.dart';
 import '../widgets/departing_row.dart';
@@ -479,6 +482,10 @@ class _RoomScreenState extends State<RoomScreen>
     // open finds nothing here and picks the roster up from [_onRepoChange]
     // when the disk seed or the subscription lands.
     _syncMembers();
+    // Reads the roster just synced, so an admin re-entering a room they have
+    // the members of already asks for the queue on the first frame.
+    _suggestions.syncStanding();
+    _suggestions.addListener(_onSuggestions);
     // A room switched on in a previous session starts translating the moment
     // it opens, from the disk cache first — which is why reopening a room you
     // already read translated is instant rather than a second round of model
@@ -918,7 +925,13 @@ class _RoomScreenState extends State<RoomScreen>
     // [_syncMembers] is identity-gated and re-settles the palette itself, so
     // this costs one reference comparison on the notifications — nearly all of
     // them — that carry no roster change.
-    _syncMembers();
+    final rosterMoved = _syncMembers();
+    // Admin standing is read off that roster, so it can only move with it —
+    // or with the room itself landing, on a first-ever open where the roster
+    // arrived before the room did.
+    if (rosterMoved || (_room == null && room != null)) {
+      _suggestions.syncStanding();
+    }
     // A pin lands through the repository like everything else, so this is where
     // a colour picked in room info reaches the transcript. Gated on the
     // signature because this handler runs on every repository notification and
@@ -1237,6 +1250,8 @@ class _RoomScreenState extends State<RoomScreen>
     _jumpBack.dispose();
     _selection.removeListener(_onSelectionChanged);
     _selection.dispose();
+    _suggestions.removeListener(_onSuggestions);
+    _suggestions.dispose();
     // No roster subscription to cancel here any more — `closeRoom` below owns
     // it now, beside the rest of the room's queries and under the same
     // ownership guard.
@@ -3443,6 +3458,13 @@ class _RoomScreenState extends State<RoomScreen>
               roomId: room.id,
               userId: me,
             ),
+          // Admins only, and zero height with nothing waiting. Above the pins:
+          // a pin is part of the conversation, this is a job for the reader.
+          RoomSuggestionsBanner(
+            pending: _suggestions.pending,
+            api: widget.api,
+            onReview: _reviewSuggestions,
+          ),
           // Zero height with no pins, so no condition is needed here — and
           // unwrapped by ChatColumn, matching GroupCallBanner above.
           PinnedMessageBanner(
@@ -3477,7 +3499,10 @@ class _RoomScreenState extends State<RoomScreen>
               // compute their padding in completely different places.
               listPadding: EdgeInsets.fromLTRB(
                 20,
-                widget.repo.pinsFor(room.id).isEmpty ? 12 : 0,
+                widget.repo.pinsFor(room.id).isEmpty &&
+                        _suggestions.pending.isEmpty
+                    ? 12
+                    : 0,
                 20,
                 24,
               ),
@@ -3575,7 +3600,9 @@ class _RoomScreenState extends State<RoomScreen>
     // it on top of the oldest visible bubble whenever a room was translating.
     final translating = Sebastian.instance.isRoomTranslating(room.id) &&
         Sebastian.instance.isReady;
+    final suggestions = _suggestions.pending;
     final topChromeH = 60.0 +
+        (suggestions.isEmpty ? 0.0 : kSuggestionsBannerHeight) +
         (pins.isEmpty ? 0.0 : kPinnedBannerHeight) +
         (translating ? kCompanionStripHeight : 0.0);
     // The BOTTOM chrome is measured, not computed — the exact case the split
@@ -3615,7 +3642,9 @@ class _RoomScreenState extends State<RoomScreen>
       // first message, which reads as the two belonging to different surfaces —
       // the strip is chrome for the transcript, not a separate panel floating
       // above it. The banner's own 44pt already separates them.
-      topSafe + topChromeH + (pins.isEmpty ? 12.0 : 0.0),
+      topSafe +
+          topChromeH +
+          (pins.isEmpty && suggestions.isEmpty ? 12.0 : 0.0),
       20,
       // Breathing room over the composer and NOTHING else: the chrome's own
       // height is spent inside the list, by the spacer `bottomChrome` buys at
@@ -3665,6 +3694,13 @@ class _RoomScreenState extends State<RoomScreen>
                         roomId: room.id,
                         userId: me,
                       ),
+                    // Reserved in `topChromeH` above, like the pinned strip.
+                    RoomSuggestionsBanner(
+                      pending: suggestions,
+                      api: widget.api,
+                      onReview: _reviewSuggestions,
+                      glass: true,
+                    ),
                     // Frosted here, not opaque: in this style the chrome floats
                     // over the transcript rather than sitting in a column above
                     // it, and `topChromeH` above has already reserved its space.
@@ -3813,6 +3849,9 @@ class _RoomScreenState extends State<RoomScreen>
         ),
       ),
     );
+    // Room Info is where suggestions were answered before the strip existed,
+    // and still can be — so whatever happened there, the strip re-reads.
+    if (mounted) unawaited(_suggestions.refresh());
     if (!mounted || jump == null) return;
 
     // Deliberately NO `_jumpBack.push`, unlike `_jumpToPin` and the reply
@@ -3828,6 +3867,29 @@ class _RoomScreenState extends State<RoomScreen>
     // `from` is still the target message, so one folded into a thread hands
     // off to that thread exactly as a pin does.
     await _travelTo(jump.id, from: jump);
+  }
+
+  /// Suggestions waiting on this reader, if they are an admin here. See
+  /// [RoomSuggestionQueue] for why this is a fetch and not a subscription.
+  late final RoomSuggestionQueue _suggestions =
+      RoomSuggestionQueue.forRoom(widget.repo, widget.roomId);
+
+  /// The strip grows and shrinks the top chrome, which the liquid style
+  /// reserves transcript padding for — so its arrival is a rebuild here, not
+  /// just inside the strip.
+  void _onSuggestions() {
+    if (mounted) setState(() {});
+  }
+
+  /// The strip's one action: straight to the review sheet, over the room.
+  Future<void> _reviewSuggestions() async {
+    await showRoomChangeRequestsSheet(
+      context,
+      repo: widget.repo,
+      api: widget.api,
+      roomId: widget.roomId,
+    );
+    if (mounted) unawaited(_suggestions.refresh());
   }
 
   Widget _messageBody(

@@ -8510,4 +8510,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get roomInfoScreenSuggestionWithdraw => 'TAKE BACK';
+
+  @override
+  String roomSuggestionBannerPhoto(Object name) {
+    return '$name suggested a new group photo';
+  }
+
+  @override
+  String roomSuggestionBannerName(Object name) {
+    return '$name suggested a new name';
+  }
+
+  @override
+  String roomSuggestionBannerDescription(Object name) {
+    return '$name suggested a new description';
+  }
+
+  @override
+  String roomSuggestionBannerMany(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count suggestions waiting for you',
+      one: '$count suggestion waiting for you',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomSuggestionBannerReview => 'REVIEW';
+
+  @override
+  String get roomSuggestionBannerSemantic =>
+      'Member suggestions waiting for your review';
 }

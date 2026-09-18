@@ -8485,4 +8485,37 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get roomInfoScreenSuggestionWithdraw => 'GERİ AL';
+
+  @override
+  String roomSuggestionBannerPhoto(Object name) {
+    return '$name yeni bir grup fotoğrafı önerdi';
+  }
+
+  @override
+  String roomSuggestionBannerName(Object name) {
+    return '$name yeni bir isim önerdi';
+  }
+
+  @override
+  String roomSuggestionBannerDescription(Object name) {
+    return '$name yeni bir açıklama önerdi';
+  }
+
+  @override
+  String roomSuggestionBannerMany(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count öneri seni bekliyor',
+      one: '$count öneri seni bekliyor',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomSuggestionBannerReview => 'İNCELE';
+
+  @override
+  String get roomSuggestionBannerSemantic =>
+      'İncelemeni bekleyen üye önerileri';
 }

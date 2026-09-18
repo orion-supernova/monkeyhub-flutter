@@ -14478,6 +14478,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'TAKE BACK'**
   String get roomInfoScreenSuggestionWithdraw;
+
+  /// Admin-only strip at the top of a group chat when a member has suggested a new group picture. {name} is the member's display name.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} suggested a new group photo'**
+  String roomSuggestionBannerPhoto(Object name);
+
+  /// Admin-only strip at the top of a group chat when a member has suggested renaming the group. {name} is the member's display name.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} suggested a new name'**
+  String roomSuggestionBannerName(Object name);
+
+  /// Admin-only strip at the top of a group chat when a member has suggested a new group description. {name} is the member's display name.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} suggested a new description'**
+  String roomSuggestionBannerDescription(Object name);
+
+  /// Admin-only strip at the top of a group chat when two or more member suggestions are waiting for review.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} suggestion waiting for you} other{{count} suggestions waiting for you}}'**
+  String roomSuggestionBannerMany(num count);
+
+  /// Action on the admin suggestion strip that opens the review sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'REVIEW'**
+  String get roomSuggestionBannerReview;
+
+  /// Screen-reader label for the admin suggestion strip as a whole.
+  ///
+  /// In en, this message translates to:
+  /// **'Member suggestions waiting for your review'**
+  String get roomSuggestionBannerSemantic;
 }
 
 class _AppLocalizationsDelegate

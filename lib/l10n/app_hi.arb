@@ -2387,5 +2387,11 @@
   "roomInfoScreenSuggestionDescription": "विवरण: {value}",
   "roomInfoScreenSuggestionOther": "एक बदलाव",
   "roomInfoScreenSuggestionPending": "एडमिन का इंतज़ार",
-  "roomInfoScreenSuggestionWithdraw": "वापस लो"
+  "roomInfoScreenSuggestionWithdraw": "वापस लो",
+  "roomSuggestionBannerPhoto": "{name} ने नई ग्रुप फ़ोटो सुझाई",
+  "roomSuggestionBannerName": "{name} ने नया नाम सुझाया",
+  "roomSuggestionBannerDescription": "{name} ने नया विवरण सुझाया",
+  "roomSuggestionBannerMany": "{count, plural, one{{count} सुझाव तुम्हारा इंतज़ार कर रहा है} other{{count} सुझाव तुम्हारा इंतज़ार कर रहे हैं}}",
+  "roomSuggestionBannerReview": "देखो",
+  "roomSuggestionBannerSemantic": "मेंबर्स के सुझाव, तुम्हारी मंज़ूरी के इंतज़ार में"
 }

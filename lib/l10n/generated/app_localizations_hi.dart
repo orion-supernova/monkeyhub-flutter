@@ -8528,4 +8528,37 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get roomInfoScreenSuggestionWithdraw => 'वापस लो';
+
+  @override
+  String roomSuggestionBannerPhoto(Object name) {
+    return '$name ने नई ग्रुप फ़ोटो सुझाई';
+  }
+
+  @override
+  String roomSuggestionBannerName(Object name) {
+    return '$name ने नया नाम सुझाया';
+  }
+
+  @override
+  String roomSuggestionBannerDescription(Object name) {
+    return '$name ने नया विवरण सुझाया';
+  }
+
+  @override
+  String roomSuggestionBannerMany(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count सुझाव तुम्हारा इंतज़ार कर रहे हैं',
+      one: '$count सुझाव तुम्हारा इंतज़ार कर रहा है',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomSuggestionBannerReview => 'देखो';
+
+  @override
+  String get roomSuggestionBannerSemantic =>
+      'मेंबर्स के सुझाव, तुम्हारी मंज़ूरी के इंतज़ार में';
 }

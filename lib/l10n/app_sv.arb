@@ -2387,5 +2387,11 @@
   "roomInfoScreenSuggestionDescription": "Beskrivning: {value}",
   "roomInfoScreenSuggestionOther": "En ändring",
   "roomInfoScreenSuggestionPending": "väntar på en admin",
-  "roomInfoScreenSuggestionWithdraw": "TA TILLBAKA"
+  "roomInfoScreenSuggestionWithdraw": "TA TILLBAKA",
+  "roomSuggestionBannerPhoto": "{name} föreslog en ny gruppbild",
+  "roomSuggestionBannerName": "{name} föreslog ett nytt namn",
+  "roomSuggestionBannerDescription": "{name} föreslog en ny beskrivning",
+  "roomSuggestionBannerMany": "{count, plural, one{{count} förslag väntar på dig} other{{count} förslag väntar på dig}}",
+  "roomSuggestionBannerReview": "GRANSKA",
+  "roomSuggestionBannerSemantic": "Medlemsförslag som väntar på din granskning"
 }

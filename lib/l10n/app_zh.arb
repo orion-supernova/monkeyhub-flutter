@@ -2387,5 +2387,11 @@
   "roomInfoScreenSuggestionDescription": "简介：{value}",
   "roomInfoScreenSuggestionOther": "一处改动",
   "roomInfoScreenSuggestionPending": "等管理员",
-  "roomInfoScreenSuggestionWithdraw": "收回"
+  "roomInfoScreenSuggestionWithdraw": "收回",
+  "roomSuggestionBannerPhoto": "{name} 提议换一张新的群组照片",
+  "roomSuggestionBannerName": "{name} 提议换一个新名称",
+  "roomSuggestionBannerDescription": "{name} 提议换一段新的描述",
+  "roomSuggestionBannerMany": "{count, plural, other{有 {count} 条建议等你处理}}",
+  "roomSuggestionBannerReview": "查看",
+  "roomSuggestionBannerSemantic": "等你审核的成员建议"
 }

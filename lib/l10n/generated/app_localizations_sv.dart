@@ -8544,4 +8544,37 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get roomInfoScreenSuggestionWithdraw => 'TA TILLBAKA';
+
+  @override
+  String roomSuggestionBannerPhoto(Object name) {
+    return '$name föreslog en ny gruppbild';
+  }
+
+  @override
+  String roomSuggestionBannerName(Object name) {
+    return '$name föreslog ett nytt namn';
+  }
+
+  @override
+  String roomSuggestionBannerDescription(Object name) {
+    return '$name föreslog en ny beskrivning';
+  }
+
+  @override
+  String roomSuggestionBannerMany(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count förslag väntar på dig',
+      one: '$count förslag väntar på dig',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomSuggestionBannerReview => 'GRANSKA';
+
+  @override
+  String get roomSuggestionBannerSemantic =>
+      'Medlemsförslag som väntar på din granskning';
 }

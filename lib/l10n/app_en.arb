@@ -9840,5 +9840,29 @@
   "roomInfoScreenSuggestionWithdraw": "TAKE BACK",
   "@roomInfoScreenSuggestionWithdraw": {
     "description": "Button on a pending suggestion that takes it back."
+  },
+  "roomSuggestionBannerPhoto": "{name} suggested a new group photo",
+  "@roomSuggestionBannerPhoto": {
+    "description": "Admin-only strip at the top of a group chat when a member has suggested a new group picture. {name} is the member's display name."
+  },
+  "roomSuggestionBannerName": "{name} suggested a new name",
+  "@roomSuggestionBannerName": {
+    "description": "Admin-only strip at the top of a group chat when a member has suggested renaming the group. {name} is the member's display name."
+  },
+  "roomSuggestionBannerDescription": "{name} suggested a new description",
+  "@roomSuggestionBannerDescription": {
+    "description": "Admin-only strip at the top of a group chat when a member has suggested a new group description. {name} is the member's display name."
+  },
+  "roomSuggestionBannerMany": "{count, plural, one{{count} suggestion waiting for you} other{{count} suggestions waiting for you}}",
+  "@roomSuggestionBannerMany": {
+    "description": "Admin-only strip at the top of a group chat when two or more member suggestions are waiting for review."
+  },
+  "roomSuggestionBannerReview": "REVIEW",
+  "@roomSuggestionBannerReview": {
+    "description": "Action on the admin suggestion strip that opens the review sheet."
+  },
+  "roomSuggestionBannerSemantic": "Member suggestions waiting for your review",
+  "@roomSuggestionBannerSemantic": {
+    "description": "Screen-reader label for the admin suggestion strip as a whole."
   }
 }

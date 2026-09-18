@@ -2387,5 +2387,11 @@
   "roomInfoScreenSuggestionDescription": "説明: {value}",
   "roomInfoScreenSuggestionOther": "変更",
   "roomInfoScreenSuggestionPending": "管理者の返事待ち",
-  "roomInfoScreenSuggestionWithdraw": "取り下げる"
+  "roomInfoScreenSuggestionWithdraw": "取り下げる",
+  "roomSuggestionBannerPhoto": "{name} が新しいグループ写真を提案しました",
+  "roomSuggestionBannerName": "{name} が新しい名前を提案しました",
+  "roomSuggestionBannerDescription": "{name} が新しい説明を提案しました",
+  "roomSuggestionBannerMany": "{count, plural, other{{count} 件の提案が確認を待っています}}",
+  "roomSuggestionBannerReview": "確認",
+  "roomSuggestionBannerSemantic": "確認を待っているメンバーの提案"
 }

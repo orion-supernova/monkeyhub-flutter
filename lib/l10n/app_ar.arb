@@ -2387,5 +2387,11 @@
   "roomInfoScreenSuggestionDescription": "الوصف: {value}",
   "roomInfoScreenSuggestionOther": "تغيير",
   "roomInfoScreenSuggestionPending": "بانتظار مشرف",
-  "roomInfoScreenSuggestionWithdraw": "اسحبه"
+  "roomInfoScreenSuggestionWithdraw": "اسحبه",
+  "roomSuggestionBannerPhoto": "اقترح {name} صورة جديدة للمجموعة",
+  "roomSuggestionBannerName": "اقترح {name} اسمًا جديدًا",
+  "roomSuggestionBannerDescription": "اقترح {name} وصفًا جديدًا",
+  "roomSuggestionBannerMany": "{count, plural, zero{لا اقتراحات بانتظارك} one{اقتراح واحد بانتظارك} two{اقتراحان بانتظارك} few{{count} اقتراحات بانتظارك} many{{count} اقتراحًا بانتظارك} other{{count} اقتراح بانتظارك}}",
+  "roomSuggestionBannerReview": "مراجعة",
+  "roomSuggestionBannerSemantic": "اقتراحات الأعضاء بانتظار مراجعتك"
 }

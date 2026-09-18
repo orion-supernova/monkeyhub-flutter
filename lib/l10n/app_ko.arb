@@ -2387,5 +2387,11 @@
   "roomInfoScreenSuggestionDescription": "소개: {value}",
   "roomInfoScreenSuggestionOther": "변경",
   "roomInfoScreenSuggestionPending": "관리자 기다리는 중",
-  "roomInfoScreenSuggestionWithdraw": "취소"
+  "roomInfoScreenSuggestionWithdraw": "취소",
+  "roomSuggestionBannerPhoto": "{name} 님이 새 그룹 사진을 제안했어요",
+  "roomSuggestionBannerName": "{name} 님이 새 이름을 제안했어요",
+  "roomSuggestionBannerDescription": "{name} 님이 새 설명을 제안했어요",
+  "roomSuggestionBannerMany": "{count, plural, other{제안 {count}개가 기다리고 있어요}}",
+  "roomSuggestionBannerReview": "검토",
+  "roomSuggestionBannerSemantic": "검토를 기다리는 멤버 제안"
 }

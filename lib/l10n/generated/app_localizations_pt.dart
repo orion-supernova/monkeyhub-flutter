@@ -8617,6 +8617,39 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get roomInfoScreenSuggestionWithdraw => 'RETIRAR';
+
+  @override
+  String roomSuggestionBannerPhoto(Object name) {
+    return '$name sugeriu uma nova foto do grupo';
+  }
+
+  @override
+  String roomSuggestionBannerName(Object name) {
+    return '$name sugeriu um novo nome';
+  }
+
+  @override
+  String roomSuggestionBannerDescription(Object name) {
+    return '$name sugeriu uma nova descrição';
+  }
+
+  @override
+  String roomSuggestionBannerMany(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sugestões à tua espera',
+      one: '$count sugestão à tua espera',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomSuggestionBannerReview => 'REVER';
+
+  @override
+  String get roomSuggestionBannerSemantic =>
+      'Sugestões de membros à espera da tua revisão';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -17228,4 +17261,37 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get roomInfoScreenSuggestionWithdraw => 'RETIRAR';
+
+  @override
+  String roomSuggestionBannerPhoto(Object name) {
+    return '$name sugeriu uma nova foto do grupo';
+  }
+
+  @override
+  String roomSuggestionBannerName(Object name) {
+    return '$name sugeriu um novo nome';
+  }
+
+  @override
+  String roomSuggestionBannerDescription(Object name) {
+    return '$name sugeriu uma nova descrição';
+  }
+
+  @override
+  String roomSuggestionBannerMany(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sugestões esperando você',
+      one: '$count sugestão esperando você',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomSuggestionBannerReview => 'REVISAR';
+
+  @override
+  String get roomSuggestionBannerSemantic =>
+      'Sugestões de membros esperando sua revisão';
 }

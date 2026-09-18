@@ -342,35 +342,69 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   /// see the note on the fields.
   Future<void> _refreshAdminLists() async {
     if (!mounted) return;
+    // All four at once, each on its own failure boundary. They used to run one
+    // after another inside a single try, so a failure in the first (or just a
+    // slow first answer) withheld every list behind it — and the suggestion
+    // queue was last in line. An admin whose join-request read failed simply
+    // never saw a member's suggested photo.
+    //
+    // The two ends of the suggestion table are asked for only ever one per
+    // viewer: an admin has a queue and no suggestions of their own, a member
+    // the reverse. Conditional rather than both-and-filter, because the admin
+    // query is the one that costs a roster scan.
+    final requests = _readAdminList(
+      _perms.canReviewJoinRequests,
+      () => widget.repo.listJoinRequests(widget.roomId),
+      _joinRequests,
+    );
+    final invites = _readAdminList(
+      true,
+      () => widget.repo.pendingRoomInvites(widget.roomId),
+      _pendingInvites,
+    );
+    final changes = _readAdminList(
+      _perms.canReviewChangeRequests,
+      () => widget.repo.listRoomChangeRequests(widget.roomId),
+      _changeRequests,
+    );
+    final mine = _readAdminList(
+      _perms.canSuggestChanges,
+      () => widget.repo.myRoomChangeRequests(widget.roomId),
+      _mySuggestions,
+    );
+    final nextRequests = await requests;
+    final nextInvites = await invites;
+    final nextChanges = await changes;
+    final nextMine = await mine;
+    if (!mounted) return;
+    setState(() {
+      _joinRequests = nextRequests;
+      _pendingInvites = nextInvites;
+      _changeRequests = nextChanges;
+      _mySuggestions = nextMine;
+    });
+    // The notification's last step. Deferred to HERE, the first moment both
+    // the permission and the queue are actually known, rather than to
+    // initState — opening from there would race the two queries and show an
+    // empty sheet to an admin who has one waiting.
+    if (widget.openChangeRequests && nextChanges.isNotEmpty) _autoOpenChanges();
+  }
+
+  /// One of [_refreshAdminLists]'s reads. Never throws: a list that cannot be
+  /// read right now keeps what is already on screen rather than blanking, and
+  /// never takes its neighbours down with it. A list the viewer may not see is
+  /// empty without asking.
+  Future<List<T>> _readAdminList<T>(
+    bool allowed,
+    Future<List<T>> Function() read,
+    List<T> current,
+  ) async {
+    if (!allowed) return <T>[];
     try {
-      final requests = _perms.canReviewJoinRequests
-          ? await widget.repo.listJoinRequests(widget.roomId)
-          : const <RoomJoinRequest>[];
-      final invites = await widget.repo.pendingRoomInvites(widget.roomId);
-      // The two ends of the suggestion table, and only ever one of them per
-      // viewer: an admin has a queue and no suggestions of their own, a member
-      // the reverse. Asked for conditionally rather than both-and-filter,
-      // because the admin query is the one that costs a roster scan.
-      final changes = _perms.canReviewChangeRequests
-          ? await widget.repo.listRoomChangeRequests(widget.roomId)
-          : const <RoomChangeRequest>[];
-      final mine = _perms.canSuggestChanges
-          ? await widget.repo.myRoomChangeRequests(widget.roomId)
-          : const <RoomChangeRequest>[];
-      if (!mounted) return;
-      setState(() {
-        _joinRequests = requests;
-        _pendingInvites = invites;
-        _changeRequests = changes;
-        _mySuggestions = mine;
-      });
-      // The notification's last step. Deferred to HERE, the first moment both
-      // the permission and the queue are actually known, rather than to
-      // initState — opening from there would race the two queries and show an
-      // empty sheet to an admin who has one waiting.
-      if (widget.openChangeRequests && changes.isNotEmpty) _autoOpenChanges();
+      return await read();
     } catch (e) {
-      debugPrint('room admin lists unavailable: $e');
+      debugPrint('room admin list unavailable: $e');
+      return current;
     }
   }
 

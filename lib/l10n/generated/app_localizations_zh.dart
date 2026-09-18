@@ -8090,4 +8090,35 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get roomInfoScreenSuggestionWithdraw => '收回';
+
+  @override
+  String roomSuggestionBannerPhoto(Object name) {
+    return '$name 提议换一张新的群组照片';
+  }
+
+  @override
+  String roomSuggestionBannerName(Object name) {
+    return '$name 提议换一个新名称';
+  }
+
+  @override
+  String roomSuggestionBannerDescription(Object name) {
+    return '$name 提议换一段新的描述';
+  }
+
+  @override
+  String roomSuggestionBannerMany(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '有 $count 条建议等你处理',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomSuggestionBannerReview => '查看';
+
+  @override
+  String get roomSuggestionBannerSemantic => '等你审核的成员建议';
 }

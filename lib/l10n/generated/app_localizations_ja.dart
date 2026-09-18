@@ -8184,4 +8184,35 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get roomInfoScreenSuggestionWithdraw => '取り下げる';
+
+  @override
+  String roomSuggestionBannerPhoto(Object name) {
+    return '$name が新しいグループ写真を提案しました';
+  }
+
+  @override
+  String roomSuggestionBannerName(Object name) {
+    return '$name が新しい名前を提案しました';
+  }
+
+  @override
+  String roomSuggestionBannerDescription(Object name) {
+    return '$name が新しい説明を提案しました';
+  }
+
+  @override
+  String roomSuggestionBannerMany(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 件の提案が確認を待っています',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomSuggestionBannerReview => '確認';
+
+  @override
+  String get roomSuggestionBannerSemantic => '確認を待っているメンバーの提案';
 }

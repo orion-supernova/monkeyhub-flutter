@@ -2387,5 +2387,11 @@
   "roomInfoScreenSuggestionDescription": "Description : {value}",
   "roomInfoScreenSuggestionOther": "Un changement",
   "roomInfoScreenSuggestionPending": "en attente d'un admin",
-  "roomInfoScreenSuggestionWithdraw": "RETIRER"
+  "roomInfoScreenSuggestionWithdraw": "RETIRER",
+  "roomSuggestionBannerPhoto": "{name} a proposé une nouvelle photo de groupe",
+  "roomSuggestionBannerName": "{name} a proposé un nouveau nom",
+  "roomSuggestionBannerDescription": "{name} a proposé une nouvelle description",
+  "roomSuggestionBannerMany": "{count, plural, one{{count} suggestion t'attend} other{{count} suggestions t'attendent}}",
+  "roomSuggestionBannerReview": "VOIR",
+  "roomSuggestionBannerSemantic": "Suggestions de membres en attente de ton avis"
 }

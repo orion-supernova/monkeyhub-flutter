@@ -2387,5 +2387,11 @@
   "roomInfoScreenSuggestionDescription": "Açıklama: {value}",
   "roomInfoScreenSuggestionOther": "Bir değişiklik",
   "roomInfoScreenSuggestionPending": "yönetici bekleniyor",
-  "roomInfoScreenSuggestionWithdraw": "GERİ AL"
+  "roomInfoScreenSuggestionWithdraw": "GERİ AL",
+  "roomSuggestionBannerPhoto": "{name} yeni bir grup fotoğrafı önerdi",
+  "roomSuggestionBannerName": "{name} yeni bir isim önerdi",
+  "roomSuggestionBannerDescription": "{name} yeni bir açıklama önerdi",
+  "roomSuggestionBannerMany": "{count, plural, one{{count} öneri seni bekliyor} other{{count} öneri seni bekliyor}}",
+  "roomSuggestionBannerReview": "İNCELE",
+  "roomSuggestionBannerSemantic": "İncelemeni bekleyen üye önerileri"
 }
