@@ -8,8 +8,15 @@
 /// NATIVE flows only. No webview, no redirect URI, no custom URL scheme to
 /// register — which is why moving the backend to another machine later costs
 /// nothing on the auth side.
+///
+/// The web is the one exception, and only for Google: there the token comes
+/// from Google's own rendered button rather than a call we make (see
+/// [SocialSignIn.googleUsesRenderedButton]). Still no redirect URI — but the
+/// web OAuth client must list the page's origin under Authorized JavaScript
+/// origins, which is the one domain-bound piece of Google sign-in.
 library;
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -144,7 +151,32 @@ class SocialSignIn {
       (defaultTargetPlatform == TargetPlatform.iOS ||
           defaultTargetPlatform == TargetPlatform.macOS);
 
-  static bool get googleAvailable => Env.googleSignInConfigured;
+  /// Needs the client ids AND a platform google_sign_in implements: Android,
+  /// iOS, macOS and the web. Windows and Linux have no implementation at all —
+  /// the platform interface's placeholder throws `UnimplementedError` from
+  /// `initialize()` — so a button there could only ever end in an error.
+  static bool get googleAvailable =>
+      Env.googleSignInConfigured &&
+      (kIsWeb ||
+          defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.macOS);
+
+  /// Whether a Google sign-in has to START on Google's own rendered button.
+  ///
+  /// True on the web. google_sign_in 7 has no `authenticate()` there — the web
+  /// plugin throws `UnimplementedError` and says to use `renderButton` —
+  /// because Google Identity Services only mints an ID token from a click on
+  /// its own button. No button of ours can make that call. So on the web
+  /// `SocialSignInButtons` shows Google's button, and the token that click
+  /// produces is handed to [google] rather than fetched by it.
+  static bool get googleUsesRenderedButton => kIsWeb;
+
+  /// Whether [forProvider] for [provider] only works right after a click on
+  /// that provider's button. A caller that would otherwise skip the buttons
+  /// (one provider, nothing to choose) must show them when this is true.
+  static bool needsButtonTap(SocialProvider provider) =>
+      provider == SocialProvider.google && googleUsesRenderedButton;
 
   static Future<SocialCredential> apple() async {
     // `generateNonce` ships with the package; no reason to hand-roll entropy.
@@ -187,37 +219,125 @@ class SocialSignIn {
   }
 
   static Future<SocialCredential> google() async {
+    // Nothing to start on the web: Google's button already ran the flow, and
+    // this only collects what it produced.
+    if (googleUsesRenderedButton) return _collectWebGoogle();
     await _ensureGoogleInitialised();
     try {
-      final account = await GoogleSignIn.instance.authenticate();
-      final idToken = account.authentication.idToken;
-      if (idToken == null) throw const SocialSignInNoToken(SocialProvider.google);
-
-      final name = account.displayName?.trim();
-      _traceClaims(SocialProvider.google, idToken, _googleRawNonce);
-      return SocialCredential(
-        provider: SocialProvider.google,
-        idToken: idToken,
-        // The preimage of the nonce handed to `initialize()`. See
-        // [_ensureGoogleInitialised] for why this is per-launch rather than
-        // per-attempt, and why omitting it is not an option.
-        rawNonce: _googleRawNonce,
-        suggestedName: name == null || name.isEmpty ? null : name,
-      );
+      return _googleCredential(await GoogleSignIn.instance.authenticate());
     } on GoogleSignInException catch (e) {
       if (e.code == GoogleSignInExceptionCode.canceled) {
         throw const SocialSignInCancelled();
       }
-      // `code` is the only field that says WHICH misconfiguration this is —
-      // clientConfigurationError means the ids/URL scheme/SHA-1 don't line up,
-      // providerConfigurationError means Play services or Credential Manager
-      // refused — and none of it survives into the copy the user sees.
-      debugPrint(
-        '[social] google sign-in failed: code=${e.code} '
-        'description=${e.description} details=${e.details}',
-      );
+      _logGoogleFailure(e);
       rethrow;
     }
+  }
+
+  /// The one place a Google account becomes a [SocialCredential], shared by
+  /// `authenticate()` and the web button's sign-in event.
+  static SocialCredential _googleCredential(GoogleSignInAccount account) {
+    final idToken = account.authentication.idToken;
+    if (idToken == null) throw const SocialSignInNoToken(SocialProvider.google);
+
+    final name = account.displayName?.trim();
+    _traceClaims(SocialProvider.google, idToken, _googleRawNonce);
+    return SocialCredential(
+      provider: SocialProvider.google,
+      idToken: idToken,
+      // The preimage of the nonce handed to `initialize()`. See
+      // [_ensureGoogleInitialised] for why this is per-launch rather than
+      // per-attempt, and why omitting it is not an option.
+      rawNonce: _googleRawNonce,
+      suggestedName: name == null || name.isEmpty ? null : name,
+    );
+  }
+
+  static void _logGoogleFailure(GoogleSignInException e) {
+    // `code` is the only field that says WHICH misconfiguration this is —
+    // clientConfigurationError means the ids/URL scheme/SHA-1 don't line up,
+    // providerConfigurationError means Play services or Credential Manager
+    // refused — and none of it survives into the copy the user sees.
+    debugPrint(
+      '[social] google sign-in failed: code=${e.code} '
+      'description=${e.description} details=${e.details}',
+    );
+  }
+
+  /// Web only: what Google's rendered button last produced — a
+  /// [SocialCredential], or the error to throw in its place — parked for the
+  /// [google] call that the button's `onProvider` is about to make.
+  static Object? _webGoogleOutcome;
+  static DateTime? _webGoogleOutcomeAt;
+
+  /// How long a parked outcome stays collectable.
+  ///
+  /// Login and Linked Accounts collect it at once, inside the delivery.
+  /// Profile's rename flow closes a sheet and clears the provider first, so it
+  /// needs a moment. Anything older came from a click the user has since moved
+  /// on from, and must not quietly become the proof for something else.
+  static const Duration _webGoogleHandoff = Duration(seconds: 30);
+
+  static final StreamController<void> _webGoogleDeliveries =
+      StreamController<void>.broadcast(sync: true);
+
+  /// Web only: fires each time Google's rendered button finishes, AFTER the
+  /// outcome is parked, so a listener's `onProvider` reaches a [google] with
+  /// something to return.
+  ///
+  /// Google's callback is page-wide, not per button. Every mounted button hears
+  /// every delivery, and each must act only when it is the one on screen.
+  static Stream<void> get webGoogleDeliveries => _webGoogleDeliveries.stream;
+
+  /// Initialises Google ahead of the first tap. The web button cannot render
+  /// at all until the plugin is initialised.
+  static Future<void> prepareGoogle() => _ensureGoogleInitialised();
+
+  static void _parkWebGoogle(Object outcome) {
+    _webGoogleOutcome = outcome;
+    _webGoogleOutcomeAt = DateTime.now();
+    _webGoogleDeliveries.add(null);
+  }
+
+  static void _onWebGoogleEvent(GoogleSignInAuthenticationEvent event) {
+    // A sign-out is [forgetProviders] echoing back; nothing to deliver.
+    if (event is! GoogleSignInAuthenticationEventSignIn) return;
+    Object outcome;
+    try {
+      outcome = _googleCredential(event.user);
+    } catch (e) {
+      outcome = e;
+    }
+    _parkWebGoogle(outcome);
+  }
+
+  static void _onWebGoogleError(Object error) {
+    if (error is GoogleSignInException) {
+      if (error.code == GoogleSignInExceptionCode.canceled) {
+        _parkWebGoogle(const SocialSignInCancelled());
+        return;
+      }
+      _logGoogleFailure(error);
+    }
+    _parkWebGoogle(error);
+  }
+
+  static SocialCredential _collectWebGoogle() {
+    final outcome = _webGoogleOutcome;
+    final at = _webGoogleOutcomeAt;
+    // Taken, not read: one click is proof for exactly one request.
+    _webGoogleOutcome = null;
+    _webGoogleOutcomeAt = null;
+    if (outcome == null ||
+        at == null ||
+        DateTime.now().difference(at) > _webGoogleHandoff) {
+      throw StateError(
+        "No Google sign-in to collect. On the web it starts on Google's own "
+        'button — see SocialSignIn.needsButtonTap.',
+      );
+    }
+    if (outcome is SocialCredential) return outcome;
+    throw outcome;
   }
 
   static Future<SocialCredential> forProvider(SocialProvider provider) =>
@@ -228,13 +348,22 @@ class SocialSignIn {
   /// provider's own state must never block our sign-out.
   static Future<void> forgetProviders() async {
     try {
-      if (googleAvailable) await GoogleSignIn.instance.signOut();
+      if (googleAvailable) {
+        // google_sign_in requires `initialize()` before any other call, and on
+        // the web `signOut()` waits for one — on a restored session, where no
+        // sign-in ever ran, it used to wait forever.
+        await _ensureGoogleInitialised();
+        await GoogleSignIn.instance.signOut();
+      }
     } catch (_) {
       /* nothing actionable — see doc comment */
     }
   }
 
-  static bool _googleInitialised = false;
+  /// The one initialisation, shared by everyone who asks while it runs. A
+  /// bool set after the await let two callers — the web button mounting and a
+  /// sign-out, say — both start one, and the plugin throws on the second.
+  static Future<void>? _googleInit;
 
   /// The preimage behind the nonce Google echoes into every ID token it mints
   /// for this app launch. Null until [_ensureGoogleInitialised] has run.
@@ -246,6 +375,12 @@ class SocialSignIn {
   /// `serverClientId` is the WEB client id on BOTH platforms on purpose: it is
   /// what lands in the token's `aud`, so setting it makes the backend's
   /// allow-list a single value instead of one per platform.
+  ///
+  /// The web itself takes ONE id, as `clientId`, and it is that same web
+  /// client — so `aud` is the same value there too and the allow-list needs
+  /// nothing new. The iOS id would be worse than unused on the web: Google
+  /// refuses a client that does not list the page's origin, and the web plugin
+  /// asserts that `serverClientId` is left unset.
   ///
   /// THE NONCE IS NOT OPTIONAL, even though the parameter is. Google mints an
   /// ID token carrying a `nonce` claim whether or not we ask for one — Android's
@@ -268,25 +403,42 @@ class SocialSignIn {
   /// minted for this same `aud` on some other device or in some earlier session
   /// carries a different nonce and cannot be replayed here.
   static Future<void> _ensureGoogleInitialised() async {
-    if (_googleInitialised) return;
+    final pending = _googleInit ??= _initialiseGoogle();
+    try {
+      await pending;
+    } catch (_) {
+      // Not cached: the next tap tries again instead of replaying this.
+      if (identical(_googleInit, pending)) _googleInit = null;
+      rethrow;
+    }
+  }
+
+  static Future<void> _initialiseGoogle() async {
     // `generateNonce` comes from sign_in_with_apple, but there is nothing
     // Apple-specific about it — it is a cryptographically random string, and
     // reusing it keeps one source of entropy rather than two.
     _googleRawNonce = generateNonce();
+    final clientId = kIsWeb ? Env.googleServerClientId : Env.googleIosClientId;
+    final serverClientId = kIsWeb ? '' : Env.googleServerClientId;
     // Worth printing once: `env.local` is bundled at BUILD time, so a hot
     // restart after editing it leaves the old ids in place and every symptom
     // looks like a console misconfiguration instead of a stale binary.
     debugPrint(
-      '[social] google initialize: clientId=${Env.googleIosClientId} '
-      'serverClientId=${Env.googleServerClientId} '
+      '[social] google initialize: clientId=$clientId '
+      'serverClientId=$serverClientId '
       'nonce=${sha256Hash(_googleRawNonce!).substring(0, 12)}…',
     );
     await GoogleSignIn.instance.initialize(
-      clientId: Env.googleIosClientId.isEmpty ? null : Env.googleIosClientId,
-      serverClientId:
-          Env.googleServerClientId.isEmpty ? null : Env.googleServerClientId,
+      clientId: clientId.isEmpty ? null : clientId,
+      serverClientId: serverClientId.isEmpty ? null : serverClientId,
       nonce: sha256Hash(_googleRawNonce!),
     );
-    _googleInitialised = true;
+    if (googleUsesRenderedButton) {
+      // For the life of the page, like the plugin it listens to.
+      GoogleSignIn.instance.authenticationEvents.listen(
+        _onWebGoogleEvent,
+        onError: _onWebGoogleError,
+      );
+    }
   }
 }

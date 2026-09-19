@@ -419,6 +419,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   ///
   /// Skips the sheet entirely at one linked provider, which is the ordinary
   /// case — asking someone to choose from a list of one is a tap for nothing.
+  /// Except where that one provider can only start from its own button (Google
+  /// on the web), when the sheet is the only place the sign-in can begin.
   /// Falls back to whatever the platform offers if the linked list hasn't
   /// landed yet; the backend checks the resolved identity against this account
   /// regardless, so a wrong guess here is refused rather than obeyed.
@@ -427,7 +429,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ? _linkedProviders!
         : SocialSignInButtons.available;
     if (linked.isEmpty) return null;
-    if (linked.length == 1) return linked.first;
+    if (linked.length == 1 && !SocialSignIn.needsButtonTap(linked.first)) {
+      return linked.first;
+    }
     return showAdaptiveSheet<SocialProvider>(
       context,
       builder: (_) => _RenameProviderSheet(providers: linked),

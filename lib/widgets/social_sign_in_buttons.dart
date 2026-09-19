@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../auth/apple_button_titles.dart';
+import '../auth/google_web_button.dart';
 import '../auth/social_sign_in.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -127,6 +130,13 @@ class SocialSignInButtons extends StatelessWidget {
             _AppleButton(
               enabled: live,
               onTap: () => onProvider(SocialProvider.apple),
+            )
+          else if (SocialSignIn.googleUsesRenderedButton)
+            _GoogleWebButton(
+              busy: busyProvider == SocialProvider.google,
+              enabled: live,
+              height: _buttonHeight,
+              onDelivered: () => onProvider(SocialProvider.google),
             )
           else
             _GoogleButton(
@@ -293,6 +303,111 @@ class _GoogleButton extends StatelessWidget {
                   ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Google's own button, on the web — see
+/// [SocialSignIn.googleUsesRenderedButton] for why [_GoogleButton] cannot work
+/// there.
+///
+/// Google draws it, in an iframe, and the click never reaches Flutter. The
+/// result arrives on [SocialSignIn.webGoogleDeliveries], and only then does
+/// this call [onDelivered] — the same `onProvider` a tap on [_GoogleButton]
+/// makes, so every caller's `forProvider` handling works unchanged.
+///
+/// [_GoogleButton] stands in whenever the iframe must not take a click: while
+/// the plugin initialises, while a sign-in is in flight (it owns the spinner),
+/// and while the set is disabled. An iframe ignores `IgnorePointer`, so taking
+/// it out is the only way to make it inert.
+class _GoogleWebButton extends StatefulWidget {
+  const _GoogleWebButton({
+    required this.busy,
+    required this.enabled,
+    required this.height,
+    required this.onDelivered,
+  });
+
+  final bool busy;
+  final bool enabled;
+  final double height;
+  final VoidCallback onDelivered;
+
+  @override
+  State<_GoogleWebButton> createState() => _GoogleWebButtonState();
+}
+
+class _GoogleWebButtonState extends State<_GoogleWebButton> {
+  StreamSubscription<void>? _deliveries;
+  bool _ready = false;
+
+  /// The rendered button, reused until what it was drawn for changes.
+  ///
+  /// Load-bearing: the plugin keys its view on the configuration's hashCode,
+  /// which is identity. A fresh configuration per build would tear the iframe
+  /// down and reload it on every keystroke in the form around it.
+  Widget? _rendered;
+  (bool, double, String)? _renderedFor;
+
+  @override
+  void initState() {
+    super.initState();
+    _deliveries = SocialSignIn.webGoogleDeliveries.listen((_) => _delivered());
+    SocialSignIn.prepareGoogle().then(
+      (_) {
+        if (mounted) setState(() => _ready = true);
+      },
+      // Stays on the disabled stand-in. Nearly always the Google script was
+      // blocked (an extension, a network filter), and a retry would not help.
+      onError: (Object e) =>
+          debugPrint('[social] google web button unavailable: $e'),
+    );
+  }
+
+  @override
+  void dispose() {
+    _deliveries?.cancel();
+    super.dispose();
+  }
+
+  void _delivered() {
+    if (!mounted || !widget.enabled || widget.busy) return;
+    // Google's callback is page-wide, so a button on a covered route hears the
+    // click made on the sheet above it. Only the one on top answers.
+    if (ModalRoute.of(context)?.isCurrent == false) return;
+    widget.onDelivered();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_ready || widget.busy || !widget.enabled) {
+      return _GoogleButton(
+        busy: widget.busy,
+        enabled: false,
+        height: widget.height,
+        onTap: () {},
+      );
+    }
+    final onDark = _onDarkBackground(context);
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    return SizedBox(
+      height: widget.height,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Google caps its button at 400 px wide.
+          final width = constraints.maxWidth.clamp(200.0, 400.0).floorToDouble();
+          final key = (onDark, width, locale);
+          if (_renderedFor != key) {
+            _renderedFor = key;
+            _rendered = renderGoogleWebButton(
+              onDark: onDark,
+              width: width,
+              locale: locale,
+            );
+          }
+          return Center(child: _rendered);
+        },
       ),
     );
   }
