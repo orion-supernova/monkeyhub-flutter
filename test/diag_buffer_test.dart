@@ -23,6 +23,22 @@ void main() {
     detail: detail,
   );
 
+  test('wipe forgets every event, the dropped count with them', () async {
+    for (var i = 0; i < DiagBuffer.maxEvents + 5; i++) {
+      add(detail: 'e$i');
+    }
+    final rev = buf.revision.value;
+
+    await buf.wipe();
+
+    expect(buf.length, 0);
+    expect(buf.dropped, 0, reason: 'a fresh log does not start mid-story');
+    expect(buf.revision.value, greaterThan(rev),
+        reason: 'the open viewer has to notice');
+    expect(add().seq, greaterThan(DiagBuffer.maxEvents),
+        reason: 'seq is an identity and never restarts');
+  });
+
   group('count cap', () {
     test('holds maxEvents and counts everything it dropped', () {
       for (var i = 0; i < DiagBuffer.maxEvents + 2000; i++) {

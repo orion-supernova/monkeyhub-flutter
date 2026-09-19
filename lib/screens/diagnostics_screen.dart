@@ -1,8 +1,11 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show Clipboard, ClipboardData;
+import 'package:flutter/services.dart'
+    show Clipboard, ClipboardData, HapticFeedback;
 
+import '../data/settings_store.dart';
 import '../diagnostics/device_report.dart';
 import '../diagnostics/diag_buffer.dart';
 import '../diagnostics/diag_event.dart';
@@ -11,6 +14,7 @@ import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/app_toast.dart';
+import '../widgets/destructive_sheet.dart';
 import 'diagnostics/diag_collapse.dart';
 import 'diagnostics/diag_event_row.dart';
 import 'diagnostics/diag_filter_sheet.dart';
@@ -35,7 +39,12 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
   // inside `build` and never disposes it, leaking a controller per rebuild.
   final ScrollController _scroll = ScrollController();
 
-  DiagFilter _filter = const DiagFilter();
+  /// What **All** leaves out until somebody says otherwise: the two categories
+  /// that bury everything else. In a real session `subscription` was 66% of
+  /// the events and `frame` another 9%.
+  static const defaultHidden = {DiagCat.subscription, DiagCat.frame};
+
+  late DiagFilter _filter = DiagFilter(hidden: _savedHidden());
   bool _follow = true;
   bool _busy = false;
 
@@ -145,7 +154,66 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
 
   Future<void> _openFilter() async {
     final next = await DiagFilterSheet.show(context, _filter);
-    if (next != null && mounted) setState(() => _filter = next);
+    if (next == null || !mounted) return;
+    final hiddenChanged = !setEquals(next.hidden, _filter.hidden);
+    setState(() => _filter = next);
+    if (hiddenChanged) _saveHidden(next.hidden);
+  }
+
+  /// The saved choice, by name — a category that no longer exists is dropped
+  /// rather than failing the whole set — or [defaultHidden] if there is none.
+  static Set<DiagCat> _savedHidden() {
+    final names = SettingsStore.instance.diagHiddenCategories;
+    if (names == null) return defaultHidden;
+    return {
+      for (final c in DiagCat.values)
+        if (names.contains(c.name)) c,
+    };
+  }
+
+  void _saveHidden(Set<DiagCat> hidden) {
+    unawaited(
+      SettingsStore.instance.setDiagHiddenCategories({
+        for (final c in hidden) c.name,
+      }),
+    );
+  }
+
+  void _setHidden(Set<DiagCat> hidden) {
+    setState(() => _filter = _filter.copyWith(hidden: hidden));
+    _saveHidden(hidden);
+  }
+
+  /// Long press on a chip: take it out of **All**, or put it back. Undoable
+  /// from the toast, since a long press is easy to make by accident.
+  void _toggleHidden(DiagCat c) {
+    HapticFeedback.selectionClick();
+    final before = _filter.hidden;
+    final hiding = !before.contains(c);
+    _setHidden(hiding ? {...before, c} : ({...before}..remove(c)));
+    showAppToast(
+      context,
+      hiding ? '${c.name} hidden from All' : '${c.name} back in All',
+      actionLabel: 'Undo',
+      onAction: () {
+        if (mounted) _setHidden(before);
+      },
+    );
+  }
+
+  Future<void> _deleteAll() async {
+    final go = await showConfirmSheet(
+      context,
+      headline: 'Delete the whole log?',
+      body: 'Every event captured so far goes, along with the previous '
+          "run's log. Anything that happens from now on is captured as usual.",
+      confirmLabel: 'Delete',
+    );
+    if (!go || !mounted) return;
+    await DiagBuffer.instance.wipe();
+    if (!mounted) return;
+    setState(() => _follow = true);
+    showAppToast(context, 'Log deleted', tone: ToastTone.success);
   }
 
   @override
@@ -176,6 +244,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                 onFilter: _openFilter,
                 onShare: _shareLog,
                 onCopy: _copySummary,
+                onDelete: _deleteAll,
                 onClose: () => Navigator.of(context).pop(),
               ),
               _SearchBar(
@@ -184,7 +253,8 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                     setState(() => _filter = _filter.copyWith(query: q)),
               ),
               // Quick focus row: tap a category to show only it, tap again to
-              // clear, tap several to combine. Each chip carries its live count.
+              // clear, tap several to combine; long-press to hide it from All.
+              // Each chip carries its live count.
               //
               // Not a duplicate of the filter sheet — it exists because of what
               // a real capture actually looks like. In the first session off
@@ -195,17 +265,26 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
               _QuickCats(
                 counts: _countsByCat(buf.snapshot()),
                 selected: _filter.cats,
+                hidden: _filter.hidden,
                 onToggle: (c) => setState(() {
                   final next = {..._filter.cats};
                   next.contains(c) ? next.remove(c) : next.add(c);
                   _filter = _filter.copyWith(cats: next);
                 }),
+                onHide: _toggleHidden,
                 onAll: () =>
                     setState(() => _filter = _filter.copyWith(cats: const {})),
               ),
               Expanded(
                 child: groups.isEmpty
-                    ? _Empty(captured: buf.length)
+                    ? _Empty(
+                        captured: buf.length,
+                        // Only hiding stands between the log and the screen —
+                        // no pick, no search, no severity floor.
+                        onlyHidden: _filter.cats.isEmpty &&
+                            _filter.query.isEmpty &&
+                            _filter.minSev == DiagSev.trace,
+                      )
                     : Stack(
                         children: [
                           ListView.builder(
@@ -238,19 +317,36 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
   }
 }
 
-/// Shown when the list has nothing in it, and it distinguishes the two reasons.
+/// Shown when the list has nothing in it, and it distinguishes the reasons.
 ///
 /// "Nothing captured yet" and "your filter excluded everything" are completely
 /// different situations — one means the feature is broken, the other means you
 /// tapped a chip. A single generic empty state would leave you unable to tell.
+/// The third, [onlyHidden], is the one a fresh session hits: so far there are
+/// only events in the categories All leaves out, and "tap All" would be no
+/// help — All is already on.
 class _Empty extends StatelessWidget {
-  const _Empty({required this.captured});
+  const _Empty({required this.captured, required this.onlyHidden});
   final int captured;
+  final bool onlyHidden;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final nothingAtAll = captured == 0;
+    final String title;
+    final String hint;
+    if (nothingAtAll) {
+      title = 'Nothing captured yet';
+      hint = 'Use the app for a moment and events will appear here.';
+    } else if (onlyHidden) {
+      title = 'Only hidden events so far';
+      hint = 'Tap a dimmed chip above to see it, or long-press it to bring it '
+          'back into All.';
+    } else {
+      title = 'No events match';
+      hint = 'Tap All above to clear the filter.';
+    }
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -258,24 +354,18 @@ class _Empty extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              nothingAtAll ? Icons.hourglass_empty : Icons.filter_alt_off,
+              nothingAtAll
+                  ? Icons.hourglass_empty
+                  : onlyHidden
+                  ? Icons.visibility_off_outlined
+                  : Icons.filter_alt_off,
               size: 30,
               color: theme.inkMuted,
             ),
             const SizedBox(height: 12),
-            Text(
-              nothingAtAll ? 'Nothing captured yet' : 'No events match',
-              style: theme.bodyEmph,
-              textAlign: TextAlign.center,
-            ),
+            Text(title, style: theme.bodyEmph, textAlign: TextAlign.center),
             const SizedBox(height: 4),
-            Text(
-              nothingAtAll
-                  ? 'Use the app for a moment and events will appear here.'
-                  : 'Tap All above to clear the filter.',
-              style: theme.bodySoft,
-              textAlign: TextAlign.center,
-            ),
+            Text(hint, style: theme.bodySoft, textAlign: TextAlign.center),
           ],
         ),
       ),
@@ -441,27 +531,41 @@ class _SearchBarState extends State<_SearchBar> {
 ///
 /// Categories with nothing in them are omitted rather than shown at zero:
 /// eleven chips of which three are meaningful is a worse control than three.
+///
+/// Hidden categories sit at the END, dimmed, still counting — so what All is
+/// holding back, and how much of it, stays in view. All's own count is what
+/// it actually shows.
 class _QuickCats extends StatelessWidget {
   const _QuickCats({
     required this.counts,
     required this.selected,
+    required this.hidden,
     required this.onToggle,
+    required this.onHide,
     required this.onAll,
   });
 
   final Map<DiagCat, int> counts;
   final Set<DiagCat> selected;
+  final Set<DiagCat> hidden;
   final ValueChanged<DiagCat> onToggle;
+  final ValueChanged<DiagCat> onHide;
   final VoidCallback onAll;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final present = counts.entries.where((e) => e.value > 0).toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+      ..sort((a, b) {
+        final byHidden = (hidden.contains(a.key) ? 1 : 0)
+            .compareTo(hidden.contains(b.key) ? 1 : 0);
+        return byHidden != 0 ? byHidden : b.value.compareTo(a.value);
+      });
     if (present.isEmpty) return const SizedBox.shrink();
 
-    final total = present.fold<int>(0, (a, e) => a + e.value);
+    final total = present
+        .where((e) => !hidden.contains(e.key))
+        .fold<int>(0, (a, e) => a + e.value);
 
     return Container(
       color: theme.surface,
@@ -491,7 +595,9 @@ class _QuickCats extends StatelessWidget {
                 count: e.value,
                 colour: DiagPalette.cat(e.key),
                 on: selected.contains(e.key),
+                hidden: hidden.contains(e.key),
                 onTap: () => onToggle(e.key),
+                onLongPress: () => onHide(e.key),
               ),
               const SizedBox(width: 6),
             ],
@@ -509,6 +615,8 @@ class _CatChip extends StatelessWidget {
     required this.colour,
     required this.on,
     required this.onTap,
+    this.hidden = false,
+    this.onLongPress,
   });
 
   final String label;
@@ -517,54 +625,68 @@ class _CatChip extends StatelessWidget {
   final bool on;
   final VoidCallback onTap;
 
+  /// Left out of All. Dimmed until picked; the eye stays either way, since a
+  /// picked hidden category is still hidden the moment All is back.
+  final bool hidden;
+  final VoidCallback? onLongPress;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     return FocusableTap(
       onTap: onTap,
       shape: FocusRingShape.capsule,
-      semanticLabel: '$label $count',
+      semanticLabel: '$label $count${hidden ? ', hidden from All' : ''}',
       child: GestureDetector(
         onTap: onTap,
+        onLongPress: onLongPress,
         behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
+        child: AnimatedOpacity(
           duration: const Duration(milliseconds: 120),
-          padding: const EdgeInsets.fromLTRB(8, 5, 10, 5),
-          decoration: BoxDecoration(
-            color: on ? colour.withValues(alpha: 0.16) : theme.surfaceRaised,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: on ? colour : theme.divider,
-              width: on ? 1.2 : 1,
+          opacity: hidden && !on ? 0.5 : 1,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            padding: const EdgeInsets.fromLTRB(8, 5, 10, 5),
+            decoration: BoxDecoration(
+              color: on ? colour.withValues(alpha: 0.16) : theme.surfaceRaised,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: on ? colour : theme.divider,
+                width: on ? 1.2 : 1,
+              ),
             ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // The dot is what makes the row scannable, and it is the same hue
-              // the timeline uses for that category — so a chip and the rows it
-              // selects are visibly the same thing.
-              Container(
-                width: 7,
-                height: 7,
-                decoration: BoxDecoration(
-                  color: colour,
-                  shape: BoxShape.circle,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // The dot is what makes the row scannable, and it is the same
+                // hue the timeline uses for that category — so a chip and the
+                // rows it selects are visibly the same thing. A hidden category
+                // keeps the hue on a crossed-out eye instead.
+                if (hidden)
+                  Icon(Icons.visibility_off, size: 10, color: colour)
+                else
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: colour,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: theme.monoTiny.copyWith(
+                    color: on ? theme.ink : theme.inkSoft,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: theme.monoTiny.copyWith(
-                  color: on ? theme.ink : theme.inkSoft,
+                const SizedBox(width: 5),
+                Text(
+                  '$count',
+                  style: theme.monoTiny.copyWith(color: theme.inkMuted),
                 ),
-              ),
-              const SizedBox(width: 5),
-              Text(
-                '$count',
-                style: theme.monoTiny.copyWith(color: theme.inkMuted),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -583,6 +705,7 @@ class _Header extends StatelessWidget {
     required this.onFilter,
     required this.onShare,
     required this.onCopy,
+    required this.onDelete,
     required this.onClose,
   });
 
@@ -596,6 +719,7 @@ class _Header extends StatelessWidget {
   final VoidCallback onFilter;
   final void Function({Rect? origin}) onShare;
   final VoidCallback onCopy;
+  final VoidCallback onDelete;
   final VoidCallback onClose;
 
   @override
@@ -637,6 +761,11 @@ class _Header extends StatelessWidget {
                 onTap: onCopy,
               ),
               _ShareAction(busy: busy, onShare: onShare),
+              _Action(
+                icon: Icons.delete_outline,
+                label: 'Delete all',
+                onTap: onDelete,
+              ),
               _Action(icon: Icons.close, label: 'Close', onTap: onClose),
             ],
           ),
