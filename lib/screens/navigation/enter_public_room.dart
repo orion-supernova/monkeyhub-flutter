@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../backend/chat_api.dart';
 import '../../data/chat_repository.dart';
@@ -99,6 +100,7 @@ Future<void> enterPublicRoom(
   try {
     await repo.joinRoom(roomId: room.id, password: result.password);
     if (!context.mounted) return;
+    HapticFeedback.mediumImpact();
     openRoom(context, roomId: room.id, repo: repo, api: api);
   } catch (e) {
     // Reachable even for an adult-shaped caller if a grant was revoked between

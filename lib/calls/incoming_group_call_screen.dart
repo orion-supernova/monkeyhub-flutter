@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
 import '../keyboard/focusable_tap.dart';
@@ -73,6 +74,7 @@ class _IncomingGroupCallScreenState extends State<IncomingGroupCallScreen>
 
   Future<void> _join() async {
     if (_acting) return;
+    HapticFeedback.mediumImpact();
     setState(() => _acting = true);
     final inv = widget.service.pendingInvite;
     if (inv == null) return;
@@ -91,6 +93,7 @@ class _IncomingGroupCallScreenState extends State<IncomingGroupCallScreen>
 
   Future<void> _dismiss() async {
     if (_acting) return;
+    HapticFeedback.lightImpact();
     setState(() => _acting = true);
     await widget.service.declineInvite();
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../auth/auth_errors.dart';
 import '../backend/chat_api.dart';
@@ -204,6 +205,8 @@ class _JoinByInviteScreenState extends State<JoinByInviteScreen> {
       if (result == null) return;
       switch (result.outcome) {
         case RedeemOutcome.joined:
+          HapticFeedback.mediumImpact();
+          _leaveForRoom(result.roomId);
         case RedeemOutcome.alreadyMember:
           _leaveForRoom(result.roomId);
         case RedeemOutcome.requested:

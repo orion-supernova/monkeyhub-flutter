@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
@@ -55,6 +56,7 @@ class _IncomingRequestCardState extends State<IncomingRequestCard> {
     try {
       final roomId = await widget.repo.approveDirectRequest(widget.req.user.id);
       if (!mounted) return;
+      HapticFeedback.mediumImpact();
       if (roomId != null) {
         openRoom(context, roomId: roomId, repo: widget.repo, api: widget.api);
       }
@@ -66,6 +68,7 @@ class _IncomingRequestCardState extends State<IncomingRequestCard> {
 
   Future<void> _reject() async {
     if (_busy) return;
+    HapticFeedback.lightImpact();
     setState(() => _busy = true);
     try {
       await widget.repo.rejectDirectRequest(widget.req.user.id);
@@ -250,6 +253,11 @@ class _RoomInvitationCardState extends State<RoomInvitationCard> {
         accept: accept,
       );
       if (!mounted) return;
+      if (accept) {
+        HapticFeedback.mediumImpact();
+      } else {
+        HapticFeedback.lightImpact();
+      }
       // Straight into the room on accept. Saying yes to a group and then
       // having to go find it in a list is a beat of nothing where the payoff
       // should be — the same reasoning as accepting a friend request.

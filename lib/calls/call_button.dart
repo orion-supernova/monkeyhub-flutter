@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../family/family_service.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -43,6 +44,7 @@ class CallButton extends StatelessWidget {
   Future<void> _start(BuildContext context) async {
     final service = CallService.instance;
     if (service.inCall) return;
+    HapticFeedback.mediumImpact();
     try {
       await service.initiate(
         peerUserId: peerUserId,

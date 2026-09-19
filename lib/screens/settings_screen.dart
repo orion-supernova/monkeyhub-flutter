@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../auth/auth_service.dart';
@@ -1086,6 +1087,10 @@ class _PushToggle extends StatefulWidget {
 
 class _PushToggleState extends State<_PushToggle> {
   Future<void> _toggle(bool v) async {
+    // The tap a native switch gives as it flips. `Switch.adaptive` builds a
+    // Material switch, which is silent everywhere — even on iOS, where the
+    // real UISwitch always taps. Every toggle below does the same.
+    HapticFeedback.lightImpact();
     await SettingsStore.instance.setPushEnabled(v);
     if (v) {
       await PushManager.instance.optIn();
@@ -1173,6 +1178,7 @@ class _GameRemindersToggle extends StatefulWidget {
 
 class _GameRemindersToggleState extends State<_GameRemindersToggle> {
   Future<void> _toggle(bool v) async {
+    HapticFeedback.lightImpact();
     await SettingsStore.instance.setGameReminders(v);
     await PushManager.instance.setGameReminders(v);
   }
@@ -1261,6 +1267,7 @@ class _FriendActivityToggle extends StatefulWidget {
 
 class _FriendActivityToggleState extends State<_FriendActivityToggle> {
   Future<void> _toggle(bool v) async {
+    HapticFeedback.lightImpact();
     await SettingsStore.instance.setFriendActivity(v);
     await PushManager.instance.setFriendActivity(v);
   }
@@ -1486,7 +1493,10 @@ class _CallDeliveryRow extends StatelessWidget {
 }
 
 class _ShowLinkUrlsToggle extends StatelessWidget {
-  Future<void> _toggle(bool v) => SettingsStore.instance.setShowLinkUrls(v);
+  Future<void> _toggle(bool v) {
+    HapticFeedback.lightImpact();
+    return SettingsStore.instance.setShowLinkUrls(v);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1568,7 +1578,10 @@ class _MenuBarToggleState extends State<_MenuBarToggle> {
     MacAppChrome.instance.load();
   }
 
-  Future<void> _toggle(bool v) => MacAppChrome.instance.setVisible(v);
+  Future<void> _toggle(bool v) {
+    HapticFeedback.lightImpact();
+    return MacAppChrome.instance.setVisible(v);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1636,7 +1649,10 @@ class _MenuBarToggleState extends State<_MenuBarToggle> {
 }
 
 class _ShowNetworkStatsToggle extends StatelessWidget {
-  Future<void> _toggle(bool v) => SettingsStore.instance.setShowNetworkStats(v);
+  Future<void> _toggle(bool v) {
+    HapticFeedback.lightImpact();
+    return SettingsStore.instance.setShowNetworkStats(v);
+  }
 
   @override
   Widget build(BuildContext context) {

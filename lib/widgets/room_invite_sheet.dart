@@ -953,16 +953,22 @@ class _SwitchRow extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
 
+  /// With the tap a native switch gives; `Switch.adaptive` has none.
+  void _flip(bool v) {
+    HapticFeedback.lightImpact();
+    onChanged(v);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     return FocusableTap(
-      onTap: () => onChanged(!value),
+      onTap: () => _flip(!value),
       semanticLabel: label,
       radius: theme.radiusSm,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: () => onChanged(!value),
+        onTap: () => _flip(!value),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 10),
           child: Row(
@@ -980,7 +986,7 @@ class _SwitchRow extends StatelessWidget {
               const SizedBox(width: 12),
               Switch.adaptive(
                 value: value,
-                onChanged: onChanged,
+                onChanged: _flip,
                 activeThumbColor: theme.accent,
               ),
             ],

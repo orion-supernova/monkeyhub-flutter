@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
 import '../models/chat_room.dart';
@@ -104,7 +105,10 @@ class _BlockChoiceSheetState extends State<_BlockChoiceSheet> {
               sub: widget.isFriend
                   ? l10n.bulkActionBarBlockChoiceTileFriendSub
                   : l10n.bulkActionBarBlockChoiceTileStrangerSub,
-              onTap: () => Navigator.of(context).pop(BlockChoice.blockOnly),
+              onTap: () {
+                HapticFeedback.heavyImpact();
+                Navigator.of(context).pop(BlockChoice.blockOnly);
+              },
             ),
             if (widget.hasDm) ...[
               const SizedBox(height: 10),
@@ -114,7 +118,10 @@ class _BlockChoiceSheetState extends State<_BlockChoiceSheet> {
                 icon: Icons.delete_sweep,
                 title: l10n.bulkActionBarBlockDeleteDmTitle,
                 sub: l10n.bulkActionBarBlockDeleteDmSub,
-                onTap: () => Navigator.of(context).pop(BlockChoice.blockAndDelete),
+                onTap: () {
+                  HapticFeedback.heavyImpact();
+                  Navigator.of(context).pop(BlockChoice.blockAndDelete);
+                },
               ),
             ],
             const SizedBox(height: 14),

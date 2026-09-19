@@ -4,6 +4,7 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../backend/chat_api.dart';
 import '../../keyboard/focusable_tap.dart';
@@ -780,6 +781,17 @@ class CallControlButton extends StatelessWidget {
   /// A quieter surface for a control on the tray's second row.
   final bool subdued;
 
+  /// The hero ends the call and lands like it; the tray's toggles tick like
+  /// switches. A disabled control never gets here — it builds no tap target.
+  void _tap() {
+    if (large) {
+      HapticFeedback.heavyImpact();
+    } else {
+      HapticFeedback.selectionClick();
+    }
+    onTap();
+  }
+
   @override
   Widget build(BuildContext context) {
     // Sized from whatever width the Row's Expanded slot actually gives us —
@@ -844,13 +856,13 @@ class CallControlButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             FocusableTap(
-              onTap: onTap,
+              onTap: _tap,
               semanticLabel: label,
               shape: FocusRingShape.circle,
               // FocusableTap adds keyboard focus/activation only — the
               // child GestureDetector is what makes this tappable.
               child: GestureDetector(
-                onTap: onTap,
+                onTap: _tap,
                 child: Container(
                   width: size,
                   height: size,

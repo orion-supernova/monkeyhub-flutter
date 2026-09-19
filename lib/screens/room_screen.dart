@@ -1693,6 +1693,7 @@ class _RoomScreenState extends State<RoomScreen>
   void _toggleAlbumSelection(List<ChatMessage> album) {
     final anySelected = album.any((p) => _selection.contains(p.id));
     if (anySelected) {
+      HapticFeedback.selectionClick();
       for (final p in album) {
         if (_selection.contains(p.id)) _selection.toggle(p.id);
       }
@@ -1703,6 +1704,7 @@ class _RoomScreenState extends State<RoomScreen>
               .roomScreenMaxSelectionSnack(_kMaxSelected));
       return;
     }
+    HapticFeedback.selectionClick();
     for (final p in album) {
       _selection.toggle(p.id);
     }
@@ -1716,6 +1718,7 @@ class _RoomScreenState extends State<RoomScreen>
       );
       return;
     }
+    HapticFeedback.selectionClick();
     _selection.toggle(m.id);
   }
 

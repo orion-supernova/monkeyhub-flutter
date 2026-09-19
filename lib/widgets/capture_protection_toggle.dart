@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../data/settings_store.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -18,6 +19,7 @@ class CaptureProtectionToggle extends StatefulWidget {
 
 class _CaptureProtectionToggleState extends State<CaptureProtectionToggle> {
   Future<void> _toggle(bool v) async {
+    HapticFeedback.lightImpact();
     await SettingsStore.instance.setCaptureProtection(v);
     await CaptureProtection.instance.setUserEnabled(v);
   }

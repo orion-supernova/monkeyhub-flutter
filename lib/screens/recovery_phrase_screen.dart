@@ -129,6 +129,7 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
     // The canonical form IS what is displayed, so a paste of this on the reset
     // screen hashes identically. See RecoveryPhrase.canonical.
     Clipboard.setData(ClipboardData(text: widget.phrase.canonical));
+    HapticFeedback.lightImpact();
     showAppToast(
       context,
       AppLocalizations.of(context).recoveryPhraseScreenCopiedSnackbar,

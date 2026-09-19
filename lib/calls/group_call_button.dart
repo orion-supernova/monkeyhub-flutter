@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
 import '../backend/convex_client.dart';
@@ -36,6 +37,7 @@ class GroupCallButton extends StatelessWidget {
     final service = GroupCallService.maybeInstance;
     final me = service?.userId;
     if (service == null || me == null) return;
+    HapticFeedback.lightImpact();
     showStartGroupCallSheet(
       context,
       service: service,

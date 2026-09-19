@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
 import '../keyboard/focusable_tap.dart';
@@ -91,12 +92,14 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
   Future<void> _accept() async {
     if (_pending != _RingAction.none) return;
+    HapticFeedback.mediumImpact();
     setState(() => _pending = _RingAction.accept);
     await widget.service.acceptIncoming();
   }
 
   Future<void> _reject() async {
     if (_pending != _RingAction.none) return;
+    HapticFeedback.heavyImpact();
     setState(() => _pending = _RingAction.reject);
     await widget.service.reject();
   }

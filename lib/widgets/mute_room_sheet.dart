@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../data/chat_repository.dart';
 import '../keyboard/focusable_tap.dart';
@@ -322,7 +323,13 @@ class _MuteSwitch extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    void toggle() => onChanged(!value);
+    // With the tap a native switch gives; `Switch.adaptive` has none.
+    void flip(bool v) {
+      HapticFeedback.lightImpact();
+      onChanged(v);
+    }
+
+    void toggle() => flip(!value);
     return FocusableTap(
       onTap: toggle,
       semanticLabel: title,
@@ -370,7 +377,7 @@ class _MuteSwitch extends StatelessWidget {
               ExcludeSemantics(
                 child: Switch.adaptive(
                   value: value,
-                  onChanged: onChanged,
+                  onChanged: flip,
                   activeThumbColor: theme.accent,
                 ),
               ),

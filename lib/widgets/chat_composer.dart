@@ -139,6 +139,12 @@ class _SendButtonState extends State<_SendButton>
     if (_hold.value != 0) _hold.value = 0;
   }
 
+  /// A send is one light tick. The hold's heavy impact stays the loud one.
+  void _send() {
+    HapticFeedback.lightImpact();
+    widget.onSend();
+  }
+
   void _fire() {
     final schedule = widget.onSchedule;
     if (schedule == null) return;
@@ -250,7 +256,7 @@ class _SendButtonState extends State<_SendButton>
     // has already settled on `kActionMenuLongPress` for "hold reveals options"
     // everywhere else. Two recognizers in one arena so a tap still sends.
     Widget body = widget.onSchedule == null
-        ? GestureDetector(onTap: widget.onSend, child: core)
+        ? GestureDetector(onTap: _send, child: core)
         : RawGestureDetector(
             key: _key,
             behavior: HitTestBehavior.opaque,
@@ -259,7 +265,7 @@ class _SendButtonState extends State<_SendButton>
                   GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
                 () => TapGestureRecognizer(),
                 (instance) {
-                  instance.onTap = widget.onSend;
+                  instance.onTap = _send;
                   instance.onTapCancel = _endHold;
                 },
               ),
@@ -280,7 +286,7 @@ class _SendButtonState extends State<_SendButton>
           );
 
     body = FocusableTap(
-      onTap: widget.onSend,
+      onTap: _send,
       semanticLabel: widget.scheduledCount > 0
           ? '${widget.semanticLabel}, '
               '${l10n.composerScheduledBadgeSemantics(widget.scheduledCount)}'

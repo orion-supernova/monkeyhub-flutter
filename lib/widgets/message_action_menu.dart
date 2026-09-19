@@ -503,7 +503,13 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
               // shrink-wraps exactly as it always has.
               maxHeight: menuScrolls ? menuH : null,
               onAction: (a) {
-                HapticFeedback.lightImpact();
+                // Delete is the one action with no confirm behind it, so it
+                // is the one that lands with some weight.
+                if (a == MessageAction.delete) {
+                  HapticFeedback.mediumImpact();
+                } else {
+                  HapticFeedback.lightImpact();
+                }
                 _resolve(MessageActionResult.action(a));
               },
             ),

@@ -673,6 +673,7 @@ Future<void> copyGameResult(
       ),
     ),
   );
+  HapticFeedback.lightImpact();
   toast.show(
     l10n.gameShareCopied,
     tone: ToastTone.success,

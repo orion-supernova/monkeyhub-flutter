@@ -300,17 +300,19 @@ void main() {
         for (var i = 0; i < 20; i++) {
           await tester.pump(const Duration(milliseconds: 16));
         }
-        expect(haptics, hasLength(played));
+        // Let go short of the threshold is a tap, so it sends — with the send
+        // tick, and not one more tap of the charge.
+        expect(haptics.sublist(played), ['lightImpact']);
       });
 
-      testWidgets('a tap never plays the charge', (tester) async {
+      testWidgets('a tap is one light tick, never the charge', (tester) async {
         final haptics = recordHaptics(tester);
         await tester.pumpWidget(host(build(onSchedule: () {})));
         await tester.pumpAndSettle();
 
         await tester.tap(send);
         await tester.pumpAndSettle();
-        expect(haptics, isEmpty);
+        expect(haptics, ['lightImpact']);
       });
 
       testWidgets('a tap still sends', (tester) async {

@@ -11,6 +11,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../companions/brain_manager.dart';
 import '../../companions/brain_spec.dart';
@@ -288,7 +289,11 @@ class _SwitchRow extends StatelessWidget {
           ),
           Switch.adaptive(
             value: value,
-            onChanged: onChanged,
+            onChanged: (v) {
+              // The tap a native switch gives; `Switch.adaptive` has none.
+              HapticFeedback.lightImpact();
+              onChanged(v);
+            },
             activeTrackColor: theme.accent,
           ),
         ],

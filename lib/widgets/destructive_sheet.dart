@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -104,7 +105,11 @@ class _ConfirmSheet extends StatelessWidget {
             title: confirmLabel,
             sub: AppLocalizations.of(context).destructiveSheetCannotBeUndone,
             filled: true,
-            onTap: () => Navigator.of(context).pop(true),
+            onTap: () {
+              // "Cannot be undone" should weigh something in the hand too.
+              HapticFeedback.heavyImpact();
+              Navigator.of(context).pop(true);
+            },
           ),
           const SizedBox(height: 10),
           // Autofocused so Enter on a freshly-opened destructive sheet cancels

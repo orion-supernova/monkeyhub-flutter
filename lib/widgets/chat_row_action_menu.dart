@@ -362,7 +362,16 @@ class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay> wi
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              for (final action in actions) _ChatRowActionRow(action: action, onTap: () => _resolve(action)),
+              for (final action in actions)
+                _ChatRowActionRow(
+                  action: action,
+                  // Picking matches the message menu: opening buzzed medium,
+                  // choosing is a light tick.
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    _resolve(action);
+                  },
+                ),
             ],
           ),
         ),

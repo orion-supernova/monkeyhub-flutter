@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/message_reaction.dart';
 import '../theme/app_theme.dart';
 import '../theme/interaction.dart';
@@ -49,7 +50,10 @@ class ReactionRow extends StatelessWidget {
               emoji: entry.key,
               count: entry.value.length,
               mine: entry.value.any((r) => r.userId == currentUserId),
-              onTap: () => onToggle(entry.key),
+              onTap: () {
+                HapticFeedback.selectionClick();
+                onToggle(entry.key);
+              },
               onLongPress: onShowReactors == null
                   ? null
                   : () => onShowReactors!(entry.key),

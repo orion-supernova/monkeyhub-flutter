@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
 import '../backend/convex_client.dart';
@@ -215,7 +216,10 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
                           ? _EmptyState()
                           : RefreshIndicator(
                               color: theme.accent,
-                              onRefresh: _load,
+                              onRefresh: () {
+                                HapticFeedback.lightImpact();
+                                return _load();
+                              },
                               child: ListView.builder(
                                 padding: EdgeInsets.fromLTRB(
                                   20,

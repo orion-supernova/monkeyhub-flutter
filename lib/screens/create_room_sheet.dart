@@ -71,6 +71,7 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
         messageLifetime: _type == RoomType.secret ? _ttl : null,
       );
       if (!mounted) return;
+      HapticFeedback.mediumImpact();
       final nav = Navigator.of(context);
       if (context.isExpanded) {
         // Desktop: dismiss the sheet and open the new room in the chat pane.

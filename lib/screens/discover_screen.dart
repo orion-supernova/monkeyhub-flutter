@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
@@ -604,6 +605,11 @@ class _RequestSegments extends StatelessWidget {
   final int outgoing;
   final ValueChanged<_RequestsTab> onChange;
 
+  void _select(_RequestsTab tab) {
+    if (tab != active) HapticFeedback.selectionClick();
+    onChange(tab);
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
@@ -614,7 +620,7 @@ class _RequestSegments extends StatelessWidget {
           displayLabel: t.discoverScreenIncomingLabelCaps,
           count: incoming,
           active: active == _RequestsTab.incoming,
-          onTap: () => onChange(_RequestsTab.incoming),
+          onTap: () => _select(_RequestsTab.incoming),
         ),
         const SizedBox(width: 20),
         _Segment(
@@ -622,7 +628,7 @@ class _RequestSegments extends StatelessWidget {
           displayLabel: t.discoverScreenOutgoingLabelCaps,
           count: outgoing,
           active: active == _RequestsTab.outgoing,
-          onTap: () => onChange(_RequestsTab.outgoing),
+          onTap: () => _select(_RequestsTab.outgoing),
         ),
       ],
     );

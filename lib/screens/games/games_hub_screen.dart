@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../backend/feed_api.dart';
 import '../../data/feed_store.dart';
@@ -117,10 +118,13 @@ class _GamesHubScreenState extends State<GamesHubScreen> {
               child: RefreshIndicator(
                 color: theme.accent,
                 backgroundColor: theme.surfaceRaised,
-                onRefresh: () => Future.wait([
-                  GamesStore.instance.load(widget.userId, force: true),
-                  RecordsStore.instance.load(widget.userId, force: true),
-                ]),
+                onRefresh: () {
+                  HapticFeedback.lightImpact();
+                  return Future.wait([
+                    GamesStore.instance.load(widget.userId, force: true),
+                    RecordsStore.instance.load(widget.userId, force: true),
+                  ]);
+                },
                 child: ListView(
                   padding: EdgeInsets.fromLTRB(
                     20,

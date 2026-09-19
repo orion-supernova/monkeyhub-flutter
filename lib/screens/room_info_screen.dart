@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../backend/chat_api.dart';
@@ -1054,7 +1055,14 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                   ),
                   const SizedBox(width: 8),
                   GestureDetector(
-                    onTap: () => Navigator.of(ctx).pop(true),
+                    onTap: () {
+                      if (destructive) {
+                        HapticFeedback.heavyImpact();
+                      } else {
+                        HapticFeedback.mediumImpact();
+                      }
+                      Navigator.of(ctx).pop(true);
+                    },
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(

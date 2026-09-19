@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../backend/chat_api.dart';
@@ -108,7 +109,10 @@ class _FamilyScreenState extends State<FamilyScreen> {
                 Expanded(
                   child: RefreshIndicator(
                     color: theme.accent,
-                    onRefresh: widget.family.refresh,
+                    onRefresh: () {
+                      HapticFeedback.lightImpact();
+                      return widget.family.refresh();
+                    },
                     child: ListView(
                       padding: EdgeInsets.fromLTRB(
                         20,

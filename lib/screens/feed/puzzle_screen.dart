@@ -127,6 +127,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       ClipboardData(text: '$header\n${attempt.shareGrid}'),
     );
     if (!mounted) return;
+    HapticFeedback.lightImpact();
     showAppToast(
       context, l10n.puzzleShareCopied,
       tone: ToastTone.success,

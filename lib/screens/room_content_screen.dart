@@ -397,6 +397,7 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
     await Clipboard.setData(ClipboardData(text: urls.join('\n')));
     if (!mounted) return;
     _selection.clear();
+    HapticFeedback.lightImpact();
     toast.show(
       l10n.roomContentScreenLinksCopied(urls.length),
       tone: ToastTone.success,

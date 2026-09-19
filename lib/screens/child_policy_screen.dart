@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
 import '../family/family_service.dart';
@@ -1042,7 +1043,10 @@ class _AddContactSheetState extends State<_AddContactSheet> {
                           const SizedBox(width: 12),
                           Switch.adaptive(
                             value: _sendNow,
-                            onChanged: (v) => setState(() => _sendNow = v),
+                            onChanged: (v) {
+                              HapticFeedback.lightImpact();
+                              setState(() => _sendNow = v);
+                            },
                             activeThumbColor: theme.accent,
                           ),
                         ],
@@ -1338,11 +1342,17 @@ class _Toggle extends StatelessWidget {
   final String offDesc;
   final ValueChanged<bool> onChanged;
 
+  /// With the tap a native switch gives; `Switch.adaptive` has none.
+  void _flip(bool v) {
+    HapticFeedback.lightImpact();
+    onChanged(v);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     return GestureDetector(
-      onTap: () => onChanged(!on),
+      onTap: () => _flip(!on),
       behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
@@ -1366,7 +1376,7 @@ class _Toggle extends StatelessWidget {
             const SizedBox(width: 12),
             Switch.adaptive(
               value: on,
-              onChanged: onChanged,
+              onChanged: _flip,
               activeThumbColor: theme.accent,
             ),
           ],

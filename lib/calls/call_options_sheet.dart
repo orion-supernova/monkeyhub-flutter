@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
@@ -62,7 +63,10 @@ class CallOptionsSheet extends StatelessWidget {
                   sub: l10n.settingsScreenShowNetworkStatsBody,
                   trailing: Switch.adaptive(
                     value: store.showNetworkStats,
-                    onChanged: (v) => store.setShowNetworkStats(v),
+                    onChanged: (v) {
+                      HapticFeedback.lightImpact();
+                      store.setShowNetworkStats(v);
+                    },
                     activeThumbColor: theme.accent,
                   ),
                 ),
