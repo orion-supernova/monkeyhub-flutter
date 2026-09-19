@@ -8,7 +8,15 @@ import 'package:monkeyhub/push/device_identity.dart';
 ///
 /// That distinction is the entire subject of these tests: an item written under
 /// one accessibility attribute may be invisible to a read issued under another,
-/// and a double that ignores `options` cannot show the bug or the fix.
+/// and a double that ignores `options` cannot show the bug or the fix. It also
+/// behaves like the real keychain on the three points that follow from it:
+///
+///  * a write collides with the same key on ANOTHER shelf — accessibility is
+///    not part of a generic password's primary key, so `SecItemAdd` fails with
+///    `errSecDuplicateItem`. This double used to accept it, which is how a
+///    re-stamp that failed on every real launch passed here;
+///  * a delete matches every shelf (`performDelete` nils the class);
+///  * a read with no class matches every shelf.
 class AccessibilityAwareStorage extends FlutterSecureStoragePlatform {
   /// accessibility class → (key → value).
   final Map<String, Map<String, String>> shelves = {};
@@ -24,7 +32,15 @@ class AccessibilityAwareStorage extends FlutterSecureStoragePlatform {
   Future<String?> read({
     required String key,
     required Map<String, String> options,
-  }) async => shelves[_shelf(options)]?[key];
+  }) async {
+    if (options.containsKey('accessibility')) {
+      return shelves[_shelf(options)]?[key];
+    }
+    for (final shelf in shelves.values) {
+      if (shelf.containsKey(key)) return shelf[key];
+    }
+    return null;
+  }
 
   @override
   Future<void> write({
@@ -33,6 +49,11 @@ class AccessibilityAwareStorage extends FlutterSecureStoragePlatform {
     required Map<String, String> options,
   }) async {
     final shelf = _shelf(options);
+    for (final e in shelves.entries) {
+      if (e.key != shelf && e.value.containsKey(key)) {
+        throw StateError('errSecDuplicateItem ($key under ${e.key})');
+      }
+    }
     writes.add('$shelf/$key=$value');
     (shelves[shelf] ??= {})[key] = value;
   }
@@ -47,7 +68,11 @@ class AccessibilityAwareStorage extends FlutterSecureStoragePlatform {
   Future<void> delete({
     required String key,
     required Map<String, String> options,
-  }) async => shelves[_shelf(options)]?.remove(key);
+  }) async {
+    for (final shelf in shelves.values) {
+      shelf.remove(key);
+    }
+  }
 
   @override
   Future<void> deleteAll({required Map<String, String> options}) async =>
@@ -62,6 +87,7 @@ class AccessibilityAwareStorage extends FlutterSecureStoragePlatform {
 const _key = 'monkeyhub.device_id';
 const _new = 'first_unlock_this_device';
 const _legacy = 'unlocked';
+const _swept = 'first_unlock';
 
 void main() {
   late AccessibilityAwareStorage storage;
@@ -102,6 +128,28 @@ void main() {
       ['$_new/$_key=id-from-before-the-upgrade'],
       reason: 'exactly one write, and none of it under the legacy class',
     );
+  });
+
+  // The 1.3.105 incident. The settings migration swept every `unlocked` item
+  // into `first_unlock` — the id included, still on the legacy shelf because
+  // the re-stamp above never landed on a real device. Neither read looked
+  // there, so the id was re-minted, the write collided with the swept item,
+  // and this threw on every launch: no calling stack, no push registration.
+  test('an id swept into first_unlock is found, not re-minted', () async {
+    storage.shelves[_swept] = {_key: 'the-real-id'};
+
+    final id = await DeviceIdentity.ensure();
+
+    expect(id, 'the-real-id');
+    expect(storage.shelves[_new]?[_key], 'the-real-id',
+        reason: 'moved home, so the next locked launch reads it directly');
+    expect(storage.shelves[_swept], isEmpty);
+  });
+
+  test('a locked keychain elsewhere propagates instead of minting', () async {
+    FlutterSecureStoragePlatform.instance = _LockedElsewhereStorage();
+
+    await expectLater(DeviceIdentity.ensure(), throwsA(isA<StateError>()));
   });
 
   test('an id already under the new class is returned without a write',
@@ -147,4 +195,19 @@ class _ThrowingStorage extends AccessibilityAwareStorage {
     required String key,
     required Map<String, String> options,
   }) async => throw StateError('User interaction is not allowed.');
+}
+
+/// Our own class answers "nothing", but the item lives under a class that is
+/// locked right now — the any-class read throws.
+class _LockedElsewhereStorage extends AccessibilityAwareStorage {
+  @override
+  Future<String?> read({
+    required String key,
+    required Map<String, String> options,
+  }) async {
+    if (!options.containsKey('accessibility')) {
+      throw StateError('User interaction is not allowed.');
+    }
+    return super.read(key: key, options: options);
+  }
 }

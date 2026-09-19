@@ -1,10 +1,8 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart'
-    show TargetPlatform, defaultTargetPlatform, kIsWeb;
-
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../data/any_class_keychain.dart';
 import '../models/family.dart';
 
 /// Mirrors v02's `KeychainService`. Stores `userId` / `username` / `themeId`
@@ -65,67 +63,40 @@ class SessionStore {
   // No aOptions: `encryptedSharedPreferences` was the only one set, and v10
   // deprecated it into a no-op — Jetpack Security is dead, so the plugin now
   // uses its own ciphers and migrates existing items on first access.
-  final _storage = const FlutterSecureStorage(
-    iOptions: IOSOptions(
-      accessibility: KeychainAccessibility.first_unlock_this_device,
+  //
+  // Items are not always under that class: installs from before it wrote them
+  // under `unlocked`, and 1.3.105's settings migration swept whatever was left
+  // there into `first_unlock`. [AnyClassKeychain] finds them either way.
+  final _storage = const AnyClassKeychain(
+    FlutterSecureStorage(
+      iOptions: IOSOptions(
+        accessibility: KeychainAccessibility.first_unlock_this_device,
+      ),
     ),
   );
 
-  // Pre-existing installs wrote their items under `unlocked`; those may be
-  // invisible to reads issued with the new accessibility attribute. Reads
-  // fall back to this legacy instance and migrate hits forward.
-  static const _legacyStorage = FlutterSecureStorage(
-    iOptions: IOSOptions(accessibility: KeychainAccessibility.unlocked),
-  );
-
-  /// Read [key], falling back to (and migrating from) the legacy
-  /// `unlocked`-accessibility item on iOS. The migration write re-stamps
-  /// the item with the new accessibility class, so it becomes readable on
-  /// locked-phone launches from then on.
+  /// Read [key] from our class, else from whichever class holds it, moving it
+  /// into ours so it becomes readable on locked-phone launches from then on.
+  ///
+  /// A failure to read our own class propagates. A failure to read another
+  /// reads as "absent", as the `unlocked` fallback this replaces always did.
+  /// The move itself is best effort and must NOT lose the value just read: an
+  /// earlier version returned null when it failed, which turned "your session
+  /// is in the old slot" into "you have no session".
   Future<String?> _read(String key) async {
-    final value = await _storage.read(key: key);
+    final value = await _storage.home.read(key: key);
     if (value != null) return value;
-    // `defaultTargetPlatform` rather than `Platform.isIOS`, matching
-    // `DeviceIdentity._read`: it is what the storage plugin dispatches its own
-    // options on, so the two agree by construction — and unlike dart:io it can
-    // be overridden in a test, which is what lets the migration below be
-    // covered at all.
-    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) return null;
-    String? legacy;
     try {
-      legacy = await _legacyStorage.read(key: key);
+      return await _storage.readElsewhere(key: key);
     } catch (_) {
       return null;
     }
-    if (legacy == null) return null;
-    // Re-stamping is best effort, and its failure must NOT lose the value we
-    // just read. The previous version returned null from this catch, which
-    // turned "your session is in the old slot" into "you have no session" —
-    // and then the next sign-in wrote over nothing, because [_write]'s hazard
-    // below made that fail too.
-    try {
-      await _write(key, legacy);
-    } catch (_) {/* stays in the legacy slot; still readable next launch */}
-    return legacy;
   }
 
-  /// Write [key], deleting any existing item first.
-  ///
-  /// The delete is load-bearing. The plugin's `write` probes with
-  /// `containsKey`, whose query carries `kSecAttrAccessible`, so an item
-  /// stored under the OLD accessibility class reads as absent; `write` then
-  /// falls through to `SecItemAdd`, which fails with `errSecDuplicateItem`
-  /// because accessibility is not part of a generic password's primary key.
-  /// A plain overwrite across the two classes therefore THROWS rather than
-  /// replacing — silently, since every caller used to swallow it.
-  ///
-  /// `delete` has no such problem: it nils the accessibility attribute, so it
-  /// matches the item whichever class it was written under. Delete-then-add is
-  /// what makes the overwrite land.
-  Future<void> _write(String key, String value) async {
-    await _storage.delete(key: key);
-    await _storage.write(key: key, value: value);
-  }
+  /// Write [key], replacing it whichever class it is under — a plain overwrite
+  /// across classes throws errSecDuplicateItem. See [AnyClassKeychain.write].
+  Future<void> _write(String key, String value) =>
+      _storage.write(key: key, value: value);
 
   /// Sticky marker that this handset belongs to a child.
   ///

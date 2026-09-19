@@ -1,10 +1,11 @@
 import 'dart:io' show Platform;
 import 'dart:math';
 
-import 'package:flutter/foundation.dart'
-    show TargetPlatform, defaultTargetPlatform, kIsWeb, visibleForTesting;
+import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import '../data/any_class_keychain.dart';
 
 /// Persistent per-device identifier used to scope push tokens. Generated
 /// once on first launch (RFC-4122 UUIDv4 via `Random.secure`), stashed in
@@ -33,18 +34,21 @@ class DeviceIdentity {
   // SessionStore already fixed its half of this and documented why. This class
   // was the hole in that fix: the session restored fine on a locked cold start,
   // and then the device id failed one layer further down.
-  static const _storage = FlutterSecureStorage(
-    iOptions: IOSOptions(
-      accessibility: KeychainAccessibility.first_unlock_this_device,
+  //
+  // Read through [AnyClassKeychain], because the id is not always under this
+  // class. Installs from before it still hold it under `unlocked` — the plain
+  // `write` that was meant to re-stamp it failed with errSecDuplicateItem on
+  // every launch — and 1.3.105's settings migration then swept it into
+  // `first_unlock`. A read that looked only here and under `unlocked` found
+  // nothing, minted a new id and failed to write THAT too, on every launch:
+  // no calling stack, no push registration, no problem reports.
+  static const _storage = AnyClassKeychain(
+    FlutterSecureStorage(
+      iOptions: IOSOptions(
+        accessibility: KeychainAccessibility.first_unlock_this_device,
+      ),
     ),
   );
-
-  // Pre-existing installs wrote this key under `unlocked`, and that item may be
-  // invisible to a read issued with the new accessibility attribute. Without
-  // the fallback below, every current install would silently mint a NEW device
-  // id on upgrade — orphaning its backend device row and its registered VoIP
-  // token, which is a worse outcome than the bug being fixed.
-  static const _legacyStorage = FlutterSecureStorage();
 
   static final Random _random = Random.secure();
 
@@ -55,10 +59,22 @@ class DeviceIdentity {
   @visibleForTesting
   static void resetCacheForTest() => _cached = null;
 
+  /// The id, read from whichever accessibility class holds it and moved into
+  /// ours on the way (see [AnyClassKeychain.read]), or minted on first launch.
+  ///
+  /// A keychain failure propagates on purpose. "The item is unreadable right
+  /// now" and "there is no item" must not collapse into the same answer here:
+  /// swallowing the error would mint a fresh id and orphan the real one.
+  /// Callers retry once the device is unlocked — see the resume path in
+  /// `app.dart`.
+  ///
+  /// The mint's write replaces rather than adds, like every write through
+  /// [AnyClassKeychain]. Safe here: by then every class has answered "nothing"
+  /// without throwing, so there is no real id for it to replace.
   static Future<String> ensure() async {
     final cached = _cached;
     if (cached != null) return cached;
-    final existing = await _read();
+    final existing = await _storage.read(key: _storageKey);
     if (existing != null && existing.isNotEmpty) {
       _cached = existing;
       return existing;
@@ -67,38 +83,6 @@ class DeviceIdentity {
     await _storage.write(key: _storageKey, value: fresh);
     _cached = fresh;
     return fresh;
-  }
-
-  /// Read the id, falling back to (and migrating forward from) the legacy
-  /// default-accessibility item on iOS.
-  ///
-  /// The migration write re-stamps the item with the new accessibility class,
-  /// so from the next launch onward it is readable on a locked phone.
-  ///
-  /// A keychain failure propagates on purpose, and [ensure] with it. "The item
-  /// is unreadable right now" and "there is no item" must not collapse into the
-  /// same answer here: swallowing the error would make [ensure] mint a fresh id
-  /// and orphan the real one. Callers retry once the device is unlocked — see
-  /// the resume path in `app.dart`. Only the migration *write* is tolerated to
-  /// fail, since by then the id is already in hand.
-  static Future<String?> _read() async {
-    final value = await _storage.read(key: _storageKey);
-    if (value != null) return value;
-    // `defaultTargetPlatform` rather than `Platform.isIOS`: it is what the
-    // storage plugin itself dispatches its own options on, so the two agree by
-    // construction — and unlike dart:io it can be overridden in a test, which
-    // is what lets the migration below be covered at all.
-    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) return null;
-    final legacy = await _legacyStorage.read(key: _storageKey);
-    if (legacy != null && legacy.isNotEmpty) {
-      try {
-        await _storage.write(key: _storageKey, value: legacy);
-      } catch (_) {
-        // Re-stamping failed (locked device, most likely). The id itself is
-        // good and is what the caller needs; the next launch retries.
-      }
-    }
-    return legacy;
   }
 
   /// `"ios" | "ios-simulator" | "android" | "macos" | "windows" | "linux" | "web"`.

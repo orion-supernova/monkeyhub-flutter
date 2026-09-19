@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show MissingPluginException;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../data/any_class_keychain.dart';
 import '../env.dart';
 import 'server_directory.dart';
 import 'server_endpoint.dart';
@@ -37,12 +38,20 @@ class ServerStore extends ChangeNotifier {
   /// either way — see [isPinned].
   static const _kPinned = 'mh.server.pinned';
 
-  /// Same accessibility class the rest of the app's secure storage uses, so a
-  /// locked handset behaves consistently. This is not a secret — a deployment
-  /// URL is public by nature — but keeping one storage backend for everything
-  /// means one failure mode to reason about instead of two.
-  final _storage = const FlutterSecureStorage(
-    iOptions: IOSOptions(accessibility: KeychainAccessibility.unlocked),
+  /// `first_unlock`, like the preferences: readable on a locked launch, so a
+  /// VoIP cold start on a locked phone connects to the server this install
+  /// actually uses instead of the bundled default. This is not a secret — a
+  /// deployment URL is public by nature — but keeping one storage backend for
+  /// everything means one failure mode to reason about instead of two.
+  ///
+  /// Through [AnyClassKeychain], because older builds wrote these under
+  /// `unlocked` and 1.3.105's settings migration swept them into `first_unlock`
+  /// behind this store's back — which read nothing, and failed every write
+  /// with errSecDuplicateItem.
+  final _storage = const AnyClassKeychain(
+    FlutterSecureStorage(
+      iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+    ),
   );
 
   ServerEndpoint? _custom;
