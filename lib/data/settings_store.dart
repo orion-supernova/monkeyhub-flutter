@@ -73,7 +73,24 @@ class SettingsStore extends ChangeNotifier {
   static const _kMarloweBrainId = 'mh.companion.marlowe.brain';
   static const _kCompanionForceCpu = 'mh.companion.forceCpu';
 
-  final SettingsKeychain _storage = SettingsKeychain();
+  /// Every key above — what [SettingsKeychain] may take from the legacy class,
+  /// which the other stores share. A key added later can be left out safely:
+  /// nothing has written under the legacy class since 1.3.105.
+  @visibleForTesting
+  static const keys = {
+    _kTheme, _kThemeMode, _kThemeLight, _kThemeDark, _kThemeOnboarded,
+    _kLayout, _kMonogram, _kNav, _kSection, _kPushEnabled, _kGameReminders,
+    _kFriendActivity, _kCaptureProtection, _kChatStyle, _kReplyStyle,
+    _kBubbleStyle, _kSpeakerTint, _kViewReadReceipts, _kLogoMode,
+    _kManualLogoThemeId, _kShowLinkUrls, _kShowNetworkStats, _kPhotoHd,
+    _kVideoQualityTier, _kRecoveryPromptDismissed,
+    _kComposerModeHintSeenRoomIds, _kFilterStyle, _kRoomFilter,
+    _kGlassProfile, _kGlassSlots, _kGlassPreset, _kLocale, _kMotionLevel,
+    _kScheduledIndicator, _kSebastianEnabled, _kTranslationTarget,
+    _kTranslatedRoomIds, _kMarloweBrainId, _kCompanionForceCpu,
+  };
+
+  final SettingsKeychain _storage = SettingsKeychain(keys: keys);
 
   String? _themeId;
   AppearanceMode _appearanceMode = AppearanceMode.system;

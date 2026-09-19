@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/services.dart' show MissingPluginException;
 import 'package:http/http.dart' as http;
 
+import '../data/any_class_keychain.dart';
 import '../diagnostics/diag_log.dart';
 import 'convex_client.dart';
 import 'server_endpoint.dart';
@@ -231,8 +232,13 @@ class ServerDirectory {
 
   static const _kLast = 'mh.server.directive';
 
-  final _storage = const FlutterSecureStorage(
-    iOptions: IOSOptions(accessibility: KeychainAccessibility.unlocked),
+  // `first_unlock` through [AnyClassKeychain], for the same reasons as
+  // [ServerStore]'s: readable on a locked launch, and found wherever 1.3.105's
+  // settings migration moved it.
+  final _storage = const AnyClassKeychain(
+    FlutterSecureStorage(
+      iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+    ),
   );
 
   /// The whole launch budget for this check.

@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/data/settings_keychain.dart';
 import 'package:monkeyhub/data/settings_store.dart';
+import 'package:monkeyhub/push/device_identity.dart';
 
 /// Keychain stand-in that models the two iOS behaviours this whole change is
 /// about:
@@ -32,11 +33,22 @@ class _Keychain extends FlutterSecureStoragePlatform {
     }
   }
 
+  /// A read with no class matches every shelf, as a query with no
+  /// `kSecAttrAccessible` does.
   @override
   Future<String?> read({
     required String key,
     required Map<String, String> options,
   }) async {
+    if (!options.containsKey('accessibility')) {
+      for (final e in shelves.entries) {
+        if (e.value.containsKey(key)) {
+          _gate(e.key);
+          return e.value[key];
+        }
+      }
+      return null;
+    }
     _gate(_shelf(options));
     return shelves[_shelf(options)]?[key];
   }
@@ -93,6 +105,8 @@ class _Keychain extends FlutterSecureStoragePlatform {
 const _new = 'first_unlock';
 const _legacy = 'unlocked';
 
+SettingsKeychain _settings() => SettingsKeychain(keys: SettingsStore.keys);
+
 void main() {
   late _Keychain keychain;
 
@@ -108,7 +122,7 @@ void main() {
     test('preferences an older build wrote survive the upgrade', () async {
       keychain.shelves[_legacy] = {'mh.pushEnabled': 'false'};
 
-      final values = await SettingsKeychain().readAll();
+      final values = await _settings().readAll();
 
       expect(values['mh.pushEnabled'], 'false');
     });
@@ -116,7 +130,7 @@ void main() {
     test('migration re-stamps them, after which the legacy class is never read',
         () async {
       keychain.shelves[_legacy] = {'mh.pushEnabled': 'false'};
-      final first = SettingsKeychain();
+      final first = _settings();
       await first.readAll();
       await first.migrate();
 
@@ -127,7 +141,7 @@ void main() {
       // it is not even asked.
       keychain.locked.add(_legacy);
       keychain.legacyReads = 0;
-      final values = await SettingsKeychain().readAll();
+      final values = await _settings().readAll();
       expect(values['mh.pushEnabled'], 'false');
       expect(keychain.legacyReads, 0);
     });
@@ -139,13 +153,13 @@ void main() {
       keychain.shelves[_legacy] = {'mh.pushEnabled': 'false'};
       keychain.locked.add(_legacy);
 
-      await expectLater(SettingsKeychain().readAll(), throwsStateError);
+      await expectLater(_settings().readAll(), throwsStateError);
     });
 
     test('a write before migration replaces the legacy item instead of failing',
         () async {
       keychain.shelves[_legacy] = {'mh.gameReminders': 'true'};
-      final store = SettingsKeychain();
+      final store = _settings();
 
       await store.write(key: 'mh.gameReminders', value: 'false');
 
@@ -155,7 +169,7 @@ void main() {
 
     test('a write that cannot land yet still wins every read, and is replayed',
         () async {
-      final store = SettingsKeychain();
+      final store = _settings();
       await store.readAll();
       keychain.locked.add(_new);
 
@@ -171,7 +185,7 @@ void main() {
     test('a newer write is not overwritten by the value being migrated',
         () async {
       keychain.shelves[_legacy] = {'mh.pushEnabled': 'false'};
-      final store = SettingsKeychain();
+      final store = _settings();
       await store.readAll();
       keychain.locked.add(_new);
       await store.write(key: 'mh.pushEnabled', value: 'true');
@@ -189,10 +203,45 @@ void main() {
       keychain.shelves['unspecified'] = {'mh.pushEnabled': 'false'};
       keychain.locked.add(_legacy);
 
-      final values = await SettingsKeychain().readAll();
+      final values = await _settings().readAll();
 
       expect(values['mh.pushEnabled'], 'false');
       expect(keychain.legacyReads, 0);
+    });
+
+    // The 1.3.105 incident. The legacy class is shared with every other store
+    // the app keeps, and the migration moved all of it into `first_unlock`,
+    // where none of their reads looked.
+    test('only the preferences leave the legacy class', () async {
+      const foreign = {
+        'monkeyhub.device_id': 'the-real-id',
+        'mh.sessionToken': 't-goksu',
+        'mh.server.url': 'https://example.org',
+      };
+      keychain.shelves[_legacy] = {'mh.pushEnabled': 'false', ...foreign};
+      final store = _settings();
+
+      final values = await store.readAll();
+      await store.migrate();
+
+      expect(values.keys, isNot(contains('monkeyhub.device_id')));
+      expect(keychain.shelves[_new]?['mh.pushEnabled'], 'false');
+      expect(keychain.shelves[_legacy], foreign,
+          reason: "other stores' items stay where those stores look");
+    });
+
+    test('the device id survives it, so the calling stack can attach',
+        () async {
+      keychain.shelves[_legacy] = {
+        'mh.pushEnabled': 'false',
+        'monkeyhub.device_id': 'the-real-id',
+      };
+      final store = _settings();
+      await store.readAll();
+      await store.migrate();
+      DeviceIdentity.resetCacheForTest();
+
+      expect(await DeviceIdentity.ensure(), 'the-real-id');
     });
   });
 

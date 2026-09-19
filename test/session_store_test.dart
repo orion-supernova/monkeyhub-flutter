@@ -19,8 +19,10 @@ import 'package:monkeyhub/models/family.dart';
 ///    the write throws.
 ///  * **Deletes ignore the class.** `performDelete` nils the accessibility
 ///    attribute, so it matches whichever shelf the item is on.
+///  * **A read with no class matches every class** — the query simply has no
+///    `kSecAttrAccessible` to filter on.
 ///
-/// The package's own double gets all three wrong, and every one of them is
+/// The package's own double gets all of them wrong, and every one of them is
 /// load-bearing here.
 class _KeychainDouble extends FlutterSecureStoragePlatform {
   /// accessibility class → (key → value).
@@ -40,7 +42,10 @@ class _KeychainDouble extends FlutterSecureStoragePlatform {
   Future<String?> read({
     required String key,
     required Map<String, String> options,
-  }) async => shelves[_shelf(options)]?[key];
+  }) async {
+    if (!options.containsKey('accessibility')) return flat()[key];
+    return shelves[_shelf(options)]?[key];
+  }
 
   @override
   Future<void> write({
@@ -228,6 +233,35 @@ void main() {
       expect(session, isNotNull);
       expect(session!.username, 'goksu');
       expect(store.token, 't-goksu');
+    });
+  });
+
+  // 1.3.105's settings migration moved every `unlocked` item into
+  // `first_unlock`, whatever store it belonged to. A session left on the
+  // legacy shelf went with it, onto a shelf this store never used to ask.
+  group('items another store moved', () {
+    test('a session swept into first_unlock still signs in', () async {
+      keychain.shelves['first_unlock'] = {
+        _blobKey: jsonEncode({
+          'v': 1,
+          'userId': 'u-goksu',
+          'token': 't-goksu',
+          'username': 'goksu',
+          'name': 'Göksu',
+          'accountType': AccountType.adult.wire,
+        }),
+        'mh.isChildDevice': 'true',
+      };
+
+      final session = await store.loadSession();
+
+      expect(session?.userId, 'u-goksu');
+      expect(store.token, 't-goksu');
+      expect(store.isChildDevice, isTrue,
+          reason: 'a child handset must not start offering the adult form');
+      expect(keychain.shelves['first_unlock_this_device']?[_blobKey],
+          isNotNull, reason: 'moved home, so a locked launch reads it');
+      expect(keychain.shelves['first_unlock'], isEmpty);
     });
   });
 

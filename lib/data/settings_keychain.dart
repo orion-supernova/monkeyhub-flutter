@@ -31,8 +31,16 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// Items an older build wrote under `unlocked` are read through [_legacy] and
 /// re-stamped under the new class once, after which [_kMigrated] lets every
 /// later launch skip the legacy lookup entirely.
+///
+/// Only [keys] are taken from the legacy class. It is shared with every other
+/// store the app keeps there — the device id, the session, the server choice —
+/// and 1.3.105 moved all of those into `first_unlock` along with the
+/// preferences. Their own stores kept asking under their own classes, found
+/// nothing, and failed every write with errSecDuplicateItem; losing the device
+/// id that way took the whole calling stack down.
 class SettingsKeychain {
   SettingsKeychain({
+    required this.keys,
     FlutterSecureStorage storage = const FlutterSecureStorage(
       iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
     ),
@@ -41,6 +49,10 @@ class SettingsKeychain {
     ),
   })  : _storage = storage,
         _legacy = legacy;
+
+  /// The preferences' own keys — the only ones read from, or moved out of, the
+  /// legacy class.
+  final Set<String> keys;
 
   final FlutterSecureStorage _storage;
   final FlutterSecureStorage _legacy;
@@ -79,7 +91,10 @@ class SettingsKeychain {
       // Deliberately not caught: an upgraded install that has not migrated yet
       // keeps every preference in the legacy class, so a legacy failure here
       // means the real values are unknown, not absent.
-      final legacy = await _legacy.readAll();
+      final legacy = {
+        for (final e in (await _legacy.readAll()).entries)
+          if (keys.contains(e.key)) e.key: e.value,
+      };
       _toRestamp = {
         for (final e in legacy.entries)
           if (!current.containsKey(e.key)) e.key: e.value,
