@@ -13,20 +13,33 @@ import '../../theme/theme_scope.dart';
 class DiagFilter {
   const DiagFilter({
     this.cats = const {},
+    this.hidden = const {},
     this.minSev = DiagSev.trace,
     this.query = '',
     this.collapse = true,
   });
 
-  /// Empty means "everything" rather than "nothing" — the common case is no
-  /// filter at all, and it should not require selecting all eleven categories.
+  /// The categories picked to look at. Empty means **All** rather than
+  /// "nothing" — the common case is no pick at all, and it should not require
+  /// selecting all eleven categories.
   final Set<DiagCat> cats;
+
+  /// Left out of **All**, and only of All. A category too loud to read around
+  /// — `subscription` was two thirds of a real session — is hidden until it is
+  /// picked, and picking it shows exactly it: asking for `frame` by name is
+  /// never answered with nothing. That is what lets one set of chips both keep
+  /// the noise out by default and go straight to it on a tap.
+  final Set<DiagCat> hidden;
   final DiagSev minSev;
   final String query;
   final bool collapse;
 
   bool matches(DiagEvent e) {
-    if (cats.isNotEmpty && !cats.contains(e.cat)) return false;
+    if (cats.isNotEmpty) {
+      if (!cats.contains(e.cat)) return false;
+    } else if (hidden.contains(e.cat)) {
+      return false;
+    }
     if (e.sev.index < minSev.index) return false;
     if (query.isEmpty) return true;
     return e.searchHaystack.contains(query.toLowerCase());
@@ -34,11 +47,13 @@ class DiagFilter {
 
   DiagFilter copyWith({
     Set<DiagCat>? cats,
+    Set<DiagCat>? hidden,
     DiagSev? minSev,
     String? query,
     bool? collapse,
   }) => DiagFilter(
     cats: cats ?? this.cats,
+    hidden: hidden ?? this.hidden,
     minSev: minSev ?? this.minSev,
     query: query ?? this.query,
     collapse: collapse ?? this.collapse,
@@ -123,6 +138,27 @@ class _DiagFilterSheetState extends State<DiagFilterSheet> {
               ],
             ),
             const SizedBox(height: 14),
+            // The same switch as a long press on a chip in the row above the
+            // timeline — here so it can be found without knowing the gesture.
+            Text('HIDDEN FROM ALL', style: theme.monoTiny),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final c in DiagCat.values)
+                  _Chip(
+                    label: c.name,
+                    on: _f.hidden.contains(c),
+                    onTap: () => setState(() {
+                      final next = {..._f.hidden};
+                      next.contains(c) ? next.remove(c) : next.add(c);
+                      _f = _f.copyWith(hidden: next);
+                    }),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 14),
             Text('MINIMUM SEVERITY', style: theme.monoTiny),
             const SizedBox(height: 6),
             Wrap(
@@ -149,8 +185,10 @@ class _DiagFilterSheetState extends State<DiagFilterSheet> {
                 _Chip(
                   label: 'reset',
                   on: false,
+                  // Resets the view, not the preference: what All leaves out
+                  // is a standing choice, and has its own section above.
                   onTap: () => setState(() {
-                    _f = const DiagFilter();
+                    _f = DiagFilter(hidden: _f.hidden);
                     _search.clear();
                   }),
                 ),

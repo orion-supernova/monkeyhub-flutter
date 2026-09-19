@@ -63,6 +63,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kLocale = 'mh.locale';
   static const _kMotionLevel = 'mh.motionLevel';
   static const _kScheduledIndicator = 'mh.schedule.indicator';
+  static const _kDiagHidden = 'mh.diag.hidden';
 
   // ── Companions (lib/companions/) ───────────────────────────────────────
   // Namespaced under `mh.companion.` so a future resident needs no new
@@ -117,6 +118,7 @@ class SettingsStore extends ChangeNotifier {
   VideoQualityTier _videoQualityTier = VideoQualityTier.auto;
   String? _recoveryPromptDismissedFor;
   Set<String> _composerModeHintSeenRoomIds = {};
+  Set<String>? _diagHiddenCategories;
   FilterStyle _filterStyle = FilterStyle.chips;
   RoomFilter _roomFilter = RoomFilter.empty;
   GlassProfile _glass = _presetById(kDefaultGlassPresetId).profile;
@@ -263,6 +265,11 @@ class SettingsStore extends ChangeNotifier {
   /// is opened, but a room the user has never opened before has taught them
   /// nothing yet either, hint or no hint elsewhere.
   bool shouldShowComposerModeHint(String roomId) => !_composerModeHintSeenRoomIds.contains(roomId);
+
+  /// The diagnostics categories left out of the viewer's **All**, by name.
+  /// Null until somebody first changes them, so the viewer can tell "never
+  /// chosen" (its default applies) from "chose to hide nothing".
+  Set<String>? get diagHiddenCategories => _diagHiddenCategories;
 
   /// How much decorative motion the app renders.
   ///
@@ -523,6 +530,10 @@ class SettingsStore extends ChangeNotifier {
     _composerModeHintSeenRoomIds = _decodeStringSet(
       s[_kComposerModeHintSeenRoomIds],
     );
+    // Absent stays null — "never chosen", which the viewer reads as its own
+    // default — rather than decoding to an empty set, which is a choice.
+    final dh = s[_kDiagHidden];
+    _diagHiddenCategories = dh == null ? null : _decodeStringSet(dh);
     final fs = s[_kFilterStyle];
     // First-launch default is chips; honour an explicit 'drawer' selection.
     _filterStyle = fs == 'drawer' ? FilterStyle.drawer : FilterStyle.chips;
@@ -869,6 +880,17 @@ class SettingsStore extends ChangeNotifier {
     await _storage.write(
       key: _kComposerModeHintSeenRoomIds,
       value: jsonEncode(_composerModeHintSeenRoomIds.toList()),
+    );
+  }
+
+  Future<void> setDiagHiddenCategories(Set<String> names) async {
+    final prev = _diagHiddenCategories;
+    if (prev != null && setEquals(prev, names)) return;
+    _diagHiddenCategories = {...names};
+    notifyListeners();
+    await _storage.write(
+      key: _kDiagHidden,
+      value: jsonEncode(names.toList()..sort()),
     );
   }
 

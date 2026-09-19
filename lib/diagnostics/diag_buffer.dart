@@ -162,6 +162,13 @@ class DiagBuffer {
     revision.value++;
   }
 
+  /// Forgets everything captured: what is in memory, this session's file and
+  /// the previous run's, so a share afterwards starts from nothing.
+  Future<void> wipe() async {
+    clear();
+    await deleteAll();
+  }
+
   // ───────── disk ─────────
 
   Future<Directory?> _ensureDir() async {
