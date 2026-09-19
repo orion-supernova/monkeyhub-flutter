@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
@@ -160,6 +161,22 @@ void main() {
     'liquid': Icons.arrow_upward,
   };
 
+  /// Every haptic the widget plays, by type, until the test ends.
+  List<String> recordHaptics(WidgetTester tester) {
+    final played = <String>[];
+    final messenger = tester.binding.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'HapticFeedback.vibrate') {
+        played.add('${call.arguments}'.replaceFirst('HapticFeedbackType.', ''));
+      }
+      return null;
+    });
+    addTearDown(
+      () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+    );
+    return played;
+  }
+
   sendable.forEach((name, build) {
     final send = find.byIcon(sendIcon[name]!);
     group('$name scheduling', () {
@@ -233,6 +250,67 @@ void main() {
         await tester.pumpAndSettle();
         // Withdrawn instantly on release, not reversed over the full duration.
         expect(paints(), atRest);
+      });
+
+      testWidgets('a hold vibrates as it charges, then lands one heavy impact', (
+        tester,
+      ) async {
+        final haptics = recordHaptics(tester);
+        var schedules = 0;
+        await tester.pumpWidget(host(build(onSchedule: () => schedules++)));
+        await tester.pumpAndSettle();
+
+        // Frame by frame: `longPress` is one long pump, and the vibration is
+        // driven by the ring's frames.
+        final gesture = await tester.startGesture(tester.getCenter(send));
+        for (var i = 0; i < 30; i++) {
+          await tester.pump(const Duration(milliseconds: 16));
+        }
+        await gesture.up();
+        await tester.pumpAndSettle();
+
+        expect(schedules, 1);
+        expect(haptics.last, 'heavyImpact');
+        final charge = haptics.sublist(0, haptics.length - 1);
+        expect(
+          charge.length,
+          greaterThanOrEqualTo(8),
+          reason: 'close enough together to read as one continuous buzz',
+        );
+        expect(charge.first, 'selectionClick');
+        const strength = ['selectionClick', 'lightImpact', 'mediumImpact'];
+        final ranks = charge.map(strength.indexOf).toList();
+        expect(ranks, isNot(contains(-1)));
+        expect(ranks, [...ranks]..sort(), reason: 'it only ever builds');
+      });
+
+      testWidgets('letting go mid-charge silences it at once', (tester) async {
+        final haptics = recordHaptics(tester);
+        await tester.pumpWidget(host(build(onSchedule: () {})));
+        await tester.pumpAndSettle();
+
+        final gesture = await tester.startGesture(tester.getCenter(send));
+        for (var i = 0; i < 14; i++) {
+          await tester.pump(const Duration(milliseconds: 16));
+        }
+        final played = haptics.length;
+        expect(played, greaterThan(0));
+
+        await gesture.up();
+        for (var i = 0; i < 20; i++) {
+          await tester.pump(const Duration(milliseconds: 16));
+        }
+        expect(haptics, hasLength(played));
+      });
+
+      testWidgets('a tap never plays the charge', (tester) async {
+        final haptics = recordHaptics(tester);
+        await tester.pumpWidget(host(build(onSchedule: () {})));
+        await tester.pumpAndSettle();
+
+        await tester.tap(send);
+        await tester.pumpAndSettle();
+        expect(haptics, isEmpty);
       });
 
       testWidgets('a tap still sends', (tester) async {

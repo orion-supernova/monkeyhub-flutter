@@ -15,6 +15,7 @@ import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'composer_capture.dart';
 import 'composer_format_toolbar.dart';
+import 'haptic_ramp.dart';
 import 'liquid_glass.dart';
 
 /// How long a press has to last before the hold ring is allowed to appear.
@@ -74,6 +75,9 @@ class _SendButtonState extends State<_SendButton>
   /// tuned until it feels long enough.
   late final AnimationController _hold;
 
+  /// The vibration that builds with the ring, and stops the instant it does.
+  late final HapticRamp _holdHaptics;
+
   /// Waits out [_kHoldRingLead] before the ring is allowed to start.
   ///
   /// This is the whole fix for the ring flashing on an ordinary tap.
@@ -103,11 +107,13 @@ class _SendButtonState extends State<_SendButton>
       // the sheet opens — a progress indicator that never reaches its end.
       duration: kActionMenuLongPress - _kHoldRingLead,
     );
+    _holdHaptics = HapticRamp(_hold);
   }
 
   @override
   void dispose() {
     _leadIn?.cancel();
+    _holdHaptics.dispose();
     _hold.dispose();
     super.dispose();
   }
@@ -136,7 +142,9 @@ class _SendButtonState extends State<_SendButton>
   void _fire() {
     final schedule = widget.onSchedule;
     if (schedule == null) return;
-    HapticFeedback.mediumImpact();
+    // Heavier than anything the ramp played, so the sheet opening lands as
+    // its own beat rather than one more tap in the buzz.
+    HapticFeedback.heavyImpact();
     _endHold();
     schedule();
   }
