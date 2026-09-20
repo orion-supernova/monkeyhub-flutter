@@ -8418,4 +8418,153 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get onboardingThemeContinue => '계속';
+
+  @override
+  String get dropHintNoTarget => '채팅 위에 놓으면 보내집니다';
+
+  @override
+  String get dropNothingToSend => '보낼 수 있는 것이 없어요';
+
+  @override
+  String dropSendPhotos(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '사진 $count장 보내기',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendVideos(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '동영상 $count개 보내기',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendAudio(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '오디오 $count개 보내기',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendFiles(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '파일 $count개 보내기',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendItems(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count개 보내기',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropSendText => '메시지에 추가';
+
+  @override
+  String get dropSendLink => '링크 추가';
+
+  @override
+  String dropTargetTo(String name) {
+    return '$name에게';
+  }
+
+  @override
+  String dropNoticeTooLarge(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count개가 $size을(를) 넘습니다',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropNoticeFolder => '폴더는 보낼 수 없어요';
+
+  @override
+  String dropNoticeEmpty(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '빈 파일 $count개는 건너뜁니다',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropNoticeNotAllowed => '여기서는 첨부할 수 없어요';
+
+  @override
+  String dropNoticeAsFile(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count개는 파일로 전송돼요',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropNoticeFragile(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count개는 일부 기기에서 안 보일 수 있어요',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropKindPhoto => '사진';
+
+  @override
+  String get dropKindVideo => '동영상';
+
+  @override
+  String get dropKindAudio => '오디오';
+
+  @override
+  String get dropKindFile => '파일';
+
+  @override
+  String get dropKindFolder => '폴더';
+
+  @override
+  String get dropKindText => '텍스트';
+
+  @override
+  String get dropKindLink => '링크';
+
+  @override
+  String dropMoreCount(Object count) {
+    return '+$count';
+  }
+
+  @override
+  String dropNoticeBatchFull(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count개는 한 번에 보낼 수 없었어요',
+    );
+    return '$_temp0';
+  }
 }

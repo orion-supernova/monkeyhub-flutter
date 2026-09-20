@@ -1383,6 +1383,11 @@ Widget buildMessageContent({
   // iMessage's photo bubbles do. A bubble frame around a photograph reads
   // as visual noise and clashes with whatever the photo's content is.
   final mediaRadius = BorderRadius.circular(theme.radiusLg);
+  // Square inside a captioned bubble, because there the FRAME owns the
+  // corners: `_captionedAttachment` clips the whole column to the bubble's
+  // shape, and a tile that also rounded itself would leave the bubble's fill
+  // showing in four little arcs behind the photograph.
+  final tileRadius = hasCaption ? BorderRadius.zero : mediaRadius;
 
   // Reading SettingsStore here is reactive: both bubble variants already wrap
   // their whole row in an AnimatedBuilder on it, for the bubble-shape
@@ -1448,7 +1453,7 @@ Widget buildMessageContent({
           message: message,
           isMine: isMine,
           width: imageSize,
-          radius: mediaRadius,
+          radius: tileRadius,
           // `onBubble`, not `onMedia`: the sealed tile is a theme surface, so
           // the dark lozenge `onMedia` wraps itself in — which exists to survive
           // a photograph whose colour no theme knows — would be a black nub
@@ -1468,7 +1473,7 @@ Widget buildMessageContent({
           message: message,
           upload: message.upload!,
           width: imageSize,
-          radius: mediaRadius,
+          radius: tileRadius,
           stamp: hasCaption ? null : stampFor(StampTone.onMedia),
           onRetrySend: onRetrySend,
           onDiscardSend: onDiscardSend,
@@ -1479,7 +1484,7 @@ Widget buildMessageContent({
           storageId: id,
           api: api,
           width: imageSize,
-          radius: mediaRadius,
+          radius: tileRadius,
           useHero: useHero,
           // With a caption the stamp belongs to the caption bubble, not to the
           // photograph.
@@ -1491,34 +1496,23 @@ Widget buildMessageContent({
           height: 80,
           decoration: BoxDecoration(
             color: theme.surfaceSunken,
-            borderRadius: mediaRadius,
+            borderRadius: tileRadius,
           ),
           alignment: Alignment.center,
           child: Icon(Icons.image_not_supported_outlined, color: theme.inkMuted),
         );
       }
       if (!hasCaption) return imageTile;
-      // With a caption: image on top, caption rendered as its own
-      // small bubble underneath — same alignment as the row above it.
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment:
-            isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-        children: [
-          imageTile,
-          const SizedBox(height: 4),
-          Container(
-            decoration: deco,
-            child: _captionBody(theme, message.content, isMine,
-                stamp: stampFor(bubbleTone),
-                mentionHandles: message.mentionHandles,
-                mentionsEveryone: message.mentionsEveryone,
-                currentUserId: currentUserId,
-                onMentionTap: onMentionTap,
-                formatting: message.formatting,
-                spoilerContextId: message.id),
-          ),
-        ],
+      return _captionedAttachment(
+        context: context,
+        theme: theme,
+        message: message,
+        isMine: isMine,
+        deco: deco,
+        tile: imageTile,
+        stamp: stampFor(bubbleTone),
+        currentUserId: currentUserId,
+        onMentionTap: onMentionTap,
       );
     case MessageType.audio:
       // A voice note on its way up has no storage id, and `AudioMessage` renders
@@ -1576,7 +1570,7 @@ Widget buildMessageContent({
       final videoHeroTag = useHero ? bubbleMediaHeroTag(message) : null;
       final videoTile = StampedMedia(
         tile: ClipRRect(
-          borderRadius: mediaRadius,
+          borderRadius: tileRadius,
           // Same reasoning as the audio row above: with no storage id there is
           // nothing for `VideoMessage` to resolve, so it would sit on its own
           // loading state forever. A placeholder at the tile's own size holds the
@@ -1614,25 +1608,16 @@ Widget buildMessageContent({
         stamp: hasCaption ? null : stampFor(StampTone.onMedia),
       );
       if (!hasCaption) return videoTile;
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment:
-            isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-        children: [
-          videoTile,
-          const SizedBox(height: 4),
-          Container(
-            decoration: deco,
-            child: _captionBody(theme, message.content, isMine,
-                stamp: stampFor(bubbleTone),
-                mentionHandles: message.mentionHandles,
-                mentionsEveryone: message.mentionsEveryone,
-                currentUserId: currentUserId,
-                onMentionTap: onMentionTap,
-                formatting: message.formatting,
-                spoilerContextId: message.id),
-          ),
-        ],
+      return _captionedAttachment(
+        context: context,
+        theme: theme,
+        message: message,
+        isMine: isMine,
+        deco: deco,
+        tile: videoTile,
+        stamp: stampFor(bubbleTone),
+        currentUserId: currentUserId,
+        onMentionTap: onMentionTap,
       );
     case MessageType.file:
       // Same reasoning as the audio row above: with no storage id there is
@@ -1672,9 +1657,13 @@ Widget buildMessageContent({
       // does for an image or a video — two stamps, or one on the wrong block,
       // is what splitting them any other way produces.
       final fileStamp = hasFileCaption ? null : stampFor(bubbleTone);
+      // No `deco` when there is a caption: `_captionedAttachment` paints the
+      // frame, and painting it here as well is the same fill twice — visibly
+      // darker on any translucent theme, and a second border on the ones that
+      // draw an edge.
       final fileTile = Container(
         padding: const EdgeInsets.fromLTRB(10, 9, 12, 9),
-        decoration: deco,
+        decoration: hasFileCaption ? null : deco,
         child: fileStamp == null
             ? fileRow
             : Row(
@@ -1702,25 +1691,16 @@ Widget buildMessageContent({
               ),
       );
       if (!hasFileCaption) return fileTile;
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment:
-            isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-        children: [
-          fileTile,
-          const SizedBox(height: 4),
-          Container(
-            decoration: deco,
-            child: _captionBody(theme, message.content, isMine,
-                stamp: stampFor(bubbleTone),
-                mentionHandles: message.mentionHandles,
-                mentionsEveryone: message.mentionsEveryone,
-                currentUserId: currentUserId,
-                onMentionTap: onMentionTap,
-                formatting: message.formatting,
-                spoilerContextId: message.id),
-          ),
-        ],
+      return _captionedAttachment(
+        context: context,
+        theme: theme,
+        message: message,
+        isMine: isMine,
+        deco: deco,
+        tile: fileTile,
+        stamp: stampFor(bubbleTone),
+        currentUserId: currentUserId,
+        onMentionTap: onMentionTap,
       );
     case MessageType.videoNote:
       // Everything about the circle lives in `video_note_message.dart`, the way
@@ -1851,23 +1831,137 @@ Widget buildMessageContent({
   }
 }
 
-/// A padded run of plain bubble text — an image or video caption, or a system
-/// notice — stamped when [stamp] is non-null.
+/// Most link cards stacked under one caption. Matches `_LinkAwareBubble`'s own
+/// limit, for the same reason: two is already a tall bubble and the third is
+/// always the one nobody reads.
+const int _kMaxCaptionPreviews = 2;
+
+/// ONE bubble holding an attachment, the words under it, and any links those
+/// words carry.
+///
+/// This used to be two. The attachment was a tile, the caption was a second
+/// rounded container four points below it, and a photo with a sentence
+/// attached rendered as a pair of bubbles from the same person at the same
+/// second — which reads as two messages, because in this app two bubbles IS
+/// two messages. Every chat app that carries captions draws them inside the
+/// frame; this does too now.
+///
+/// Three things have to line up for that to work and all three are handed in
+/// rather than decided here:
+///
+///  * **the tile brings no corners of its own.** `clipBehavior` on this
+///    container rounds the attachment to the bubble's shape — including its
+///    tail — so a tile that also rounded itself would leave the bubble's fill
+///    showing in four little arcs. Callers pass `BorderRadius.zero` (see
+///    `tileRadius`).
+///  * **the tile brings no decoration of its own.** The document row used to
+///    carry `deco` itself; inside the frame that is the same fill painted
+///    twice, which on a translucent theme is visibly darker.
+///  * **the stamp belongs to the caption.** It is the bottom-right corner of
+///    the bubble now, and the caption is what ends there.
+///
+/// [CrossAxisAlignment.stretch] is what makes it read as one object: the
+/// caption and the preview cards take the attachment's width instead of
+/// hugging their own text, so the bubble has one edge rather than three.
+Widget _captionedAttachment({
+  required BuildContext context,
+  required AppTheme theme,
+  required ChatMessage message,
+  required bool isMine,
+  required Decoration deco,
+  required Widget tile,
+  required MessageStamp? stamp,
+  String? currentUserId,
+  void Function(String userId)? onMentionTap,
+}) {
+  final showUrls = SettingsStore.instance.showLinkUrls;
+  final urls = UrlDetector.extract(message.content);
+
+  // Whether to fold the bare URLs out of the caption, as the text bubble does
+  // when `showLinkUrls` is off.
+  //
+  // Only when something is LEFT once they are gone, and that condition is the
+  // whole of the rule. A text message that is nothing but a link drops its
+  // bubble entirely and becomes the preview card — see `_LinkAwareBubble`'s
+  // card-only mode, and `messageStampsInline`, which moves the timestamp to a
+  // row underneath in exactly that case. An attachment cannot do either: the
+  // bubble is already there holding a photograph, and this message's type says
+  // its stamp is inline. Folding a caption away to nothing would leave an
+  // empty padded row with the timestamp sitting in it.
+  //
+  // So a caption of "look at this https://…" renders as "look at this" with a
+  // card under it, and a caption of just "https://…" keeps its link, visible
+  // and tappable, with the card under that. Which is also what the sender
+  // typed, so it is no lie either way.
+  final hidden = showUrls ? const <UrlMatch>[] : UrlDetector.matches(message.content);
+  final folded = DisplayTransform.of(message.content, hidden: hidden).text;
+  final hideAutoUrls = hidden.isNotEmpty && folded.trim().isNotEmpty;
+
+  return Container(
+    decoration: deco,
+    clipBehavior: Clip.antiAlias,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        tile,
+        _captionBody(
+          theme,
+          message.content,
+          isMine,
+          stamp: stamp,
+          mentionHandles: message.mentionHandles,
+          mentionsEveryone: message.mentionsEveryone,
+          currentUserId: currentUserId,
+          onMentionTap: onMentionTap,
+          formatting: message.formatting,
+          spoilerContextId: message.id,
+          hideAutoUrls: hideAutoUrls,
+          onLinkTap: (url) => LinkOpener.open(context, url),
+          // Qualified because it is a static on `_LinkAwareBubble` — shared
+          // rather than copied, so a caption's link entity confirms through
+          // exactly the sheet a text bubble's does.
+          onLinkEntityTap: (url) =>
+              _LinkAwareBubble._confirmAndOpenEntityLink(context, url),
+        ),
+        // Below the words, inside the frame — the same place and the same
+        // `insideBubble` card the text bubble uses, so a link sent with a
+        // photo and a link sent on its own look like the same feature.
+        for (final url in urls.take(_kMaxCaptionPreviews))
+          LinkPreviewCard(
+            url: url,
+            isMine: isMine,
+            insideBubble: true,
+            onTap: (u) => LinkOpener.open(context, u),
+          ),
+      ],
+    ),
+  );
+}
+
+/// A padded run of bubble text — an attachment's caption, or a system notice —
+/// stamped when [stamp] is non-null.
 ///
 /// The padding moves off the enclosing `Container` and in here, because the
 /// stamp's `Positioned` has to live *inside* the padded box to measure from the
 /// text's edge rather than the bubble's.
 ///
-/// Routed through [LinkifiedText] with `linkifyUrls: false` rather than
-/// building its own `Text`: with no URLs and no mentions that widget's fast
-/// path emits exactly the `Text` / `Text.rich` this used to, so a system notice
-/// renders identically — while a caption that DOES carry mentions gets them
-/// highlighted through the same code the text bubble uses, instead of a second
-/// span builder that would have to be kept in step with it.
+/// Routed through [LinkifiedText] rather than building its own `Text`: with no
+/// URLs and no mentions that widget's fast path emits exactly the `Text` /
+/// `Text.rich` this used to, so a system notice renders identically — while a
+/// caption that carries mentions or links gets them through the same code the
+/// text bubble uses, instead of a second span builder that would have to be
+/// kept in step with it.
 ///
-/// No caller passes a caption today, so the mention half of this is currently
-/// only reachable by a system message. It is wired anyway so that adding a
-/// caption composer is a repository change and not a rendering one.
+/// [onLinkTap] is what separates the two callers. A system notice passes null
+/// and its URLs stay inert text, which is what they have always been. A
+/// caption passes a handler, and its links become real: tappable, hideable
+/// under `showLinkUrls`, and previewed by the cards
+/// [_captionedAttachment] stacks underneath. They were dead text until then —
+/// a link sent as a caption was the one place in this app where a URL was not
+/// a link, which is exactly how an App Store link shared from the iOS
+/// extension arrived: unclickable, unpreviewed, and sitting in a second bubble
+/// below the file it came with.
 Widget _captionBody(
   AppTheme theme,
   String text,
@@ -1879,11 +1973,24 @@ Widget _captionBody(
   void Function(String userId)? onMentionTap,
   List<FormattingEntity> formatting = const [],
   String? spoilerContextId,
+
+  /// Non-null turns the URLs in [text] into links. See the class doc.
+  void Function(String url)? onLinkTap,
+
+  /// Confirms before opening, for a link ENTITY whose visible words say
+  /// nothing about its destination. Only consulted when [onLinkTap] is set.
+  void Function(String url)? onLinkEntityTap,
+
+  /// Folds bare URLs out of the rendered text, honouring
+  /// `SettingsStore.showLinkUrls`. The fold lives in [LinkifiedText] because
+  /// the formatting offsets index the ORIGINAL string.
+  bool hideAutoUrls = false,
 }) {
   const pad = EdgeInsets.fromLTRB(14, 10, 14, 10);
   final style = theme.body.copyWith(color: isMine ? theme.accentInk : theme.ink);
+  final linkAccent = theme.linkInk(isMine: isMine);
   final mentionStyle = style.copyWith(
-      color: theme.linkInk(isMine: isMine), fontWeight: FontWeight.w600);
+      color: linkAccent, fontWeight: FontWeight.w600);
   final body = LinkifiedText(
     text: text,
     // trimRight so a caption ending in a newline doesn't push the stamp onto
@@ -1891,10 +1998,17 @@ Widget _captionBody(
     // its trailing whitespace before and has no reason to stop.
     trimRight: stamp != null,
     style: style,
-    linkifyUrls: false,
-    // Unreachable with linkifyUrls false, but the parameters are required.
-    linkStyle: style,
-    onLinkTap: (_) {},
+    linkifyUrls: onLinkTap != null,
+    hideAutoUrls: hideAutoUrls,
+    linkStyle: onLinkTap == null
+        ? style
+        : style.copyWith(
+            color: linkAccent,
+            decoration: TextDecoration.underline,
+            decorationColor: linkAccent.withValues(alpha: 0.7),
+          ),
+    onLinkTap: onLinkTap ?? (_) {},
+    onLinkEntityTap: onLinkEntityTap,
     trailing: stamp == null ? null : stampSpacerSpan(stamp),
     mentionHandles: mentionHandles,
     mentionsEveryone: mentionsEveryone,

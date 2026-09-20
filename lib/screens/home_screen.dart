@@ -10,6 +10,11 @@ import 'package:flutter/services.dart';
 import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
+import '../drop/drop_classifier.dart';
+import '../drop/drop_controller.dart';
+import '../drop/drop_intake.dart';
+import '../drop/drop_item.dart';
+import '../drop/drop_zone.dart';
 import '../widgets/pending_placeholder.dart';
 import '../widgets/skeleton_rows.dart';
 import '../data/room_filter.dart';
@@ -1031,6 +1036,62 @@ class _RoomsPanelState extends State<_RoomsPanel> {
     );
   }
 
+  /// Sends whatever was dropped on [room]'s row into that room.
+  ///
+  /// Two steps and a wait. The room is SELECTED (or pushed, on a narrow
+  /// window) and the bundle is parked under its id; the `RoomScreen` that
+  /// mounts — or the one already mounted, which on desktop is what selecting
+  /// the selected room amounts to — collects it through the same
+  /// `takeStagedFor` hand-off a share from the system sheet uses.
+  ///
+  /// The returned future is [DropIntake]'s, not this method's, and that is
+  /// load-bearing: `DropController` releases the platform's staged copies when
+  /// `onDrop` completes, and this method's own work is over the instant the
+  /// room is selected — seconds before the bytes have been read. Returning
+  /// early would delete the file out from under the transcript that is about
+  /// to send it.
+  Future<void> _dropOnRoom(ChatRoom room, DropBundle bundle) {
+    final handoff = DropIntake.instance.stageFor(room.id, bundle);
+    if (!mounted) return handoff;
+    openRoom(context, roomId: room.id, repo: widget.repo, api: widget.api);
+    return handoff;
+  }
+
+  /// Wraps a row or tile so a file can be dropped straight onto the chat it
+  /// belongs in, without opening it first.
+  ///
+  /// Priority 20 against the transcript's 0: in the two-pane shell the list
+  /// sits beside an open conversation, and a drop aimed at a row has to beat
+  /// the room behind it. Returns [child] untouched on every platform without a
+  /// desktop drag.
+  Widget _droppable(ChatRoom room, Widget child) {
+    if (!DropController.isSupported) return child;
+    final caps = widget.repo.capabilitiesFor(room);
+    return DropZone(
+      priority: 20,
+      enabled: caps.canReceiveForwards,
+      policy: DropPolicy(
+        allowFiles: FamilyService.maybeInstance?.canSendMedia ?? true,
+      ),
+      label: _dropLabel(room),
+      onDrop: (bundle) => _dropOnRoom(room, bundle),
+      borderRadius: BorderRadius.circular(ThemeScope.of(context).radiusLg),
+      // A row is small enough that a lift reads as the card being picked up
+      // rather than as the layout shifting — which is the opposite of the
+      // call the transcript makes at 400pt tall.
+      lift: 2,
+      child: child,
+    );
+  }
+
+  /// The name the verdict chip gives this row. Exactly what the row itself
+  /// shows, so "to Alice" names the face the pointer is over.
+  String _dropLabel(ChatRoom room) {
+    final l10n = AppLocalizations.of(context);
+    if (room.isSavedMessages) return l10n.savedMessagesTitle;
+    return widget.repo.otherUserFor(room)?.displayName ?? room.name;
+  }
+
   Widget _row(BuildContext context, AppTheme theme, ChatRoom room, int index) {
     final repo = widget.repo;
     final api = widget.api;
@@ -1039,15 +1100,18 @@ class _RoomsPanelState extends State<_RoomsPanel> {
     // left), but pinning and archiving are per-viewer membership flags, and
     // there is no reason a notes-to-self chat can't be unpinned or filed away
     // like the rest of the list.
-    final Widget content = ChatRowLongPress(
-      key: _keyFor(room.id),
-      onLongPress: () => _showRowMenu(room),
-      child: RoomCard(
-        room: room,
-        api: api,
-        dmUser: repo.otherUserFor(room),
-        typists: repo.typingIn(room.id),
-        onTap: () => openRoom(context, roomId: room.id, repo: repo, api: api),
+    final Widget content = _droppable(
+      room,
+      ChatRowLongPress(
+        key: _keyFor(room.id),
+        onLongPress: () => _showRowMenu(room),
+        child: RoomCard(
+          room: room,
+          api: api,
+          dmUser: repo.otherUserFor(room),
+          typists: repo.typingIn(room.id),
+          onTap: () => openRoom(context, roomId: room.id, repo: repo, api: api),
+        ),
       ),
     );
     return TweenAnimationBuilder<double>(
@@ -1076,15 +1140,18 @@ class _RoomsPanelState extends State<_RoomsPanel> {
     final repo = widget.repo;
     final api = widget.api;
     // Same menu for every tile, Saved Messages included — see [_row].
-    final Widget content = ChatRowLongPress(
-      key: _keyFor(room.id),
-      onLongPress: () => _showRowMenu(room),
-      child: RoomGridTile(
-        room: room,
-        api: api,
-        dmUser: repo.otherUserFor(room),
-        typists: repo.typingIn(room.id),
-        onTap: () => openRoom(context, roomId: room.id, repo: repo, api: api),
+    final Widget content = _droppable(
+      room,
+      ChatRowLongPress(
+        key: _keyFor(room.id),
+        onLongPress: () => _showRowMenu(room),
+        child: RoomGridTile(
+          room: room,
+          api: api,
+          dmUser: repo.otherUserFor(room),
+          typists: repo.typingIn(room.id),
+          onTap: () => openRoom(context, roomId: room.id, repo: repo, api: api),
+        ),
       ),
     );
     return TweenAnimationBuilder<double>(

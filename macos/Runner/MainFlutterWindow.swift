@@ -1,7 +1,24 @@
 import Cocoa
 import FlutterMacOS
 
-class MainFlutterWindow: NSWindow {
+/// `NSDraggingDestination` is declared here rather than inherited, and that is
+/// not a formality: `NSWindow` picks the protocol up from Objective-C, so Swift
+/// sees no methods to `override` — writing `override func draggingEntered` does
+/// not compile, and leaving the conformance off means AppKit's
+/// `respondsToSelector:` check finds nothing and the window silently refuses
+/// every drag.
+class MainFlutterWindow: NSWindow, NSDraggingDestination {
+  /// Receives files dragged onto this window from Finder and every other Mac
+  /// app. Registered lazily — see [DropDestination] for why nothing accepts a
+  /// drag until Dart says it is listening.
+  ///
+  /// Held here because the destination has to outlive `awakeFromNib`, and
+  /// implemented as forwarding methods below rather than by assigning a
+  /// delegate: `NSDraggingDestination` is an informal protocol that AppKit
+  /// invokes on the WINDOW itself, so the window is the only object that can
+  /// receive it.
+  private var dropDestination: DropDestination?
+
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
     let windowFrame = self.frame
@@ -81,7 +98,56 @@ class MainFlutterWindow: NSWindow {
       }
     }
 
+    // monkeyhub/preview — QuickLook for a received document. A singleton
+    // because `QLPreviewPanel` is app-wide and there is exactly one of it.
+    DocumentPreview.register(
+      with: flutterViewController.engine.binaryMessenger
+    )
+
+    // monkeyhub/drop — desktop drag-and-drop. Constructed here (it owns its
+    // own channel) and reached by the four forwarding methods below.
+    dropDestination = DropDestination(
+      window: self,
+      messenger: flutterViewController.engine.binaryMessenger
+    )
+
     super.awakeFromNib()
+  }
+
+  // ─────────────────── NSDraggingDestination, forwarded ───────────────────
+  //
+  // Every one of these is on the hot path of a live drag: AppKit calls
+  // `draggingUpdated` for as long as the pointer is inside the window. They
+  // must return synchronously and must not block — see `DropDestination` for
+  // how the answer stays in step with Dart without waiting on it.
+  //
+  // On the WINDOW rather than on a view, because the dragging destination is
+  // found by walking down from the view under the cursor and the `FlutterView`
+  // registers no dragged types — so nothing inside the engine's hierarchy is
+  // ever a candidate. AppKit consults the window when no view accepts.
+
+  func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
+    return dropDestination?.draggingEntered(sender) ?? []
+  }
+
+  func draggingUpdated(_ sender: any NSDraggingInfo) -> NSDragOperation {
+    return dropDestination?.draggingUpdated(sender) ?? []
+  }
+
+  func draggingExited(_ sender: (any NSDraggingInfo)?) {
+    dropDestination?.draggingExited(sender)
+  }
+
+  func draggingEnded(_ sender: any NSDraggingInfo) {
+    dropDestination?.draggingEnded(sender)
+  }
+
+  func prepareForDragOperation(_ sender: any NSDraggingInfo) -> Bool {
+    return true
+  }
+
+  func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
+    return dropDestination?.performDragOperation(sender) ?? false
   }
 
   /// The red close button and ⌘W hide the window instead of closing it.

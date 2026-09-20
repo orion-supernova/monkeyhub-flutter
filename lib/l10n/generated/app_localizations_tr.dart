@@ -8706,4 +8706,153 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get onboardingThemeContinue => 'DEVAM';
+
+  @override
+  String get dropHintNoTarget => 'göndermek için bir sohbetin üzerine bırak';
+
+  @override
+  String get dropNothingToSend => 'burada gönderilebilecek bir şey yok';
+
+  @override
+  String dropSendPhotos(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count fotoğraf gönder',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendVideos(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count video gönder',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendAudio(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ses dosyası gönder',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendFiles(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dosya gönder',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendItems(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count öğe gönder',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropSendText => 'mesaja ekle';
+
+  @override
+  String get dropSendLink => 'bağlantıyı ekle';
+
+  @override
+  String dropTargetTo(String name) {
+    return '$name kişisine';
+  }
+
+  @override
+  String dropNoticeTooLarge(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dosya $size sınırını aşıyor',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropNoticeFolder => 'klasörler gönderilemez';
+
+  @override
+  String dropNoticeEmpty(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count boş dosya atlanıyor',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropNoticeNotAllowed => 'burada ek gönderilemez';
+
+  @override
+  String dropNoticeAsFile(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count tanesi dosya olarak gönderilecek',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropNoticeFragile(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count tanesi her cihazda görünmeyebilir',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropKindPhoto => 'fotoğraf';
+
+  @override
+  String get dropKindVideo => 'video';
+
+  @override
+  String get dropKindAudio => 'ses';
+
+  @override
+  String get dropKindFile => 'dosya';
+
+  @override
+  String get dropKindFolder => 'klasör';
+
+  @override
+  String get dropKindText => 'metin';
+
+  @override
+  String get dropKindLink => 'bağlantı';
+
+  @override
+  String dropMoreCount(Object count) {
+    return '+$count';
+  }
+
+  @override
+  String dropNoticeBatchFull(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dosya bu göndermeye sığmadı',
+    );
+    return '$_temp0';
+  }
 }

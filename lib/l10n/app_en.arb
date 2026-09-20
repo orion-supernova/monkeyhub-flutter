@@ -10040,5 +10040,121 @@
   "onboardingThemeContinue": "CONTINUE",
   "@onboardingThemeContinue": {
     "description": "Button that closes the first-launch appearance picker and goes on to sign-in."
+  },
+  "dropHintNoTarget": "drop on a chat to send",
+  "@dropHintNoTarget": {
+    "description": "Verdict chip shown while files are dragged over the window but not over anything that can receive them (desktop/web drag-and-drop)."
+  },
+  "dropNothingToSend": "nothing here can be sent",
+  "@dropNothingToSend": {
+    "description": "Verdict chip shown when a drag carries only things this app cannot send at all and no more specific reason applies."
+  },
+  "dropSendPhotos": "{count, plural, one{send photo} other{send {count} photos}}",
+  "@dropSendPhotos": {
+    "description": "Verdict chip headline while dragging pictures over a chat. {count} is how many."
+  },
+  "dropSendVideos": "{count, plural, one{send video} other{send {count} videos}}",
+  "@dropSendVideos": {
+    "description": "Verdict chip headline while dragging videos over a chat. {count} is how many."
+  },
+  "dropSendAudio": "{count, plural, one{send audio} other{send {count} audio files}}",
+  "@dropSendAudio": {
+    "description": "Verdict chip headline while dragging audio files over a chat. {count} is how many."
+  },
+  "dropSendFiles": "{count, plural, one{send file} other{send {count} files}}",
+  "@dropSendFiles": {
+    "description": "Verdict chip headline while dragging documents over a chat. {count} is how many."
+  },
+  "dropSendItems": "{count, plural, one{send item} other{send {count} items}}",
+  "@dropSendItems": {
+    "description": "Verdict chip headline while dragging a MIX of kinds over a chat. {count} is the total."
+  },
+  "dropSendText": "add to message",
+  "@dropSendText": {
+    "description": "Verdict chip headline while dragging selected text over a chat — it becomes composer contents rather than a message."
+  },
+  "dropSendLink": "add link",
+  "@dropSendLink": {
+    "description": "Verdict chip headline while dragging a link or a browser tab over a chat — it becomes composer contents rather than a message."
+  },
+  "dropTargetTo": "to {name}",
+  "@dropTargetTo": {
+    "description": "Second line of the verdict chip naming which chat the drop would go to. {name} is the chat or person's name.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "description": "The chat or person the drop would go to."
+      }
+    }
+  },
+  "dropNoticeTooLarge": "{count, plural, one{1 file is over {size}} other{{count} files are over {size}}}",
+  "@dropNoticeTooLarge": {
+    "description": "Verdict-chip caveat and post-drop notice: some dragged files are over the upload cap. {count} is how many, {size} is the pre-formatted cap like '20 MB'.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "How many files are over the cap."
+      },
+      "size": {
+        "type": "String",
+        "description": "The pre-formatted cap, e.g. '20 MB'."
+      }
+    }
+  },
+  "dropNoticeFolder": "folders can’t be sent",
+  "@dropNoticeFolder": {
+    "description": "Verdict-chip caveat and post-drop notice: a folder was dragged in. This app cannot archive or upload directories."
+  },
+  "dropNoticeEmpty": "{count, plural, one{skipping an empty file} other{skipping {count} empty files}}",
+  "@dropNoticeEmpty": {
+    "description": "Verdict-chip caveat and post-drop notice: zero-byte files in the drag are skipped. {count} is how many."
+  },
+  "dropNoticeNotAllowed": "attachments aren’t allowed here",
+  "@dropNoticeNotAllowed": {
+    "description": "Verdict-chip caveat shown over a chat where a guardian policy forbids attachments."
+  },
+  "dropNoticeAsFile": "{count, plural, one{will be sent as a file} other{{count} will be sent as files}}",
+  "@dropNoticeAsFile": {
+    "description": "Verdict-chip caveat and post-drop notice: media this app cannot draw or play (a .mkv, a .psd) still sends, as a plain document. {count} is how many."
+  },
+  "dropNoticeFragile": "{count, plural, one{may not preview everywhere} other{{count} may not preview everywhere}}",
+  "@dropNoticeFragile": {
+    "description": "Verdict-chip caveat and post-drop notice: media that sends as media but which some devices or browsers will not render (HEIC, FLAC). {count} is how many."
+  },
+  "dropKindPhoto": "photo",
+  "@dropKindPhoto": {
+    "description": "One-word label on a drag preview card standing for a picture, used where the platform withholds the filename (every browser drag)."
+  },
+  "dropKindVideo": "video",
+  "@dropKindVideo": {
+    "description": "One-word label on a drag preview card standing for a video."
+  },
+  "dropKindAudio": "audio",
+  "@dropKindAudio": {
+    "description": "One-word label on a drag preview card standing for an audio file."
+  },
+  "dropKindFile": "file",
+  "@dropKindFile": {
+    "description": "One-word label on a drag preview card standing for a document of unknown or ordinary type."
+  },
+  "dropKindFolder": "folder",
+  "@dropKindFolder": {
+    "description": "One-word label on a drag preview card standing for a folder."
+  },
+  "dropKindText": "text",
+  "@dropKindText": {
+    "description": "One-word label on a drag preview card standing for dragged plain text."
+  },
+  "dropKindLink": "link",
+  "@dropKindLink": {
+    "description": "One-word label on a drag preview card standing for a dragged URL."
+  },
+  "dropMoreCount": "+{count}",
+  "@dropMoreCount": {
+    "description": "Badge on the last drag preview card when more items are being dragged than there are cards. {count} is how many are hidden."
+  },
+  "dropNoticeBatchFull": "{count, plural, one{1 file didn’t fit in this send} other{{count} files didn’t fit in this send}}",
+  "@dropNoticeBatchFull": {
+    "description": "Verdict-chip caveat and post-drop notice: more was dragged in than one send can carry, so the tail of the selection was left out. {count} is how many were left out."
   }
 }

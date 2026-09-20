@@ -69,6 +69,8 @@ import 'push/push_manager.dart';
 import 'push/web_notifier.dart';
 import 'push/web_presence.dart';
 import 'data/ui_selection_store.dart';
+import 'drop/drop_controller.dart';
+import 'widgets/drop/drop_chrome.dart';
 import 'platform.dart';
 import 'screens/home_shell.dart';
 import 'screens/room_screen.dart';
@@ -477,6 +479,12 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     // share sheet is very often what launched the process.
     ShareIntake.instance.onShare = _openShare;
     unawaited(ShareIntake.instance.start());
+    // Desktop drag-and-drop. macOS and web only; a no-op everywhere else, and
+    // the native half registers nothing until this call reaches it — see
+    // `DropChannel`. Started here rather than from a widget so a file dragged
+    // onto the window during the splash finds a listener rather than a window
+    // that shows the copy cursor and swallows it.
+    unawaited(DropController.instance.start());
     // Web only: a closing tab flips us offline immediately (best-effort; the
     // server staleness sweep is the backstop). No-op off web.
     WebPresence.registerOffline(() {
@@ -1930,6 +1938,14 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
                             ],
                             ),
                           ),
+                          // Drag-and-drop chrome: the cards that trail the
+                          // pointer and the verdict chip under them. Above
+                          // every route, because a drag is not part of any of
+                          // them — it belongs to the WINDOW, and the aura it
+                          // paints is what says so. Below the capture shield,
+                          // like everything else. Inert (and free) on every
+                          // platform without a desktop drag.
+                          const DropChrome(),
                           // Above EVERYTHING, the server mark included, so a
                           // screen recording cannot capture any of it.
                           const CaptureShield(),

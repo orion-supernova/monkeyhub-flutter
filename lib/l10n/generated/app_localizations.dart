@@ -14784,6 +14784,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'CONTINUE'**
   String get onboardingThemeContinue;
+
+  /// Verdict chip shown while files are dragged over the window but not over anything that can receive them (desktop/web drag-and-drop).
+  ///
+  /// In en, this message translates to:
+  /// **'drop on a chat to send'**
+  String get dropHintNoTarget;
+
+  /// Verdict chip shown when a drag carries only things this app cannot send at all and no more specific reason applies.
+  ///
+  /// In en, this message translates to:
+  /// **'nothing here can be sent'**
+  String get dropNothingToSend;
+
+  /// Verdict chip headline while dragging pictures over a chat. {count} is how many.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{send photo} other{send {count} photos}}'**
+  String dropSendPhotos(num count);
+
+  /// Verdict chip headline while dragging videos over a chat. {count} is how many.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{send video} other{send {count} videos}}'**
+  String dropSendVideos(num count);
+
+  /// Verdict chip headline while dragging audio files over a chat. {count} is how many.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{send audio} other{send {count} audio files}}'**
+  String dropSendAudio(num count);
+
+  /// Verdict chip headline while dragging documents over a chat. {count} is how many.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{send file} other{send {count} files}}'**
+  String dropSendFiles(num count);
+
+  /// Verdict chip headline while dragging a MIX of kinds over a chat. {count} is the total.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{send item} other{send {count} items}}'**
+  String dropSendItems(num count);
+
+  /// Verdict chip headline while dragging selected text over a chat — it becomes composer contents rather than a message.
+  ///
+  /// In en, this message translates to:
+  /// **'add to message'**
+  String get dropSendText;
+
+  /// Verdict chip headline while dragging a link or a browser tab over a chat — it becomes composer contents rather than a message.
+  ///
+  /// In en, this message translates to:
+  /// **'add link'**
+  String get dropSendLink;
+
+  /// Second line of the verdict chip naming which chat the drop would go to. {name} is the chat or person's name.
+  ///
+  /// In en, this message translates to:
+  /// **'to {name}'**
+  String dropTargetTo(String name);
+
+  /// Verdict-chip caveat and post-drop notice: some dragged files are over the upload cap. {count} is how many, {size} is the pre-formatted cap like '20 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 file is over {size}} other{{count} files are over {size}}}'**
+  String dropNoticeTooLarge(int count, String size);
+
+  /// Verdict-chip caveat and post-drop notice: a folder was dragged in. This app cannot archive or upload directories.
+  ///
+  /// In en, this message translates to:
+  /// **'folders can’t be sent'**
+  String get dropNoticeFolder;
+
+  /// Verdict-chip caveat and post-drop notice: zero-byte files in the drag are skipped. {count} is how many.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{skipping an empty file} other{skipping {count} empty files}}'**
+  String dropNoticeEmpty(num count);
+
+  /// Verdict-chip caveat shown over a chat where a guardian policy forbids attachments.
+  ///
+  /// In en, this message translates to:
+  /// **'attachments aren’t allowed here'**
+  String get dropNoticeNotAllowed;
+
+  /// Verdict-chip caveat and post-drop notice: media this app cannot draw or play (a .mkv, a .psd) still sends, as a plain document. {count} is how many.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{will be sent as a file} other{{count} will be sent as files}}'**
+  String dropNoticeAsFile(num count);
+
+  /// Verdict-chip caveat and post-drop notice: media that sends as media but which some devices or browsers will not render (HEIC, FLAC). {count} is how many.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{may not preview everywhere} other{{count} may not preview everywhere}}'**
+  String dropNoticeFragile(num count);
+
+  /// One-word label on a drag preview card standing for a picture, used where the platform withholds the filename (every browser drag).
+  ///
+  /// In en, this message translates to:
+  /// **'photo'**
+  String get dropKindPhoto;
+
+  /// One-word label on a drag preview card standing for a video.
+  ///
+  /// In en, this message translates to:
+  /// **'video'**
+  String get dropKindVideo;
+
+  /// One-word label on a drag preview card standing for an audio file.
+  ///
+  /// In en, this message translates to:
+  /// **'audio'**
+  String get dropKindAudio;
+
+  /// One-word label on a drag preview card standing for a document of unknown or ordinary type.
+  ///
+  /// In en, this message translates to:
+  /// **'file'**
+  String get dropKindFile;
+
+  /// One-word label on a drag preview card standing for a folder.
+  ///
+  /// In en, this message translates to:
+  /// **'folder'**
+  String get dropKindFolder;
+
+  /// One-word label on a drag preview card standing for dragged plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'text'**
+  String get dropKindText;
+
+  /// One-word label on a drag preview card standing for a dragged URL.
+  ///
+  /// In en, this message translates to:
+  /// **'link'**
+  String get dropKindLink;
+
+  /// Badge on the last drag preview card when more items are being dragged than there are cards. {count} is how many are hidden.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count}'**
+  String dropMoreCount(Object count);
+
+  /// Verdict-chip caveat and post-drop notice: more was dragged in than one send can carry, so the tail of the selection was left out. {count} is how many were left out.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 file didn’t fit in this send} other{{count} files didn’t fit in this send}}'**
+  String dropNoticeBatchFull(num count);
 }
 
 class _AppLocalizationsDelegate

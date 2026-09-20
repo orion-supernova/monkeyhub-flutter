@@ -3,14 +3,17 @@ import 'package:flutter/cupertino.dart';
 import '../backend/chat_api.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../media/document_preview.dart';
 import '../media/document_saver.dart';
 import '../media/file_meta.dart';
 import '../media/file_url_cache.dart';
+import '../screens/fullscreen_image_viewer.dart';
 import '../screens/text_file_viewer_screen.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'app_toast.dart';
 import 'photo_chrome.dart';
+import 'remote_image.dart';
 
 /// A received document, as a tappable row: type badge, name, size.
 ///
@@ -74,13 +77,18 @@ class _FileMessageState extends State<FileMessage> {
     return box.localToGlobal(Offset.zero) & box.size;
   }
 
-  /// Whether this attachment opens [TextFileViewerScreen] instead of going
-  /// straight to [DocumentSaver] — see the class doc for why plain text is
-  /// the one exception to "no in-app viewer".
-  bool get _viewable =>
-      isPlainTextFile(mimeType: widget.mimeType, fileName: widget.fileName ?? '');
+  /// What a tap on the row does — see [DocumentPreview], which owns the
+  /// decision so the row and the trailing chip cannot disagree about it.
+  DocumentPreviewKind get _previewKind => DocumentPreview.kindFor(
+        mimeType: widget.mimeType,
+        fileName: widget.fileName ?? '',
+      );
 
-  /// The row's own tap. Opens the in-app viewer for a viewable attachment,
+  /// Whether the row opens something instead of going straight to
+  /// [DocumentSaver]. Drives the eye/arrow split in the trailing chips.
+  bool get _viewable => _previewKind != DocumentPreviewKind.none;
+
+  /// The row's own tap. Opens the document for a viewable attachment,
   /// downloads for everything else — for a viewable one, downloading is
   /// [_download]'s job alone, reached through its own button rather than the
   /// row.
@@ -88,19 +96,54 @@ class _FileMessageState extends State<FileMessage> {
     final id = widget.storageId;
     if (id == null || _busy) return;
 
-    if (_viewable) {
-      final l10n = AppLocalizations.of(context);
-      final name = widget.fileName ?? l10n.fileMessageDefaultName;
-      await TextFileViewerScreen.open(
-        context,
-        api: widget.api,
-        storageId: id,
-        fileName: name,
-      );
-      return;
-    }
+    final l10n = AppLocalizations.of(context);
+    final name = widget.fileName ?? l10n.fileMessageDefaultName;
 
-    await _download();
+    switch (_previewKind) {
+      case DocumentPreviewKind.text:
+        await TextFileViewerScreen.open(
+          context,
+          api: widget.api,
+          storageId: id,
+          fileName: name,
+        );
+        return;
+      case DocumentPreviewKind.image:
+        // A picture sent as a document is still a picture. It used to render
+        // as a grey plate with a `PNG` chip on it, and the only way to see it
+        // was to download it.
+        await FullscreenImageViewer.open(context, storageId: id, api: widget.api);
+        return;
+      case DocumentPreviewKind.native:
+        // The fetch is the slow part and the spinner belongs to it, exactly as
+        // it does for a download.
+        setState(() => _busy = true);
+        try {
+          final shown = await DocumentPreview.openNative(
+            api: widget.api,
+            storageId: id,
+            fileName: name,
+          );
+          if (shown) return;
+        } on FileUnavailable {
+          if (!mounted) return;
+          AppToast.of(context).show(l10n.fileMessageUnavailable,
+              tone: ToastTone.danger);
+          return;
+        } catch (_) {
+          // Falls through to the hand-off below rather than reporting: a
+          // preview that could not open is not a failure the user has to hear
+          // about when the thing they asked for can still happen.
+        } finally {
+          if (mounted) setState(() => _busy = false);
+        }
+        if (!mounted) return;
+        await _download();
+        return;
+      case DocumentPreviewKind.none:
+        await _download();
+        return;
+    }
   }
 
   Future<void> _download() async {
@@ -150,7 +193,17 @@ class _FileMessageState extends State<FileMessage> {
     final row = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _TypeBadge(theme: theme, fileName: name, ink: ink),
+        _TypeBadge(
+          theme: theme,
+          fileName: name,
+          ink: ink,
+          // A real thumbnail when the document IS a picture — the badge is a
+          // stand-in for a preview nobody could see, and where the preview is
+          // free there is no reason to draw the stand-in instead.
+          api: widget.api,
+          thumbnailStorageId:
+              _previewKind == DocumentPreviewKind.image ? widget.storageId : null,
+        ),
         const SizedBox(width: 11),
         Flexible(
           child: Column(
@@ -245,14 +298,43 @@ class _TypeBadge extends StatelessWidget {
     required this.theme,
     required this.fileName,
     required this.ink,
+    this.api,
+    this.thumbnailStorageId,
   });
 
   final AppTheme theme;
   final String fileName;
   final Color ink;
 
+  final ChatApi? api;
+
+  /// Non-null draws the picture itself in place of the extension chip. Only
+  /// ever set for a document this app can decode — see
+  /// [DocumentPreview.kindFor] — so there is no format here that could fail to
+  /// render and leave a hole where the badge used to be.
+  final String? thumbnailStorageId;
+
   @override
   Widget build(BuildContext context) {
+    final id = thumbnailStorageId;
+    final api = this.api;
+    if (id != null && api != null) {
+      return SizedBox(
+        width: 40,
+        height: 40,
+        child: RemoteImage(
+          storageId: id,
+          api: api,
+          width: 40,
+          height: 40,
+          fit: BoxFit.cover,
+          borderRadius: BorderRadius.circular(theme.radiusSm),
+          // 40pt at 3x. Decoding the full picture to paint a chip is what
+          // makes a transcript of documents stutter.
+          decodeWidth: 120,
+        ),
+      );
+    }
     return Container(
       width: 40,
       height: 40,

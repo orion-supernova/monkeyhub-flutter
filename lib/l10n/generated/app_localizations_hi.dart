@@ -8748,4 +8748,163 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get onboardingThemeContinue => 'आगे बढ़ो';
+
+  @override
+  String get dropHintNoTarget => 'भेजने के लिए किसी चैट पर छोड़ें';
+
+  @override
+  String get dropNothingToSend => 'यहाँ कुछ भी भेजा नहीं जा सकता';
+
+  @override
+  String dropSendPhotos(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count फ़ोटो भेजें',
+      one: 'फ़ोटो भेजें',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendVideos(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count वीडियो भेजें',
+      one: 'वीडियो भेजें',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendAudio(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ऑडियो भेजें',
+      one: 'ऑडियो भेजें',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendFiles(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count फ़ाइलें भेजें',
+      one: 'फ़ाइल भेजें',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendItems(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count आइटम भेजें',
+      one: 'आइटम भेजें',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropSendText => 'संदेश में जोड़ें';
+
+  @override
+  String get dropSendLink => 'लिंक जोड़ें';
+
+  @override
+  String dropTargetTo(String name) {
+    return '$name को';
+  }
+
+  @override
+  String dropNoticeTooLarge(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count फ़ाइलें $size से बड़ी हैं',
+      one: '1 फ़ाइल $size से बड़ी है',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropNoticeFolder => 'फ़ोल्डर नहीं भेजे जा सकते';
+
+  @override
+  String dropNoticeEmpty(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count खाली फ़ाइलें छोड़ी जा रही हैं',
+      one: 'एक खाली फ़ाइल छोड़ी जा रही है',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropNoticeNotAllowed => 'यहाँ अटैचमेंट की अनुमति नहीं है';
+
+  @override
+  String dropNoticeAsFile(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count फ़ाइलों के रूप में भेजे जाएंगे',
+      one: 'फ़ाइल के रूप में भेजा जाएगा',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropNoticeFragile(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count हर डिवाइस पर नहीं दिखेंगे',
+      one: 'हर डिवाइस पर नहीं दिखेगा',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropKindPhoto => 'फ़ोटो';
+
+  @override
+  String get dropKindVideo => 'वीडियो';
+
+  @override
+  String get dropKindAudio => 'ऑडियो';
+
+  @override
+  String get dropKindFile => 'फ़ाइल';
+
+  @override
+  String get dropKindFolder => 'फ़ोल्डर';
+
+  @override
+  String get dropKindText => 'टेक्स्ट';
+
+  @override
+  String get dropKindLink => 'लिंक';
+
+  @override
+  String dropMoreCount(Object count) {
+    return '+$count';
+  }
+
+  @override
+  String dropNoticeBatchFull(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count फ़ाइलें इस भेजने में नहीं समाईं',
+      one: '1 फ़ाइल इस भेजने में नहीं समाई',
+    );
+    return '$_temp0';
+  }
 }

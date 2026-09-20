@@ -19,6 +19,19 @@ struct StagedItem {
     let oversize: Bool
     let pixelSize: CGSize?
 
+    /// True when the provider declared no concrete type at all and this was
+    /// staged through the final `public.data` fallback.
+    ///
+    /// Which matters for exactly one thing: an app that shares a LINK often
+    /// hands over a second, typeless provider holding the link's preview image
+    /// — the App Store does, with a ~270 KB blob and a five-character
+    /// extensionless name. That is furniture for the URL, not a document
+    /// anybody meant to send, and attaching it turns "here's a game" into a
+    /// mystery `application/octet-stream` with the URL stranded in a caption
+    /// underneath. See [Staging.run], which drops these when the share also
+    /// carries text.
+    let opaque: Bool
+
     var isImage: Bool { mimeType.hasPrefix("image/") }
 
     /// Which of the app's message types this becomes.
@@ -100,7 +113,24 @@ final class Staging {
                 if timedOut {
                     NSLog("[share] staging deadline reached; going with what arrived")
                 }
-                let ordered = staged.keys.sorted().compactMap { staged[$0] }
+                var ordered = staged.keys.sorted().compactMap { staged[$0] }
+                // A typeless blob arriving beside a URL is that URL's preview
+                // image — see `StagedItem.opaque`. Dropped rather than sent,
+                // so sharing an App Store page produces a link with a preview
+                // card, which is what it produces in every other chat app and
+                // what the person sharing it meant.
+                //
+                // Only when there IS text: an opaque blob on its own is an
+                // ordinary document (a provider that declared nothing, a file
+                // with no extension) and still goes.
+                if text != nil, ordered.contains(where: { $0.opaque }) {
+                    let dropped = ordered.filter { $0.opaque }
+                    ordered = ordered.filter { !$0.opaque }
+                    for item in dropped {
+                        try? FileManager.default.removeItem(at: item.url)
+                    }
+                    NSLog("[share] dropped \(dropped.count) typeless item(s) beside a link")
+                }
                 DispatchQueue.main.async { completion(ordered, text) }
             }
         }
@@ -184,7 +214,12 @@ final class Staging {
             return
         }
         if provider.hasItemConformingToTypeIdentifier(UTType.data.identifier) {
-            copyFile(provider, type: UTType.data.identifier, index: index, completion: completion)
+            // The end of the line: a provider that declared nothing more
+            // specific than "bytes". Marked, because that is the signature of
+            // a link's preview image as well as of a genuine typeless file,
+            // and only [run] can tell the two apart.
+            copyFile(provider, type: UTType.data.identifier, index: index,
+                     opaque: true, completion: completion)
             return
         }
         completion(.none)
@@ -212,6 +247,7 @@ final class Staging {
         _ provider: NSItemProvider,
         type: String,
         index: Int,
+        opaque: Bool = false,
         completion: @escaping (Loaded) -> Void
     ) {
         // `loadFileRepresentation`'s URL is valid only for the length of the
@@ -225,18 +261,23 @@ final class Staging {
                 // it does have rather than dropping the attachment.
                 if type != UTType.data.identifier,
                    provider.hasItemConformingToTypeIdentifier(UTType.data.identifier) {
+                    // `opaque` is carried, not set: this is a RETRY of a
+                    // concrete type the provider declined to produce, not a
+                    // provider that declared nothing. A transcode that failed
+                    // is still somebody's photograph.
                     self.copyFile(provider, type: UTType.data.identifier,
-                                  index: index, completion: completion)
+                                  index: index, opaque: opaque,
+                                  completion: completion)
                 } else {
                     completion(.none)
                 }
                 return
             }
-            completion(self.stage(url, index: index))
+            completion(self.stage(url, index: index, opaque: opaque))
         }
     }
 
-    private func stage(_ source: URL, index: Int) -> Loaded {
+    private func stage(_ source: URL, index: Int, opaque: Bool = false) -> Loaded {
         let fm = FileManager.default
         let name = sanitize(source.lastPathComponent)
         let destination = directory.appendingPathComponent("\(index)_\(name)")
@@ -248,7 +289,7 @@ final class Staging {
         if let declared, declared > ShareGroup.maxUploadBytes {
             return .file(StagedItem(
                 url: destination, mimeType: mimeType(for: source), fileName: name,
-                byteCount: declared, oversize: true, pixelSize: nil
+                byteCount: declared, oversize: true, pixelSize: nil, opaque: opaque
             ))
         }
 
@@ -273,7 +314,8 @@ final class Staging {
             fileName: name,
             byteCount: written,
             oversize: false,
-            pixelSize: Self.pixelSize(of: destination)
+            pixelSize: Self.pixelSize(of: destination),
+            opaque: opaque
         ))
     }
 
@@ -314,8 +356,64 @@ final class Staging {
         return cleaned.isEmpty ? "attachment" : cleaned
     }
 
+    /// What to upload this as.
+    ///
+    /// The extension first, because it is what the sender's own filesystem
+    /// says and it is right almost every time. But it is *only* a name, and a
+    /// provider is free to hand over a file that has none — the App Store's
+    /// link-preview blob arrives as five characters with no dot in them — at
+    /// which point the old answer was `application/octet-stream`, which turns
+    /// a picture into a downloadable mystery.
+    ///
+    /// So when the name says nothing, the BYTES are asked. Header sniffing,
+    /// not decoding: sixteen bytes off the front of the file, matched against
+    /// the handful of signatures a share sheet actually produces.
     private func mimeType(for url: URL) -> String {
-        UTType(filenameExtension: url.pathExtension)?.preferredMIMEType
-            ?? "application/octet-stream"
+        if let byName = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType {
+            return byName
+        }
+        return Self.sniff(url) ?? "application/octet-stream"
+    }
+
+    /// Identifies a file from its magic bytes, or nil for anything not listed.
+    ///
+    /// Deliberately short. This is the fallback for a file with no name to go
+    /// on, and guessing wrong is worse than not guessing — the same rule
+    /// `mimeTypeForFileName` states on the Dart side. Every entry here is a
+    /// format the transcript can actually render or play, because the only
+    /// thing this changes is whether the message arrives as a picture instead
+    /// of as an anonymous blob.
+    private static func sniff(_ url: URL) -> String? {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
+        defer { try? handle.close() }
+        guard let head = try? handle.read(upToCount: 16), head.count >= 12 else {
+            return nil
+        }
+        let b = [UInt8](head)
+
+        if b.starts(with: [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]) {
+            return "image/png"
+        }
+        if b.starts(with: [0xFF, 0xD8, 0xFF]) { return "image/jpeg" }
+        if b.starts(with: [0x47, 0x49, 0x46, 0x38]) { return "image/gif" }
+        if b.starts(with: [0x25, 0x50, 0x44, 0x46]) { return "application/pdf" }
+        // RIFF....WEBP
+        if b.starts(with: [0x52, 0x49, 0x46, 0x46]),
+           Array(b[8..<12]) == [0x57, 0x45, 0x42, 0x50] {
+            return "image/webp"
+        }
+        // ISO base media: the brand at bytes 4..12 decides which one.
+        if Array(b[4..<8]) == [0x66, 0x74, 0x79, 0x70] {
+            let brand = String(bytes: b[8..<12], encoding: .ascii) ?? ""
+            switch brand {
+            case "heic", "heix", "heim", "heis", "hevc", "mif1", "msf1":
+                return "image/heic"
+            case "qt  ":
+                return "video/quicktime"
+            default:
+                return "video/mp4"
+            }
+        }
+        return nil
     }
 }

@@ -25,6 +25,13 @@ import '../calls/group_call_service.dart';
 import '../data/chat_repository.dart';
 import '../data/room_suggestion_queue.dart';
 import '../diagnostics/diag_log.dart';
+import '../drop/drop_channel.dart';
+import '../drop/drop_classifier.dart';
+import '../drop/drop_controller.dart';
+import '../drop/drop_copy.dart';
+import '../drop/drop_intake.dart';
+import '../drop/drop_item.dart';
+import '../drop/drop_zone.dart';
 import '../data/mention_session.dart';
 import '../data/room_content_selection.dart';
 import '../companions/companion.dart';
@@ -524,6 +531,12 @@ class _RoomScreenState extends State<RoomScreen>
     // arrives later and only through the listener.
     ShareIntake.instance.addListener(_takeStagedShare);
     _takeStagedShare();
+    // The same two doors, for a file dropped on this room's row in the chat
+    // list rather than into the transcript — see [DropIntake].
+    if (DropController.isSupported) {
+      DropIntake.instance.addListener(_takeStagedDrop);
+      _takeStagedDrop();
+    }
   }
 
   /// Collects and delivers a share staged for this room, if there is one.
@@ -536,6 +549,23 @@ class _RoomScreenState extends State<RoomScreen>
     if (staged == null) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) unawaited(_deliverShare(staged));
+    });
+  }
+
+  /// The drop half of [_takeStagedShare], with the same post-frame reasoning
+  /// and one addition: the bytes behind a staged bundle are a temp copy the
+  /// platform is holding on our behalf, and [DropIntake.handoffComplete] is
+  /// what tells it they can go. Owed in every case, including the one where
+  /// this screen went away before it could deliver.
+  void _takeStagedDrop() {
+    final staged = DropIntake.instance.takeFor(widget.roomId);
+    if (staged == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        if (mounted) await _deliverDrop(staged);
+      } finally {
+        DropIntake.instance.handoffComplete();
+      }
     });
   }
 
@@ -1275,6 +1305,7 @@ class _RoomScreenState extends State<RoomScreen>
       unawaited(Sebastian.instance.releaseBrain());
     }
     ShareIntake.instance.removeListener(_takeStagedShare);
+    DropIntake.instance.removeListener(_takeStagedDrop);
     _ticker.cancel();
     _fadeNow.dispose();
     _captureController.dispose();
@@ -2806,6 +2837,218 @@ class _RoomScreenState extends State<RoomScreen>
     }
   }
 
+  // ───────────────────────── drag and drop ─────────────────────────
+
+  /// What the verdict chip calls this room — the same title the row in the
+  /// chat list and the header both show, so a drop names the conversation the
+  /// user thinks they are aiming at.
+  String _dropTargetLabel(ChatRoom room) {
+    final l10n = AppLocalizations.of(context);
+    if (room.isSavedMessages) return l10n.savedMessagesTitle;
+    if (room.isDm) {
+      return widget.repo.otherUserFor(room)?.displayName ??
+          l10n.approvalsScreenForwardDirectMessageFallback;
+    }
+    return room.name;
+  }
+
+
+  /// What this room will accept off a desktop drag, right now.
+  ///
+  /// Read fresh on every build rather than cached: it closes over the live
+  /// guardian permission, and a policy captured at mount would keep promising
+  /// a supervised account an attachment it lost the right to send an hour ago.
+  /// The server refuses either way — this is only what the verdict chip is
+  /// allowed to say while the file is still in the air.
+  DropPolicy get _dropPolicy => DropPolicy(
+        allowFiles: FamilyService.maybeInstance?.canSendMedia ?? true,
+        // Text is a DRAFT, not a send. A supervised account that may type at
+        // all may drag a sentence in, exactly as it may paste one.
+        allowText: true,
+      );
+
+  /// Everything let go over this room, through this room's own send paths.
+  ///
+  /// The same rule `_deliverShare` states, for the same reason: a drop is
+  /// subject to the same size cap, the same editor and the same optimistic
+  /// bubble as a photo picked from the composer, and a second pipeline would
+  /// be a second set of bugs. What is different is only what the user was
+  /// shown BEFORE it landed — on macOS, everything; in a browser, a count and
+  /// some MIME types — which is why this re-plans rather than trusting the
+  /// verdict chip, and why the notice at the end exists at all.
+  ///
+  /// Four shapes, in the order they are common:
+  ///
+  ///  * **one picture** — the editor, exactly as a gallery pick gets. It is
+  ///    the only chance to crop, annotate or arm view-once.
+  ///  * **several pictures** — the photo tray, exactly as a multi-pick gets:
+  ///    reorder, drop one, arm view-once for the set.
+  ///  * **anything else, or a mix** — straight into the transcript in the
+  ///    order they were dragged. There is nothing to edit about a document and
+  ///    no carousel that holds a PDF beside a video.
+  ///  * **text or a link** — the composer. A dragged URL is a draft; sending
+  ///    it is still the user's tap.
+  Future<void> _deliverDrop(DropBundle bundle) async {
+    final toast = AppToast.of(context);
+    final loc = AppLocalizations.of(context);
+    final plan = planFor(bundle.toSnapshot(), policy: _dropPolicy);
+
+    // Text first and unconditionally, for the reason `_deliverShare` gives:
+    // with attachments it reads as their caption, and the user can send or
+    // discard it after the pictures land.
+    final dragged = bundle.uri ?? bundle.text;
+    if (plan.hasText && dragged != null && dragged.isNotEmpty) {
+      // Appended rather than assigned — a draft already in the composer is
+      // something the user typed, and a drop must not eat it.
+      final existing = _composer.text.trimRight();
+      _composer.text = existing.isEmpty ? dragged : '$existing\n$dragged';
+      _keepComposerFocus();
+    }
+
+    // Said once, after the fact, and only when there is something to say.
+    //
+    // This is the half of the feature a browser cannot do any other way. On
+    // macOS every caveat was already on the verdict chip before the user let
+    // go; on web the names and sizes arrive WITH the drop, so "that one went
+    // as a file" and "that one was too big" can only be said here.
+    // `ToastTone.neutral` on purpose: a cap, a rule and a fallback are all
+    // notices, and painting them in danger red is how red stops meaning
+    // anything (see `AppToast`).
+    final notice = dropLandingNotice(loc, plan);
+    if (notice != null) toast.show(notice);
+
+    if (plan.accepted.isEmpty) {
+      _touchShareTarget();
+      return;
+    }
+
+    // Same uncovered gap every picker path documents, and worse here: the
+    // bytes come off a staged copy on disk (macOS) or straight out of a
+    // browser's `File`, which for a video is tens of megabytes of read with
+    // nothing on screen to explain the pause.
+    // Index-aligned with `bundle.files` by construction — `toSnapshot` maps one
+    // candidate per file, in order — which is what lets a plan built from
+    // metadata be walked back to the bytes behind it.
+    final queue = <({DropAssessment plan, DroppedFile file})>[];
+    for (var i = 0; i < plan.items.length && i < bundle.files.length; i++) {
+      if (plan.items[i].accepted) {
+        queue.add((plan: plan.items[i], file: bundle.files[i]));
+      }
+    }
+    if (queue.isEmpty) return;
+
+    // Same uncovered gap every picker path documents, and worse here: the
+    // bytes come off a staged copy on disk (macOS) or straight out of a
+    // browser's `File`, which for a video is tens of megabytes of read with
+    // nothing on screen to explain the pause.
+    _setMediaBusy(true);
+    try {
+      if (plan.isPhotoOnly) {
+        await _sendDroppedPhotos(queue, toast, loc);
+        return;
+      }
+      // Read one, send one. The alternative — read them all, then send them —
+      // holds the whole drop in memory twice over at its peak, once in this
+      // list and once in the repository's retained-upload budget. Bounded
+      // either way by `kMaxDropBatchBytes`, but there is no reason to spend it
+      // twice.
+      for (final item in queue) {
+        if (!mounted) return;
+        final bytes = await DropChannel.instance.read(item.file);
+        if (!mounted) return;
+        if (bytes == null || bytes.isEmpty) {
+          // One unreadable file out of five is not a reason to refuse the
+          // other four — but it IS a reason to say so, because the send is
+          // about to be smaller than what was dropped.
+          toast.show(loc.roomScreenFileReadFailedSnack, tone: ToastTone.danger);
+          continue;
+        }
+        final type = item.plan.messageType ?? MessageType.file;
+        _sendMedia(
+          bytes: bytes,
+          type: type,
+          contentType: item.plan.uploadContentType,
+          fileName: type == MessageType.file ? item.file.name : null,
+          fileSize: type == MessageType.file ? bytes.length : null,
+          // Android and iOS only, and neither can receive a desktop drag — so
+          // this is null in practice on every platform that reaches here, and
+          // written as a guard rather than as a constant because the guard is
+          // what `video_poster_gate_test` pins and what keeps a browser from
+          // evaluating a `blob:` path the plugin is not there to receive.
+          posterBytes:
+              type == MessageType.video && !kIsWeb && item.file.path != null
+                  ? await VideoPoster.extract(item.file.path!)
+                  : null,
+        );
+      }
+    } finally {
+      _setMediaBusy(false);
+    }
+  }
+
+  /// The all-pictures case: one gets the editor, several get the tray.
+  ///
+  /// Split out because it is the only branch that opens a ROUTE, and a route
+  /// opened from inside the send loop would put the editor over a transcript
+  /// that is still receiving documents behind it.
+  Future<void> _sendDroppedPhotos(
+    List<({DropAssessment plan, DroppedFile file})> photos,
+    AppToast toast,
+    AppLocalizations loc,
+  ) async {
+    // Trimmed BEFORE anything is read, which is the whole reason the trim is
+    // here rather than at the tray: reading eleven pictures to then show ten
+    // is a megabyte of work per discarded photo. Same cap and same sentence
+    // the gallery multi-pick uses.
+    final within = photos.length > kMaxPhotoSelection
+        ? photos.sublist(0, kMaxPhotoSelection)
+        : photos;
+    if (within.length < photos.length) {
+      toast.show(loc.photoTrayLimitSnack(kMaxPhotoSelection));
+    }
+
+    final read = <Uint8List>[];
+    var unreadable = 0;
+    for (final photo in within) {
+      final bytes = await DropChannel.instance.read(photo.file);
+      if (bytes == null || bytes.isEmpty) {
+        unreadable++;
+        continue;
+      }
+      read.add(bytes);
+    }
+    if (!mounted) return;
+    if (read.isEmpty) {
+      toast.show(loc.roomScreenFileReadFailedSnack, tone: ToastTone.danger);
+      return;
+    }
+    if (unreadable > 0) {
+      toast.show(loc.photoTrayLoadFailedSnack, tone: ToastTone.danger);
+    }
+
+    if (read.length == 1) {
+      // Route through the same editor the camera and gallery paths use — a
+      // preview, optional annotation, view-once, and a deliberate "send" tap
+      // instead of shipping the picture the moment it is let go.
+      final outcome = await CameraEditorScreen.open(context, source: read.first);
+      if (outcome is EditorSend) _sendEdited(outcome);
+      return;
+    }
+
+    final send = await PhotoTrayScreen.open(context, photos: read);
+    if (!mounted || send == null) return;
+    // In the tray's order, and synchronously: `sendMediaLocal` puts an
+    // optimistic bubble up per call, so the transcript grows the album in the
+    // order the sender arranged it rather than in whatever order the uploads
+    // finish.
+    for (final image in send.images) {
+      _sendPhoto(image, viewOnce: send.viewOnce);
+    }
+    if (send.dropped > 0) {
+      toast.show(loc.photoTrayLoadFailedSnack, tone: ToastTone.danger);
+    }
+  }
+
   /// Tells the OS this chat was just messaged, so its share sheet ranks it up.
   ///
   /// Called from the room's send paths rather than from the repository because
@@ -3456,20 +3699,45 @@ class _RoomScreenState extends State<RoomScreen>
             onPopInvokedWithResult: (didPop, _) {
               if (!didPop) _selection.clear();
             },
-            child: Scaffold(
-              backgroundColor: Colors.transparent,
-              body: Stack(
-                children: [
-                  theme.backgroundLayer(context),
-                  if (chatStyle == ChatStyle.classic)
-                    _buildClassic(context, room, messages, items, me)
-                  else
-                    _buildLiquid(context, room, messages, items, me),
-                  // Last, so it covers the header and the composer too — a scrim
-                  // that dims the transcript but leaves a live attach button
-                  // underneath it is an invitation to make the problem worse.
-                  if (_mediaBusy) const BusyScrim(),
-                ],
+            // Files dragged in from Finder, a browser or any other Mac app
+            // land here. The WHOLE screen is the target, header and composer
+            // included: "drop it on the conversation" is the instruction
+            // nobody has to be given, and a strip along the bottom would be a
+            // smaller target for no benefit.
+            //
+            // Inert on every platform without a desktop drag — see [DropZone]
+            // — so this costs iOS and Android one `if` per build.
+            child: DropZone(
+              onDrop: _deliverDrop,
+              policy: _dropPolicy,
+              // Zero: the transcript is the LEAST specific target in the app.
+              // A chat row in the list beside it outranks it, which is what
+              // makes dropping onto a row in the two-pane shell send to that
+              // room rather than to the open one.
+              priority: 0,
+              label: _dropTargetLabel(room),
+              borderRadius: BorderRadius.circular(theme.radiusLg),
+              // Pulled in so the ring reads as a frame around the conversation
+              // rather than as a border on the window — which, in the two-pane
+              // shell where this pane runs to the window's edge, is exactly
+              // what a flush ring would look like.
+              glowInset: const EdgeInsets.all(7),
+              child: Scaffold(
+                backgroundColor: Colors.transparent,
+                body: Stack(
+                  children: [
+                    theme.backgroundLayer(context),
+                    if (chatStyle == ChatStyle.classic)
+                      _buildClassic(context, room, messages, items, me)
+                    else
+                      _buildLiquid(context, room, messages, items, me),
+                    // Last, so it covers the header and the composer too — a
+                    // scrim that dims the transcript but leaves a live attach
+                    // button underneath it is an invitation to make the
+                    // problem worse.
+                    if (_mediaBusy) const BusyScrim(),
+                  ],
+                ),
               ),
             ),
           ),

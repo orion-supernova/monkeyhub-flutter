@@ -8878,4 +8878,164 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get onboardingThemeContinue => 'CONTINUER';
+
+  @override
+  String get dropHintNoTarget => 'déposez sur une conversation pour envoyer';
+
+  @override
+  String get dropNothingToSend => 'rien ici ne peut être envoyé';
+
+  @override
+  String dropSendPhotos(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'envoyer $count photos',
+      one: 'envoyer la photo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendVideos(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'envoyer $count vidéos',
+      one: 'envoyer la vidéo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendAudio(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'envoyer $count fichiers audio',
+      one: 'envoyer l’audio',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendFiles(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'envoyer $count fichiers',
+      one: 'envoyer le fichier',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendItems(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'envoyer $count éléments',
+      one: 'envoyer l’élément',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropSendText => 'ajouter au message';
+
+  @override
+  String get dropSendLink => 'ajouter le lien';
+
+  @override
+  String dropTargetTo(String name) {
+    return 'vers $name';
+  }
+
+  @override
+  String dropNoticeTooLarge(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count fichiers dépassent $size',
+      one: '1 fichier dépasse $size',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropNoticeFolder => 'les dossiers ne peuvent pas être envoyés';
+
+  @override
+  String dropNoticeEmpty(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count fichiers vides sont ignorés',
+      one: 'un fichier vide est ignoré',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropNoticeNotAllowed =>
+      'les pièces jointes ne sont pas autorisées ici';
+
+  @override
+  String dropNoticeAsFile(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count seront envoyés comme fichiers',
+      one: 'sera envoyé comme fichier',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropNoticeFragile(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ne s’afficheront pas partout',
+      one: 'ne s’affichera pas partout',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropKindPhoto => 'photo';
+
+  @override
+  String get dropKindVideo => 'vidéo';
+
+  @override
+  String get dropKindAudio => 'audio';
+
+  @override
+  String get dropKindFile => 'fichier';
+
+  @override
+  String get dropKindFolder => 'dossier';
+
+  @override
+  String get dropKindText => 'texte';
+
+  @override
+  String get dropKindLink => 'lien';
+
+  @override
+  String dropMoreCount(Object count) {
+    return '+$count';
+  }
+
+  @override
+  String dropNoticeBatchFull(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count fichiers n’entrent pas dans cet envoi',
+      one: '1 fichier n’entre pas dans cet envoi',
+    );
+    return '$_temp0';
+  }
 }

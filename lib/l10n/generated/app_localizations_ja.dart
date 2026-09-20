@@ -8395,4 +8395,153 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get onboardingThemeContinue => '続ける';
+
+  @override
+  String get dropHintNoTarget => 'チャットにドロップして送信';
+
+  @override
+  String get dropNothingToSend => '送れるものがありません';
+
+  @override
+  String dropSendPhotos(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '写真を$count枚送信',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendVideos(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '動画を$count本送信',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendAudio(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '音声を$count件送信',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendFiles(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'ファイルを$count件送信',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendItems(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件を送信',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropSendText => 'メッセージに追加';
+
+  @override
+  String get dropSendLink => 'リンクを追加';
+
+  @override
+  String dropTargetTo(String name) {
+    return '$name へ';
+  }
+
+  @override
+  String dropNoticeTooLarge(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件が$sizeを超えています',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropNoticeFolder => 'フォルダは送れません';
+
+  @override
+  String dropNoticeEmpty(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '空のファイル$count件をスキップします',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropNoticeNotAllowed => 'ここでは添付できません';
+
+  @override
+  String dropNoticeAsFile(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件はファイルとして送信されます',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropNoticeFragile(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件は表示できない端末があります',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropKindPhoto => '写真';
+
+  @override
+  String get dropKindVideo => '動画';
+
+  @override
+  String get dropKindAudio => '音声';
+
+  @override
+  String get dropKindFile => 'ファイル';
+
+  @override
+  String get dropKindFolder => 'フォルダ';
+
+  @override
+  String get dropKindText => 'テキスト';
+
+  @override
+  String get dropKindLink => 'リンク';
+
+  @override
+  String dropMoreCount(Object count) {
+    return '+$count';
+  }
+
+  @override
+  String dropNoticeBatchFull(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件は一度に送れませんでした',
+    );
+    return '$_temp0';
+  }
 }

@@ -58,6 +58,7 @@
 		6FC03EF7D8B724CEA75E1F19 /* mh_monkey_astronaut@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 1ABC79174EC632B6D3C4DB49 /* mh_monkey_astronaut@3x.png */; };
 		70E3442657627EF23356694D /* risograph_pop@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = B19B0D5196B024C84F5A45F0 /* risograph_pop@3x.png */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
+		AD0200222044A3C60003C045 /* DocumentPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0200112044A3C60003C045 /* DocumentPreview.swift */; };
 		74A59F52F71185593173A0EC /* Staging.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5D37F720DD977E979A09956 /* Staging.swift */; };
 		770AC4553592D84632846ED8 /* mh_forest@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = B91CA02D99DF044A403F360B /* mh_forest@3x.png */; };
 		7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */; };
@@ -219,6 +220,7 @@
 		732C3E04750261601E5A2D8B /* SocketConnection.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SocketConnection.swift; sourceTree = "<group>"; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		AD0200112044A3C60003C045 /* DocumentPreview.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DocumentPreview.swift; sourceTree = "<group>"; };
 		75F8FC8D907CEF09B3DF216B /* Intents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Intents.framework; path = System/Library/Frameworks/Intents.framework; sourceTree = SDKROOT; };
 		7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		7A9C3BEBF7E460CD1778A273 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -463,6 +465,7 @@
 				1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */,
 				1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */,
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
+				AD0200112044A3C60003C045 /* DocumentPreview.swift */,
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 				CC35154A4A821ED27F80486C /* AlternateIcons */,
@@ -980,6 +983,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
+				AD0200222044A3C60003C045 /* DocumentPreview.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
 				8EC46B2A87DCB654E83E014F /* ShareGroup.swift in Sources */,

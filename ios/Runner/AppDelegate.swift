@@ -956,6 +956,11 @@ import flutter_callkit_incoming
     captureEventSink?(UIScreen.main.isCaptured)
   }
 
+  /// Kept alive for the process. `QLPreviewController` holds its data source
+  /// weakly, so a previewer that is only referenced by the controller is one
+  /// that shows an empty document as soon as ARC gets to it.
+  private var documentPreview: DocumentPreview?
+
   // Registers the app's custom method channels on the pre-warmed engine.
   // Called from didFinishLaunchingWithOptions right after
   // GeneratedPluginRegistrant (which registers the third-party plugins).
@@ -1213,6 +1218,15 @@ import flutter_callkit_incoming
           result(FlutterMethodNotImplemented)
         }
       }
+    }
+
+    // monkeyhub/preview — QuickLook for a received document. Registered
+    // through a plugin registrar for the same reason the badge below is: it
+    // only needs a messenger, not the root view controller.
+    if let previewRegistrar = engine.registrar(forPlugin: "MonkeyHubPreviewPlugin") {
+      // Held for the process's life: the previewer is its own data source and
+      // AppKit/UIKit keep only a weak reference to that.
+      documentPreview = DocumentPreview.register(with: previewRegistrar.messenger())
     }
 
     // monkeyhub/badge — set or clear the app icon badge count.

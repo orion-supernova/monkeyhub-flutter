@@ -8301,4 +8301,153 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get onboardingThemeContinue => '继续';
+
+  @override
+  String get dropHintNoTarget => '拖放到聊天上即可发送';
+
+  @override
+  String get dropNothingToSend => '这里没有可以发送的内容';
+
+  @override
+  String dropSendPhotos(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '发送 $count 张照片',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendVideos(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '发送 $count 个视频',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendAudio(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '发送 $count 个音频',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendFiles(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '发送 $count 个文件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendItems(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '发送 $count 项',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropSendText => '添加到消息';
+
+  @override
+  String get dropSendLink => '添加链接';
+
+  @override
+  String dropTargetTo(String name) {
+    return '发给 $name';
+  }
+
+  @override
+  String dropNoticeTooLarge(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个文件超过 $size',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropNoticeFolder => '无法发送文件夹';
+
+  @override
+  String dropNoticeEmpty(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已跳过 $count 个空文件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropNoticeNotAllowed => '此处不允许发送附件';
+
+  @override
+  String dropNoticeAsFile(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 项将作为文件发送',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropNoticeFragile(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 项可能无法在所有设备上预览',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropKindPhoto => '照片';
+
+  @override
+  String get dropKindVideo => '视频';
+
+  @override
+  String get dropKindAudio => '音频';
+
+  @override
+  String get dropKindFile => '文件';
+
+  @override
+  String get dropKindFolder => '文件夹';
+
+  @override
+  String get dropKindText => '文本';
+
+  @override
+  String get dropKindLink => '链接';
+
+  @override
+  String dropMoreCount(Object count) {
+    return '+$count';
+  }
+
+  @override
+  String dropNoticeBatchFull(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个文件未能放进这次发送',
+    );
+    return '$_temp0';
+  }
 }

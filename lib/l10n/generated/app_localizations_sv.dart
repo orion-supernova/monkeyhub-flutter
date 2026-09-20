@@ -8764,4 +8764,163 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get onboardingThemeContinue => 'FORTSÄTT';
+
+  @override
+  String get dropHintNoTarget => 'släpp på en chatt för att skicka';
+
+  @override
+  String get dropNothingToSend => 'inget här går att skicka';
+
+  @override
+  String dropSendPhotos(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'skicka $count foton',
+      one: 'skicka foto',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendVideos(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'skicka $count videor',
+      one: 'skicka video',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendAudio(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'skicka $count ljudfiler',
+      one: 'skicka ljud',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendFiles(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'skicka $count filer',
+      one: 'skicka fil',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropSendItems(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'skicka $count objekt',
+      one: 'skicka objekt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropSendText => 'lägg till i meddelandet';
+
+  @override
+  String get dropSendLink => 'lägg till länk';
+
+  @override
+  String dropTargetTo(String name) {
+    return 'till $name';
+  }
+
+  @override
+  String dropNoticeTooLarge(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count filer är över $size',
+      one: '1 fil är över $size',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropNoticeFolder => 'mappar går inte att skicka';
+
+  @override
+  String dropNoticeEmpty(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'hoppar över $count tomma filer',
+      one: 'hoppar över en tom fil',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropNoticeNotAllowed => 'bilagor är inte tillåtna här';
+
+  @override
+  String dropNoticeAsFile(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count skickas som filer',
+      one: 'skickas som fil',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dropNoticeFragile(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count visas kanske inte överallt',
+      one: 'visas kanske inte överallt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dropKindPhoto => 'foto';
+
+  @override
+  String get dropKindVideo => 'video';
+
+  @override
+  String get dropKindAudio => 'ljud';
+
+  @override
+  String get dropKindFile => 'fil';
+
+  @override
+  String get dropKindFolder => 'mapp';
+
+  @override
+  String get dropKindText => 'text';
+
+  @override
+  String get dropKindLink => 'länk';
+
+  @override
+  String dropMoreCount(Object count) {
+    return '+$count';
+  }
+
+  @override
+  String dropNoticeBatchFull(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count filer fick inte plats i den här sändningen',
+      one: '1 fil fick inte plats i den här sändningen',
+    );
+    return '$_temp0';
+  }
 }
