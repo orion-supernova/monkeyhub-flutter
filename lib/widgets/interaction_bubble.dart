@@ -700,11 +700,23 @@ class _ChoiceRow extends StatelessWidget {
                         // checklist's whole affordance is seeing what is left.
                         // A poll option is never struck: an option nobody
                         // picked is not "done".
+                        //
+                        // `none` rather than null, and the colour conditional
+                        // with it: an unset `decoration` INHERITS one, so the
+                        // pair as it stood meant "whatever is inherited, drawn
+                        // in inkMuted". Harmless here, where this card is
+                        // always inside a Material that supplies a clean
+                        // style — but it is the exact shape that painted the
+                        // drag chrome's file names with a red underline, and
+                        // it costs nothing to close.
                         decoration: it.kind == MessageType.checklist &&
                                 choice.count > 0
                             ? TextDecoration.lineThrough
-                            : null,
-                        decorationColor: theme.inkMuted,
+                            : TextDecoration.none,
+                        decorationColor:
+                            it.kind == MessageType.checklist && choice.count > 0
+                                ? theme.inkMuted
+                                : null,
                       ),
                     ),
                     if (choice.respondents.isNotEmpty) ...[

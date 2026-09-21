@@ -164,43 +164,68 @@ class _DropChromeState extends State<DropChrome>
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
 
+    // The `DefaultTextStyle` is not decoration — it is the whole fix for a
+    // real bug.
+    //
+    // This subtree is mounted in `app.dart` as a SIBLING of the root
+    // navigator, so it sits outside every Scaffold in the app and inherits no
+    // text style at all. Flutter's fallback for that is its debug style: red
+    // text under a double YELLOW underline. That is what the drag cards and
+    // the verdict chip were painted in. `ConnectionBanner` carries the same
+    // wrapper for the same reason and says so in the same words.
+    //
+    // `TextDecoration.none` explicitly, not merely absent: an inherited
+    // decoration is the thing being defended against, and leaving it null
+    // would let one back in if anything above this ever set one.
+    //
+    // No `Material` beside it, unlike the connection banner — nothing here
+    // draws ink, and the banner needs one for its own surface rather than for
+    // its text. Widget tests missed all of this because a test host puts its
+    // subject in a Scaffold, which supplies both; `drop_chrome_test.dart`
+    // now mounts this bare, the way the app does.
     return ExcludeSemantics(
       child: IgnorePointer(
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Layer 1 — the window knows. Cheap, and the only thing on screen
-            // when the pointer is somewhere with no zone under it.
-            RepaintBoundary(
-              child: AnimatedBuilder(
-                animation: _presence,
-                builder: (context, _) {
-                  final t = Curves.easeOut.transform(_presence.value);
-                  if (t == 0) return const SizedBox.shrink();
-                  return CustomPaint(
-                    painter: _AuraPainter(
-                      t: t,
-                      color: dropToneColor(theme, _drop.plan.tone),
-                      targeted: _drop.target != null,
-                    ),
-                  );
-                },
-              ),
-            ),
-            // Layers 2 and 3 — only while something is genuinely in the air.
-            if (_drop.active || _presence.value > 0)
-              RepaintBoundary(
-                child: AnimatedBuilder(
-                  animation: Listenable.merge([_frame, _presence, _drop.pointer]),
-                  builder: (context, _) => _fan(context, theme, l10n),
+        child: DefaultTextStyle(
+          style: theme.body.copyWith(
+            color: theme.ink,
+            decoration: TextDecoration.none,
+          ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+                // Layer 1 — the window knows. Cheap, and the only thing on screen
+                // when the pointer is somewhere with no zone under it.
+                RepaintBoundary(
+                  child: AnimatedBuilder(
+                    animation: _presence,
+                    builder: (context, _) {
+                      final t = Curves.easeOut.transform(_presence.value);
+                      if (t == 0) return const SizedBox.shrink();
+                      return CustomPaint(
+                        painter: _AuraPainter(
+                          t: t,
+                          color: dropToneColor(theme, _drop.plan.tone),
+                          targeted: _drop.target != null,
+                        ),
+                      );
+                    },
+                  ),
                 ),
-              ),
-            // The landing. Outlives the session by design — it is what the
-            // session turns INTO.
-            RepaintBoundary(
-              child: _DropBurst(controller: _drop, theme: theme),
-            ),
-          ],
+                // Layers 2 and 3 — only while something is genuinely in the air.
+                if (_drop.active || _presence.value > 0)
+                  RepaintBoundary(
+                    child: AnimatedBuilder(
+                      animation: Listenable.merge([_frame, _presence, _drop.pointer]),
+                      builder: (context, _) => _fan(context, theme, l10n),
+                    ),
+                  ),
+                // The landing. Outlives the session by design — it is what the
+                // session turns INTO.
+                RepaintBoundary(
+                  child: _DropBurst(controller: _drop, theme: theme),
+                ),
+            ],
+          ),
         ),
       ),
     );

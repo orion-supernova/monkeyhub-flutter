@@ -101,8 +101,16 @@ class DropCard extends StatelessWidget {
                   softWrap: false,
                   style: theme.bodyEmph.copyWith(
                     color: ink,
-                    decoration: refused ? TextDecoration.lineThrough : null,
-                    decorationColor: theme.danger,
+                    // BOTH conditional, and that pairing is the point. A
+                    // `TextStyle` inherits every field it does not set, so a
+                    // null `decoration` beside a non-null `decorationColor`
+                    // does not mean "no decoration" — it means "whatever is
+                    // inherited, painted in THIS colour". Mounted outside a
+                    // Scaffold, what got inherited was Flutter's debug
+                    // underline, and this line is what painted it red.
+                    decoration:
+                        refused ? TextDecoration.lineThrough : TextDecoration.none,
+                    decorationColor: refused ? theme.danger : null,
                   ),
                 ),
                 const SizedBox(height: 1),

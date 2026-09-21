@@ -51,25 +51,42 @@ void main() {
             data: MediaQuery.of(context).copyWith(disableAnimations: calm),
             child: ThemeScope(
               controller: ThemeController(BasicTheme.midnight()),
-              child: Scaffold(
-                body: Stack(
-                  children: [
-                    if (withZone)
-                      DropZone(
-                        label: 'Alice',
-                        onDrop: (bundle) async => drops.add(bundle),
-                        child: const SizedBox.expand(),
-                      )
-                    else
-                      const SizedBox.expand(),
-                    const DropChrome(),
-                  ],
-                ),
+              // Mirrors `app.dart`: the chrome is a SIBLING of the thing that
+              // owns the Scaffold, not a child of it. That is not a detail —
+              // it is the whole reason the yellow-underline bug existed and
+              // the whole reason a host with everything inside one Scaffold
+              // could not see it.
+              child: Stack(
+                children: [
+                  Scaffold(
+                    body: withZone
+                        ? DropZone(
+                            label: 'Alice',
+                            onDrop: (bundle) async => drops.add(bundle),
+                            child: const SizedBox.expand(),
+                          )
+                        : const SizedBox.expand(),
+                  ),
+                  const DropChrome(),
+                ],
               ),
             ),
           ),
         ),
       );
+
+  /// Every style actually applied to rendered text, span by span.
+  List<TextStyle> spanStyles(WidgetTester tester) {
+    final out = <TextStyle>[];
+    for (final element in find.byType(RichText).evaluate()) {
+      (element.widget as RichText).text.visitChildren((span) {
+        final style = span.style;
+        if (style != null) out.add(style);
+        return true;
+      });
+    }
+    return out;
+  }
 
   const photos = DropSnapshot(
     items: [
@@ -193,6 +210,44 @@ void main() {
 
     expect(delivered.single, same(bundle));
     expect(find.byType(DropCard), findsNothing);
+  });
+
+  testWidgets('draws no underline on anything, ever', (tester) async {
+    // The bug this exists for: mounted outside every Scaffold, the chrome
+    // inherited no text style, so Flutter painted its debug fallback — red
+    // text under a double YELLOW underline — on the file names, the sizes and
+    // the verdict. The user's rule is broader than the bug: no underline
+    // anywhere unless it is a hyperlink, and none of this is a hyperlink.
+    await tester.pumpWidget(host());
+    drop.debugEnter(photos, const Offset(120, 200));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 240));
+
+    expect(find.byType(DropCard), findsNWidgets(2));
+    final underlined = spanStyles(tester)
+        .where((s) => s.decoration?.contains(TextDecoration.underline) ?? false)
+        .toList();
+    expect(underlined, isEmpty, reason: 'underlined text in the drag chrome');
+  });
+
+  testWidgets('inherits a real text style rather than the debug fallback',
+      (tester) async {
+    // The fallback is red-on-yellow at 48pt monospace, so checking the colour
+    // is a sharper test than checking the decoration alone — a future change
+    // that drops the underline but leaves the rest of the debug style would
+    // still be broken, and would still look it.
+    await tester.pumpWidget(host());
+    drop.debugEnter(photos, const Offset(120, 200));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 240));
+
+    final styles = spanStyles(tester);
+    expect(styles, isNotEmpty);
+    for (final style in styles) {
+      expect(style.fontSize ?? 14, lessThan(40),
+          reason: 'debug fallback is 48pt');
+      expect(style.fontFamily, isNot('monospace'));
+    }
   });
 
   testWidgets('calm motion still identifies the target', (tester) async {
