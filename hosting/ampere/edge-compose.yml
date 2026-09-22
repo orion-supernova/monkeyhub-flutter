@@ -52,6 +52,24 @@ services:
     networks:
       - edge
 
+  # ── beanwise-tunnel: the Beanwise API and its HTTP actions ─────────────────
+  #
+  # Beanwise is a separate project (~/Documents/Projects/Beanwise) with its own
+  # Convex stack at /opt/stacks/beanwise-convex. Its tunnel lives here because
+  # this stack owns every tunnel on the box; the config it runs is installed by
+  # that repo's hosting/ampere/install.sh. Container names, not ports, so this
+  # never touches the host.
+  beanwise-tunnel:
+    container_name: edge-beanwise-tunnel
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    user: root
+    command: tunnel --no-autoupdate --config /etc/cloudflared/beanwise.yml run
+    volumes:
+      - ./cloudflared:/etc/cloudflared:ro
+    networks:
+      - edge
+
   # ── monkeyhub-tunnel: the landing page, downloads and the web app ──────────
   monkeyhub-tunnel:
     container_name: edge-monkeyhub-tunnel
