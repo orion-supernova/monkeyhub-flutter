@@ -9148,4 +9148,15 @@ class AppLocalizationsSv extends AppLocalizations {
   String expressionPackAddedToast(String title) {
     return '”$title” har lagts till i dina klistermärken';
   }
+
+  @override
+  String get expressionPacksFromKlipy => 'Fler klistermärken från KLIPY';
+
+  @override
+  String expressionSearchKlipyFor(String query) {
+    return 'Sök ”$query” på KLIPY';
+  }
+
+  @override
+  String get expressionHideKeyboard => 'Dölj tangentbordet';
 }

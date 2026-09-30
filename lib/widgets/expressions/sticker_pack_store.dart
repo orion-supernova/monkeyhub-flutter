@@ -4,12 +4,15 @@ import 'package:flutter/services.dart';
 
 import '../../data/emoji_search_index.dart';
 import '../../expressions/expression_store.dart';
+import '../../expressions/klipy.dart';
 import '../../keyboard/focusable_tap.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../../models/expression_item.dart';
 import '../../models/sticker_pack.dart';
 import '../../theme/theme_scope.dart';
 import '../app_toast.dart';
 import 'expression_media.dart';
+import 'klipy_attribution.dart';
 
 String _bare(String s) => s.replaceAll('️', '').trim();
 
@@ -52,7 +55,13 @@ class StickerPackStore extends StatefulWidget {
     super.key,
     required this.onOpenPack,
     this.onSearchFocusChanged,
+    this.onOpenKlipy,
   });
+
+  /// Opens KLIPY's sticker search on a query — a category tile, or the
+  /// store's own search carried over. Null (no KLIPY on this server, or an
+  /// account that may not send outside pictures) hides the KLIPY section.
+  final ValueChanged<String>? onOpenKlipy;
 
   /// Switches the panel to a pack the user has just added — straight from the
   /// store to using it.
@@ -77,13 +86,24 @@ class _StickerPackStoreState extends State<StickerPackStore> {
   /// sent.
   bool _reportedFocus = false;
 
+  /// KLIPY's sticker categories, loaded once for the "from KLIPY" section.
+  List<KlipyCategory> _klipyCategories = const [];
+
   @override
   void initState() {
     super.initState();
+    final klipy = ExpressionStore.instance.klipy;
+    if (widget.onOpenKlipy != null && klipy != null) {
+      klipy.categories(ExpressionKind.sticker).then((c) {
+        if (mounted) setState(() => _klipyCategories = c);
+      }).catchError((Object _) {});
+    }
     _focus.addListener(() {
       if (_focus.hasFocus == _reportedFocus) return;
       _reportedFocus = _focus.hasFocus;
       widget.onSearchFocusChanged?.call(_reportedFocus);
+      // The hide-keyboard button comes and goes with the focus.
+      if (mounted) setState(() {});
     });
   }
   Set<String> _emojiHits = const {};
@@ -193,6 +213,19 @@ class _StickerPackStoreState extends State<StickerPackStore> {
                   ),
                 ]
               : [for (final p in found) row(p)];
+          // Our packs are a few hundred stickers; KLIPY has many thousands.
+          // Carry the search over rather than ending at "no packs match".
+          final openKlipy = widget.onOpenKlipy;
+          if (openKlipy != null && store.klipy != null) {
+            final q = _query.text.trim();
+            body.add(_KlipySearchRow(
+              label: l10n.expressionSearchKlipyFor(q),
+              onTap: () {
+                _focus.unfocus();
+                openKlipy(q);
+              },
+            ));
+          }
         } else {
           body = [
             if (added.isNotEmpty) ...[
@@ -236,6 +269,32 @@ class _StickerPackStoreState extends State<StickerPackStore> {
               )
             else
               for (final p in more) row(p),
+            // KLIPY's catalogue, as its own clearly labelled section — its
+            // terms keep its content apart from other sources, in the order it
+            // returns. Tapping a category opens its stickers.
+            if (widget.onOpenKlipy != null &&
+                store.klipy != null &&
+                _klipyCategories.isNotEmpty) ...[
+              _Header(l10n.expressionPacksFromKlipy),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final c in _klipyCategories)
+                      _KlipyCategoryTile(
+                        category: c,
+                        onTap: () => widget.onOpenKlipy!(c.query),
+                      ),
+                  ],
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
+                child: KlipyAttribution(compact: true),
+              ),
+            ],
           ];
         }
 
@@ -257,6 +316,9 @@ class _StickerPackStoreState extends State<StickerPackStore> {
                         focusNode: _focus,
                         onChanged: _onQuery,
                         textInputAction: TextInputAction.search,
+                        // Search filters as you type; the key just puts the
+                        // keyboard away so the matches have the room.
+                        onSubmitted: (_) => _focus.unfocus(),
                         style: theme.body.copyWith(color: theme.ink),
                         cursorColor: theme.accent,
                         decoration: InputDecoration(
@@ -278,12 +340,16 @@ class _StickerPackStoreState extends State<StickerPackStore> {
                         child: Icon(CupertinoIcons.clear_circled_solid,
                             size: 16, color: theme.inkMuted),
                       ),
+                    if (_focus.hasFocus) HideKeyboardButton(focus: _focus),
                   ],
                 ),
               ),
             ),
             Expanded(
               child: ListView(
+                // Scrolling the packs puts the search keyboard away.
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.only(bottom: 12),
                 children: body,
               ),
@@ -291,6 +357,90 @@ class _StickerPackStoreState extends State<StickerPackStore> {
           ],
         );
       },
+    );
+  }
+}
+
+/// One KLIPY sticker category: its preview and its name.
+class _KlipyCategoryTile extends StatelessWidget {
+  const _KlipyCategoryTile({required this.category, required this.onTap});
+
+  final KlipyCategory category;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final url = category.previewUrl;
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: category.name,
+      radius: theme.radiusMd,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: SizedBox(
+          width: 76,
+          child: Column(
+            children: [
+              if (url != null)
+                KlipyImage(
+                  url: url,
+                  width: 64,
+                  height: 64,
+                  fit: BoxFit.contain,
+                  radius: 0,
+                  play: false,
+                )
+              else
+                const SizedBox(width: 64, height: 64),
+              const SizedBox(height: 4),
+              Text(
+                category.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: theme.caption.copyWith(color: theme.inkSoft),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Search '<query>' on KLIPY", at the end of the store's search results.
+class _KlipySearchRow extends StatelessWidget {
+  const _KlipySearchRow({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: label,
+      radius: theme.radiusMd,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: Row(
+            children: [
+              Icon(CupertinoIcons.search, size: 18, color: theme.accent),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(label,
+                    style: theme.body.copyWith(color: theme.accent)),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

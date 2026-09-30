@@ -9288,4 +9288,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String expressionPackAddedToast(String title) {
     return 'أُضيفت «$title» إلى ملصقاتك';
   }
+
+  @override
+  String get expressionPacksFromKlipy => 'مزيد من الملصقات من KLIPY';
+
+  @override
+  String expressionSearchKlipyFor(String query) {
+    return 'ابحث عن «$query» في KLIPY';
+  }
+
+  @override
+  String get expressionHideKeyboard => 'إخفاء لوحة المفاتيح';
 }

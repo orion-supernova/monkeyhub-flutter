@@ -9263,4 +9263,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String expressionPackAddedToast(String title) {
     return '« $title » ajouté à tes stickers';
   }
+
+  @override
+  String get expressionPacksFromKlipy => 'Plus de stickers sur KLIPY';
+
+  @override
+  String expressionSearchKlipyFor(String query) {
+    return 'Chercher « $query » sur KLIPY';
+  }
+
+  @override
+  String get expressionHideKeyboard => 'Masquer le clavier';
 }

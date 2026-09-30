@@ -202,6 +202,19 @@ void main() {
       expect(c.height, 300, reason: 'never taller than expanded');
     });
 
+    test('putting the search keyboard away opens the panel up', () {
+      final focus = FocusNode();
+      addTearDown(focus.dispose);
+      final c = levels()
+        ..open(focus)
+        ..setSearching(true);
+      c.setSearching(false);
+      expect(c.expanded, isTrue, reason: 'room to look at the results');
+      expect(c.currentHeight, 600);
+      c.noteSent();
+      expect(c.expanded, isFalse, reason: 'a send still brings it down');
+    });
+
     test('search takes the room above the keyboard', () {
       final c = levels()..setSearching(true);
       expect(c.currentHeight, 250);

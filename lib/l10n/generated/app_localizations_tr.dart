@@ -9078,4 +9078,15 @@ class AppLocalizationsTr extends AppLocalizations {
   String expressionPackAddedToast(String title) {
     return '“$title” çıkartmalarına eklendi';
   }
+
+  @override
+  String get expressionPacksFromKlipy => 'KLIPY’den daha fazla çıkartma';
+
+  @override
+  String expressionSearchKlipyFor(String query) {
+    return 'KLIPY’de “$query” ara';
+  }
+
+  @override
+  String get expressionHideKeyboard => 'Klavyeyi gizle';
 }

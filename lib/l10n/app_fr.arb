@@ -2527,5 +2527,8 @@
   "expressionAllPacksAdded": "Tu as ajouté tous les packs.",
   "expressionPackReorder": "Réorganiser {title}",
   "expressionAddPackFromSticker": "Ajouter le pack « {title} »",
-  "expressionPackAddedToast": "« {title} » ajouté à tes stickers"
+  "expressionPackAddedToast": "« {title} » ajouté à tes stickers",
+  "expressionPacksFromKlipy": "Plus de stickers sur KLIPY",
+  "expressionSearchKlipyFor": "Chercher « {query} » sur KLIPY",
+  "expressionHideKeyboard": "Masquer le clavier"
 }

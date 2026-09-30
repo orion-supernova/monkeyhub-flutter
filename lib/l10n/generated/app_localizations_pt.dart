@@ -9223,6 +9223,17 @@ class AppLocalizationsPt extends AppLocalizations {
   String expressionPackAddedToast(String title) {
     return '«$title» adicionado aos teus stickers';
   }
+
+  @override
+  String get expressionPacksFromKlipy => 'Mais stickers do KLIPY';
+
+  @override
+  String expressionSearchKlipyFor(String query) {
+    return 'Pesquisar «$query» no KLIPY';
+  }
+
+  @override
+  String get expressionHideKeyboard => 'Ocultar teclado';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -18440,4 +18451,15 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String expressionPackAddedToast(String title) {
     return '“$title” adicionado às suas figurinhas';
   }
+
+  @override
+  String get expressionPacksFromKlipy => 'Mais figurinhas do KLIPY';
+
+  @override
+  String expressionSearchKlipyFor(String query) {
+    return 'Buscar “$query” no KLIPY';
+  }
+
+  @override
+  String get expressionHideKeyboard => 'Ocultar teclado';
 }

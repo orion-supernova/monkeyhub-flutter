@@ -2527,5 +2527,8 @@
   "expressionAllPacksAdded": "すべてのパックを追加しました。",
   "expressionPackReorder": "{title}を並べ替え",
   "expressionAddPackFromSticker": "「{title}」パックを追加",
-  "expressionPackAddedToast": "「{title}」をスタンプに追加しました"
+  "expressionPackAddedToast": "「{title}」をスタンプに追加しました",
+  "expressionPacksFromKlipy": "KLIPYのスタンプをもっと見る",
+  "expressionSearchKlipyFor": "KLIPYで「{query}」を検索",
+  "expressionHideKeyboard": "キーボードを閉じる"
 }

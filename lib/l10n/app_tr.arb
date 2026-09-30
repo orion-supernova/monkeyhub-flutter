@@ -2527,5 +2527,8 @@
   "expressionAllPacksAdded": "Tüm paketleri ekledin.",
   "expressionPackReorder": "{title} sırasını değiştir",
   "expressionAddPackFromSticker": "“{title}” paketini ekle",
-  "expressionPackAddedToast": "“{title}” çıkartmalarına eklendi"
+  "expressionPackAddedToast": "“{title}” çıkartmalarına eklendi",
+  "expressionPacksFromKlipy": "KLIPY’den daha fazla çıkartma",
+  "expressionSearchKlipyFor": "KLIPY’de “{query}” ara",
+  "expressionHideKeyboard": "Klavyeyi gizle"
 }

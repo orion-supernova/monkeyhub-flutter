@@ -8761,4 +8761,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String expressionPackAddedToast(String title) {
     return '「$title」をスタンプに追加しました';
   }
+
+  @override
+  String get expressionPacksFromKlipy => 'KLIPYのスタンプをもっと見る';
+
+  @override
+  String expressionSearchKlipyFor(String query) {
+    return 'KLIPYで「$query」を検索';
+  }
+
+  @override
+  String get expressionHideKeyboard => 'キーボードを閉じる';
 }

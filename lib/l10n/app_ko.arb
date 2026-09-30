@@ -2527,5 +2527,8 @@
   "expressionAllPacksAdded": "모든 팩을 추가했어요.",
   "expressionPackReorder": "{title} 순서 변경",
   "expressionAddPackFromSticker": "‘{title}’ 팩 추가",
-  "expressionPackAddedToast": "‘{title}’ 팩을 스티커에 추가했어요"
+  "expressionPackAddedToast": "‘{title}’ 팩을 스티커에 추가했어요",
+  "expressionPacksFromKlipy": "KLIPY 스티커 더 보기",
+  "expressionSearchKlipyFor": "KLIPY에서 ‘{query}’ 검색",
+  "expressionHideKeyboard": "키보드 숨기기"
 }

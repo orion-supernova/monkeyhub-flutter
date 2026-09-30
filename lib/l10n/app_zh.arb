@@ -2527,5 +2527,8 @@
   "expressionAllPacksAdded": "你已添加所有贴纸包。",
   "expressionPackReorder": "重新排序 {title}",
   "expressionAddPackFromSticker": "添加“{title}”贴纸包",
-  "expressionPackAddedToast": "已将“{title}”添加到你的贴纸"
+  "expressionPackAddedToast": "已将“{title}”添加到你的贴纸",
+  "expressionPacksFromKlipy": "更多来自 KLIPY 的贴纸",
+  "expressionSearchKlipyFor": "在 KLIPY 上搜索“{query}”",
+  "expressionHideKeyboard": "隐藏键盘"
 }

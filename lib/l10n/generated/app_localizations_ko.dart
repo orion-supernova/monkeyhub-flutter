@@ -8784,4 +8784,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String expressionPackAddedToast(String title) {
     return '‘$title’ 팩을 스티커에 추가했어요';
   }
+
+  @override
+  String get expressionPacksFromKlipy => 'KLIPY 스티커 더 보기';
+
+  @override
+  String expressionSearchKlipyFor(String query) {
+    return 'KLIPY에서 ‘$query’ 검색';
+  }
+
+  @override
+  String get expressionHideKeyboard => '키보드 숨기기';
 }

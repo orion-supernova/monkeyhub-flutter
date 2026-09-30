@@ -9128,4 +9128,15 @@ class AppLocalizationsHi extends AppLocalizations {
   String expressionPackAddedToast(String title) {
     return '“$title” स्टिकर में जोड़ दिया गया';
   }
+
+  @override
+  String get expressionPacksFromKlipy => 'KLIPY से और स्टिकर';
+
+  @override
+  String expressionSearchKlipyFor(String query) {
+    return 'KLIPY पर “$query” खोजें';
+  }
+
+  @override
+  String get expressionHideKeyboard => 'कीबोर्ड छिपाएँ';
 }

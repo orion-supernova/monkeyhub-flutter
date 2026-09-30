@@ -15324,6 +15324,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'“{title}” added to your stickers'**
   String expressionPackAddedToast(String title);
+
+  /// Section heading in the sticker pack store listing KLIPY's sticker categories. KLIPY is a brand name and stays untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'More stickers from KLIPY'**
+  String get expressionPacksFromKlipy;
+
+  /// Row at the end of the sticker pack store's search results that carries the search over to KLIPY's sticker catalogue. {query} is what the user typed. KLIPY is a brand name and stays untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Search “{query}” on KLIPY'**
+  String expressionSearchKlipyFor(String query);
+
+  /// Screen-reader label of the button in a GIF/sticker search field that puts the keyboard away without clearing the search.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide keyboard'**
+  String get expressionHideKeyboard;
 }
 
 class _AppLocalizationsDelegate

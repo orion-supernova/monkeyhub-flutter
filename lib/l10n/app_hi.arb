@@ -2527,5 +2527,8 @@
   "expressionAllPacksAdded": "सारे पैक जोड़े जा चुके हैं।",
   "expressionPackReorder": "{title} का क्रम बदलें",
   "expressionAddPackFromSticker": "“{title}” पैक जोड़ें",
-  "expressionPackAddedToast": "“{title}” स्टिकर में जोड़ दिया गया"
+  "expressionPackAddedToast": "“{title}” स्टिकर में जोड़ दिया गया",
+  "expressionPacksFromKlipy": "KLIPY से और स्टिकर",
+  "expressionSearchKlipyFor": "KLIPY पर “{query}” खोजें",
+  "expressionHideKeyboard": "कीबोर्ड छिपाएँ"
 }

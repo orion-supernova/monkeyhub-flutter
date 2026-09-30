@@ -2527,5 +2527,8 @@
   "expressionAllPacksAdded": "أضفت كل الحزم.",
   "expressionPackReorder": "إعادة ترتيب {title}",
   "expressionAddPackFromSticker": "أضف حزمة «{title}»",
-  "expressionPackAddedToast": "أُضيفت «{title}» إلى ملصقاتك"
+  "expressionPackAddedToast": "أُضيفت «{title}» إلى ملصقاتك",
+  "expressionPacksFromKlipy": "مزيد من الملصقات من KLIPY",
+  "expressionSearchKlipyFor": "ابحث عن «{query}» في KLIPY",
+  "expressionHideKeyboard": "إخفاء لوحة المفاتيح"
 }

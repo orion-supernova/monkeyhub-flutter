@@ -10454,5 +10454,22 @@
         "type": "String"
       }
     }
+  },
+  "expressionPacksFromKlipy": "More stickers from KLIPY",
+  "@expressionPacksFromKlipy": {
+    "description": "Section heading in the sticker pack store listing KLIPY's sticker categories. KLIPY is a brand name and stays untranslated."
+  },
+  "expressionSearchKlipyFor": "Search “{query}” on KLIPY",
+  "@expressionSearchKlipyFor": {
+    "description": "Row at the end of the sticker pack store's search results that carries the search over to KLIPY's sticker catalogue. {query} is what the user typed. KLIPY is a brand name and stays untranslated.",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "expressionHideKeyboard": "Hide keyboard",
+  "@expressionHideKeyboard": {
+    "description": "Screen-reader label of the button in a GIF/sticker search field that puts the keyboard away without clearing the search."
   }
 }

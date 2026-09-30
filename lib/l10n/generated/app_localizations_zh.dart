@@ -8665,4 +8665,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String expressionPackAddedToast(String title) {
     return '已将“$title”添加到你的贴纸';
   }
+
+  @override
+  String get expressionPacksFromKlipy => '更多来自 KLIPY 的贴纸';
+
+  @override
+  String expressionSearchKlipyFor(String query) {
+    return '在 KLIPY 上搜索“$query”';
+  }
+
+  @override
+  String get expressionHideKeyboard => '隐藏键盘';
 }

@@ -525,12 +525,17 @@ class _KlipyBrowser extends StatefulWidget {
     required this.klipy,
     required this.onSend,
     this.onSearchFocusChanged,
+    this.initialQuery,
   });
 
   final ExpressionKind kind;
   final KlipyClient klipy;
   final void Function(ExpressionItem item, {String? query}) onSend;
   final ValueChanged<bool>? onSearchFocusChanged;
+
+  /// Opens already searching for this — a KLIPY category tile or a search
+  /// carried over from the pack store.
+  final String? initialQuery;
 
   @override
   State<_KlipyBrowser> createState() => _KlipyBrowserState();
@@ -574,6 +579,11 @@ class _KlipyBrowserState extends State<_KlipyBrowser> {
       setState(() {});
     });
     _scroll.addListener(_maybeLoadMore);
+    final initial = widget.initialQuery?.trim();
+    if (initial != null && initial.isNotEmpty) {
+      _query.text = initial;
+      _section = _KlipySection.search;
+    }
     _load(reset: true);
     widget.klipy.categories(widget.kind).then((c) {
       if (mounted) setState(() => _categories = c);
@@ -742,7 +752,12 @@ class _KlipyBrowserState extends State<_KlipyBrowser> {
                     controller: _query,
                     focusNode: _focus,
                     onChanged: _onQueryChanged,
-                    onSubmitted: (q) => q.trim().isEmpty ? null : _runQuery(q),
+                    // The keyboard's Search key runs the search and gets out
+                    // of the way, so the results have the room.
+                    onSubmitted: (q) {
+                      _focus.unfocus();
+                      if (q.trim().isNotEmpty) _runQuery(q);
+                    },
                     textInputAction: TextInputAction.search,
                     style: theme.body.copyWith(color: theme.ink),
                     cursorColor: theme.accent,
@@ -762,6 +777,7 @@ class _KlipyBrowserState extends State<_KlipyBrowser> {
                     child: Icon(CupertinoIcons.clear_circled_solid,
                         size: 16, color: theme.inkMuted),
                   ),
+                if (_focus.hasFocus) HideKeyboardButton(focus: _focus),
               ],
             ),
           ),
@@ -881,6 +897,8 @@ class _KlipyBrowserState extends State<_KlipyBrowser> {
       );
       return ListView.builder(
         controller: _scroll,
+        // Scrolling the results is the usual way to say "enough typing".
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
         itemCount: rows.length + (remote && _hasNext ? 1 : 0),
         itemBuilder: (context, r) {
@@ -1143,7 +1161,24 @@ class _StickersTabState extends State<_StickersTab> {
 
   void _select(String s) {
     HapticFeedback.selectionClick();
-    setState(() => _section = _lastSection = s);
+    setState(() {
+      _section = _lastSection = s;
+      // The strip's KLIPY button opens KLIPY on trending, not on whatever a
+      // store category last searched for.
+      if (s == 'klipy') _klipyQuery = null;
+    });
+  }
+
+  /// What the KLIPY section opens searching for, when the pack store sent the
+  /// user there with a category or a query.
+  String? _klipyQuery;
+
+  void _openKlipy(String query) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _klipyQuery = query;
+      _section = _lastSection = 'klipy';
+    });
   }
 
   /// Centres strip button [index] — jumping there when the panel opens on a
@@ -1237,14 +1272,19 @@ class _StickersTabState extends State<_StickersTab> {
           body = StickerPackStore(
             onOpenPack: _select,
             onSearchFocusChanged: widget.onSearchFocusChanged,
+            onOpenKlipy: klipy == null ? null : _openKlipy,
           );
         } else if (section == 'klipy' && klipy != null) {
           body = _KlipyBrowser(
-            key: const ValueKey('klipy-stickers'),
+            // Keyed by the query it opened on, so choosing another category
+            // from the store starts a fresh search rather than keeping the
+            // last one.
+            key: ValueKey('klipy-stickers-$_klipyQuery'),
             kind: ExpressionKind.sticker,
             klipy: klipy,
             onSend: widget.onSend,
             onSearchFocusChanged: widget.onSearchFocusChanged,
+            initialQuery: _klipyQuery,
           );
         } else if (section == 'recent') {
           body = _StickerGrid(items: recents, onSend: widget.onSend);
@@ -1755,6 +1795,13 @@ class ExpressionPanelController extends ChangeNotifier {
   void setSearching(bool v) {
     if (_searching == v) return;
     _searching = v;
+    // Putting the search keyboard away is asking for room to look at the
+    // results, so the panel opens up rather than dropping back to half height.
+    // A send brings it down again ([noteSent]).
+    if (!v && _open && !_closing) {
+      _expanded = true;
+      _dragHeight = null;
+    }
     notifyListeners();
   }
 }

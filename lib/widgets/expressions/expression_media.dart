@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -10,6 +11,7 @@ import 'package:lottie/lottie.dart';
 
 import '../../backend/chat_api.dart';
 import '../../data/settings_store.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../media/file_url_cache.dart';
 import '../../models/enums.dart';
 import '../../models/expression_item.dart';
@@ -60,6 +62,38 @@ Widget? expressionThumbnail({
     );
   }
   return null;
+}
+
+/// Puts a search field's keyboard away without clearing the search — shown at
+/// the end of the field while it has the keyboard.
+///
+/// iOS's keyboard has no dismiss key, and a search keyboard over a half-height
+/// panel leaves room for barely a row of results; this and scrolling the
+/// results are the two ways out. The panel opens up when the keyboard goes
+/// (see `ExpressionPanelController.setSearching`).
+class HideKeyboardButton extends StatelessWidget {
+  const HideKeyboardButton({super.key, required this.focus});
+
+  final FocusNode focus;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final label = AppLocalizations.of(context).expressionHideKeyboard;
+    return Semantics(
+      button: true,
+      label: label,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: focus.unfocus,
+        child: Padding(
+          padding: const EdgeInsetsDirectional.only(start: 10),
+          child: Icon(CupertinoIcons.keyboard_chevron_compact_down,
+              size: 18, color: theme.inkMuted),
+        ),
+      ),
+    );
+  }
 }
 
 /// A translucent placeholder the size of the tile it stands in for.
