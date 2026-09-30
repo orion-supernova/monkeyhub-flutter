@@ -2530,5 +2530,7 @@
   "expressionPackAddedToast": "« {title} » ajouté à tes stickers",
   "expressionPacksFromKlipy": "Plus de stickers sur KLIPY",
   "expressionSearchKlipyFor": "Chercher « {query} » sur KLIPY",
-  "expressionHideKeyboard": "Masquer le clavier"
+  "expressionHideKeyboard": "Masquer le clavier",
+  "expressionSearchStickers": "Rechercher des stickers",
+  "expressionYourStickers": "Vos stickers"
 }

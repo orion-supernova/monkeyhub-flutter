@@ -8795,4 +8795,10 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get expressionHideKeyboard => '키보드 숨기기';
+
+  @override
+  String get expressionSearchStickers => '스티커 검색';
+
+  @override
+  String get expressionYourStickers => '내 스티커';
 }

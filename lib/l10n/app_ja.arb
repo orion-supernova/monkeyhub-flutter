@@ -2530,5 +2530,7 @@
   "expressionPackAddedToast": "「{title}」をスタンプに追加しました",
   "expressionPacksFromKlipy": "KLIPYのスタンプをもっと見る",
   "expressionSearchKlipyFor": "KLIPYで「{query}」を検索",
-  "expressionHideKeyboard": "キーボードを閉じる"
+  "expressionHideKeyboard": "キーボードを閉じる",
+  "expressionSearchStickers": "スタンプを検索",
+  "expressionYourStickers": "あなたのスタンプ"
 }

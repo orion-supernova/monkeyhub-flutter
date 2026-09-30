@@ -2530,5 +2530,7 @@
   "expressionPackAddedToast": "‘{title}’ 팩을 스티커에 추가했어요",
   "expressionPacksFromKlipy": "KLIPY 스티커 더 보기",
   "expressionSearchKlipyFor": "KLIPY에서 ‘{query}’ 검색",
-  "expressionHideKeyboard": "키보드 숨기기"
+  "expressionHideKeyboard": "키보드 숨기기",
+  "expressionSearchStickers": "스티커 검색",
+  "expressionYourStickers": "내 스티커"
 }

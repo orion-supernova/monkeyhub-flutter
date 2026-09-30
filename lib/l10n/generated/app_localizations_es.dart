@@ -9223,4 +9223,10 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get expressionHideKeyboard => 'Ocultar teclado';
+
+  @override
+  String get expressionSearchStickers => 'Buscar stickers';
+
+  @override
+  String get expressionYourStickers => 'Tus stickers';
 }

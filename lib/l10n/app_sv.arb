@@ -2530,5 +2530,7 @@
   "expressionPackAddedToast": "”{title}” har lagts till i dina klistermärken",
   "expressionPacksFromKlipy": "Fler klistermärken från KLIPY",
   "expressionSearchKlipyFor": "Sök ”{query}” på KLIPY",
-  "expressionHideKeyboard": "Dölj tangentbordet"
+  "expressionHideKeyboard": "Dölj tangentbordet",
+  "expressionSearchStickers": "Sök klistermärken",
+  "expressionYourStickers": "Dina klistermärken"
 }

@@ -8676,4 +8676,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get expressionHideKeyboard => '隐藏键盘';
+
+  @override
+  String get expressionSearchStickers => '搜索贴纸';
+
+  @override
+  String get expressionYourStickers => '你的贴纸';
 }

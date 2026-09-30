@@ -10471,5 +10471,13 @@
   "expressionHideKeyboard": "Hide keyboard",
   "@expressionHideKeyboard": {
     "description": "Screen-reader label of the button in a GIF/sticker search field that puts the keyboard away without clearing the search."
+  },
+  "expressionSearchStickers": "Search stickers",
+  "@expressionSearchStickers": {
+    "description": "Placeholder of the Stickers tab search, which searches the viewer's sticker packs and KLIPY stickers together."
+  },
+  "expressionYourStickers": "Your stickers",
+  "@expressionYourStickers": {
+    "description": "Heading over sticker search results from the packs the viewer has added."
   }
 }

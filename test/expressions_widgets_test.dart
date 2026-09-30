@@ -14,6 +14,7 @@ import 'package:monkeyhub/widgets/expressions/expression_bubble.dart';
 import 'package:monkeyhub/widgets/expressions/expression_media.dart';
 import 'package:monkeyhub/widgets/expressions/expression_panel.dart';
 import 'package:monkeyhub/widgets/expressions/sticker_pack_store.dart';
+import 'package:monkeyhub/widgets/expressions/sticker_search.dart';
 import 'package:monkeyhub/widgets/expressions/sticker_suggestions.dart';
 
 /// The GIF/sticker surfaces a user touches: the composer's smiley, the panel's
@@ -271,9 +272,14 @@ void main() {
             height: 320,
           ),
         ));
+    // The strip's list — not the search field's text, which scrolls
+    // sideways too.
     ScrollPosition strip() => tester
-        .state<ScrollableState>(find.byWidgetPredicate((w) =>
-            w is Scrollable && w.axisDirection == AxisDirection.right))
+        .state<ScrollableState>(find.descendant(
+          of: find.byWidgetPredicate(
+              (w) => w is ListView && w.scrollDirection == Axis.horizontal),
+          matching: find.byType(Scrollable),
+        ).first)
         .position;
 
     await tester.pumpWidget(panel());
@@ -375,6 +381,56 @@ void main() {
       store.reorderInstalled(['food', 'wild', 'moods']);
       expect(store.packs.map((p) => p.id), ['food', 'wild', 'moods']);
       expect(store.catalog.length, 3, reason: 'the catalog never shrinks');
+    });
+
+    test('sticker search finds stickers by typed emoji and keywords', () {
+      final all = [wild, food, moods];
+      expect(matchStickers(all, '🐶').map((s) => s.id), ['w1']);
+      expect(
+        matchStickers(all, 'pizza', emojiHits: {'🍕'}).map((s) => s.id),
+        ['f1'],
+      );
+      expect(matchStickers(all, ''), isEmpty);
+      expect(matchStickers(all, 'zzz'), isEmpty);
+    });
+
+    testWidgets('the Stickers tab searches added packs first, then the rest',
+        (tester) async {
+      final store = ExpressionStore.instance
+        ..debugSeed(packs: [wild, food, moods]);
+      await store.setInstalled(food, false);
+      ExpressionItem? sent;
+      await tester.pumpWidget(host(ExpressionPanel(
+        composer: TextEditingController(),
+        onSend: (item, {query}) => sent = item,
+        height: 420,
+      )));
+      await tester.tap(find.text('Stickers'));
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+      expect(find.byTooltip('Sticker packs'), findsOneWidget);
+
+      await tester.enterText(
+          find.widgetWithText(TextField, 'Search stickers'), '🐶');
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+      // The strip gives way to the results.
+      expect(find.byTooltip('Sticker packs'), findsNothing);
+      expect(find.text('Your stickers'.toUpperCase()), findsOneWidget);
+      expect(find.text('More packs'.toUpperCase()), findsNothing);
+
+      // Food is not added: its pizza turns up under "More packs", and sends.
+      await tester.enterText(find.byType(TextField), '🍕');
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+      expect(find.text('Your stickers'.toUpperCase()), findsNothing);
+      expect(find.text('More packs'.toUpperCase()), findsOneWidget);
+      await tester.tap(find.byType(StickerArt));
+      expect(sent?.stickerId, 'f1');
+
+      // Clearing the query brings the strip back.
+      await tester.enterText(find.byType(TextField), '');
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+      expect(find.byTooltip('Sticker packs'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 1));
     });
 
     testWidgets('adding a pack in the store lands you in it', (tester) async {

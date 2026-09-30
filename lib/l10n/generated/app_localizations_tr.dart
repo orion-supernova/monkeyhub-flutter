@@ -9089,4 +9089,10 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get expressionHideKeyboard => 'Klavyeyi gizle';
+
+  @override
+  String get expressionSearchStickers => 'Çıkartma ara';
+
+  @override
+  String get expressionYourStickers => 'Çıkartmaların';
 }

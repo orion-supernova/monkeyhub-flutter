@@ -9299,4 +9299,10 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get expressionHideKeyboard => 'إخفاء لوحة المفاتيح';
+
+  @override
+  String get expressionSearchStickers => 'ابحث في الملصقات';
+
+  @override
+  String get expressionYourStickers => 'ملصقاتك';
 }

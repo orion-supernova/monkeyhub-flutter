@@ -2530,5 +2530,7 @@
   "expressionPackAddedToast": "“{title}” çıkartmalarına eklendi",
   "expressionPacksFromKlipy": "KLIPY’den daha fazla çıkartma",
   "expressionSearchKlipyFor": "KLIPY’de “{query}” ara",
-  "expressionHideKeyboard": "Klavyeyi gizle"
+  "expressionHideKeyboard": "Klavyeyi gizle",
+  "expressionSearchStickers": "Çıkartma ara",
+  "expressionYourStickers": "Çıkartmaların"
 }

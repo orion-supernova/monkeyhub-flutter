@@ -2530,5 +2530,7 @@
   "expressionPackAddedToast": "أُضيفت «{title}» إلى ملصقاتك",
   "expressionPacksFromKlipy": "مزيد من الملصقات من KLIPY",
   "expressionSearchKlipyFor": "ابحث عن «{query}» في KLIPY",
-  "expressionHideKeyboard": "إخفاء لوحة المفاتيح"
+  "expressionHideKeyboard": "إخفاء لوحة المفاتيح",
+  "expressionSearchStickers": "ابحث في الملصقات",
+  "expressionYourStickers": "ملصقاتك"
 }

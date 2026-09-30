@@ -9234,6 +9234,12 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get expressionHideKeyboard => 'Ocultar teclado';
+
+  @override
+  String get expressionSearchStickers => 'Pesquisar stickers';
+
+  @override
+  String get expressionYourStickers => 'Os seus stickers';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -18462,4 +18468,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get expressionHideKeyboard => 'Ocultar teclado';
+
+  @override
+  String get expressionSearchStickers => 'Buscar figurinhas';
+
+  @override
+  String get expressionYourStickers => 'Suas figurinhas';
 }

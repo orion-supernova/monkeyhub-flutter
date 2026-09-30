@@ -15342,6 +15342,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hide keyboard'**
   String get expressionHideKeyboard;
+
+  /// Placeholder of the Stickers tab search, which searches the viewer's sticker packs and KLIPY stickers together.
+  ///
+  /// In en, this message translates to:
+  /// **'Search stickers'**
+  String get expressionSearchStickers;
+
+  /// Heading over sticker search results from the packs the viewer has added.
+  ///
+  /// In en, this message translates to:
+  /// **'Your stickers'**
+  String get expressionYourStickers;
 }
 
 class _AppLocalizationsDelegate

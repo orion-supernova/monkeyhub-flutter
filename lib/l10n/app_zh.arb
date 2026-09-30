@@ -2530,5 +2530,7 @@
   "expressionPackAddedToast": "已将“{title}”添加到你的贴纸",
   "expressionPacksFromKlipy": "更多来自 KLIPY 的贴纸",
   "expressionSearchKlipyFor": "在 KLIPY 上搜索“{query}”",
-  "expressionHideKeyboard": "隐藏键盘"
+  "expressionHideKeyboard": "隐藏键盘",
+  "expressionSearchStickers": "搜索贴纸",
+  "expressionYourStickers": "你的贴纸"
 }

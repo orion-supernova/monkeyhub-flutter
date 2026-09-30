@@ -9139,4 +9139,10 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get expressionHideKeyboard => 'कीबोर्ड छिपाएँ';
+
+  @override
+  String get expressionSearchStickers => 'स्टिकर खोजें';
+
+  @override
+  String get expressionYourStickers => 'आपके स्टिकर';
 }

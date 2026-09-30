@@ -24,6 +24,7 @@ import 'expression_sheet.dart';
 import 'klipy_ad_tile.dart';
 import 'klipy_attribution.dart';
 import 'sticker_pack_store.dart';
+import 'sticker_search.dart';
 
 /// The composer's expression panel — emoji, GIFs and stickers — shown in place
 /// of the keyboard.
@@ -747,6 +748,15 @@ class _KlipyBrowserState extends State<_KlipyBrowser> {
               children: [
                 Icon(CupertinoIcons.search, size: 15, color: theme.inkMuted),
                 const SizedBox(width: 8),
+                // Which of KLIPY's catalogues this box searches. The
+                // placeholder itself has to stay "Search KLIPY", so the
+                // scope goes beside it.
+                _ScopeTag(
+                  label: _isSticker
+                      ? l10n.expressionTabStickers
+                      : l10n.expressionTabGifs,
+                ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: TextField(
                     controller: _query,
@@ -953,6 +963,28 @@ class _KlipyBrowserState extends State<_KlipyBrowser> {
   }
 }
 
+/// A small label at the start of a search field naming what it searches.
+class _ScopeTag extends StatelessWidget {
+  const _ScopeTag({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: theme.accentSoft,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(label,
+          style: theme.caption.copyWith(
+              color: theme.accent, fontWeight: FontWeight.w600)),
+    );
+  }
+}
+
 class _Chip extends StatelessWidget {
   const _Chip({
     required this.label,
@@ -1153,9 +1185,38 @@ class _StickersTabState extends State<_StickersTab> {
   static const double _stripItemExtent = 44;
   static const double _stripPadding = 8;
 
+  /// The tab's own search: our stickers and KLIPY's, together.
+  final TextEditingController _search = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
+
+  /// What was last reported to the panel — see [StickerPackStore]'s
+  /// identical field for why it is tracked rather than read at dispose.
+  bool _reportedFocus = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchFocus.addListener(() {
+      if (_searchFocus.hasFocus != _reportedFocus) {
+        _reportedFocus = _searchFocus.hasFocus;
+        widget.onSearchFocusChanged?.call(_reportedFocus);
+      }
+      // The hide-keyboard button comes and goes with the focus.
+      if (mounted) setState(() {});
+    });
+  }
+
   @override
   void dispose() {
+    // Leaving the tab mid-search must not strand the panel at its search
+    // height; after the frame, as the tree is being torn down.
+    final report = widget.onSearchFocusChanged;
+    if (_reportedFocus && report != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => report(false));
+    }
     _strip.dispose();
+    _search.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -1175,6 +1236,8 @@ class _StickersTabState extends State<_StickersTab> {
 
   void _openKlipy(String query) {
     HapticFeedback.selectionClick();
+    _searchFocus.unfocus();
+    _search.clear();
     setState(() {
       _klipyQuery = query;
       _section = _lastSection = 'klipy';
@@ -1309,8 +1372,35 @@ class _StickersTabState extends State<_StickersTab> {
           );
         }
 
+        // The KLIPY browser and the pack store bring search fields of their
+        // own; everywhere else the tab's search sits on top.
+        final searching = _search.text.trim().isNotEmpty;
+        final showSearch =
+            searching || (section != 'klipy' && section != '_store');
+        final field = StickerSearchField(
+          controller: _search,
+          focus: _searchFocus,
+          onChanged: (_) => setState(() {}),
+        );
+        if (searching) {
+          return Column(
+            children: [
+              field,
+              Expanded(
+                child: StickerSearchResults(
+                  query: _search.text,
+                  onSend: widget.onSend,
+                  onOpenKlipy: klipy == null ? null : _openKlipy,
+                  onPicked: _searchFocus.unfocus,
+                ),
+              ),
+            ],
+          );
+        }
+
         return Column(
           children: [
+            if (showSearch) field,
             SizedBox(
               height: 44,
               child: ListView(

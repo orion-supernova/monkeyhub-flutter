@@ -2530,5 +2530,7 @@
   "expressionPackAddedToast": "“{title}” adicionado às suas figurinhas",
   "expressionPacksFromKlipy": "Mais figurinhas do KLIPY",
   "expressionSearchKlipyFor": "Buscar “{query}” no KLIPY",
-  "expressionHideKeyboard": "Ocultar teclado"
+  "expressionHideKeyboard": "Ocultar teclado",
+  "expressionSearchStickers": "Buscar figurinhas",
+  "expressionYourStickers": "Suas figurinhas"
 }

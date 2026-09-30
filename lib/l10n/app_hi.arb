@@ -2530,5 +2530,7 @@
   "expressionPackAddedToast": "“{title}” स्टिकर में जोड़ दिया गया",
   "expressionPacksFromKlipy": "KLIPY से और स्टिकर",
   "expressionSearchKlipyFor": "KLIPY पर “{query}” खोजें",
-  "expressionHideKeyboard": "कीबोर्ड छिपाएँ"
+  "expressionHideKeyboard": "कीबोर्ड छिपाएँ",
+  "expressionSearchStickers": "स्टिकर खोजें",
+  "expressionYourStickers": "आपके स्टिकर"
 }

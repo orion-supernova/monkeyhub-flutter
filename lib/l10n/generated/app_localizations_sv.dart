@@ -9159,4 +9159,10 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get expressionHideKeyboard => 'Dölj tangentbordet';
+
+  @override
+  String get expressionSearchStickers => 'Sök klistermärken';
+
+  @override
+  String get expressionYourStickers => 'Dina klistermärken';
 }

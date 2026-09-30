@@ -8772,4 +8772,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get expressionHideKeyboard => 'キーボードを閉じる';
+
+  @override
+  String get expressionSearchStickers => 'スタンプを検索';
+
+  @override
+  String get expressionYourStickers => 'あなたのスタンプ';
 }

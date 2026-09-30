@@ -9274,4 +9274,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get expressionHideKeyboard => 'Masquer le clavier';
+
+  @override
+  String get expressionSearchStickers => 'Rechercher des stickers';
+
+  @override
+  String get expressionYourStickers => 'Vos stickers';
 }
