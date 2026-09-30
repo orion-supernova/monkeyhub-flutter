@@ -8735,4 +8735,53 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get expressionCollapsePanel => '패널 접기';
+
+  @override
+  String get expressionPackStore => '스티커 팩';
+
+  @override
+  String get expressionPackSearchHint => '스티커 팩 검색';
+
+  @override
+  String get expressionPacksAdded => '추가됨';
+
+  @override
+  String get expressionPacksMore => '더 많은 팩';
+
+  @override
+  String get expressionPackAdd => '추가';
+
+  @override
+  String get expressionPackRemove => '삭제';
+
+  @override
+  String expressionPackStickerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '스티커 $count개',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get expressionNoPacksFound => '일치하는 팩이 없어요';
+
+  @override
+  String get expressionAllPacksAdded => '모든 팩을 추가했어요.';
+
+  @override
+  String expressionPackReorder(String title) {
+    return '$title 순서 변경';
+  }
+
+  @override
+  String expressionAddPackFromSticker(String title) {
+    return '‘$title’ 팩 추가';
+  }
+
+  @override
+  String expressionPackAddedToast(String title) {
+    return '‘$title’ 팩을 스티커에 추가했어요';
+  }
 }

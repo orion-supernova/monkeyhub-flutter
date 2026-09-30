@@ -35,13 +35,36 @@ class ExpressionStore extends ChangeNotifier {
   /// rather than broken. Also null until [attach]'s config call returns.
   KlipyClient? get klipy => _klipy;
 
-  List<StickerPack> _packs = const [];
-  List<StickerPack> get packs => _packs;
+  /// Every pack: the official catalog in its order, plus the viewer's own.
+  List<StickerPack> _catalog = const [];
 
-  /// Whether the packs subscription has answered once. Distinguishes "no packs
-  /// on this server" from "not loaded yet" — see `PendingPlaceholder`.
-  bool _packsLoaded = false;
-  bool get packsLoaded => _packsLoaded;
+  /// The official packs the viewer has added, in their order. Null until the
+  /// state subscription answers — the strip waits for it rather than flashing
+  /// the whole catalog and then shrinking.
+  List<String>? _installedIds;
+
+  /// The whole catalog, for the pack store.
+  List<StickerPack> get catalog => _catalog;
+
+  /// The strip: the viewer's own pack first, then the packs they have added,
+  /// in their order.
+  List<StickerPack> get packs {
+    final ids = _installedIds;
+    if (ids == null) return const [];
+    final byId = {for (final p in _catalog) p.id: p};
+    return [
+      ?personalPack,
+      for (final id in ids)
+        if (byId[id] case final p? when !p.personal) p,
+    ];
+  }
+
+  bool isInstalled(String packId) => _installedIds?.contains(packId) ?? false;
+
+  /// Whether both the catalog and the viewer's choices have answered once.
+  /// Distinguishes "no packs" from "not loaded yet" — see `PendingPlaceholder`.
+  bool _catalogLoaded = false;
+  bool get packsLoaded => _catalogLoaded && _installedIds != null;
 
   List<ExpressionItem> _recents = const [];
   List<ExpressionItem> _favorites = const [];
@@ -53,7 +76,7 @@ class ExpressionStore extends ChangeNotifier {
 
   /// The signed-in user's own personal pack, if they have made a sticker.
   StickerPack? get personalPack {
-    for (final p in _packs) {
+    for (final p in _catalog) {
       if (p.personal) return p;
     }
     return null;
@@ -62,13 +85,45 @@ class ExpressionStore extends ChangeNotifier {
   bool isFavorite(ExpressionItem item) =>
       _favorites.any((f) => f.sameAs(item));
 
-  /// The pack [stickerId] belongs to, if it is one the viewer can see.
+  /// The pack [stickerId] belongs to, added or not — the sticker sheet offers
+  /// to add the pack of a sticker somebody else sent.
   StickerPack? packOf(String? stickerId) {
     if (stickerId == null) return null;
-    for (final p in _packs) {
+    for (final p in _catalog) {
       if (p.stickers.any((s) => s.id == stickerId)) return p;
     }
     return null;
+  }
+
+  /// Adds an official pack to the strip (at the end) or takes it off.
+  ///
+  /// Optimistic, like [noteUsed]: the store's buttons flip on the tap, and the
+  /// subscription confirms a moment later. A refusal puts the list back.
+  Future<void> setInstalled(StickerPack pack, bool installed) async {
+    if (pack.personal) return;
+    final before = _installedIds ?? const <String>[];
+    final without = before.where((id) => id != pack.id).toList();
+    _installedIds = installed ? [...without, pack.id] : without;
+    notifyListeners();
+    try {
+      await _api?.setStickerPackInstalled(pack.id, installed);
+    } catch (e) {
+      _installedIds = before;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  /// Puts the added packs in [ids]' order — the store's drag handle.
+  void reorderInstalled(List<String> ids) {
+    final before = _installedIds;
+    _installedIds = ids;
+    notifyListeners();
+    unawaited(_api?.reorderStickerPacks(ids).catchError((Object e) {
+      debugPrint('[expressions] reorder failed: $e');
+      _installedIds = before;
+      notifyListeners();
+    }));
   }
 
   /// Removes one of the viewer's own stickers. The subscription drops it from
@@ -98,14 +153,15 @@ class ExpressionStore extends ChangeNotifier {
     try {
       _packsSub = await api.subscribeStickerPacks(onPacks: (packs) {
         if (_userId != userId) return;
-        _packs = packs;
-        _packsLoaded = true;
+        _catalog = packs;
+        _catalogLoaded = true;
         notifyListeners();
       });
-      _stateSub = await api.subscribeExpressionState(onState: (r, f) {
+      _stateSub = await api.subscribeExpressionState(onState: (r, f, ids) {
         if (_userId != userId) return;
         _recents = r;
         _favorites = f;
+        _installedIds = ids;
         _stateLoaded = true;
         notifyListeners();
       });
@@ -146,10 +202,11 @@ class ExpressionStore extends ChangeNotifier {
     _api = null;
     _klipy?.close();
     _klipy = null;
-    _packs = const [];
+    _catalog = const [];
+    _installedIds = null;
     _recents = const [];
     _favorites = const [];
-    _packsLoaded = false;
+    _catalogLoaded = false;
     _stateLoaded = false;
     try {
       packs?.cancel();
@@ -201,14 +258,16 @@ class ExpressionStore extends ChangeNotifier {
     }));
   }
 
-  /// Every official and personal sticker standing for [emoji], for the
-  /// suggestions strip. Variation selectors are ignored on both sides so "❤"
-  /// typed without one still finds "❤️".
+  /// Every sticker in the viewer's strip — their own pack and the packs they
+  /// have added — standing for [emoji], for the suggestions strip. Packs they
+  /// have not added stay out: suggesting from the whole catalog would undo
+  /// their choice. Variation selectors are ignored on both sides so "❤" typed
+  /// without one still finds "❤️".
   List<PackSticker> stickersFor(String emoji) {
     final want = _bare(emoji);
     if (want.isEmpty) return const [];
     return [
-      for (final p in _packs)
+      for (final p in packs)
         if (!p.personal || canUseOutsideMedia)
           for (final s in p.stickers)
             if (_bare(s.emoji) == want) s,
@@ -224,9 +283,12 @@ class ExpressionStore extends ChangeNotifier {
     List<ExpressionItem>? favorites,
     KlipyClient? klipy,
   }) {
+    // Seeded packs are all "added", so a test sees them in the strip without
+    // also seeding the viewer's choices.
     if (packs != null) {
-      _packs = packs;
-      _packsLoaded = true;
+      _catalog = packs;
+      _catalogLoaded = true;
+      _installedIds = [for (final p in packs) if (!p.personal) p.id];
     }
     if (recents != null) _recents = recents;
     if (favorites != null) _favorites = favorites;

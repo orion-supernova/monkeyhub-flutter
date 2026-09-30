@@ -2515,5 +2515,17 @@
   "stickerMakerTitle": "Nytt klistermärke",
   "stickerMakerTooMany": "Du har nått gränsen för klistermärken. Ta bort ett för att göra plats.",
   "expressionExpandPanel": "Expandera panelen",
-  "expressionCollapsePanel": "Minska panelen"
+  "expressionCollapsePanel": "Minska panelen",
+  "expressionPackStore": "Klistermärkespaket",
+  "expressionPackSearchHint": "Sök klistermärkespaket",
+  "expressionPacksAdded": "Tillagda",
+  "expressionPacksMore": "Fler paket",
+  "expressionPackAdd": "Lägg till",
+  "expressionPackRemove": "Ta bort",
+  "expressionPackStickerCount": "{count, plural, one{1 klistermärke} other{{count} klistermärken}}",
+  "expressionNoPacksFound": "Inga paket matchar",
+  "expressionAllPacksAdded": "Du har lagt till alla paket.",
+  "expressionPackReorder": "Ändra ordning på {title}",
+  "expressionAddPackFromSticker": "Lägg till paketet ”{title}”",
+  "expressionPackAddedToast": "”{title}” har lagts till i dina klistermärken"
 }

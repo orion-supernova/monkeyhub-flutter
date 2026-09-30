@@ -2515,5 +2515,17 @@
   "stickerMakerTitle": "ملصق جديد",
   "stickerMakerTooMany": "وصلت إلى الحد الأقصى للملصقات. احذف واحدًا لتفريغ مساحة.",
   "expressionExpandPanel": "توسيع اللوحة",
-  "expressionCollapsePanel": "تصغير اللوحة"
+  "expressionCollapsePanel": "تصغير اللوحة",
+  "expressionPackStore": "حزم الملصقات",
+  "expressionPackSearchHint": "ابحث في حزم الملصقات",
+  "expressionPacksAdded": "المُضافة",
+  "expressionPacksMore": "حزم أخرى",
+  "expressionPackAdd": "إضافة",
+  "expressionPackRemove": "إزالة",
+  "expressionPackStickerCount": "{count, plural, zero{لا ملصقات} one{ملصق واحد} two{ملصقان} few{{count} ملصقات} many{{count} ملصقًا} other{{count} ملصق}}",
+  "expressionNoPacksFound": "لا توجد حزم مطابقة",
+  "expressionAllPacksAdded": "أضفت كل الحزم.",
+  "expressionPackReorder": "إعادة ترتيب {title}",
+  "expressionAddPackFromSticker": "أضف حزمة «{title}»",
+  "expressionPackAddedToast": "أُضيفت «{title}» إلى ملصقاتك"
 }

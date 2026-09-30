@@ -2515,5 +2515,17 @@
   "stickerMakerTitle": "नया स्टिकर",
   "stickerMakerTooMany": "आप स्टिकर की सीमा तक पहुँच गए हैं। जगह बनाने के लिए एक हटाएँ।",
   "expressionExpandPanel": "पैनल बड़ा करें",
-  "expressionCollapsePanel": "पैनल छोटा करें"
+  "expressionCollapsePanel": "पैनल छोटा करें",
+  "expressionPackStore": "स्टिकर पैक",
+  "expressionPackSearchHint": "स्टिकर पैक खोजें",
+  "expressionPacksAdded": "जोड़े गए",
+  "expressionPacksMore": "और पैक",
+  "expressionPackAdd": "जोड़ें",
+  "expressionPackRemove": "हटाएँ",
+  "expressionPackStickerCount": "{count, plural, one{1 स्टिकर} other{{count} स्टिकर}}",
+  "expressionNoPacksFound": "कोई पैक नहीं मिला",
+  "expressionAllPacksAdded": "सारे पैक जोड़े जा चुके हैं।",
+  "expressionPackReorder": "{title} का क्रम बदलें",
+  "expressionAddPackFromSticker": "“{title}” पैक जोड़ें",
+  "expressionPackAddedToast": "“{title}” स्टिकर में जोड़ दिया गया"
 }

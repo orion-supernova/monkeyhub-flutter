@@ -126,7 +126,7 @@ class _Strip extends StatelessWidget {
 
   /// A pack sticker's URL, when its pack is loaded — saves resolving it again.
   static String? _urlFor(ExpressionItem item) {
-    for (final p in ExpressionStore.instance.packs) {
+    for (final p in ExpressionStore.instance.catalog) {
       for (final s in p.stickers) {
         if (s.id == item.stickerId) return s.url;
       }

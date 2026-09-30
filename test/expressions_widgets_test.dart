@@ -12,6 +12,7 @@ import 'package:monkeyhub/widgets/chat_composer.dart';
 import 'package:monkeyhub/widgets/expressions/expression_bubble.dart';
 import 'package:monkeyhub/widgets/expressions/expression_media.dart';
 import 'package:monkeyhub/widgets/expressions/expression_panel.dart';
+import 'package:monkeyhub/widgets/expressions/sticker_pack_store.dart';
 import 'package:monkeyhub/widgets/expressions/sticker_suggestions.dart';
 
 /// The GIF/sticker surfaces a user touches: the composer's smiley, the panel's
@@ -317,6 +318,106 @@ void main() {
     expect(mine.left, lessThan(moods.left));
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 1));
+  });
+
+  group('pack store', () {
+    PackSticker st(String id, String emoji) => PackSticker(
+          id: id,
+          storageId: 'b$id',
+          url: 'https://example.invalid/$id.png',
+          format: StickerFormat.image,
+          emoji: emoji,
+          width: 512,
+          height: 512,
+          personal: false,
+        );
+    StickerPack pk(String id, String title, List<PackSticker> s) =>
+        StickerPack(id: id, slug: id, title: title, personal: false, stickers: s);
+
+    final wild = pk('wild', 'Wild', [st('w1', '🐶'), st('w2', '🦊')]);
+    final food = pk('food', 'Food & drink', [st('f1', '🍕')]);
+    final moods = pk('moods', 'Moods', [st('m1', '😂')]);
+
+    test('search finds packs by name, typed emoji, and emoji keywords', () {
+      final all = [wild, food, moods];
+      expect(matchPacks(all, 'foo').map((p) => p.id), ['food']);
+      expect(matchPacks(all, '🐶').map((p) => p.id), ['wild']);
+      // What the localized emoji index returns for "dog".
+      expect(
+        matchPacks(all, 'dog', emojiHits: {'🐶'}).map((p) => p.id),
+        ['wild'],
+      );
+      expect(matchPacks(all, '').length, 3);
+      expect(matchPacks(all, 'zzz'), isEmpty);
+    });
+
+    test('adding, removing and reordering change the strip', () async {
+      final store = ExpressionStore.instance
+        ..debugSeed(packs: [wild, food, moods]);
+      await store.setInstalled(food, false);
+      expect(store.packs.map((p) => p.id), ['wild', 'moods']);
+      await store.setInstalled(food, true);
+      expect(store.packs.map((p) => p.id), ['wild', 'moods', 'food']);
+      store.reorderInstalled(['food', 'wild', 'moods']);
+      expect(store.packs.map((p) => p.id), ['food', 'wild', 'moods']);
+      expect(store.catalog.length, 3, reason: 'the catalog never shrinks');
+    });
+
+    testWidgets('adding a pack in the store lands you in it', (tester) async {
+      final store = ExpressionStore.instance
+        ..debugSeed(packs: [wild, food, moods]);
+      await store.setInstalled(food, false);
+      await tester.pumpWidget(host(ExpressionPanel(
+        composer: TextEditingController(),
+        onSend: (_, {query}) {},
+        height: 420,
+      )));
+      await tester.tap(find.text('Stickers'));
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+      await tester.tap(find.byTooltip('Sticker packs'));
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+      expect(find.text('More packs'.toUpperCase()), findsOneWidget);
+      await tester.ensureVisible(find.text('Add'));
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+      await tester.tap(find.text('Add'));
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+      expect(store.isInstalled('food'), isTrue);
+      // Straight to the pack just added: its grid's credit line is showing.
+      expect(find.textContaining('Food & drink'), findsWidgets);
+      expect(find.text('More packs'.toUpperCase()), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 1));
+    });
+
+    testWidgets('switching packs starts the new one at the top',
+        (tester) async {
+      final big = [for (var i = 0; i < 40; i++) st('a$i', '😀')];
+      final tall = pk('tall', 'Tall', big);
+      final other = pk('other', 'Other', [
+        for (var i = 0; i < 40; i++) st('b$i', '😎'),
+      ]);
+      ExpressionStore.instance.debugSeed(packs: [tall, other]);
+      await tester.pumpWidget(host(ExpressionPanel(
+        composer: TextEditingController(),
+        onSend: (_, {query}) {},
+        height: 420,
+      )));
+      await tester.tap(find.text('Stickers'));
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+      await tester.tap(find.byTooltip('Tall'));
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+      ScrollPosition grid() => tester
+          .state<ScrollableState>(find.byWidgetPredicate((w) =>
+              w is Scrollable && w.axisDirection == AxisDirection.down))
+          .position;
+      grid().jumpTo(300);
+      await tester.pump();
+      await tester.tap(find.byTooltip('Other'));
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+      expect(grid().pixels, 0);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 1));
+    });
   });
 
   group('sticker suggestions', () {

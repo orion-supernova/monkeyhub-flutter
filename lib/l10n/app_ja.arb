@@ -2515,5 +2515,17 @@
   "stickerMakerTitle": "新しいスタンプ",
   "stickerMakerTooMany": "スタンプの上限に達しました。1つ削除して空きを作ってください。",
   "expressionExpandPanel": "パネルを広げる",
-  "expressionCollapsePanel": "パネルを縮める"
+  "expressionCollapsePanel": "パネルを縮める",
+  "expressionPackStore": "スタンプパック",
+  "expressionPackSearchHint": "スタンプパックを検索",
+  "expressionPacksAdded": "追加済み",
+  "expressionPacksMore": "その他のパック",
+  "expressionPackAdd": "追加",
+  "expressionPackRemove": "削除",
+  "expressionPackStickerCount": "{count, plural, other{{count}個のスタンプ}}",
+  "expressionNoPacksFound": "該当するパックはありません",
+  "expressionAllPacksAdded": "すべてのパックを追加しました。",
+  "expressionPackReorder": "{title}を並べ替え",
+  "expressionAddPackFromSticker": "「{title}」パックを追加",
+  "expressionPackAddedToast": "「{title}」をスタンプに追加しました"
 }

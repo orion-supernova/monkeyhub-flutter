@@ -23,6 +23,7 @@ import 'expression_media.dart';
 import 'expression_sheet.dart';
 import 'klipy_ad_tile.dart';
 import 'klipy_attribution.dart';
+import 'sticker_pack_store.dart';
 
 /// The composer's expression panel — emoji, GIFs and stickers — shown in place
 /// of the keyboard.
@@ -1179,9 +1180,14 @@ class _StickersTabState extends State<_StickersTab> {
           if (favorites.isNotEmpty) 'favorites',
           for (final p in packs) p.id,
           if (klipy != null) 'klipy',
+          '_store',
         ];
         var section = _section;
-        if (section == null || !keys.contains(section)) {
+        if (!store.packsLoaded) {
+          // Nothing to resolve against yet: the skeleton below, not the store
+          // or a first pack that is about to be replaced.
+          section = null;
+        } else if (section == null || !keys.contains(section)) {
           section = keys.isEmpty ? null : keys.first;
         }
 
@@ -1195,6 +1201,7 @@ class _StickersTabState extends State<_StickersTab> {
           if (offerCreate) '_create',
           for (final p in packs) p.id,
           if (klipy != null) 'klipy',
+          '_store',
         ];
         if (section != null && section != _revealed) {
           final index = stripOrder.indexOf(section);
@@ -1206,7 +1213,9 @@ class _StickersTabState extends State<_StickersTab> {
         }
 
         Widget body;
-        if (section == 'klipy' && klipy != null) {
+        if (section == '_store') {
+          body = StickerPackStore(onOpenPack: _select);
+        } else if (section == 'klipy' && klipy != null) {
           body = _KlipyBrowser(
             key: const ValueKey('klipy-stickers'),
             kind: ExpressionKind.sticker,
@@ -1295,10 +1304,26 @@ class _StickersTabState extends State<_StickersTab> {
                       child: Icon(CupertinoIcons.search,
                           size: 20, color: theme.inkMuted),
                     ),
+                  // The pack store: find, add, remove and reorder packs.
+                  _StripButton(
+                    selected: section == '_store',
+                    label: l10n.expressionPackStore,
+                    onTap: () => _select('_store'),
+                    child: Icon(CupertinoIcons.square_grid_2x2,
+                        size: 20, color: theme.inkMuted),
+                  ),
                 ],
               ),
             ),
-            Expanded(child: body),
+            // Keyed by section, so every pack opens at its top. Unkeyed, the
+            // grid widget was reused from one pack to the next and kept the
+            // previous pack's scroll position.
+            Expanded(
+              child: KeyedSubtree(
+                key: ValueKey('section-$section'),
+                child: body,
+              ),
+            ),
           ],
         );
       },

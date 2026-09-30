@@ -2515,5 +2515,17 @@
   "stickerMakerTitle": "新贴纸",
   "stickerMakerTooMany": "贴纸数量已达上限。删除一个以腾出空间。",
   "expressionExpandPanel": "展开面板",
-  "expressionCollapsePanel": "收起面板"
+  "expressionCollapsePanel": "收起面板",
+  "expressionPackStore": "贴纸包",
+  "expressionPackSearchHint": "搜索贴纸包",
+  "expressionPacksAdded": "已添加",
+  "expressionPacksMore": "更多贴纸包",
+  "expressionPackAdd": "添加",
+  "expressionPackRemove": "移除",
+  "expressionPackStickerCount": "{count, plural, other{{count} 个贴纸}}",
+  "expressionNoPacksFound": "没有匹配的贴纸包",
+  "expressionAllPacksAdded": "你已添加所有贴纸包。",
+  "expressionPackReorder": "重新排序 {title}",
+  "expressionAddPackFromSticker": "添加“{title}”贴纸包",
+  "expressionPackAddedToast": "已将“{title}”添加到你的贴纸"
 }

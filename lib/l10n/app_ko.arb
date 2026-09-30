@@ -2515,5 +2515,17 @@
   "stickerMakerTitle": "새 스티커",
   "stickerMakerTooMany": "스티커 한도에 도달했어요. 하나를 삭제해 공간을 만드세요.",
   "expressionExpandPanel": "패널 펼치기",
-  "expressionCollapsePanel": "패널 접기"
+  "expressionCollapsePanel": "패널 접기",
+  "expressionPackStore": "스티커 팩",
+  "expressionPackSearchHint": "스티커 팩 검색",
+  "expressionPacksAdded": "추가됨",
+  "expressionPacksMore": "더 많은 팩",
+  "expressionPackAdd": "추가",
+  "expressionPackRemove": "삭제",
+  "expressionPackStickerCount": "{count, plural, other{스티커 {count}개}}",
+  "expressionNoPacksFound": "일치하는 팩이 없어요",
+  "expressionAllPacksAdded": "모든 팩을 추가했어요.",
+  "expressionPackReorder": "{title} 순서 변경",
+  "expressionAddPackFromSticker": "‘{title}’ 팩 추가",
+  "expressionPackAddedToast": "‘{title}’ 팩을 스티커에 추가했어요"
 }

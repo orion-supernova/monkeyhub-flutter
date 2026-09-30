@@ -2953,10 +2953,11 @@ class ChatApi {
     );
   }
 
-  /// The viewer's recent and starred GIFs/stickers, live across devices.
+  /// The viewer's recent and starred GIFs/stickers, and the official packs
+  /// they have added to their strip (in their order), live across devices.
   Future<Subscription> subscribeExpressionState({
-    required void Function(
-            List<ExpressionItem> recents, List<ExpressionItem> favorites)
+    required void Function(List<ExpressionItem> recents,
+            List<ExpressionItem> favorites, List<String> installedPackIds)
         onState,
     void Function(Object error)? onError,
   }) {
@@ -2969,10 +2970,28 @@ class ChatApi {
       const {},
       onData: (raw) {
         final m = (raw as Map?)?.cast<String, dynamic>() ?? const {};
-        onState(parse(m['recents']), parse(m['favorites']));
+        onState(
+          parse(m['recents']),
+          parse(m['favorites']),
+          [
+            for (final id in (m['installedPackIds'] as List? ?? const []))
+              id.toString(),
+          ],
+        );
       },
       onError: onError,
     );
+  }
+
+  /// Adds an official pack to the viewer's strip, or takes it off.
+  Future<void> setStickerPackInstalled(String packId, bool installed) async {
+    await _cv.mutation('expressions:setPackInstalled',
+        {'packId': packId, 'installed': installed});
+  }
+
+  /// Puts the viewer's added packs in [packIds]' order.
+  Future<void> reorderStickerPacks(List<String> packIds) async {
+    await _cv.mutation('expressions:reorderPacks', {'packIds': packIds});
   }
 
   Future<void> recordExpressionUse(ExpressionItem item) async {

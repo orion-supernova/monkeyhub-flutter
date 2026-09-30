@@ -9098,4 +9098,54 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get expressionCollapsePanel => 'Minska panelen';
+
+  @override
+  String get expressionPackStore => 'Klistermärkespaket';
+
+  @override
+  String get expressionPackSearchHint => 'Sök klistermärkespaket';
+
+  @override
+  String get expressionPacksAdded => 'Tillagda';
+
+  @override
+  String get expressionPacksMore => 'Fler paket';
+
+  @override
+  String get expressionPackAdd => 'Lägg till';
+
+  @override
+  String get expressionPackRemove => 'Ta bort';
+
+  @override
+  String expressionPackStickerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count klistermärken',
+      one: '1 klistermärke',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get expressionNoPacksFound => 'Inga paket matchar';
+
+  @override
+  String get expressionAllPacksAdded => 'Du har lagt till alla paket.';
+
+  @override
+  String expressionPackReorder(String title) {
+    return 'Ändra ordning på $title';
+  }
+
+  @override
+  String expressionAddPackFromSticker(String title) {
+    return 'Lägg till paketet ”$title”';
+  }
+
+  @override
+  String expressionPackAddedToast(String title) {
+    return '”$title” har lagts till i dina klistermärken';
+  }
 }

@@ -2515,5 +2515,17 @@
   "stickerMakerTitle": "Nouveau sticker",
   "stickerMakerTooMany": "Tu as atteint la limite de stickers. Supprimes-en un pour faire de la place.",
   "expressionExpandPanel": "Agrandir le panneau",
-  "expressionCollapsePanel": "Réduire le panneau"
+  "expressionCollapsePanel": "Réduire le panneau",
+  "expressionPackStore": "Packs de stickers",
+  "expressionPackSearchHint": "Rechercher des packs",
+  "expressionPacksAdded": "Ajoutés",
+  "expressionPacksMore": "Plus de packs",
+  "expressionPackAdd": "Ajouter",
+  "expressionPackRemove": "Retirer",
+  "expressionPackStickerCount": "{count, plural, one{1 sticker} other{{count} stickers}}",
+  "expressionNoPacksFound": "Aucun pack trouvé",
+  "expressionAllPacksAdded": "Tu as ajouté tous les packs.",
+  "expressionPackReorder": "Réorganiser {title}",
+  "expressionAddPackFromSticker": "Ajouter le pack « {title} »",
+  "expressionPackAddedToast": "« {title} » ajouté à tes stickers"
 }

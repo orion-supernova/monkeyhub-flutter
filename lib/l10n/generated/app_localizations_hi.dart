@@ -9078,4 +9078,54 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get expressionCollapsePanel => 'पैनल छोटा करें';
+
+  @override
+  String get expressionPackStore => 'स्टिकर पैक';
+
+  @override
+  String get expressionPackSearchHint => 'स्टिकर पैक खोजें';
+
+  @override
+  String get expressionPacksAdded => 'जोड़े गए';
+
+  @override
+  String get expressionPacksMore => 'और पैक';
+
+  @override
+  String get expressionPackAdd => 'जोड़ें';
+
+  @override
+  String get expressionPackRemove => 'हटाएँ';
+
+  @override
+  String expressionPackStickerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count स्टिकर',
+      one: '1 स्टिकर',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get expressionNoPacksFound => 'कोई पैक नहीं मिला';
+
+  @override
+  String get expressionAllPacksAdded => 'सारे पैक जोड़े जा चुके हैं।';
+
+  @override
+  String expressionPackReorder(String title) {
+    return '$title का क्रम बदलें';
+  }
+
+  @override
+  String expressionAddPackFromSticker(String title) {
+    return '“$title” पैक जोड़ें';
+  }
+
+  @override
+  String expressionPackAddedToast(String title) {
+    return '“$title” स्टिकर में जोड़ दिया गया';
+  }
 }

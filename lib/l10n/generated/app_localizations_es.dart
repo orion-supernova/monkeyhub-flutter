@@ -9162,4 +9162,54 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get expressionCollapsePanel => 'Reducir panel';
+
+  @override
+  String get expressionPackStore => 'Packs de stickers';
+
+  @override
+  String get expressionPackSearchHint => 'Buscar packs de stickers';
+
+  @override
+  String get expressionPacksAdded => 'Añadidos';
+
+  @override
+  String get expressionPacksMore => 'Más packs';
+
+  @override
+  String get expressionPackAdd => 'Añadir';
+
+  @override
+  String get expressionPackRemove => 'Quitar';
+
+  @override
+  String expressionPackStickerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count stickers',
+      one: '1 sticker',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get expressionNoPacksFound => 'Ningún pack coincide';
+
+  @override
+  String get expressionAllPacksAdded => 'Ya has añadido todos los packs.';
+
+  @override
+  String expressionPackReorder(String title) {
+    return 'Reordenar $title';
+  }
+
+  @override
+  String expressionAddPackFromSticker(String title) {
+    return 'Añadir el pack «$title»';
+  }
+
+  @override
+  String expressionPackAddedToast(String title) {
+    return '«$title» añadido a tus stickers';
+  }
 }

@@ -131,6 +131,30 @@ class _ExpressionSheet extends StatelessWidget {
                       }
                     },
                   ),
+                  // A sticker from a pack the viewer has not added — usually
+                  // one somebody else sent — offers the whole pack. How
+                  // stickers travel between people.
+                  if (pack != null &&
+                      !pack.personal &&
+                      !store.isInstalled(pack.id))
+                    _Action(
+                      icon: Icons.add_circle_outline_rounded,
+                      label: l10n.expressionAddPackFromSticker(pack.title),
+                      onTap: () async {
+                        HapticFeedback.selectionClick();
+                        final toast = AppToast.of(context);
+                        try {
+                          await store.setInstalled(pack, true);
+                          toast.show(
+                            l10n.expressionPackAddedToast(pack.title),
+                            tone: ToastTone.success,
+                          );
+                        } catch (_) {
+                          toast.show(l10n.expressionActionFailed,
+                              tone: ToastTone.danger);
+                        }
+                      },
+                    ),
                   if (item.source == ExpressionSource.klipy &&
                       item.ref != null &&
                       store.klipy != null)

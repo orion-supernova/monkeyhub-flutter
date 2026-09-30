@@ -9173,6 +9173,56 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get expressionCollapsePanel => 'Reduzir painel';
+
+  @override
+  String get expressionPackStore => 'Packs de stickers';
+
+  @override
+  String get expressionPackSearchHint => 'Pesquisar packs de stickers';
+
+  @override
+  String get expressionPacksAdded => 'Adicionados';
+
+  @override
+  String get expressionPacksMore => 'Mais packs';
+
+  @override
+  String get expressionPackAdd => 'Adicionar';
+
+  @override
+  String get expressionPackRemove => 'Remover';
+
+  @override
+  String expressionPackStickerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count stickers',
+      one: '1 sticker',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get expressionNoPacksFound => 'Nenhum pack encontrado';
+
+  @override
+  String get expressionAllPacksAdded => 'Já adicionaste todos os packs.';
+
+  @override
+  String expressionPackReorder(String title) {
+    return 'Reordenar $title';
+  }
+
+  @override
+  String expressionAddPackFromSticker(String title) {
+    return 'Adicionar o pack «$title»';
+  }
+
+  @override
+  String expressionPackAddedToast(String title) {
+    return '«$title» adicionado aos teus stickers';
+  }
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -18340,4 +18390,54 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get expressionCollapsePanel => 'Reduzir painel';
+
+  @override
+  String get expressionPackStore => 'Pacotes de figurinhas';
+
+  @override
+  String get expressionPackSearchHint => 'Buscar pacotes de figurinhas';
+
+  @override
+  String get expressionPacksAdded => 'Adicionados';
+
+  @override
+  String get expressionPacksMore => 'Mais pacotes';
+
+  @override
+  String get expressionPackAdd => 'Adicionar';
+
+  @override
+  String get expressionPackRemove => 'Remover';
+
+  @override
+  String expressionPackStickerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figurinhas',
+      one: '1 figurinha',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get expressionNoPacksFound => 'Nenhum pacote encontrado';
+
+  @override
+  String get expressionAllPacksAdded => 'Você já adicionou todos os pacotes.';
+
+  @override
+  String expressionPackReorder(String title) {
+    return 'Reordenar $title';
+  }
+
+  @override
+  String expressionAddPackFromSticker(String title) {
+    return 'Adicionar o pacote “$title”';
+  }
+
+  @override
+  String expressionPackAddedToast(String title) {
+    return '“$title” adicionado às suas figurinhas';
+  }
 }

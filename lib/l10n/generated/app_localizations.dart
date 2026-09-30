@@ -15252,6 +15252,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Shrink panel'**
   String get expressionCollapsePanel;
+
+  /// Button at the end of the sticker pack strip, and the page it opens, where the user finds, adds, removes and reorders sticker packs.
+  ///
+  /// In en, this message translates to:
+  /// **'Sticker packs'**
+  String get expressionPackStore;
+
+  /// Placeholder of the search field in the sticker pack store. Searches pack names and emoji.
+  ///
+  /// In en, this message translates to:
+  /// **'Search sticker packs'**
+  String get expressionPackSearchHint;
+
+  /// Section heading in the sticker pack store: the packs the user has added to their sticker panel.
+  ///
+  /// In en, this message translates to:
+  /// **'Added'**
+  String get expressionPacksAdded;
+
+  /// Section heading in the sticker pack store: packs the user has not added yet.
+  ///
+  /// In en, this message translates to:
+  /// **'More packs'**
+  String get expressionPacksMore;
+
+  /// Button that adds a sticker pack to the user's sticker panel.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get expressionPackAdd;
+
+  /// Button that removes a sticker pack from the user's sticker panel.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get expressionPackRemove;
+
+  /// How many stickers a pack holds, under its name in the pack store.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 sticker} other{{count} stickers}}'**
+  String expressionPackStickerCount(int count);
+
+  /// Shown when a sticker pack search finds nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'No packs match'**
+  String get expressionNoPacksFound;
+
+  /// Shown under 'More packs' when the user has already added all of them.
+  ///
+  /// In en, this message translates to:
+  /// **'You’ve added every pack.'**
+  String get expressionAllPacksAdded;
+
+  /// Screen-reader label of the drag handle beside an added sticker pack. {title} is the pack's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Reorder {title}'**
+  String expressionPackReorder(String title);
+
+  /// Action in a sticker's sheet that adds the whole pack the sticker comes from. {title} is the pack's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Add the “{title}” pack'**
+  String expressionAddPackFromSticker(String title);
+
+  /// Toast after a sticker pack was added. {title} is the pack's name.
+  ///
+  /// In en, this message translates to:
+  /// **'“{title}” added to your stickers'**
+  String expressionPackAddedToast(String title);
 }
 
 class _AppLocalizationsDelegate

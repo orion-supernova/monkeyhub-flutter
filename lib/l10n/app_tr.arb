@@ -2515,5 +2515,17 @@
   "stickerMakerTitle": "Yeni çıkartma",
   "stickerMakerTooMany": "Çıkartma sınırına ulaştın. Yer açmak için birini sil.",
   "expressionExpandPanel": "Paneli genişlet",
-  "expressionCollapsePanel": "Paneli küçült"
+  "expressionCollapsePanel": "Paneli küçült",
+  "expressionPackStore": "Çıkartma paketleri",
+  "expressionPackSearchHint": "Çıkartma paketlerinde ara",
+  "expressionPacksAdded": "Eklenenler",
+  "expressionPacksMore": "Diğer paketler",
+  "expressionPackAdd": "Ekle",
+  "expressionPackRemove": "Kaldır",
+  "expressionPackStickerCount": "{count, plural, one{1 çıkartma} other{{count} çıkartma}}",
+  "expressionNoPacksFound": "Eşleşen paket yok",
+  "expressionAllPacksAdded": "Tüm paketleri ekledin.",
+  "expressionPackReorder": "{title} sırasını değiştir",
+  "expressionAddPackFromSticker": "“{title}” paketini ekle",
+  "expressionPackAddedToast": "“{title}” çıkartmalarına eklendi"
 }

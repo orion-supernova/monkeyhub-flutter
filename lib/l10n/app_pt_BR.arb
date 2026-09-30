@@ -2515,5 +2515,17 @@
   "stickerMakerTitle": "Nova figurinha",
   "stickerMakerTooMany": "Você chegou ao limite de figurinhas. Exclua uma para liberar espaço.",
   "expressionExpandPanel": "Expandir painel",
-  "expressionCollapsePanel": "Reduzir painel"
+  "expressionCollapsePanel": "Reduzir painel",
+  "expressionPackStore": "Pacotes de figurinhas",
+  "expressionPackSearchHint": "Buscar pacotes de figurinhas",
+  "expressionPacksAdded": "Adicionados",
+  "expressionPacksMore": "Mais pacotes",
+  "expressionPackAdd": "Adicionar",
+  "expressionPackRemove": "Remover",
+  "expressionPackStickerCount": "{count, plural, one{1 figurinha} other{{count} figurinhas}}",
+  "expressionNoPacksFound": "Nenhum pacote encontrado",
+  "expressionAllPacksAdded": "Você já adicionou todos os pacotes.",
+  "expressionPackReorder": "Reordenar {title}",
+  "expressionAddPackFromSticker": "Adicionar o pacote “{title}”",
+  "expressionPackAddedToast": "“{title}” adicionado às suas figurinhas"
 }

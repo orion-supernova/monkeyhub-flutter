@@ -8712,4 +8712,53 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get expressionCollapsePanel => 'パネルを縮める';
+
+  @override
+  String get expressionPackStore => 'スタンプパック';
+
+  @override
+  String get expressionPackSearchHint => 'スタンプパックを検索';
+
+  @override
+  String get expressionPacksAdded => '追加済み';
+
+  @override
+  String get expressionPacksMore => 'その他のパック';
+
+  @override
+  String get expressionPackAdd => '追加';
+
+  @override
+  String get expressionPackRemove => '削除';
+
+  @override
+  String expressionPackStickerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count個のスタンプ',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get expressionNoPacksFound => '該当するパックはありません';
+
+  @override
+  String get expressionAllPacksAdded => 'すべてのパックを追加しました。';
+
+  @override
+  String expressionPackReorder(String title) {
+    return '$titleを並べ替え';
+  }
+
+  @override
+  String expressionAddPackFromSticker(String title) {
+    return '「$title」パックを追加';
+  }
+
+  @override
+  String expressionPackAddedToast(String title) {
+    return '「$title」をスタンプに追加しました';
+  }
 }

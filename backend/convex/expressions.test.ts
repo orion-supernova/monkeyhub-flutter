@@ -422,6 +422,100 @@ describe("personal stickers", () => {
   });
 });
 
+describe("added packs", () => {
+  /** Official packs with the given slugs, one sticker each. */
+  async function packsNamed(t: ReturnType<typeof convexTest>, slugs: string[]) {
+    return await t.run(async (ctx) => {
+      const ids: Record<string, any> = {};
+      for (let i = 0; i < slugs.length; i++) {
+        const packId = await ctx.db.insert("stickerPacks", {
+          slug: slugs[i],
+          title: slugs[i],
+          kind: "official",
+          order: i,
+          createdAt: Date.now(),
+        });
+        const storageId = await ctx.storage.store(new Blob(["{}"]));
+        await ctx.db.insert("stickers", {
+          packId,
+          storageId,
+          format: "lottie",
+          emoji: "😀",
+          width: 512,
+          height: 512,
+          order: 0,
+          createdAt: Date.now(),
+        });
+        ids[slugs[i]] = packId;
+      }
+      return ids;
+    });
+  }
+
+  test("a user who never chose sees the default set, in order", async () => {
+    const { t, me } = await setup();
+    const ids = await packsNamed(t, [
+      "noto-party", "noto-moods", "noto-wild", "noto-love", "noto-feelings",
+    ]);
+    const s = await t.query(api.expressions.state, { sessionToken: me.token });
+    expect(s.installedPackIds).toEqual([
+      ids["noto-moods"], ids["noto-love"], ids["noto-feelings"], ids["noto-party"],
+    ]);
+  });
+
+  test("adding appends, removing keeps the rest of the defaults", async () => {
+    const { t, me } = await setup();
+    const ids = await packsNamed(t, [
+      "noto-moods", "noto-love", "noto-feelings", "noto-party", "noto-wild",
+    ]);
+    await t.mutation(api.expressions.setPackInstalled, {
+      sessionToken: me.token, packId: ids["noto-wild"], installed: true,
+    });
+    await t.mutation(api.expressions.setPackInstalled, {
+      sessionToken: me.token, packId: ids["noto-love"], installed: false,
+    });
+    const s = await t.query(api.expressions.state, { sessionToken: me.token });
+    expect(s.installedPackIds).toEqual([
+      ids["noto-moods"], ids["noto-feelings"], ids["noto-party"], ids["noto-wild"],
+    ]);
+  });
+
+  test("reordering cannot add or drop a pack", async () => {
+    const { t, me } = await setup();
+    const ids = await packsNamed(t, [
+      "noto-moods", "noto-love", "noto-feelings", "noto-party", "noto-wild",
+    ]);
+    await t.mutation(api.expressions.reorderPacks, {
+      sessionToken: me.token,
+      // Party first; Wild is not added so it is ignored; Love/Feelings omitted
+      // so they keep their places after the named ones.
+      packIds: [ids["noto-party"], ids["noto-wild"], ids["noto-moods"]],
+    });
+    const s = await t.query(api.expressions.state, { sessionToken: me.token });
+    expect(s.installedPackIds).toEqual([
+      ids["noto-party"], ids["noto-moods"], ids["noto-love"], ids["noto-feelings"],
+    ]);
+  });
+
+  test("a personal pack cannot be added to anyone's strip", async () => {
+    const { t, me } = await setup();
+    const blob = await t.run((ctx) =>
+      ctx.storage.store(new Blob(["png"], { type: "image/png" }))
+    );
+    const stickerId = await t.mutation(api.expressions.createPersonalSticker, {
+      sessionToken: me.token, storageId: blob, emoji: "🐶", width: 400, height: 400,
+    });
+    const personalPack = await t.run(
+      async (ctx) => (await ctx.db.get(stickerId as Id<"stickers">))!.packId
+    );
+    await expect(
+      t.mutation(api.expressions.setPackInstalled, {
+        sessionToken: me.token, packId: personalPack, installed: true,
+      })
+    ).rejects.toThrow("NOT_A_PACK");
+  });
+});
+
 describe("official packs", () => {
   test("every codepoint decodes to an emoji", () => {
     expect(emojiForCode("1f602")).toBe("😂");

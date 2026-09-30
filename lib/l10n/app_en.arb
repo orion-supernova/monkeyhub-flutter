@@ -10386,5 +10386,73 @@
   },
   "@expressionCollapsePanel": {
     "description": "Screen-reader label of the panel's grab handle when tapping it returns the panel to keyboard height."
+  },
+  "expressionPackStore": "Sticker packs",
+  "@expressionPackStore": {
+    "description": "Button at the end of the sticker pack strip, and the page it opens, where the user finds, adds, removes and reorders sticker packs."
+  },
+  "expressionPackSearchHint": "Search sticker packs",
+  "@expressionPackSearchHint": {
+    "description": "Placeholder of the search field in the sticker pack store. Searches pack names and emoji."
+  },
+  "expressionPacksAdded": "Added",
+  "@expressionPacksAdded": {
+    "description": "Section heading in the sticker pack store: the packs the user has added to their sticker panel."
+  },
+  "expressionPacksMore": "More packs",
+  "@expressionPacksMore": {
+    "description": "Section heading in the sticker pack store: packs the user has not added yet."
+  },
+  "expressionPackAdd": "Add",
+  "@expressionPackAdd": {
+    "description": "Button that adds a sticker pack to the user's sticker panel."
+  },
+  "expressionPackRemove": "Remove",
+  "@expressionPackRemove": {
+    "description": "Button that removes a sticker pack from the user's sticker panel."
+  },
+  "expressionPackStickerCount": "{count, plural, one{1 sticker} other{{count} stickers}}",
+  "@expressionPackStickerCount": {
+    "description": "How many stickers a pack holds, under its name in the pack store.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "expressionNoPacksFound": "No packs match",
+  "@expressionNoPacksFound": {
+    "description": "Shown when a sticker pack search finds nothing."
+  },
+  "expressionAllPacksAdded": "You’ve added every pack.",
+  "@expressionAllPacksAdded": {
+    "description": "Shown under 'More packs' when the user has already added all of them."
+  },
+  "expressionPackReorder": "Reorder {title}",
+  "@expressionPackReorder": {
+    "description": "Screen-reader label of the drag handle beside an added sticker pack. {title} is the pack's name.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "expressionAddPackFromSticker": "Add the “{title}” pack",
+  "@expressionAddPackFromSticker": {
+    "description": "Action in a sticker's sheet that adds the whole pack the sticker comes from. {title} is the pack's name.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "expressionPackAddedToast": "“{title}” added to your stickers",
+  "@expressionPackAddedToast": {
+    "description": "Toast after a sticker pack was added. {title} is the pack's name.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
   }
 }

@@ -9028,4 +9028,54 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get expressionCollapsePanel => 'Paneli küçült';
+
+  @override
+  String get expressionPackStore => 'Çıkartma paketleri';
+
+  @override
+  String get expressionPackSearchHint => 'Çıkartma paketlerinde ara';
+
+  @override
+  String get expressionPacksAdded => 'Eklenenler';
+
+  @override
+  String get expressionPacksMore => 'Diğer paketler';
+
+  @override
+  String get expressionPackAdd => 'Ekle';
+
+  @override
+  String get expressionPackRemove => 'Kaldır';
+
+  @override
+  String expressionPackStickerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count çıkartma',
+      one: '1 çıkartma',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get expressionNoPacksFound => 'Eşleşen paket yok';
+
+  @override
+  String get expressionAllPacksAdded => 'Tüm paketleri ekledin.';
+
+  @override
+  String expressionPackReorder(String title) {
+    return '$title sırasını değiştir';
+  }
+
+  @override
+  String expressionAddPackFromSticker(String title) {
+    return '“$title” paketini ekle';
+  }
+
+  @override
+  String expressionPackAddedToast(String title) {
+    return '“$title” çıkartmalarına eklendi';
+  }
 }

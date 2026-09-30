@@ -9234,4 +9234,58 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get expressionCollapsePanel => 'تصغير اللوحة';
+
+  @override
+  String get expressionPackStore => 'حزم الملصقات';
+
+  @override
+  String get expressionPackSearchHint => 'ابحث في حزم الملصقات';
+
+  @override
+  String get expressionPacksAdded => 'المُضافة';
+
+  @override
+  String get expressionPacksMore => 'حزم أخرى';
+
+  @override
+  String get expressionPackAdd => 'إضافة';
+
+  @override
+  String get expressionPackRemove => 'إزالة';
+
+  @override
+  String expressionPackStickerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ملصق',
+      many: '$count ملصقًا',
+      few: '$count ملصقات',
+      two: 'ملصقان',
+      one: 'ملصق واحد',
+      zero: 'لا ملصقات',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get expressionNoPacksFound => 'لا توجد حزم مطابقة';
+
+  @override
+  String get expressionAllPacksAdded => 'أضفت كل الحزم.';
+
+  @override
+  String expressionPackReorder(String title) {
+    return 'إعادة ترتيب $title';
+  }
+
+  @override
+  String expressionAddPackFromSticker(String title) {
+    return 'أضف حزمة «$title»';
+  }
+
+  @override
+  String expressionPackAddedToast(String title) {
+    return 'أُضيفت «$title» إلى ملصقاتك';
+  }
 }

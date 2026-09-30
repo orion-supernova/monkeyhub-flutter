@@ -8616,4 +8616,53 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get expressionCollapsePanel => '收起面板';
+
+  @override
+  String get expressionPackStore => '贴纸包';
+
+  @override
+  String get expressionPackSearchHint => '搜索贴纸包';
+
+  @override
+  String get expressionPacksAdded => '已添加';
+
+  @override
+  String get expressionPacksMore => '更多贴纸包';
+
+  @override
+  String get expressionPackAdd => '添加';
+
+  @override
+  String get expressionPackRemove => '移除';
+
+  @override
+  String expressionPackStickerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个贴纸',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get expressionNoPacksFound => '没有匹配的贴纸包';
+
+  @override
+  String get expressionAllPacksAdded => '你已添加所有贴纸包。';
+
+  @override
+  String expressionPackReorder(String title) {
+    return '重新排序 $title';
+  }
+
+  @override
+  String expressionAddPackFromSticker(String title) {
+    return '添加“$title”贴纸包';
+  }
+
+  @override
+  String expressionPackAddedToast(String title) {
+    return '已将“$title”添加到你的贴纸';
+  }
 }

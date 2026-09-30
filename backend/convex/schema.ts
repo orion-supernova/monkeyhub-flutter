@@ -1411,6 +1411,12 @@ export default defineSchema({
     userId: v.id("users"),
     recents: v.array(expressionRef),
     favorites: v.array(expressionRef),
+    // The official packs this user has added to their strip, in their order.
+    // Absent means "never chosen" and reads as the default set
+    // (`DEFAULT_PACK_SLUGS` in expressions.ts), so every account from before
+    // the pack store — and every new one — starts somewhere sensible without
+    // a backfill. Their personal pack is always shown and never listed here.
+    installedPackIds: v.optional(v.array(v.id("stickerPacks"))),
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"]),

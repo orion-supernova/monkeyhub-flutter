@@ -59,12 +59,14 @@ export const config = query({
 });
 
 /**
- * Every pack the caller can pick from: the official ones in order, then their
- * own personal pack if they have made any stickers.
+ * The whole catalog: every official pack in order, then the caller's own
+ * personal pack if they have made any stickers.
  *
- * URLs are resolved here so the panel can draw a whole pack from one
- * subscription. ~120 official stickers is ~120 `getUrl` calls — cheap, and the
- * query is cached until a pack changes.
+ * The catalog, not the caller's strip — which packs they have ADDED lives in
+ * [state], deliberately. This query resolves a URL for every sticker (~400
+ * `getUrl` calls), and reading the per-user row here would re-run all of that
+ * on every recents update, i.e. on every sticker anybody sends. Kept apart,
+ * it re-runs only when a pack itself changes.
  */
 export const packs = query({
   args: {},
@@ -117,7 +119,49 @@ export const packs = query({
   },
 });
 
-/** The caller's recents and favourites, newest first. */
+/**
+ * The packs a user starts with before they have chosen any — the ones that
+ * cover the most everyday feelings. Slugs rather than ids so they survive a
+ * reseed.
+ */
+export const DEFAULT_PACK_SLUGS = [
+  "noto-moods",
+  "noto-love",
+  "noto-feelings",
+  "noto-party",
+];
+
+/** Most packs one user may add, to keep the strip and the row bounded. */
+const MAX_INSTALLED_PACKS = 60;
+
+/**
+ * The official packs [row] has added, in order — or the default set when it
+ * has never chosen. Ids of packs that no longer exist are dropped.
+ */
+async function installedPackIdsFor(ctx: any, row: any): Promise<any[]> {
+  if (row?.installedPackIds !== undefined) {
+    const out = [];
+    for (const id of row.installedPackIds) {
+      const pack = await ctx.db.get(id);
+      if (pack && pack.kind === "official") out.push(id);
+    }
+    return out;
+  }
+  const out = [];
+  for (const slug of DEFAULT_PACK_SLUGS) {
+    const pack = await ctx.db
+      .query("stickerPacks")
+      .withIndex("by_slug", (q: any) => q.eq("slug", slug))
+      .first();
+    if (pack) out.push(pack._id);
+  }
+  return out;
+}
+
+/**
+ * The caller's recents and favourites (newest first) and the official packs
+ * they have added to their strip, in their order.
+ */
 export const state = query({
   args: {},
   handler: async (ctx, { userId }) => {
@@ -128,7 +172,58 @@ export const state = query({
     return {
       recents: row?.recents ?? [],
       favorites: row?.favorites ?? [],
+      installedPackIds: await installedPackIdsFor(ctx, row),
     };
+  },
+});
+
+/**
+ * Adds an official pack to the caller's strip (at the end) or removes it.
+ * The first change materialises the default set, so removing one default
+ * pack keeps the other three.
+ */
+export const setPackInstalled = mutation({
+  args: { packId: v.id("stickerPacks"), installed: v.boolean() },
+  handler: async (ctx, { userId, packId, installed }) => {
+    const pack = await ctx.db.get(packId);
+    // Only the shared catalog can be added. A personal pack is its owner's
+    // alone and is shown to them regardless.
+    if (!pack || pack.kind !== "official") throw new Error("NOT_A_PACK");
+    const row = await stateRow(ctx, userId);
+    const current = await installedPackIdsFor(ctx, row);
+    const without = current.filter((id: any) => id !== packId);
+    const next = installed ? [...without, packId] : without;
+    if (next.length > MAX_INSTALLED_PACKS) throw new Error("TOO_MANY_PACKS");
+    await ctx.db.patch(row._id, { installedPackIds: next, updatedAt: Date.now() });
+    return null;
+  },
+});
+
+/**
+ * Reorders the caller's added packs to [packIds]. Anything not currently
+ * added is ignored and anything added but missing keeps its place at the end,
+ * so a stale client can reorder but never add or drop a pack by accident.
+ */
+export const reorderPacks = mutation({
+  args: { packIds: v.array(v.id("stickerPacks")) },
+  handler: async (ctx, { userId, packIds }) => {
+    const row = await stateRow(ctx, userId);
+    const current = await installedPackIdsFor(ctx, row);
+    const have = new Set(current.map(String));
+    const ordered = [];
+    const seen = new Set<string>();
+    for (const id of packIds) {
+      const key = String(id);
+      if (have.has(key) && !seen.has(key)) {
+        ordered.push(id);
+        seen.add(key);
+      }
+    }
+    for (const id of current) {
+      if (!seen.has(String(id))) ordered.push(id);
+    }
+    await ctx.db.patch(row._id, { installedPackIds: ordered, updatedAt: Date.now() });
+    return null;
   },
 });
 
