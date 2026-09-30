@@ -172,6 +172,20 @@ dependencies:
   package_info_plus: ^10.2.1
   emoji_picker_flutter: ^4.5.3
 
+  # Stickers and GIFs (lib/expressions/). The official sticker packs are Noto
+  # Animated Emoji as Lottie — a tenth the size of the animated WebP and crisp
+  # at any size — and `lottie` draws them on every platform, web included.
+  # KLIPY's GIFs and stickers are animated WebP/GIF, which Flutter's own image
+  # codecs already decode everywhere. `flutter_cache_manager` was transitive
+  # (through cached_network_image) and is named here because the Lottie loader
+  # and KLIPY's own short-lived media store are built on it — see
+  # `KlipyCacheManager`.
+  lottie: ^3.3.1
+  flutter_cache_manager: ^3.4.1
+  # KLIPY's ad tiles arrive as HTML to be shown in a web view. iOS and Android
+  # only, which is also the only place KLIPY serves ads.
+  webview_flutter: ^4.13.0
+
   # URL handling: detection in text, opening externally, and the native system
   # browser for tapped links (SFSafariViewController / Chrome Custom Tabs).
   url_launcher: ^6.3.0

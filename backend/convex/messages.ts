@@ -223,6 +223,109 @@ export function galleryBucketFor(
 }
 
 /**
+ * Whether [url] is one of KLIPY's, and so allowed on a GIF or sticker row.
+ *
+ * The whole reason `mediaUrl` can exist safely. Every client loads that URL
+ * the moment the message scrolls into view, so without this check a sender
+ * could put any address they liked in front of every member of a room — a
+ * tracking pixel that logs who read the message and from where. Restricting it
+ * to KLIPY's published network allowlist (`klipy.com` and its subdomains)
+ * means the only party that learns anything is the one the viewer's own app
+ * already talks to while browsing GIFs.
+ *
+ * HTTPS only, and capped in length because it is copied into reply previews
+ * and forwards.
+ */
+export function isKlipyUrl(url: unknown): url is string {
+  if (typeof url !== "string" || url.length === 0 || url.length > 2048) {
+    return false;
+  }
+  try {
+    const u = new URL(url);
+    return (
+      u.protocol === "https:" &&
+      (u.hostname === "klipy.com" || u.hostname.endsWith(".klipy.com"))
+    );
+  } catch (_) {
+    return false;
+  }
+}
+
+/**
+ * The GIF/sticker fields a send is allowed to write, or null to downgrade it.
+ *
+ * The client only ever NAMES the picture: a KLIPY URL, or a sticker id. What
+ * lands on the row is decided here — the sticker's blob, format and size come
+ * off its own `stickers` row, never from the caller, so nobody can send "a
+ * sticker" that is really an arbitrary storage id.
+ *
+ * `mediaSource` on the result is also a permission: "pack" (an official pack)
+ * is text-shaped for the child guard, while "klipy" and "personal" (a photo
+ * somebody cut out) are pictures and need the media grant. See
+ * [permissionsFor].
+ *
+ * Null rather than a throw for the reason the location block in `sendCore`
+ * gives: a refused send strands a retry-forever bubble that no retry can fix.
+ * The message goes out as text instead, which still says something.
+ */
+export async function expressionFieldsFor(
+  ctx: any,
+  type: string,
+  a: {
+    mediaSource?: string;
+    mediaUrl?: string;
+    mediaPreviewUrl?: string;
+    mediaRef?: string;
+    stickerId?: any;
+    mediaWidth?: number;
+    mediaHeight?: number;
+  }
+): Promise<Record<string, any> | null> {
+  const size = (n: unknown) =>
+    typeof n === "number" && Number.isFinite(n) && n > 0 && n < 10_000
+      ? Math.round(n)
+      : undefined;
+  const klipy = () => {
+    if (a.mediaSource !== "klipy" || !isKlipyUrl(a.mediaUrl)) return null;
+    return {
+      mediaSource: "klipy",
+      mediaUrl: a.mediaUrl,
+      // Dropped rather than refusing the send: it is only a thumbnail.
+      mediaPreviewUrl: isKlipyUrl(a.mediaPreviewUrl) ? a.mediaPreviewUrl : undefined,
+      mediaRef:
+        typeof a.mediaRef === "string" && a.mediaRef.length <= 200
+          ? a.mediaRef
+          : undefined,
+      mediaWidth: size(a.mediaWidth),
+      mediaHeight: size(a.mediaHeight),
+    };
+  };
+
+  if (type === "gif") return klipy();
+  if (type !== "sticker") return null;
+
+  if (a.stickerId === undefined) {
+    const k = klipy();
+    return k ? { ...k, stickerFormat: "image" } : null;
+  }
+  const sticker = await ctx.db.get(a.stickerId);
+  if (!sticker || sticker.deletedAt !== undefined) return null;
+  const pack = await ctx.db.get(sticker.packId);
+  if (!pack) return null;
+  return {
+    mediaSource: pack.kind === "official" ? "pack" : "personal",
+    stickerId: sticker._id,
+    stickerStorageId: sticker.storageId,
+    stickerFormat: sticker.format,
+    mediaWidth: sticker.width,
+    mediaHeight: sticker.height,
+    // Not a column: `sendCore` takes it as the fallback alt text and strips
+    // it before the insert.
+    alt: sticker.emoji,
+  };
+}
+
+/**
  * Which guarded capabilities a write actually uses.
  *
  * Two independent booleans, not one type string, and the difference is a
@@ -259,8 +362,19 @@ export function galleryBucketFor(
  */
 const TEXT_SHAPED_TYPES = new Set(["text", "poll", "checklist", "event"]);
 
-export function permissionsFor(type: string, hasBlob: boolean) {
+export function permissionsFor(
+  type: string,
+  hasBlob: boolean,
+  mediaSource?: string
+) {
   const location = type === "location" || type === "liveLocation";
+  // A sticker from one of OUR packs is art the app shipped, as harmless as the
+  // emoji it stands for, so it needs no grant beyond writing at all. A KLIPY
+  // GIF or sticker, or a personal sticker cut out of somebody's photo, is a
+  // picture from outside and falls through to the media gate below.
+  if (type === "sticker" && mediaSource === "pack" && !hasBlob) {
+    return { location: false, media: false };
+  }
   return {
     location,
     // A location message is not media, but a location message with a file
@@ -482,6 +596,14 @@ export function roomPreviewFor(msg: {
   if (type === "poll" || type === "checklist" || type === "event") {
     const prompt = (msg.content ?? "").slice(0, 100);
     return prompt.length > 0 ? `[${type}] ${prompt}` : `[${type}]`;
+  }
+  // A GIF says what it is, not its title — "[GIF] Hello" would read as though
+  // the sender had typed "Hello". A sticker's `content` is the emoji it stands
+  // for, which is exactly what a room card should show beside the word.
+  if (type === "gif") return "[GIF]";
+  if (type === "sticker") {
+    const emoji = (msg.content ?? "").slice(0, 16);
+    return emoji.length > 0 ? `[sticker] ${emoji}` : "[sticker]";
   }
   return `[${type}]`;
 }
@@ -805,6 +927,14 @@ export const send = mutation({
     // the client says where the runs are, this mutation decides whether they
     // fit the text at all.
     formatting: formattingArg,
+    // GIFs and stickers, on `type: "gif"` and `type: "sticker"`. The caller
+    // names the picture; `expressionFieldsFor` decides what is written. See
+    // the schema comment on `messages.mediaSource`.
+    mediaSource: v.optional(v.string()),
+    mediaUrl: v.optional(v.string()),
+    mediaPreviewUrl: v.optional(v.string()),
+    mediaRef: v.optional(v.string()),
+    stickerId: v.optional(v.id("stickers")),
   },
   handler: async (ctx, args) => await sendCore(ctx, args),
 });
@@ -830,7 +960,7 @@ export const send = mutation({
  * the insert, the `scheduler` calls and the room patch all commit in the same
  * transaction as whoever called this.
  */
-export async function sendCore(ctx: any, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, fileName, fileSize, mimeType, mediaDurationMs, posterStorageId, senderName, replyToId, viewOnce, clientId, mentionedUserIds, mentionsEveryone, latitude, longitude, locationAccuracyM, liveDurationMs, formatting }: any) {
+export async function sendCore(ctx: any, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, fileName, fileSize, mimeType, mediaDurationMs, posterStorageId, senderName, replyToId, viewOnce, clientId, mentionedUserIds, mentionsEveryone, latitude, longitude, locationAccuracyM, liveDurationMs, formatting, mediaSource, mediaUrl, mediaPreviewUrl, mediaRef, stickerId }: any) {
   // Idempotency, checked before anything else has a chance to happen twice.
   //
   // Everything below this line has side effects that must not be repeated:
@@ -854,6 +984,43 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
   // preview, the push body — must see the type actually written.
   let msgType = type ?? "text";
 
+  // GIFs and stickers, resolved BEFORE the guard because what they resolve to
+  // is part of what the guard checks — an official pack sticker needs no media
+  // grant, a KLIPY GIF does. A GIF or sticker never carries an uploaded blob
+  // of its own, so `mediaStorageId` is dropped outright rather than trusted;
+  // that also keeps these rows out of the gallery and away from every
+  // view-once path below. One that does not resolve goes out as text.
+  let expressionFields: Record<string, any> = {};
+  if (msgType === "gif" || msgType === "sticker") {
+    const resolved = await expressionFieldsFor(ctx, msgType, {
+      mediaSource,
+      mediaUrl,
+      mediaPreviewUrl,
+      mediaRef,
+      stickerId,
+      mediaWidth,
+      mediaHeight,
+    });
+    mediaStorageId = undefined;
+    posterStorageId = undefined;
+    if (resolved) {
+      const { alt, ...fields } = resolved;
+      expressionFields = fields;
+      mediaWidth = resolved.mediaWidth;
+      mediaHeight = resolved.mediaHeight;
+      // `content` is the alt text: the GIF's title, or the emoji a sticker
+      // stands for. It is also what an app too old to know these types shows
+      // instead, so it is never left empty.
+      content = (content ?? "").trim().slice(0, 200);
+      if (content.length === 0) {
+        content = alt ?? (msgType === "gif" ? "GIF" : "🙂");
+      }
+      formatting = undefined;
+    } else {
+      msgType = "text";
+    }
+  }
+
   // Membership, the child guard, DM blocks, the sender's display name and the
   // room's message lifetime — all of it, in the order it has always run. See
   // `guardOutgoing`, which `forwardToRoom` shares so the two cannot disagree
@@ -865,7 +1032,11 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
     // `mediaStorageId !== undefined` and not the type: a blob attached to a
     // `location`-typed send is still an attachment, and used to skip the media
     // gate by taking the location branch. See `permissionsFor`.
-    permissionsFor(msgType, mediaStorageId !== undefined),
+    permissionsFor(
+      msgType,
+      mediaStorageId !== undefined,
+      expressionFields.mediaSource
+    ),
     senderName
   );
 
@@ -879,6 +1050,9 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
     contentPreview: string;
     type: string;
     mediaStorageId?: any;
+    mediaUrl?: string;
+    stickerStorageId?: any;
+    stickerFormat?: string;
   } | undefined;
   let resolvedReplyToId: any | undefined;
   // Thread root, derived from the *resolved* parent. Computing it from the
@@ -908,6 +1082,11 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
           : maskSpoilers(parentContent, parent.formatting).slice(0, 140),
         type: parent.type ?? "text",
         mediaStorageId: parentIsViewOnce ? undefined : parent.mediaStorageId,
+        // A quoted GIF or sticker has no `mediaStorageId`, so it brings its own
+        // thumbnail: KLIPY's small rendition, or the pack sticker itself.
+        mediaUrl: parent.mediaPreviewUrl ?? parent.mediaUrl,
+        stickerStorageId: parent.stickerStorageId,
+        stickerFormat: parent.stickerFormat,
       };
       resolvedReplyToId = replyToId;
       resolvedRootId = parent.rootId ?? parent._id;
@@ -1075,6 +1254,7 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
     expiresAt,
     // Stored so the retry that arrives after this one commits can find it.
     clientId,
+    ...expressionFields,
     ...viewOnceFields,
     ...locationFields,
     ...liveFields,
@@ -1810,7 +1990,11 @@ export const forwardToRoom = mutation({
     const batchNeeds = sources.reduce(
       (acc, m) => {
         if (!m) return acc;
-        const p = permissionsFor(m.type ?? "text", m.mediaStorageId !== undefined);
+        const p = permissionsFor(
+          m.type ?? "text",
+          m.mediaStorageId !== undefined,
+          m.mediaSource
+        );
         return { media: acc.media || p.media, location: acc.location || p.location };
       },
       { media: false, location: false }
@@ -1917,6 +2101,17 @@ export const forwardToRoom = mutation({
         latitude: msg.latitude,
         longitude: msg.longitude,
         locationAccuracyM: msg.locationAccuracyM,
+        // A GIF or sticker is these fields and nothing else — without them the
+        // copy is a `gif` row with no picture. Copied, not re-resolved: the
+        // original was validated when it was sent, and a personal sticker its
+        // owner has since deleted must still forward as what was said.
+        mediaSource: msg.mediaSource,
+        mediaUrl: msg.mediaUrl,
+        mediaPreviewUrl: msg.mediaPreviewUrl,
+        mediaRef: msg.mediaRef,
+        stickerId: msg.stickerId,
+        stickerStorageId: msg.stickerStorageId,
+        stickerFormat: msg.stickerFormat,
         senderName: resolvedSenderName,
         expiresAt,
         ...(clientId !== undefined ? { clientId } : {}),

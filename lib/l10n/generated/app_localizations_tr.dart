@@ -8855,4 +8855,177 @@ class AppLocalizationsTr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get expressionActionFailed => 'Bu yapılamadı. Tekrar dene.';
+
+  @override
+  String get expressionBackspace => 'Sil';
+
+  @override
+  String get expressionCreateSticker => 'Çıkartma yap';
+
+  @override
+  String get expressionDeleteSticker => 'Çıkartmalarımdan sil';
+
+  @override
+  String get expressionFavorite => 'Favorilere ekle';
+
+  @override
+  String get expressionFavorited => 'Favorilere eklendi';
+
+  @override
+  String get expressionFavorites => 'Favoriler';
+
+  @override
+  String expressionGifSemantics(String title) {
+    return 'GIF: $title';
+  }
+
+  @override
+  String get expressionLoadFailed => 'Yüklenemedi. Bağlantını kontrol et.';
+
+  @override
+  String get expressionMediaNotAllowed =>
+      'Aile ayarların resim göndermene izin vermiyor.';
+
+  @override
+  String get expressionMyStickers => 'Çıkartmalarım';
+
+  @override
+  String get expressionNoFavorites =>
+      'Favorilere eklemek için bir GIF’e veya çıkartmaya basılı tut.';
+
+  @override
+  String get expressionNoRecents =>
+      'Gönderdiğin GIF’ler ve çıkartmalar burada görünecek.';
+
+  @override
+  String get expressionNoResults => 'Sonuç yok';
+
+  @override
+  String get expressionNoStickers => 'Burada henüz çıkartma yok.';
+
+  @override
+  String get expressionOpenPanel => 'Emoji, GIF ve çıkartmalar';
+
+  @override
+  String get expressionOptionsHint => 'seçenekleri göster';
+
+  @override
+  String expressionPackCredit(String author, String license) {
+    return 'Çizim: $author · $license';
+  }
+
+  @override
+  String get expressionPlayGifHint => 'oynat';
+
+  @override
+  String get expressionRecent => 'Son kullanılanlar';
+
+  @override
+  String get expressionReport => 'Bildir';
+
+  @override
+  String get expressionReported => 'Teşekkürler — bildirildi.';
+
+  @override
+  String get expressionRetry => 'Tekrar dene';
+
+  @override
+  String get expressionSearchKlipy => 'KLIPY’de ara';
+
+  @override
+  String get expressionShowKeyboard => 'Klavyeyi göster';
+
+  @override
+  String get expressionSuggestionsLabel => 'Çıkartma önerileri';
+
+  @override
+  String get expressionTabEmoji => 'Emoji';
+
+  @override
+  String get expressionTabGifs => 'GIF';
+
+  @override
+  String get expressionTabStickers => 'Çıkartmalar';
+
+  @override
+  String get expressionTrending => 'Popüler';
+
+  @override
+  String get expressionUnfavorite => 'Favorilerden kaldır';
+
+  @override
+  String get expressionUnfavorited => 'Favorilerden kaldırıldı';
+
+  @override
+  String replyIndicatorStickerLabel(String emoji) {
+    return 'Çıkartma $emoji';
+  }
+
+  @override
+  String get settingsAutoplayExpressionsLabel =>
+      'GIF ve çıkartmaları otomatik oynat';
+
+  @override
+  String get settingsAutoplayExpressionsOffBody =>
+      'Birine dokunana kadar hareketsiz kalırlar. Veri tasarrufu sağlar.';
+
+  @override
+  String get settingsAutoplayExpressionsOnBody =>
+      'GIF’ler ve hareketli çıkartmalar kendiliğinden oynar. Hareketi Azalt onları duraklatır.';
+
+  @override
+  String get settingsStickerSuggestionsBody =>
+      'Tek bir emoji yazınca mesaj alanının üstünde eşleşen çıkartmalar çıkar.';
+
+  @override
+  String get settingsStickerSuggestionsLabel => 'Çıkartma önerileri';
+
+  @override
+  String get stickerMakerEmojiLabel => 'Hangi emoji?';
+
+  @override
+  String get stickerMakerFailed => 'Çıkartma kaydedilemedi. Tekrar dene.';
+
+  @override
+  String get stickerMakerMoreEmoji => 'Daha fazla emoji';
+
+  @override
+  String get stickerMakerPreview => 'Çıkartma önizlemesi';
+
+  @override
+  String get stickerMakerRemoveBackground => 'Arka planı kaldır';
+
+  @override
+  String get stickerMakerSave => 'Kaydet';
+
+  @override
+  String get stickerMakerSaved => 'Çıkartma, Çıkartmalarım’a eklendi';
+
+  @override
+  String get stickerMakerShape => 'Şekil';
+
+  @override
+  String get stickerMakerShapeCircle => 'Daire';
+
+  @override
+  String get stickerMakerShapeOriginal => 'Orijinal';
+
+  @override
+  String get stickerMakerShapeRounded => 'Yuvarlatılmış kare';
+
+  @override
+  String get stickerMakerTitle => 'Yeni çıkartma';
+
+  @override
+  String get stickerMakerTooMany =>
+      'Çıkartma sınırına ulaştın. Yer açmak için birini sil.';
+
+  @override
+  String get expressionExpandPanel => 'Paneli genişlet';
+
+  @override
+  String get expressionCollapsePanel => 'Paneli küçült';
 }

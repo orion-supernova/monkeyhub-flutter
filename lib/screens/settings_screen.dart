@@ -506,6 +506,26 @@ class _SettingsScreenState extends State<SettingsScreen>
                 // worse deal than the switch is worth, and how a link renders is
                 // a reading preference like any other on this list.
                 _ShowLinkUrlsToggle(),
+                const SizedBox(height: 10),
+                // Reading preferences too: whether the transcript moves, and
+                // whether an emoji offers stickers.
+                _ExpressionSettingToggle(
+                  icon: Icons.gif_box_outlined,
+                  label: l10n.settingsAutoplayExpressionsLabel,
+                  onBody: l10n.settingsAutoplayExpressionsOnBody,
+                  offBody: l10n.settingsAutoplayExpressionsOffBody,
+                  value: () => SettingsStore.instance.autoplayExpressions,
+                  onChanged: SettingsStore.instance.setAutoplayExpressions,
+                ),
+                const SizedBox(height: 10),
+                _ExpressionSettingToggle(
+                  icon: Icons.emoji_emotions_outlined,
+                  label: l10n.settingsStickerSuggestionsLabel,
+                  onBody: l10n.settingsStickerSuggestionsBody,
+                  offBody: l10n.settingsStickerSuggestionsBody,
+                  value: () => SettingsStore.instance.stickerSuggestions,
+                  onChanged: SettingsStore.instance.setStickerSuggestions,
+                ),
 
                 const SizedBox(height: 28),
                 _SectionHeader(label: l10n.settingsScreenSectionNotifications),
@@ -1538,6 +1558,75 @@ class _ShowLinkUrlsToggle extends StatelessWidget {
                             : l10n.settingsScreenLinksUrlsOffBody,
                         style: theme.bodySoft,
                       ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Switch.adaptive(
+                  value: on,
+                  onChanged: _toggle,
+                  activeThumbColor: theme.accent,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// One of the GIF/sticker preferences — the same card as
+/// [_ShowLinkUrlsToggle], parameterised because there are two of them.
+class _ExpressionSettingToggle extends StatelessWidget {
+  const _ExpressionSettingToggle({
+    required this.icon,
+    required this.label,
+    required this.onBody,
+    required this.offBody,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final IconData icon;
+  final String label;
+  final String onBody;
+  final String offBody;
+  final bool Function() value;
+  final Future<void> Function(bool) onChanged;
+
+  Future<void> _toggle(bool v) {
+    HapticFeedback.lightImpact();
+    return onChanged(v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return AnimatedBuilder(
+      animation: SettingsStore.instance,
+      builder: (context, _) {
+        final on = value();
+        return GestureDetector(
+          onTap: () => _toggle(!on),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            decoration: BoxDecoration(
+              color: theme.surface,
+              border: Border.all(color: theme.divider),
+              borderRadius: BorderRadius.circular(theme.radiusMd),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, size: 16, color: on ? theme.accent : theme.inkMuted),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(label, style: theme.label),
+                      const SizedBox(height: 2),
+                      Text(on ? onBody : offBody, style: theme.bodySoft),
                     ],
                   ),
                 ),

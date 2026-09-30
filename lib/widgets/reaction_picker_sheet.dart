@@ -43,7 +43,7 @@ const double _chromeHeight = 90;
 /// out: grep the package and the only consumer is `Emoji.keywords`, i.e.
 /// search. So there is nothing here for a translation to change. What search
 /// matches on comes from [EmojiSearchIndex] instead, which follows the *app*
-/// locale — see [_ReactionSearchViewState].
+/// locale — see [EmojiSearchViewState].
 List<CategoryEmoji> _emojiSet(Locale locale) => fullEmojiSet;
 
 /// Reached via the `+` on the floating reaction pill. WhatsApp-style:
@@ -211,14 +211,14 @@ class ReactionPickerSheet extends StatelessWidget {
                   // to backspace in a reaction picker, so that half of the
                   // default bar is dropped.
                   bottomActionBarConfig: BottomActionBarConfig(
-                    customBottomActionBar: (_, _, showSearchView) => _SearchBar(
+                    customBottomActionBar: (_, _, showSearchView) => EmojiSearchBar(
                       onTap: showSearchView,
                       bottomSafe: bottomSafe,
                     ),
                   ),
                   searchViewConfig: SearchViewConfig(
                     customSearchView: (config, state, showEmojiView) =>
-                        _ReactionSearchView(
+                        EmojiSearchView(
                       config,
                       state,
                       showEmojiView,
@@ -243,8 +243,8 @@ class ReactionPickerSheet extends StatelessWidget {
 
 /// The resting search affordance under the grid. Looks like the search field
 /// it opens, so tapping it feels like focusing rather than navigating.
-class _SearchBar extends StatelessWidget {
-  const _SearchBar({required this.onTap, required this.bottomSafe});
+class EmojiSearchBar extends StatelessWidget {
+  const EmojiSearchBar({super.key, required this.onTap, required this.bottomSafe});
 
   final VoidCallback onTap;
   final double bottomSafe;
@@ -288,21 +288,22 @@ class _SearchBar extends StatelessWidget {
 /// model, not a choice we make here. The stock view is rebuilt rather than
 /// configured because it leans on [IconButton], and nothing in this app is
 /// allowed to render an ink ripple.
-class _ReactionSearchView extends SearchView {
-  const _ReactionSearchView(
+class EmojiSearchView extends SearchView {
+  const EmojiSearchView(
     super.config,
     super.state,
     super.showEmojiView, {
+    super.key,
     required this.bottomSafe,
   });
 
   final double bottomSafe;
 
   @override
-  _ReactionSearchViewState createState() => _ReactionSearchViewState();
+  EmojiSearchViewState createState() => EmojiSearchViewState();
 }
 
-class _ReactionSearchViewState extends SearchViewState<_ReactionSearchView> {
+class EmojiSearchViewState extends SearchViewState<EmojiSearchView> {
   /// Tracked only to tell the two empty states apart: with nothing typed the
   /// view seeds itself with recents, so "no matches" would be a lie for a user
   /// who has simply never reacted before.

@@ -318,7 +318,13 @@ export const sendMessagePush = internalAction({
                       ? `${
                           type === "poll" ? "📊" : type === "checklist" ? "☑️" : "📅"
                         } ${content.replace(/^\[\w+\]\s*/, "")}`.trim()
-                      : "New message";
+                      : type === "gif"
+                        ? "GIF"
+                        : type === "sticker"
+                          ? // `content` is `[sticker] 😂` (see `roomPreviewFor`);
+                            // the emoji is what the sender actually said.
+                            `${content.replace(/^\[\w+\]\s*/, "")} Sticker`.trim()
+                          : "New message";
 
     // Who, of this room, was named. `@everyone` makes that everybody, which is
     // the whole point of it — every recipient below is already the roster minus

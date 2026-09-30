@@ -185,6 +185,14 @@ async function collectReferenced(ctx: any): Promise<Set<string> | null> {
     add(m.posterStorageId);
   }
 
+  // Sticker art, official and personal — soft-deleted rows included, because
+  // messages already sent still point at them. Sticker MESSAGES carry the id as
+  // `stickerStorageId`, which is always one of these, so the rows are the
+  // complete set.
+  const stickers = await scan("stickers");
+  if (stickers === null) return null;
+  for (const s of stickers) add(s.storageId);
+
   return referenced;
 }
 

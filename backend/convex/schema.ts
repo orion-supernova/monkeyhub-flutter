@@ -1,6 +1,29 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
+/**
+ * One GIF or sticker, as a user's recents and favourites remember it.
+ *
+ * A snapshot, not a reference: it carries everything needed to draw the tile
+ * and to send it again, so the picker's RECENT row costs no lookups. `kind` is
+ * the message type it sends as ("gif" | "sticker"); `source` is where the art
+ * lives ("klipy" | "pack"), with the KLIPY fields or the pack fields filled in
+ * accordingly.
+ */
+export const expressionRef = v.object({
+  kind: v.string(),
+  source: v.string(),
+  stickerId: v.optional(v.id("stickers")),
+  storageId: v.optional(v.id("_storage")),
+  format: v.optional(v.string()),
+  url: v.optional(v.string()),
+  previewUrl: v.optional(v.string()),
+  ref: v.optional(v.string()),
+  width: v.optional(v.number()),
+  height: v.optional(v.number()),
+  title: v.optional(v.string()),
+});
+
 export default defineSchema({
   users: defineTable({
     username: v.string(),
@@ -899,6 +922,38 @@ export default defineSchema({
     // Not writing it is the guard; the sanitizer lists it as well, in depth.
     posterStorageId: v.optional(v.id("_storage")),
 
+    // ── GIFs and stickers (`type: "gif"` / `type: "sticker"`) ───────────────
+    //
+    // `mediaSource` says where the picture lives: "klipy" (a GIF or sticker
+    // from the KLIPY catalogue) or "pack" (one of our own sticker packs).
+    //
+    // KLIPY media is NEVER copied into storage. Its API terms forbid storing,
+    // mirroring or proxying the files, so the row carries the URL exactly as
+    // the API returned it and every client loads it straight from KLIPY's CDN.
+    // `messages:send` refuses any host outside KLIPY's allowlist, which is what
+    // stops this field from becoming a way to plant an arbitrary URL (a
+    // tracking pixel, say) in somebody else's transcript.
+    //
+    // `mediaUrl` is the animated rendition; `mediaPreviewUrl` a small one for
+    // reply thumbnails. `mediaRef` is KLIPY's slug, which its report and share
+    // endpoints key on.
+    mediaSource: v.optional(v.string()),
+    mediaUrl: v.optional(v.string()),
+    mediaPreviewUrl: v.optional(v.string()),
+    mediaRef: v.optional(v.string()),
+    // Pack stickers. The server copies the storage id and size off the
+    // `stickers` row at send time; the client only names the sticker.
+    //
+    // A field of its own rather than `mediaStorageId`, and deliberately so: the
+    // blob belongs to the PACK, and every message-teardown path
+    // (`releaseMessageBlobs`, the view-once burn, account deletion) deletes
+    // whatever `mediaStorageId` points at. One deleted sticker message would
+    // otherwise take the sticker away from everybody.
+    stickerId: v.optional(v.id("stickers")),
+    stickerStorageId: v.optional(v.id("_storage")),
+    // "lottie" or "image". Pack stickers can be either; KLIPY is always image.
+    stickerFormat: v.optional(v.string()),
+
     senderName: v.optional(v.string()),
     expiresAt: v.optional(v.number()),       // Unix ms timestamp — set for Chamber of Secrets rooms
     // Reply support. `replyToId` points at the parent message; `replyToPreview`
@@ -913,6 +968,12 @@ export default defineSchema({
         contentPreview: v.string(),
         type: v.string(),
         mediaStorageId: v.optional(v.id("_storage")),
+        // A thumbnail for a quoted GIF or sticker, which has no
+        // `mediaStorageId` to show. KLIPY's preview URL, or the pack sticker's
+        // blob.
+        mediaUrl: v.optional(v.string()),
+        stickerStorageId: v.optional(v.id("_storage")),
+        stickerFormat: v.optional(v.string()),
       })
     ),
     // Thread membership, denormalized at send time: the id of the message at
@@ -1288,6 +1349,70 @@ export default defineSchema({
     .index("by_message_user", ["messageId", "userId"])
     // Account teardown walks every reaction a user ever left, including those
     // on messages that survive them.
+    .index("by_user", ["userId"]),
+
+  // ── Sticker packs ─────────────────────────────────────────────────────────
+  //
+  // Two kinds. "official" packs are seeded by `expressions:seedOfficialPacks`
+  // and everybody sees them. A "personal" pack belongs to one user and holds
+  // the stickers they made from their own photos; there is at most one per
+  // user, created on their first sticker.
+  //
+  // KLIPY's stickers are NOT in here. They come from its API at browse time
+  // and are never stored — see `messages.mediaSource`.
+  stickerPacks: defineTable({
+    // Stable name for idempotent seeding ("noto-moods"). Personal packs use
+    // "personal:<userId>".
+    slug: v.string(),
+    title: v.string(),
+    kind: v.string(), // "official" | "personal"
+    ownerId: v.optional(v.id("users")),
+    // Credit and licence for the art, shown in the pack's info sheet. The
+    // Noto packs are CC BY 4.0, which requires exactly this.
+    author: v.optional(v.string()),
+    license: v.optional(v.string()),
+    sourceUrl: v.optional(v.string()),
+    // Where it sorts in the picker's pack strip.
+    order: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_kind_order", ["kind", "order"])
+    .index("by_owner", ["ownerId"]),
+
+  stickers: defineTable({
+    packId: v.id("stickerPacks"),
+    storageId: v.id("_storage"),
+    // "lottie" (a Lottie JSON animation) or "image" (PNG, WebP or GIF, still
+    // or animated).
+    format: v.string(),
+    // The emoji this sticker stands for, which is its alt text, its preview
+    // on the chat list, the `content` of the message that carries it, and
+    // what typing that emoji suggests it by.
+    emoji: v.string(),
+    width: v.number(),
+    height: v.number(),
+    order: v.number(),
+    createdAt: v.number(),
+    // Set when an owner deletes a personal sticker. The row and its blob stay,
+    // because messages already sent point at them (`messages.stickerId`) and
+    // must keep rendering; it just stops being listed.
+    deletedAt: v.optional(v.number()),
+  })
+    .index("by_pack_order", ["packId", "order"]),
+
+  // A user's recently sent and starred GIFs and stickers, one row per user,
+  // so they follow the account across devices.
+  //
+  // Each entry is a small self-contained snapshot — enough to draw the tile
+  // and send it again without another lookup. A KLIPY entry holds KLIPY's URLs
+  // (never its files), exactly as a sent message does.
+  userExpressions: defineTable({
+    userId: v.id("users"),
+    recents: v.array(expressionRef),
+    favorites: v.array(expressionRef),
+    updatedAt: v.number(),
+  })
     .index("by_user", ["userId"]),
 
   // Messages pinned to the top of a room. Many per room; any member may pin.

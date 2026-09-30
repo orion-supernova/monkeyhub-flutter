@@ -104,5 +104,12 @@ String _rawPreview(ChatMessage m, {required bool hasThumbnail}) {
       // server-side, so an empty one means a row that predates the feature or
       // a failed parse, and a blank pin banner is worse than a generic word.
       return m.content.isEmpty ? 'poll' : m.content;
+    case MessageType.gif:
+      // The word, not the title. `content` is the GIF's alt text ("Hello"),
+      // and a pin banner reading "Hello" would say the sender typed it.
+      return hasThumbnail ? '' : 'GIF';
+    case MessageType.sticker:
+      // The emoji the sticker stands for, which is what it says.
+      return m.content.isEmpty ? 'sticker' : '${m.content} sticker';
   }
 }

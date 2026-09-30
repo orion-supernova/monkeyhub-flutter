@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart'
+    show kIsWeb, LicenseEntryWithLineBreaks, LicenseRegistry;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'
     show BrowserContextMenu, SystemChrome, SystemUiMode;
@@ -31,6 +32,18 @@ Future<void> main() async {
   // Everything it records is redacted at capture time and never leaves the
   // device on its own; see Redactor and DiagExport.
   await DiagBoot.install();
+
+  // The official sticker packs are Google's Noto Animated Emoji, licensed
+  // CC BY 4.0 — whose one condition is credit. The packs' info lines carry it
+  // in the picker; this carries it on the licences page with everything else
+  // the app ships.
+  LicenseRegistry.addLicense(() => Stream.value(const LicenseEntryWithLineBreaks(
+        ['Noto Emoji Animation (sticker packs)'],
+        'Animated emoji by Google — Noto Emoji Animation\n'
+        'https://googlefonts.github.io/noto-emoji-animation/\n\n'
+        'Licensed under the Creative Commons Attribution 4.0 International '
+        'License (CC BY 4.0): https://creativecommons.org/licenses/by/4.0/',
+      )));
 
   // Declare edge-to-edge ourselves. NOT cosmetic — this is what stops the
   // window's insets from oscillating on Android 15+.

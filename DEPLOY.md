@@ -171,6 +171,37 @@ upstream compose template for a clustered mode this deployment does not use.
 The home server has always run without it, which is the proof it is not needed;
 `hosting/homeserver-docker-compose.yml` simply omits it.
 
+## GIFs and stickers — per-backend setup
+
+Two things live on each backend rather than in the code, and a backend without
+them simply shows no GIF tab / no sticker packs (nothing breaks). Do both on
+**both** boxes — the home server over the tailnet, as everywhere else here:
+
+```sh
+cd backend
+# KLIPY (GIF + sticker search). Not a secret: KLIPY designs for it to ship in
+# clients, and `expressions:config` hands it to them.
+npx convex env set KLIPY_API_KEY <key>
+CONVEX_SELF_HOSTED_URL=http://100.104.73.75:3210 npx convex env set KLIPY_API_KEY <key>
+
+# Ads in the KLIPY grid: "0" = off, unset = on. OFF as of 2026-09-30 — the
+# privacy policy promises "no advertising", Play's "Contains ads" is No, and
+# MonkeyHub's audience includes children (Play Families policy allows only
+# certified ad SDKs). Flip it only after all three say otherwise.
+npx convex env set KLIPY_ADS 0
+
+# The official sticker packs (Noto Animated Emoji, CC BY 4.0). Idempotent —
+# re-running finishes a half-done seed and skips what is there.
+npx convex run expressions:seedOfficialPacks '{}'
+npx convex run expressions:seedStatus '{}'     # 4 packs, 116 stickers
+```
+
+KLIPY's terms shape the client, not this list: API calls and media loads come
+from the device (never proxied through our servers), media URLs are used
+verbatim, and results are shown in KLIPY's order. Content filtering is set in
+the KLIPY Partner Panel, not in code — child accounts additionally send
+`content_filter=high` and never request ads.
+
 ## One host, three paths
 
 ```

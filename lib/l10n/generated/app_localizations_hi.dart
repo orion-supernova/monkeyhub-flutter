@@ -8907,4 +8907,175 @@ class AppLocalizationsHi extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get expressionActionFailed => 'यह नहीं हो सका। फिर कोशिश करें।';
+
+  @override
+  String get expressionBackspace => 'मिटाएँ';
+
+  @override
+  String get expressionCreateSticker => 'स्टिकर बनाएँ';
+
+  @override
+  String get expressionDeleteSticker => 'मेरे स्टिकर से हटाएँ';
+
+  @override
+  String get expressionFavorite => 'पसंदीदा में जोड़ें';
+
+  @override
+  String get expressionFavorited => 'पसंदीदा में जोड़ दिया';
+
+  @override
+  String get expressionFavorites => 'पसंदीदा';
+
+  @override
+  String expressionGifSemantics(String title) {
+    return 'GIF: $title';
+  }
+
+  @override
+  String get expressionLoadFailed => 'लोड नहीं हो सका। अपना कनेक्शन जाँचें।';
+
+  @override
+  String get expressionMediaNotAllowed =>
+      'आपकी फ़ैमिली सेटिंग्स तस्वीरें भेजने की अनुमति नहीं देतीं।';
+
+  @override
+  String get expressionMyStickers => 'मेरे स्टिकर';
+
+  @override
+  String get expressionNoFavorites =>
+      'पसंदीदा में जोड़ने के लिए किसी GIF या स्टिकर को दबाकर रखें।';
+
+  @override
+  String get expressionNoRecents => 'आपके भेजे GIF और स्टिकर यहाँ दिखेंगे।';
+
+  @override
+  String get expressionNoResults => 'कोई नतीजा नहीं';
+
+  @override
+  String get expressionNoStickers => 'यहाँ अभी कोई स्टिकर नहीं है।';
+
+  @override
+  String get expressionOpenPanel => 'इमोजी, GIF और स्टिकर';
+
+  @override
+  String get expressionOptionsHint => 'विकल्प दिखाएँ';
+
+  @override
+  String expressionPackCredit(String author, String license) {
+    return 'आर्ट: $author · $license';
+  }
+
+  @override
+  String get expressionPlayGifHint => 'चलाएँ';
+
+  @override
+  String get expressionRecent => 'हाल के';
+
+  @override
+  String get expressionReport => 'रिपोर्ट करें';
+
+  @override
+  String get expressionReported => 'शुक्रिया — रिपोर्ट कर दिया गया है।';
+
+  @override
+  String get expressionRetry => 'फिर कोशिश करें';
+
+  @override
+  String get expressionSearchKlipy => 'KLIPY पर खोजें';
+
+  @override
+  String get expressionShowKeyboard => 'कीबोर्ड दिखाएँ';
+
+  @override
+  String get expressionSuggestionsLabel => 'स्टिकर सुझाव';
+
+  @override
+  String get expressionTabEmoji => 'इमोजी';
+
+  @override
+  String get expressionTabGifs => 'GIF';
+
+  @override
+  String get expressionTabStickers => 'स्टिकर';
+
+  @override
+  String get expressionTrending => 'ट्रेंडिंग';
+
+  @override
+  String get expressionUnfavorite => 'पसंदीदा से हटाएँ';
+
+  @override
+  String get expressionUnfavorited => 'पसंदीदा से हटा दिया';
+
+  @override
+  String replyIndicatorStickerLabel(String emoji) {
+    return 'स्टिकर $emoji';
+  }
+
+  @override
+  String get settingsAutoplayExpressionsLabel => 'GIF और स्टिकर अपने-आप चलाएँ';
+
+  @override
+  String get settingsAutoplayExpressionsOffBody =>
+      'जब तक आप टैप न करें, ये रुके रहते हैं। डेटा बचता है।';
+
+  @override
+  String get settingsAutoplayExpressionsOnBody =>
+      'GIF और एनिमेटेड स्टिकर अपने-आप चलते हैं। मोशन कम करें इन्हें रोक देता है।';
+
+  @override
+  String get settingsStickerSuggestionsBody =>
+      'सिर्फ़ एक इमोजी टाइप करने पर मैसेज फ़ील्ड के ऊपर मिलते-जुलते स्टिकर दिखते हैं।';
+
+  @override
+  String get settingsStickerSuggestionsLabel => 'स्टिकर सुझाव';
+
+  @override
+  String get stickerMakerEmojiLabel => 'यह कौन-सा इमोजी है?';
+
+  @override
+  String get stickerMakerFailed => 'स्टिकर सेव नहीं हो सका। फिर कोशिश करें।';
+
+  @override
+  String get stickerMakerMoreEmoji => 'और इमोजी';
+
+  @override
+  String get stickerMakerPreview => 'स्टिकर प्रीव्यू';
+
+  @override
+  String get stickerMakerRemoveBackground => 'बैकग्राउंड हटाएँ';
+
+  @override
+  String get stickerMakerSave => 'सेव करें';
+
+  @override
+  String get stickerMakerSaved => 'स्टिकर मेरे स्टिकर में जोड़ दिया गया';
+
+  @override
+  String get stickerMakerShape => 'आकार';
+
+  @override
+  String get stickerMakerShapeCircle => 'गोल';
+
+  @override
+  String get stickerMakerShapeOriginal => 'ओरिजिनल';
+
+  @override
+  String get stickerMakerShapeRounded => 'गोल कोनों वाला चौकोर';
+
+  @override
+  String get stickerMakerTitle => 'नया स्टिकर';
+
+  @override
+  String get stickerMakerTooMany =>
+      'आप स्टिकर की सीमा तक पहुँच गए हैं। जगह बनाने के लिए एक हटाएँ।';
+
+  @override
+  String get expressionExpandPanel => 'पैनल बड़ा करें';
+
+  @override
+  String get expressionCollapsePanel => 'पैनल छोटा करें';
 }

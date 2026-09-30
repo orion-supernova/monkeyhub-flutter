@@ -25,6 +25,11 @@ enum RoomType { regular, secret }
 /// bubble. Their body does NOT live on [ChatMessage]: it arrives on its own
 /// subscription as a [MessageInteraction], because a vote must not rebuild the
 /// transcript. See `backend/convex/schema.ts:messageInteractions`.
+///
+/// [gif] and [sticker] are pictures that are not attachments: nothing was
+/// uploaded, the row names the art (a KLIPY URL, or a sticker pack's blob) and
+/// both draw bubble-less. Two members for the usual reason — a sticker is a
+/// cut-out that floats on the transcript, a GIF is a rectangle that loops.
 enum MessageType {
   text,
   image,
@@ -39,6 +44,8 @@ enum MessageType {
   poll,
   checklist,
   event,
+  gif,
+  sticker,
 }
 
 /// Whether this type's body is a [MessageInteraction] delivered beside the
@@ -136,6 +143,12 @@ extension MessageTypeWire on MessageType {
         return MessageType.checklist;
       case 'event':
         return MessageType.event;
+      // A client too old to know these shows `content` as text: the GIF's
+      // title, or the emoji a sticker stands for — see `messages:send`.
+      case 'gif':
+        return MessageType.gif;
+      case 'sticker':
+        return MessageType.sticker;
       default:
         return MessageType.text;
     }

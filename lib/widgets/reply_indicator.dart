@@ -13,6 +13,7 @@ import '../models/enums.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
+import 'expressions/expression_media.dart';
 import 'remote_image.dart';
 import 'speaker_scope.dart';
 import 'user_avatar.dart';
@@ -451,6 +452,13 @@ String _previewLabel(BuildContext context, ReplyPreview preview) {
   if (preview.isViewOnce) {
     return AppLocalizations.of(context).replyIndicatorViewOnceLabel;
   }
+  // Ahead of the passthrough too: a GIF's `content` is its alt text, and a
+  // quote reading "Hello" would say the parent typed it.
+  if (preview.type == MessageType.gif) return 'GIF';
+  if (preview.type == MessageType.sticker) {
+    return AppLocalizations.of(context)
+        .replyIndicatorStickerLabel(preview.contentPreview);
+  }
   if (preview.contentPreview.isNotEmpty) return preview.contentPreview;
   switch (preview.type) {
     case MessageType.image:
@@ -535,6 +543,17 @@ Widget _mediaThumb({
       ),
     );
   }
+  // A quoted GIF or sticker carries its own small picture instead.
+  final thumb = expressionThumbnail(
+    type: preview.type,
+    url: preview.mediaUrl,
+    stickerStorageId: preview.stickerStorageId,
+    stickerFormat: preview.stickerFormat,
+    alt: preview.contentPreview,
+    api: api,
+    size: size,
+  );
+  if (thumb != null) return thumb;
   // No thumbnail available — drop the slot entirely rather than falling
   // back to a "photo / video" glyph here. Those glyphs belong on the
   // chat-list "last message" row, not on the in-room reply indicator.

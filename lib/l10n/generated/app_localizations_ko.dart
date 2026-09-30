@@ -8567,4 +8567,172 @@ class AppLocalizationsKo extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get expressionActionFailed => '처리하지 못했어요. 다시 시도해 주세요.';
+
+  @override
+  String get expressionBackspace => '삭제';
+
+  @override
+  String get expressionCreateSticker => '스티커 만들기';
+
+  @override
+  String get expressionDeleteSticker => '내 스티커에서 삭제';
+
+  @override
+  String get expressionFavorite => '즐겨찾기에 추가';
+
+  @override
+  String get expressionFavorited => '즐겨찾기에 추가했어요';
+
+  @override
+  String get expressionFavorites => '즐겨찾기';
+
+  @override
+  String expressionGifSemantics(String title) {
+    return 'GIF: $title';
+  }
+
+  @override
+  String get expressionLoadFailed => '불러오지 못했어요. 연결을 확인해 주세요.';
+
+  @override
+  String get expressionMediaNotAllowed => '가족 설정에서 사진 보내기가 허용되지 않아요.';
+
+  @override
+  String get expressionMyStickers => '내 스티커';
+
+  @override
+  String get expressionNoFavorites => 'GIF나 스티커를 길게 눌러 즐겨찾기에 추가하세요.';
+
+  @override
+  String get expressionNoRecents => '보낸 GIF와 스티커가 여기에 표시돼요.';
+
+  @override
+  String get expressionNoResults => '결과 없음';
+
+  @override
+  String get expressionNoStickers => '아직 스티커가 없어요.';
+
+  @override
+  String get expressionOpenPanel => '이모지, GIF, 스티커';
+
+  @override
+  String get expressionOptionsHint => '옵션 보기';
+
+  @override
+  String expressionPackCredit(String author, String license) {
+    return '그림: $author · $license';
+  }
+
+  @override
+  String get expressionPlayGifHint => '재생';
+
+  @override
+  String get expressionRecent => '최근';
+
+  @override
+  String get expressionReport => '신고';
+
+  @override
+  String get expressionReported => '감사합니다 — 신고했어요.';
+
+  @override
+  String get expressionRetry => '다시 시도';
+
+  @override
+  String get expressionSearchKlipy => 'KLIPY 검색';
+
+  @override
+  String get expressionShowKeyboard => '키보드 보기';
+
+  @override
+  String get expressionSuggestionsLabel => '스티커 추천';
+
+  @override
+  String get expressionTabEmoji => '이모지';
+
+  @override
+  String get expressionTabGifs => 'GIF';
+
+  @override
+  String get expressionTabStickers => '스티커';
+
+  @override
+  String get expressionTrending => '인기';
+
+  @override
+  String get expressionUnfavorite => '즐겨찾기에서 삭제';
+
+  @override
+  String get expressionUnfavorited => '즐겨찾기에서 삭제했어요';
+
+  @override
+  String replyIndicatorStickerLabel(String emoji) {
+    return '스티커 $emoji';
+  }
+
+  @override
+  String get settingsAutoplayExpressionsLabel => 'GIF 및 스티커 자동 재생';
+
+  @override
+  String get settingsAutoplayExpressionsOffBody =>
+      '탭하기 전까지 멈춰 있어요. 데이터를 아낄 수 있어요.';
+
+  @override
+  String get settingsAutoplayExpressionsOnBody =>
+      'GIF와 움직이는 스티커가 자동으로 재생돼요. 동작 줄이기를 켜면 멈춰요.';
+
+  @override
+  String get settingsStickerSuggestionsBody =>
+      '이모지 하나만 입력하면 메시지 입력란 위에 어울리는 스티커가 표시돼요.';
+
+  @override
+  String get settingsStickerSuggestionsLabel => '스티커 추천';
+
+  @override
+  String get stickerMakerEmojiLabel => '어떤 이모지인가요?';
+
+  @override
+  String get stickerMakerFailed => '스티커를 저장하지 못했어요. 다시 시도해 주세요.';
+
+  @override
+  String get stickerMakerMoreEmoji => '이모지 더 보기';
+
+  @override
+  String get stickerMakerPreview => '스티커 미리보기';
+
+  @override
+  String get stickerMakerRemoveBackground => '배경 제거';
+
+  @override
+  String get stickerMakerSave => '저장';
+
+  @override
+  String get stickerMakerSaved => '내 스티커에 추가했어요';
+
+  @override
+  String get stickerMakerShape => '모양';
+
+  @override
+  String get stickerMakerShapeCircle => '원형';
+
+  @override
+  String get stickerMakerShapeOriginal => '원본';
+
+  @override
+  String get stickerMakerShapeRounded => '둥근 사각형';
+
+  @override
+  String get stickerMakerTitle => '새 스티커';
+
+  @override
+  String get stickerMakerTooMany => '스티커 한도에 도달했어요. 하나를 삭제해 공간을 만드세요.';
+
+  @override
+  String get expressionExpandPanel => '패널 펼치기';
+
+  @override
+  String get expressionCollapsePanel => '패널 접기';
 }

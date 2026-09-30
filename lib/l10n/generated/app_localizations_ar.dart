@@ -9062,4 +9062,176 @@ class AppLocalizationsAr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get expressionActionFailed => 'تعذّر ذلك. حاول مجددًا.';
+
+  @override
+  String get expressionBackspace => 'حذف';
+
+  @override
+  String get expressionCreateSticker => 'اصنع ملصقًا';
+
+  @override
+  String get expressionDeleteSticker => 'احذف من ملصقاتي';
+
+  @override
+  String get expressionFavorite => 'أضف إلى المفضلة';
+
+  @override
+  String get expressionFavorited => 'أُضيف إلى المفضلة';
+
+  @override
+  String get expressionFavorites => 'المفضلة';
+
+  @override
+  String expressionGifSemantics(String title) {
+    return 'GIF: $title';
+  }
+
+  @override
+  String get expressionLoadFailed => 'تعذّر التحميل. تحقّق من اتصالك.';
+
+  @override
+  String get expressionMediaNotAllowed =>
+      'إعدادات عائلتك لا تسمح بإرسال الصور.';
+
+  @override
+  String get expressionMyStickers => 'ملصقاتي';
+
+  @override
+  String get expressionNoFavorites =>
+      'اضغط مطولًا على صورة GIF أو ملصق لإضافته إلى المفضلة.';
+
+  @override
+  String get expressionNoRecents => 'ستظهر هنا صور GIF والملصقات التي ترسلها.';
+
+  @override
+  String get expressionNoResults => 'لا توجد نتائج';
+
+  @override
+  String get expressionNoStickers => 'لا توجد ملصقات هنا بعد.';
+
+  @override
+  String get expressionOpenPanel => 'الرموز التعبيرية وصور GIF والملصقات';
+
+  @override
+  String get expressionOptionsHint => 'عرض الخيارات';
+
+  @override
+  String expressionPackCredit(String author, String license) {
+    return 'الرسم: $author · $license';
+  }
+
+  @override
+  String get expressionPlayGifHint => 'تشغيل';
+
+  @override
+  String get expressionRecent => 'الأخيرة';
+
+  @override
+  String get expressionReport => 'إبلاغ';
+
+  @override
+  String get expressionReported => 'شكرًا — تم الإبلاغ.';
+
+  @override
+  String get expressionRetry => 'حاول مجددًا';
+
+  @override
+  String get expressionSearchKlipy => 'ابحث في KLIPY';
+
+  @override
+  String get expressionShowKeyboard => 'إظهار لوحة المفاتيح';
+
+  @override
+  String get expressionSuggestionsLabel => 'ملصقات مقترحة';
+
+  @override
+  String get expressionTabEmoji => 'الرموز التعبيرية';
+
+  @override
+  String get expressionTabGifs => 'GIF';
+
+  @override
+  String get expressionTabStickers => 'الملصقات';
+
+  @override
+  String get expressionTrending => 'الرائج';
+
+  @override
+  String get expressionUnfavorite => 'أزل من المفضلة';
+
+  @override
+  String get expressionUnfavorited => 'أُزيل من المفضلة';
+
+  @override
+  String replyIndicatorStickerLabel(String emoji) {
+    return 'ملصق $emoji';
+  }
+
+  @override
+  String get settingsAutoplayExpressionsLabel =>
+      'تشغيل صور GIF والملصقات تلقائيًا';
+
+  @override
+  String get settingsAutoplayExpressionsOffBody =>
+      'تبقى ثابتة حتى تضغط على أحدها. يوفّر البيانات.';
+
+  @override
+  String get settingsAutoplayExpressionsOnBody =>
+      'تُشغَّل صور GIF والملصقات المتحركة تلقائيًا. خيار تقليل الحركة يوقفها مؤقتًا.';
+
+  @override
+  String get settingsStickerSuggestionsBody =>
+      'كتابة رمز تعبيري واحد تعرض ملصقات مطابقة فوق حقل الرسالة.';
+
+  @override
+  String get settingsStickerSuggestionsLabel => 'ملصقات مقترحة';
+
+  @override
+  String get stickerMakerEmojiLabel => 'ما هو الرمز التعبيري؟';
+
+  @override
+  String get stickerMakerFailed => 'تعذّر حفظ الملصق. حاول مجددًا.';
+
+  @override
+  String get stickerMakerMoreEmoji => 'مزيد من الرموز التعبيرية';
+
+  @override
+  String get stickerMakerPreview => 'معاينة الملصق';
+
+  @override
+  String get stickerMakerRemoveBackground => 'إزالة الخلفية';
+
+  @override
+  String get stickerMakerSave => 'حفظ';
+
+  @override
+  String get stickerMakerSaved => 'أُضيف الملصق إلى ملصقاتي';
+
+  @override
+  String get stickerMakerShape => 'الشكل';
+
+  @override
+  String get stickerMakerShapeCircle => 'دائرة';
+
+  @override
+  String get stickerMakerShapeOriginal => 'الأصلي';
+
+  @override
+  String get stickerMakerShapeRounded => 'مربع بحواف مستديرة';
+
+  @override
+  String get stickerMakerTitle => 'ملصق جديد';
+
+  @override
+  String get stickerMakerTooMany =>
+      'وصلت إلى الحد الأقصى للملصقات. احذف واحدًا لتفريغ مساحة.';
+
+  @override
+  String get expressionExpandPanel => 'توسيع اللوحة';
+
+  @override
+  String get expressionCollapsePanel => 'تصغير اللوحة';
 }

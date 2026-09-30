@@ -104,6 +104,11 @@ class MainFlutterWindow: NSWindow, NSDraggingDestination {
       with: flutterViewController.engine.binaryMessenger
     )
 
+    // monkeyhub/cutout — lifts a photo's subject out for "make a sticker".
+    SubjectCutout.register(
+      with: flutterViewController.engine.binaryMessenger
+    )
+
     // monkeyhub/drop — desktop drag-and-drop. Constructed here (it owns its
     // own channel) and reached by the four forwarding methods below.
     dropDestination = DropDestination(

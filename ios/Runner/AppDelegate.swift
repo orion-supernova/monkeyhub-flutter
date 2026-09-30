@@ -1229,6 +1229,11 @@ import flutter_callkit_incoming
       documentPreview = DocumentPreview.register(with: previewRegistrar.messenger())
     }
 
+    // monkeyhub/cutout — lifts a photo's subject out for "make a sticker".
+    if let cutoutRegistrar = engine.registrar(forPlugin: "MonkeyHubCutoutPlugin") {
+      SubjectCutout.register(with: cutoutRegistrar.messenger())
+    }
+
     // monkeyhub/badge — set or clear the app icon badge count.
     // Register the channel via a plugin registrar so we get a binaryMessenger
     // without depending on the rootViewController being a FlutterViewController.

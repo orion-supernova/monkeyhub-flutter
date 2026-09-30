@@ -31,6 +31,7 @@
 		AC0100222044A3C60003C045 /* AppChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0100112044A3C60003C045 /* AppChrome.swift */; };
 		AD0100442044A3C60003C045 /* DropDestination.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0100332044A3C60003C045 /* DropDestination.swift */; };
 		AD0100662044A3C60003C045 /* DocumentPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0100552044A3C60003C045 /* DocumentPreview.swift */; };
+		AD0301662044A3C60003C045 /* SubjectCutout.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0301552044A3C60003C045 /* SubjectCutout.swift */; };
 		69CB853567BE47680FBED5AD /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2AFEF5768C2B9667A6B75341 /* Pods_RunnerTests.framework */; };
 /* End PBXBuildFile section */
 
@@ -81,6 +82,7 @@
 		AC0100112044A3C60003C045 /* AppChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppChrome.swift; sourceTree = "<group>"; };
 		AD0100332044A3C60003C045 /* DropDestination.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropDestination.swift; sourceTree = "<group>"; };
 		AD0100552044A3C60003C045 /* DocumentPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentPreview.swift; sourceTree = "<group>"; };
+		AD0301552044A3C60003C045 /* SubjectCutout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjectCutout.swift; sourceTree = "<group>"; };
 		33CEB47222A05771004F2AC0 /* Flutter-Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Flutter-Debug.xcconfig"; sourceTree = "<group>"; };
 		33CEB47422A05771004F2AC0 /* Flutter-Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Flutter-Release.xcconfig"; sourceTree = "<group>"; };
 		33CEB47722A0578A004F2AC0 /* Flutter-Generated.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = "Flutter-Generated.xcconfig"; path = "ephemeral/Flutter-Generated.xcconfig"; sourceTree = "<group>"; };
@@ -186,6 +188,7 @@
 				AC0100112044A3C60003C045 /* AppChrome.swift */,
 				AD0100332044A3C60003C045 /* DropDestination.swift */,
 				AD0100552044A3C60003C045 /* DocumentPreview.swift */,
+				AD0301552044A3C60003C045 /* SubjectCutout.swift */,
 				33E51913231747F40026EE4D /* DebugProfile.entitlements */,
 				33E51914231749380026EE4D /* Release.entitlements */,
 				33CC11242044D66E0003C045 /* Resources */,
@@ -467,6 +470,7 @@
 				AC0100222044A3C60003C045 /* AppChrome.swift in Sources */,
 				AD0100442044A3C60003C045 /* DropDestination.swift in Sources */,
 				AD0100662044A3C60003C045 /* DocumentPreview.swift in Sources */,
+				AD0301662044A3C60003C045 /* SubjectCutout.swift in Sources */,
 				33CC10F12044A3C60003C045 /* AppDelegate.swift in Sources */,
 				335BBD1B22A9A15E00E9071D /* GeneratedPluginRegistrant.swift in Sources */,
 			);

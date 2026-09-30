@@ -31,6 +31,7 @@ import 'calls/native_call_handler.dart';
 import 'calls/signaling_subscriber.dart';
 import 'data/chat_repository.dart';
 import 'data/feed_store.dart';
+import 'expressions/expression_store.dart';
 import 'data/games_store.dart';
 import 'data/records_store.dart';
 import 'data/settings_store.dart';
@@ -1482,6 +1483,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         await _repo.attach(s.userId);
         _family.attach(s.userId);
         unawaited(FeedStore.instance.attach(_feedApi, s.userId));
+        // Sticker packs, recents/favourites and the KLIPY config, ready before
+        // anyone opens the composer's expression panel.
+        unawaited(ExpressionStore.instance.attach(_api, s.userId));
         // Deliberately NOT awaited — see the note above. Push registration is
         // a best-effort background concern; nothing in this method may block
         // on it. The opt-out still has to follow the login that would
@@ -1592,6 +1596,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         // are another account's data and must not flash on screen for whoever
         // signs in next on a shared handset.
         await FeedStore.instance.detach();
+        // Recents, favourites and a personal sticker pack are this account's,
+        // and the two subscriptions behind them must not outlive its session.
+        await ExpressionStore.instance.detach();
         // Same rule for the daily games: the standings carry friends' names.
         GamesStore.instance.clear();
         RecordsStore.instance.clear();

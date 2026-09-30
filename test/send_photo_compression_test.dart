@@ -88,6 +88,23 @@ void main() {
   /// share. It exists because they used to disagree by construction: only one
   /// of them had a rule at all.
   group('prepareUneditedForSend', () {
+    // The bug this guards: a GIF over the size cap was re-encoded to a single
+    // JPEG frame, so every large GIF picked from a library arrived as a still.
+    test('a large animated GIF goes out byte for byte', () async {
+      final frames = img.Image(width: 2000, height: 40, numChannels: 4);
+      img.fill(frames, color: img.ColorRgb8(200, 40, 40));
+      final second = img.Image(width: 2000, height: 40, numChannels: 4);
+      img.fill(second, color: img.ColorRgb8(40, 40, 200));
+      frames.addFrame(second);
+      final gif = img.encodeGif(frames);
+
+      final out = await prepareUneditedForSend(gif, hd: false);
+      expect(out, isNotNull);
+      expect(out!.contentType, 'image/gif');
+      expect(out.bytes, same(gif), reason: 'not re-encoded');
+      expect(out.width, 2000);
+    });
+
     test('hands back the source untouched when it is inside the cap', () async {
       final source = await _photo(400, 300);
       final out = await prepareUneditedForSend(source, hd: false);

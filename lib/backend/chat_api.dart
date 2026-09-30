@@ -7,6 +7,7 @@ import '../models/chat_message.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
+import '../models/expression_item.dart';
 import '../models/friend_request.dart';
 import '../models/family.dart';
 import '../models/friend_request_message.dart';
@@ -14,6 +15,7 @@ import '../models/message_formatting.dart';
 import '../models/message_interaction.dart';
 import '../models/room_admin.dart';
 import '../models/room_content_item.dart';
+import '../models/sticker_pack.dart';
 import '../models/user_device.dart';
 import '../push/device_identity.dart';
 import 'convex_client.dart';
@@ -1266,8 +1268,14 @@ class ChatApi {
     /// server clamps them against the text; a span it refuses just renders
     /// plain on every device.
     List<FormattingEntity> formatting = const [],
+
+    /// The GIF or sticker, on [MessageType.gif] and [MessageType.sticker].
+    /// Supplies the type and the picture-naming fields; the server decides
+    /// what is written — see `expressionFieldsFor` in messages.ts.
+    ExpressionItem? expression,
   }) async {
     final res = await _cv.mutation('messages:send', {
+      ...?expression?.toSendArgs(),
       'roomId': roomId,
       'userId': userId,
       'content': content,
@@ -2911,6 +2919,96 @@ class ChatApi {
     if (res == null) return null;
     final url = res.toString();
     return url.isEmpty ? null : url;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // GIFs and stickers — see backend/convex/expressions.ts
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// KLIPY's app key and whether ads are on, or a null key where this server
+  /// has no GIF search configured.
+  Future<({String? klipyAppKey, bool klipyAds})> expressionsConfig() async {
+    final res = await _cv.query('expressions:config', const {});
+    final m = (res as Map?)?.cast<String, dynamic>() ?? const {};
+    return (
+      klipyAppKey: m['klipyAppKey'] as String?,
+      klipyAds: m['klipyAds'] == true,
+    );
+  }
+
+  /// Every sticker pack the viewer can pick from, live — a new personal
+  /// sticker made on another device appears here without a refresh.
+  Future<Subscription> subscribeStickerPacks({
+    required void Function(List<StickerPack> packs) onPacks,
+    void Function(Object error)? onError,
+  }) {
+    return _cv.subscribe(
+      'expressions:packs',
+      const {},
+      onData: (raw) => onPacks([
+        for (final p in (raw as List? ?? const []))
+          StickerPack.fromJson((p as Map).cast<String, dynamic>()),
+      ]),
+      onError: onError,
+    );
+  }
+
+  /// The viewer's recent and starred GIFs/stickers, live across devices.
+  Future<Subscription> subscribeExpressionState({
+    required void Function(
+            List<ExpressionItem> recents, List<ExpressionItem> favorites)
+        onState,
+    void Function(Object error)? onError,
+  }) {
+    List<ExpressionItem> parse(Object? list) => [
+          for (final r in (list as List? ?? const []))
+            ?ExpressionItem.fromRefJson((r as Map).cast<String, dynamic>()),
+        ];
+    return _cv.subscribe(
+      'expressions:state',
+      const {},
+      onData: (raw) {
+        final m = (raw as Map?)?.cast<String, dynamic>() ?? const {};
+        onState(parse(m['recents']), parse(m['favorites']));
+      },
+      onError: onError,
+    );
+  }
+
+  Future<void> recordExpressionUse(ExpressionItem item) async {
+    await _cv.mutation('expressions:recordUse', {'ref': item.toRefJson()});
+  }
+
+  /// Returns whether [item] is starred now.
+  Future<bool> toggleExpressionFavorite(ExpressionItem item) async {
+    final res = await _cv
+        .mutation('expressions:toggleFavorite', {'ref': item.toRefJson()});
+    return res == true;
+  }
+
+  Future<void> forgetRecentExpression(ExpressionItem item) async {
+    await _cv.mutation('expressions:forgetRecent', {'ref': item.toRefJson()});
+  }
+
+  /// Files an uploaded, already-cut-out image as one of the viewer's stickers.
+  Future<String> createPersonalSticker({
+    required String storageId,
+    required String emoji,
+    required double width,
+    required double height,
+  }) async {
+    final res = await _cv.mutation('expressions:createPersonalSticker', {
+      'storageId': storageId,
+      'emoji': emoji,
+      'width': width,
+      'height': height,
+    });
+    return res.toString();
+  }
+
+  Future<void> deletePersonalSticker(String stickerId) async {
+    await _cv.mutation(
+        'expressions:deletePersonalSticker', {'stickerId': stickerId});
   }
 
   // No deleteFile: freeing a stored file is the server's job, done in the same
