@@ -23,7 +23,7 @@ the design notes are in the code (`lib/expressions/`, `backend/convex/expression
 | --- | --- | --- |
 | **KLIPY** (GIF & sticker search) | search text, the category tapped, which item was sent (a "share" ping, which KLIPY's terms require), the device's IP address and user agent, and an opaque per-user id | the user's **device**, directly — KLIPY's terms forbid routing it through our servers. Never our servers. |
 | KLIPY's CDN | requests for the GIF/sticker images, from every device that displays one (IP address, user agent) | the device |
-| Google Fonts' `fonts.gstatic.com` | nothing at runtime — the Noto sticker files were copied into **our** storage once, at seed time, by the server | — |
+| Google Fonts' `fonts.gstatic.com` | nothing at runtime — the Noto sticker files were copied into **our** storage once, at seed time, by the server (the Fluent and MonkeyHub packs are uploaded there from a Mac) | — |
 
 The "opaque per-user id" is `sha256("monkeyhub-klipy:" + userId)` truncated —
 stable per account so KLIPY can keep that user's recents, meaningless to
@@ -46,8 +46,9 @@ Paste into **App Review Information → Notes** (append to what is there):
 > message field). GIF and sticker search is provided by KLIPY
 > (klipy.com), a licensed GIF API: the app calls KLIPY directly and shows its
 > results with the required "Search KLIPY" / "Powered by KLIPY" attribution.
-> The built-in sticker packs are Google's Noto Animated Emoji (CC BY 4.0,
-> credited in the app and on the licences page).
+> The built-in sticker packs are MonkeyHub's own mascot art, Google's Noto
+> Animated Emoji (CC BY 4.0) and Microsoft's Fluent Emoji (MIT), each credited
+> in the app and on the licences page.
 >
 > Content controls:
 > - KLIPY content is filtered by KLIPY's content-rating filter; supervised

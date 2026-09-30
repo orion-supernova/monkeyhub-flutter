@@ -125,6 +125,7 @@ export const packs = query({
  * reseed.
  */
 export const DEFAULT_PACK_SLUGS = [
+  "monkeyhub-monkeys",
   "noto-moods",
   "noto-love",
   "noto-feelings",
@@ -664,9 +665,30 @@ export function emojiForCode(code: string): string {
 }
 
 /** Creates (or finds) a pack and reports which stickers it already has. */
+/**
+ * Creates (or finds) an official pack and reports what it already holds.
+ *
+ * The credit defaults to Noto's, which is what [seedOfficialPacks] seeds; the
+ * packs uploaded from `backend/scripts/seed-sticker-packs.mjs` (Fluent, the
+ * MonkeyHub monkeys) pass their own. `have` is by emoji, for the Noto seeder
+ * whose emoji are unique per pack; `haveOrders` is by position, for uploaded
+ * packs where two stickers may stand for the same emoji.
+ */
 export const ensureOfficialPack = internalMutation({
-  args: { slug: v.string(), title: v.string(), order: v.number() },
-  handler: async (ctx, { slug, title, order }) => {
+  args: {
+    slug: v.string(),
+    title: v.string(),
+    order: v.number(),
+    author: v.optional(v.string()),
+    license: v.optional(v.string()),
+    sourceUrl: v.optional(v.string()),
+  },
+  handler: async (ctx, { slug, title, order, author, license, sourceUrl }) => {
+    const credit = {
+      author: author ?? NOTO_AUTHOR,
+      license: license ?? NOTO_LICENSE,
+      sourceUrl: sourceUrl ?? NOTO_SOURCE,
+    };
     let pack = await ctx.db
       .query("stickerPacks")
       .withIndex("by_slug", (q) => q.eq("slug", slug))
@@ -676,21 +698,28 @@ export const ensureOfficialPack = internalMutation({
         slug,
         title,
         kind: "official",
-        author: NOTO_AUTHOR,
-        license: NOTO_LICENSE,
-        sourceUrl: NOTO_SOURCE,
+        ...credit,
         order,
         createdAt: Date.now(),
       });
       pack = (await ctx.db.get(id))!;
-    } else if (pack.title !== title || pack.order !== order) {
-      await ctx.db.patch(pack._id, { title, order });
+    } else if (
+      pack.title !== title ||
+      pack.order !== order ||
+      pack.author !== credit.author ||
+      pack.license !== credit.license
+    ) {
+      await ctx.db.patch(pack._id, { title, order, ...credit });
     }
     const rows = await ctx.db
       .query("stickers")
       .withIndex("by_pack_order", (q) => q.eq("packId", pack._id))
       .collect();
-    return { packId: pack._id, have: rows.map((r) => r.emoji) };
+    return {
+      packId: pack._id,
+      have: rows.map((r) => r.emoji),
+      haveOrders: rows.map((r) => r.order),
+    };
   },
 });
 
@@ -702,14 +731,22 @@ export const insertOfficialSticker = internalMutation({
     width: v.number(),
     height: v.number(),
     order: v.number(),
+    // "lottie" (the Noto seeder) or "image" (uploaded animated WebP).
+    format: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, { format, ...args }) => {
     await ctx.db.insert("stickers", {
       ...args,
-      format: "lottie",
+      format: format === "image" ? "image" : "lottie",
       createdAt: Date.now(),
     });
   },
+});
+
+/** Where the sticker-pack upload script PUTs one file. Operator-only. */
+export const seedUploadUrl = internalMutation({
+  args: {},
+  handler: async (ctx) => await ctx.storage.generateUploadUrl(),
 });
 
 /**

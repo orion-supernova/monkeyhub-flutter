@@ -193,7 +193,18 @@ npx convex env set KLIPY_ADS 0
 # The official sticker packs (Noto Animated Emoji, CC BY 4.0). Idempotent —
 # re-running finishes a half-done seed and skips what is there.
 npx convex run expressions:seedOfficialPacks '{}'
-npx convex run expressions:seedStatus '{}'     # 14 packs, 419 stickers
+
+# The packs built on a Mac and uploaded: the MonkeyHub monkeys (our own art,
+# first in the strip and on by default) and three Fluent 3D packs (Microsoft,
+# MIT). Build once, then upload to each box — also idempotent.
+python3 -m venv .venv && .venv/bin/pip install pillow skia-python
+.venv/bin/python ../tool/stickers/monkey_pack.py build/stickers/monkey
+.venv/bin/python ../tool/stickers/fluent_packs.py build/stickers/fluent   # needs gh
+for m in build/stickers/monkey build/stickers/fluent; do
+  node scripts/seed-sticker-packs.mjs $m/manifest.json
+  node scripts/seed-sticker-packs.mjs $m/manifest.json http://100.104.73.75:3210
+done
+npx convex run expressions:seedStatus '{}'     # 19 packs, 520 stickers
 ```
 
 KLIPY's terms shape the client, not this list: API calls and media loads come
