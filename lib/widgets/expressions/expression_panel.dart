@@ -113,6 +113,12 @@ class _ExpressionPanelState extends State<ExpressionPanel> {
     setState(() => _tab = _lastTab = tab);
   }
 
+  /// Where a search field reports taking the keyboard: the host's callback if
+  /// it gave one, otherwise the panel's own controller — so a host cannot
+  /// forget to wire it and leave a search squeezed under the keyboard.
+  ValueChanged<bool>? get _searchFocusChanged =>
+      widget.onSearchFocusChanged ?? widget.controller?.setSearching;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -211,14 +217,14 @@ class _ExpressionPanelState extends State<ExpressionPanel> {
                           kind: ExpressionKind.gif,
                           klipy: store.klipy!,
                           onSend: widget.onSend,
-                          onSearchFocusChanged: widget.onSearchFocusChanged,
+                          onSearchFocusChanged: _searchFocusChanged,
                         ),
                       _Tab.stickers => _StickersTab(
                           onSend: widget.onSend,
                           onCreateSticker: store.canUseOutsideMedia
                               ? widget.onCreateSticker
                               : null,
-                          onSearchFocusChanged: widget.onSearchFocusChanged,
+                          onSearchFocusChanged: _searchFocusChanged,
                         ),
                     },
                   ),
@@ -553,11 +559,18 @@ class _KlipyBrowserState extends State<_KlipyBrowser> {
 
   bool get _isSticker => widget.kind == ExpressionKind.sticker;
 
+  /// What was last reported to the panel — see [StickerPackStore]'s
+  /// identical field for why it is tracked rather than read at dispose.
+  bool _reportedFocus = false;
+
   @override
   void initState() {
     super.initState();
     _focus.addListener(() {
-      widget.onSearchFocusChanged?.call(_focus.hasFocus);
+      if (_focus.hasFocus != _reportedFocus) {
+        _reportedFocus = _focus.hasFocus;
+        widget.onSearchFocusChanged?.call(_reportedFocus);
+      }
       setState(() {});
     });
     _scroll.addListener(_maybeLoadMore);
@@ -571,7 +584,12 @@ class _KlipyBrowserState extends State<_KlipyBrowser> {
   void dispose() {
     _debounce?.cancel();
     _autoDebounce?.cancel();
-    if (_focus.hasFocus) widget.onSearchFocusChanged?.call(false);
+    // Switching tab mid-search must not strand the panel at its search
+    // height; after the frame, as the tree is being torn down.
+    final report = widget.onSearchFocusChanged;
+    if (_reportedFocus && report != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => report(false));
+    }
     _query.dispose();
     _focus.dispose();
     _scroll.dispose();
@@ -710,7 +728,7 @@ class _KlipyBrowserState extends State<_KlipyBrowser> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
           child: Container(
             height: 36,
             decoration: theme.inputDecoration(),
@@ -786,7 +804,9 @@ class _KlipyBrowserState extends State<_KlipyBrowser> {
                   ],
           ),
         ),
-        const SizedBox(height: 4),
+        // Room between the chips and the first row of GIFs, or the two read as
+        // one crowded block — the chips looked stuck to the grid at 4.
+        const SizedBox(height: 12),
         Expanded(
           child: ListenableBuilder(
             listenable: ExpressionStore.instance,
@@ -933,7 +953,7 @@ class _Chip extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final color = selected ? theme.accent : theme.inkSoft;
     return Padding(
-      padding: const EdgeInsets.only(right: 6),
+      padding: const EdgeInsets.only(right: 8),
       child: FocusableTap(
         onTap: onTap,
         semanticLabel: label,
@@ -1214,7 +1234,10 @@ class _StickersTabState extends State<_StickersTab> {
 
         Widget body;
         if (section == '_store') {
-          body = StickerPackStore(onOpenPack: _select);
+          body = StickerPackStore(
+            onOpenPack: _select,
+            onSearchFocusChanged: widget.onSearchFocusChanged,
+          );
         } else if (section == 'klipy' && klipy != null) {
           body = _KlipyBrowser(
             key: const ValueKey('klipy-stickers'),

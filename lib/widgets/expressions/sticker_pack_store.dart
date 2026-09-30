@@ -48,11 +48,20 @@ List<StickerPack> matchPacks(
 /// overlay. Here it works identically everywhere, and dragging the panel up
 /// gives it the whole screen.
 class StickerPackStore extends StatefulWidget {
-  const StickerPackStore({super.key, required this.onOpenPack});
+  const StickerPackStore({
+    super.key,
+    required this.onOpenPack,
+    this.onSearchFocusChanged,
+  });
 
   /// Switches the panel to a pack the user has just added — straight from the
   /// store to using it.
   final ValueChanged<String> onOpenPack;
+
+  /// Tells the panel the search field took or lost the keyboard, so it can
+  /// grow to fill everything above the keys — a half-height panel with the
+  /// keyboard up left room for barely one pack.
+  final ValueChanged<bool>? onSearchFocusChanged;
 
   @override
   State<StickerPackStore> createState() => _StickerPackStoreState();
@@ -60,6 +69,23 @@ class StickerPackStore extends StatefulWidget {
 
 class _StickerPackStoreState extends State<StickerPackStore> {
   final _query = TextEditingController();
+  final _focus = FocusNode();
+
+  /// What was last reported through [StickerPackStore.onSearchFocusChanged].
+  /// Tracked rather than read off [_focus] at dispose: by then the node has
+  /// already let go, so `hasFocus` says false and the release would never be
+  /// sent.
+  bool _reportedFocus = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focus.addListener(() {
+      if (_focus.hasFocus == _reportedFocus) return;
+      _reportedFocus = _focus.hasFocus;
+      widget.onSearchFocusChanged?.call(_reportedFocus);
+    });
+  }
   Set<String> _emojiHits = const {};
   String? _expanded;
   Future<EmojiSearchIndex>? _index;
@@ -74,6 +100,14 @@ class _StickerPackStoreState extends State<StickerPackStore> {
 
   @override
   void dispose() {
+    // Leaving the store with the keyboard up must not strand the panel at its
+    // search height. After the frame, because this runs while the tree is
+    // being torn down, and the host rebuilds when told.
+    final report = widget.onSearchFocusChanged;
+    if (_reportedFocus && report != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => report(false));
+    }
+    _focus.dispose();
     _query.dispose();
     super.dispose();
   }
@@ -134,6 +168,9 @@ class _StickerPackStoreState extends State<StickerPackStore> {
               onTap: () => setState(
                   () => _expanded = _expanded == p.id ? null : p.id),
               onAdd: () async {
+                // Put the search keyboard away first, so the pack it opens
+                // shows at the panel's normal height.
+                _focus.unfocus();
                 await _toggleInstalled(p, true);
                 if (mounted) widget.onOpenPack(p.id);
               },
@@ -205,7 +242,7 @@ class _StickerPackStoreState extends State<StickerPackStore> {
         return Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 2, 12, 6),
+              padding: const EdgeInsets.fromLTRB(12, 2, 12, 8),
               child: Container(
                 height: 36,
                 decoration: theme.inputDecoration(),
@@ -217,6 +254,7 @@ class _StickerPackStoreState extends State<StickerPackStore> {
                     Expanded(
                       child: TextField(
                         controller: _query,
+                        focusNode: _focus,
                         onChanged: _onQuery,
                         textInputAction: TextInputAction.search,
                         style: theme.body.copyWith(color: theme.ink),

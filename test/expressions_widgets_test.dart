@@ -389,6 +389,33 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
     });
 
+    testWidgets('searching the store takes the room above the keyboard',
+        (tester) async {
+      ExpressionStore.instance.debugSeed(packs: [wild, food, moods]);
+      final focus = FocusNode();
+      addTearDown(focus.dispose);
+      final c = ExpressionPanelController()
+        ..setLayout(expanded: 560, aboveKeyboard: 480, resting: 300)
+        ..open(focus);
+      await tester.pumpWidget(host(ExpressionPanel(
+        controller: c,
+        composer: TextEditingController(),
+        onSend: (_, {query}) {},
+        height: 300,
+      )));
+      await tester.tap(find.text('Stickers'));
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+      await tester.tap(find.byTooltip('Sticker packs'));
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+      await tester.tap(find.byType(TextField));
+      await tester.pump();
+      expect(c.searching, isTrue);
+      expect(c.currentHeight, 480);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 1));
+      expect(c.searching, isFalse, reason: 'leaving the store lets go');
+    });
+
     testWidgets('switching packs starts the new one at the top',
         (tester) async {
       final big = [for (var i = 0; i < 40; i++) st('a$i', '😀')];
