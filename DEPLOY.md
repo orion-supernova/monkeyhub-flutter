@@ -193,7 +193,7 @@ npx convex env set KLIPY_ADS 0
 # The official sticker packs (Noto Animated Emoji, CC BY 4.0). Idempotent —
 # re-running finishes a half-done seed and skips what is there.
 npx convex run expressions:seedOfficialPacks '{}'
-npx convex run expressions:seedStatus '{}'     # 4 packs, 116 stickers
+npx convex run expressions:seedStatus '{}'     # 14 packs, 419 stickers
 ```
 
 KLIPY's terms shape the client, not this list: API calls and media loads come

@@ -195,6 +195,9 @@ class _ExpressionPanelState extends State<ExpressionPanel> {
                           selected: tab == _Tab.stickers,
                           onTap: () => _select(_Tab.stickers),
                         ),
+                        const Spacer(),
+                        if (widget.controller != null)
+                          _CloseButton(onTap: widget.controller!.hide),
                       ],
                     ),
                   ),
@@ -283,6 +286,39 @@ class _DragHeader extends StatelessWidget {
           ),
           child,
         ],
+      ),
+    );
+  }
+}
+
+/// Puts the panel away without bringing the keyboard back — for someone who
+/// has finished picking and wants the conversation, not the keys. The drag,
+/// a tap on the conversation and the composer's own toggle all still work;
+/// this is the one that needs no discovering.
+class _CloseButton extends StatelessWidget {
+  const _CloseButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final label = MaterialLocalizations.of(context).closeButtonLabel;
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: label,
+      shape: FocusRingShape.circle,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Icon(CupertinoIcons.chevron_down,
+              size: 20, color: theme.inkMuted),
+        ),
       ),
     );
   }
@@ -659,6 +695,10 @@ class _KlipyBrowserState extends State<_KlipyBrowser> {
       item,
       query: _section == _KlipySection.search ? _q : null,
     );
+    // Put the search keyboard away, so the panel drops back to its resting
+    // height and the message that was just sent is on screen. The query and
+    // its results stay, for a second pick.
+    _focus.unfocus();
   }
 
   @override
@@ -1487,6 +1527,16 @@ class ExpressionPanelController extends ChangeNotifier {
   /// action, for anyone who cannot or would rather not drag.
   void toggleExpanded() {
     _expanded = !_expanded;
+    _dragHeight = null;
+    notifyListeners();
+  }
+
+  /// After a GIF or sticker is sent: an expanded panel drops back to the
+  /// keyboard's height so the message just sent is visible above it. The
+  /// panel itself stays — people often send several in a row.
+  void noteSent() {
+    if (!_expanded && _dragHeight == null) return;
+    _expanded = false;
     _dragHeight = null;
     notifyListeners();
   }

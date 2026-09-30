@@ -3427,6 +3427,9 @@ class _RoomScreenState extends State<RoomScreen>
     ));
     final store = ExpressionStore.instance;
     store.noteUsed(item);
+    // Stay open, but come back down from the expanded level so the message
+    // just sent is on screen — see [ExpressionPanelController.noteSent].
+    _expressions.noteSent();
     // KLIPY's terms ask for a share ping on every send; it also feeds the
     // user's recents on KLIPY's side.
     final slug = item.ref;
@@ -4434,12 +4437,21 @@ class _RoomScreenState extends State<RoomScreen>
         : bottomChrome.inset.height ?? bottomChrome.estimate;
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
-      // Dismisses the soft keyboard when you tap the transcript. On desktop
-      // there is no soft keyboard to dismiss, and stealing focus here would
-      // silently break Enter-to-send after any click in the conversation.
-      onTap: isPhysicalKeyboardPlatform
+      // Dismisses the soft keyboard when you tap the transcript — and the
+      // emoji/GIF/sticker panel, which stands in the keyboard's place and has
+      // to leave the same way. The panel holds no focus, so unfocusing alone
+      // left it standing. On desktop there is no soft keyboard to dismiss, and
+      // stealing focus there would silently break Enter-to-send after any
+      // click in the conversation, so a desktop click only ever closes the
+      // panel.
+      onTap: isPhysicalKeyboardPlatform && !_expressions.isOpen
           ? null
-          : () => FocusManager.instance.primaryFocus?.unfocus(),
+          : () {
+              _expressions.hide();
+              if (!isPhysicalKeyboardPlatform) {
+                FocusManager.instance.primaryFocus?.unfocus();
+              }
+            },
       child: messages.isEmpty
           ? Stack(
               children: [

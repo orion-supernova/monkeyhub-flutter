@@ -443,6 +443,122 @@ export const OFFICIAL_PACKS: {
       "2705", "274c", "1f440", "1f451", "1f48e", "1f4b8",
     ],
   },
+  // Added 2026-09-30. Nothing here repeats a sticker from the packs above, and
+  // a few codes Noto ships are left out on purpose for a family app (🖕, 🎰).
+  {
+    slug: "noto-feelings",
+    title: "Feelings",
+    codes: [
+      "1f600", "1f603", "1f604", "1f601", "1f606", "1f605", "1f643", "1f642",
+      "1f979", "1f60c", "1f60b", "1f61b", "1f61c", "1f61d", "1f614", "1f62c",
+      "1f910", "1fae1", "1f92b", "1fae2", "1f917", "1f928", "1f9d0", "1f612",
+      "1f62e_200d_1f4a8", "1f624", "1f620", "1f92c", "1f622", "1f628",
+      "1f633", "1f629",
+    ],
+  },
+  {
+    slug: "noto-oddballs",
+    title: "Oddballs",
+    codes: [
+      "1f635_200d_1f4ab", "1fae8", "1f974", "1fae9", "1f62a", "1f927",
+      "1f637", "1f912", "1f915", "1f925", "1f920", "1f911", "1f913", "1f978",
+      "1f608", "1f480", "1f916", "1f47d", "1f47e", "1f479", "1f31a", "1f31d",
+      "1f31e", "26c4",
+    ],
+  },
+  {
+    slug: "noto-hands",
+    title: "Hands",
+    codes: [
+      "1f44c", "1f918", "1f919", "1f91e", "1f91f", "1faf0", "1f90c", "1f90f",
+      "270b", "1f590_fe0f", "1f596", "1f91a", "1faf1", "1faf2", "1faf8",
+      "1faf7", "1f450", "1f932", "1f91c", "1f91b", "270a", "1faf3", "1faf4",
+      "1faf5", "1f449", "1f448", "261d_fe0f", "1f446", "1f447", "270d_fe0f",
+      "1f933", "1f485",
+    ],
+  },
+  {
+    slug: "noto-sweet",
+    title: "Sweet",
+    codes: [
+      "1fa75", "1f90e", "1fa76", "1f90d", "1f498", "1f49d", "1f497", "1f493",
+      "1f48c", "1f49f", "2763_fe0f", "2764_fe0f_200d_1fa79", "1f63a", "1f638",
+      "1f63c", "1f63d", "1f63f", "1f63e", "2b50", "1f31f",
+    ],
+  },
+  {
+    slug: "noto-wild",
+    title: "Wild",
+    codes: [
+      "1f43a", "1f42e", "1f98e", "1f409", "1f995", "1f40a", "1f40d", "1f429",
+      "1f40e", "1f410", "1f9a5", "1f998", "1f405", "1f98d", "1f43f_fe0f",
+      "1f99d", "1f987", "1f426", "1f413", "1f423", "1f425", "1f985", "1f9a9",
+      "1f99a", "1f426_200d_1f525", "1f9ad", "1f988", "1facd", "1f421",
+      "1fabc", "1f40c", "1f41e",
+    ],
+  },
+  {
+    slug: "noto-nature",
+    title: "Nature & weather",
+    codes: [
+      "1f490", "1f339", "1f337", "1f338", "1f33c", "1f342", "1f341", "1f344",
+      "1f331", "1f340", "1f335", "1f332", "1f30b", "1f305", "1f30a",
+      "2744_fe0f", "1f300", "1f32a_fe0f", "1f4a7", "1f327_fe0f",
+      "1f329_fe0f", "26c5", "1fa90", "1f30d", "1f30c", "2604_fe0f", "1f307",
+      "1f3d5_fe0f",
+    ],
+  },
+  {
+    slug: "noto-food",
+    title: "Food & drink",
+    codes: [
+      "1f353", "1f352", "1f349", "1f34d", "1f34b", "1f951", "1f966", "1f347",
+      "1f35e", "1f95e", "1f373", "1f9c0", "1f953", "1f357", "1f32d", "1f968",
+      "1f32e", "1f32f", "1f35d", "1f957", "1f35c", "1f361", "1f368", "1f366",
+      "1f967", "1f36a", "1f9cb", "1f375", "1fad6", "1f377", "1fad7", "1f379",
+    ],
+  },
+  {
+    slug: "noto-play",
+    title: "Sports & play",
+    codes: [
+      "26bd", "26be", "1f3c0", "1f3c9", "1f3be", "1f3f8", "1f3d3", "1f3d2",
+      "1f3bf", "26f8_fe0f", "1f6fc", "1f6f9", "26f3", "1f3af", "1f94f",
+      "1fa81", "1f3a3", "1f3b1", "1f3b3", "265f_fe0f", "1f3b2", "1fa84",
+      "1f3b8", "1f3b7", "1f3ba", "1f3bb", "1f941", "1fa87", "1f3ac", "1f3ad",
+      "1f948", "1fa85",
+    ],
+  },
+  {
+    slug: "noto-travel",
+    title: "Travel & things",
+    codes: [
+      "1f697", "1f695", "1f68c", "1f682", "1f6b2", "1f3cd_fe0f", "1f3ce_fe0f",
+      "1f69c", "26f5", "1f6f6", "2708_fe0f", "1f6eb", "1f6f8", "1f3a2",
+      "1f3a1", "1f3a0", "1f5ff", "1f3e0", "1f4bb", "1f4a1", "1f4da", "1f4e6",
+      "23f0", "23f3", "1f514", "1f4e3", "1f52e", "1f48d", "2602_fe0f",
+      "1f393", "1f4f8",
+    ],
+  },
+  {
+    slug: "noto-reactions",
+    title: "Reactions",
+    codes: [
+      "2757", "2753", "2049_fe0f", "203c_fe0f", "1f4ac", "1f5ef_fe0f",
+      "26a0_fe0f", "1f6a8", "1f6d1", "1f198", "1f195", "1f193", "1f199",
+      "1f197", "1f192", "1f3b6", "267e_fe0f", "262e_fe0f", "262f_fe0f",
+      "1f3c1", "1f6a9", "1f3f3_fe0f", "1f4c8", "1f4c9", "1f5d1_fe0f",
+      "1f4a3", "2795",
+    ],
+  },
+  {
+    slug: "noto-zodiac",
+    title: "Zodiac",
+    codes: [
+      "2648", "2649", "264a", "264b", "264c", "264d", "264e", "264f", "2650",
+      "2651", "2652", "2653", "26ce",
+    ],
+  },
 ];
 
 /** "2764_fe0f" → "❤️". */

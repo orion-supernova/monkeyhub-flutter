@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -179,10 +180,37 @@ void main() {
       expect(c.expanded, isFalse);
     });
 
+    test('a send from the expanded panel brings it back down, but open', () {
+      final focus = FocusNode();
+      addTearDown(focus.dispose);
+      final c = levels()
+        ..open(focus)
+        ..toggleExpanded();
+      c.noteSent();
+      expect(c.isOpen, isTrue);
+      expect(c.expanded, isFalse);
+    });
+
     test('search takes the room above the keyboard', () {
       final c = levels()..setSearching(true);
       expect(c.currentHeight, 250);
     });
+  });
+
+  testWidgets('the close button puts the panel away', (tester) async {
+    final focus = FocusNode();
+    addTearDown(focus.dispose);
+    final c = ExpressionPanelController()..open(focus);
+    await tester.pumpWidget(host(ExpressionPanel(
+      controller: c,
+      composer: TextEditingController(),
+      onSend: (_, {query}) {},
+      height: 320,
+    )));
+    await tester.tap(find.byIcon(CupertinoIcons.chevron_down));
+    expect(c.isOpen, isFalse);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
   });
 
   group('sticker suggestions', () {

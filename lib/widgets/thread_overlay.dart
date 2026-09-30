@@ -334,6 +334,9 @@ class _ThreadSheetState extends State<_ThreadSheet>
     if (_target != null) setState(() => _target = null);
     final store = ExpressionStore.instance;
     store.noteUsed(item);
+    // Stay open, but come back down from the expanded level so the message
+    // just sent is on screen — see [ExpressionPanelController.noteSent].
+    _expressions.noteSent();
     final slug = item.ref;
     if (item.source == ExpressionSource.klipy && slug != null) {
       unawaited(store.klipy?.registerShare(item.kind, slug, query: query));
@@ -836,13 +839,22 @@ class _ThreadSheetState extends State<_ThreadSheet>
   /// the entire window, which left the close button as the only way out.
   ///
   /// Two things come before the dismiss:
-  ///  * While the soft keyboard is up the tap only puts it away. The composer
-  ///    may be holding a half-typed reply and closing would take it along.
+  ///  * While the soft keyboard — or the expression panel standing in its
+  ///    place — is up, the tap only puts it away. The composer may be holding
+  ///    a half-typed reply and closing would take it along.
   ///  * A tap on a message is a tap on content, not on the background.
   ///
   /// Anything that handles its own taps — a photo, a pill, a link, a mention —
   /// never gets this far; its recognizer wins the arena first.
   void _tapTranscript(Offset globalPosition, {required bool keyboardUp}) {
+    // The expression panel stands in the keyboard's place, so it gets the
+    // keyboard's rule: the first tap only puts it away. Checked first — with
+    // the panel up the keyboard is down, and a tap would otherwise close the
+    // whole thread under a reply the user was picking a sticker for.
+    if (_expressions.isOpen) {
+      _expressions.hide();
+      return;
+    }
     if (keyboardUp) {
       FocusManager.instance.primaryFocus?.unfocus();
       return;
@@ -1217,11 +1229,18 @@ class _ThreadSheetState extends State<_ThreadSheet>
         restoreFocus: false,
         child: Stack(
           children: [
-            // Frosted scrim. Tap to dismiss.
+            // Frosted scrim. Tap to dismiss — after the expression panel, if
+            // it is up, by the same first-tap rule as `_tapTranscript`.
             Positioned.fill(
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: _dismiss,
+                onTap: () {
+                  if (_expressions.isOpen) {
+                    _expressions.hide();
+                    return;
+                  }
+                  unawaited(_dismiss());
+                },
                 child: AnimatedBuilder(
                   animation: curved,
                   builder: (_, _) {
