@@ -223,6 +223,68 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
   });
 
+  testWidgets('reopening on a pack far along the strip scrolls to it',
+      (tester) async {
+    // Twelve packs: far more than the strip shows at once.
+    final many = [
+      for (var i = 0; i < 12; i++)
+        StickerPack(
+          id: 'pk$i',
+          slug: 'pack-$i',
+          title: 'Pack $i',
+          personal: false,
+          stickers: [
+            PackSticker(
+              id: 's$i',
+              storageId: 'b$i',
+              url: 'https://example.invalid/$i.png',
+              format: StickerFormat.image,
+              emoji: '😀',
+              width: 512,
+              height: 512,
+              personal: false,
+            ),
+          ],
+        ),
+    ];
+    ExpressionStore.instance.debugSeed(packs: many);
+    Widget panel() => host(SizedBox(
+          width: 390,
+          child: ExpressionPanel(
+            composer: TextEditingController(),
+            onSend: (_, {query}) {},
+            height: 320,
+          ),
+        ));
+    ScrollPosition strip() => tester
+        .state<ScrollableState>(find.byWidgetPredicate((w) =>
+            w is Scrollable && w.axisDirection == AxisDirection.right))
+        .position;
+
+    await tester.pumpWidget(panel());
+    await tester.tap(find.text('Stickers'));
+    await tester.pumpAndSettle(const Duration(milliseconds: 100));
+    // Pick the last pack: drag the strip to its end, then tap its button.
+    strip().jumpTo(strip().maxScrollExtent);
+    await tester.pump();
+    await tester.tap(find.byTooltip('Pack 11'));
+    await tester.pumpAndSettle(const Duration(milliseconds: 100));
+
+    // Close and reopen: the strip starts over, then lands on Pack 11.
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpWidget(panel());
+    await tester.pump();
+    await tester.pump();
+    expect(strip().pixels, greaterThan(0));
+    final button = tester.getRect(find.byTooltip('Pack 11'));
+    final bounds = tester.getRect(find.byType(ExpressionPanel));
+    expect(button.left, greaterThanOrEqualTo(bounds.left));
+    expect(button.right, lessThanOrEqualTo(bounds.right));
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
+  });
+
   group('sticker suggestions', () {
     testWidgets('appear for a lone emoji, and only then', (tester) async {
       final composer = TextEditingController();

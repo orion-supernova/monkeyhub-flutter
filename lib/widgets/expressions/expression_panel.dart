@@ -1104,9 +1104,46 @@ class _StickersTabState extends State<_StickersTab> {
   static String? _lastSection;
   String? _section = _lastSection;
 
+  final ScrollController _strip = ScrollController();
+
+  /// The section the strip was last scrolled to show, so it scrolls once per
+  /// change rather than on every rebuild.
+  String? _revealed;
+
+  /// One strip button's footprint: 40 wide plus 2 of margin each side.
+  static const double _stripItemExtent = 44;
+  static const double _stripPadding = 8;
+
+  @override
+  void dispose() {
+    _strip.dispose();
+    super.dispose();
+  }
+
   void _select(String s) {
     HapticFeedback.selectionClick();
     setState(() => _section = _lastSection = s);
+  }
+
+  /// Centres strip button [index] — jumping there when the panel opens on a
+  /// remembered pack, sliding when the user picks one.
+  ///
+  /// Computed from the fixed button width rather than by asking a button to
+  /// reveal itself: the strip is a lazy list, so a pack far to the right has
+  /// no widget to ask until it has been scrolled to.
+  void _revealStripItem(int index, {required bool animate}) {
+    if (!_strip.hasClients) return;
+    final pos = _strip.position;
+    final centre = _stripPadding + index * _stripItemExtent + _stripItemExtent / 2;
+    final target =
+        (centre - pos.viewportDimension / 2).clamp(0.0, pos.maxScrollExtent);
+    if (animate && !MotionScope.of(context).calm) {
+      _strip.animateTo(target,
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic);
+    } else {
+      _strip.jumpTo(target);
+    }
   }
 
   @override
@@ -1139,6 +1176,18 @@ class _StickersTabState extends State<_StickersTab> {
         var section = _section;
         if (section == null || !keys.contains(section)) {
           section = keys.isEmpty ? null : keys.first;
+        }
+
+        // Bring the selected pack into view whenever it changes — including
+        // the first time the packs arrive with a remembered one far along the
+        // strip. `keys` is in exactly the strip's order.
+        if (section != null && section != _revealed) {
+          final index = keys.indexOf(section);
+          final animate = _revealed != null;
+          _revealed = section;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _revealStripItem(index, animate: animate);
+          });
         }
 
         Widget body;
@@ -1178,8 +1227,10 @@ class _StickersTabState extends State<_StickersTab> {
             SizedBox(
               height: 44,
               child: ListView(
+                controller: _strip,
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: _stripPadding),
                 children: [
                   if (recents.isNotEmpty)
                     _StripButton(
