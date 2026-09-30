@@ -285,6 +285,40 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
   });
 
+  testWidgets('My stickers leads the strip, ahead of the official packs',
+      (tester) async {
+    PackSticker s(String id, bool personal) => PackSticker(
+          id: id,
+          storageId: 'b$id',
+          url: 'https://example.invalid/$id.png',
+          format: StickerFormat.image,
+          emoji: '😀',
+          width: 512,
+          height: 512,
+          personal: personal,
+        );
+    ExpressionStore.instance.debugSeed(packs: [
+      StickerPack(
+          id: 'off', slug: 'o', title: 'Moods', personal: false,
+          stickers: [s('o1', false)]),
+      StickerPack(
+          id: 'mine', slug: 'personal:me', title: 'My stickers',
+          personal: true, stickers: [s('m1', true)]),
+    ]);
+    await tester.pumpWidget(host(ExpressionPanel(
+      composer: TextEditingController(),
+      onSend: (_, {query}) {},
+      height: 320,
+    )));
+    await tester.tap(find.text('Stickers'));
+    await tester.pumpAndSettle(const Duration(milliseconds: 100));
+    final mine = tester.getRect(find.byTooltip('My stickers'));
+    final moods = tester.getRect(find.byTooltip('Moods'));
+    expect(mine.left, lessThan(moods.left));
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
+  });
+
   group('sticker suggestions', () {
     testWidgets('appear for a lone emoji, and only then', (tester) async {
       final composer = TextEditingController();

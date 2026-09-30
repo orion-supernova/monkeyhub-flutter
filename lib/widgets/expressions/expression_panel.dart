@@ -1160,12 +1160,19 @@ class _StickersTabState extends State<_StickersTab> {
             (outside || i.source == ExpressionSource.pack);
         final recents = store.recents.where(usable).toList();
         final favorites = store.favorites.where(usable).toList();
+        // The user's own pack leads, straight after Recent and Favorites: it
+        // is what they reach for most, and at the end of a growing strip it
+        // would be the one pack that always needs scrolling to.
+        final personal = outside
+            ? store.packs.where((p) => p.personal).firstOrNull
+            : null;
         final packs = [
+          ?personal,
           for (final p in store.packs)
-            if (!p.personal || outside) p,
+            if (!p.personal) p,
         ];
         final klipy = outside ? store.klipy : null;
-        final personal = packs.where((p) => p.personal).firstOrNull;
+        final offerCreate = widget.onCreateSticker != null && personal == null;
 
         final keys = <String>[
           if (recents.isNotEmpty) 'recent',
@@ -1180,9 +1187,17 @@ class _StickersTabState extends State<_StickersTab> {
 
         // Bring the selected pack into view whenever it changes — including
         // the first time the packs arrive with a remembered one far along the
-        // strip. `keys` is in exactly the strip's order.
+        // strip. Indexed by strip position, so the "make a sticker" button
+        // that stands in for a missing personal pack counts too.
+        final stripOrder = [
+          if (recents.isNotEmpty) 'recent',
+          if (favorites.isNotEmpty) 'favorites',
+          if (offerCreate) '_create',
+          for (final p in packs) p.id,
+          if (klipy != null) 'klipy',
+        ];
         if (section != null && section != _revealed) {
-          final index = keys.indexOf(section);
+          final index = stripOrder.indexOf(section);
           final animate = _revealed != null;
           _revealed = section;
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1248,6 +1263,15 @@ class _StickersTabState extends State<_StickersTab> {
                       child: Icon(CupertinoIcons.star,
                           size: 20, color: theme.inkMuted),
                     ),
+                  // Where "My stickers" will be once there is one.
+                  if (offerCreate)
+                    _StripButton(
+                      selected: false,
+                      label: l10n.expressionCreateSticker,
+                      onTap: widget.onCreateSticker!,
+                      child: Icon(CupertinoIcons.add_circled,
+                          size: 20, color: theme.accent),
+                    ),
                   for (final p in packs)
                     _StripButton(
                       selected: section == p.id,
@@ -1270,14 +1294,6 @@ class _StickersTabState extends State<_StickersTab> {
                       onTap: () => _select('klipy'),
                       child: Icon(CupertinoIcons.search,
                           size: 20, color: theme.inkMuted),
-                    ),
-                  if (widget.onCreateSticker != null && personal == null)
-                    _StripButton(
-                      selected: false,
-                      label: l10n.expressionCreateSticker,
-                      onTap: widget.onCreateSticker!,
-                      child: Icon(CupertinoIcons.add_circled,
-                          size: 20, color: theme.accent),
                     ),
                 ],
               ),
