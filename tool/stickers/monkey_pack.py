@@ -26,11 +26,21 @@ OUT = 256  # file size
 FRAMES = 36
 FRAME_MS = 40
 
-FUR = 0x7A4A2A
-FUR_DARK = 0x5C3520
-SKIN = 0xF6D5B0
-SKIN_DARK = 0xE3AE84
-INK = 0x2E1B0F
+# The logo monkey's colours: near-black plum fur, pink skin and ears, and
+# the teal sunglasses that are its signature.
+FUR = 0x3B2D3C
+FUR_LIGHT = 0x735E73
+FUR_DARK = 0x201822
+SKIN = 0xF6C9BC
+SKIN_LIGHT = 0xFDE6DE
+SKIN_SHADE = 0xDE9C8C
+SKIN_DARK = SKIN_SHADE
+EAR_IN = 0xE8908A
+TEAL = 0x2CC9C9
+TEAL_DARK = 0x118A90
+LENS = 0x15171D
+IRIS = 0x5B3A2A
+INK = 0x2A1A26
 MOUTH = 0x7A1F2A
 TONGUE = 0xF07C8C
 BLUSH = 0xF39A9A
@@ -149,7 +159,31 @@ def blink_of(t, at=0.72, length=0.08):
 
 # --- the monkey ------------------------------------------------------------
 
-EYE_X, EYE_Y = 46, -18
+EYE_X, EYE_Y = 42, -16
+
+
+def glossy_eye(c, x, y, rx, ry, lit=True, wet=False):
+    """A big dark eye with a warm iris glow and two catch-lights."""
+    c.drawPath(oval(x, y, rx, ry), paint(INK))
+    if ry < 8:
+        return
+    glow = skia.Paint(AntiAlias=True)
+    glow.setShader(skia.GradientShader.MakeRadial(
+        skia.Point(x, y + ry * 0.45), ry * 0.9,
+        [skia.ColorSetARGB(255, IRIS >> 16, IRIS >> 8 & 255, IRIS & 255),
+         skia.ColorSetARGB(0, IRIS >> 16, IRIS >> 8 & 255, IRIS & 255)]))
+    c.save()
+    c.clipPath(oval(x, y, rx, ry), doAntiAlias=True)
+    c.drawPaint(glow)
+    c.restore()
+    if lit:
+        c.drawPath(circle(x + rx * 0.35, y - ry * 0.38, rx * 0.36),
+                   paint(WHITE))
+        c.drawPath(circle(x - rx * 0.3, y + ry * 0.35, rx * 0.15),
+                   paint(WHITE, 220))
+        if wet:  # welling up
+            c.drawPath(oval(x, y + ry * 0.62, rx * 0.8, ry * 0.22),
+                       paint(0xBFE9FF, 200))
 
 
 def draw_eyes(c, style, t, look=(0, 0)):
@@ -165,15 +199,10 @@ def draw_eyes(c, style, t, look=(0, 0)):
                 c.drawPath(circle(ex + lx + 4, EYE_Y + ly - 4, 3.5),
                            paint(WHITE))
                 continue
-            ry = max(2.5, 21 * open_)
+            ry = max(2.5, 23 * open_)
             ox, oy = (lx, ly) if style != 'lookup' else (side * 3 + 4, -9)
-            c.drawPath(oval(ex + ox, EYE_Y + oy, 16, ry), paint(INK))
-            if open_ > 0.5:
-                c.drawPath(circle(ex + ox + 6, EYE_Y + oy - 8, 5.5),
-                           paint(WHITE))
-                if style == 'sad':
-                    c.drawPath(circle(ex + ox - 5, EYE_Y + oy + 6, 3),
-                               paint(WHITE))
+            glossy_eye(c, ex + ox, EYE_Y + oy, 18, ry, open_ > 0.5,
+                       wet=style == 'sad')
     elif style == 'happy':  # ^ ^
         for side in (-1, 1):
             arc(c, side * EYE_X, EYE_Y + 8, 17, 15, 200, 140, width=8)
@@ -189,8 +218,7 @@ def draw_eyes(c, style, t, look=(0, 0)):
             p.lineTo(ex - side * 16, EYE_Y + 13)
             c.drawPath(p, paint(INK, stroke=8))
     elif style == 'wink':
-        c.drawPath(oval(-EYE_X, EYE_Y, 16, 21), paint(INK))
-        c.drawPath(circle(-EYE_X + 6, EYE_Y - 8, 5.5), paint(WHITE))
+        glossy_eye(c, -EYE_X, EYE_Y, 18, 23, True)
         arc(c, EYE_X, EYE_Y + 8, 17, 15, 200, 140, width=8)
     elif style == 'heart':
         beat = 1 + 0.16 * ease(t * 2)
@@ -275,35 +303,114 @@ def draw_brows(c, style):
         c.drawPath(p, paint(INK, stroke=8))
 
 
-def draw_head(c, t, eyes='open', mouth='smile', brows=None, blush=False,
-              look=(0, 0), mouth_amount=1.0, tint=0.0):
-    # ears, behind the head
+def shaded(c, path, light, base, cx, cy, r, rim=None, rim_width=3.0):
+    """Fills [path] with a soft radial light from (cx, cy) — the no-outline,
+    lit look of the logo — with an optional thin darker rim."""
+    p = skia.Paint(AntiAlias=True)
+    p.setShader(skia.GradientShader.MakeRadial(
+        skia.Point(cx, cy), r,
+        [skia.ColorSetRGB(light >> 16, light >> 8 & 255, light & 255),
+         skia.ColorSetRGB(base >> 16, base >> 8 & 255, base & 255)]))
+    c.drawPath(path, p)
+    if rim is not None:
+        c.drawPath(path, paint(rim, stroke=rim_width))
+
+
+def fluffy(r, bumps, bump_r, cx=0.0, cy=0.0):
+    """A circle whose edge is a ring of tufts, for fur."""
+    parts = [circle(cx, cy, r)]
+    for i in range(bumps):
+        a = TAU * i / bumps
+        parts.append(circle(cx + (r - bump_r * 0.35) * math.cos(a),
+                            cy + (r - bump_r * 0.35) * math.sin(a), bump_r))
+    return union(*parts)
+
+
+def mohawk():
+    """The logo's spiky crest: five flame-shaped spikes, the middle tallest."""
+    spikes = []
+    for i, (x, h, lean) in enumerate([(-38, 34, -14), (-18, 50, -8),
+                                      (2, 62, 2), (22, 48, 10), (40, 30, 16)]):
+        p = skia.Path()
+        base = -128 + abs(x) * 0.18
+        p.moveTo(x - 16, base + 12)
+        p.quadTo(x - 6 + lean * 0.3, base - h * 0.5, x + lean, base - h)
+        p.quadTo(x + 6 + lean * 0.3, base - h * 0.45, x + 16, base + 12)
+        p.close()
+        spikes.append(p)
+    return union(*spikes)
+
+
+def draw_shades(c, y, rot=0.0, scale=1.0):
+    """The teal sunglasses — chunky, like the logo's. At [y] = EYE_Y they are
+    worn; higher up they sit pushed back on the head."""
+    c.save()
+    c.translate(0, y)
+    c.rotate(rot)
+    c.scale(scale, scale)
+    lenses = []
     for side in (-1, 1):
-        fill_stroke(c, circle(side * 138, 8, 50), FUR, 7)
-        c.drawPath(circle(side * 138, 8, 30), paint(SKIN_DARK))
-    head = circle(0, 0, 140)
-    tuft = skia.Path()
-    tuft.moveTo(-34, -134)
-    tuft.cubicTo(-30, -178, 4, -186, 8, -160)
-    tuft.cubicTo(18, -184, 44, -170, 34, -132)
-    fill_stroke(c, union(head, tuft), FUR, 7)
+        lp = skia.Path()
+        lp.addRRect(skia.RRect.MakeRectXY(
+            skia.Rect.MakeLTRB(side * 52 - 46, -33, side * 52 + 46, 31), 20, 20))
+        lenses.append(lp)
+    frame = union(*lenses)
+    bridge = skia.Path()
+    bridge.addRect(skia.Rect.MakeLTRB(-14, -24, 14, -10))
+    arms = skia.Path()
+    arms.addRect(skia.Rect.MakeLTRB(-132, -26, -92, -12))
+    arms.addRect(skia.Rect.MakeLTRB(92, -26, 132, -12))
+    shaded(c, union(frame, bridge, arms), 0x7FF0EE, TEAL, -30, -30, 170,
+           rim=TEAL_DARK, rim_width=3)
+    for side in (-1, 1):
+        lens = skia.Path()
+        lens.addRRect(skia.RRect.MakeRectXY(
+            skia.Rect.MakeLTRB(side * 52 - 35, -22, side * 52 + 35, 20), 13, 13))
+        shaded(c, lens, 0x3A4150, LENS, side * 52 - 14, -12, 70)
+        shine = skia.Path()
+        shine.moveTo(side * 52 - 22, 10)
+        shine.lineTo(side * 52 - 4, -14)
+        c.save()
+        c.clipPath(lens, doAntiAlias=True)
+        c.drawPath(shine, paint(WHITE, 150, stroke=6))
+        c.restore()
+    c.restore()
+
+
+def draw_head(c, t, eyes='open', mouth='smile', brows=None, blush=False,
+              look=(0, 0), mouth_amount=1.0, tint=0.0, shades='up'):
+    # big pink ears, behind the head
+    for side in (-1, 1):
+        shaded(c, circle(side * 146, 4, 60), SKIN_LIGHT, SKIN_SHADE,
+               side * 136, -14, 80)
+        shaded(c, circle(side * 150, 8, 38), 0xF4A9A2, EAR_IN,
+               side * 146, 0, 44)
+    head = union(fluffy(136, 28, 15), mohawk())
+    shaded(c, head, FUR_LIGHT, FUR, -46, -84, 230, rim=FUR_DARK)
     if tint:
-        c.drawPath(union(head, tuft), paint(RED, int(120 * tint)))
-    face = union(circle(-EYE_X, -18, 58), circle(EYE_X, -18, 58),
-                 oval(0, 52, 102, 70))
-    fill_stroke(c, face, SKIN, 6)
+        c.drawPath(head, paint(RED, int(110 * tint)))
+    face = union(circle(-EYE_X, -16, 50), circle(EYE_X, -16, 50),
+                 oval(0, 48, 86, 64))
+    shaded(c, face, SKIN_LIGHT, SKIN_SHADE, -10, -30, 170)
+    # the muzzle catches the light
+    c.drawPath(oval(0, 40, 64, 34), paint(SKIN_LIGHT, 120))
     if blush:
         for side in (-1, 1):
-            c.drawPath(oval(side * 80, 38, 17, 9), paint(BLUSH, 170))
+            c.drawPath(oval(side * 80, 38, 18, 10), paint(BLUSH, 150))
     for side in (-1, 1):  # nostrils
-        c.drawPath(oval(side * 11, 28, 5, 3.5), paint(FUR_DARK))
+        c.drawPath(oval(side * 11, 26, 6, 4.5), paint(0x8A4E52))
     draw_brows(c, brows)
-    draw_eyes(c, eyes, t, look)
+    if shades == 'on':
+        draw_shades(c, EYE_Y)
+    else:
+        draw_eyes(c, eyes, t, look)
+        if shades == 'up':
+            draw_shades(c, -106, rot=-3, scale=0.9)
     draw_mouth(c, mouth, t, mouth_amount)
 
 
 def hand(c, x, y, rot=0.0, kind='open', scale=1.0):
-    """A little skin-coloured paw at (x, y); 'open', 'fist', or 'thumb'."""
+    """A pink paw at (x, y); 'open', 'fist', or 'thumb'."""
     c.save()
     c.translate(x, y)
     c.rotate(rot)
@@ -312,7 +419,8 @@ def hand(c, x, y, rot=0.0, kind='open', scale=1.0):
         fingers = [oval(-22 + i * 15, -34, 8, 18) for i in range(4)]
         thumb = oval(-36, 2, 17, 9)
         palm = oval(0, 0, 32, 30)
-        fill_stroke(c, union(palm, thumb, *fingers), SKIN, 6)
+        shaded(c, union(palm, thumb, *fingers), SKIN_LIGHT, SKIN_SHADE,
+               -6, -14, 60, rim=SKIN_SHADE)
     elif kind in ('fist', 'thumb'):
         fist = skia.Path()
         fist.addRRect(skia.RRect.MakeRectXY(
@@ -323,12 +431,13 @@ def hand(c, x, y, rot=0.0, kind='open', scale=1.0):
             th.addRRect(skia.RRect.MakeRectXY(
                 skia.Rect.MakeLTRB(-26, -70, -4, -14), 11, 11))
             parts.append(th)
-        fill_stroke(c, union(*parts), SKIN, 6)
-        for i in range(3):  # knuckle lines
+        shaded(c, union(*parts), SKIN_LIGHT, SKIN_SHADE, -8, -20, 70,
+               rim=SKIN_SHADE)
+        for i in range(3):  # knuckle creases
             p = skia.Path()
-            p.moveTo(10, -12 + i * 14)
+            p.moveTo(12, -12 + i * 14)
             p.lineTo(28, -12 + i * 14)
-            c.drawPath(p, paint(INK, stroke=4))
+            c.drawPath(p, paint(SKIN_SHADE, stroke=4))
     c.restore()
 
 
@@ -519,30 +628,15 @@ def s_kiss(c, t):
 
 
 def s_cool(c, t):
-    draw_head(c, t, 'open', 'smirk')
-    slide = min(1.0, t * 2.2)  # the glasses drop in, then rest
+    slide = min(1.0, t * 2.2)  # the shades drop from the head, then rest
     slide = 1 - (1 - slide) ** 3
-    y = -200 + (200 - 18) * slide
-    glasses = union(
-        skia.Path().addRRect(skia.RRect.MakeRectXY(
-            skia.Rect.MakeLTRB(-98, y - 24, -8, y + 28), 20, 20)),
-        skia.Path().addRRect(skia.RRect.MakeRectXY(
-            skia.Rect.MakeLTRB(8, y - 24, 98, y + 28), 20, 20)),
-        skia.Path().addRect(skia.Rect.MakeLTRB(-12, y - 16, 12, y - 6)),
-        skia.Path().addRect(skia.Rect.MakeLTRB(-128, y - 16, -96, y - 8)),
-        skia.Path().addRect(skia.Rect.MakeLTRB(96, y - 16, 128, y - 8)))
-    c.drawPath(glasses, paint(0x111827))
-    shine = skia.Path()
-    shine.moveTo(-80, y - 10)
-    shine.lineTo(-60, y - 10)
-    c.drawPath(shine, paint(CYAN, stroke=6))
-    shine2 = skia.Path()
-    shine2.moveTo(26, y - 10)
-    shine2.lineTo(46, y - 10)
-    c.drawPath(shine2, paint(CYAN, stroke=6))
+    y = -106 + (106 + EYE_Y) * slide
+    draw_head(c, t, 'open', 'smirk', shades=None)
+    draw_shades(c, y, rot=-3 * (1 - slide), scale=0.9 + 0.1 * slide)
     if slide >= 1:
         s = ease((t - 0.45) / 0.55)
-        fill_stroke(c, star(118, -64, 26 * s + 1), WHITE, 0)
+        if s > 0.15:
+            fill_stroke(c, star(122, -60, 28 * s), WHITE, 0)
 
 
 def s_see_no_evil(c, t):
