@@ -18,6 +18,7 @@ import type * as crons from "../crons.js";
 import type * as dailyNudge from "../dailyNudge.js";
 import type * as deployment from "../deployment.js";
 import type * as deviceLogin from "../deviceLogin.js";
+import type * as expressions from "../expressions.js";
 import type * as family from "../family.js";
 import type * as feed from "../feed.js";
 import type * as files from "../files.js";
@@ -89,6 +90,7 @@ declare const fullApi: ApiFromModules<{
   dailyNudge: typeof dailyNudge;
   deployment: typeof deployment;
   deviceLogin: typeof deviceLogin;
+  expressions: typeof expressions;
   family: typeof family;
   feed: typeof feed;
   files: typeof files;

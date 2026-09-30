@@ -20,6 +20,7 @@ import {
   isReservedName,
 } from "./systemAccount";
 import { deleteStored, releaseMessageBlobs } from "./files";
+import { purgeUserExpressions } from "./expressions";
 import {
   assertNotLocked,
   clearFailures,
@@ -763,6 +764,9 @@ async function purgeUser(ctx: any, userId: any) {
       .withIndex("by_viewer", (q: any) => q.eq("viewerId", userId))
       .collect(),
   );
+  // Their personal stickers are cut out of their own photos, so they go with
+  // the account — rows and blobs — along with their recents and favourites.
+  await purgeUserExpressions(ctx, userId);
   const moments = await ctx.db
     .query("moments")
     .withIndex("by_user", byUser(userId))
