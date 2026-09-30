@@ -8610,4 +8610,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get stickerMakerTooMany => '贴纸数量已达上限。删除一个以腾出空间。';
+
+  @override
+  String get expressionExpandPanel => '展开面板';
+
+  @override
+  String get expressionCollapsePanel => '收起面板';
 }

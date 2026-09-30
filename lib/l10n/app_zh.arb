@@ -2513,5 +2513,7 @@
   "stickerMakerShapeOriginal": "原图",
   "stickerMakerShapeRounded": "圆角方形",
   "stickerMakerTitle": "新贴纸",
-  "stickerMakerTooMany": "贴纸数量已达上限。删除一个以腾出空间。"
+  "stickerMakerTooMany": "贴纸数量已达上限。删除一个以腾出空间。",
+  "expressionExpandPanel": "展开面板",
+  "expressionCollapsePanel": "收起面板"
 }

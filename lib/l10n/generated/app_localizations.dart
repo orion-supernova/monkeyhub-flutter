@@ -15240,6 +15240,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You’ve reached the sticker limit. Delete one to make room.'**
   String get stickerMakerTooMany;
+
+  /// Screen-reader label of the emoji/GIF/sticker panel's grab handle when tapping it makes the panel taller.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand panel'**
+  String get expressionExpandPanel;
+
+  /// Screen-reader label of the panel's grab handle when tapping it returns the panel to keyboard height.
+  ///
+  /// In en, this message translates to:
+  /// **'Shrink panel'**
+  String get expressionCollapsePanel;
 }
 
 class _AppLocalizationsDelegate

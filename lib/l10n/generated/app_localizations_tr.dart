@@ -9022,4 +9022,10 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get stickerMakerTooMany =>
       'Çıkartma sınırına ulaştın. Yer açmak için birini sil.';
+
+  @override
+  String get expressionExpandPanel => 'Paneli genişlet';
+
+  @override
+  String get expressionCollapsePanel => 'Paneli küçült';
 }

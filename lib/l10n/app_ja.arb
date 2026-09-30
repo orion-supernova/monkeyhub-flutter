@@ -2513,5 +2513,7 @@
   "stickerMakerShapeOriginal": "オリジナル",
   "stickerMakerShapeRounded": "角丸四角",
   "stickerMakerTitle": "新しいスタンプ",
-  "stickerMakerTooMany": "スタンプの上限に達しました。1つ削除して空きを作ってください。"
+  "stickerMakerTooMany": "スタンプの上限に達しました。1つ削除して空きを作ってください。",
+  "expressionExpandPanel": "パネルを広げる",
+  "expressionCollapsePanel": "パネルを縮める"
 }

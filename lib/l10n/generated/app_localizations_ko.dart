@@ -8729,4 +8729,10 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get stickerMakerTooMany => '스티커 한도에 도달했어요. 하나를 삭제해 공간을 만드세요.';
+
+  @override
+  String get expressionExpandPanel => '패널 펼치기';
+
+  @override
+  String get expressionCollapsePanel => '패널 접기';
 }

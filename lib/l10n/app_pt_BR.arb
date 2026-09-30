@@ -2513,5 +2513,7 @@
   "stickerMakerShapeOriginal": "Original",
   "stickerMakerShapeRounded": "Quadrado arredondado",
   "stickerMakerTitle": "Nova figurinha",
-  "stickerMakerTooMany": "Você chegou ao limite de figurinhas. Exclua uma para liberar espaço."
+  "stickerMakerTooMany": "Você chegou ao limite de figurinhas. Exclua uma para liberar espaço.",
+  "expressionExpandPanel": "Expandir painel",
+  "expressionCollapsePanel": "Reduzir painel"
 }

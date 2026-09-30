@@ -2513,5 +2513,7 @@
   "stickerMakerShapeOriginal": "Original",
   "stickerMakerShapeRounded": "Quadrado arredondado",
   "stickerMakerTitle": "Novo sticker",
-  "stickerMakerTooMany": "Chegaste ao limite de stickers. Elimina um para libertar espaço."
+  "stickerMakerTooMany": "Chegaste ao limite de stickers. Elimina um para libertar espaço.",
+  "expressionExpandPanel": "Expandir painel",
+  "expressionCollapsePanel": "Reduzir painel"
 }

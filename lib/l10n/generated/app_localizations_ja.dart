@@ -8706,4 +8706,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get stickerMakerTooMany => 'スタンプの上限に達しました。1つ削除して空きを作ってください。';
+
+  @override
+  String get expressionExpandPanel => 'パネルを広げる';
+
+  @override
+  String get expressionCollapsePanel => 'パネルを縮める';
 }

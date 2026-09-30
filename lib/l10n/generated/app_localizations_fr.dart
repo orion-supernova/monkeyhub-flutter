@@ -9207,4 +9207,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get stickerMakerTooMany =>
       'Tu as atteint la limite de stickers. Supprimes-en un pour faire de la place.';
+
+  @override
+  String get expressionExpandPanel => 'Agrandir le panneau';
+
+  @override
+  String get expressionCollapsePanel => 'Réduire le panneau';
 }

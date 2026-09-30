@@ -9092,4 +9092,10 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get stickerMakerTooMany =>
       'Du har nått gränsen för klistermärken. Ta bort ett för att göra plats.';
+
+  @override
+  String get expressionExpandPanel => 'Expandera panelen';
+
+  @override
+  String get expressionCollapsePanel => 'Minska panelen';
 }

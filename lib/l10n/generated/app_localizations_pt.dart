@@ -9167,6 +9167,12 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get stickerMakerTooMany =>
       'Chegaste ao limite de stickers. Elimina um para libertar espaço.';
+
+  @override
+  String get expressionExpandPanel => 'Expandir painel';
+
+  @override
+  String get expressionCollapsePanel => 'Reduzir painel';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -18328,4 +18334,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get stickerMakerTooMany =>
       'Você chegou ao limite de figurinhas. Exclua uma para liberar espaço.';
+
+  @override
+  String get expressionExpandPanel => 'Expandir painel';
+
+  @override
+  String get expressionCollapsePanel => 'Reduzir painel';
 }

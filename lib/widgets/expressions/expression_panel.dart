@@ -16,6 +16,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../models/expression_item.dart';
 import '../../models/sticker_pack.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
 import '../reaction_picker_sheet.dart' show EmojiSearchBar, EmojiSearchView;
 import 'expression_media.dart';
@@ -51,7 +52,13 @@ class ExpressionPanel extends StatefulWidget {
     this.onSearchFocusChanged,
     this.bottomPadding = 0,
     this.keyboardInset = 0,
+    this.controller,
   });
+
+  /// Owns the panel's two levels. Present, the header becomes a drag handle
+  /// between the keyboard's height and nearly the whole screen; null (tests,
+  /// previews) leaves a fixed-height panel.
+  final ExpressionPanelController? controller;
 
   /// How much of the panel the keyboard currently covers, while the two are
   /// changing places. The panel lays out at its full [height] but only
@@ -118,7 +125,14 @@ class _ExpressionPanelState extends State<ExpressionPanel> {
         if (tab == _Tab.gifs && !gifsAvailable) tab = _Tab.emoji;
         final full = widget.height + widget.bottomPadding;
         final visible = math.max(0.0, full - widget.keyboardInset);
-        return SizedBox(
+        final dragging = widget.controller?.dragging ?? false;
+        // Animated between levels, but not under a finger: while dragging the
+        // panel must track the handle exactly, or it lags and feels loose.
+        return AnimatedContainer(
+          duration: dragging || MotionScope.of(context).calm
+              ? Duration.zero
+              : const Duration(milliseconds: 240),
+          curve: Curves.easeOutCubic,
           height: visible,
           child: ClipRect(
             child: OverflowBox(
@@ -159,8 +173,10 @@ class _ExpressionPanelState extends State<ExpressionPanel> {
               type: MaterialType.transparency,
               child: Column(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                  _DragHeader(
+                    controller: widget.controller,
+                    child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 2, 12, 4),
                     child: Row(
                       children: [
                         _TabPill(
@@ -181,6 +197,7 @@ class _ExpressionPanelState extends State<ExpressionPanel> {
                         ),
                       ],
                     ),
+                  ),
                   ),
                   Expanded(
                     child: switch (tab) {
@@ -207,6 +224,66 @@ class _ExpressionPanelState extends State<ExpressionPanel> {
           ),
         );
       },
+    );
+  }
+}
+
+/// The panel's grab handle: a pill above the tabs, with the whole header strip
+/// as the drag area so it is easy to catch.
+///
+/// Vertical drags move the panel between its two levels; a tap on the pill
+/// toggles them, which is also the route for anyone who cannot drag — the
+/// same action is offered to screen readers.
+class _DragHeader extends StatelessWidget {
+  const _DragHeader({required this.controller, required this.child});
+
+  final ExpressionPanelController? controller;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    if (c == null) {
+      return Padding(padding: const EdgeInsets.only(top: 6), child: child);
+    }
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onVerticalDragUpdate: (d) => c.dragBy(d.delta.dy),
+      onVerticalDragEnd: (d) => c.dragEnd(d.primaryVelocity ?? 0),
+      onVerticalDragCancel: () => c.dragEnd(0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FocusableTap(
+            onTap: c.toggleExpanded,
+            semanticLabel: c.expanded
+                ? l10n.expressionCollapsePanel
+                : l10n.expressionExpandPanel,
+            radius: 999,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: c.toggleExpanded,
+              child: SizedBox(
+                width: 72,
+                height: 18,
+                child: Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: theme.inkMuted.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          child,
+        ],
+      ),
     );
   }
 }
@@ -1176,7 +1253,8 @@ class _StickerGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final autoplay = expressionsAutoplay(context);
     return LayoutBuilder(builder: (context, constraints) {
-      final columns = math.max(4, (constraints.maxWidth / 84).floor());
+      // Five across on a phone, the density Telegram and WhatsApp settle on.
+      final columns = math.max(5, (constraints.maxWidth / 76).floor());
       final size = (constraints.maxWidth - 16) / columns - 6;
       return GridView.builder(
         padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
@@ -1229,7 +1307,8 @@ class _PackGrid extends StatelessWidget {
     final create = onCreateSticker;
     final count = pack.stickers.length + (create != null ? 1 : 0);
     return LayoutBuilder(builder: (context, constraints) {
-      final columns = math.max(4, (constraints.maxWidth / 84).floor());
+      // Five across on a phone, the density Telegram and WhatsApp settle on.
+      final columns = math.max(5, (constraints.maxWidth / 76).floor());
       final size = (constraints.maxWidth - 16) / columns - 6;
       return CustomScrollView(
         slivers: [
@@ -1339,12 +1418,78 @@ class ExpressionPanelController extends ChangeNotifier {
     if (inset > 120 && !_searching) _keyboardHeight = inset;
   }
 
+  /// The resting height: the keyboard's own.
   double get height =>
       (_keyboardHeight ?? defaultHeight).clamp(240.0, 420.0);
 
-  /// The panel's height while a search field has the keyboard — enough for two
-  /// rows of results between the field and the keys.
-  double get searchingHeight => 230;
+  // ── The two levels ─────────────────────────────────────────────────────
+  //
+  // Collapsed is the keyboard's height; expanded is nearly the whole screen,
+  // leaving the composer and a sliver of the conversation — the layout the
+  // user drags up to when they want to browse or search properly. The host
+  // measures what "nearly the whole screen" means on every build
+  // ([setLayout]); a drag on the panel's header moves between the two live
+  // and snaps with the gesture's velocity.
+
+  double _expandedHeight = 520;
+  double _searchRoom = 230;
+  bool _expanded = false;
+  double? _dragHeight;
+
+  bool get expanded => _expanded;
+
+  /// Whether a finger is on the handle right now — the host draws the height
+  /// without animation while it is, so the panel tracks the finger exactly.
+  bool get dragging => _dragHeight != null;
+
+  /// Tells the controller how much room the host has. Called from `build`, so
+  /// it never notifies: the values are read in the same build that set them.
+  ///
+  /// [expanded] is the tallest the panel may grow with the keyboard down;
+  /// [aboveKeyboard] is the room between the composer and the keyboard while
+  /// a search field has it.
+  void setLayout({required double expanded, required double aboveKeyboard}) {
+    _expandedHeight = math.max(expanded, height);
+    _searchRoom = aboveKeyboard;
+  }
+
+  /// The height to lay the panel out at now.
+  double get currentHeight {
+    if (_searching) return searchingHeight;
+    return _dragHeight ?? (_expanded ? _expandedHeight : height);
+  }
+
+  /// While a search field has the keyboard the panel takes all the room left
+  /// above it — searching is when people most want to see results.
+  double get searchingHeight => math.max(200.0, _searchRoom);
+
+  void dragBy(double dy) {
+    final base = _dragHeight ?? (_expanded ? _expandedHeight : height);
+    _dragHeight = (base - dy).clamp(height, _expandedHeight);
+    notifyListeners();
+  }
+
+  void dragEnd(double velocity) {
+    final h = _dragHeight ?? currentHeight;
+    // A flick decides by direction; a slow release by which level is nearer.
+    if (velocity < -400) {
+      _expanded = true;
+    } else if (velocity > 400) {
+      _expanded = false;
+    } else {
+      _expanded = h > (height + _expandedHeight) / 2;
+    }
+    _dragHeight = null;
+    notifyListeners();
+  }
+
+  /// Toggles between the two levels — the handle's tap and screen-reader
+  /// action, for anyone who cannot or would rather not drag.
+  void toggleExpanded() {
+    _expanded = !_expanded;
+    _dragHeight = null;
+    notifyListeners();
+  }
 
   void open(FocusNode composerFocus) {
     if (_open && !_closing) return;
@@ -1376,6 +1521,10 @@ class ExpressionPanelController extends ChangeNotifier {
 
   void _handOver() {
     _searching = false;
+    // Back to the keyboard's own height first, so the hand-over is between
+    // two things the same size; the next opening starts collapsed too.
+    _expanded = false;
+    _dragHeight = null;
     if (!_softKeyboard) {
       _open = false;
       notifyListeners();
@@ -1413,6 +1562,8 @@ class ExpressionPanelController extends ChangeNotifier {
     _closing = false;
     _open = false;
     _searching = false;
+    _expanded = false;
+    _dragHeight = null;
     notifyListeners();
   }
 

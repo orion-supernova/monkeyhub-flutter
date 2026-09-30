@@ -9072,4 +9072,10 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get stickerMakerTooMany =>
       'आप स्टिकर की सीमा तक पहुँच गए हैं। जगह बनाने के लिए एक हटाएँ।';
+
+  @override
+  String get expressionExpandPanel => 'पैनल बड़ा करें';
+
+  @override
+  String get expressionCollapsePanel => 'पैनल छोटा करें';
 }

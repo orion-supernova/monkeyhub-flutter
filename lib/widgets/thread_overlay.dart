@@ -1577,11 +1577,19 @@ class _ThreadSheetState extends State<_ThreadSheet>
             // which this root-overlay entry would sit on top of.
             if (_expressions.isOpen)
               ExpressionPanel(
+                controller: _expressions..setLayout(
+                  // See the room screen's `_expressionPanel` for the budget.
+                  expanded: MediaQuery.sizeOf(context).height -
+                      MediaQuery.paddingOf(context).vertical -
+                      190,
+                  aboveKeyboard: MediaQuery.sizeOf(context).height -
+                      MediaQuery.viewInsetsOf(context).bottom -
+                      MediaQuery.paddingOf(context).top -
+                      190,
+                ),
                 composer: _composer,
                 onSend: _sendExpression,
-                height: _expressions.searching
-                    ? _expressions.searchingHeight
-                    : _expressions.height,
+                height: _expressions.currentHeight,
                 keyboardInset: _expressions.searching
                     ? 0
                     : MediaQuery.viewInsetsOf(context).bottom,

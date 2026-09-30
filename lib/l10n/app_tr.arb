@@ -2513,5 +2513,7 @@
   "stickerMakerShapeOriginal": "Orijinal",
   "stickerMakerShapeRounded": "Yuvarlatılmış kare",
   "stickerMakerTitle": "Yeni çıkartma",
-  "stickerMakerTooMany": "Çıkartma sınırına ulaştın. Yer açmak için birini sil."
+  "stickerMakerTooMany": "Çıkartma sınırına ulaştın. Yer açmak için birini sil.",
+  "expressionExpandPanel": "Paneli genişlet",
+  "expressionCollapsePanel": "Paneli küçült"
 }

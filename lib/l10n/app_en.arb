@@ -10378,5 +10378,13 @@
   "stickerMakerTooMany": "You’ve reached the sticker limit. Delete one to make room.",
   "@stickerMakerTooMany": {
     "description": "Toast when the user already has the maximum number of personal stickers."
+  },
+  "expressionExpandPanel": "Expand panel",
+  "expressionCollapsePanel": "Shrink panel",
+  "@expressionExpandPanel": {
+    "description": "Screen-reader label of the emoji/GIF/sticker panel's grab handle when tapping it makes the panel taller."
+  },
+  "@expressionCollapsePanel": {
+    "description": "Screen-reader label of the panel's grab handle when tapping it returns the panel to keyboard height."
   }
 }

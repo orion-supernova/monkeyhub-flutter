@@ -9228,4 +9228,10 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get stickerMakerTooMany =>
       'وصلت إلى الحد الأقصى للملصقات. احذف واحدًا لتفريغ مساحة.';
+
+  @override
+  String get expressionExpandPanel => 'توسيع اللوحة';
+
+  @override
+  String get expressionCollapsePanel => 'تصغير اللوحة';
 }

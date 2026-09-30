@@ -131,6 +131,60 @@ void main() {
     });
   });
 
+  group('panel levels', () {
+    ExpressionPanelController levels() => ExpressionPanelController()
+      ..setLayout(expanded: 600, aboveKeyboard: 250);
+
+    test('a slow release snaps to whichever level is nearer', () {
+      final c = levels();
+      final collapsed = c.currentHeight;
+      c.dragBy(-100); // up a little
+      c.dragEnd(0);
+      expect(c.expanded, isFalse);
+      expect(c.currentHeight, collapsed);
+      c.dragBy(-(600 - collapsed) * 0.7); // most of the way
+      c.dragEnd(0);
+      expect(c.expanded, isTrue);
+      expect(c.currentHeight, 600);
+    });
+
+    test('a flick decides by direction, however short', () {
+      final c = levels();
+      c.dragBy(-10);
+      c.dragEnd(-900);
+      expect(c.expanded, isTrue);
+      c.dragBy(10);
+      c.dragEnd(900);
+      expect(c.expanded, isFalse);
+    });
+
+    test('a drag never leaves the two levels', () {
+      final c = levels();
+      c.dragBy(-5000);
+      expect(c.currentHeight, 600);
+      c.dragBy(5000);
+      expect(c.currentHeight, c.height);
+      c.dragEnd(0);
+    });
+
+    test('putting the panel away resets it to collapsed', () {
+      final focus = FocusNode();
+      addTearDown(focus.dispose);
+      final c = levels()
+        ..open(focus)
+        ..toggleExpanded();
+      expect(c.expanded, isTrue);
+      c.hide();
+      expect(c.isOpen, isFalse);
+      expect(c.expanded, isFalse);
+    });
+
+    test('search takes the room above the keyboard', () {
+      final c = levels()..setSearching(true);
+      expect(c.currentHeight, 250);
+    });
+  });
+
   group('sticker suggestions', () {
     testWidgets('appear for a lone emoji, and only then', (tester) async {
       final composer = TextEditingController();

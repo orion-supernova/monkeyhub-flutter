@@ -2513,5 +2513,7 @@
   "stickerMakerShapeOriginal": "الأصلي",
   "stickerMakerShapeRounded": "مربع بحواف مستديرة",
   "stickerMakerTitle": "ملصق جديد",
-  "stickerMakerTooMany": "وصلت إلى الحد الأقصى للملصقات. احذف واحدًا لتفريغ مساحة."
+  "stickerMakerTooMany": "وصلت إلى الحد الأقصى للملصقات. احذف واحدًا لتفريغ مساحة.",
+  "expressionExpandPanel": "توسيع اللوحة",
+  "expressionCollapsePanel": "تصغير اللوحة"
 }

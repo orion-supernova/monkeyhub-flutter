@@ -2513,5 +2513,7 @@
   "stickerMakerShapeOriginal": "ओरिजिनल",
   "stickerMakerShapeRounded": "गोल कोनों वाला चौकोर",
   "stickerMakerTitle": "नया स्टिकर",
-  "stickerMakerTooMany": "आप स्टिकर की सीमा तक पहुँच गए हैं। जगह बनाने के लिए एक हटाएँ।"
+  "stickerMakerTooMany": "आप स्टिकर की सीमा तक पहुँच गए हैं। जगह बनाने के लिए एक हटाएँ।",
+  "expressionExpandPanel": "पैनल बड़ा करें",
+  "expressionCollapsePanel": "पैनल छोटा करें"
 }

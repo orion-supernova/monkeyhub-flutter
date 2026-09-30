@@ -2513,5 +2513,7 @@
   "stickerMakerShapeOriginal": "Originale",
   "stickerMakerShapeRounded": "Carré arrondi",
   "stickerMakerTitle": "Nouveau sticker",
-  "stickerMakerTooMany": "Tu as atteint la limite de stickers. Supprimes-en un pour faire de la place."
+  "stickerMakerTooMany": "Tu as atteint la limite de stickers. Supprimes-en un pour faire de la place.",
+  "expressionExpandPanel": "Agrandir le panneau",
+  "expressionCollapsePanel": "Réduire le panneau"
 }

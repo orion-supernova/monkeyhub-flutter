@@ -3474,12 +3474,21 @@ class _RoomScreenState extends State<RoomScreen>
 
   /// The panel itself, for either chat style.
   Widget _expressionPanel({required double bottomPadding}) {
+    // What the expanded level may take: everything but the header, the
+    // composer and a strip of conversation, so the room stays recognisably
+    // the room you are answering in.
+    final mq = MediaQuery.of(context);
+    const reserved = 190.0;
+    _expressions.setLayout(
+      expanded: mq.size.height - mq.padding.top - bottomPadding - reserved,
+      aboveKeyboard:
+          mq.size.height - mq.viewInsets.bottom - mq.padding.top - reserved,
+    );
     return ExpressionPanel(
+      controller: _expressions,
       composer: _composer,
       onSend: _sendExpression,
-      height: _expressions.searching
-          ? _expressions.searchingHeight
-          : _expressions.height,
+      height: _expressions.currentHeight,
       bottomPadding: _expressions.searching ? 0 : bottomPadding,
       // While a panel search has the keyboard, the panel sits above it rather
       // than trading places with it.

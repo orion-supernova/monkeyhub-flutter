@@ -2513,5 +2513,7 @@
   "stickerMakerShapeOriginal": "Original",
   "stickerMakerShapeRounded": "Rundad kvadrat",
   "stickerMakerTitle": "Nytt klistermärke",
-  "stickerMakerTooMany": "Du har nått gränsen för klistermärken. Ta bort ett för att göra plats."
+  "stickerMakerTooMany": "Du har nått gränsen för klistermärken. Ta bort ett för att göra plats.",
+  "expressionExpandPanel": "Expandera panelen",
+  "expressionCollapsePanel": "Minska panelen"
 }
