@@ -1554,7 +1554,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
                 capture: _threadCapture,
                 mention: _mention,
                 onExpressions: () => _expressions.toggle(_composerFocus),
-                expressionsOpen: _expressions.isOpen,
+                expressionsOpen: _expressions.isOpen && !_expressions.closing,
                 onFieldTap: _expressions.dismiss,
                 onContentInserted: _onKeyboardContent,
               )
@@ -1569,7 +1569,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
                 capture: _threadCapture,
                 mention: _mention,
                 onExpressions: () => _expressions.toggle(_composerFocus),
-                expressionsOpen: _expressions.isOpen,
+                expressionsOpen: _expressions.isOpen && !_expressions.closing,
                 onFieldTap: _expressions.dismiss,
                 onContentInserted: _onKeyboardContent,
               ),
@@ -1582,6 +1582,9 @@ class _ThreadSheetState extends State<_ThreadSheet>
                 height: _expressions.searching
                     ? _expressions.searchingHeight
                     : _expressions.height,
+                keyboardInset: _expressions.searching
+                    ? 0
+                    : MediaQuery.viewInsetsOf(context).bottom,
                 onSearchFocusChanged: _expressions.setSearching,
               ),
           ],

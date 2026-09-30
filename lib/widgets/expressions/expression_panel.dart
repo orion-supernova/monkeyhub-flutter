@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -14,6 +15,7 @@ import '../../keyboard/focusable_tap.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/expression_item.dart';
 import '../../models/sticker_pack.dart';
+import '../../theme/app_theme.dart';
 import '../../theme/theme_scope.dart';
 import '../reaction_picker_sheet.dart' show EmojiSearchBar, EmojiSearchView;
 import 'expression_media.dart';
@@ -48,7 +50,14 @@ class ExpressionPanel extends StatefulWidget {
     this.onCreateSticker,
     this.onSearchFocusChanged,
     this.bottomPadding = 0,
+    this.keyboardInset = 0,
   });
+
+  /// How much of the panel the keyboard currently covers, while the two are
+  /// changing places. The panel lays out at its full [height] but only
+  /// occupies what the keyboard leaves, so as one slides away the other grows
+  /// into exactly that space and nothing above them moves.
+  final double keyboardInset;
 
   /// The composer's controller, which the emoji tab types into.
   final TextEditingController composer;
@@ -107,6 +116,33 @@ class _ExpressionPanelState extends State<ExpressionPanel> {
         final gifsAvailable = store.klipy != null && store.canUseOutsideMedia;
         var tab = _tab;
         if (tab == _Tab.gifs && !gifsAvailable) tab = _Tab.emoji;
+        final full = widget.height + widget.bottomPadding;
+        final visible = math.max(0.0, full - widget.keyboardInset);
+        return SizedBox(
+          height: visible,
+          child: ClipRect(
+            child: OverflowBox(
+              alignment: Alignment.topCenter,
+              minHeight: full,
+              maxHeight: full,
+              child: _body(context, theme, l10n, store, gifsAvailable, tab),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _body(
+    BuildContext context,
+    AppTheme theme,
+    AppLocalizations l10n,
+    ExpressionStore store,
+    bool gifsAvailable,
+    _Tab tab,
+  ) {
+    return Builder(
+      builder: (context) {
         return Container(
           height: widget.height + widget.bottomPadding,
           padding: EdgeInsets.only(bottom: widget.bottomPadding),
@@ -1280,7 +1316,16 @@ class ExpressionPanelController extends ChangeNotifier {
   final double defaultHeight;
 
   bool _open = false;
+
+  /// Whether the panel is mounted — including the moment after [close] while
+  /// the keyboard rises into its place.
   bool get isOpen => _open;
+
+  /// True in that moment: the panel is still drawn (shrinking as the keyboard
+  /// covers it) but the composer's toggle already shows the smiley again.
+  bool _closing = false;
+  bool get closing => _closing;
+  Timer? _closeTimer;
 
   /// Whether a search field inside the panel has the keyboard. The panel stays
   /// open, shorter, above it.
@@ -1302,31 +1347,79 @@ class ExpressionPanelController extends ChangeNotifier {
   double get searchingHeight => 230;
 
   void open(FocusNode composerFocus) {
-    if (_open) return;
+    if (_open && !_closing) return;
+    _closeTimer?.cancel();
+    _closing = false;
     composerFocus.unfocus();
     _open = true;
     notifyListeners();
   }
 
   /// Back to the keyboard.
-  void close(FocusNode composerFocus, {bool refocus = true}) {
-    if (!_open) return;
-    _open = false;
+  ///
+  /// The panel stays mounted for as long as the keyboard takes to rise, drawn
+  /// only where the keyboard does not yet cover it (see
+  /// [ExpressionPanel.keyboardInset]) — so the composer rides the keyboard up
+  /// instead of dropping to the floor and jumping back.
+  void close(FocusNode composerFocus) {
+    if (!_open || _closing) return;
+    _handOver();
+    composerFocus.requestFocus();
+  }
+
+  /// Only phones and tablets have a keyboard that slides up to take the
+  /// panel's place; on a desktop there is nothing to wait for.
+  static bool get _softKeyboard =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.android);
+
+  void _handOver() {
     _searching = false;
+    if (!_softKeyboard) {
+      _open = false;
+      notifyListeners();
+      return;
+    }
+    _closing = true;
     notifyListeners();
-    if (refocus) composerFocus.requestFocus();
+    _closeTimer?.cancel();
+    _closeTimer = Timer(const Duration(milliseconds: 450), _finishClose);
+  }
+
+  void _finishClose() {
+    if (!_closing) return;
+    _closing = false;
+    _open = false;
+    notifyListeners();
   }
 
   void toggle(FocusNode composerFocus) =>
-      _open ? close(composerFocus) : open(composerFocus);
+      _open && !_closing ? close(composerFocus) : open(composerFocus);
 
-  /// Closes without handing focus back — after a send, or when the composer
-  /// field is tapped (which focuses itself).
+  /// Puts the panel away because the keyboard is coming back by some other
+  /// route — the field was tapped, or took focus. A close already under way
+  /// is left to finish its hand-over.
   void dismiss() {
+    if (!_open || _closing) return;
+    _handOver();
+  }
+
+  /// Puts the panel away at once, with no keyboard to hand over to — the
+  /// system back gesture.
+  void hide() {
     if (!_open) return;
+    _closeTimer?.cancel();
+    _closing = false;
     _open = false;
     _searching = false;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _closeTimer?.cancel();
+    super.dispose();
   }
 
   void setSearching(bool v) {

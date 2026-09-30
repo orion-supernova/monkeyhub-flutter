@@ -3481,6 +3481,11 @@ class _RoomScreenState extends State<RoomScreen>
           ? _expressions.searchingHeight
           : _expressions.height,
       bottomPadding: _expressions.searching ? 0 : bottomPadding,
+      // While a panel search has the keyboard, the panel sits above it rather
+      // than trading places with it.
+      keyboardInset: _expressions.searching
+          ? 0
+          : MediaQuery.viewInsetsOf(context).bottom,
       onCreateSticker: _createSticker,
       onSearchFocusChanged: _expressions.setSearching,
     );
@@ -3806,7 +3811,7 @@ class _RoomScreenState extends State<RoomScreen>
             onPopInvokedWithResult: (didPop, _) {
               if (didPop) return;
               if (_expressions.isOpen) {
-                _expressions.dismiss();
+                _expressions.hide();
               } else {
                 _selection.clear();
               }
@@ -4007,7 +4012,7 @@ class _RoomScreenState extends State<RoomScreen>
                   mention: _mention,
                   captureOpenHintRoomId: room.id,
                   onExpressions: () => _expressions.toggle(_composerFocus),
-                  expressionsOpen: _expressions.isOpen,
+                  expressionsOpen: _expressions.isOpen && !_expressions.closing,
                   onFieldTap: _expressions.dismiss,
                   onContentInserted: _onKeyboardContent,
                 ),
@@ -4244,7 +4249,7 @@ class _RoomScreenState extends State<RoomScreen>
                   mention: _mention,
                   captureOpenHintRoomId: room.id,
                   onExpressions: () => _expressions.toggle(_composerFocus),
-                  expressionsOpen: _expressions.isOpen,
+                  expressionsOpen: _expressions.isOpen && !_expressions.closing,
                   onFieldTap: _expressions.dismiss,
                   onContentInserted: _onKeyboardContent,
                   // With the panel open the composer is no longer the lowest
