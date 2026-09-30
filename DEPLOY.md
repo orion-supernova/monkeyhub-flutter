@@ -194,16 +194,19 @@ npx convex env set KLIPY_ADS 0
 # re-running finishes a half-done seed and skips what is there.
 npx convex run expressions:seedOfficialPacks '{}'
 
-# The packs built on a Mac and uploaded: the MonkeyHub monkeys (our own art,
-# first in the strip and on by default) and three Fluent 3D packs (Microsoft,
-# MIT). Build once, then upload to each box — also idempotent.
-python3 -m venv .venv && .venv/bin/pip install pillow skia-python
-.venv/bin/python ../tool/stickers/monkey_pack.py build/stickers/monkey
+# The packs built on a Mac and uploaded: MonkeyHub Crew (the brand's own
+# monkeys, cut out of branding/ — first in the strip and on by default) and
+# three Fluent 3D packs (Microsoft, MIT). Build once, then upload to each box
+# — also idempotent. The crew needs the Fluent build for its props.
+python3 -m venv .venv && .venv/bin/pip install pillow skia-python numpy
 .venv/bin/python ../tool/stickers/fluent_packs.py build/stickers/fluent   # needs gh
-for m in build/stickers/monkey build/stickers/fluent; do
+.venv/bin/python ../tool/stickers/crew_pack.py build/stickers/crew build/stickers/fluent
+for m in build/stickers/crew build/stickers/fluent; do
   node scripts/seed-sticker-packs.mjs $m/manifest.json
   node scripts/seed-sticker-packs.mjs $m/manifest.json http://100.104.73.75:3210
 done
+# The first cartoon monkeys (monkeyhub-monkeys) were retired on 2026-09-30
+# with expressions:retireOfficialStickers; do not reseed them.
 npx convex run expressions:seedStatus '{}'     # 19 packs, 520 stickers
 ```
 

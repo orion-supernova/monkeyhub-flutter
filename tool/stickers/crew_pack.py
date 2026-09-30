@@ -239,6 +239,18 @@ class Crew:
             ('thinking', '🤔', self.thinking),
         ]
 
+    def plain_stickers(self):
+        """The characters alone — no props, no motion."""
+        def still(actor, **kw):
+            return lambda c, t: actor.draw(c, **kw)
+        return [
+            ('logo', '😎', still(self.logo)),
+            ('astronaut', '🚀', still(self.astro)),
+            ('steampunk', '🤓', still(self.steam)),
+            ('hiker', '🥾', still(self.hiker)),
+            ('thinking', '🤔', still(self.hmm)),
+        ]
+
     def cool(self, c, t):
         a = self.logo
         nod = math.sin(TAU * t * 2)
@@ -434,23 +446,33 @@ def sheet(crew, dest, per=4):
     img.save(dest)
 
 
-def build(crew, out_dir):
-    pack_dir = os.path.join(out_dir, 'monkeyhub-crew')
+# The moment each sticker is caught at when it is saved still: the glint
+# mid-sweep, the hearts in the air, the hop at its top.
+STILL_AT = {'cool': 0.28, 'love': 0.45, 'party': 0.25, 'space': 0.3,
+            'hike': 0.25, 'thumbs': 0.5, 'hundred': 0.25}
+
+
+def build(crew, out_dir, plain=False):
+    """Writes the pack as still WebP stickers: the dressed-up set, or with
+    [plain] just the characters themselves."""
+    slug = 'monkeyhub-crew-plain' if plain else 'monkeyhub-crew'
+    pack_dir = os.path.join(out_dir, slug)
     os.makedirs(pack_dir, exist_ok=True)
     stickers = []
-    for i, (name, emoji, fn) in enumerate(crew.stickers()):
-        frames = [render(fn, f / FRAMES) for f in range(FRAMES)]
+    items = crew.plain_stickers() if plain else crew.stickers()
+    for i, (name, emoji, fn) in enumerate(items):
         dest = os.path.join(pack_dir, f'{i:02d}-{name}.webp')
-        frames[0].save(dest, save_all=True, append_images=frames[1:],
-                       duration=FRAME_MS, loop=0, quality=78, method=4,
-                       format='WEBP')
+        render(fn, STILL_AT.get(name, 0.25)).save(
+            dest, quality=88, method=6, format='WEBP')
         stickers.append({'file': os.path.relpath(dest, out_dir),
                          'order': i, 'emoji': emoji})
         print(f'  {name}: {os.path.getsize(dest) // 1024} KB', file=sys.stderr)
     manifest = [{
-        'slug': 'monkeyhub-crew', 'title': 'MonkeyHub Crew', 'order': -2,
-        'author': 'MonkeyHub; props: Microsoft Fluent Emoji',
-        'license': 'Original artwork; props MIT',
+        'slug': slug,
+        'title': 'MonkeyHub Crew' + (' (plain)' if plain else ''),
+        'order': -2,
+        'author': 'MonkeyHub' + ('' if plain else '; props: Microsoft Fluent Emoji'),
+        'license': 'Original artwork' + ('' if plain else '; props MIT'),
         'sourceUrl': 'https://monkeyhub.walhallaa.com', 'format': 'image',
         'contentType': 'image/webp', 'width': OUT, 'height': OUT,
         'stickers': stickers,
@@ -461,8 +483,10 @@ def build(crew, out_dir):
 
 if __name__ == '__main__':
     args = sys.argv[1:]
+    plain = '--plain' in args
+    args = [a for a in args if a != '--plain']
     if args and args[0] == '--sheet':
         sheet(Crew(args[2]), args[1])
     else:
         build(Crew(args[1] if len(args) > 1 else 'build/stickers/fluent'),
-              args[0] if args else 'build/stickers/crew')
+              args[0] if args else 'build/stickers/crew', plain=plain)

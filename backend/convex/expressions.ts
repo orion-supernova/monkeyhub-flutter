@@ -125,7 +125,7 @@ export const packs = query({
  * reseed.
  */
 export const DEFAULT_PACK_SLUGS = [
-  "monkeyhub-monkeys",
+  "monkeyhub-crew",
   "noto-moods",
   "noto-love",
   "noto-feelings",
