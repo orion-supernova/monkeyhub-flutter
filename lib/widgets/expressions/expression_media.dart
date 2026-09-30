@@ -484,7 +484,16 @@ class _StickerArtState extends State<StickerArt>
             height: h,
             fit: BoxFit.contain,
             memCacheWidth: (size * dpr).round(),
-            fadeInDuration: const Duration(milliseconds: 120),
+            // The fade-in is a ticker animation, and a paused sticker sits
+            // under a disabled TickerMode, so the fade never ran and a strip
+            // icon loaded for the first time stayed invisible until the
+            // memory cache served it again, unfaded. Paused art just appears.
+            fadeInDuration: widget.play
+                ? const Duration(milliseconds: 120)
+                : Duration.zero,
+            fadeOutDuration: widget.play
+                ? const Duration(milliseconds: 1000)
+                : Duration.zero,
             placeholder: (_, _) => ExpressionPlaceholder(width: size, height: h),
             errorWidget: (_, _, _) => Center(
               child: Text(

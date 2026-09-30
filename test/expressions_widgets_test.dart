@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -500,6 +501,35 @@ void main() {
       )));
       await tester.pump();
       expect(find.text('🐶'), findsOneWidget);
+    });
+
+    // A paused sticker sits under a disabled TickerMode, where a fade-in
+    // never runs: the strip showed image packs (My stickers, the monkeys) as
+    // blanks until the sheet was reopened.
+    testWidgets('paused image art appears without a fade', (tester) async {
+      Widget art(bool play) => host(StickerArt(
+            key: ValueKey(play),
+            item: const ExpressionItem(
+              kind: ExpressionKind.sticker,
+              source: ExpressionSource.pack,
+              stickerId: 'st9',
+              storageId: 's9',
+              format: StickerFormat.image,
+            ),
+            url: 'https://example.test/s9.webp',
+            size: 28,
+            play: play,
+          ));
+      await tester.pumpWidget(art(false));
+      expect(
+          tester.widget<CachedNetworkImage>(find.byType(CachedNetworkImage))
+              .fadeInDuration,
+          Duration.zero);
+      await tester.pumpWidget(art(true));
+      expect(
+          tester.widget<CachedNetworkImage>(find.byType(CachedNetworkImage))
+              .fadeInDuration,
+          isNot(Duration.zero));
     });
 
     testWidgets('a GIF lays out at its own ratio, capped', (tester) async {
