@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Draws the MonkeyHub monkey sticker pack — our own mascot, frame by frame.
 
+RETIRED (2026-09-30): the pack was pulled in favour of MonkeyHub Crew
+(crew_pack.py), which imports its drawing helpers — paint, bubble, star,
+text — from here. Do not reseed `monkeyhub-monkeys`.
+
 A cartoon chimp in the app's colours (brown fur, a warm face, the cyan of the
 chat bubble in branding/monkey), drawn with Skia at 512px, given a white
 die-cut edge, and written as 256px animated WebP loops, with the manifest

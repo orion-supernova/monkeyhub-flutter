@@ -207,7 +207,7 @@ for m in build/stickers/crew build/stickers/fluent; do
 done
 # The first cartoon monkeys (monkeyhub-monkeys) were retired on 2026-09-30
 # with expressions:retireOfficialStickers; do not reseed them.
-npx convex run expressions:seedStatus '{}'     # 19 packs, 520 stickers
+npx convex run expressions:seedStatus '{}'     # 19 packs, 522 stickers
 ```
 
 KLIPY's terms shape the client, not this list: API calls and media loads come

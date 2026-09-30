@@ -235,7 +235,6 @@ class Crew:
             ('hundred', '💯', self.hundred_),
             ('hi', '👋', self.hi),
             ('thumbs', '👍', self.thumbs),
-            ('hike', '🥾', self.hike),
             ('thinking', '🤔', self.thinking),
         ]
 
@@ -248,7 +247,7 @@ class Crew:
             ('astronaut', '🚀', still(self.astro)),
             ('steampunk', '🤓', still(self.steam)),
             ('hiker', '🥾', still(self.hiker)),
-            ('thinking', '🤔', still(self.hmm)),
+            ('chimp', '🤔', still(self.hmm)),
         ]
 
     def cool(self, c, t):
@@ -266,14 +265,9 @@ class Crew:
     def love(self, c, t):
         a = self.logo
         a.draw(c, rot=3 * math.sin(TAU * t))
-        for k in range(3):
-            ph = (t + k / 3) % 1.0
-            x = [120, 400, 250][k] + 24 * math.sin(TAU * (ph + k * 0.3))
-            y = 260 - 230 * ph
-            # Grows in and shrinks away (see gamer for why not a fade).
-            size = 110 * min(1, 5 * ph, 4 * (1 - ph))
-            if size > 12:
-                self.heart.draw(c, x, y, size, t + k / 3)
+        # Around the head, never over the face.
+        for x, y, size in ((96, 150, 96), (418, 104, 118), (448, 248, 64)):
+            self.heart.draw(c, x, y, size, t)
 
     def typing(self, c, t):
         a = self.logo
@@ -289,18 +283,21 @@ class Crew:
 
     def party(self, c, t):
         a = self.logo
-        colors = [PINK, YELLOW, CYAN, 0x86EFAC, 0xC4B5FD]
-        for k in range(14):  # confetti behind
-            ph = (t + k * 0.37) % 1.0
-            x = 30 + (k * 71) % 452
-            y = -30 + 580 * ph
-            c.save()
-            c.translate(x, y)
-            c.rotate(360 * ph * (1 if k % 2 else -1) + k * 30)
-            c.drawRect(skia.Rect.MakeLTRB(-11, -5, 11, 5), paint(colors[k % 5]))
-            c.restore()
         h = hop(t, 2)
         a.draw(c, dy=-44 * h, sy=squash(t, 2), sx=2 - squash(t, 2))
+        # A burst out of the popper's mouth, not specks all over.
+        colors = [PINK, YELLOW, CYAN, 0x86EFAC, 0xC4B5FD]
+        for k in range(9):
+            ang = math.radians(-160 + k * 17)
+            r = 58 + 20 * (k % 3)
+            x, y = 384 + r * math.cos(ang), 132 + r * math.sin(ang)
+            c.save()
+            c.translate(x, y)
+            c.rotate(k * 47)
+            c.drawRRect(skia.RRect.MakeRectXY(
+                skia.Rect.MakeLTRB(-12, -5, 12, 5), 4, 4),
+                paint(colors[k % 5]))
+            c.restore()
         self.popper.draw(c, 420, 150, 150, t, rot=-10)
 
     def gamer(self, c, t):
@@ -309,19 +306,18 @@ class Crew:
         a.draw(c, rot=1.6 * jitter, dy=-3 * abs(jitter))
         cx, cy = a.point(0.5, 0.64)
         colors = [CYAN, PINK, 0xA3E635, YELLOW]
-        for k in range(8):  # pixels flying off the console, out to the sides
-            ph = (t * 2 + k / 8) % 1.0
+        # Pixels flying off the console, in two arcs beside it.
+        for k in range(6):
             side = 1 if k % 2 else -1
-            ang = (-0.55 + 0.25 * (k // 2)) if side > 0 else \
-                (math.pi + 0.55 - 0.25 * (k // 2))
-            r = 90 + 150 * ph
-            x, y = cx + r * math.cos(ang), cy + r * math.sin(ang)
-            # Shrinking out, not fading: a faded speck keeps its full white
-            # edge and reads as a stray grey dot.
-            s = 16 * (1 - ph)
-            if s > 3:
-                c.drawRect(skia.Rect.MakeXYWH(x - s / 2, y - s / 2, s, s),
-                           paint(colors[k % 4]))
+            i = k // 2
+            ang = -0.5 + 0.38 * i
+            r = 120 + 34 * i
+            x = cx + side * r * math.cos(ang)
+            y = cy + r * math.sin(ang)
+            size = 20 - 3 * i
+            c.drawRRect(skia.RRect.MakeRectXY(skia.Rect.MakeXYWH(
+                x - size / 2, y - size / 2, size, size), 3, 3),
+                paint(colors[k % 4]))
         self.fire.draw(c, 430, 110, 110, t)
 
     def sleepy(self, c, t):
@@ -330,14 +326,14 @@ class Crew:
         for k in range(3):
             ph = (t + k / 3) % 1.0
             alpha = int(255 * math.sin(math.pi * ph))
-            text(c, 'z' if k % 2 else 'Z', 350 + 70 * ph, 150 - 110 * ph,
+            text(c, 'z' if k % 2 else 'Z', 350 + 70 * ph, 200 - 110 * ph,
                  52 + 26 * ph, CYAN_DARK, alpha, rot=-12)
 
     def space(self, c, t):
-        for k in range(9):  # stars behind, twinkling
-            x = 40 + (k * 131) % 440
-            y = 40 + (k * 83) % 300
-            s = 5 + 9 * ease(t + k * 0.21)
+        for k in range(6):  # stars behind
+            x = 50 + (k * 131) % 420
+            y = 50 + (k * 83) % 280
+            s = 11 + 7 * ease(t + k * 0.21)
             fill_stroke(c, star(x, y, s), WHITE if k % 3 else YELLOW, 0)
         # the rocket streaks past behind the helmet, high up
         self.rocket.draw(c, -80 + 680 * t, 150 - 110 * t, 100, t)
@@ -353,8 +349,10 @@ class Crew:
             ph = (t * 2 + k / 6) % 1.0
             r = 205 + 20 * ph
             x, y = 256 + r * math.cos(ang), 250 + r * 0.9 * math.sin(ang)
-            fill_stroke(c, star(x, y, 22 * math.sin(math.pi * ph) + 1,
-                                rot=ph), YELLOW if k % 2 else WHITE, 0)
+            size = 22 * math.sin(math.pi * ph)
+            if size > 9:  # a speck with a white edge reads as dirt
+                fill_stroke(c, star(x, y, size, rot=ph),
+                            YELLOW if k % 2 else WHITE, 0)
         self.glow.draw(c, 420, 90, 90, t)
 
     def nerd(self, c, t):
@@ -452,14 +450,14 @@ STILL_AT = {'cool': 0.28, 'love': 0.45, 'party': 0.25, 'space': 0.3,
             'hike': 0.25, 'thumbs': 0.5, 'hundred': 0.25}
 
 
-def build(crew, out_dir, plain=False):
-    """Writes the pack as still WebP stickers: the dressed-up set, or with
-    [plain] just the characters themselves."""
-    slug = 'monkeyhub-crew-plain' if plain else 'monkeyhub-crew'
+def build(crew, out_dir):
+    """Writes the pack as still WebP stickers: the characters on their own
+    first, then dressed up with props."""
+    slug = 'monkeyhub-crew'
     pack_dir = os.path.join(out_dir, slug)
     os.makedirs(pack_dir, exist_ok=True)
     stickers = []
-    items = crew.plain_stickers() if plain else crew.stickers()
+    items = crew.plain_stickers() + crew.stickers()
     for i, (name, emoji, fn) in enumerate(items):
         dest = os.path.join(pack_dir, f'{i:02d}-{name}.webp')
         render(fn, STILL_AT.get(name, 0.25)).save(
@@ -468,11 +466,9 @@ def build(crew, out_dir, plain=False):
                          'order': i, 'emoji': emoji})
         print(f'  {name}: {os.path.getsize(dest) // 1024} KB', file=sys.stderr)
     manifest = [{
-        'slug': slug,
-        'title': 'MonkeyHub Crew' + (' (plain)' if plain else ''),
-        'order': -2,
-        'author': 'MonkeyHub' + ('' if plain else '; props: Microsoft Fluent Emoji'),
-        'license': 'Original artwork' + ('' if plain else '; props MIT'),
+        'slug': slug, 'title': 'MonkeyHub Crew', 'order': -2,
+        'author': 'MonkeyHub; props: Microsoft Fluent Emoji',
+        'license': 'Original artwork; props MIT',
         'sourceUrl': 'https://monkeyhub.walhallaa.com', 'format': 'image',
         'contentType': 'image/webp', 'width': OUT, 'height': OUT,
         'stickers': stickers,
@@ -483,10 +479,8 @@ def build(crew, out_dir, plain=False):
 
 if __name__ == '__main__':
     args = sys.argv[1:]
-    plain = '--plain' in args
-    args = [a for a in args if a != '--plain']
     if args and args[0] == '--sheet':
         sheet(Crew(args[2]), args[1])
     else:
         build(Crew(args[1] if len(args) > 1 else 'build/stickers/fluent'),
-              args[0] if args else 'build/stickers/crew', plain=plain)
+              args[0] if args else 'build/stickers/crew')
