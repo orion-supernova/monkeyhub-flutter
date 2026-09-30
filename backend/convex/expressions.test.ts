@@ -526,4 +526,45 @@ describe("official packs", () => {
       expect(new Set(emoji).size).toBe(emoji.length);
     }
   });
+
+  test("a retired pack leaves the catalog, keeps its blobs, and reseeds", async () => {
+    const { t, me } = await setup();
+    const { storageId } = await officialSticker(t);
+    const before = await t.query(api.expressions.packs, { sessionToken: me.token });
+    expect(before.map((p: any) => p.slug)).toEqual(["test-pack"]);
+
+    const { retired } = await t.mutation(
+      internal.expressions.retireOfficialStickers,
+      { slug: "test-pack" }
+    );
+    expect(retired).toBe(1);
+    expect(await t.query(api.expressions.packs, { sessionToken: me.token })).toEqual([]);
+    // Stickers already sent still point at the old file.
+    await t.mutation(internal.files.gcOrphanedFiles, { graceMs: 0 });
+    expect(await t.run((ctx) => ctx.db.system.get(storageId))).not.toBeNull();
+
+    // The seeder sees the old positions as free.
+    const { packId, haveOrders } = await t.mutation(
+      internal.expressions.ensureOfficialPack,
+      { slug: "test-pack", title: "Test", order: 0, author: "A", license: "L" }
+    );
+    expect(haveOrders).toEqual([]);
+    const fresh = await t.run((ctx) =>
+      ctx.storage.store(new Blob(["webp"], { type: "image/webp" }))
+    );
+    await t.mutation(internal.expressions.insertOfficialSticker, {
+      packId,
+      storageId: fresh,
+      emoji: "🐵",
+      width: 256,
+      height: 256,
+      order: 0,
+      format: "image",
+    });
+    const after = await t.query(api.expressions.packs, { sessionToken: me.token });
+    expect(after[0].stickers.map((s: any) => [s.emoji, s.format])).toEqual([
+      ["🐵", "image"],
+    ]);
+    expect(after[0].author).toBe("A");
+  });
 });

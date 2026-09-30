@@ -711,10 +711,13 @@ export const ensureOfficialPack = internalMutation({
     ) {
       await ctx.db.patch(pack._id, { title, order, ...credit });
     }
-    const rows = await ctx.db
-      .query("stickers")
-      .withIndex("by_pack_order", (q) => q.eq("packId", pack._id))
-      .collect();
+    // Retired stickers do not count: their positions are free for new art.
+    const rows = (
+      await ctx.db
+        .query("stickers")
+        .withIndex("by_pack_order", (q) => q.eq("packId", pack._id))
+        .collect()
+    ).filter((r) => r.deletedAt === undefined);
     return {
       packId: pack._id,
       have: rows.map((r) => r.emoji),
@@ -740,6 +743,36 @@ export const insertOfficialSticker = internalMutation({
       format: format === "image" ? "image" : "lottie",
       createdAt: Date.now(),
     });
+  },
+});
+
+/**
+ * Takes an official pack's stickers out of circulation, for art being
+ * replaced. Soft: the rows stay, so stickers already sent keep their files
+ * (the storage GC scans this table), and a pack with no live stickers drops
+ * out of [packs] until new art is seeded into it. Operator-only:
+ *
+ *   npx convex run expressions:retireOfficialStickers '{"slug":"…"}'
+ */
+export const retireOfficialStickers = internalMutation({
+  args: { slug: v.string() },
+  handler: async (ctx, { slug }) => {
+    const pack = await ctx.db
+      .query("stickerPacks")
+      .withIndex("by_slug", (q) => q.eq("slug", slug))
+      .first();
+    if (!pack || pack.kind !== "official") throw new Error("NOT_A_PACK");
+    const rows = await ctx.db
+      .query("stickers")
+      .withIndex("by_pack_order", (q) => q.eq("packId", pack._id))
+      .collect();
+    let retired = 0;
+    for (const r of rows) {
+      if (r.deletedAt !== undefined) continue;
+      await ctx.db.patch(r._id, { deletedAt: Date.now() });
+      retired++;
+    }
+    return { retired };
   },
 });
 
@@ -821,7 +854,7 @@ export const seedStatus = internalQuery({
           .query("stickers")
           .withIndex("by_pack_order", (q) => q.eq("packId", pack._id))
           .collect()
-      ).length;
+      ).filter((s) => s.deletedAt === undefined).length;
       out.push({ slug: pack.slug, stickers: n });
     }
     return out;
