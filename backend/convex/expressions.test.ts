@@ -113,6 +113,11 @@ describe("roomPreviewFor", () => {
     expect(roomPreviewFor({ type: "sticker", content: "😂" })).toBe(
       "[sticker] 😂"
     );
+    // A KLIPY sticker's alt text is a title, not an emoji — never shown, and
+    // never cut mid-word.
+    expect(
+      roomPreviewFor({ type: "sticker", content: "Whatever Nevermind" })
+    ).toBe("[sticker]");
   });
 });
 

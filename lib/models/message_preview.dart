@@ -1,5 +1,6 @@
 import 'chat_message.dart';
 import 'enums.dart';
+import 'expression_item.dart';
 import 'message_formatting.dart';
 
 /// The most this ever renders as. A pinned banner is one line on a phone; a
@@ -109,7 +110,9 @@ String _rawPreview(ChatMessage m, {required bool hasThumbnail}) {
       // and a pin banner reading "Hello" would say the sender typed it.
       return hasThumbnail ? '' : 'GIF';
     case MessageType.sticker:
-      // The emoji the sticker stands for, which is what it says.
-      return m.content.isEmpty ? 'sticker' : '${m.content} sticker';
+      // The emoji the sticker stands for, which is what it says — but never a
+      // KLIPY sticker's title; see [stickerEmojiOf].
+      final emoji = stickerEmojiOf(m.content);
+      return emoji == null ? 'sticker' : '$emoji sticker';
   }
 }

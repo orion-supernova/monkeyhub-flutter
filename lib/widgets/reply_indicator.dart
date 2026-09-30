@@ -13,6 +13,7 @@ import '../models/enums.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
+import '../models/expression_item.dart';
 import 'expressions/expression_media.dart';
 import 'remote_image.dart';
 import 'speaker_scope.dart';
@@ -457,7 +458,8 @@ String _previewLabel(BuildContext context, ReplyPreview preview) {
   if (preview.type == MessageType.gif) return 'GIF';
   if (preview.type == MessageType.sticker) {
     return AppLocalizations.of(context)
-        .replyIndicatorStickerLabel(preview.contentPreview);
+        .replyIndicatorStickerLabel(stickerEmojiOf(preview.contentPreview) ?? '')
+        .trim();
   }
   if (preview.contentPreview.isNotEmpty) return preview.contentPreview;
   switch (preview.type) {

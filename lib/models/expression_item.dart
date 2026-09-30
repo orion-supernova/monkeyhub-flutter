@@ -10,6 +10,20 @@
 /// Mirrors `expressionRef` in `backend/convex/schema.ts`.
 library;
 
+final RegExp _letterOrDigit = RegExp(r'[\p{L}\p{N}]', unicode: true);
+
+/// The emoji a sticker's alt text stands for, or null when it is not one.
+///
+/// A pack sticker's alt text IS its emoji; a KLIPY sticker's is a title
+/// ("Whatever Nevermind"). Surfaces that name a sticker in a line of text show
+/// the emoji and nothing otherwise — a title there reads as typed text. The
+/// same rule as `roomPreviewFor` in messages.ts.
+String? stickerEmojiOf(String alt) {
+  final t = alt.trim();
+  if (t.isEmpty || t.length > 16 || _letterOrDigit.hasMatch(t)) return null;
+  return t;
+}
+
 /// What an item sends as: the message type.
 enum ExpressionKind { gif, sticker }
 

@@ -602,8 +602,13 @@ export function roomPreviewFor(msg: {
   // for, which is exactly what a room card should show beside the word.
   if (type === "gif") return "[GIF]";
   if (type === "sticker") {
-    const emoji = (msg.content ?? "").slice(0, 16);
-    return emoji.length > 0 ? `[sticker] ${emoji}` : "[sticker]";
+    // Only an emoji rides along. A pack sticker's `content` is the emoji it
+    // stands for; a KLIPY sticker's is its title ("Whatever Nevermind"),
+    // which on a room card would read as typed text — and a 16-character cut
+    // of it read as a broken one.
+    const alt = (msg.content ?? "").trim();
+    const isEmoji = alt.length > 0 && alt.length <= 16 && !/[\p{L}\p{N}]/u.test(alt);
+    return isEmoji ? `[sticker] ${alt}` : "[sticker]";
   }
   return `[${type}]`;
 }

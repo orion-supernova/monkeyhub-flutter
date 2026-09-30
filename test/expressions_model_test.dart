@@ -145,6 +145,16 @@ void main() {
         'stickerStorageId': 'b',
       }));
       expect(messagePreviewLine(s), '😂 sticker');
+      // A KLIPY sticker's alt text is a title — shown as the word alone.
+      final k = ChatMessage.fromJson(row({
+        'type': 'sticker',
+        'content': 'Whatever Nevermind',
+        'mediaSource': 'klipy',
+        'mediaUrl': 'https://static.klipy.com/s.webp',
+      }));
+      expect(messagePreviewLine(k), 'sticker');
+      expect(stickerEmojiOf('❤️'), '❤️');
+      expect(stickerEmojiOf('Hello'), isNull);
     });
   });
 
