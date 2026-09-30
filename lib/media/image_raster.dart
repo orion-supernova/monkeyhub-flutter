@@ -75,6 +75,12 @@ const int kSendPhotoMaxEdge = 1280;
 /// JPEG quality for a chat photo sent at the default setting.
 const int kSendPhotoQuality = 75;
 
+/// The largest GIF or WebP sent untouched. Past this even an animated one is
+/// re-encoded to a still — a 40 MB GIF is a video that picked the wrong format,
+/// and four recipients each downloading it is the fan-out the cap above exists
+/// to stop.
+const int kSendAnimatedMaxBytes = 12 * 1024 * 1024;
+
 /// JPEG quality for a photo sent as HD.
 ///
 /// Matches what the editor has always exported, so turning HD on reproduces
@@ -416,6 +422,21 @@ Future<CroppedImage?> prepareUneditedForSend(
     // going to be re-encoded, and decoding a photo only to find out it was
     // already small enough would cost the whole saving.
     final size = await imageBytesSize(source);
+    final type = sniffImageContentType(source);
+    // A GIF or WebP is sent as it is, whatever its size. Both are usually
+    // animated, and the re-encode below is a single JPEG frame: it used to turn
+    // every large GIF someone picked from their library into a still, and flatten
+    // a transparent WebP sticker onto black. Capped so nothing absurd slips
+    // through on the strength of its extension.
+    final animatedFormat = type == 'image/gif' || type == 'image/webp';
+    if (animatedFormat && source.length <= kSendAnimatedMaxBytes) {
+      return CroppedImage(
+        bytes: source,
+        contentType: type,
+        width: size.width.round(),
+        height: size.height.round(),
+      );
+    }
     if (hd || math.max(size.width, size.height) <= kSendPhotoMaxEdge) {
       return CroppedImage(
         bytes: source,

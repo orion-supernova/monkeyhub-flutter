@@ -8450,4 +8450,164 @@ class AppLocalizationsZh extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get expressionActionFailed => '操作失败，请重试。';
+
+  @override
+  String get expressionBackspace => '删除';
+
+  @override
+  String get expressionCreateSticker => '制作贴纸';
+
+  @override
+  String get expressionDeleteSticker => '从我的贴纸中删除';
+
+  @override
+  String get expressionFavorite => '添加到收藏';
+
+  @override
+  String get expressionFavorited => '已添加到收藏';
+
+  @override
+  String get expressionFavorites => '收藏';
+
+  @override
+  String expressionGifSemantics(String title) {
+    return 'GIF：$title';
+  }
+
+  @override
+  String get expressionLoadFailed => '加载失败，请检查网络连接。';
+
+  @override
+  String get expressionMediaNotAllowed => '你的家庭设置不允许发送图片。';
+
+  @override
+  String get expressionMyStickers => '我的贴纸';
+
+  @override
+  String get expressionNoFavorites => '长按 GIF 或贴纸即可添加到收藏。';
+
+  @override
+  String get expressionNoRecents => '你发送的 GIF 和贴纸会显示在这里。';
+
+  @override
+  String get expressionNoResults => '无结果';
+
+  @override
+  String get expressionNoStickers => '这里还没有贴纸。';
+
+  @override
+  String get expressionOpenPanel => '表情、GIF 和贴纸';
+
+  @override
+  String get expressionOptionsHint => '显示选项';
+
+  @override
+  String expressionPackCredit(String author, String license) {
+    return '作者：$author · $license';
+  }
+
+  @override
+  String get expressionPlayGifHint => '播放';
+
+  @override
+  String get expressionRecent => '最近';
+
+  @override
+  String get expressionReport => '举报';
+
+  @override
+  String get expressionReported => '谢谢，已举报。';
+
+  @override
+  String get expressionRetry => '重试';
+
+  @override
+  String get expressionSearchKlipy => '搜索 KLIPY';
+
+  @override
+  String get expressionShowKeyboard => '显示键盘';
+
+  @override
+  String get expressionSuggestionsLabel => '贴纸推荐';
+
+  @override
+  String get expressionTabEmoji => '表情';
+
+  @override
+  String get expressionTabGifs => 'GIF';
+
+  @override
+  String get expressionTabStickers => '贴纸';
+
+  @override
+  String get expressionTrending => '热门';
+
+  @override
+  String get expressionUnfavorite => '取消收藏';
+
+  @override
+  String get expressionUnfavorited => '已取消收藏';
+
+  @override
+  String replyIndicatorStickerLabel(String emoji) {
+    return '贴纸 $emoji';
+  }
+
+  @override
+  String get settingsAutoplayExpressionsLabel => '自动播放 GIF 和贴纸';
+
+  @override
+  String get settingsAutoplayExpressionsOffBody => '点击前保持静止，更省流量。';
+
+  @override
+  String get settingsAutoplayExpressionsOnBody =>
+      'GIF 和动态贴纸会自动播放。开启“减弱动态效果”时会暂停。';
+
+  @override
+  String get settingsStickerSuggestionsBody => '只输入一个表情时，会在输入框上方显示匹配的贴纸。';
+
+  @override
+  String get settingsStickerSuggestionsLabel => '贴纸推荐';
+
+  @override
+  String get stickerMakerEmojiLabel => '是哪个表情？';
+
+  @override
+  String get stickerMakerFailed => '贴纸保存失败，请重试。';
+
+  @override
+  String get stickerMakerMoreEmoji => '更多表情';
+
+  @override
+  String get stickerMakerPreview => '贴纸预览';
+
+  @override
+  String get stickerMakerRemoveBackground => '去除背景';
+
+  @override
+  String get stickerMakerSave => '保存';
+
+  @override
+  String get stickerMakerSaved => '贴纸已添加到“我的贴纸”';
+
+  @override
+  String get stickerMakerShape => '形状';
+
+  @override
+  String get stickerMakerShapeCircle => '圆形';
+
+  @override
+  String get stickerMakerShapeOriginal => '原图';
+
+  @override
+  String get stickerMakerShapeRounded => '圆角方形';
+
+  @override
+  String get stickerMakerTitle => '新贴纸';
+
+  @override
+  String get stickerMakerTooMany => '贴纸数量已达上限。删除一个以腾出空间。';
 }

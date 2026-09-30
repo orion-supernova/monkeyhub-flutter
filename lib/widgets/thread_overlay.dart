@@ -25,6 +25,12 @@ import 'anchored_scroll.dart';
 import '../composer/capture_machine.dart';
 import '../composer/capture_recorder.dart';
 import 'chat_composer.dart';
+import '../expressions/expression_store.dart';
+import '../family/family_service.dart';
+import '../media/image_raster.dart';
+import '../models/expression_item.dart';
+import 'expressions/expression_panel.dart';
+import 'expressions/expression_sheet.dart';
 import 'chat_pane.dart';
 import 'composer_capture.dart';
 import 'composer_reply_card.dart';
@@ -174,6 +180,10 @@ class _ThreadSheetState extends State<_ThreadSheet>
   final JumpBackStack _jumpBack = JumpBackStack();
   final MentionTextController _composer = MentionTextController();
   final FocusNode _composerFocus = FocusNode(debugLabel: 'thread-composer');
+
+  /// The emoji/GIF/sticker panel. Safe in this overlay for the same reason the
+  /// @-picker is: it is an inline sibling of the composer and pushes nothing.
+  final ExpressionPanelController _expressions = ExpressionPanelController();
   late final MentionSession _mention;
 
   bool _closing = false;
@@ -228,6 +238,8 @@ class _ThreadSheetState extends State<_ThreadSheet>
       allowEveryone: () => widget.members.length > 2,
     );
     _mention.addListener(_onMentionChanged);
+    _expressions.addListener(_onExpressionsChanged);
+    _composerFocus.addListener(_onComposerFocusChanged);
     _ctrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 240),
@@ -285,6 +297,9 @@ class _ThreadSheetState extends State<_ThreadSheet>
     _mention.removeListener(_onMentionChanged);
     _mention.dispose();
     _composer.dispose();
+    _expressions.removeListener(_onExpressionsChanged);
+    _expressions.dispose();
+    _composerFocus.removeListener(_onComposerFocusChanged);
     _composerFocus.dispose();
     _pulse.dispose();
     _ctrl.dispose();
@@ -293,6 +308,78 @@ class _ThreadSheetState extends State<_ThreadSheet>
 
   void _onJumpBackChanged() {
     if (mounted) setState(() {});
+  }
+
+  void _onExpressionsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _onComposerFocusChanged() {
+    if (_composerFocus.hasFocus) _expressions.dismiss();
+  }
+
+  /// Sends a GIF or sticker into the thread, tethered to the same reply
+  /// target a text send would take — see [_resolveTarget] for why an untethered
+  /// one would land outside the thread and seem to vanish.
+  Future<void> _sendExpression(ExpressionItem item, {String? query}) async {
+    final target = _resolveTarget(_messages);
+    if (target == null) {
+      _showToast(AppLocalizations.of(context).threadOverlayReplyTargetNotFound);
+      return;
+    }
+    if (target.id.startsWith('tmp_')) {
+      _showToast(AppLocalizations.of(context).threadOverlayStillSending);
+      return;
+    }
+    if (_target != null) setState(() => _target = null);
+    final store = ExpressionStore.instance;
+    store.noteUsed(item);
+    final slug = item.ref;
+    if (item.source == ExpressionSource.klipy && slug != null) {
+      unawaited(store.klipy?.registerShare(item.kind, slug, query: query));
+    }
+    await widget.repo.sendExpression(widget.roomId, item, replyToId: target.id);
+    // Read-and-clear, as `_send` does: a guardian's refusal is handed to the
+    // host, whose approval sheet this overlay would otherwise sit on top of.
+    final gate = widget.repo.takeChildGateError();
+    if (gate != null) {
+      final handler = widget.onChildGate;
+      await _dismiss();
+      handler?.call(gate, '');
+    }
+  }
+
+  /// A keyboard-inserted GIF or sticker, sent as an image into the thread —
+  /// inline, like the recorders, so nothing is pushed over this overlay.
+  Future<void> _onKeyboardContent(KeyboardInsertedContent content) async {
+    final bytes = content.data;
+    if (bytes == null || bytes.isEmpty) return;
+    final l10n = AppLocalizations.of(context);
+    if (FamilyService.maybeInstance?.canSendMedia == false) {
+      _showToast(l10n.expressionMediaNotAllowed);
+      return;
+    }
+    final target = _resolveTarget(_messages);
+    if (target == null || target.id.startsWith('tmp_')) {
+      _showToast(target == null
+          ? l10n.threadOverlayReplyTargetNotFound
+          : l10n.threadOverlayStillSending);
+      return;
+    }
+    Size? size;
+    try {
+      size = await imageBytesSize(bytes);
+    } catch (_) {}
+    if (!mounted) return;
+    widget.repo.sendMediaLocal(
+      roomId: widget.roomId,
+      bytes: bytes,
+      contentType: sniffImageContentType(bytes),
+      type: MessageType.image,
+      mediaWidth: size?.width,
+      mediaHeight: size?.height,
+      replyToId: target.id,
+    );
   }
 
   /// Coming to rest on the newest reply retires the trail behind it — see the
@@ -1106,8 +1193,13 @@ class _ThreadSheetState extends State<_ThreadSheet>
     final bottomInset = media.viewInsets.bottom > media.padding.bottom
         ? media.viewInsets.bottom
         : media.padding.bottom;
+    // See room_screen.build: the panel takes the keyboard's exact height.
+    _expressions.noteKeyboardInset(media.viewInsets.bottom);
 
-    return Material(
+    return ExpressionSheetScope(
+      // Sheets pushed from here would land UNDER this root overlay entry.
+      enabled: false,
+      child: Material(
       type: MaterialType.transparency,
       // The overlay mounts on the ROOT overlay, so the room's own scope is not
       // an ancestor of anything in here — a thread would print its replies in
@@ -1308,6 +1400,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
           ),
         ),
       ),
+      ),
     );
   }
 
@@ -1460,6 +1553,10 @@ class _ThreadSheetState extends State<_ThreadSheet>
                 padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
                 capture: _threadCapture,
                 mention: _mention,
+                onExpressions: () => _expressions.toggle(_composerFocus),
+                expressionsOpen: _expressions.isOpen,
+                onFieldTap: _expressions.dismiss,
+                onContentInserted: _onKeyboardContent,
               )
             else
               ChatComposerLiquid(
@@ -1471,6 +1568,21 @@ class _ThreadSheetState extends State<_ThreadSheet>
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                 capture: _threadCapture,
                 mention: _mention,
+                onExpressions: () => _expressions.toggle(_composerFocus),
+                expressionsOpen: _expressions.isOpen,
+                onFieldTap: _expressions.dismiss,
+                onContentInserted: _onKeyboardContent,
+              ),
+            // No "make a sticker" here: that flow pushes a full-screen route,
+            // which this root-overlay entry would sit on top of.
+            if (_expressions.isOpen)
+              ExpressionPanel(
+                composer: _composer,
+                onSend: _sendExpression,
+                height: _expressions.searching
+                    ? _expressions.searchingHeight
+                    : _expressions.height,
+                onSearchFocusChanged: _expressions.setSearching,
               ),
           ],
         ),

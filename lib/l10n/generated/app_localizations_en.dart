@@ -8890,4 +8890,170 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get expressionActionFailed => 'Couldn’t do that. Try again.';
+
+  @override
+  String get expressionBackspace => 'Delete';
+
+  @override
+  String get expressionCreateSticker => 'Make a sticker';
+
+  @override
+  String get expressionDeleteSticker => 'Delete from my stickers';
+
+  @override
+  String get expressionFavorite => 'Add to favorites';
+
+  @override
+  String get expressionFavorited => 'Added to favorites';
+
+  @override
+  String get expressionFavorites => 'Favorites';
+
+  @override
+  String expressionGifSemantics(String title) {
+    return 'GIF: $title';
+  }
+
+  @override
+  String get expressionLoadFailed => 'Couldn’t load. Check your connection.';
+
+  @override
+  String get expressionMediaNotAllowed =>
+      'Your family settings don’t allow sending pictures.';
+
+  @override
+  String get expressionMyStickers => 'My stickers';
+
+  @override
+  String get expressionNoFavorites =>
+      'Long-press a GIF or sticker to add it to favorites.';
+
+  @override
+  String get expressionNoRecents =>
+      'GIFs and stickers you send will show up here.';
+
+  @override
+  String get expressionNoResults => 'No results';
+
+  @override
+  String get expressionNoStickers => 'No stickers here yet.';
+
+  @override
+  String get expressionOpenPanel => 'Emoji, GIFs and stickers';
+
+  @override
+  String get expressionOptionsHint => 'show options';
+
+  @override
+  String expressionPackCredit(String author, String license) {
+    return 'Art: $author · $license';
+  }
+
+  @override
+  String get expressionPlayGifHint => 'play';
+
+  @override
+  String get expressionRecent => 'Recent';
+
+  @override
+  String get expressionReport => 'Report';
+
+  @override
+  String get expressionReported => 'Thanks — it’s been reported.';
+
+  @override
+  String get expressionRetry => 'Try again';
+
+  @override
+  String get expressionSearchKlipy => 'Search KLIPY';
+
+  @override
+  String get expressionShowKeyboard => 'Show keyboard';
+
+  @override
+  String get expressionSuggestionsLabel => 'Sticker suggestions';
+
+  @override
+  String get expressionTabEmoji => 'Emoji';
+
+  @override
+  String get expressionTabGifs => 'GIFs';
+
+  @override
+  String get expressionTabStickers => 'Stickers';
+
+  @override
+  String get expressionTrending => 'Trending';
+
+  @override
+  String get expressionUnfavorite => 'Remove from favorites';
+
+  @override
+  String get expressionUnfavorited => 'Removed from favorites';
+
+  @override
+  String replyIndicatorStickerLabel(String emoji) {
+    return 'Sticker $emoji';
+  }
+
+  @override
+  String get settingsAutoplayExpressionsLabel => 'Autoplay GIFs & stickers';
+
+  @override
+  String get settingsAutoplayExpressionsOffBody =>
+      'They stay still until you tap one. Saves data.';
+
+  @override
+  String get settingsAutoplayExpressionsOnBody =>
+      'GIFs and animated stickers play by themselves. Reduce Motion pauses them.';
+
+  @override
+  String get settingsStickerSuggestionsBody =>
+      'Typing a single emoji shows matching stickers above the message field.';
+
+  @override
+  String get settingsStickerSuggestionsLabel => 'Sticker suggestions';
+
+  @override
+  String get stickerMakerEmojiLabel => 'Which emoji is it?';
+
+  @override
+  String get stickerMakerFailed => 'Couldn’t save the sticker. Try again.';
+
+  @override
+  String get stickerMakerMoreEmoji => 'More emoji';
+
+  @override
+  String get stickerMakerPreview => 'Sticker preview';
+
+  @override
+  String get stickerMakerRemoveBackground => 'Remove background';
+
+  @override
+  String get stickerMakerSave => 'Save';
+
+  @override
+  String get stickerMakerSaved => 'Sticker added to My stickers';
+
+  @override
+  String get stickerMakerShape => 'Shape';
+
+  @override
+  String get stickerMakerShapeCircle => 'Circle';
+
+  @override
+  String get stickerMakerShapeOriginal => 'Original';
+
+  @override
+  String get stickerMakerShapeRounded => 'Rounded square';
+
+  @override
+  String get stickerMakerTitle => 'New sticker';
+
+  @override
+  String get stickerMakerTooMany =>
+      'You’ve reached the sticker limit. Delete one to make room.';
 }

@@ -6,6 +6,7 @@ import '../models/chat_message.dart';
 import '../models/enums.dart';
 import '../models/message_preview.dart';
 import '../theme/theme_scope.dart';
+import 'expressions/expression_media.dart';
 import 'remote_image.dart';
 import 'speaker_scope.dart';
 
@@ -138,6 +139,21 @@ class _ComposerReplyCardState extends State<ComposerReplyCard>
                       ),
                     ),
                   ),
+                  if (expressionThumbnail(
+                        type: m.type,
+                        url: m.mediaPreviewUrl ?? m.mediaUrl,
+                        stickerStorageId: m.stickerStorageId,
+                        stickerFormat: m.stickerFormat,
+                        alt: m.content,
+                        api: widget.api,
+                        size: 32,
+                      ) case final thumb?) ...[
+                    const SizedBox(width: 10),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: thumb,
+                    ),
+                  ],
                   if (isMedia && m.mediaStorageId != null) ...[
                     const SizedBox(width: 10),
                     Padding(

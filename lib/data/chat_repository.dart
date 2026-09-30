@@ -11,6 +11,7 @@ import '../models/chat_message.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
+import '../models/expression_item.dart';
 import '../models/family.dart';
 import '../models/friend_request.dart';
 import '../models/location_share.dart';
@@ -2839,6 +2840,28 @@ class ChatRepository extends ChangeNotifier {
     );
   }
 
+  /// Sends a GIF or sticker.
+  ///
+  /// Nothing to upload — the picture is a KLIPY URL or a pack sticker's
+  /// existing blob — so this is a text-shaped send: the optimistic bubble
+  /// draws the picture straight away and the post goes out at once.
+  Future<void> sendExpression(
+    String roomId,
+    ExpressionItem item, {
+    String? replyToId,
+  }) {
+    return _send(
+      roomId: roomId,
+      // The alt text, and what an app too old for these types shows instead.
+      content: item.title ?? '',
+      type: item.isSticker ? MessageType.sticker : MessageType.gif,
+      mediaWidth: item.width,
+      mediaHeight: item.height,
+      replyToId: replyToId,
+      expression: item,
+    );
+  }
+
   Future<void> sendMedia({
     required String roomId,
     required String storageId,
@@ -3422,6 +3445,7 @@ class ChatRepository extends ChangeNotifier {
     double? latitude,
     double? longitude,
     double? locationAccuracyM,
+    ExpressionItem? expression,
   }) async {
     final optimistic = _buildOptimistic(
       roomId: roomId,
@@ -3438,6 +3462,7 @@ class ChatRepository extends ChangeNotifier {
       latitude: latitude,
       longitude: longitude,
       locationAccuracyM: locationAccuracyM,
+      expression: expression,
     );
     if (optimistic == null) return;
     _pending.putIfAbsent(roomId, () => []).add(optimistic);
@@ -3491,6 +3516,11 @@ class ChatRepository extends ChangeNotifier {
     /// duration on a retry that the first attempt sent. A retry that dropped it
     /// would turn the user's eight-hour share into a static pin.
     int? liveDurationMs,
+
+    /// The GIF or sticker. Spread onto the bubble's own fields so it draws the
+    /// picture at once, and so [_postMessage] — and both reconnect sweepers,
+    /// which re-post from the bubble alone — send the same picture on a retry.
+    ExpressionItem? expression,
   }) {
     final id = _userId;
     if (id == null) return null;
@@ -3523,6 +3553,11 @@ class ChatRepository extends ChangeNotifier {
           contentPreview: parent.viewOnce ? '__VIEW_ONCE__' : preview,
           type: parent.type,
           mediaStorageId: parent.viewOnce ? null : parent.mediaStorageId,
+          // Mirrors the thumbnail `messages:send` will snapshot for a quoted
+          // GIF or sticker.
+          mediaUrl: parent.mediaPreviewUrl ?? parent.mediaUrl,
+          stickerStorageId: parent.stickerStorageId,
+          stickerFormat: parent.stickerFormat,
         );
         optimisticRootId = parent.threadKey;
       }
@@ -3567,6 +3602,15 @@ class ChatRepository extends ChangeNotifier {
       liveExpiresAt: liveExpiresAt,
       liveUpdatedAt: liveUpdatedAt,
       liveShareDurationMs: liveDurationMs,
+      mediaSource: expression?.source.name,
+      mediaUrl: expression?.url,
+      mediaPreviewUrl: expression?.previewUrl,
+      mediaRef: expression?.ref,
+      stickerId: expression?.stickerId,
+      stickerStorageId: expression?.storageId,
+      stickerFormat: expression == null || !expression.isSticker
+          ? null
+          : expression.format,
     );
   }
 
@@ -3626,6 +3670,9 @@ class ChatRepository extends ChangeNotifier {
         longitude: optimistic.longitude,
         locationAccuracyM: optimistic.locationAccuracyM,
         liveDurationMs: optimistic.liveShareDurationMs,
+        // Read off the message like everything above: a sweeper re-posting a
+        // GIF must still name the GIF.
+        expression: optimistic.expression,
       );
       // The ack is proof, so stop drawing "sending". The bubble stays in the
       // pending list — the live copy is still what carries reactions, read

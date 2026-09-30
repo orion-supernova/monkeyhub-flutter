@@ -8997,6 +8997,176 @@ class AppLocalizationsPt extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get expressionActionFailed =>
+      'Não foi possível fazer isso. Tenta de novo.';
+
+  @override
+  String get expressionBackspace => 'Apagar';
+
+  @override
+  String get expressionCreateSticker => 'Criar um sticker';
+
+  @override
+  String get expressionDeleteSticker => 'Eliminar dos meus stickers';
+
+  @override
+  String get expressionFavorite => 'Adicionar aos favoritos';
+
+  @override
+  String get expressionFavorited => 'Adicionado aos favoritos';
+
+  @override
+  String get expressionFavorites => 'Favoritos';
+
+  @override
+  String expressionGifSemantics(String title) {
+    return 'GIF: $title';
+  }
+
+  @override
+  String get expressionLoadFailed =>
+      'Não foi possível carregar. Verifica a tua ligação.';
+
+  @override
+  String get expressionMediaNotAllowed =>
+      'As definições da tua família não permitem enviar imagens.';
+
+  @override
+  String get expressionMyStickers => 'Os meus stickers';
+
+  @override
+  String get expressionNoFavorites =>
+      'Mantém premido um GIF ou sticker para o adicionares aos favoritos.';
+
+  @override
+  String get expressionNoRecents =>
+      'Os GIFs e stickers que enviares vão aparecer aqui.';
+
+  @override
+  String get expressionNoResults => 'Sem resultados';
+
+  @override
+  String get expressionNoStickers => 'Ainda não há stickers aqui.';
+
+  @override
+  String get expressionOpenPanel => 'Emojis, GIFs e stickers';
+
+  @override
+  String get expressionOptionsHint => 'mostrar opções';
+
+  @override
+  String expressionPackCredit(String author, String license) {
+    return 'Arte: $author · $license';
+  }
+
+  @override
+  String get expressionPlayGifHint => 'reproduzir';
+
+  @override
+  String get expressionRecent => 'Recentes';
+
+  @override
+  String get expressionReport => 'Denunciar';
+
+  @override
+  String get expressionReported => 'Obrigado — foi denunciado.';
+
+  @override
+  String get expressionRetry => 'Tentar de novo';
+
+  @override
+  String get expressionSearchKlipy => 'Pesquisar no KLIPY';
+
+  @override
+  String get expressionShowKeyboard => 'Mostrar teclado';
+
+  @override
+  String get expressionSuggestionsLabel => 'Sugestões de stickers';
+
+  @override
+  String get expressionTabEmoji => 'Emojis';
+
+  @override
+  String get expressionTabGifs => 'GIFs';
+
+  @override
+  String get expressionTabStickers => 'Stickers';
+
+  @override
+  String get expressionTrending => 'Em destaque';
+
+  @override
+  String get expressionUnfavorite => 'Remover dos favoritos';
+
+  @override
+  String get expressionUnfavorited => 'Removido dos favoritos';
+
+  @override
+  String replyIndicatorStickerLabel(String emoji) {
+    return 'Sticker $emoji';
+  }
+
+  @override
+  String get settingsAutoplayExpressionsLabel =>
+      'Reproduzir GIFs e stickers automaticamente';
+
+  @override
+  String get settingsAutoplayExpressionsOffBody =>
+      'Ficam parados até tocares num. Poupa dados.';
+
+  @override
+  String get settingsAutoplayExpressionsOnBody =>
+      'Os GIFs e stickers animados reproduzem-se sozinhos. Reduzir movimento põe-nos em pausa.';
+
+  @override
+  String get settingsStickerSuggestionsBody =>
+      'Escrever um único emoji mostra stickers correspondentes acima do campo de mensagem.';
+
+  @override
+  String get settingsStickerSuggestionsLabel => 'Sugestões de stickers';
+
+  @override
+  String get stickerMakerEmojiLabel => 'Que emoji é?';
+
+  @override
+  String get stickerMakerFailed =>
+      'Não foi possível guardar o sticker. Tenta de novo.';
+
+  @override
+  String get stickerMakerMoreEmoji => 'Mais emojis';
+
+  @override
+  String get stickerMakerPreview => 'Pré-visualização do sticker';
+
+  @override
+  String get stickerMakerRemoveBackground => 'Remover fundo';
+
+  @override
+  String get stickerMakerSave => 'Guardar';
+
+  @override
+  String get stickerMakerSaved => 'Sticker adicionado a Os meus stickers';
+
+  @override
+  String get stickerMakerShape => 'Forma';
+
+  @override
+  String get stickerMakerShapeCircle => 'Círculo';
+
+  @override
+  String get stickerMakerShapeOriginal => 'Original';
+
+  @override
+  String get stickerMakerShapeRounded => 'Quadrado arredondado';
+
+  @override
+  String get stickerMakerTitle => 'Novo sticker';
+
+  @override
+  String get stickerMakerTooMany =>
+      'Chegaste ao limite de stickers. Elimina um para libertar espaço.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -17988,4 +18158,174 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
     );
     return '$_temp0';
   }
+
+  @override
+  String get expressionActionFailed =>
+      'Não deu para fazer isso. Tente de novo.';
+
+  @override
+  String get expressionBackspace => 'Apagar';
+
+  @override
+  String get expressionCreateSticker => 'Criar uma figurinha';
+
+  @override
+  String get expressionDeleteSticker => 'Excluir das minhas figurinhas';
+
+  @override
+  String get expressionFavorite => 'Adicionar aos favoritos';
+
+  @override
+  String get expressionFavorited => 'Adicionado aos favoritos';
+
+  @override
+  String get expressionFavorites => 'Favoritos';
+
+  @override
+  String expressionGifSemantics(String title) {
+    return 'GIF: $title';
+  }
+
+  @override
+  String get expressionLoadFailed =>
+      'Não foi possível carregar. Verifique sua conexão.';
+
+  @override
+  String get expressionMediaNotAllowed =>
+      'As configurações da sua família não permitem enviar imagens.';
+
+  @override
+  String get expressionMyStickers => 'Minhas figurinhas';
+
+  @override
+  String get expressionNoFavorites =>
+      'Toque e segure um GIF ou figurinha para adicionar aos favoritos.';
+
+  @override
+  String get expressionNoRecents =>
+      'Os GIFs e figurinhas que você enviar vão aparecer aqui.';
+
+  @override
+  String get expressionNoResults => 'Nenhum resultado';
+
+  @override
+  String get expressionNoStickers => 'Ainda não há figurinhas aqui.';
+
+  @override
+  String get expressionOpenPanel => 'Emojis, GIFs e figurinhas';
+
+  @override
+  String get expressionOptionsHint => 'mostrar opções';
+
+  @override
+  String expressionPackCredit(String author, String license) {
+    return 'Arte: $author · $license';
+  }
+
+  @override
+  String get expressionPlayGifHint => 'reproduzir';
+
+  @override
+  String get expressionRecent => 'Recentes';
+
+  @override
+  String get expressionReport => 'Denunciar';
+
+  @override
+  String get expressionReported => 'Valeu — foi denunciado.';
+
+  @override
+  String get expressionRetry => 'Tentar de novo';
+
+  @override
+  String get expressionSearchKlipy => 'Buscar no KLIPY';
+
+  @override
+  String get expressionShowKeyboard => 'Mostrar teclado';
+
+  @override
+  String get expressionSuggestionsLabel => 'Sugestões de figurinhas';
+
+  @override
+  String get expressionTabEmoji => 'Emojis';
+
+  @override
+  String get expressionTabGifs => 'GIFs';
+
+  @override
+  String get expressionTabStickers => 'Figurinhas';
+
+  @override
+  String get expressionTrending => 'Em alta';
+
+  @override
+  String get expressionUnfavorite => 'Remover dos favoritos';
+
+  @override
+  String get expressionUnfavorited => 'Removido dos favoritos';
+
+  @override
+  String replyIndicatorStickerLabel(String emoji) {
+    return 'Figurinha $emoji';
+  }
+
+  @override
+  String get settingsAutoplayExpressionsLabel =>
+      'Reproduzir GIFs e figurinhas automaticamente';
+
+  @override
+  String get settingsAutoplayExpressionsOffBody =>
+      'Ficam paradas até você tocar em uma. Economiza dados.';
+
+  @override
+  String get settingsAutoplayExpressionsOnBody =>
+      'GIFs e figurinhas animadas tocam sozinhos. Reduzir Movimento pausa tudo.';
+
+  @override
+  String get settingsStickerSuggestionsBody =>
+      'Digitar um único emoji mostra figurinhas correspondentes acima do campo de mensagem.';
+
+  @override
+  String get settingsStickerSuggestionsLabel => 'Sugestões de figurinhas';
+
+  @override
+  String get stickerMakerEmojiLabel => 'Qual emoji é?';
+
+  @override
+  String get stickerMakerFailed =>
+      'Não foi possível salvar a figurinha. Tente de novo.';
+
+  @override
+  String get stickerMakerMoreEmoji => 'Mais emojis';
+
+  @override
+  String get stickerMakerPreview => 'Prévia da figurinha';
+
+  @override
+  String get stickerMakerRemoveBackground => 'Remover fundo';
+
+  @override
+  String get stickerMakerSave => 'Salvar';
+
+  @override
+  String get stickerMakerSaved => 'Figurinha adicionada a Minhas figurinhas';
+
+  @override
+  String get stickerMakerShape => 'Formato';
+
+  @override
+  String get stickerMakerShapeCircle => 'Círculo';
+
+  @override
+  String get stickerMakerShapeOriginal => 'Original';
+
+  @override
+  String get stickerMakerShapeRounded => 'Quadrado arredondado';
+
+  @override
+  String get stickerMakerTitle => 'Nova figurinha';
+
+  @override
+  String get stickerMakerTooMany =>
+      'Você chegou ao limite de figurinhas. Exclua uma para liberar espaço.';
 }

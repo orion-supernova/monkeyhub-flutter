@@ -10156,5 +10156,227 @@
   "dropNoticeBatchFull": "{count, plural, one{1 file didn’t fit in this send} other{{count} files didn’t fit in this send}}",
   "@dropNoticeBatchFull": {
     "description": "Verdict-chip caveat and post-drop notice: more was dragged in than one send can carry, so the tail of the selection was left out. {count} is how many were left out."
+  },
+  "expressionActionFailed": "Couldn’t do that. Try again.",
+  "@expressionActionFailed": {
+    "description": "Toast when starring, reporting or deleting a GIF/sticker fails."
+  },
+  "expressionBackspace": "Delete",
+  "@expressionBackspace": {
+    "description": "Screen-reader label of the backspace button in the composer's emoji panel."
+  },
+  "expressionCreateSticker": "Make a sticker",
+  "@expressionCreateSticker": {
+    "description": "Button in the sticker panel that starts making a sticker from one of your photos."
+  },
+  "expressionDeleteSticker": "Delete from my stickers",
+  "@expressionDeleteSticker": {
+    "description": "Action in a personal sticker's sheet that removes it from the user's own pack."
+  },
+  "expressionFavorite": "Add to favorites",
+  "@expressionFavorite": {
+    "description": "Action that stars a GIF or sticker so it appears under Favorites."
+  },
+  "expressionFavorited": "Added to favorites",
+  "@expressionFavorited": {
+    "description": "Toast after a GIF or sticker was starred."
+  },
+  "expressionFavorites": "Favorites",
+  "@expressionFavorites": {
+    "description": "Section of the GIF/sticker panel listing starred items."
+  },
+  "expressionGifSemantics": "GIF: {title}",
+  "@expressionGifSemantics": {
+    "description": "Screen-reader label of a GIF in the chat. {title} is the GIF's description, possibly empty.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "expressionLoadFailed": "Couldn’t load. Check your connection.",
+  "@expressionLoadFailed": {
+    "description": "Shown in the GIF/sticker grid when the search service could not be reached."
+  },
+  "expressionMediaNotAllowed": "Your family settings don’t allow sending pictures.",
+  "@expressionMediaNotAllowed": {
+    "description": "Toast when a child account without the media permission tries to send an image from the keyboard."
+  },
+  "expressionMyStickers": "My stickers",
+  "@expressionMyStickers": {
+    "description": "Name of the user's own sticker pack, made from their photos."
+  },
+  "expressionNoFavorites": "Long-press a GIF or sticker to add it to favorites.",
+  "@expressionNoFavorites": {
+    "description": "Empty state of the Favorites section."
+  },
+  "expressionNoRecents": "GIFs and stickers you send will show up here.",
+  "@expressionNoRecents": {
+    "description": "Empty state of the Recent section."
+  },
+  "expressionNoResults": "No results",
+  "@expressionNoResults": {
+    "description": "Shown when a GIF or sticker search found nothing."
+  },
+  "expressionNoStickers": "No stickers here yet.",
+  "@expressionNoStickers": {
+    "description": "Shown in the sticker tab when the server has no sticker packs."
+  },
+  "expressionOpenPanel": "Emoji, GIFs and stickers",
+  "@expressionOpenPanel": {
+    "description": "Screen-reader label of the smiley button in the message field that opens the emoji/GIF/sticker panel."
+  },
+  "expressionOptionsHint": "show options",
+  "@expressionOptionsHint": {
+    "description": "Screen-reader hint for the long-press action on a GIF or sticker tile (lowercase verb phrase)."
+  },
+  "expressionPackCredit": "Art: {author} · {license}",
+  "@expressionPackCredit": {
+    "description": "Credit line for a sticker pack. {author} is who made the art, {license} its licence name such as CC BY 4.0.",
+    "placeholders": {
+      "author": {
+        "type": "String"
+      },
+      "license": {
+        "type": "String"
+      }
+    }
+  },
+  "expressionPlayGifHint": "play",
+  "@expressionPlayGifHint": {
+    "description": "Screen-reader hint for tapping a paused GIF (lowercase verb)."
+  },
+  "expressionRecent": "Recent",
+  "@expressionRecent": {
+    "description": "Section of the GIF/sticker panel listing recently sent items."
+  },
+  "expressionReport": "Report",
+  "@expressionReport": {
+    "description": "Action that reports an inappropriate GIF or sticker to its provider."
+  },
+  "expressionReported": "Thanks — it’s been reported.",
+  "@expressionReported": {
+    "description": "Toast after a GIF or sticker was reported."
+  },
+  "expressionRetry": "Try again",
+  "@expressionRetry": {
+    "description": "Button that retries loading GIFs or stickers."
+  },
+  "expressionSearchKlipy": "Search KLIPY",
+  "@expressionSearchKlipy": {
+    "description": "Placeholder of the GIF/sticker search field. KLIPY is the provider's brand name and must stay untranslated; the word 'Search' is translated. Required by the provider's attribution rules."
+  },
+  "expressionShowKeyboard": "Show keyboard",
+  "@expressionShowKeyboard": {
+    "description": "Screen-reader label of the button that closes the emoji panel and brings the keyboard back."
+  },
+  "expressionSuggestionsLabel": "Sticker suggestions",
+  "@expressionSuggestionsLabel": {
+    "description": "Screen-reader label of the strip of stickers suggested above the message field when the user types an emoji."
+  },
+  "expressionTabEmoji": "Emoji",
+  "@expressionTabEmoji": {
+    "description": "Tab of the expression panel with emoji."
+  },
+  "expressionTabGifs": "GIFs",
+  "@expressionTabGifs": {
+    "description": "Tab of the expression panel with animated GIFs."
+  },
+  "expressionTabStickers": "Stickers",
+  "@expressionTabStickers": {
+    "description": "Tab of the expression panel with stickers."
+  },
+  "expressionTrending": "Trending",
+  "@expressionTrending": {
+    "description": "Section showing currently popular GIFs or stickers."
+  },
+  "expressionUnfavorite": "Remove from favorites",
+  "@expressionUnfavorite": {
+    "description": "Action that un-stars a GIF or sticker."
+  },
+  "expressionUnfavorited": "Removed from favorites",
+  "@expressionUnfavorited": {
+    "description": "Toast after a GIF or sticker was un-starred."
+  },
+  "replyIndicatorStickerLabel": "Sticker {emoji}",
+  "@replyIndicatorStickerLabel": {
+    "description": "Label of a quoted sticker above a reply. {emoji} is the emoji the sticker stands for, possibly empty.",
+    "placeholders": {
+      "emoji": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsAutoplayExpressionsLabel": "Autoplay GIFs & stickers",
+  "@settingsAutoplayExpressionsLabel": {
+    "description": "Settings toggle title."
+  },
+  "settingsAutoplayExpressionsOffBody": "They stay still until you tap one. Saves data.",
+  "@settingsAutoplayExpressionsOffBody": {
+    "description": "Explanation under the autoplay toggle when it is off."
+  },
+  "settingsAutoplayExpressionsOnBody": "GIFs and animated stickers play by themselves. Reduce Motion pauses them.",
+  "@settingsAutoplayExpressionsOnBody": {
+    "description": "Explanation under the autoplay toggle when it is on."
+  },
+  "settingsStickerSuggestionsBody": "Typing a single emoji shows matching stickers above the message field.",
+  "@settingsStickerSuggestionsBody": {
+    "description": "Explanation under the sticker suggestions toggle."
+  },
+  "settingsStickerSuggestionsLabel": "Sticker suggestions",
+  "@settingsStickerSuggestionsLabel": {
+    "description": "Settings toggle title."
+  },
+  "stickerMakerEmojiLabel": "Which emoji is it?",
+  "@stickerMakerEmojiLabel": {
+    "description": "Label above the emoji choices when making a sticker; the emoji is used to suggest and describe the sticker."
+  },
+  "stickerMakerFailed": "Couldn’t save the sticker. Try again.",
+  "@stickerMakerFailed": {
+    "description": "Toast when saving a new sticker failed."
+  },
+  "stickerMakerMoreEmoji": "More emoji",
+  "@stickerMakerMoreEmoji": {
+    "description": "Screen-reader label of the button that opens the full emoji picker in the sticker maker."
+  },
+  "stickerMakerPreview": "Sticker preview",
+  "@stickerMakerPreview": {
+    "description": "Screen-reader label of the sticker preview image."
+  },
+  "stickerMakerRemoveBackground": "Remove background",
+  "@stickerMakerRemoveBackground": {
+    "description": "Toggle that cuts the photo's subject out of its background."
+  },
+  "stickerMakerSave": "Save",
+  "@stickerMakerSave": {
+    "description": "Button that saves the new sticker."
+  },
+  "stickerMakerSaved": "Sticker added to My stickers",
+  "@stickerMakerSaved": {
+    "description": "Toast after a new sticker was saved."
+  },
+  "stickerMakerShape": "Shape",
+  "@stickerMakerShape": {
+    "description": "Label of the shape choice for a sticker without background removal."
+  },
+  "stickerMakerShapeCircle": "Circle",
+  "@stickerMakerShapeCircle": {
+    "description": "Sticker shape option."
+  },
+  "stickerMakerShapeOriginal": "Original",
+  "@stickerMakerShapeOriginal": {
+    "description": "Sticker shape option keeping the photo's own proportions."
+  },
+  "stickerMakerShapeRounded": "Rounded square",
+  "@stickerMakerShapeRounded": {
+    "description": "Sticker shape option."
+  },
+  "stickerMakerTitle": "New sticker",
+  "@stickerMakerTitle": {
+    "description": "Title of the sticker maker screen."
+  },
+  "stickerMakerTooMany": "You’ve reached the sticker limit. Delete one to make room.",
+  "@stickerMakerTooMany": {
+    "description": "Toast when the user already has the maximum number of personal stickers."
   }
 }

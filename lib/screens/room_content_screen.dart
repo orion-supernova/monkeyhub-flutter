@@ -214,6 +214,10 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
       case MessageType.poll:
       case MessageType.checklist:
       case MessageType.event:
+      // No gallery bucket either (nothing was uploaded), so only SAVED can
+      // hold one — and a GIF means something in the exchange it answered.
+      case MessageType.gif:
+      case MessageType.sticker:
         _showInChat(m);
     }
   }

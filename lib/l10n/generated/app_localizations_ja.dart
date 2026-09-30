@@ -8544,4 +8544,166 @@ class AppLocalizationsJa extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get expressionActionFailed => '実行できませんでした。もう一度お試しください。';
+
+  @override
+  String get expressionBackspace => '削除';
+
+  @override
+  String get expressionCreateSticker => 'スタンプを作る';
+
+  @override
+  String get expressionDeleteSticker => 'マイスタンプから削除';
+
+  @override
+  String get expressionFavorite => 'お気に入りに追加';
+
+  @override
+  String get expressionFavorited => 'お気に入りに追加しました';
+
+  @override
+  String get expressionFavorites => 'お気に入り';
+
+  @override
+  String expressionGifSemantics(String title) {
+    return 'GIF：$title';
+  }
+
+  @override
+  String get expressionLoadFailed => '読み込めませんでした。接続を確認してください。';
+
+  @override
+  String get expressionMediaNotAllowed => 'ファミリー設定で画像の送信が許可されていません。';
+
+  @override
+  String get expressionMyStickers => 'マイスタンプ';
+
+  @override
+  String get expressionNoFavorites => 'GIFやスタンプを長押しするとお気に入りに追加できます。';
+
+  @override
+  String get expressionNoRecents => '送信したGIFやスタンプがここに表示されます。';
+
+  @override
+  String get expressionNoResults => '見つかりませんでした';
+
+  @override
+  String get expressionNoStickers => 'スタンプはまだありません。';
+
+  @override
+  String get expressionOpenPanel => '絵文字・GIF・スタンプ';
+
+  @override
+  String get expressionOptionsHint => 'オプションを表示';
+
+  @override
+  String expressionPackCredit(String author, String license) {
+    return 'イラスト：$author · $license';
+  }
+
+  @override
+  String get expressionPlayGifHint => '再生';
+
+  @override
+  String get expressionRecent => '最近';
+
+  @override
+  String get expressionReport => '報告する';
+
+  @override
+  String get expressionReported => '報告しました。ありがとうございます。';
+
+  @override
+  String get expressionRetry => '再試行';
+
+  @override
+  String get expressionSearchKlipy => 'KLIPYを検索';
+
+  @override
+  String get expressionShowKeyboard => 'キーボードを表示';
+
+  @override
+  String get expressionSuggestionsLabel => 'おすすめスタンプ';
+
+  @override
+  String get expressionTabEmoji => '絵文字';
+
+  @override
+  String get expressionTabGifs => 'GIF';
+
+  @override
+  String get expressionTabStickers => 'スタンプ';
+
+  @override
+  String get expressionTrending => 'トレンド';
+
+  @override
+  String get expressionUnfavorite => 'お気に入りから削除';
+
+  @override
+  String get expressionUnfavorited => 'お気に入りから削除しました';
+
+  @override
+  String replyIndicatorStickerLabel(String emoji) {
+    return 'スタンプ $emoji';
+  }
+
+  @override
+  String get settingsAutoplayExpressionsLabel => 'GIFとスタンプを自動再生';
+
+  @override
+  String get settingsAutoplayExpressionsOffBody =>
+      'タップするまで静止したままです。データを節約できます。';
+
+  @override
+  String get settingsAutoplayExpressionsOnBody =>
+      'GIFやアニメーションスタンプが自動で再生されます。「視差効果を減らす」がオンなら一時停止します。';
+
+  @override
+  String get settingsStickerSuggestionsBody =>
+      '絵文字を1つだけ入力すると、入力欄の上に合うスタンプが表示されます。';
+
+  @override
+  String get settingsStickerSuggestionsLabel => 'おすすめスタンプ';
+
+  @override
+  String get stickerMakerEmojiLabel => 'どの絵文字？';
+
+  @override
+  String get stickerMakerFailed => 'スタンプを保存できませんでした。もう一度お試しください。';
+
+  @override
+  String get stickerMakerMoreEmoji => 'ほかの絵文字';
+
+  @override
+  String get stickerMakerPreview => 'スタンプのプレビュー';
+
+  @override
+  String get stickerMakerRemoveBackground => '背景を削除';
+
+  @override
+  String get stickerMakerSave => '保存';
+
+  @override
+  String get stickerMakerSaved => 'マイスタンプに追加しました';
+
+  @override
+  String get stickerMakerShape => '形';
+
+  @override
+  String get stickerMakerShapeCircle => '円';
+
+  @override
+  String get stickerMakerShapeOriginal => 'オリジナル';
+
+  @override
+  String get stickerMakerShapeRounded => '角丸四角';
+
+  @override
+  String get stickerMakerTitle => '新しいスタンプ';
+
+  @override
+  String get stickerMakerTooMany => 'スタンプの上限に達しました。1つ削除して空きを作ってください。';
 }

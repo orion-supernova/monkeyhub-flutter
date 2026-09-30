@@ -444,6 +444,68 @@ class _ComposerEmptinessState extends State<_ComposerEmptiness> {
   Widget build(BuildContext context) => widget.builder(context, _hasText);
 }
 
+/// The smiley at the end of the text field that swaps the keyboard for the
+/// expression panel, and back — a keyboard glyph while the panel is up.
+///
+/// Inside the field rather than beside it, the way every messenger places it:
+/// the row's two outer slots are already the attach button and the send/record
+/// button, and a third circle would squeeze the field on a small phone.
+class _ExpressionsToggle extends StatelessWidget {
+  const _ExpressionsToggle({required this.open, required this.onTap});
+
+  final bool open;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel:
+          open ? l10n.expressionShowKeyboard : l10n.expressionOpenPanel,
+      shape: FocusRingShape.circle,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        child: Padding(
+          padding: const EdgeInsetsDirectional.only(start: 8),
+          child: Icon(
+            open ? Icons.keyboard_alt_outlined : Icons.emoji_emotions_outlined,
+            size: 22,
+            color: open ? theme.accent : theme.inkMuted,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// What the composers accept from the keyboard besides text: the GIFs and
+/// stickers Gboard, Samsung's keyboard and the iOS sticker drawer insert.
+///
+/// Without this the keyboard's GIF button does nothing at all in this app —
+/// Android shows "this app doesn't support image insertion here". The list
+/// is what the send path can carry untouched; see `prepareUneditedForSend`.
+const List<String> kComposerInsertableMimeTypes = [
+  'image/gif',
+  'image/webp',
+  'image/png',
+  'image/jpeg',
+];
+
+ContentInsertionConfiguration? _insertion(
+        ValueChanged<KeyboardInsertedContent>? onContent) =>
+    onContent == null
+        ? null
+        : ContentInsertionConfiguration(
+            onContentInserted: onContent,
+            allowedMimeTypes: kComposerInsertableMimeTypes,
+          );
+
 /// The two message composers, lifted verbatim out of `room_screen.dart` so
 /// the thread overlay can use the same input the room does.
 ///
@@ -484,6 +546,10 @@ class ChatComposerClassic extends StatelessWidget {
     this.onSchedule,
     this.scheduledCount = 0,
     this.captureOpenHintRoomId,
+    this.onExpressions,
+    this.expressionsOpen = false,
+    this.onFieldTap,
+    this.onContentInserted,
   });
 
   final TextEditingController controller;
@@ -502,6 +568,21 @@ class ChatComposerClassic extends StatelessWidget {
   /// camera is a full-screen route that would fight it for layering. Pass null
   /// and the button is absent rather than present and broken.
   final VoidCallback? onCamera;
+
+  /// Toggles the emoji/GIF/sticker panel. Null hides the smiley — a host with
+  /// no panel to show must not offer one.
+  final VoidCallback? onExpressions;
+
+  /// Whether that panel is up, which turns the smiley into a keyboard glyph.
+  final bool expressionsOpen;
+
+  /// Called when the text field itself is tapped — the host closes the panel
+  /// so the keyboard can come back in its place.
+  final VoidCallback? onFieldTap;
+
+  /// A GIF or sticker the keyboard inserted (Gboard's GIF tab, the iOS sticker
+  /// drawer). Null leaves the keyboard's insert button inert, as before.
+  final ValueChanged<KeyboardInsertedContent>? onContentInserted;
 
   /// Overrides the default outer padding. Only needed by hosts that own
   /// their own keyboard insets; leave null inside a `Scaffold`.
@@ -594,9 +675,15 @@ class ChatComposerClassic extends StatelessWidget {
                 onSubmit: onSend,
                 child: MentionKeyboardNav(
                   session: mention,
-                  child: TextField(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                  Expanded(child: TextField(
                     controller: controller,
                     focusNode: focusNode,
+                    onTap: onFieldTap,
+                    contentInsertionConfiguration:
+                        _insertion(onContentInserted),
                     style: theme.body.copyWith(color: theme.ink),
                     cursorColor: theme.accent,
                     minLines: 1,
@@ -626,6 +713,13 @@ class ChatComposerClassic extends StatelessWidget {
                       contentPadding: const EdgeInsets.symmetric(vertical: 8),
                     ),
                     onChanged: onChanged,
+                  )),
+                  if (onExpressions != null)
+                    _ExpressionsToggle(
+                      open: expressionsOpen,
+                      onTap: onExpressions!,
+                    ),
+                    ],
                   ),
                 ),
               ),
@@ -717,6 +811,10 @@ class ChatComposerLiquid extends StatelessWidget {
     this.onSchedule,
     this.scheduledCount = 0,
     this.captureOpenHintRoomId,
+    this.onExpressions,
+    this.expressionsOpen = false,
+    this.onFieldTap,
+    this.onContentInserted,
   });
 
   final TextEditingController controller;
@@ -735,6 +833,18 @@ class ChatComposerLiquid extends StatelessWidget {
   /// camera is a full-screen route that would fight it for layering. Pass null
   /// and the button is absent rather than present and broken.
   final VoidCallback? onCamera;
+
+  /// See [ChatComposerClassic.onExpressions].
+  final VoidCallback? onExpressions;
+
+  /// See [ChatComposerClassic.expressionsOpen].
+  final bool expressionsOpen;
+
+  /// See [ChatComposerClassic.onFieldTap].
+  final VoidCallback? onFieldTap;
+
+  /// See [ChatComposerClassic.onContentInserted].
+  final ValueChanged<KeyboardInsertedContent>? onContentInserted;
 
   /// Overrides the default outer padding, including the bottom safe area
   /// this widget would otherwise add. Only needed by hosts that own their
@@ -794,9 +904,15 @@ class ChatComposerLiquid extends StatelessWidget {
                 onSubmit: onSend,
                 child: MentionKeyboardNav(
                   session: mention,
-                  child: TextField(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                  Expanded(child: TextField(
                     controller: controller,
                     focusNode: focusNode,
+                    onTap: onFieldTap,
+                    contentInsertionConfiguration:
+                        _insertion(onContentInserted),
                     style: theme.body.copyWith(color: theme.ink, fontSize: 16),
                     cursorColor: theme.accent,
                     minLines: 1,
@@ -818,6 +934,13 @@ class ChatComposerLiquid extends StatelessWidget {
                       hintMaxLines: 1,
                     ),
                     onChanged: onChanged,
+                  )),
+                  if (onExpressions != null)
+                    _ExpressionsToggle(
+                      open: expressionsOpen,
+                      onTap: onExpressions!,
+                    ),
+                    ],
                   ),
                 ),
               ),

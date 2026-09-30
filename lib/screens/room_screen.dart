@@ -134,6 +134,11 @@ import '../share/shared_payload.dart';
 import 'camera_editor_screen.dart';
 import 'interaction_compose_sheet.dart';
 import 'camera_screen.dart';
+import '../expressions/expression_store.dart';
+import '../models/expression_item.dart';
+import '../widgets/expressions/expression_panel.dart';
+import '../widgets/expressions/sticker_maker.dart';
+import '../widgets/expressions/sticker_suggestions.dart';
 import 'room_content_actions.dart';
 import 'fullscreen_image_viewer.dart';
 import 'media_pager_screen.dart';
@@ -180,6 +185,10 @@ class _RoomScreenState extends State<RoomScreen>
   final ValueNotifier<DateTime> _fadeNow = ValueNotifier(DateTime.now());
   final MentionTextController _composer = MentionTextController();
   final FocusNode _composerFocus = FocusNode();
+
+  /// The emoji/GIF/sticker panel, which trades places with the keyboard — see
+  /// [ExpressionPanelController].
+  final ExpressionPanelController _expressions = ExpressionPanelController();
   late final MentionSession _mention;
   final ScrollController _scroll = ScrollController();
   // Whether the transcript is parked away from the newest message. Kept in a
@@ -415,6 +424,11 @@ class _RoomScreenState extends State<RoomScreen>
     // something it renders actually changed, so ordinary typing does not
     // repaint a list that would look identical.
     _mention.addListener(_onMentionChanged);
+    // The panel is a conditional child of the composer column, like the
+    // picker above; and focusing the field (a tap, a shortcut, a reply swipe)
+    // is the keyboard coming back, which puts the panel away.
+    _expressions.addListener(_onExpressionsChanged);
+    _composerFocus.addListener(_onComposerFocusChanged);
     _ticker = Timer.periodic(const Duration(milliseconds: 200), (t) {
       if (!mounted) return;
       final now = DateTime.now();
@@ -1313,6 +1327,9 @@ class _RoomScreenState extends State<RoomScreen>
     _mention.removeListener(_onMentionChanged);
     _mention.dispose();
     _composer.dispose();
+    _expressions.removeListener(_onExpressionsChanged);
+    _expressions.dispose();
+    _composerFocus.removeListener(_onComposerFocusChanged);
     _composerFocus.dispose();
     _highlightCtrl.dispose();
     _hideTimer?.cancel();
@@ -3384,6 +3401,91 @@ class _RoomScreenState extends State<RoomScreen>
     if (mounted) setState(() {});
   }
 
+  void _onExpressionsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _onComposerFocusChanged() {
+    if (_composerFocus.hasFocus) _expressions.dismiss();
+  }
+
+  // ─────────────────── GIFs and stickers ───────────────────
+
+  /// Sends a GIF or sticker picked from the panel or a suggestion.
+  ///
+  /// The panel stays open afterwards, the way every messenger's does: a sticker
+  /// is often followed by another, and snapping the keyboard back up after each
+  /// one is the behaviour people complain about.
+  void _sendExpression(ExpressionItem item, {String? query}) {
+    final replyTarget = _replyingTo;
+    if (replyTarget != null) setState(() => _replyingTo = null);
+    widget.repo.exitHistoryWindow(widget.roomId);
+    unawaited(widget.repo.sendExpression(
+      widget.roomId,
+      item,
+      replyToId: replyTarget?.id,
+    ));
+    final store = ExpressionStore.instance;
+    store.noteUsed(item);
+    // KLIPY's terms ask for a share ping on every send; it also feeds the
+    // user's recents on KLIPY's side.
+    final slug = item.ref;
+    if (item.source == ExpressionSource.klipy && slug != null) {
+      unawaited(store.klipy?.registerShare(item.kind, slug, query: query));
+    }
+    _scrollToBottom();
+    _touchShareTarget();
+  }
+
+  /// A suggested sticker answers the emoji that summoned it, so the emoji goes.
+  void _sendSuggestedSticker(ExpressionItem item) {
+    _composer.clear();
+    _sendExpression(item);
+  }
+
+  /// A GIF or sticker the keyboard inserted — Gboard's GIF tab, the iOS sticker
+  /// drawer, Samsung's keyboard. Sent as an image exactly as it arrived: the
+  /// send path passes GIF and WebP through untouched, so it still moves.
+  Future<void> _onKeyboardContent(KeyboardInsertedContent content) async {
+    final bytes = content.data;
+    if (bytes == null || bytes.isEmpty) return;
+    final l10n = AppLocalizations.of(context);
+    if (FamilyService.maybeInstance?.canSendMedia == false) {
+      showAppToast(context, l10n.expressionMediaNotAllowed,
+          tone: ToastTone.danger);
+      return;
+    }
+    Size? size;
+    try {
+      size = await imageBytesSize(bytes);
+    } catch (_) {}
+    if (!mounted) return;
+    _sendMedia(
+      bytes: bytes,
+      type: MessageType.image,
+      contentType: sniffImageContentType(bytes),
+      pixelSize: size,
+    );
+  }
+
+  Future<void> _createSticker() async {
+    await createPersonalSticker(context, api: widget.api);
+  }
+
+  /// The panel itself, for either chat style.
+  Widget _expressionPanel({required double bottomPadding}) {
+    return ExpressionPanel(
+      composer: _composer,
+      onSend: _sendExpression,
+      height: _expressions.searching
+          ? _expressions.searchingHeight
+          : _expressions.height,
+      bottomPadding: _expressions.searching ? 0 : bottomPadding,
+      onCreateSticker: _createSticker,
+      onSearchFocusChanged: _expressions.setSearching,
+    );
+  }
+
   /// Opens a mentioned user's profile. Silently does nothing for someone who
   /// has left the room since the message was sent — the mention still renders
   /// (its username is stored on the message) but there is no member row left to
@@ -3598,6 +3700,9 @@ class _RoomScreenState extends State<RoomScreen>
     // `ThemeScope` lookup and can change under a live screen. The controller
     // only reads it while painting, so assigning on every build is free.
     _composer.tint = theme.accent;
+    // Remembers how tall the keyboard is, so the expression panel can take
+    // exactly its place and nothing above the two moves when they swap.
+    _expressions.noteKeyboardInset(MediaQuery.viewInsetsOf(context).bottom);
     final room = _room ?? widget.repo.roomById(widget.roomId);
     if (room == null) {
       // Two different things used to come out of this branch as one sentence.
@@ -3695,9 +3800,16 @@ class _RoomScreenState extends State<RoomScreen>
           // bar has its own CANCEL, but a system back that walked out of the chat
           // instead of out of the mode would be the wrong kind of surprising.
           child: PopScope(
-            canPop: !_selection.active,
+            // Back puts the expression panel away before anything else, the
+            // same way it would dismiss the keyboard the panel stands in for.
+            canPop: !_selection.active && !_expressions.isOpen,
             onPopInvokedWithResult: (didPop, _) {
-              if (!didPop) _selection.clear();
+              if (didPop) return;
+              if (_expressions.isOpen) {
+                _expressions.dismiss();
+              } else {
+                _selection.clear();
+              }
             },
             // Files dragged in from Finder, a browser or any other Mac app
             // land here. The WHOLE screen is the target, header and composer
@@ -3873,6 +3985,12 @@ class _RoomScreenState extends State<RoomScreen>
                     scheduled: scheduled,
                     onTap: _openScheduledList,
                   ),
+                // Zero-height unless the composer holds a lone emoji that a
+                // sticker stands for.
+                StickerSuggestions(
+                  composer: _composer,
+                  onSend: _sendSuggestedSticker,
+                ),
                 ChatComposerClassic(
                   controller: _composer,
                   focusNode: _composerFocus,
@@ -3888,7 +4006,14 @@ class _RoomScreenState extends State<RoomScreen>
                   capture: _composerCapture,
                   mention: _mention,
                   captureOpenHintRoomId: room.id,
+                  onExpressions: () => _expressions.toggle(_composerFocus),
+                  expressionsOpen: _expressions.isOpen,
+                  onFieldTap: _expressions.dismiss,
+                  onContentInserted: _onKeyboardContent,
                 ),
+                // The ancestor SafeArea already holds this clear of the home
+                // indicator.
+                if (_expressions.isOpen) _expressionPanel(bottomPadding: 0),
               ],
               ),
             ),
@@ -4098,6 +4223,11 @@ class _RoomScreenState extends State<RoomScreen>
                     scheduled: scheduled,
                     onTap: _openScheduledList,
                   ),
+                // Mirrors the classic column above.
+                StickerSuggestions(
+                  composer: _composer,
+                  onSend: _sendSuggestedSticker,
+                ),
                 ChatComposerLiquid(
                   controller: _composer,
                   focusNode: _composerFocus,
@@ -4113,7 +4243,19 @@ class _RoomScreenState extends State<RoomScreen>
                   capture: _composerCapture,
                   mention: _mention,
                   captureOpenHintRoomId: room.id,
+                  onExpressions: () => _expressions.toggle(_composerFocus),
+                  expressionsOpen: _expressions.isOpen,
+                  onFieldTap: _expressions.dismiss,
+                  onContentInserted: _onKeyboardContent,
+                  // With the panel open the composer is no longer the lowest
+                  // thing on screen, so the home-indicator inset moves down to
+                  // the panel rather than opening a gap between the two.
+                  padding: _expressions.isOpen
+                      ? const EdgeInsets.fromLTRB(16, 8, 16, 8)
+                      : null,
                 ),
+                if (_expressions.isOpen)
+                  _expressionPanel(bottomPadding: bottomSafe),
               ],
                 ),
                 ),

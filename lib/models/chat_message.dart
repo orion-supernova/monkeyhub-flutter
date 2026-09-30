@@ -1,4 +1,5 @@
 import 'enums.dart';
+import 'expression_item.dart';
 import 'location_share.dart';
 import 'message_formatting.dart';
 import 'message_reaction.dart';
@@ -15,6 +16,9 @@ class ReplyPreview {
     required this.contentPreview,
     required this.type,
     this.mediaStorageId,
+    this.mediaUrl,
+    this.stickerStorageId,
+    this.stickerFormat,
   });
 
   final String senderId;
@@ -22,6 +26,13 @@ class ReplyPreview {
   final String contentPreview;
   final MessageType type;
   final String? mediaStorageId;
+
+  /// A quoted GIF's or KLIPY sticker's thumbnail — it has no [mediaStorageId].
+  final String? mediaUrl;
+
+  /// A quoted pack sticker's art, and how to draw it.
+  final String? stickerStorageId;
+  final StickerFormat? stickerFormat;
 
   bool get isDeleted => contentPreview == '__DELETED__';
 
@@ -38,6 +49,11 @@ class ReplyPreview {
         contentPreview: (j['contentPreview'] ?? '') as String,
         type: MessageTypeWire.parse(j['type'] as String?),
         mediaStorageId: j['mediaStorageId'] as String?,
+        mediaUrl: j['mediaUrl'] as String?,
+        stickerStorageId: j['stickerStorageId'] as String?,
+        stickerFormat: j['stickerFormat'] == null
+            ? null
+            : ExpressionItem.parseFormat(j['stickerFormat']),
       );
 
   Map<String, dynamic> toJson() => {
@@ -46,6 +62,9 @@ class ReplyPreview {
         'contentPreview': contentPreview,
         'type': type.wire,
         if (mediaStorageId != null) 'mediaStorageId': mediaStorageId,
+        if (mediaUrl != null) 'mediaUrl': mediaUrl,
+        if (stickerStorageId != null) 'stickerStorageId': stickerStorageId,
+        if (stickerFormat != null) 'stickerFormat': stickerFormat!.name,
       };
 }
 
@@ -115,6 +134,13 @@ class ChatMessage {
     this.liveUpdatedAt,
     this.liveEndedAt,
     this.liveShareDurationMs,
+    this.mediaSource,
+    this.mediaUrl,
+    this.mediaPreviewUrl,
+    this.mediaRef,
+    this.stickerId,
+    this.stickerStorageId,
+    this.stickerFormat,
   })  : reactions = reactions ?? [],
         formatting = formatting ?? const [],
         mentions = mentions ?? const [];
@@ -357,6 +383,51 @@ class ChatMessage {
   bool isLiveLocationRunning(DateTime now) =>
       locationShare?.stateAt(now) == LiveShareState.live;
 
+  // ── GIFs and stickers ─────────────────────────────────────────────────────
+  //
+  // Flat, like every other attachment's metadata here and on the wire, and
+  // bundled by [expression]. See `messages.mediaSource` in schema.ts: KLIPY
+  // media is a URL loaded from KLIPY's CDN and never copied; a pack sticker's
+  // blob is `stickerStorageId`, deliberately NOT `mediaStorageId`, so no
+  // message teardown path can delete a pack's art.
+
+  /// "klipy", "pack" or "personal" — see [ExpressionSource].
+  final String? mediaSource;
+  final String? mediaUrl;
+  final String? mediaPreviewUrl;
+  final String? mediaRef;
+  final String? stickerId;
+  final String? stickerStorageId;
+  final StickerFormat? stickerFormat;
+
+  /// The GIF or sticker this message carries, or null for any other message.
+  ///
+  /// Gated on the type as well as the fields, the same way [locationShare] is.
+  ExpressionItem? get expression {
+    final kind = switch (type) {
+      MessageType.gif => ExpressionKind.gif,
+      MessageType.sticker => ExpressionKind.sticker,
+      _ => null,
+    };
+    if (kind == null) return null;
+    final source = ExpressionItem.parseSource(mediaSource) ??
+        (stickerId != null ? ExpressionSource.pack : ExpressionSource.klipy);
+    if (mediaUrl == null && stickerStorageId == null) return null;
+    return ExpressionItem(
+      kind: kind,
+      source: source,
+      stickerId: stickerId,
+      storageId: stickerStorageId,
+      format: stickerFormat ?? StickerFormat.image,
+      url: mediaUrl,
+      previewUrl: mediaPreviewUrl,
+      ref: mediaRef,
+      width: mediaWidth,
+      height: mediaHeight,
+      title: content,
+    );
+  }
+
   bool get isEphemeral => expiresAt != null;
 
   /// Carries an attachment, so it is unsendable until a storage id exists.
@@ -440,6 +511,15 @@ class ChatMessage {
       liveExpiresAt: _epochMs(j['liveExpiresAt']),
       liveUpdatedAt: _epochMs(j['liveUpdatedAt']),
       liveEndedAt: _epochMs(j['liveEndedAt']),
+      mediaSource: j['mediaSource'] as String?,
+      mediaUrl: j['mediaUrl'] as String?,
+      mediaPreviewUrl: j['mediaPreviewUrl'] as String?,
+      mediaRef: j['mediaRef'] as String?,
+      stickerId: j['stickerId'] as String?,
+      stickerStorageId: j['stickerStorageId'] as String?,
+      stickerFormat: j['stickerFormat'] == null
+          ? null
+          : ExpressionItem.parseFormat(j['stickerFormat']),
     );
   }
 
@@ -517,6 +597,15 @@ class ChatMessage {
           'liveUpdatedAt': liveUpdatedAt!.millisecondsSinceEpoch,
         if (liveEndedAt != null)
           'liveEndedAt': liveEndedAt!.millisecondsSinceEpoch,
+        // A GIF or sticker bubble IS these fields — the same argument as the
+        // location block above.
+        if (mediaSource != null) 'mediaSource': mediaSource,
+        if (mediaUrl != null) 'mediaUrl': mediaUrl,
+        if (mediaPreviewUrl != null) 'mediaPreviewUrl': mediaPreviewUrl,
+        if (mediaRef != null) 'mediaRef': mediaRef,
+        if (stickerId != null) 'stickerId': stickerId,
+        if (stickerStorageId != null) 'stickerStorageId': stickerStorageId,
+        if (stickerFormat != null) 'stickerFormat': stickerFormat!.name,
       };
 
   ChatMessage copyWith({
@@ -594,5 +683,14 @@ class ChatMessage {
         // Carried for the same reason [upload] is: a copy that lost it could
         // neither be retried as the share it was, nor say at the call site why.
         liveShareDurationMs: liveShareDurationMs,
+        // Carried, or a reaction on a GIF would leave a `gif` row with nothing
+        // to draw.
+        mediaSource: mediaSource,
+        mediaUrl: mediaUrl,
+        mediaPreviewUrl: mediaPreviewUrl,
+        mediaRef: mediaRef,
+        stickerId: stickerId,
+        stickerStorageId: stickerStorageId,
+        stickerFormat: stickerFormat,
       );
 }

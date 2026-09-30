@@ -8923,4 +8923,173 @@ class AppLocalizationsSv extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get expressionActionFailed => 'Det gick inte. Försök igen.';
+
+  @override
+  String get expressionBackspace => 'Radera';
+
+  @override
+  String get expressionCreateSticker => 'Gör ett klistermärke';
+
+  @override
+  String get expressionDeleteSticker => 'Ta bort från mina klistermärken';
+
+  @override
+  String get expressionFavorite => 'Lägg till i favoriter';
+
+  @override
+  String get expressionFavorited => 'Tillagd i favoriter';
+
+  @override
+  String get expressionFavorites => 'Favoriter';
+
+  @override
+  String expressionGifSemantics(String title) {
+    return 'GIF: $title';
+  }
+
+  @override
+  String get expressionLoadFailed => 'Kunde inte ladda. Kolla din anslutning.';
+
+  @override
+  String get expressionMediaNotAllowed =>
+      'Dina familjeinställningar tillåter inte att du skickar bilder.';
+
+  @override
+  String get expressionMyStickers => 'Mina klistermärken';
+
+  @override
+  String get expressionNoFavorites =>
+      'Tryck länge på en GIF eller ett klistermärke för att lägga till i favoriter.';
+
+  @override
+  String get expressionNoRecents =>
+      'GIF:ar och klistermärken du skickar visas här.';
+
+  @override
+  String get expressionNoResults => 'Inga resultat';
+
+  @override
+  String get expressionNoStickers => 'Inga klistermärken här än.';
+
+  @override
+  String get expressionOpenPanel => 'Emoji, GIF:ar och klistermärken';
+
+  @override
+  String get expressionOptionsHint => 'visa alternativ';
+
+  @override
+  String expressionPackCredit(String author, String license) {
+    return 'Bild: $author · $license';
+  }
+
+  @override
+  String get expressionPlayGifHint => 'spela upp';
+
+  @override
+  String get expressionRecent => 'Senaste';
+
+  @override
+  String get expressionReport => 'Rapportera';
+
+  @override
+  String get expressionReported => 'Tack – den är rapporterad.';
+
+  @override
+  String get expressionRetry => 'Försök igen';
+
+  @override
+  String get expressionSearchKlipy => 'Sök på KLIPY';
+
+  @override
+  String get expressionShowKeyboard => 'Visa tangentbord';
+
+  @override
+  String get expressionSuggestionsLabel => 'Förslag på klistermärken';
+
+  @override
+  String get expressionTabEmoji => 'Emoji';
+
+  @override
+  String get expressionTabGifs => 'GIF:ar';
+
+  @override
+  String get expressionTabStickers => 'Klistermärken';
+
+  @override
+  String get expressionTrending => 'Populärt';
+
+  @override
+  String get expressionUnfavorite => 'Ta bort från favoriter';
+
+  @override
+  String get expressionUnfavorited => 'Borttagen från favoriter';
+
+  @override
+  String replyIndicatorStickerLabel(String emoji) {
+    return 'Klistermärke $emoji';
+  }
+
+  @override
+  String get settingsAutoplayExpressionsLabel =>
+      'Spela upp GIF:ar och klistermärken automatiskt';
+
+  @override
+  String get settingsAutoplayExpressionsOffBody =>
+      'De står still tills du trycker på en. Sparar data.';
+
+  @override
+  String get settingsAutoplayExpressionsOnBody =>
+      'GIF:ar och animerade klistermärken spelas upp av sig själva. Minska rörelse pausar dem.';
+
+  @override
+  String get settingsStickerSuggestionsBody =>
+      'Skriver du en enda emoji visas matchande klistermärken ovanför meddelandefältet.';
+
+  @override
+  String get settingsStickerSuggestionsLabel => 'Förslag på klistermärken';
+
+  @override
+  String get stickerMakerEmojiLabel => 'Vilken emoji är det?';
+
+  @override
+  String get stickerMakerFailed =>
+      'Kunde inte spara klistermärket. Försök igen.';
+
+  @override
+  String get stickerMakerMoreEmoji => 'Fler emoji';
+
+  @override
+  String get stickerMakerPreview => 'Förhandsvisning av klistermärke';
+
+  @override
+  String get stickerMakerRemoveBackground => 'Ta bort bakgrund';
+
+  @override
+  String get stickerMakerSave => 'Spara';
+
+  @override
+  String get stickerMakerSaved =>
+      'Klistermärket har lagts till i Mina klistermärken';
+
+  @override
+  String get stickerMakerShape => 'Form';
+
+  @override
+  String get stickerMakerShapeCircle => 'Cirkel';
+
+  @override
+  String get stickerMakerShapeOriginal => 'Original';
+
+  @override
+  String get stickerMakerShapeRounded => 'Rundad kvadrat';
+
+  @override
+  String get stickerMakerTitle => 'Nytt klistermärke';
+
+  @override
+  String get stickerMakerTooMany =>
+      'Du har nått gränsen för klistermärken. Ta bort ett för att göra plats.';
 }

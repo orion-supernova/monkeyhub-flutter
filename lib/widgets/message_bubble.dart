@@ -46,6 +46,8 @@ import 'user_avatar.dart';
 import 'message_departures.dart';
 import 'video_message.dart';
 import 'video_note_message.dart';
+import 'expressions/expression_bubble.dart';
+import 'expressions/expression_sheet.dart';
 
 class MessageBubble extends StatelessWidget {
   const MessageBubble({
@@ -1208,6 +1210,14 @@ bool messageStampsInline(ChatMessage message,
       // lay one over — see [JumboEmojiBubble], which reads the same condition.
       if (messageJumboEmoji(message, ephemeral: ephemeral) != null) return false;
       return !_isStandaloneLinkCard(message, showLinkUrls);
+    // A GIF is a filled rectangle, so the stamp lays over its corner exactly
+    // as it does on a photo — unless there is no picture to lay it on.
+    case MessageType.gif:
+      return message.expression != null;
+    // A sticker is a cut-out floating on the transcript, the jumbo emoji's
+    // shape: nothing opaque to lay a stamp over, so it keeps the external row.
+    case MessageType.sticker:
+      return false;
   }
 }
 
@@ -1249,6 +1259,21 @@ bool _isStandaloneLinkCard(ChatMessage message, bool showLinkUrls) {
       .trim()
       .isEmpty;
 }
+
+/// The plate a picture message draws when it carries nothing to show — a GIF
+/// or sticker row whose fields did not survive, the same shape as a photo
+/// whose storage id never arrived.
+Widget _missingPicturePlate(AppTheme theme, double width, BorderRadius radius) =>
+    Container(
+      width: width,
+      height: 80,
+      decoration: BoxDecoration(
+        color: theme.surfaceSunken,
+        borderRadius: radius,
+      ),
+      alignment: Alignment.center,
+      child: Icon(Icons.image_not_supported_outlined, color: theme.inkMuted),
+    );
 
 /// Builds the inner "bubble body" widget for any message type, applying the
 /// theme's bubble decoration. Extracted so both the standard and ephemeral
@@ -1513,6 +1538,28 @@ Widget buildMessageContent({
         stamp: stampFor(bubbleTone),
         currentUserId: currentUserId,
         onMentionTap: onMentionTap,
+      );
+    // Bare, like a photo: no bubble frame around a picture. `content` is the
+    // alt text, never a caption, so there is no captioned variant.
+    case MessageType.gif:
+      final gif = message.expression;
+      if (gif == null) return _missingPicturePlate(theme, imageSize, mediaRadius);
+      return GifMessageTile(
+        item: gif,
+        maxWidth: imageSize,
+        radius: mediaRadius,
+        stamp: stampFor(StampTone.onMedia),
+        onTap: () => showExpressionSheet(context, gif),
+      );
+    case MessageType.sticker:
+      final sticker = message.expression;
+      if (sticker == null) {
+        return _missingPicturePlate(theme, kStickerMessageSize, mediaRadius);
+      }
+      return StickerMessage(
+        item: sticker,
+        api: api,
+        onTap: () => showExpressionSheet(context, sticker),
       );
     case MessageType.audio:
       // A voice note on its way up has no storage id, and `AudioMessage` renders
@@ -3247,6 +3294,8 @@ ShapeBorder pulseShapeFor({
   // under the halo, so the halo has to supply its own outline.
   final bare = message.type == MessageType.image ||
       message.type == MessageType.video ||
+      message.type == MessageType.gif ||
+      message.type == MessageType.sticker ||
       messageJumboEmoji(message, ephemeral: ephemeral) != null;
   if (bare) {
     return RoundedRectangleBorder(

@@ -14934,6 +14934,312 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, one{1 file didn’t fit in this send} other{{count} files didn’t fit in this send}}'**
   String dropNoticeBatchFull(num count);
+
+  /// Toast when starring, reporting or deleting a GIF/sticker fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t do that. Try again.'**
+  String get expressionActionFailed;
+
+  /// Screen-reader label of the backspace button in the composer's emoji panel.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get expressionBackspace;
+
+  /// Button in the sticker panel that starts making a sticker from one of your photos.
+  ///
+  /// In en, this message translates to:
+  /// **'Make a sticker'**
+  String get expressionCreateSticker;
+
+  /// Action in a personal sticker's sheet that removes it from the user's own pack.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete from my stickers'**
+  String get expressionDeleteSticker;
+
+  /// Action that stars a GIF or sticker so it appears under Favorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to favorites'**
+  String get expressionFavorite;
+
+  /// Toast after a GIF or sticker was starred.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to favorites'**
+  String get expressionFavorited;
+
+  /// Section of the GIF/sticker panel listing starred items.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get expressionFavorites;
+
+  /// Screen-reader label of a GIF in the chat. {title} is the GIF's description, possibly empty.
+  ///
+  /// In en, this message translates to:
+  /// **'GIF: {title}'**
+  String expressionGifSemantics(String title);
+
+  /// Shown in the GIF/sticker grid when the search service could not be reached.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t load. Check your connection.'**
+  String get expressionLoadFailed;
+
+  /// Toast when a child account without the media permission tries to send an image from the keyboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Your family settings don’t allow sending pictures.'**
+  String get expressionMediaNotAllowed;
+
+  /// Name of the user's own sticker pack, made from their photos.
+  ///
+  /// In en, this message translates to:
+  /// **'My stickers'**
+  String get expressionMyStickers;
+
+  /// Empty state of the Favorites section.
+  ///
+  /// In en, this message translates to:
+  /// **'Long-press a GIF or sticker to add it to favorites.'**
+  String get expressionNoFavorites;
+
+  /// Empty state of the Recent section.
+  ///
+  /// In en, this message translates to:
+  /// **'GIFs and stickers you send will show up here.'**
+  String get expressionNoRecents;
+
+  /// Shown when a GIF or sticker search found nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'No results'**
+  String get expressionNoResults;
+
+  /// Shown in the sticker tab when the server has no sticker packs.
+  ///
+  /// In en, this message translates to:
+  /// **'No stickers here yet.'**
+  String get expressionNoStickers;
+
+  /// Screen-reader label of the smiley button in the message field that opens the emoji/GIF/sticker panel.
+  ///
+  /// In en, this message translates to:
+  /// **'Emoji, GIFs and stickers'**
+  String get expressionOpenPanel;
+
+  /// Screen-reader hint for the long-press action on a GIF or sticker tile (lowercase verb phrase).
+  ///
+  /// In en, this message translates to:
+  /// **'show options'**
+  String get expressionOptionsHint;
+
+  /// Credit line for a sticker pack. {author} is who made the art, {license} its licence name such as CC BY 4.0.
+  ///
+  /// In en, this message translates to:
+  /// **'Art: {author} · {license}'**
+  String expressionPackCredit(String author, String license);
+
+  /// Screen-reader hint for tapping a paused GIF (lowercase verb).
+  ///
+  /// In en, this message translates to:
+  /// **'play'**
+  String get expressionPlayGifHint;
+
+  /// Section of the GIF/sticker panel listing recently sent items.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent'**
+  String get expressionRecent;
+
+  /// Action that reports an inappropriate GIF or sticker to its provider.
+  ///
+  /// In en, this message translates to:
+  /// **'Report'**
+  String get expressionReport;
+
+  /// Toast after a GIF or sticker was reported.
+  ///
+  /// In en, this message translates to:
+  /// **'Thanks — it’s been reported.'**
+  String get expressionReported;
+
+  /// Button that retries loading GIFs or stickers.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get expressionRetry;
+
+  /// Placeholder of the GIF/sticker search field. KLIPY is the provider's brand name and must stay untranslated; the word 'Search' is translated. Required by the provider's attribution rules.
+  ///
+  /// In en, this message translates to:
+  /// **'Search KLIPY'**
+  String get expressionSearchKlipy;
+
+  /// Screen-reader label of the button that closes the emoji panel and brings the keyboard back.
+  ///
+  /// In en, this message translates to:
+  /// **'Show keyboard'**
+  String get expressionShowKeyboard;
+
+  /// Screen-reader label of the strip of stickers suggested above the message field when the user types an emoji.
+  ///
+  /// In en, this message translates to:
+  /// **'Sticker suggestions'**
+  String get expressionSuggestionsLabel;
+
+  /// Tab of the expression panel with emoji.
+  ///
+  /// In en, this message translates to:
+  /// **'Emoji'**
+  String get expressionTabEmoji;
+
+  /// Tab of the expression panel with animated GIFs.
+  ///
+  /// In en, this message translates to:
+  /// **'GIFs'**
+  String get expressionTabGifs;
+
+  /// Tab of the expression panel with stickers.
+  ///
+  /// In en, this message translates to:
+  /// **'Stickers'**
+  String get expressionTabStickers;
+
+  /// Section showing currently popular GIFs or stickers.
+  ///
+  /// In en, this message translates to:
+  /// **'Trending'**
+  String get expressionTrending;
+
+  /// Action that un-stars a GIF or sticker.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from favorites'**
+  String get expressionUnfavorite;
+
+  /// Toast after a GIF or sticker was un-starred.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from favorites'**
+  String get expressionUnfavorited;
+
+  /// Label of a quoted sticker above a reply. {emoji} is the emoji the sticker stands for, possibly empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Sticker {emoji}'**
+  String replyIndicatorStickerLabel(String emoji);
+
+  /// Settings toggle title.
+  ///
+  /// In en, this message translates to:
+  /// **'Autoplay GIFs & stickers'**
+  String get settingsAutoplayExpressionsLabel;
+
+  /// Explanation under the autoplay toggle when it is off.
+  ///
+  /// In en, this message translates to:
+  /// **'They stay still until you tap one. Saves data.'**
+  String get settingsAutoplayExpressionsOffBody;
+
+  /// Explanation under the autoplay toggle when it is on.
+  ///
+  /// In en, this message translates to:
+  /// **'GIFs and animated stickers play by themselves. Reduce Motion pauses them.'**
+  String get settingsAutoplayExpressionsOnBody;
+
+  /// Explanation under the sticker suggestions toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Typing a single emoji shows matching stickers above the message field.'**
+  String get settingsStickerSuggestionsBody;
+
+  /// Settings toggle title.
+  ///
+  /// In en, this message translates to:
+  /// **'Sticker suggestions'**
+  String get settingsStickerSuggestionsLabel;
+
+  /// Label above the emoji choices when making a sticker; the emoji is used to suggest and describe the sticker.
+  ///
+  /// In en, this message translates to:
+  /// **'Which emoji is it?'**
+  String get stickerMakerEmojiLabel;
+
+  /// Toast when saving a new sticker failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t save the sticker. Try again.'**
+  String get stickerMakerFailed;
+
+  /// Screen-reader label of the button that opens the full emoji picker in the sticker maker.
+  ///
+  /// In en, this message translates to:
+  /// **'More emoji'**
+  String get stickerMakerMoreEmoji;
+
+  /// Screen-reader label of the sticker preview image.
+  ///
+  /// In en, this message translates to:
+  /// **'Sticker preview'**
+  String get stickerMakerPreview;
+
+  /// Toggle that cuts the photo's subject out of its background.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove background'**
+  String get stickerMakerRemoveBackground;
+
+  /// Button that saves the new sticker.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get stickerMakerSave;
+
+  /// Toast after a new sticker was saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Sticker added to My stickers'**
+  String get stickerMakerSaved;
+
+  /// Label of the shape choice for a sticker without background removal.
+  ///
+  /// In en, this message translates to:
+  /// **'Shape'**
+  String get stickerMakerShape;
+
+  /// Sticker shape option.
+  ///
+  /// In en, this message translates to:
+  /// **'Circle'**
+  String get stickerMakerShapeCircle;
+
+  /// Sticker shape option keeping the photo's own proportions.
+  ///
+  /// In en, this message translates to:
+  /// **'Original'**
+  String get stickerMakerShapeOriginal;
+
+  /// Sticker shape option.
+  ///
+  /// In en, this message translates to:
+  /// **'Rounded square'**
+  String get stickerMakerShapeRounded;
+
+  /// Title of the sticker maker screen.
+  ///
+  /// In en, this message translates to:
+  /// **'New sticker'**
+  String get stickerMakerTitle;
+
+  /// Toast when the user already has the maximum number of personal stickers.
+  ///
+  /// In en, this message translates to:
+  /// **'You’ve reached the sticker limit. Delete one to make room.'**
+  String get stickerMakerTooMany;
 }
 
 class _AppLocalizationsDelegate

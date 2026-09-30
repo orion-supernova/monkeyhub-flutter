@@ -44,6 +44,8 @@ class SettingsStore extends ChangeNotifier {
   static const _kLogoMode = 'mh.logoMode';
   static const _kManualLogoThemeId = 'mh.manualLogoThemeId';
   static const _kShowLinkUrls = 'mh.showLinkUrls';
+  static const _kAutoplayExpressions = 'mh.autoplayExpressions';
+  static const _kStickerSuggestions = 'mh.stickerSuggestions';
   static const _kShowNetworkStats = 'mh.showNetworkStats';
   static const _kPhotoHd = 'mh.photoHd';
   static const _kVideoQualityTier = 'mh.videoQualityTier';
@@ -130,6 +132,8 @@ class SettingsStore extends ChangeNotifier {
   LogoMode _logoMode = LogoMode.auto;
   String? _manualLogoThemeId;
   bool _showLinkUrls = false;
+  bool _autoplayExpressions = true;
+  bool _stickerSuggestions = true;
   bool _photoHd = false;
   bool _showNetworkStats = false;
   VideoQualityTier _videoQualityTier = VideoQualityTier.auto;
@@ -227,6 +231,17 @@ class SettingsStore extends ChangeNotifier {
   /// preview card. Default `false` — the preview alone communicates the
   /// link, and keeping the URL text out makes mixed messages read clean.
   bool get showLinkUrls => _showLinkUrls;
+
+  /// Whether GIFs and animated stickers play by themselves in the transcript
+  /// and the picker. Off shows each one still, with a tap to play it — for
+  /// people who find a moving transcript distracting, or who are on a metered
+  /// connection (a KLIPY GIF is a few hundred KB). The system reduce-motion
+  /// setting pauses them regardless; see `ExpressionPlayback`.
+  bool get autoplayExpressions => _autoplayExpressions;
+
+  /// Whether typing a lone emoji offers matching stickers above the composer,
+  /// the way Telegram and Signal do.
+  bool get stickerSuggestions => _stickerSuggestions;
 
   /// When `true`, the in-call warning chip expands into a live numeric
   /// stats panel (bitrate, RTT, loss, jitter, resolution/fps) instead of
@@ -538,6 +553,8 @@ class SettingsStore extends ChangeNotifier {
     _manualLogoThemeId = s[_kManualLogoThemeId];
     final slu = s[_kShowLinkUrls];
     _showLinkUrls = slu == 'true'; // default false
+    _autoplayExpressions = s[_kAutoplayExpressions] != 'false'; // default true
+    _stickerSuggestions = s[_kStickerSuggestions] != 'false'; // default true
     final sns = s[_kShowNetworkStats];
     _showNetworkStats = sns == 'true'; // default false
     final phd = s[_kPhotoHd];
@@ -810,6 +827,22 @@ class SettingsStore extends ChangeNotifier {
     _showLinkUrls = v;
     notifyListeners();
     await _storage.write(key: _kShowLinkUrls, value: v ? 'true' : 'false');
+  }
+
+  Future<void> setAutoplayExpressions(bool v) async {
+    if (_autoplayExpressions == v) return;
+    _autoplayExpressions = v;
+    notifyListeners();
+    await _storage.write(
+        key: _kAutoplayExpressions, value: v ? 'true' : 'false');
+  }
+
+  Future<void> setStickerSuggestions(bool v) async {
+    if (_stickerSuggestions == v) return;
+    _stickerSuggestions = v;
+    notifyListeners();
+    await _storage.write(
+        key: _kStickerSuggestions, value: v ? 'true' : 'false');
   }
 
   Future<void> setSebastianEnabled(bool v) async {
