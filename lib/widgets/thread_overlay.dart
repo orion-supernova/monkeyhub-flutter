@@ -1605,6 +1605,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
                       MediaQuery.viewInsetsOf(context).bottom -
                       MediaQuery.paddingOf(context).top -
                       190,
+                  resting: MediaQuery.sizeOf(context).height * 0.5,
                 ),
                 composer: _composer,
                 onSend: _sendExpression,

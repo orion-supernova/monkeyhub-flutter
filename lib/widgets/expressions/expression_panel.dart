@@ -1458,9 +1458,15 @@ class ExpressionPanelController extends ChangeNotifier {
     if (inset > 120 && !_searching) _keyboardHeight = inset;
   }
 
-  /// The resting height: the keyboard's own.
+  /// Half the screen, as the host measured it in [setLayout] — enough to
+  /// browse a few rows of GIFs or stickers without dragging, while the
+  /// conversation keeps the other half. Before the host has measured (tests,
+  /// previews) it falls back to the keyboard's height.
+  double? _restingHeight;
+
+  /// The resting height the panel opens at.
   double get height =>
-      (_keyboardHeight ?? defaultHeight).clamp(240.0, 420.0);
+      _restingHeight ?? (_keyboardHeight ?? defaultHeight).clamp(240.0, 420.0);
 
   // ── The two levels ─────────────────────────────────────────────────────
   //
@@ -1488,7 +1494,15 @@ class ExpressionPanelController extends ChangeNotifier {
   /// [expanded] is the tallest the panel may grow with the keyboard down;
   /// [aboveKeyboard] is the room between the composer and the keyboard while
   /// a search field has it.
-  void setLayout({required double expanded, required double aboveKeyboard}) {
+  void setLayout({
+    required double expanded,
+    required double aboveKeyboard,
+    double? resting,
+  }) {
+    if (resting != null) {
+      // Never taller than the expanded level, never too short to browse.
+      _restingHeight = resting.clamp(240.0, math.max(240.0, expanded));
+    }
     _expandedHeight = math.max(expanded, height);
     _searchRoom = aboveKeyboard;
   }

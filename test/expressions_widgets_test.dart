@@ -191,6 +191,16 @@ void main() {
       expect(c.expanded, isFalse);
     });
 
+    test('opens at the height the host asks for, within bounds', () {
+      final c = ExpressionPanelController()
+        ..setLayout(expanded: 600, aboveKeyboard: 250, resting: 422);
+      expect(c.currentHeight, 422);
+      c.setLayout(expanded: 600, aboveKeyboard: 250, resting: 100);
+      expect(c.height, 240, reason: 'never too short to browse');
+      c.setLayout(expanded: 300, aboveKeyboard: 250, resting: 500);
+      expect(c.height, 300, reason: 'never taller than expanded');
+    });
+
     test('search takes the room above the keyboard', () {
       final c = levels()..setSearching(true);
       expect(c.currentHeight, 250);

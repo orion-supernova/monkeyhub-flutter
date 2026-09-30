@@ -3486,6 +3486,9 @@ class _RoomScreenState extends State<RoomScreen>
       expanded: mq.size.height - mq.padding.top - bottomPadding - reserved,
       aboveKeyboard:
           mq.size.height - mq.viewInsets.bottom - mq.padding.top - reserved,
+      // Opens at half the screen: a few rows to browse without dragging,
+      // and half the conversation still in view.
+      resting: mq.size.height * 0.5,
     );
     return ExpressionPanel(
       controller: _expressions,
