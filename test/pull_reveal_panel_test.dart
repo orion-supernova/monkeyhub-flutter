@@ -19,8 +19,8 @@ const firstRow = Key('first-chat-row');
 void main() {
   /// The panel's own bottom inset — the only gap that belongs under the last
   /// thing in it, and what separates the search field from the filter row
-  /// beneath it (`_PullRevealPanel`'s EdgeInsets.fromLTRB(20, 4, 20, 18)).
-  const bottomPadding = 18.0;
+  /// beneath it (`_PullRevealPanel`'s EdgeInsets.fromLTRB(20, 4, 16, 14)).
+  const bottomPadding = 14.0;
 
   Widget host({
     required int archivedCount,

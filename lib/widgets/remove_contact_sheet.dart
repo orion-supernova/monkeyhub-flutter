@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
@@ -9,6 +10,8 @@ import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'destructive_sheet.dart';
+import 'sheet_kit.dart';
+import 'ios_kit.dart' show groupedRadius;
 
 /// Confirms taking a person away from a child, spelling out what gets deleted.
 ///
@@ -117,23 +120,17 @@ class _RemoveContactSheet extends StatelessWidget {
     final messagesPhrase = _messagesPhrase(context);
     final lastSeenPhrase = _lastSeenPhrase(context);
 
-    return Container(
-      decoration: theme.sheetDecoration(),
-      padding: const EdgeInsets.fromLTRB(22, 14, 22, 22),
+    return SheetFrame(
+      title: sentenceCaseOf(
+        context,
+        l10n.incomingGroupCallScreenRemoveContactSheetTitleBadge,
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SheetGrabber(),
-            Text(
-              l10n.incomingGroupCallScreenRemoveContactSheetTitleBadge,
-              style: theme.label.copyWith(
-                color: theme.danger,
-                letterSpacing: 2,
-              ),
-            ),
-            const SizedBox(height: 6),
             Text(
               // Positional args must follow alphabetical placeholder order
               // ("childName" < "contactName") — gen-l10n sorts undeclared
@@ -142,7 +139,11 @@ class _RemoveContactSheet extends StatelessWidget {
                 childName,
                 contactName,
               ),
-              style: theme.displayMedium,
+              textAlign: TextAlign.center,
+              style: theme.displaySmall.copyWith(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
@@ -151,7 +152,12 @@ class _RemoveContactSheet extends StatelessWidget {
                   : l10n.incomingGroupCallScreenRemoveContactSheetBodyWithoutChats(
                       contactName,
                     ),
-              style: theme.bodySoft,
+              textAlign: TextAlign.center,
+              style: theme.body.copyWith(
+                fontSize: 15,
+                height: 1.35,
+                color: theme.inkMuted,
+              ),
             ),
 
             // ─────────────────── What gets destroyed ───────────────────
@@ -161,17 +167,18 @@ class _RemoveContactSheet extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                 decoration: BoxDecoration(
                   color: theme.danger.withValues(alpha: 0.10),
-                  border: Border(
-                    left: BorderSide(color: theme.danger, width: 2),
-                  ),
-                  borderRadius: BorderRadius.circular(theme.radiusMd),
+                  borderRadius: BorderRadius.circular(groupedRadius(theme)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.delete_sweep, size: 14, color: theme.danger),
+                        Icon(
+                          CupertinoIcons.trash_fill,
+                          size: 15,
+                          color: theme.danger,
+                        ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
@@ -179,9 +186,10 @@ class _RemoveContactSheet extends StatelessWidget {
                               _chatsPhrase(context),
                               messagesPhrase,
                             ),
-                            style: theme.label.copyWith(
+                            style: theme.bodyEmph.copyWith(
+                              fontSize: 15,
+                              fontStyle: FontStyle.normal,
                               color: theme.danger,
-                              letterSpacing: 1.2,
                             ),
                           ),
                         ),
@@ -190,11 +198,20 @@ class _RemoveContactSheet extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       l10n.incomingGroupCallScreenRemoveContactSheetDeletionDetail,
-                      style: theme.monoTiny,
+                      style: theme.caption.copyWith(
+                        fontSize: 13,
+                        color: theme.inkMuted,
+                      ),
                     ),
                     if (lastSeenPhrase != null) ...[
                       const SizedBox(height: 4),
-                      Text(lastSeenPhrase, style: theme.monoTiny),
+                      Text(
+                        lastSeenPhrase,
+                        style: theme.caption.copyWith(
+                          fontSize: 13,
+                          color: theme.inkMuted,
+                        ),
+                      ),
                     ],
                   ],
                 ),
@@ -220,7 +237,7 @@ class _RemoveContactSheet extends StatelessWidget {
             ChoiceTile(
               color: theme.danger,
               filled: true,
-              icon: Icons.person_remove,
+              icon: CupertinoIcons.person_badge_minus_fill,
               title: hasChats
                   ? l10n.incomingGroupCallScreenRemoveContactSheetChoiceTitleWithDelete
                   : l10n.incomingGroupCallScreenRemoveContactSheetTitleBadge,
@@ -252,10 +269,14 @@ class _RemoveContactSheet extends StatelessWidget {
                       horizontal: 18,
                     ),
                     child: Text(
-                      l10n.incomingGroupCallScreenRemoveContactSheetCancelButton,
-                      style: theme.label.copyWith(
-                        color: theme.inkMuted,
-                        letterSpacing: 2,
+                      sentenceCaseOf(
+                        context,
+                        l10n.incomingGroupCallScreenRemoveContactSheetCancelButton,
+                      ),
+                      style: theme.body.copyWith(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        color: theme.accent,
                       ),
                     ),
                   ),

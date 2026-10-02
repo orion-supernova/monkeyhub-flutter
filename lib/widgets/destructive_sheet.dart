@@ -1,15 +1,15 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../theme/app_theme.dart';
 import '../keyboard/focusable_tap.dart';
-import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
-import 'adaptive_sheet.dart';
+import 'ios_kit.dart';
 import 'remote_image.dart';
+import 'sheet_kit.dart';
 
 /// Building blocks shared by the sheets that ask "are you sure?" before
 /// destroying something — blocking a user, and taking a contact away from a
@@ -17,27 +17,17 @@ import 'remote_image.dart';
 /// destructive enough that the two should never drift apart visually.
 
 /// The drag handle every bottom sheet in this family opens with.
+///
+/// Kept as a name for the sheets that already place it; it now draws the
+/// iOS 26 capsule from [SheetHandle], with its own spacing below.
 class SheetGrabber extends StatelessWidget {
   const SheetGrabber({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Meaningless once dismiss-by-drag isn't a thing — the desktop popover
-    // closes via barrier tap / Esc, not a drag gesture.
-    if (!context.isCompact) return const SizedBox.shrink();
-    final theme = ThemeScope.of(context);
-    return Center(
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        width: 36,
-        height: 4,
-        decoration: BoxDecoration(
-          color: theme.inkMuted.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(2),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => const Padding(
+        padding: EdgeInsets.only(bottom: 8),
+        child: SheetHandle(),
+      );
 }
 
 /// A plain "are you sure?" over the same furniture as its richer siblings.
@@ -54,89 +44,20 @@ Future<bool> showConfirmSheet(
   required String body,
   required String confirmLabel,
 }) async {
-  final res = await showAdaptiveSheet<bool>(
+  // The iOS action sheet: the question as a quiet title, what it means
+  // underneath, the destructive answer in red and Cancel on its own below.
+  final res = await showIosActionSheet<bool>(
     context,
-    builder: (_) => _ConfirmSheet(
-      headline: headline,
-      body: body,
-      confirmLabel: confirmLabel,
-    ),
+    title: headline,
+    message: '$body\n${sentenceCaseOf(
+      context,
+      AppLocalizations.of(context).destructiveSheetCannotBeUndone,
+    )}',
+    actions: [
+      IosSheetAction(label: confirmLabel, value: true, destructive: true),
+    ],
   );
   return res ?? false;
-}
-
-class _ConfirmSheet extends StatelessWidget {
-  const _ConfirmSheet({
-    required this.headline,
-    required this.body,
-    required this.confirmLabel,
-  });
-  final String headline;
-  final String body;
-  final String confirmLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.surface,
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(theme.radiusLg)),
-      ),
-      padding: EdgeInsets.fromLTRB(
-        20,
-        12,
-        20,
-        20 + MediaQuery.of(context).padding.bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SheetGrabber(),
-          Text(headline, style: theme.label.copyWith(color: theme.danger)),
-          const SizedBox(height: 10),
-          Text(body, style: theme.bodySoft),
-          const SizedBox(height: 20),
-          ChoiceTile(
-            color: theme.danger,
-            icon: Icons.warning_amber_rounded,
-            title: confirmLabel,
-            sub: AppLocalizations.of(context).destructiveSheetCannotBeUndone,
-            filled: true,
-            onTap: () {
-              // "Cannot be undone" should weigh something in the hand too.
-              HapticFeedback.heavyImpact();
-              Navigator.of(context).pop(true);
-            },
-          ),
-          const SizedBox(height: 10),
-          // Autofocused so Enter on a freshly-opened destructive sheet cancels
-          // rather than deletes — matching the macOS/Windows convention. Tab
-          // once to reach the destructive option.
-          FocusableTap(
-            onTap: () => Navigator.of(context).pop(false),
-            autofocus: true,
-            semanticLabel:
-                AppLocalizations.of(context).destructiveSheetCancelSemanticLabel,
-            radius: theme.radiusMd,
-            child: GestureDetector(
-              onTap: () => Navigator.of(context).pop(false),
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                alignment: Alignment.center,
-                child: Text(
-                    AppLocalizations.of(context).destructiveSheetCancelButtonLabel,
-                    style: theme.label.copyWith(color: theme.inkMuted)),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 /// One tappable outcome in a destructive sheet: an icon, a title, and a line
@@ -168,50 +89,69 @@ class ChoiceTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    // A grouped row, iOS-style: the outcome's colour lives in the icon tile
+    // and the title, not in a ring around the whole thing. The heavier choice
+    // gets a soft wash of its colour behind it rather than a thicker border.
     return FocusableTap(
       onTap: onTap,
       autofocus: autofocus,
       semanticLabel: title,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: filled ? color.withValues(alpha: 0.12) : theme.surface,
-          border: Border.all(
-              color: color.withValues(alpha: filled ? 0.6 : 0.35), width: 1.2),
-          borderRadius: BorderRadius.circular(theme.radiusMd),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: filled
-                    ? color.withValues(alpha: 0.22)
-                    : color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(theme.radiusMd),
+      radius: groupedRadius(theme),
+      child: SpringPress(
+        onTap: onTap,
+        scale: 0.98,
+        haptic: false,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          decoration: BoxDecoration(
+            color: filled
+                ? Color.alphaBlend(
+                    color.withValues(alpha: 0.12),
+                    sheetGroupFill(theme),
+                  )
+                : sheetGroupFill(theme),
+            borderRadius: BorderRadius.circular(groupedRadius(theme)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Icon(icon, size: 19, color: Colors.white),
               ),
-              child: Icon(icon, size: 18, color: color),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: theme.label.copyWith(color: color)),
-                  const SizedBox(height: 3),
-                  Text(sub, style: theme.monoTiny),
-                ],
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      sentenceCaseOf(context, title),
+                      style: theme.bodyEmph.copyWith(
+                        color: color,
+                        fontSize: 17,
+                        fontStyle: FontStyle.normal,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      sub,
+                      style: theme.caption.copyWith(
+                        fontSize: 13,
+                        height: 1.3,
+                        color: theme.inkMuted,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Icon(Icons.arrow_outward, size: 14, color: theme.inkMuted),
-          ],
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -255,7 +195,7 @@ class SharedRoomRow extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: Border.all(color: theme.divider),
               ),
-              child: Icon(Icons.tag, size: 12, color: theme.inkSoft),
+              child: Icon(CupertinoIcons.number, size: 12, color: theme.inkSoft),
             ),
           const SizedBox(width: 10),
           Expanded(
@@ -265,7 +205,14 @@ class SharedRoomRow extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          Text('${room.memberCount}', style: theme.monoTiny),
+          Text(
+            '${room.memberCount}',
+            style: theme.caption.copyWith(
+              fontSize: 13,
+              color: theme.inkMuted,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
         ],
       ),
     );
@@ -298,47 +245,68 @@ class _SharedRoomsPanelState extends State<SharedRoomsPanel> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    // A grouped block: what survives, said in a sentence, with the rooms one
+    // tap away. No accent stripe — the reassurance is in the words.
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        color: theme.surfaceSunken,
-        border: Border(left: BorderSide(color: theme.accent, width: 2)),
-        borderRadius: BorderRadius.circular(theme.radiusMd),
+        color: sheetGroupFill(theme),
+        borderRadius: BorderRadius.circular(groupedRadius(theme)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            Icon(Icons.group_outlined, size: 14, color: theme.accent),
-            const SizedBox(width: 6),
+            Icon(CupertinoIcons.person_2_fill, size: 16, color: theme.inkSoft),
+            const SizedBox(width: 8),
             Expanded(
               child: Text(
-                widget.headline,
-                style: theme.label
-                    .copyWith(color: theme.accent, letterSpacing: 1.2),
+                sentenceCaseOf(context, widget.headline),
+                style: theme.bodyEmph.copyWith(
+                  fontSize: 15,
+                  fontStyle: FontStyle.normal,
+                  color: theme.ink,
+                ),
               ),
             ),
             GestureDetector(
               onTap: () => setState(() => _expanded = !_expanded),
+              behavior: HitTestBehavior.opaque,
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 child: Text(
-                  _expanded
-                      ? AppLocalizations.of(context).destructiveSheetHideLabel
-                      : AppLocalizations.of(context).destructiveSheetViewLabel,
-                  style: theme.monoTiny.copyWith(color: theme.accent),
+                  sentenceCaseOf(
+                    context,
+                    _expanded
+                        ? AppLocalizations.of(context).destructiveSheetHideLabel
+                        : AppLocalizations.of(context).destructiveSheetViewLabel,
+                  ),
+                  style: theme.body.copyWith(fontSize: 15, color: theme.accent),
                 ),
               ),
             ),
           ]),
-          const SizedBox(height: 6),
-          Text(widget.note, style: theme.monoTiny),
-          if (_expanded) ...[
-            const SizedBox(height: 10),
-            for (final r in widget.rooms)
-              SharedRoomRow(room: r, api: widget.api, theme: theme),
-          ],
+          const SizedBox(height: 4),
+          Text(
+            widget.note,
+            style: theme.caption.copyWith(fontSize: 13, color: theme.inkMuted),
+          ),
+          AnimatedSize(
+            duration: theme.motionFast,
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: _expanded
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: Column(
+                      children: [
+                        for (final r in widget.rooms)
+                          SharedRoomRow(room: r, api: widget.api, theme: theme),
+                      ],
+                    ),
+                  )
+                : const SizedBox(width: double.infinity),
+          ),
         ],
       ),
     );

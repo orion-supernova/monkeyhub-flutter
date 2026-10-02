@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../auth/auth_service.dart';
@@ -39,6 +40,7 @@ import 'games/tango_screen.dart';
 import 'games/zip_screen.dart';
 import 'navigation/destinations.dart';
 import 'navigation/tab_reselect.dart';
+import '../widgets/sheet_kit.dart' show sentenceCaseOf;
 
 /// TODAY — the friends-activity board.
 ///
@@ -388,7 +390,7 @@ class _FeedScreenState extends State<FeedScreen>
           // Highlights leave friends' boards after a day but are kept
           // forever — without a way in, that promise was invisible.
           action: _HeaderAction(
-            icon: Icons.inventory_2_outlined,
+            icon: CupertinoIcons.archivebox,
             label: l10n.feedBoardOpenArchive,
             onTap: _openArchive,
           ),
@@ -419,7 +421,7 @@ class _FeedScreenState extends State<FeedScreen>
           // and giving it its own differently-shaped section was the
           // inconsistency, not this shelf.
           action: _HeaderAction(
-            icon: Icons.grid_view_outlined,
+            icon: CupertinoIcons.chevron_forward,
             label: l10n.feedBoardGamesOpen,
             onTap: _openGamesHub,
           ),
@@ -440,7 +442,7 @@ class _FeedScreenState extends State<FeedScreen>
           // explainer — this is not a feed of photos with a score attached, it
           // is a game, and nobody arrives knowing that.
           action: _HeaderAction(
-            icon: Icons.help_outline,
+            icon: CupertinoIcons.question_circle,
             label: l10n.pointsExplainerOpen,
             onTap: () => showPointsExplainer(context),
           ),
@@ -563,9 +565,11 @@ class _FeedScreenState extends State<FeedScreen>
               // before that band existed lands the board mid-section, which
               // reads as the Feed having jumped on its own.
               key: const PageStorageKey('feed_board_v2'),
+              // 14 + the masthead's own 38 lands the large title exactly
+              // where the chat list's sits, so switching tabs never jumps it.
               padding: EdgeInsets.fromLTRB(
                 20,
-                28,
+                14,
                 20,
                 sectionBottomPadding(context),
               ),
@@ -648,56 +652,58 @@ class _MastheadState extends State<_Masthead>
       context,
     ).formatMediumDate(DateTime.now());
 
+    // The tab's large title, same size and place as Chats and Discover. On
+    // the first open of the day it rises a few points into place on a soft
+    // spring — the board arriving — then the date and the edition settle in
+    // under it.
     return Padding(
-      padding: const EdgeInsets.only(bottom: 30),
+      padding: const EdgeInsets.only(top: 38, bottom: 26),
       child: AnimatedBuilder(
         animation: _settle,
         builder: (context, _) {
-          final t = Curves.easeOutQuart.transform(_settle.value);
+          final v = _settle.value;
+          final rise = const ElasticOutCurve(0.8).transform(v);
+          final tail = Curves.easeOut.transform(((v - 0.35) / 0.65).clamp(0.0, 1.0));
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                l10n.feedBoardTitle,
-                // Settles from wide-set to the board's resting spacing.
-                // Interpolating letterSpacing rather than scale keeps the
-                // baseline fixed, so nothing below it moves.
-                style: theme.label.copyWith(
-                  letterSpacing: 9.0 - (9.0 - 3.0) * t,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 14),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Flexible(
-                    child: Text(
-                      date,
-                      style: theme.caption,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+              Transform.translate(
+                offset: Offset(0, (1 - rise) * 14),
+                child: Opacity(
+                  opacity: Curves.easeOut.transform((v * 2).clamp(0.0, 1.0)),
+                  child: Text(
+                    l10n.destinationsFeedLabel,
+                    style: theme.displayLarge.copyWith(letterSpacing: 0.37),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(child: Container(height: 1, color: theme.divider)),
-                  const SizedBox(width: 8),
-                  Opacity(
-                    // The edition stamp arrives last, in the tail of the
-                    // settle — the colophon landing after the masthead sets.
-                    opacity: Curves.easeOut.transform(
-                      ((_settle.value - 0.6) / 0.4).clamp(0.0, 1.0),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Opacity(
+                opacity: tail,
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        date,
+                        style: theme.body.copyWith(
+                          fontSize: 15,
+                          color: theme.inkMuted,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     // Tappable, because "№219" beside a date is a riddle
-                    // otherwise — it is the board's day count, and there is
-                    // nowhere else that could possibly say so.
-                    child: _EditionStamp(
+                    // otherwise — it is the board's day count.
+                    _EditionStamp(
                       label: l10n.feedBoardEditionLabel(widget.edition),
                       hint: l10n.feedBoardEditionHint(widget.edition),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           );
@@ -730,7 +736,23 @@ class _EditionStamp extends StatelessWidget {
       child: GestureDetector(
         onTap: explain,
         behavior: HitTestBehavior.opaque,
-        child: Text(label, style: theme.monoTiny, maxLines: 1),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: theme.ink.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            label,
+            style: theme.caption.copyWith(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: theme.inkSoft,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+            maxLines: 1,
+          ),
+        ),
       ),
     );
   }
@@ -760,21 +782,33 @@ class _SectionShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    // An iOS section: a bold sentence-case title with its link trailing on
+    // the same baseline, the App Store / Music shape. No rule — the air above
+    // separates the bands.
     return Padding(
       padding: const EdgeInsets.only(bottom: 30),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(label, style: theme.label),
-              const SizedBox(width: 8),
-              Expanded(child: Container(height: 1, color: theme.divider)),
+              Expanded(
+                child: Text(
+                  sentenceCaseOf(context, label),
+                  style: theme.displaySmall.copyWith(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.35,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               if (action != null) ...[const SizedBox(width: 8), action!],
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           body,
         ],
       ),
@@ -805,21 +839,21 @@ class _HeaderAction extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-          decoration: BoxDecoration(
-            color: theme.accentSoft,
-            borderRadius: BorderRadius.circular(999),
-          ),
+        // A text link in the accent with its glyph, the iOS "See All".
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 11, color: theme.accent),
-              const SizedBox(width: 5),
               Text(
-                label,
-                style: theme.monoTiny.copyWith(color: theme.accent),
+                sentenceCaseOf(context, label),
+                style: theme.body.copyWith(
+                  fontSize: 15,
+                  color: theme.accent,
+                ),
               ),
+              const SizedBox(width: 4),
+              Icon(icon, size: 15, color: theme.accent),
             ],
           ),
         ),

@@ -24,6 +24,9 @@ import 'join_by_invite_screen.dart';
 import 'navigation/open_room.dart';
 import 'navigation/tab_reselect.dart';
 import 'search_screen.dart';
+import '../theme/theme_preference.dart';
+import '../widgets/sheet_kit.dart' show sentenceCaseOf;
+import '../widgets/ios_kit.dart';
 
 /// How many friends and rooms Discover shows before handing off to a
 /// full-list screen.
@@ -455,21 +458,26 @@ class _DiscoverScreenState extends State<DiscoverScreen>
             ],
           ];
 
+    // The same large title the chat list wears, at the same height: 38pt of
+    // air here plus the list's 14 is the 52pt bar home keeps above its own.
+    // The caption line that used to sit under it (an accent tick and a
+    // mono "people · rooms · requests") restated the sections below; the
+    // page now names itself and lets them speak.
     final header = <Widget>[
-      Text(t.discoverScreenTitle, style: theme.displayMedium),
-      const SizedBox(height: 10),
-      Row(
-        children: [
-          Container(width: 18, height: 1, color: theme.accent),
-          const SizedBox(width: 8),
-          Text(caption, style: theme.caption),
-        ],
+      const SizedBox(height: 38),
+      Semantics(
+        header: true,
+        label: caption,
+        child: Text(
+          t.destinationsDiscoverLabel,
+          style: theme.displayLarge.copyWith(letterSpacing: 0.37),
+        ),
       ),
       // One tap to either world, on the single-column page only — a two-column
       // page has nowhere for either chip to jump TO that isn't already on
       // screen.
       if (showBands && !twoColumns) ...[
-        const SizedBox(height: 18),
+        const SizedBox(height: 12),
         _WorldJump(
           onPeople: () => _jumpTo(_peopleKey),
           onRooms: () => _jumpTo(_roomsKey),
@@ -575,24 +583,25 @@ class _BandLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    // A world's name, one size under the page title — the Title 1 of an
+    // App Store tab.
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10, left: 2),
-      child: Text(text, style: theme.label.copyWith(color: theme.inkMuted)),
+      padding: const EdgeInsets.only(bottom: 12, left: 2),
+      child: Text(
+        sentenceCaseOf(context, text),
+        style: theme.displayMedium.copyWith(
+          fontSize: 28,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.36,
+        ),
+      ),
     );
   }
 }
 
-/// Incoming / outgoing switch for the requests section.
-///
-/// Deliberately not [PillNav]. Its items draw `theme.label` — the same token
-/// [DiscoverSectionHeader] uses for a title — so two filled, badged pills sat
-/// under "REQUESTS" carrying more weight than the heading they belong to.
-///
-/// This sits a tier below instead: `monoTiny`, muted until selected, marked by
-/// an accent underline rather than a fill, and left-aligned to the section's
-/// own text column so it reads as part of the section rather than a control in
-/// its own right. The underline is text-width via [IntrinsicWidth], so it
-/// tracks the label at any text scale.
+/// Incoming / outgoing switch for the requests section — an iOS segmented
+/// control, so it reads as a control and not as a heading. Both counts stay
+/// on screen whichever side is selected.
 class _RequestSegments extends StatelessWidget {
   const _RequestSegments({
     required this.active,
@@ -613,85 +622,50 @@ class _RequestSegments extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    return Row(
-      children: [
-        _Segment(
-          label: t.discoverScreenIncomingLabel,
-          displayLabel: t.discoverScreenIncomingLabelCaps,
-          count: incoming,
-          active: active == _RequestsTab.incoming,
-          onTap: () => _select(_RequestsTab.incoming),
-        ),
-        const SizedBox(width: 20),
-        _Segment(
-          label: t.discoverScreenOutgoingLabel,
-          displayLabel: t.discoverScreenOutgoingLabelCaps,
-          count: outgoing,
-          active: active == _RequestsTab.outgoing,
-          onTap: () => _select(_RequestsTab.outgoing),
-        ),
-      ],
-    );
-  }
-}
-
-class _Segment extends StatelessWidget {
-  const _Segment({
-    required this.label,
-    required this.displayLabel,
-    required this.count,
-    required this.active,
-    required this.onTap,
-  });
-  final String label;
-  // Pre-cased for display rather than derived from [label] via
-  // `.toUpperCase()` at build time: Dart's default case mapping is not
-  // locale-aware, so it would turn a Turkish "giden" into "GIDEN" (dotless
-  // I) instead of the correct "GİDEN" (dotted İ).
-  final String displayLabel;
-  final int count;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      // The count is spoken as well as drawn: "incoming, 0" is the answer to
-      // "have I got any?", which is the whole reason both segments stay on
-      // screen when nothing is pending.
-      semanticLabel: '$label, $count',
-      selected: active,
-      radius: theme.radiusSm,
-      inset: 4,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: IntrinsicWidth(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              AnimatedDefaultTextStyle(
-                duration: theme.motionFast,
-                curve: Curves.easeOutCubic,
-                style: theme.monoTiny.copyWith(
-                  color: active ? theme.ink : theme.inkMuted,
-                ),
-                child: Text('$displayLabel · $count'),
+    // The system's own sliding segmented control: the thumb glides between
+    // the two with UIKit's spring, and both counts stay on screen so "have I
+    // got any?" is answered without a tap.
+    Widget seg(String label, int count, bool active) => Semantics(
+          label: '$label, $count',
+          selected: active,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Text(
+              '${sentenceCaseOf(context, label)}  $count',
+              style: theme.body.copyWith(
+                fontSize: 14,
+                fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                color: active ? theme.ink : theme.inkSoft,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
-              const SizedBox(height: 6),
-              AnimatedContainer(
-                duration: theme.motionFast,
-                curve: Curves.easeOutCubic,
-                height: 1.5,
-                color: active ? theme.accent : Colors.transparent,
-              ),
-            ],
+            ),
           ),
+        );
+    return CupertinoSlidingSegmentedControl<_RequestsTab>(
+      groupValue: active,
+      backgroundColor: theme.ink.withValues(alpha: 0.08),
+      thumbColor: theme.isLight
+          ? Colors.white
+          : Color.alphaBlend(
+              theme.ink.withValues(alpha: 0.10),
+              theme.surfaceRaised,
+            ),
+      onValueChanged: (tab) {
+        if (tab != null) _select(tab);
+      },
+      children: {
+        _RequestsTab.incoming: seg(
+          t.discoverScreenIncomingLabel,
+          incoming,
+          active == _RequestsTab.incoming,
         ),
-      ),
+        _RequestsTab.outgoing: seg(
+          t.discoverScreenOutgoingLabel,
+          outgoing,
+          active == _RequestsTab.outgoing,
+        ),
+      },
     );
   }
 }
@@ -719,7 +693,7 @@ class _WorldJump extends StatelessWidget {
         const SizedBox(width: 8),
         _JumpChip(
           label: t.discoverScreenJumpRoomsLabel,
-          icon: Icons.tag,
+          icon: CupertinoIcons.number,
           onTap: onRooms,
         ),
       ],
@@ -750,16 +724,31 @@ class _JumpChip extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          decoration: theme.chipDecoration(),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 13, color: theme.accent),
-              const SizedBox(width: 7),
-              Text(label, style: theme.label.copyWith(color: theme.accent)),
-            ],
+        // The same soft capsule as the chat list's filter chips.
+        child: SpringPress(
+          onTap: onTap,
+          haptic: false,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            decoration: BoxDecoration(
+              color: theme.ink.withValues(alpha: 0.07),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 14, color: theme.inkSoft),
+                const SizedBox(width: 6),
+                Text(
+                  sentenceCaseOf(context, label),
+                  style: theme.body.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: theme.inkSoft,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -816,8 +805,13 @@ class _DoorRow extends StatelessWidget {
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
         child: _maybeHero(
+          // A grouped iOS row: a coloured tile, the title, one line of what
+          // it finds, and the magnifier the search bar shares mid-flight.
           child: Container(
-            decoration: theme.inputDecoration(),
+            decoration: BoxDecoration(
+              color: groupedFill(theme),
+              borderRadius: BorderRadius.circular(groupedRadius(theme)),
+            ),
             padding: const EdgeInsets.symmetric(
               horizontal: searchDoorHPadding,
               vertical: 12,
@@ -825,17 +819,19 @@ class _DoorRow extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 36,
-                  height: 36,
+                  width: 38,
+                  height: 38,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: theme.accentSoft,
+                    color: tileColor(
+                      theme,
+                      circular ? TileTone.blue : TileTone.indigo,
+                    ),
                     shape: circular ? BoxShape.circle : BoxShape.rectangle,
-                    borderRadius: circular
-                        ? null
-                        : BorderRadius.circular(theme.radiusMd),
+                    borderRadius:
+                        circular ? null : BorderRadius.circular(10),
                   ),
-                  child: Icon(icon, size: 15, color: theme.accent),
+                  child: Icon(icon, size: 19, color: Colors.white),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -845,14 +841,21 @@ class _DoorRow extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: theme.displaySmall.copyWith(fontSize: 16),
+                        style: theme.bodyEmph.copyWith(
+                          color: theme.ink,
+                          fontSize: 17,
+                          fontStyle: FontStyle.normal,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 1),
                       Text(
                         subtitle,
-                        style: theme.monoTiny,
+                        style: theme.caption.copyWith(
+                          fontSize: 13,
+                          color: theme.inkMuted,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -860,16 +863,13 @@ class _DoorRow extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                // The one glyph the door and the bar share, and the one the
-                // flight shuttle carries between them — same size at both ends
-                // so it never resizes mid-air.
-                // The door's trailing glyph. For a search door it is the one
-                // the flight shuttle carries into the search bar — same size
-                // at both ends so it never resizes mid-air. A door that opens
-                // an ordinary screen gets a chevron instead, because a
-                // magnifier there promises a search that is not coming.
+                // For a search door, the glyph the flight shuttle carries
+                // into the search bar — same size at both ends. A door that
+                // opens an ordinary screen gets a chevron instead.
                 Icon(
-                  heroTag == null ? Icons.chevron_right : Icons.search,
+                  heroTag == null
+                      ? CupertinoIcons.chevron_forward
+                      : CupertinoIcons.search,
                   size: searchFieldIconSize,
                   color: theme.inkMuted,
                 ),

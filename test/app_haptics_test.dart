@@ -6,6 +6,7 @@ import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/destructive_sheet.dart';
+import 'package:monkeyhub/widgets/sheet_kit.dart' show sentenceCase;
 
 /// Which haptic the shared controls play. Each one stands for many call
 /// sites — every destructive confirm, every call control — so a change that
@@ -64,7 +65,10 @@ void main() {
       final haptics = recordHaptics(tester);
       await open(tester);
       final l10n = AppLocalizations.of(tester.element(find.text('Delete it')));
-      await tester.tap(find.text(l10n.destructiveSheetCancelButtonLabel));
+      // The action sheet prints its Cancel in sentence case.
+      await tester.tap(
+        find.text(sentenceCase(l10n.destructiveSheetCancelButtonLabel)),
+      );
       await tester.pumpAndSettle();
       expect(haptics, isEmpty);
     });

@@ -1,14 +1,18 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../media/media_aspect_cache.dart';
 import '../models/moment.dart';
 import '../theme/motion.dart';
+import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'remote_image.dart';
 import 'steady_hero.dart';
+import 'sheet_kit.dart' show sentenceCaseOf;
+import 'ios_kit.dart' show SpringPress, groupedFill;
+import 'chat_list_row.dart' show monogramGradient;
 
 /// Hero tag for a moment's picture, shared by every surface that renders one.
 ///
@@ -132,51 +136,63 @@ class _CaptureTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final enabled = onTap != null;
 
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: l10n.momentRailCaptureLabel,
-      radius: theme.radiusLg,
-      child: GestureDetector(
+    // A story card of its own: the soft grouped fill, a filled "+" in the
+    // middle, the label under it — "add yours" at the head of the row, the
+    // Instagram / Telegram slot. Dimmed rather than hidden when disabled,
+    // matching ProfileVisibilityScreen's read-only treatment.
+    return Opacity(
+      opacity: enabled ? 1 : 0.45,
+      child: SpringPress(
         onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Opacity(
-          // Matches ProfileVisibilityScreen's read-only treatment: show the
-          // control dimmed rather than hiding it, so the surface still makes
-          // sense to someone who cannot use it.
-          opacity: enabled ? 1 : 0.45,
-          child: Container(
-            width: 108,
-            padding: const EdgeInsets.all(12),
-            decoration: theme.roomCardDecoration(ephemeral: false, active: false),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: theme.accentSoft,
-                    borderRadius: BorderRadius.circular(theme.radiusMd),
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(Icons.add, size: 18, color: theme.accent),
+        semanticLabel: l10n.momentRailCaptureLabel,
+        child: Container(
+          width: _storyWidth,
+          decoration: BoxDecoration(
+            color: groupedFill(theme),
+            borderRadius: BorderRadius.circular(_storyRadius),
+          ),
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: theme.bubbleFill(isMine: true),
+                  shape: BoxShape.circle,
                 ),
-                const Spacer(),
-                Text(
-                  l10n.momentRailCaptureLabel,
-                  style: theme.label,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                alignment: Alignment.center,
+                child: Icon(
+                  CupertinoIcons.plus,
+                  size: 22,
+                  color: theme.accentInk,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                sentenceCaseOf(context, l10n.momentRailCaptureLabel),
+                textAlign: TextAlign.center,
+                style: theme.caption.copyWith(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: theme.ink,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 }
+
+/// A story card's width and corner — shared by the capture slot and every
+/// moment so the row is one rhythm.
+const double _storyWidth = 104;
+const double _storyRadius = 18;
 
 class _MomentCard extends StatelessWidget {
   const _MomentCard({
@@ -204,49 +220,93 @@ class _MomentCard extends StatelessWidget {
       // Identity key, never index — see the class doc.
       key: ValueKey('rail_${moment.id}'),
       tween: Tween(begin: 0, end: 1),
-      duration: motion.stagger(theme.motionMed, index, strideMs: 45),
-      // motionEntrance, not motionCurve: the latter is easeOutBack in
-      // Risograph and Cyberpunk, which overshoots and would throw the card
-      // past the rail's edge before settling back.
-      curve: motion.c(theme.motionEntrance),
-      builder: (context, v, child) => Transform.translate(
-        offset: Offset(0, (1 - v) * 14),
+      duration: motion.stagger(
+        const Duration(milliseconds: 520),
+        index,
+        strideMs: 55,
+      ),
+      // Pops in on a spring — a scale past 1 and back, the Telegram story
+      // arrival. Scale rather than a slide, so nothing overshoots the rail's
+      // edge and gets clipped.
+      curve: motion.c(const ElasticOutCurve(0.75)),
+      builder: (context, v, child) => Transform.scale(
+        scale: 0.86 + 0.14 * v,
         child: Opacity(opacity: v.clamp(0.0, 1.0), child: child),
       ),
-      child: FocusableTap(
+      child: SpringPress(
         onTap: onTap,
+        haptic: false,
         semanticLabel: moment.caption?.isNotEmpty == true
             ? l10n.momentRailCardSemanticLabel(
                 moment.authorName,
                 moment.caption!,
               )
             : moment.authorName,
-        radius: theme.radiusLg,
-        child: GestureDetector(
-          onTap: onTap,
-          behavior: HitTestBehavior.opaque,
+        // An unseen story wears a ring in the theme's colours, set off from
+        // the picture by a hairline of page — the universal "new" mark.
+        child: Container(
+          width: _storyWidth,
+          padding: EdgeInsets.all(unseen ? 2.5 : 0),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(_storyRadius + 2.5),
+            gradient: unseen
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      theme.accent,
+                      Color.lerp(theme.accent, const Color(0xFFFF2D55), 0.65)!,
+                    ],
+                  )
+                : null,
+          ),
           child: Container(
-            width: 124,
-            // NOT wrapped in ClipRRect. `roomCardDecoration` carries
-            // Risograph's hard offset shadow and three themes' neon glows, and
-            // clipping the card amputates all of them.
-            decoration: theme.roomCardDecoration(
-              ephemeral: unseen,
-              active: false,
+            padding: EdgeInsets.all(unseen ? 2 : 0),
+            decoration: BoxDecoration(
+              color: theme.background,
+              borderRadius: BorderRadius.circular(_storyRadius),
             ),
-            padding: const EdgeInsets.all(8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: _Thumb(moment: moment, api: api, unseen: unseen)),
-                const SizedBox(height: 8),
-                Text(
-                  moment.mine ? l10n.momentRailYouLabel : moment.authorName,
-                  style: theme.monoTiny,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(
+                unseen ? _storyRadius - 2 : _storyRadius,
+              ),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _Thumb(moment: moment, api: api, unseen: unseen),
+                  // The name over a fade at the foot of the picture.
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: IgnorePointer(
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(8, 18, 8, 8),
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Color(0x00000000), Color(0x99000000)],
+                          ),
+                        ),
+                        child: Text(
+                          moment.mine
+                              ? l10n.momentRailYouLabel
+                              : moment.authorName,
+                          style: theme.caption.copyWith(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            letterSpacing: 0,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -255,7 +315,6 @@ class _MomentCard extends StatelessWidget {
   }
 }
 
-/// The picture, or a caption-only card when the moment carries no media.
 class _Thumb extends StatelessWidget {
   const _Thumb({required this.moment, required this.api, required this.unseen});
 
@@ -281,7 +340,7 @@ class _Thumb extends StatelessWidget {
           SteadyHero(
             tag: momentMediaHeroTag(moment.id),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(theme.radiusMd),
+              borderRadius: BorderRadius.circular(_storyRadius - 2),
               child: RemoteImage(
                 storageId: thumbId,
                 api: api,
@@ -304,26 +363,33 @@ class _Thumb extends StatelessWidget {
             ),
           )
         else
+          // A words-only moment: a text story, the caption set large on its
+          // author's own colour.
           Container(
             decoration: BoxDecoration(
-              color: theme.surfaceSunken,
-              borderRadius: BorderRadius.circular(theme.radiusMd),
+              gradient: monogramGradient(theme, moment.authorName.hashCode),
             ),
-            padding: const EdgeInsets.all(8),
-            alignment: Alignment.topLeft,
+            padding: const EdgeInsets.fromLTRB(10, 12, 10, 30),
+            alignment: Alignment.center,
             child: Text(
               moment.caption ?? '',
-              style: theme.bodySoft,
-              maxLines: 4,
+              textAlign: TextAlign.center,
+              style: theme.bodyEmph.copyWith(
+                fontSize: 15,
+                height: 1.25,
+                color: Colors.white,
+                fontStyle: FontStyle.normal,
+              ),
+              maxLines: 5,
               overflow: TextOverflow.ellipsis,
             ),
           ),
         if (moment.mediaKind == MomentMedia.video)
           Center(
             child: Icon(
-              Icons.play_circle_outline,
-              size: 26,
-              color: theme.ink.withValues(alpha: 0.85),
+              CupertinoIcons.play_circle_fill,
+              size: 30,
+              color: Colors.white.withValues(alpha: 0.9),
             ),
           ),
         if (moment.tag != null)
@@ -332,8 +398,6 @@ class _Thumb extends StatelessWidget {
             top: 4,
             child: MomentTagChip(tag: moment.tag!, dense: true),
           ),
-        if (unseen)
-          const Positioned(right: 5, top: 5, child: MomentUnseenDot()),
       ],
     );
   }

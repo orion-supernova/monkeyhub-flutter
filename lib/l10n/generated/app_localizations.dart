@@ -17244,6 +17244,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The medal marks whoever created this room.'**
   String get riOwnerNote;
+
+  /// Action on a child's card: show the pairing code for their phone.
+  ///
+  /// In en, this message translates to:
+  /// **'Pair'**
+  String get famPair;
+
+  /// Action on a child's card: show the code that releases their phone.
+  ///
+  /// In en, this message translates to:
+  /// **'Release'**
+  String get famRelease;
+
+  /// Action on a child's card: open their rules.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get famSettings;
+
+  /// Button that starts adding a child account.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a child'**
+  String get famAddChild;
+
+  /// Empty-state title on the family page.
+  ///
+  /// In en, this message translates to:
+  /// **'No children yet'**
+  String get famEmptyTitle;
+
+  /// Presence under a child's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Online now'**
+  String get famOnlineNow;
+
+  /// Presence under a child whose phone isn't paired yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not paired yet'**
+  String get famNotPaired;
+
+  /// Presence: seen moments ago.
+  ///
+  /// In en, this message translates to:
+  /// **'Just now'**
+  String get famJustNow;
+
+  /// Empty state title on the approvals page.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing waiting'**
+  String get apprEmptyTitle;
+
+  /// Empty state subtitle on the approvals page.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re all caught up.'**
+  String get apprEmptySub;
+
+  /// Decline button on an approval card.
+  ///
+  /// In en, this message translates to:
+  /// **'Not yet'**
+  String get apprNotYet;
+
+  /// Approve button on an approval card.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow'**
+  String get apprAllow;
+
+  /// Section header on a companion's page.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get compGeneral;
+
+  /// Section header on a companion's page over its downloaded model.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage'**
+  String get compStorage;
+
+  /// Section header over the translation target language.
+  ///
+  /// In en, this message translates to:
+  /// **'Translate into'**
+  String get compTranslateInto;
+
+  /// Section header over the on-device model choices.
+  ///
+  /// In en, this message translates to:
+  /// **'Brain'**
+  String get compBrain;
+
+  /// Button that removes Apple/Google sign-in. {provider} is the brand name.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlink {provider}'**
+  String laUnlinkProvider(String provider);
+
+  /// Password sheet title before adding Apple/Google sign-in.
+  ///
+  /// In en, this message translates to:
+  /// **'Link {provider}'**
+  String laLinkProvider(String provider);
+
+  /// Confirm button that removes a linked sign-in.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlink'**
+  String get laUnlink;
+
+  /// Confirm button that adds a linked sign-in.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get laLink;
+
+  /// Status beside a provider that is linked.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked'**
+  String get laLinked;
+
+  /// Status beside a provider that isn't linked.
+  ///
+  /// In en, this message translates to:
+  /// **'Not linked'**
+  String get laNotLinked;
+
+  /// Button on the hand-this-phone-back page: sign the child out. {name} is the child's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign {name} out'**
+  String rdSignOut(String name);
 }
 
 class _AppLocalizationsDelegate

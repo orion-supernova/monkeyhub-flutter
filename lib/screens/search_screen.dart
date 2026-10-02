@@ -9,6 +9,7 @@ import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../family/family_service.dart';
 import '../theme/layout.dart';
+import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/discover_rows.dart';
@@ -18,6 +19,8 @@ import 'friend_request_draft_screen.dart';
 import 'profile_screen.dart';
 import 'navigation/enter_public_room.dart';
 import 'navigation/open_room.dart';
+import '../widgets/sheet_kit.dart' show sentenceCaseOf;
+import '../widgets/ios_kit.dart' show SpringPress;
 
 /// Which half of search this screen is.
 ///
@@ -331,7 +334,7 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 12),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
       child: Row(
         children: [
           Expanded(
@@ -347,11 +350,19 @@ class _Header extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
+          // The iOS search bar's Cancel, in the accent.
           GestureDetector(
             onTap: onClose,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              child: Icon(Icons.close, color: theme.inkSoft, size: 18),
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 10),
+              child: Text(
+                sentenceCaseOf(
+                  context,
+                  MaterialLocalizations.of(context).cancelButtonLabel,
+                ),
+                style: theme.body.copyWith(fontSize: 17, color: theme.accent),
+              ),
             ),
           ),
         ],
@@ -482,12 +493,12 @@ class _PersonRowState extends State<_PersonRow> {
         widget.onChanged();
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
-        decoration: theme.roomCardDecoration(ephemeral: false, active: false),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        decoration: discoverCardDecoration(theme),
         child: Row(
           children: [
-            UserAvatar(user: widget.user, size: 40, api: widget.api),
+            UserAvatar(user: widget.user, size: 44, api: widget.api),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -495,37 +506,57 @@ class _PersonRowState extends State<_PersonRow> {
                 children: [
                   Text(
                     widget.user.displayName,
-                    style: theme.displaySmall.copyWith(fontSize: 16),
+                    style: theme.bodyEmph.copyWith(
+                      color: theme.ink,
+                      fontSize: 17,
+                      fontStyle: FontStyle.normal,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  Text('@${widget.user.username}', style: theme.monoTiny),
+                  const SizedBox(height: 1),
+                  Text(
+                    '@${widget.user.username}',
+                    style: theme.caption.copyWith(
+                      fontSize: 13,
+                      color: theme.inkMuted,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),
-            GestureDetector(
+            const SizedBox(width: 8),
+            // The App Store "Get" capsule: filled when it does something
+            // new, tinted when it undoes something, grey when a grown-up
+            // holds it.
+            SpringPress(
               onTap: (_busy || _heldByGrownUp) ? null : _act,
-              child: Container(
+              child: AnimatedContainer(
+                duration: theme.motionFast,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
+                  horizontal: 14,
+                  vertical: 7,
                 ),
                 decoration: BoxDecoration(
-                  color: _filled
-                      ? (_busy ? theme.accentSoft : theme.accent)
-                      : Colors.transparent,
-                  border: Border.all(
-                    color: _heldByGrownUp
-                        ? theme.divider
-                        : (_filled ? theme.accent : theme.divider),
-                    width: 1.2,
-                  ),
-                  borderRadius: BorderRadius.circular(theme.radiusMd),
+                  color: _heldByGrownUp
+                      ? theme.ink.withValues(alpha: 0.07)
+                      : _filled
+                          ? (_busy
+                              ? theme.accent.withValues(alpha: 0.4)
+                              : theme.bubbleFill(isMine: true))
+                          : theme.ink.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  _actionLabel(),
-                  style: theme.label.copyWith(
+                  sentenceCaseOf(context, _actionLabel()),
+                  style: theme.body.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
                     color: _heldByGrownUp
                         ? theme.inkMuted
-                        : (_filled ? theme.accentInk : theme.ink),
+                        : (_filled ? theme.accentInk : theme.accent),
                   ),
                 ),
               ),

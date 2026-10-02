@@ -13,7 +13,7 @@ import 'route_landing.dart';
 /// [SearchFieldHero]'s shuttle has to land the magnifier on exactly the pixel
 /// the real field draws it at, and a flight that stops one padding step short
 /// of its destination is a flight you can see snap.
-const double searchFieldHPadding = 16;
+const double searchFieldHPadding = 12;
 
 /// The same, for a *door* — a card that opens a search screen rather than
 /// being one (Discover's FIND PEOPLE / SEARCH ROOMS rows). It lives here for
@@ -26,13 +26,18 @@ const double searchFieldIconSize = 18;
 
 /// The pill.
 ///
-/// The theme's own input box, just rounder: colour, border and fill all come
-/// from [AppTheme.inputDecoration] so a theme that restyles its text fields
-/// restyles search too. Fully round rather than the app's moderate radius
-/// because that is what makes a text field read as a *search* field — every
-/// big chat app draws it this way, and the shape is doing work no icon can.
-BoxDecoration searchFieldDecoration(AppTheme theme) =>
-    theme.inputDecoration().copyWith(borderRadius: BorderRadius.circular(999));
+/// The iOS search field: a capsule of soft fill and nothing else. The theme's
+/// input box carried a border, and a hairline-ringed pill is a Material text
+/// field; Messages, Mail and Settings draw search as a tinted capsule with no
+/// edge at all, and the shape plus the magnifier is what says "search". The
+/// fill is the theme's own ink at a low alpha, so it follows every palette —
+/// a light wash on dark themes, a grey wash on light ones.
+BoxDecoration searchFieldDecoration(AppTheme theme) => BoxDecoration(
+      color: theme.ink.withValues(
+        alpha: theme.background.computeLuminance() > 0.4 ? 0.06 : 0.10,
+      ),
+      borderRadius: BorderRadius.circular(999),
+    );
 
 /// The app's search bar: magnifier, field, clear button, in a pill.
 ///
@@ -137,11 +142,11 @@ class _SearchFieldState extends State<SearchField> with RouteLanding {
         child: Row(
           children: [
             Icon(
-              Icons.search,
+              CupertinoIcons.search,
               color: theme.inkMuted,
               size: searchFieldIconSize,
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Expanded(
               child: TextField(
                 controller: widget.controller,
@@ -154,7 +159,7 @@ class _SearchFieldState extends State<SearchField> with RouteLanding {
                   border: InputBorder.none,
                   hintText: widget.hintText,
                   hintStyle: theme.body.copyWith(color: theme.inkMuted),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 11),
                 ),
                 onChanged: widget.onChanged,
               ),
@@ -259,7 +264,7 @@ class SearchFieldHero extends StatelessWidget {
                     lerpDouble(searchDoorHPadding, searchFieldHPadding, t)!,
               ),
               child: Icon(
-                Icons.search,
+                CupertinoIcons.search,
                 size: searchFieldIconSize,
                 color: theme.inkMuted,
               ),

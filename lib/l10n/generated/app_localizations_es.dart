@@ -10264,4 +10264,79 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get riOwnerNote => 'La medalla marca a quien creó esta sala.';
+
+  @override
+  String get famPair => 'Vincular';
+
+  @override
+  String get famRelease => 'Liberar';
+
+  @override
+  String get famSettings => 'Ajustes';
+
+  @override
+  String get famAddChild => 'Añadir un niño';
+
+  @override
+  String get famEmptyTitle => 'Aún no hay niños';
+
+  @override
+  String get famOnlineNow => 'En línea ahora';
+
+  @override
+  String get famNotPaired => 'Aún sin vincular';
+
+  @override
+  String get famJustNow => 'Justo ahora';
+
+  @override
+  String get apprEmptyTitle => 'Nada pendiente';
+
+  @override
+  String get apprEmptySub => 'Estás al día.';
+
+  @override
+  String get apprNotYet => 'Todavía no';
+
+  @override
+  String get apprAllow => 'Permitir';
+
+  @override
+  String get compGeneral => 'General';
+
+  @override
+  String get compStorage => 'Almacenamiento';
+
+  @override
+  String get compTranslateInto => 'Traducir al';
+
+  @override
+  String get compBrain => 'Cerebro';
+
+  @override
+  String laUnlinkProvider(String provider) {
+    return 'Desvincular $provider';
+  }
+
+  @override
+  String laLinkProvider(String provider) {
+    return 'Vincular $provider';
+  }
+
+  @override
+  String get laUnlink => 'Desvincular';
+
+  @override
+  String get laLink => 'Vincular';
+
+  @override
+  String get laLinked => 'Vinculada';
+
+  @override
+  String get laNotLinked => 'No vinculada';
+
+  @override
+  String rdSignOut(String name) {
+    return 'Cerrar la sesión de $name';
+  }
 }

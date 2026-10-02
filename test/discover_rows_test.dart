@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/models/chat_room.dart';
@@ -5,7 +6,6 @@ import 'package:monkeyhub/models/enums.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/discover_rows.dart';
-import 'package:monkeyhub/widgets/visibility_badge.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 
 /// Discover previews five of each list and sends the rest to a full-list
@@ -30,7 +30,8 @@ void main() {
       await tester.pumpWidget(
         host(const DiscoverSectionHeader(label: 'PUBLIC ROOMS', count: '87')),
       );
-      expect(find.text('PUBLIC ROOMS'), findsOneWidget);
+      // Printed in sentence case, the iOS section title.
+      expect(find.text('Public rooms'), findsOneWidget);
       expect(find.text('87'), findsOneWidget);
     });
 
@@ -42,7 +43,8 @@ void main() {
       await tester.pumpWidget(
         host(const DiscoverSectionHeader(label: 'PUBLIC ROOMS', count: '')),
       );
-      expect(find.text('PUBLIC ROOMS'), findsOneWidget);
+      // Printed in sentence case, the iOS section title.
+      expect(find.text('Public rooms'), findsOneWidget);
       expect(find.text('0'), findsNothing);
     });
   });
@@ -50,7 +52,7 @@ void main() {
   group('see-all row', () {
     testWidgets('names the true total, not the preview length', (tester) async {
       await tester.pumpWidget(host(SeeAllRow(total: 87, onTap: () {})));
-      expect(find.text('see all 87'), findsOneWidget);
+      expect(find.text('See all 87'), findsOneWidget);
     });
 
     testWidgets('is tappable', (tester) async {
@@ -58,7 +60,7 @@ void main() {
       await tester.pumpWidget(
         host(SeeAllRow(total: 24, onTap: () => tapped = true)),
       );
-      await tester.tap(find.text('see all 24'));
+      await tester.tap(find.text('See all 24'));
       await tester.pump();
       expect(tapped, isTrue);
     });
@@ -128,7 +130,7 @@ void main() {
       expect(find.text('Ankara Coffee Club, Thursdays'), findsOneWidget);
     });
 
-    testWidgets('fits a narrow phone with every pill showing', (tester) async {
+    testWidgets('fits a narrow phone with every glyph showing', (tester) async {
       await tester.pumpWidget(
         host(
           PublicRoomTile(
@@ -144,12 +146,12 @@ void main() {
         ),
       );
       expect(tester.takeException(), isNull);
-      expect(find.byType(LockedBadge), findsOneWidget);
-      expect(find.byType(EphemeralBadge), findsOneWidget);
-      expect(find.byType(VisibilityBadge), findsOneWidget);
+      // Lock and lifetime are quiet glyphs on the meta line now, not pills.
+      expect(find.byIcon(CupertinoIcons.lock_fill), findsOneWidget);
+      expect(find.textContaining('12'), findsOneWidget);
     });
 
-    testWidgets('a tap that lands on a pill still opens the room', (
+    testWidgets('a tap that lands on a glyph still opens the room', (
       tester,
     ) async {
       // The pills answer for themselves on a room card. Here the row is one
@@ -164,14 +166,14 @@ void main() {
           ),
         ),
       );
-      await tester.tap(find.byType(LockedBadge));
+      await tester.tap(find.byIcon(CupertinoIcons.lock_fill));
       await tester.pump();
       expect(tapped, 1);
     });
 
     testWidgets('still counts the members', (tester) async {
       await tester.pumpWidget(host(PublicRoomTile(room: room(), onTap: () {})));
-      expect(find.text('12'), findsOneWidget);
+      expect(find.textContaining('12'), findsOneWidget);
     });
   });
 

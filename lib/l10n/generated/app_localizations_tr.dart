@@ -10124,4 +10124,79 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get riOwnerNote => 'Madalya bu odayı kuranı gösterir.';
+
+  @override
+  String get famPair => 'Eşleştir';
+
+  @override
+  String get famRelease => 'Serbest bırak';
+
+  @override
+  String get famSettings => 'Ayarlar';
+
+  @override
+  String get famAddChild => 'Çocuk ekle';
+
+  @override
+  String get famEmptyTitle => 'Henüz çocuk yok';
+
+  @override
+  String get famOnlineNow => 'Şu an çevrimiçi';
+
+  @override
+  String get famNotPaired => 'Henüz eşleştirilmedi';
+
+  @override
+  String get famJustNow => 'Az önce';
+
+  @override
+  String get apprEmptyTitle => 'Bekleyen bir şey yok';
+
+  @override
+  String get apprEmptySub => 'Her şey yolunda.';
+
+  @override
+  String get apprNotYet => 'Şimdi değil';
+
+  @override
+  String get apprAllow => 'İzin ver';
+
+  @override
+  String get compGeneral => 'Genel';
+
+  @override
+  String get compStorage => 'Depolama';
+
+  @override
+  String get compTranslateInto => 'Şu dile çevir';
+
+  @override
+  String get compBrain => 'Beyin';
+
+  @override
+  String laUnlinkProvider(String provider) {
+    return '$provider bağlantısını kaldır';
+  }
+
+  @override
+  String laLinkProvider(String provider) {
+    return '$provider bağla';
+  }
+
+  @override
+  String get laUnlink => 'Bağlantıyı kaldır';
+
+  @override
+  String get laLink => 'Bağla';
+
+  @override
+  String get laLinked => 'Bağlı';
+
+  @override
+  String get laNotLinked => 'Bağlı değil';
+
+  @override
+  String rdSignOut(String name) {
+    return '$name hesabından çıkış yap';
+  }
 }

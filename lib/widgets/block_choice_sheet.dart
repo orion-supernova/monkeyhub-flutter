@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -8,6 +9,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'destructive_sheet.dart';
+import 'sheet_kit.dart';
 
 enum BlockChoice { cancel, blockOnly, blockAndDelete }
 
@@ -68,22 +70,32 @@ class _BlockChoiceSheetState extends State<_BlockChoiceSheet> {
     final l10n = AppLocalizations.of(context);
     final shared = widget.sharedGroupRooms;
 
-    return Container(
-      decoration: theme.sheetDecoration(),
-      padding: const EdgeInsets.fromLTRB(22, 14, 22, 22),
+    return SheetFrame(
+      title: sentenceCaseOf(context, l10n.bulkActionBarBlockSheetHeaderLabel),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SheetGrabber(),
-            Text(l10n.bulkActionBarBlockSheetHeaderLabel,
-                style: theme.label.copyWith(color: theme.danger, letterSpacing: 2)),
+            Text(
+              l10n.bulkActionBarBlockSheetTitle(widget.displayName),
+              textAlign: TextAlign.center,
+              style: theme.displaySmall.copyWith(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             const SizedBox(height: 6),
-            Text(l10n.bulkActionBarBlockSheetTitle(widget.displayName),
-                style: theme.displayMedium),
-            const SizedBox(height: 6),
-            Text(_subtitle(context), style: theme.bodySoft),
+            Text(
+              _subtitle(context),
+              textAlign: TextAlign.center,
+              style: theme.body.copyWith(
+                fontSize: 15,
+                height: 1.35,
+                color: theme.inkMuted,
+              ),
+            ),
 
             // ─────────────────── Shared rooms warning ───────────────────
             if (shared.isNotEmpty) ...[
@@ -100,7 +112,7 @@ class _BlockChoiceSheetState extends State<_BlockChoiceSheet> {
             const SizedBox(height: 16),
             ChoiceTile(
               color: theme.danger,
-              icon: Icons.block,
+              icon: CupertinoIcons.hand_raised_fill,
               title: l10n.bulkActionBarBlockChoiceTileTitle,
               sub: widget.isFriend
                   ? l10n.bulkActionBarBlockChoiceTileFriendSub
@@ -115,7 +127,7 @@ class _BlockChoiceSheetState extends State<_BlockChoiceSheet> {
               ChoiceTile(
                 color: theme.danger,
                 filled: true,
-                icon: Icons.delete_sweep,
+                icon: CupertinoIcons.trash_fill,
                 title: l10n.bulkActionBarBlockDeleteDmTitle,
                 sub: l10n.bulkActionBarBlockDeleteDmSub,
                 onTap: () {
@@ -136,10 +148,14 @@ class _BlockChoiceSheetState extends State<_BlockChoiceSheet> {
                 child: GestureDetector(
                   onTap: () => Navigator.of(context).pop(BlockChoice.cancel),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 18),
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
                     child: Text(
-                      l10n.bulkActionBarBlockSheetCancelLabel,
-                      style: theme.label.copyWith(color: theme.inkMuted, letterSpacing: 2),
+                      sentenceCaseOf(context, l10n.bulkActionBarBlockSheetCancelLabel),
+                      style: theme.body.copyWith(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        color: theme.accent,
+                      ),
                     ),
                   ),
                 ),

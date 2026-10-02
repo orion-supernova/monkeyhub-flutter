@@ -10319,4 +10319,79 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get riOwnerNote =>
       'La médaille désigne la personne qui a créé ce salon.';
+
+  @override
+  String get famPair => 'Associer';
+
+  @override
+  String get famRelease => 'Libérer';
+
+  @override
+  String get famSettings => 'Réglages';
+
+  @override
+  String get famAddChild => 'Ajouter un enfant';
+
+  @override
+  String get famEmptyTitle => 'Pas encore d’enfant';
+
+  @override
+  String get famOnlineNow => 'En ligne';
+
+  @override
+  String get famNotPaired => 'Pas encore associé';
+
+  @override
+  String get famJustNow => 'À l’instant';
+
+  @override
+  String get apprEmptyTitle => 'Rien en attente';
+
+  @override
+  String get apprEmptySub => 'Vous êtes à jour.';
+
+  @override
+  String get apprNotYet => 'Pas encore';
+
+  @override
+  String get apprAllow => 'Autoriser';
+
+  @override
+  String get compGeneral => 'Général';
+
+  @override
+  String get compStorage => 'Stockage';
+
+  @override
+  String get compTranslateInto => 'Traduire en';
+
+  @override
+  String get compBrain => 'Cerveau';
+
+  @override
+  String laUnlinkProvider(String provider) {
+    return 'Dissocier $provider';
+  }
+
+  @override
+  String laLinkProvider(String provider) {
+    return 'Associer $provider';
+  }
+
+  @override
+  String get laUnlink => 'Dissocier';
+
+  @override
+  String get laLink => 'Associer';
+
+  @override
+  String get laLinked => 'Associé';
+
+  @override
+  String get laNotLinked => 'Non associé';
+
+  @override
+  String rdSignOut(String name) {
+    return 'Déconnecter $name';
+  }
 }

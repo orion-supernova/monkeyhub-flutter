@@ -7,6 +7,7 @@ import 'package:monkeyhub/screens/create_room_sheet.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/adaptive_sheet.dart';
+import 'package:monkeyhub/widgets/sheet_kit.dart' show sentenceCase;
 
 /// What this pins: **the create-room sheet is a sheet, not a floating card.**
 ///
@@ -90,11 +91,13 @@ void main() {
     await open(tester, size: const Size(360, 520));
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
 
+    // The button prints its label in sentence case.
+    final cta = find.text(sentenceCase(l10n.createRoomSheetOpenRoomButton));
     await tester.scrollUntilVisible(
-      find.text(l10n.createRoomSheetOpenRoomButton),
+      cta,
       120,
       scrollable: find.byType(Scrollable).last,
     );
-    expect(find.text(l10n.createRoomSheetOpenRoomButton), findsOneWidget);
+    expect(cta, findsOneWidget);
   });
 }

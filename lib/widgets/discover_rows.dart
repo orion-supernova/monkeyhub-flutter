@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
@@ -5,11 +6,14 @@ import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
+import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'chat_list_row.dart' show monogramGradient;
+import 'ios_kit.dart' show groupedFill, groupedRadius;
+import 'sheet_kit.dart' show sentenceCaseOf;
 import 'approval_gate.dart';
 import 'remote_image.dart';
 import 'user_avatar.dart';
-import 'visibility_badge.dart';
 
 /// Someone you already know. Tapping opens (or starts) the DM.
 ///
@@ -38,12 +42,12 @@ class FriendRow extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          decoration: theme.roomCardDecoration(ephemeral: false, active: false),
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          decoration: discoverCardDecoration(theme),
           child: Row(
             children: [
-              UserAvatar(user: user, size: 36, api: api),
+              UserAvatar(user: user, size: 44, api: api),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -53,18 +57,24 @@ class FriendRow extends StatelessWidget {
                       user.displayName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.displaySmall.copyWith(fontSize: 16),
+                      style: _name(theme),
                     ),
+                    const SizedBox(height: 1),
                     Text(
                       '@${user.username}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.monoTiny,
+                      style: _meta(theme),
                     ),
                   ],
                 ),
               ),
-              Icon(Icons.north_east, size: 14, color: theme.inkMuted),
+              const SizedBox(width: 8),
+              Icon(
+                CupertinoIcons.chat_bubble_fill,
+                size: 18,
+                color: theme.accent,
+              ),
             ],
           ),
         ),
@@ -73,19 +83,24 @@ class FriendRow extends StatelessWidget {
   }
 }
 
-/// A public room you may or may not be in yet.
-///
-/// Two tiers, not one line. Everything used to compete for the same horizontal
-/// run — glyph, name, description, up to three pills, and the member count —
-/// which left the two things a stranger actually reads about 120pt on a phone,
-/// so a name of ordinary length and every description ended in an ellipsis.
-/// Name and description now get the row's full width (two lines each), and the
-/// counts and pills drop to a meta line underneath where they can't crowd them.
-///
-/// The pills here don't answer on tap the way they do on a room card: this whole
-/// row is one target, and what it opens — the room's info sheet — says all of it
-/// in full sentences, along with the description in full. See
-/// `_Badge.explainOnTap`.
+/// The block every Discover row sits on: the grouped fill, generously
+/// rounded, no border and no shadow — an iOS inset row standing alone.
+BoxDecoration discoverCardDecoration(AppTheme theme) => BoxDecoration(
+      color: groupedFill(theme),
+      borderRadius: BorderRadius.circular(groupedRadius(theme)),
+    );
+
+TextStyle _name(AppTheme theme) => theme.bodyEmph.copyWith(
+      color: theme.ink,
+      fontSize: 17,
+      fontStyle: FontStyle.normal,
+    );
+
+TextStyle _meta(AppTheme theme) => theme.caption.copyWith(
+      fontSize: 13,
+      color: theme.inkMuted,
+    );
+
 class PublicRoomTile extends StatelessWidget {
   const PublicRoomTile({
     super.key,
@@ -120,109 +135,113 @@ class PublicRoomTile extends StatelessWidget {
       radius: theme.radiusXl,
       child: GestureDetector(
         onTap: onTap,
+        // One block: the room's face, its name, two lines of what it is
+        // about, and a quiet meta line. The old tile spelled visibility,
+        // lifetime and lock out as labelled pills; here they are glyphs in
+        // muted ink, and only "joined" / "waiting" keep a word, because those
+        // are about YOU rather than about the room.
         child: Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          decoration: theme.roomCardDecoration(
-            ephemeral: room.isEphemeral,
-            active: false,
-          ),
-          child: Column(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+          decoration: discoverCardDecoration(theme),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _RoomGlyph(room: room, api: api),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          room.name,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.displaySmall,
+              _RoomGlyph(room: room, api: api),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      room.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: _name(theme),
+                    ),
+                    if (hasDescription) ...[
+                      const SizedBox(height: 2),
+                      // Left in the case the owner typed it.
+                      Text(
+                        room.description!.trim(),
+                        style: theme.bodySoft.copyWith(
+                          fontSize: 15,
+                          height: 1.3,
+                          color: theme.inkMuted,
                         ),
-                        if (hasDescription) ...[
-                          const SizedBox(height: 3),
-                          // Left in the case the owner typed it. The old row
-                          // lowercased it to sit quietly on one line; over two
-                          // lines that reads as a typo, and proper nouns lose.
-                          Text(
-                            room.description!.trim(),
-                            style: theme.bodySoft,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(
+                          CupertinoIcons.person_2_fill,
+                          size: 13,
+                          color: theme.inkMuted,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          l10n.groupCallBannerMemberCount(room.memberCount),
+                          style: _meta(theme).copyWith(
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                        if (room.isEphemeral) ...[
+                          const SizedBox(width: 10),
+                          theme.hourglassIcon(size: 12, color: theme.inkMuted),
+                        ],
+                        if (room.hasPassword) ...[
+                          const SizedBox(width: 8),
+                          Icon(
+                            CupertinoIcons.lock_fill,
+                            size: 12,
+                            color: theme.inkMuted,
                           ),
                         ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Text('${room.memberCount}', style: theme.monoLarge),
-                  const SizedBox(width: 4),
-                  Text(
-                    l10n.childSetupScreenMemberCountUnitLabel,
-                    style: theme.monoTiny,
-                  ),
-                  const SizedBox(width: 10),
-                  // Wraps rather than ellipses: a second run of pills is worth
-                  // more than a truncated first one, and this line has no name
-                  // to protect.
-                  Expanded(
-                    child: Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      alignment: WrapAlignment.end,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        if (room.isEphemeral && room.messageLifetime != null)
-                          EphemeralBadge(
-                            ttl: room.messageLifetime!,
-                            dense: true,
-                            explainOnTap: false,
-                          ),
-                        // Worth knowing before the tap rather than at the join
-                        // sheet. A padlock alone, unlike the two pills beside
-                        // it: it is the one state here whose glyph everyone
-                        // already reads, and dropping the word is what keeps
-                        // all three pills on one run at 320pt.
-                        if (room.hasPassword)
-                          const LockedBadge(
-                            dense: true,
-                            iconOnly: true,
-                            explainOnTap: false,
-                          ),
+                        const Spacer(),
+                        // A quiet tick and the word, in the success
+                        // colour — the App Store's "Open" state, not a pill.
                         if (joined)
-                          const JoinedBadge(dense: true, explainOnTap: false)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                CupertinoIcons.checkmark_circle_fill,
+                                size: 14,
+                                color: theme.success,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                sentenceCaseOf(
+                                  context,
+                                  l10n.enterPublicRoomJoinedBadgeLabel,
+                                ),
+                                style: _meta(theme).copyWith(
+                                  color: theme.success,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          )
                         else if (awaiting)
                           WaitingPill(
                             label: l10n.childSetupScreenWaitingPillAskedLabel,
-                          )
-                        else
-                          VisibilityBadge(
-                            isPublic: room.isPublic,
-                            dense: true,
-                            explainOnTap: false,
                           ),
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Says which of the two things the tap does before you spend
-                  // it: walk in, or read up first.
-                  Icon(
-                    joined ? Icons.north_east : Icons.info_outline,
-                    size: 14,
-                    color: theme.inkMuted,
-                  ),
-                ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Icon(
+                  CupertinoIcons.chevron_forward,
+                  size: 15,
+                  color: theme.inkMuted.withValues(alpha: 0.7),
+                ),
               ),
             ],
           ),
@@ -232,8 +251,6 @@ class PublicRoomTile extends StatelessWidget {
   }
 }
 
-/// The 40pt square that opens a room row: its own avatar when it has one, and
-/// the glyph for its kind when it doesn't.
 class _RoomGlyph extends StatelessWidget {
   const _RoomGlyph({required this.room, required this.api});
   final ChatRoom room;
@@ -245,35 +262,44 @@ class _RoomGlyph extends StatelessWidget {
     final storageId = room.avatarStorageId;
     if (storageId != null && storageId.isNotEmpty && api != null) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(theme.radiusMd),
+        borderRadius: BorderRadius.circular(13),
         child: RemoteImage(
           storageId: storageId,
           api: api!,
-          width: 40,
-          height: 40,
+          width: 48,
+          height: 48,
         ),
       );
     }
+    // A lettered squircle in the room's own hue — the face a room wears in
+    // the chat list, squared off so rooms and people stay apart at a glance.
+    final trimmed = room.name.trim();
     return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: theme.accentSoft,
-        borderRadius: BorderRadius.circular(theme.radiusMd),
-      ),
+      width: 48,
+      height: 48,
       alignment: Alignment.center,
+      decoration: BoxDecoration(
+        gradient: monogramGradient(theme, room.id.hashCode),
+        borderRadius: BorderRadius.circular(13),
+      ),
       child: room.isEphemeral
-          ? theme.hourglassIcon(size: 16, color: theme.accent)
-          : Icon(Icons.tag, size: 16, color: theme.accent),
+          ? theme.hourglassIcon(size: 20, color: Colors.white)
+          : Text(
+              trimmed.isEmpty
+                  ? '#'
+                  : trimmed.characters.first.toUpperCase(),
+              style: const TextStyle(
+                fontFamily: 'CupertinoSystemDisplay',
+                fontSize: 21,
+                fontWeight: FontWeight.w600,
+                height: 1,
+                color: Colors.white,
+              ),
+            ),
     );
   }
 }
 
-/// Section label with a hairline rule and a true total.
-///
-/// Carries no action of its own. A search glyph did briefly live here, and it
-/// was too quiet to find — a full labelled row above the list does that job
-/// where you can actually see it.
 class DiscoverSectionHeader extends StatelessWidget {
   const DiscoverSectionHeader({
     super.key,
@@ -289,22 +315,43 @@ class DiscoverSectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Text(label, style: theme.label),
-        const SizedBox(width: 8),
-        Expanded(child: Container(height: 1, color: theme.divider)),
-        if (count.isNotEmpty) ...[
-          const SizedBox(width: 8),
-          Text(count, style: theme.monoTiny),
+    // The App Store / Music section title: bold, sentence case, the count
+    // trailing in muted ink. No rule — the space above does the separating.
+    return Padding(
+      padding: const EdgeInsets.only(left: 2, bottom: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
+        children: [
+          Flexible(
+            child: Text(
+              sentenceCaseOf(context, label),
+              style: theme.displaySmall.copyWith(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.35,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (count.isNotEmpty) ...[
+            const SizedBox(width: 8),
+            Text(
+              count,
+              style: theme.body.copyWith(
+                fontSize: 17,
+                color: theme.inkMuted,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
 
-/// The row that ends a capped preview: "see all 87".
 class SeeAllRow extends StatelessWidget {
   const SeeAllRow({super.key, required this.total, required this.onTap});
   final int total;
@@ -321,19 +368,25 @@ class SeeAllRow extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-          decoration: theme.roomCardDecoration(ephemeral: false, active: false),
+        // A text link in the accent, the iOS "See All".
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(4, 6, 4, 10),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                l10n.childSetupScreenSeeAllLabel(total),
-                style: theme.label.copyWith(color: theme.accent),
+                sentenceCaseOf(context, l10n.childSetupScreenSeeAllLabel(total)),
+                style: theme.body.copyWith(
+                  fontSize: 17,
+                  color: theme.accent,
+                ),
               ),
-              const SizedBox(width: 8),
-              Icon(Icons.chevron_right, size: 16, color: theme.accent),
+              const SizedBox(width: 4),
+              Icon(
+                CupertinoIcons.chevron_forward,
+                size: 15,
+                color: theme.accent,
+              ),
             ],
           ),
         ),
@@ -342,7 +395,6 @@ class SeeAllRow extends StatelessWidget {
   }
 }
 
-/// One muted line. Keeps an empty section from shoving the page around.
 class DiscoverEmptyLine extends StatelessWidget {
   const DiscoverEmptyLine(this.text, {super.key});
   final String text;

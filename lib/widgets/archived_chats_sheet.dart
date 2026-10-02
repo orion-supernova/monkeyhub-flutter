@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
@@ -8,10 +9,10 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'chat_row_action_menu.dart';
-import 'destructive_sheet.dart' show SheetGrabber;
 import 'mute_room_sheet.dart';
-import 'room_card.dart';
 import '../screens/navigation/open_room.dart';
+import 'sheet_kit.dart';
+import 'chat_list_row.dart';
 
 /// Every room the viewer has archived. Reached by pulling down at the top of
 /// the chat list and tapping the "Archived Chats (N)" folder row — see
@@ -50,50 +51,54 @@ class ArchivedChatsSheet extends StatelessWidget {
     final rooms = repo.archivedRooms;
     final maxH = MediaQuery.sizeOf(context).height * 0.7;
 
-    return Container(
-      decoration: theme.sheetDecoration(),
-      padding: EdgeInsets.fromLTRB(
-        22,
-        14,
-        22,
-        22 + MediaQuery.paddingOf(context).bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SheetGrabber(),
-          Text(
-            rooms.isEmpty
-                ? l10n.archivedChatsSheetTitle
-                : l10n.archivedChatsSheetTitleCount(rooms.length),
-            textAlign: TextAlign.center,
-            style: theme.label.copyWith(letterSpacing: 2.4),
-          ),
-          const SizedBox(height: 14),
-          if (rooms.isEmpty)
-            // The last archived room was unarchived while this was open. Say
-            // so and let the reader dismiss, rather than pop a sheet out from
-            // under a finger.
-            Text(
-              l10n.archivedChatsSheetEmptyMessage,
-              textAlign: TextAlign.center,
-              style: theme.bodySoft,
+    // The same rows the chat list draws, in a sheet with a × and a centred
+    // title — Telegram's archive, opened in place.
+    return SheetFrame(
+      leading: const SheetCloseButton(),
+      title: rooms.isEmpty
+          ? sentenceCaseOf(context, l10n.archivedChatsSheetTitle)
+          : sentenceCaseOf(
+              context,
+              l10n.archivedChatsSheetTitleCount(rooms.length),
+            ),
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      child: rooms.isEmpty
+          ? Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    CupertinoIcons.archivebox,
+                    size: 40,
+                    color: theme.inkMuted.withValues(alpha: 0.6),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.archivedChatsSheetEmptyMessage,
+                    textAlign: TextAlign.center,
+                    style: theme.body.copyWith(
+                      fontSize: 15,
+                      color: theme.inkMuted,
+                    ),
+                  ),
+                ],
+              ),
             )
-          else
-            ConstrainedBox(
+          : ConstrainedBox(
               constraints: BoxConstraints(maxHeight: maxH),
-              child: ListView.separated(
+              child: ListView.builder(
                 shrinkWrap: true,
                 padding: EdgeInsets.zero,
                 itemCount: rooms.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 4),
-                itemBuilder: (_, i) =>
-                    _ArchivedChatRow(room: rooms[i], repo: repo, api: api),
+                itemBuilder: (_, i) => _ArchivedChatRow(
+                  room: rooms[i],
+                  repo: repo,
+                  api: api,
+                  last: i == rooms.length - 1,
+                ),
               ),
             ),
-        ],
-      ),
     );
   }
 }
@@ -103,9 +108,11 @@ class _ArchivedChatRow extends StatefulWidget {
     required this.room,
     required this.repo,
     required this.api,
+    this.last = false,
   });
 
   final ChatRoom room;
+  final bool last;
   final ChatRepository repo;
   final ChatApi api;
 
@@ -182,10 +189,11 @@ class _ArchivedChatRowState extends State<_ArchivedChatRow> {
     return ChatRowLongPress(
       key: _anchorKey,
       onLongPress: () => _showMenu(context),
-      child: RoomCard(
+      child: ChatListRow(
         room: widget.room,
         api: widget.api,
         dmUser: widget.repo.otherUserFor(widget.room),
+        showDivider: !widget.last,
         onTap: () {
           // Pop first — opening the room behind a still-visible sheet
           // animates the transcript in underneath it.

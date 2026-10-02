@@ -6,6 +6,7 @@ import '../backend/chat_api.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
 import 'search_field.dart';
+import 'sheet_kit.dart' show sentenceCaseOf;
 import 'user_avatar.dart';
 
 /// A search bar over a list of people, with the list virtualised underneath.
@@ -257,11 +258,11 @@ class _PeoplePickerState extends State<PeoplePicker> {
               final u = row.user;
               if (u == null) {
                 return Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 16, 0, 6),
+                  padding: const EdgeInsets.fromLTRB(4, 18, 0, 4),
                   child: Text(
-                    row.header!,
-                    style: theme.label.copyWith(
-                      letterSpacing: 2.2,
+                    sentenceCaseOf(context, row.header!),
+                    style: theme.caption.copyWith(
+                      fontSize: 13,
                       color: theme.inkMuted,
                     ),
                   ),
@@ -337,7 +338,7 @@ class _Searching extends StatelessWidget {
   }
 }
 
-class _PersonTile extends StatelessWidget {
+class _PersonTile extends StatefulWidget {
   const _PersonTile({
     super.key,
     required this.user,
@@ -350,39 +351,80 @@ class _PersonTile extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
+  State<_PersonTile> createState() => _PersonTileState();
+}
+
+/// A contact row the way Messages draws one: face, name, handle under it in
+/// muted ink, a hairline that starts at the text. No chevron — tapping a
+/// person starts the chat, it does not drill into anything.
+class _PersonTileState extends State<_PersonTile> {
+  bool _down = false;
+
+  void _set(bool v) {
+    if (_down != v) setState(() => _down = v);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final user = widget.user;
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
+      onTapDown: (_) => _set(true),
+      onTapUp: (_) => _set(false),
+      onTapCancel: () => _set(false),
       behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+      child: AnimatedContainer(
+        duration: _down ? Duration.zero : const Duration(milliseconds: 240),
+        decoration: BoxDecoration(
+          color: _down ? theme.ink.withValues(alpha: 0.07) : null,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 4),
         child: Row(
           children: [
-            UserAvatar(user: user, size: 40, api: api),
+            UserAvatar(user: user, size: 42, api: widget.api),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    user.displayName,
-                    style: theme.body,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 11),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: theme.ink.withValues(alpha: 0.08),
+                      width: 1 / MediaQuery.devicePixelRatioOf(context),
+                    ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '@${user.username}',
-                    style: theme.monoTiny,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      user.displayName,
+                      style: theme.bodyEmph.copyWith(
+                        color: theme.ink,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w500,
+                        fontStyle: FontStyle.normal,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      '@${user.username}',
+                      style: theme.caption.copyWith(
+                        fontSize: 13,
+                        color: theme.inkMuted,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
             ),
-            Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
           ],
         ),
       ),

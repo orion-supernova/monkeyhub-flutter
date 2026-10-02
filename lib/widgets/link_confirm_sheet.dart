@@ -5,7 +5,8 @@ import '../l10n/generated/app_localizations.dart';
 import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
-import 'destructive_sheet.dart' show SheetGrabber, ChoiceTile;
+import 'ios_kit.dart';
+import 'sheet_kit.dart';
 
 /// Asks before opening a link ENTITY — text like "check this" that carries a
 /// URL the visible words say nothing about.
@@ -39,48 +40,75 @@ class _LinkConfirmSheet extends StatelessWidget {
     // Empty-host fallback covers a URL Uri can't parse; the full string below
     // is then the only honest rendering, and the tile still shows it.
     final host = Uri.tryParse(url)?.host ?? '';
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.surface,
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(theme.radiusLg)),
-      ),
-      padding: EdgeInsets.fromLTRB(
-        20,
-        12,
-        20,
-        20 + MediaQuery.of(context).padding.bottom,
-      ),
+    return SheetFrame(
+      title: sentenceCaseOf(context, l10n.linkConfirmSheetTitle),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SheetGrabber(),
-          Text(l10n.linkConfirmSheetTitle,
-              style: theme.label.copyWith(color: theme.accent)),
-          const SizedBox(height: 10),
           // The destination, host loudest. SelectableText so a suspicious
           // reader can copy the URL out and inspect it without opening it —
           // which is the whole posture of this sheet.
-          if (host.isNotEmpty) ...[
-            Text(host, style: theme.bodyEmph.copyWith(color: theme.ink)),
-            const SizedBox(height: 4),
-          ],
-          SelectableText(
-            url,
-            style: theme.monoTiny.copyWith(color: theme.inkSoft),
-            maxLines: 4,
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            decoration: BoxDecoration(
+              color: sheetGroupFill(theme),
+              borderRadius: BorderRadius.circular(groupedRadius(theme)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: tileColor(theme, TileTone.blue),
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  child: const Icon(
+                    CupertinoIcons.link,
+                    size: 18,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (host.isNotEmpty) ...[
+                        Text(
+                          host,
+                          style: theme.bodyEmph.copyWith(
+                            color: theme.ink,
+                            fontSize: 17,
+                            fontStyle: FontStyle.normal,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                      ],
+                      SelectableText(
+                        url,
+                        style: theme.caption.copyWith(
+                          fontSize: 13,
+                          color: theme.inkMuted,
+                        ),
+                        maxLines: 4,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 20),
-          ChoiceTile(
-            color: theme.accent,
-            icon: CupertinoIcons.arrow_up_right_square,
-            title: l10n.linkConfirmSheetOpenLabel,
-            sub: host.isNotEmpty ? host : url,
-            filled: true,
+          const SizedBox(height: 18),
+          SheetActionButton(
+            label: l10n.linkConfirmSheetOpenLabel,
             onTap: () => Navigator.of(context).pop(true),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 4),
           // Autofocused so Enter on a fresh sheet cancels rather than opens —
           // the destructive-sheet convention, borrowed because "open an
           // unread URL" is the riskier of the two options here too.
@@ -93,10 +121,15 @@ class _LinkConfirmSheet extends StatelessWidget {
               onTap: () => Navigator.of(context).pop(false),
               behavior: HitTestBehavior.opaque,
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                constraints: const BoxConstraints(minHeight: 48),
                 alignment: Alignment.center,
-                child: Text(l10n.linkConfirmSheetCancelLabel,
-                    style: theme.label.copyWith(color: theme.inkMuted)),
+                child: Text(
+                  sentenceCaseOf(context, l10n.linkConfirmSheetCancelLabel),
+                  style: theme.body.copyWith(
+                    fontSize: 17,
+                    color: theme.accent,
+                  ),
+                ),
               ),
             ),
           ),

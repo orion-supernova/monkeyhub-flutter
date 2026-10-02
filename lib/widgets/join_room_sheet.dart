@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
@@ -5,12 +6,13 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
-import '../keyboard/focusable_tap.dart';
-import 'discover_rows.dart';
 import 'labeled_field.dart';
 import 'password_field.dart';
 import 'remote_image.dart';
 import 'visibility_badge.dart';
+import 'sheet_kit.dart';
+import 'ios_kit.dart';
+import 'chat_list_row.dart' show monogramGradient;
 
 /// Confirmation gate shown before joining a public room — and the one place the
 /// room describes itself in full.
@@ -86,273 +88,188 @@ class _JoinRoomSheetState extends State<_JoinRoomSheet> {
     // unconstrained scroll view would throw.
     final maxStory = (media.size.height - media.viewInsets.bottom) * 0.45;
 
+    // The App Store product sheet: the room's face centred and large, its
+    // name and size under it, what it is about, the facts as a grouped block
+    // of iOS rows, and one button. The × in the bar is the way out.
+    final facts = <Widget>[
+      GroupedRow(
+        icon: room.isPublic
+            ? CupertinoIcons.globe
+            : CupertinoIcons.eye_slash_fill,
+        tone: room.isPublic ? TileTone.blue : TileTone.gray,
+        title: sentenceCaseOf(
+          context,
+          room.isPublic
+              ? l10n.enterPublicRoomVisibilityPublicLabel
+              : l10n.enterPublicRoomVisibilityPrivateLabel,
+        ),
+        subtitle: room.isPublic
+            ? l10n.roomBadgePublicTooltip
+            : l10n.roomBadgePrivateTooltip,
+      ),
+      if (room.hasPassword)
+        GroupedRow(
+          icon: CupertinoIcons.lock_fill,
+          tone: TileTone.orange,
+          title: sentenceCaseOf(context, l10n.roomCardLockedBadge),
+          subtitle: l10n.roomBadgeLockedTooltip,
+        ),
+      if (room.isEphemeral && room.messageLifetime != null)
+        GroupedRow(
+          icon: CupertinoIcons.hourglass,
+          tone: TileTone.purple,
+          title: sentenceCaseOf(
+            context,
+            l10n.enterPublicRoomEphemeralBadgeLabel(
+              ephemeralShort(l10n, room.messageLifetime!),
+            ),
+          ),
+          subtitle: l10n.roomBadgeEphemeralTooltip(
+            ephemeralShort(l10n, room.messageLifetime!),
+          ),
+        ),
+      GroupedRow(
+        icon: CupertinoIcons.calendar,
+        tone: TileTone.red,
+        title: sentenceCaseOf(context, l10n.roomInfoSheetCreatedLabel),
+        // Flutter's own localizations format the date, so it reads natively
+        // in all twelve languages.
+        value: MaterialLocalizations.of(
+          context,
+        ).formatShortDate(room.createdAt.toLocal()),
+      ),
+    ];
+
+    final trimmedName = room.name.trim();
     return Padding(
       padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
-      child: Container(
-        decoration: theme.sheetDecoration(),
-        padding: const EdgeInsets.fromLTRB(22, 14, 22, 22),
+      child: SheetFrame(
+        leading: const SheetCloseButton(),
+        title: sentenceCaseOf(context, l10n.groupCallBannerJoinRoomSheetTitle),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: theme.inkMuted.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            Text(
-              l10n.groupCallBannerJoinRoomSheetTitle,
-              style: theme.label.copyWith(
-                color: theme.accent,
-                letterSpacing: 2,
-              ),
-            ),
-            const SizedBox(height: 16),
+            // The room's own account of itself scrolls; the join button never
+            // does, so a room with a lot to say can't push the only action off
+            // the bottom.
             ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: maxStory),
+              constraints: BoxConstraints(maxHeight: maxStory + 120),
               child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (hasAvatar)
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(theme.radiusMd),
-                            child: RemoteImage(
-                              storageId: room.avatarStorageId!,
-                              api: widget.api,
-                              width: 52,
-                              height: 52,
-                            ),
-                          )
-                        else
-                          Container(
-                            width: 52,
-                            height: 52,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: theme.surface,
-                              borderRadius: BorderRadius.circular(
-                                theme.radiusMd,
-                              ),
-                              border: Border.all(color: theme.divider),
-                            ),
-                            child: room.isEphemeral
-                                ? theme.hourglassIcon(
-                                    size: 22,
-                                    color: theme.accent,
-                                  )
-                                : Icon(
-                                    Icons.tag,
-                                    size: 22,
-                                    color: theme.inkSoft,
-                                  ),
-                          ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // No maxLines and no ellipsis anywhere in this
-                              // sheet: a name too long for the rows is exactly
-                              // the name someone came here to read.
-                              Text(room.name, style: theme.displayLarge),
-                              const SizedBox(height: 4),
-                              Text(
-                                l10n.groupCallBannerMemberCount(
-                                  room.memberCount,
+                    const SizedBox(height: 4),
+                    Center(
+                      child: SheetRise(
+                        child: hasAvatar
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(22),
+                                child: RemoteImage(
+                                  storageId: room.avatarStorageId!,
+                                  api: widget.api,
+                                  width: 84,
+                                  height: 84,
                                 ),
-                                style: theme.monoTiny,
+                              )
+                            : Container(
+                                width: 84,
+                                height: 84,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  gradient: monogramGradient(
+                                    theme,
+                                    room.id.hashCode,
+                                  ),
+                                  borderRadius: BorderRadius.circular(22),
+                                ),
+                                child: room.isEphemeral
+                                    ? theme.hourglassIcon(
+                                        size: 34,
+                                        color: Colors.white,
+                                      )
+                                    : Text(
+                                        trimmedName.isEmpty
+                                            ? '#'
+                                            : trimmedName.characters.first
+                                                .toUpperCase(),
+                                        style: const TextStyle(
+                                          fontFamily: 'CupertinoSystemDisplay',
+                                          fontSize: 38,
+                                          fontWeight: FontWeight.w600,
+                                          height: 1,
+                                          color: Colors.white,
+                                        ),
+                                      ),
                               ),
-                            ],
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14),
+                    // No maxLines anywhere in this sheet: a name too long for
+                    // the rows is exactly the name someone came here to read.
+                    Text(
+                      room.name,
+                      textAlign: TextAlign.center,
+                      style: theme.displayMedium.copyWith(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      l10n.groupCallBannerMemberCount(room.memberCount),
+                      textAlign: TextAlign.center,
+                      style: theme.body.copyWith(
+                        fontSize: 15,
+                        color: theme.inkMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     Text(
                       description.isEmpty
                           ? l10n.roomInfoSheetNoDescription
                           : description,
-                      style: description.isEmpty
-                          ? theme.bodySoft.copyWith(color: theme.inkMuted)
-                          : theme.body,
+                      textAlign: TextAlign.center,
+                      style: theme.body.copyWith(
+                        fontSize: 15,
+                        height: 1.35,
+                        color: description.isEmpty
+                            ? theme.inkMuted
+                            : theme.inkSoft,
+                      ),
                     ),
                     const SizedBox(height: 20),
-                    DiscoverSectionHeader(
-                      label: l10n.roomInfoSheetDetailsLabel,
-                      count: '',
-                    ),
-                    const SizedBox(height: 12),
-                    _DetailLine(
-                      icon: theme.visibilityIcon(
-                        isPublic: room.isPublic,
-                        size: 16,
-                      ),
-                      title: room.isPublic
-                          ? l10n.enterPublicRoomVisibilityPublicLabel
-                          : l10n.enterPublicRoomVisibilityPrivateLabel,
-                      body: room.isPublic
-                          ? l10n.roomBadgePublicTooltip
-                          : l10n.roomBadgePrivateTooltip,
-                    ),
-                    if (room.hasPassword)
-                      _DetailLine(
-                        icon: Icon(
-                          Icons.lock_outline_rounded,
-                          size: 16,
-                          color: theme.inkSoft,
-                        ),
-                        title: l10n.roomCardLockedBadge,
-                        body: l10n.roomBadgeLockedTooltip,
-                      ),
-                    if (room.isEphemeral && room.messageLifetime != null)
-                      _DetailLine(
-                        icon: theme.hourglassIcon(
-                          size: 16,
-                          color: theme.accent,
-                        ),
-                        title: l10n.enterPublicRoomEphemeralBadgeLabel(
-                          ephemeralShort(l10n, room.messageLifetime!),
-                        ),
-                        body: l10n.roomBadgeEphemeralTooltip(
-                          ephemeralShort(l10n, room.messageLifetime!),
-                        ),
-                      ),
-                    _DetailLine(
-                      icon: Icon(
-                        Icons.schedule,
-                        size: 16,
-                        color: theme.inkSoft,
-                      ),
-                      title: l10n.roomInfoSheetCreatedLabel,
-                      // Flutter's own localizations format the date, so this
-                      // reads natively in all twelve languages without a
-                      // twelve-language month table of our own. Short form: the
-                      // weekday a room was made on is the one part of this
-                      // nobody came here for.
-                      body: MaterialLocalizations.of(
-                        context,
-                      ).formatShortDate(room.createdAt.toLocal()),
+                    SheetRise(
+                      index: 1,
+                      child: SheetGroup(children: facts),
                     ),
                   ],
                 ),
               ),
             ),
             if (room.hasPassword) ...[
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
               FieldLabel(l10n.groupCallBannerPasswordFieldLabel),
               PasswordField(
                 controller: _password,
                 hint: l10n.groupCallBannerPasswordHint,
                 autofocus: true,
                 onChanged: (_) => setState(() {}),
-                // Enter must not do what the dimmed JOIN button says it can't.
+                // Enter must not do what the dimmed Join button says it can't.
                 onSubmitted: (_) => _canJoin ? _join() : null,
               ),
             ],
-            const SizedBox(height: 20),
-            FocusableTap(
-              onTap: _canJoin ? _join : null,
-              enabled: _canJoin,
-              autofocus: !room.hasPassword,
-              semanticLabel: l10n.groupCallBannerJoinRoomButtonSemanticLabel,
-              radius: theme.radiusMd,
-              child: Opacity(
-                opacity: _canJoin ? 1 : 0.4,
-                child: GestureDetector(
-                  onTap: _join,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: theme.accent,
-                      borderRadius: BorderRadius.circular(theme.radiusMd),
-                    ),
-                    child: Text(
-                      l10n.groupCallBannerJoinRoomButtonLabel,
-                      style: theme.label.copyWith(
-                        color: theme.accentInk,
-                        letterSpacing: 2.4,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 4),
-            FocusableTap(
-              onTap: () => Navigator.of(context).pop(),
-              semanticLabel: l10n.groupCallBannerCancelButtonSemanticLabel,
-              radius: theme.radiusMd,
-              child: GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
-                behavior: HitTestBehavior.opaque,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  alignment: Alignment.center,
-                  child: Text(
-                    l10n.groupCallBannerCancelButtonLabel,
-                    style: theme.bodySoft.copyWith(color: theme.inkMuted),
-                  ),
-                ),
+            const SizedBox(height: 18),
+            Semantics(
+              label: l10n.groupCallBannerJoinRoomButtonSemanticLabel,
+              child: SheetActionButton(
+                label: l10n.groupCallBannerJoinRoomButtonLabel,
+                onTap: _canJoin ? _join : null,
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// One fact about the room: the glyph the rows use for it, the short label the
-/// pill would have carried, and the sentence the pill's tooltip was hiding.
-///
-/// The sentence is the point. A padlock on a row tells you there's something to
-/// know; only "you'll need the room password to join" tells you what to do about
-/// it — so it wraps to as many lines as it takes and is never abbreviated.
-class _DetailLine extends StatelessWidget {
-  const _DetailLine({
-    required this.icon,
-    required this.title,
-    required this.body,
-  });
-  final Widget icon;
-  final String title;
-  final String body;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(width: 22, child: Center(child: icon)),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: theme.monoTiny.copyWith(color: theme.inkSoft),
-                ),
-                const SizedBox(height: 3),
-                Text(body, style: theme.bodySoft),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

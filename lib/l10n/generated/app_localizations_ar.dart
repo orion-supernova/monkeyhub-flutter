@@ -10324,4 +10324,79 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get riOwnerNote => 'الوسام يميّز منشئ هذه الغرفة.';
+
+  @override
+  String get famPair => 'إقران';
+
+  @override
+  String get famRelease => 'تحرير';
+
+  @override
+  String get famSettings => 'الإعدادات';
+
+  @override
+  String get famAddChild => 'إضافة طفل';
+
+  @override
+  String get famEmptyTitle => 'لا يوجد أطفال بعد';
+
+  @override
+  String get famOnlineNow => 'متصل الآن';
+
+  @override
+  String get famNotPaired => 'لم يُقرن بعد';
+
+  @override
+  String get famJustNow => 'الآن';
+
+  @override
+  String get apprEmptyTitle => 'لا شيء بانتظارك';
+
+  @override
+  String get apprEmptySub => 'أنت مطّلع على كل شيء.';
+
+  @override
+  String get apprNotYet => 'ليس بعد';
+
+  @override
+  String get apprAllow => 'السماح';
+
+  @override
+  String get compGeneral => 'عام';
+
+  @override
+  String get compStorage => 'التخزين';
+
+  @override
+  String get compTranslateInto => 'الترجمة إلى';
+
+  @override
+  String get compBrain => 'العقل';
+
+  @override
+  String laUnlinkProvider(String provider) {
+    return 'إلغاء ربط $provider';
+  }
+
+  @override
+  String laLinkProvider(String provider) {
+    return 'ربط $provider';
+  }
+
+  @override
+  String get laUnlink => 'إلغاء الربط';
+
+  @override
+  String get laLink => 'ربط';
+
+  @override
+  String get laLinked => 'مرتبط';
+
+  @override
+  String get laNotLinked => 'غير مرتبط';
+
+  @override
+  String rdSignOut(String name) {
+    return 'تسجيل خروج $name';
+  }
 }

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
@@ -7,6 +6,7 @@ import '../keyboard/focusable_tap.dart';
 import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
+import 'sheet_kit.dart' show sentenceCaseOf;
 
 /// What a toast is *about*, which decides its glyph and its accent.
 ///
@@ -422,16 +422,22 @@ class _ToastState extends State<_Toast> with SingleTickerProviderStateMixin {
           child: AnimatedBuilder(
             animation: _ctrl,
             builder: (context, child) {
-              final v = Curves.easeOutCubic.transform(_ctrl.value);
+              // Drops in from above on a small overshoot — the Dynamic Island
+              // banner's settle — and leaves on the same curve run backwards.
+              final v = const _Drop().transform(_ctrl.value);
               // The drag reads as the pill being carried off, so it takes the
               // opacity with it — otherwise a half-flicked toast hangs at the
               // edge of the screen at full strength.
               final carried = (1 - (_drag.abs() / 90)).clamp(0.0, 1.0);
               return Opacity(
-                opacity: (v * carried).clamp(0.0, 1.0),
+                opacity: (v.clamp(0.0, 1.0) * carried).clamp(0.0, 1.0),
                 child: Transform.translate(
-                  offset: Offset(0, _drag + (1 - v) * -22),
-                  child: Transform.scale(scale: 0.96 + 0.04 * v, child: child),
+                  offset: Offset(0, _drag + (1 - v) * -48),
+                  child: Transform.scale(
+                    scale: 0.92 + 0.08 * v,
+                    alignment: Alignment.topCenter,
+                    child: child,
+                  ),
                 ),
               );
             },
@@ -500,58 +506,56 @@ class _Pill extends StatelessWidget {
             ),
           ],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(_radius),
-          child: BackdropFilter(
-            // Frosted rather than opaque. This lands over Risograph's halftone
-            // and Cyberpunk's scanlines as often as over a flat surface, and a
-            // solid rectangle punches a hole in both; blurring what is behind
-            // it keeps the pill part of the screen it interrupts.
-            filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-            child: Container(
-              padding: EdgeInsets.fromLTRB(10, 9, label == null ? 16 : 8, 9),
-              decoration: BoxDecoration(
-                color: theme.surfaceRaised.withValues(alpha: 0.86),
-                borderRadius: BorderRadius.circular(_radius),
-                border: Border.all(
-                  color: accent.withValues(alpha: 0.38),
-                  width: 1,
+        // Solid, not frosted. The pill slides and fades in, and a
+        // BackdropFilter inside a moving, fading layer re-blurs the screen
+        // every frame of that — the one thing this app never animates. A
+        // raised surface at near-full opacity reads as the same floating
+        // banner, and the shadow does the separating.
+        child: Container(
+          padding: EdgeInsets.fromLTRB(10, 9, label == null ? 16 : 8, 9),
+          decoration: BoxDecoration(
+            color: Color.alphaBlend(
+              theme.ink.withValues(alpha: 0.04),
+              theme.surfaceRaised,
+            ),
+            borderRadius: BorderRadius.circular(_radius),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: accent,
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Icon(spec.glyph, size: 15, color: Colors.white),
+              ),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Text(
+                  spec.message,
+                  style: theme.body.copyWith(
+                    fontSize: 15,
+                    color: theme.ink,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 26,
-                    height: 26,
-                    decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.18),
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: Icon(spec.glyph, size: 15, color: accent),
-                  ),
-                  const SizedBox(width: 10),
-                  Flexible(
-                    child: Text(
-                      spec.message,
-                      style: theme.body,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (label != null) ...[
-                    const SizedBox(width: 10),
-                    _ActionButton(
-                      label: label,
-                      accent: theme.accent,
-                      onTap: onAction,
-                    ),
-                  ],
-                ],
-              ),
-            ),
+              if (label != null) ...[
+                const SizedBox(width: 10),
+                _ActionButton(
+                  label: label,
+                  accent: theme.accent,
+                  onTap: onAction,
+                ),
+              ],
+            ],
           ),
         ),
       ),
@@ -595,12 +599,12 @@ class _ActionButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(999),
           ),
           child: Text(
-            label,
+            sentenceCaseOf(context, label),
             style: TextStyle(
               color: accent,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.1,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.2,
               // Explicit: see the DefaultTextStyle note above. Anything under
               // an OverlayEntry that does not state this can fall back to the
               // debug style.
@@ -611,5 +615,17 @@ class _ActionButton extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// easeOutBack with a modest overshoot: the banner lands a few points past
+/// its rest and settles, without the cartoon bounce of the full curve.
+class _Drop extends Curve {
+  const _Drop();
+  @override
+  double transformInternal(double t) {
+    const s = 1.1;
+    final u = t - 1;
+    return u * u * ((s + 1) * u + s) + 1;
   }
 }

@@ -85,7 +85,7 @@ void main() {
                   ),
                 ),
                 SizedBox(width: 8),
-                Icon(Icons.search, size: searchFieldIconSize),
+                Icon(CupertinoIcons.search, size: searchFieldIconSize),
               ],
             ),
           ),
@@ -103,7 +103,7 @@ void main() {
       await tester.pumpWidget(host(bar(c)));
 
       final clear = find.byIcon(CupertinoIcons.clear_circled_solid);
-      expect(find.byIcon(Icons.search), findsOneWidget,
+      expect(find.byIcon(CupertinoIcons.search), findsOneWidget,
           reason: 'the magnifier is always there');
       expect(clear, findsNothing, reason: 'nothing to clear yet');
 

@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
-import 'count_badge.dart';
 import 'search_field.dart';
+import 'sheet_kit.dart' show sentenceCaseOf;
 
 /// Lives as the first child of the chat list's [ListView]. Hidden by default;
 /// pulling down at the top of the list (overscroll) reveals it — see
@@ -144,7 +144,7 @@ class _PullRevealPanel extends StatelessWidget {
       // symmetric padding would be. It has to live in here rather than
       // between the two in home_screen: out there it would hold space even
       // with the panel shut, which is the dead band this panel just lost.
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
+      padding: const EdgeInsets.fromLTRB(20, 4, 16, 14),
       child: Column(
         // Load-bearing now that the reveal measures this panel instead of
         // clipping it to a constant: a max-size Column would report whatever
@@ -175,24 +175,30 @@ class _PullRevealPanel extends StatelessWidget {
               // that row used to be almost entirely empty (one small glyph
               // against the panel's full width), which read as dead space
               // stacked on top of the search bar rather than part of it.
+              // The iOS search bar's Cancel: a text button in the accent,
+              // beside the field. It dismisses the whole panel, field and all.
               FocusableTap(
                 onTap: onCollapse,
                 semanticLabel: l10n.pullRevealCollapseSemanticLabel,
-                shape: FocusRingShape.circle,
+                shape: FocusRingShape.capsule,
                 radius: 999,
                 child: GestureDetector(
                   onTap: onCollapse,
                   behavior: HitTestBehavior.opaque,
                   child: Padding(
-                    padding: const EdgeInsets.all(6),
-                    child: Icon(
-                      // Not a chevron any more — pointing "up" only read as
-                      // "collapse" while this sat alone on its own row above
-                      // the field. Beside it, a plain X reads as "dismiss"
-                      // the way it does next to any inline search bar.
-                      CupertinoIcons.xmark,
-                      size: 16,
-                      color: theme.inkMuted,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 8,
+                    ),
+                    child: Text(
+                      sentenceCaseOf(
+                        context,
+                        MaterialLocalizations.of(context).cancelButtonLabel,
+                      ),
+                      style: theme.body.copyWith(
+                        fontSize: 17,
+                        color: theme.accent,
+                      ),
                     ),
                   ),
                 ),
@@ -200,7 +206,7 @@ class _PullRevealPanel extends StatelessWidget {
             ],
           ),
           if (archivedCount > 0) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
             _ArchivedRow(count: archivedCount, onTap: onOpenArchived),
           ],
         ],
@@ -239,48 +245,71 @@ class _ArchivedRowState extends State<_ArchivedRow> {
         onTapCancel: () => setState(() => _pressed = false),
         onTapUp: (_) => setState(() => _pressed = false),
         behavior: HitTestBehavior.opaque,
-        child: AnimatedScale(
-          scale: _pressed ? 0.98 : 1.0,
-          duration: theme.motionFast,
-          curve: theme.motionCurve,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: theme.surfaceSunken,
-              borderRadius: BorderRadius.circular(theme.radiusMd),
-              border: Border.all(color: theme.divider, width: 0.5),
-            ),
-            child: Row(
-              children: [
-                // Same "icon on an accent-soft circle" treatment as the
-                // Saved Messages avatar and the pin badge — one visual
-                // language for "this row is a fixture, not a person."
-                Container(
-                  width: 34,
-                  height: 34,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(color: theme.accentSoft, shape: BoxShape.circle),
-                  child: Icon(CupertinoIcons.archivebox_fill, size: 16, color: theme.accent),
+        // Shaped like a chat row — the Telegram folder: a grey disc where a
+        // face would be, the title, the count in grey (archived chats ask for
+        // nothing), a chevron because it opens a list rather than a chat.
+        child: AnimatedContainer(
+          duration: _pressed ? Duration.zero : const Duration(milliseconds: 240),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: _pressed ? theme.ink.withValues(alpha: 0.06) : null,
+            borderRadius: BorderRadius.circular(theme.radiusLg),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: theme.inkMuted.withValues(alpha: 0.55),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    l10n.archivedChatsFolderTitle,
-                    style: theme.body,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                child: const Icon(
+                  CupertinoIcons.archivebox_fill,
+                  size: 24,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  sentenceCaseOf(context, l10n.archivedChatsFolderTitle),
+                  style: theme.bodyEmph.copyWith(
+                    color: theme.ink,
+                    fontStyle: FontStyle.normal,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: theme.inkMuted.withValues(alpha: 0.45),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '${widget.count}',
+                  style: theme.caption.copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    height: 1,
+                    color: theme.background,
+                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
-                const SizedBox(width: 8),
-                CountBadge(count: widget.count),
-                const SizedBox(width: 8),
-                Icon(
-                  CupertinoIcons.chevron_right,
-                  size: 14,
-                  color: theme.inkMuted,
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                CupertinoIcons.chevron_forward,
+                size: 14,
+                color: theme.inkMuted.withValues(alpha: 0.7),
+              ),
+            ],
           ),
         ),
       ),

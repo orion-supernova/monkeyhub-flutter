@@ -1,16 +1,17 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/cupertino.dart'
+    show CupertinoIcons, CupertinoSlidingSegmentedControl;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../data/chat_repository.dart';
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../models/room_mute.dart';
-import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
-import 'destructive_sheet.dart' show SheetGrabber;
+import '../theme/theme_preference.dart';
+import 'sheet_kit.dart';
+import 'ios_kit.dart';
 
 /// The deadline of a mute, as a sentence in the viewer's language.
 ///
@@ -189,104 +190,157 @@ class _MuteRoomSheetState extends State<_MuteRoomSheet> {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.surface,
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(theme.radiusLg)),
-      ),
-      padding: EdgeInsets.fromLTRB(
-        20,
-        12,
-        20,
-        20 + MediaQuery.of(context).padding.bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SheetGrabber(),
-          Text(l10n.muteSheetTitle, style: theme.label),
-          const SizedBox(height: 8),
-          Text(l10n.muteSheetSubtitle, style: theme.bodySoft),
-          const SizedBox(height: 18),
-          _MuteSwitch(
-            icon: CupertinoIcons.bell_slash,
-            title: l10n.muteSheetNotificationsTitle,
-            sub: l10n.muteSheetNotificationsSub,
-            value: _notifications,
-            onChanged: (v) => setState(() => _notifications = v),
-          ),
-          const SizedBox(height: 10),
-          _MuteSwitch(
-            icon: CupertinoIcons.number,
-            title: l10n.muteSheetBadgesTitle,
-            sub: l10n.muteSheetBadgesSub,
-            value: _badges,
-            onChanged: (v) => setState(() => _badges = v),
-          ),
-          const SizedBox(height: 22),
-          Text(l10n.muteSheetDurationLabel, style: theme.label),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final d in MuteDuration.values)
-                _DurationChip(
-                  label: _durationLabel(l10n, d),
-                  selected: _duration == d,
-                  onTap: () => setState(() => _duration = d),
+    final deadline = _anythingPicked
+        ? muteDeadlineSentence(context, until: _previewUntil)
+        : null;
+    // With the tap a native switch gives; `Switch.adaptive` has none.
+    void flip(void Function() apply) {
+      HapticFeedback.lightImpact();
+      setState(apply);
+    }
+
+    // The iOS settings sheet: what goes quiet as a grouped pair of switches,
+    // for how long as a segmented control, the running sentence as the
+    // footnote under it, and one button. The × in the bar is the way out.
+    return SheetFrame(
+      title: sentenceCaseOf(context, l10n.muteSheetTitle),
+      leading: const SheetCloseButton(),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
+              child: Text(
+                l10n.muteSheetSubtitle,
+                textAlign: TextAlign.center,
+                style: theme.body.copyWith(
+                  fontSize: 15,
+                  color: theme.inkMuted,
                 ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          _SummaryPanel(
-            theme: theme,
-            summary: _summary(l10n),
-            // Suppressed while nothing is picked: "Until 8:00 PM" under "pick
-            // something to silence" is a deadline for a mute that doesn't
-            // exist yet, and reads as though the sheet has already committed.
-            deadline: _anythingPicked
-                ? muteDeadlineSentence(context, until: _previewUntil)
-                : null,
-          ),
-          const SizedBox(height: 18),
-          _PrimaryButton(
-            label: _wasMuted
-                ? l10n.muteSheetSaveButton
-                : l10n.muteSheetConfirmButton,
-            // Both switches off is not a mute. Rather than silently converting
-            // it to an unmute — which would make the same button mean opposite
-            // things depending on state the user can't see — the button goes
-            // dead and the running sentence says why. UNMUTE below is the
-            // deliberate way out.
-            onTap: _anythingPicked
-                ? () => Navigator.of(context).pop(
-                      _MuteApplied(
-                        notifications: _notifications,
-                        badges: _badges,
-                        duration: _duration,
-                      ),
-                    )
-                : null,
-          ),
-          if (_wasMuted) ...[
-            const SizedBox(height: 10),
-            _SecondaryButton(
-              label: l10n.muteSheetUnmuteButton,
-              color: theme.danger,
-              onTap: () => Navigator.of(context).pop(const _MuteLifted()),
+              ),
             ),
+            SheetRise(
+              child: SheetGroup(
+                children: [
+                  GroupedRow.toggle(
+                    icon: CupertinoIcons.bell_slash_fill,
+                    tone: TileTone.indigo,
+                    title: l10n.muteSheetNotificationsTitle,
+                    subtitle: l10n.muteSheetNotificationsSub,
+                    value: _notifications,
+                    onChanged: (v) => flip(() => _notifications = v),
+                  ),
+                  GroupedRow.toggle(
+                    icon: CupertinoIcons.number,
+                    tone: TileTone.gray,
+                    title: l10n.muteSheetBadgesTitle,
+                    subtitle: l10n.muteSheetBadgesSub,
+                    value: _badges,
+                    onChanged: (v) => flip(() => _badges = v),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 22),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text(
+                sentenceCaseOf(context, l10n.muteSheetDurationLabel),
+                style: theme.caption.copyWith(
+                  fontSize: 13,
+                  color: theme.inkMuted,
+                ),
+              ),
+            ),
+            SheetRise(
+              index: 1,
+              child: SizedBox(
+                width: double.infinity,
+                child: CupertinoSlidingSegmentedControl<MuteDuration>(
+                  groupValue: _duration,
+                  backgroundColor: theme.ink.withValues(alpha: 0.08),
+                  thumbColor: theme.isLight
+                      ? Colors.white
+                      : Color.alphaBlend(
+                          theme.ink.withValues(alpha: 0.12),
+                          theme.surfaceRaised,
+                        ),
+                  onValueChanged: (d) {
+                    if (d == null) return;
+                    HapticFeedback.selectionClick();
+                    setState(() => _duration = d);
+                  },
+                  children: {
+                    for (final d in MuteDuration.values)
+                      d: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          _durationLabel(l10n, d),
+                          maxLines: 1,
+                          style: theme.body.copyWith(
+                            fontSize: 14,
+                            fontWeight: _duration == d
+                                ? FontWeight.w600
+                                : FontWeight.w500,
+                            color: _duration == d ? theme.ink : theme.inkSoft,
+                          ),
+                        ),
+                      ),
+                  },
+                ),
+              ),
+            ),
+            // The running sentence: what this combination does, and when it
+            // stops. The deadline is suppressed while nothing is picked —
+            // "Until 8:00 PM" under "pick something to silence" reads as
+            // though the sheet had already committed.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 22),
+              child: AnimatedSwitcher(
+                duration: theme.motionFast,
+                child: Text(
+                  deadline == null
+                      ? _summary(l10n)
+                      : '${_summary(l10n)} $deadline',
+                  key: ValueKey('$_notifications$_badges$_duration'),
+                  style: theme.caption.copyWith(
+                    fontSize: 13,
+                    height: 1.35,
+                    color: theme.inkMuted,
+                  ),
+                ),
+              ),
+            ),
+            SheetActionButton(
+              label: _wasMuted
+                  ? l10n.muteSheetSaveButton
+                  : l10n.muteSheetConfirmButton,
+              // Both switches off is not a mute. Rather than silently
+              // converting it to an unmute — which would make the same button
+              // mean opposite things depending on state the user can't see —
+              // the button goes dead and the running sentence says why.
+              onTap: _anythingPicked
+                  ? () => Navigator.of(context).pop(
+                        _MuteApplied(
+                          notifications: _notifications,
+                          badges: _badges,
+                          duration: _duration,
+                        ),
+                      )
+                  : null,
+            ),
+            if (_wasMuted) ...[
+              const SizedBox(height: 10),
+              SheetActionButton(
+                label: l10n.muteSheetUnmuteButton,
+                tonal: true,
+                destructive: true,
+                onTap: () => Navigator.of(context).pop(const _MuteLifted()),
+              ),
+            ],
           ],
-          const SizedBox(height: 4),
-          _SecondaryButton(
-            label: l10n.destructiveSheetCancelButtonLabel,
-            color: theme.inkMuted,
-            bordered: false,
-            onTap: () => Navigator.of(context).pop(),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -300,247 +354,3 @@ class _MuteRoomSheetState extends State<_MuteRoomSheet> {
       };
 }
 
-/// One of the two things that can be silenced.
-///
-/// A whole tappable row rather than a bare [Switch], so the sub-line — which is
-/// where the difference between the two switches actually lives — is part of
-/// the target instead of decoration beside it.
-class _MuteSwitch extends StatelessWidget {
-  const _MuteSwitch({
-    required this.icon,
-    required this.title,
-    required this.sub,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final IconData icon;
-  final String title;
-  final String sub;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    // With the tap a native switch gives; `Switch.adaptive` has none.
-    void flip(bool v) {
-      HapticFeedback.lightImpact();
-      onChanged(v);
-    }
-
-    void toggle() => flip(!value);
-    return FocusableTap(
-      onTap: toggle,
-      semanticLabel: title,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: toggle,
-        child: AnimatedContainer(
-          duration: theme.motionFast,
-          padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
-          decoration: BoxDecoration(
-            color: value ? theme.accentSoft : theme.surface,
-            border: Border.all(
-              color: value ? theme.accent.withValues(alpha: 0.55) : theme.divider,
-            ),
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                size: 18,
-                color: value ? theme.accent : theme.inkMuted,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: theme.label.copyWith(
-                        color: value ? theme.accent : theme.ink,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(sub, style: theme.monoTiny),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Excluded from semantics: the row already announces itself and
-              // its state through [FocusableTap], and a screen reader meeting
-              // both would read the same switch twice.
-              ExcludeSemantics(
-                child: Switch.adaptive(
-                  value: value,
-                  onChanged: flip,
-                  activeThumbColor: theme.accent,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// One duration preset. Same chip treatment as the room info screen's
-/// message-life row, so "how long until this changes back" looks like one idea
-/// across the app.
-class _DurationChip extends StatelessWidget {
-  const _DurationChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: label,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: theme.chipDecoration(filled: selected),
-          child: Text(
-            label,
-            style: theme.label.copyWith(
-              color: selected ? theme.accentInk : theme.inkSoft,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The running sentence: what this combination does, and when it stops.
-class _SummaryPanel extends StatelessWidget {
-  const _SummaryPanel({
-    required this.theme,
-    required this.summary,
-    required this.deadline,
-  });
-
-  final AppTheme theme;
-  final String summary;
-  final String? deadline;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: theme.accent.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(theme.radiusMd),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(summary, style: theme.body),
-          if (deadline != null) ...[
-            const SizedBox(height: 6),
-            Text(deadline!, style: theme.monoTiny.copyWith(color: theme.accent)),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _PrimaryButton extends StatelessWidget {
-  const _PrimaryButton({required this.label, required this.onTap});
-
-  final String label;
-
-  /// Null renders the button disabled — see the call site for why "nothing
-  /// picked" is a dead button rather than a hidden unmute.
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final enabled = onTap != null;
-    return FocusableTap(
-      onTap: onTap ?? () {},
-      semanticLabel: label,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: enabled ? theme.accent : theme.accentSoft,
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-          ),
-          child: Text(
-            label,
-            style: theme.label.copyWith(
-              color: enabled ? theme.accentInk : theme.inkMuted,
-              letterSpacing: 2.2,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SecondaryButton extends StatelessWidget {
-  const _SecondaryButton({
-    required this.label,
-    required this.color,
-    required this.onTap,
-    this.bordered = true,
-  });
-
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-  final bool bordered;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: label,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            border: bordered
-                ? Border.all(color: color.withValues(alpha: 0.55), width: 1.2)
-                : null,
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-          ),
-          child: Text(
-            label,
-            style: theme.label.copyWith(color: color, letterSpacing: 2),
-          ),
-        ),
-      ),
-    );
-  }
-}

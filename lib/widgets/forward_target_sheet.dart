@@ -12,6 +12,7 @@ import 'adaptive_sheet.dart';
 import 'destructive_sheet.dart' show SheetGrabber;
 import 'selection_check.dart';
 import 'user_avatar.dart';
+import 'sheet_kit.dart' show sentenceCaseOf;
 
 /// Most rooms one forward may target at once.
 ///
@@ -140,8 +141,12 @@ class _ForwardTargetSheetState extends State<_ForwardTargetSheet> {
             children: [
               const SheetGrabber(),
               Text(
-                loc.approvalsScreenForwardTitle(n),
-                style: theme.label.copyWith(letterSpacing: 2.4),
+                sentenceCaseOf(context, loc.approvalsScreenForwardTitle(n)),
+                textAlign: TextAlign.center,
+                style: theme.bodyEmph.copyWith(
+                  color: theme.ink,
+                  fontStyle: FontStyle.normal,
+                ),
               ),
               const SizedBox(height: 12),
               _SearchField(
@@ -365,16 +370,21 @@ class _SendButton extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         child: AnimatedContainer(
           duration: theme.motionFast,
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          constraints: const BoxConstraints(minHeight: 52),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: enabled ? theme.accent : theme.surfaceSunken,
-            borderRadius: BorderRadius.circular(theme.radiusMd),
+            color: enabled
+                ? theme.bubbleFill(isMine: true)
+                : theme.ink.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(
+              (theme.radiusXl * 0.8).clamp(6.0, 16.0),
+            ),
           ),
           child: Text(
-            loc.approvalsScreenForwardSendButton(count),
-            style: theme.label.copyWith(
-              letterSpacing: 2.0,
+            sentenceCaseOf(context, loc.approvalsScreenForwardSendButton(count)),
+            style: theme.bodyEmph.copyWith(
+              fontSize: 17,
+              fontStyle: FontStyle.normal,
               color: enabled ? theme.accentInk : theme.inkMuted,
             ),
           ),

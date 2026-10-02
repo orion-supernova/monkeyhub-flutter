@@ -111,8 +111,8 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(host(picker(people: [_user('ada')])));
-      expect(find.text('YOUR FRIENDS'), findsNothing);
-      expect(find.text('EVERYONE ELSE'), findsNothing);
+      expect(find.text('Your friends'), findsNothing);
+      expect(find.text('Everyone else'), findsNothing);
     });
   });
 
@@ -149,8 +149,9 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pump();
 
-      expect(find.text('YOUR FRIENDS'), findsOneWidget);
-      expect(find.text('EVERYONE ELSE'), findsOneWidget);
+      // Headings print in sentence case.
+      expect(find.text('Your friends'), findsOneWidget);
+      expect(find.text('Everyone else'), findsOneWidget);
       expect(find.text('@adam'), findsOneWidget);
       expect(find.text('@adele'), findsOneWidget);
     });
@@ -311,7 +312,8 @@ void main() {
       // Without it the list runs straight on from the buttons with nothing
       // saying what changed. It is NOT drawn when there are no host rows and
       // only one section — see the test above in the local group.
-      expect(find.text('YOUR FRIENDS'), findsOneWidget);
+      // Headings print in sentence case.
+      expect(find.text('Your friends'), findsOneWidget);
     });
 
     testWidgets('survive an empty friends list, so the actions stay reachable',

@@ -9754,4 +9754,79 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get riOwnerNote => 'メダルはこのルームの作成者を示します。';
+
+  @override
+  String get famPair => 'ペアリング';
+
+  @override
+  String get famRelease => '解除';
+
+  @override
+  String get famSettings => '設定';
+
+  @override
+  String get famAddChild => '子どもを追加';
+
+  @override
+  String get famEmptyTitle => 'まだ子どもがいません';
+
+  @override
+  String get famOnlineNow => 'オンライン';
+
+  @override
+  String get famNotPaired => '未ペアリング';
+
+  @override
+  String get famJustNow => 'たった今';
+
+  @override
+  String get apprEmptyTitle => '保留中のものはありません';
+
+  @override
+  String get apprEmptySub => 'すべて確認済みです。';
+
+  @override
+  String get apprNotYet => 'まだ';
+
+  @override
+  String get apprAllow => '許可';
+
+  @override
+  String get compGeneral => '一般';
+
+  @override
+  String get compStorage => 'ストレージ';
+
+  @override
+  String get compTranslateInto => '翻訳先';
+
+  @override
+  String get compBrain => '頭脳';
+
+  @override
+  String laUnlinkProvider(String provider) {
+    return '$provider のリンクを解除';
+  }
+
+  @override
+  String laLinkProvider(String provider) {
+    return '$provider をリンク';
+  }
+
+  @override
+  String get laUnlink => 'リンク解除';
+
+  @override
+  String get laLink => 'リンク';
+
+  @override
+  String get laLinked => 'リンク済み';
+
+  @override
+  String get laNotLinked => '未リンク';
+
+  @override
+  String rdSignOut(String name) {
+    return '$name をサインアウト';
+  }
 }

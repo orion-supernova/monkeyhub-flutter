@@ -9779,4 +9779,79 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get riOwnerNote => '메달은 이 방을 만든 사람을 나타내요.';
+
+  @override
+  String get famPair => '페어링';
+
+  @override
+  String get famRelease => '해제';
+
+  @override
+  String get famSettings => '설정';
+
+  @override
+  String get famAddChild => '자녀 추가';
+
+  @override
+  String get famEmptyTitle => '아직 자녀가 없어요';
+
+  @override
+  String get famOnlineNow => '지금 온라인';
+
+  @override
+  String get famNotPaired => '아직 페어링 안 됨';
+
+  @override
+  String get famJustNow => '방금';
+
+  @override
+  String get apprEmptyTitle => '대기 중인 항목이 없어요';
+
+  @override
+  String get apprEmptySub => '모두 확인했어요.';
+
+  @override
+  String get apprNotYet => '나중에';
+
+  @override
+  String get apprAllow => '허용';
+
+  @override
+  String get compGeneral => '일반';
+
+  @override
+  String get compStorage => '저장 공간';
+
+  @override
+  String get compTranslateInto => '번역할 언어';
+
+  @override
+  String get compBrain => '두뇌';
+
+  @override
+  String laUnlinkProvider(String provider) {
+    return '$provider 연결 해제';
+  }
+
+  @override
+  String laLinkProvider(String provider) {
+    return '$provider 연결';
+  }
+
+  @override
+  String get laUnlink => '연결 해제';
+
+  @override
+  String get laLink => '연결';
+
+  @override
+  String get laLinked => '연결됨';
+
+  @override
+  String get laNotLinked => '연결 안 됨';
+
+  @override
+  String rdSignOut(String name) {
+    return '$name 로그아웃';
+  }
 }

@@ -11769,5 +11769,112 @@
   "riOwnerNote": "The medal marks whoever created this room.",
   "@riOwnerNote": {
     "description": "Footer under the member list explaining the owner medal."
+  },
+  "famPair": "Pair",
+  "@famPair": {
+    "description": "Action on a child's card: show the pairing code for their phone."
+  },
+  "famRelease": "Release",
+  "@famRelease": {
+    "description": "Action on a child's card: show the code that releases their phone."
+  },
+  "famSettings": "Settings",
+  "@famSettings": {
+    "description": "Action on a child's card: open their rules."
+  },
+  "famAddChild": "Add a child",
+  "@famAddChild": {
+    "description": "Button that starts adding a child account."
+  },
+  "famEmptyTitle": "No children yet",
+  "@famEmptyTitle": {
+    "description": "Empty-state title on the family page."
+  },
+  "famOnlineNow": "Online now",
+  "@famOnlineNow": {
+    "description": "Presence under a child's name."
+  },
+  "famNotPaired": "Not paired yet",
+  "@famNotPaired": {
+    "description": "Presence under a child whose phone isn't paired yet."
+  },
+  "famJustNow": "Just now",
+  "@famJustNow": {
+    "description": "Presence: seen moments ago."
+  },
+  "apprEmptyTitle": "Nothing waiting",
+  "@apprEmptyTitle": {
+    "description": "Empty state title on the approvals page."
+  },
+  "apprEmptySub": "You're all caught up.",
+  "@apprEmptySub": {
+    "description": "Empty state subtitle on the approvals page."
+  },
+  "apprNotYet": "Not yet",
+  "@apprNotYet": {
+    "description": "Decline button on an approval card."
+  },
+  "apprAllow": "Allow",
+  "@apprAllow": {
+    "description": "Approve button on an approval card."
+  },
+  "compGeneral": "General",
+  "@compGeneral": {
+    "description": "Section header on a companion's page."
+  },
+  "compStorage": "Storage",
+  "@compStorage": {
+    "description": "Section header on a companion's page over its downloaded model."
+  },
+  "compTranslateInto": "Translate into",
+  "@compTranslateInto": {
+    "description": "Section header over the translation target language."
+  },
+  "compBrain": "Brain",
+  "@compBrain": {
+    "description": "Section header over the on-device model choices."
+  },
+  "laUnlinkProvider": "Unlink {provider}",
+  "@laUnlinkProvider": {
+    "description": "Button that removes Apple/Google sign-in. {provider} is the brand name.",
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "laLinkProvider": "Link {provider}",
+  "@laLinkProvider": {
+    "description": "Password sheet title before adding Apple/Google sign-in.",
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "laUnlink": "Unlink",
+  "@laUnlink": {
+    "description": "Confirm button that removes a linked sign-in."
+  },
+  "laLink": "Link",
+  "@laLink": {
+    "description": "Confirm button that adds a linked sign-in."
+  },
+  "laLinked": "Linked",
+  "@laLinked": {
+    "description": "Status beside a provider that is linked."
+  },
+  "laNotLinked": "Not linked",
+  "@laNotLinked": {
+    "description": "Status beside a provider that isn't linked."
+  },
+  "rdSignOut": "Sign {name} out",
+  "@rdSignOut": {
+    "description": "Button on the hand-this-phone-back page: sign the child out. {name} is the child's name.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   }
 }

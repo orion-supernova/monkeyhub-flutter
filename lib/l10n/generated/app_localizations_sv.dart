@@ -10190,4 +10190,79 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get riOwnerNote => 'Medaljen visar vem som skapade rummet.';
+
+  @override
+  String get famPair => 'Para ihop';
+
+  @override
+  String get famRelease => 'Släpp';
+
+  @override
+  String get famSettings => 'Inställningar';
+
+  @override
+  String get famAddChild => 'Lägg till ett barn';
+
+  @override
+  String get famEmptyTitle => 'Inga barn än';
+
+  @override
+  String get famOnlineNow => 'Online nu';
+
+  @override
+  String get famNotPaired => 'Inte ihopparad än';
+
+  @override
+  String get famJustNow => 'Nyss';
+
+  @override
+  String get apprEmptyTitle => 'Inget väntar';
+
+  @override
+  String get apprEmptySub => 'Allt är klart.';
+
+  @override
+  String get apprNotYet => 'Inte än';
+
+  @override
+  String get apprAllow => 'Tillåt';
+
+  @override
+  String get compGeneral => 'Allmänt';
+
+  @override
+  String get compStorage => 'Lagring';
+
+  @override
+  String get compTranslateInto => 'Översätt till';
+
+  @override
+  String get compBrain => 'Hjärna';
+
+  @override
+  String laUnlinkProvider(String provider) {
+    return 'Koppla bort $provider';
+  }
+
+  @override
+  String laLinkProvider(String provider) {
+    return 'Koppla $provider';
+  }
+
+  @override
+  String get laUnlink => 'Koppla bort';
+
+  @override
+  String get laLink => 'Koppla';
+
+  @override
+  String get laLinked => 'Kopplad';
+
+  @override
+  String get laNotLinked => 'Inte kopplad';
+
+  @override
+  String rdSignOut(String name) {
+    return 'Logga ut $name';
+  }
 }

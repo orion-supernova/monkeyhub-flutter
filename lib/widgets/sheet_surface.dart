@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/theme_scope.dart';
 import 'destructive_sheet.dart' show SheetGrabber;
+import 'sheet_kit.dart' show sheetTopRadius;
 
 /// The panel every group-administration sheet is drawn on.
 ///
@@ -59,7 +60,7 @@ class SheetSurface extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.surface,
         borderRadius:
-            BorderRadius.vertical(top: Radius.circular(theme.radiusLg)),
+            BorderRadius.vertical(top: Radius.circular(sheetTopRadius(theme))),
       ),
       // NO bottom inset on the panel itself — it runs to the screen edge.
       //

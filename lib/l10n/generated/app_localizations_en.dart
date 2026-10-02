@@ -10160,4 +10160,79 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get riOwnerNote => 'The medal marks whoever created this room.';
+
+  @override
+  String get famPair => 'Pair';
+
+  @override
+  String get famRelease => 'Release';
+
+  @override
+  String get famSettings => 'Settings';
+
+  @override
+  String get famAddChild => 'Add a child';
+
+  @override
+  String get famEmptyTitle => 'No children yet';
+
+  @override
+  String get famOnlineNow => 'Online now';
+
+  @override
+  String get famNotPaired => 'Not paired yet';
+
+  @override
+  String get famJustNow => 'Just now';
+
+  @override
+  String get apprEmptyTitle => 'Nothing waiting';
+
+  @override
+  String get apprEmptySub => 'You\'re all caught up.';
+
+  @override
+  String get apprNotYet => 'Not yet';
+
+  @override
+  String get apprAllow => 'Allow';
+
+  @override
+  String get compGeneral => 'General';
+
+  @override
+  String get compStorage => 'Storage';
+
+  @override
+  String get compTranslateInto => 'Translate into';
+
+  @override
+  String get compBrain => 'Brain';
+
+  @override
+  String laUnlinkProvider(String provider) {
+    return 'Unlink $provider';
+  }
+
+  @override
+  String laLinkProvider(String provider) {
+    return 'Link $provider';
+  }
+
+  @override
+  String get laUnlink => 'Unlink';
+
+  @override
+  String get laLink => 'Link';
+
+  @override
+  String get laLinked => 'Linked';
+
+  @override
+  String get laNotLinked => 'Not linked';
+
+  @override
+  String rdSignOut(String name) {
+    return 'Sign $name out';
+  }
 }

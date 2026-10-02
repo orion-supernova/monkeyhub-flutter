@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
-import 'destructive_sheet.dart' show SheetGrabber, ChoiceTile;
+import 'ios_kit.dart';
+import 'sheet_kit.dart';
 
 /// What the link sheet resolved to: a URL to apply, or an instruction to
 /// remove the existing link. A dismissed sheet returns null — change nothing.
@@ -64,66 +65,71 @@ class _LinkInputSheetState extends State<_LinkInputSheet> {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.surface,
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(theme.radiusLg)),
+    // An iOS edit sheet: × on the left, the title, a ✓ on the right that
+    // applies — and the field, autofocused, as a filled rounded box. Removing
+    // an existing link is the one other thing to do here, as a red button.
+    return SheetFrame(
+      leading: const SheetCloseButton(),
+      title: sentenceCaseOf(context, l10n.linkInputSheetTitle),
+      trailing: AnimatedBuilder(
+        animation: _url,
+        builder: (context, _) => SheetConfirmButton(
+          label: l10n.linkInputSheetApplyLabel,
+          onTap: _url.text.trim().isEmpty ? null : _apply,
+        ),
       ),
-      padding: EdgeInsets.fromLTRB(
-        20,
-        12,
-        20,
-        // The keyboard is up the moment the field autofocuses, so the inset
-        // is part of this sheet's ordinary shape, not an edge case.
-        20 +
-            MediaQuery.of(context).viewInsets.bottom +
-            MediaQuery.of(context).padding.bottom,
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SheetGrabber(),
-          Text(l10n.linkInputSheetTitle,
-              style: theme.label.copyWith(color: theme.accent)),
-          const SizedBox(height: 12),
           Container(
-            decoration: theme.inputDecoration(),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            child: TextField(
-              controller: _url,
-              autofocus: true,
-              keyboardType: TextInputType.url,
-              autocorrect: false,
-              enableSuggestions: false,
-              style: theme.body.copyWith(color: theme.ink),
-              cursorColor: theme.accent,
-              decoration: InputDecoration(
-                isCollapsed: false,
-                border: InputBorder.none,
-                hintText: l10n.linkInputSheetHint,
-                hintStyle: theme.body.copyWith(color: theme.inkMuted),
-              ),
-              onSubmitted: (_) => _apply(),
+            decoration: BoxDecoration(
+              color: sheetGroupFill(theme),
+              borderRadius: BorderRadius.circular(groupedRadius(theme)),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+            child: Row(
+              children: [
+                Icon(CupertinoIcons.link, size: 18, color: theme.inkMuted),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _url,
+                    autofocus: true,
+                    keyboardType: TextInputType.url,
+                    autocorrect: false,
+                    enableSuggestions: false,
+                    textInputAction: TextInputAction.done,
+                    style: theme.body.copyWith(color: theme.ink, fontSize: 17),
+                    cursorColor: theme.accent,
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      hintText: l10n.linkInputSheetHint,
+                      hintStyle: theme.body.copyWith(
+                        color: theme.inkMuted,
+                        fontSize: 17,
+                      ),
+                    ),
+                    onSubmitted: (_) => _apply(),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
-          ChoiceTile(
-            color: theme.accent,
-            icon: CupertinoIcons.link,
-            title: l10n.linkInputSheetApplyLabel,
-            sub: l10n.linkInputSheetApplySub,
-            filled: true,
-            onTap: _apply,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Text(
+              l10n.linkInputSheetApplySub,
+              style: theme.caption.copyWith(fontSize: 13, color: theme.inkMuted),
+            ),
           ),
           if (widget.initialUrl != null) ...[
-            const SizedBox(height: 10),
-            ChoiceTile(
-              color: theme.danger,
-              icon: CupertinoIcons.xmark_circle,
-              title: l10n.linkInputSheetRemoveLabel,
-              sub: widget.initialUrl!,
+            const SizedBox(height: 18),
+            SheetActionButton(
+              label: l10n.linkInputSheetRemoveLabel,
+              tonal: true,
+              destructive: true,
               onTap: () =>
                   Navigator.of(context).pop(const LinkInputResult.remove()),
             ),

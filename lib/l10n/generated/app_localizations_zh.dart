@@ -9654,4 +9654,79 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get riOwnerNote => '奖章标示房间的创建者。';
+
+  @override
+  String get famPair => '配对';
+
+  @override
+  String get famRelease => '解除';
+
+  @override
+  String get famSettings => '设置';
+
+  @override
+  String get famAddChild => '添加孩子';
+
+  @override
+  String get famEmptyTitle => '还没有孩子';
+
+  @override
+  String get famOnlineNow => '在线';
+
+  @override
+  String get famNotPaired => '尚未配对';
+
+  @override
+  String get famJustNow => '刚刚';
+
+  @override
+  String get apprEmptyTitle => '没有待处理事项';
+
+  @override
+  String get apprEmptySub => '全部处理完了。';
+
+  @override
+  String get apprNotYet => '暂不';
+
+  @override
+  String get apprAllow => '允许';
+
+  @override
+  String get compGeneral => '通用';
+
+  @override
+  String get compStorage => '存储';
+
+  @override
+  String get compTranslateInto => '翻译成';
+
+  @override
+  String get compBrain => '大脑';
+
+  @override
+  String laUnlinkProvider(String provider) {
+    return '取消关联 $provider';
+  }
+
+  @override
+  String laLinkProvider(String provider) {
+    return '关联 $provider';
+  }
+
+  @override
+  String get laUnlink => '取消关联';
+
+  @override
+  String get laLink => '关联';
+
+  @override
+  String get laLinked => '已关联';
+
+  @override
+  String get laNotLinked => '未关联';
+
+  @override
+  String rdSignOut(String name) {
+    return '让 $name 退出登录';
+  }
 }

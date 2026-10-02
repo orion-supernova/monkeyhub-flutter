@@ -10,6 +10,7 @@ import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/layout.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/join_room_sheet.dart';
+import 'package:monkeyhub/widgets/sheet_kit.dart' show sentenceCase;
 
 /// The sheet a public room row opens for a stranger is the one place that room
 /// gets to describe itself in full. The rows are lists and cap what they show —
@@ -105,13 +106,16 @@ void main() {
       room(hasPassword: true, lifetime: const Duration(minutes: 5)),
     );
     final l10n = AppLocalizationsEn();
-    expect(find.text(l10n.roomInfoSheetDetailsLabel), findsOneWidget);
     // A padlock on a row says there is something to know; only the sentence
     // says what to do about it.
     expect(find.text(l10n.roomBadgeLockedTooltip), findsOneWidget);
     expect(find.text(l10n.roomBadgePublicTooltip), findsOneWidget);
     expect(find.text(l10n.roomBadgeEphemeralTooltip('5m')), findsOneWidget);
-    expect(find.text(l10n.roomInfoSheetCreatedLabel), findsOneWidget);
+    // The facts are an iOS grouped block now, its titles in sentence case.
+    expect(
+      find.text(sentenceCase(l10n.roomInfoSheetCreatedLabel)),
+      findsOneWidget,
+    );
   });
 
   testWidgets('a room that never described itself says so', (tester) async {
@@ -130,8 +134,12 @@ void main() {
     // text with the button pushed off the bottom.
     await open(tester, room(), size: const Size(360, 560));
     expect(tester.takeException(), isNull);
-    expect(find.text(AppLocalizationsEn().groupCallBannerJoinRoomButtonLabel),
-        findsOneWidget);
+    expect(
+      find.text(
+        sentenceCase(AppLocalizationsEn().groupCallBannerJoinRoomButtonLabel),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('the desktop popover form is bounded too', (tester) async {

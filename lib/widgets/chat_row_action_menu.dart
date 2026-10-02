@@ -18,7 +18,6 @@ import '../theme/app_theme.dart';
 import '../theme/interaction.dart';
 import '../theme/theme_scope.dart';
 import 'count_badge.dart';
-import 'glass_surface.dart';
 import 'muted_badge.dart';
 import 'pinned_badge.dart';
 import 'remote_image.dart';
@@ -27,6 +26,7 @@ import 'typing_indicator.dart';
 import 'user_avatar.dart';
 import 'visibility_badge.dart';
 import '../screens/navigation/native_tab_bar.dart' show NativeChrome;
+import 'sheet_kit.dart' show sentenceCaseOf;
 
 enum ChatRowAction {
   pin,
@@ -234,8 +234,10 @@ class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay> wi
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 200),
-      reverseDuration: const Duration(milliseconds: 140),
+      // Long enough for the lift's overshoot to read; the fade itself is
+      // over in the first third of it (see [_Scrim]).
+      duration: const Duration(milliseconds: 420),
+      reverseDuration: const Duration(milliseconds: 180),
     );
     _ctrl.forward();
   }
@@ -263,7 +265,7 @@ class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay> wi
   @override
   Widget build(BuildContext context) {
     final actions = _actions;
-    final menuHeight = actions.length * _rowHeight + 12;
+    final menuHeight = actions.length * _rowHeight;
     const previewHeight = previewCardHeight;
 
     // This whole method reruns on every tick of the entrance/exit animation.
@@ -345,45 +347,76 @@ class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay> wi
                 left: left,
                 top: menuTop,
                 width: cardWidth,
+                // The iOS menu unfurl: grows out of the card's corner on a
+                // spring, fading in over the first part of it.
                 child: Opacity(
-                  opacity: _ctrl.value,
-                  child: Transform.translate(
-                    offset: Offset(0, -8 * (1 - _ctrl.value)),
-                    child: Transform.scale(
-                      scale: 0.92 + 0.08 * _ctrl.value,
-                      alignment: Alignment.topLeft,
-                      child: child,
-                    ),
+                  opacity: (_ctrl.value * 2.5).clamp(0.0, 1.0),
+                  child: Transform.scale(
+                    scale: 0.6 + 0.4 * _springOrEase(_ctrl),
+                    alignment: Alignment.topCenter,
+                    child: child,
                   ),
                 ),
               ),
             ],
           );
         },
-        child: GlassSurface(
-          radius: 16,
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (final action in actions)
-                _ChatRowActionRow(
-                  action: action,
-                  // Picking matches the message menu: opening buzzed medium,
-                  // choosing is a light tick.
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    _resolve(action);
-                  },
-                ),
+        // Solid, not glass: this layer scales and fades in, and a blur
+        // inside a moving layer is re-rendered on every frame of it. The
+        // raised surface reads as the iOS menu platter over the blurred
+        // scrim behind it, which is where the glass effect actually lives.
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(_menuRadius),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.22),
+                blurRadius: 30,
+                offset: const Offset(0, 12),
+              ),
             ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(_menuRadius),
+            child: ColoredBox(
+              color: Color.alphaBlend(
+                ThemeScope.of(context).ink.withValues(alpha: 0.05),
+                ThemeScope.of(context).surfaceRaised,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var i = 0; i < actions.length; i++)
+                    _ChatRowActionRow(
+                      action: actions[i],
+                      divider: i < actions.length - 1,
+                      // Picking matches the message menu: opening buzzed
+                      // medium, choosing is a light tick.
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        _resolve(actions[i]);
+                      },
+                    ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
     );
   }
+
+  static const double _menuRadius = 14;
+
 }
+
+/// The spring on the way in, a plain ease on the way out: an elastic curve
+/// run backwards wobbles the menu as it closes.
+double _springOrEase(Animation<double> t) =>
+    t.status == AnimationStatus.reverse
+        ? Curves.easeIn.transform(t.value)
+        : const ElasticOutCurve(0.9).transform(t.value);
 
 // ───────────────────────── scrim ─────────────────────────
 
@@ -401,26 +434,33 @@ class _Scrim extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: AnimatedBuilder(
-          animation: t,
-          builder: (_, _) {
-            final alpha = t.value;
-            return Stack(
-              children: [
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 22 * alpha, sigmaY: 22 * alpha),
-                      child: const SizedBox.expand(),
-                    ),
+        // The blur is drawn at ONE fixed strength and only its layer's
+        // opacity follows the animation — the filter itself never changes,
+        // so the engine is not asked to re-derive a blur at a new radius on
+        // every frame. The dim fades over the first part of the entrance.
+        child: FadeTransition(
+          opacity: CurvedAnimation(
+            parent: t,
+            curve: const Interval(0, 0.4, curve: Curves.easeOut),
+            reverseCurve: Curves.easeIn,
+          ),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                    child: const SizedBox.expand(),
                   ),
                 ),
-                Positioned.fill(
-                  child: ColoredBox(color: Colors.black.withValues(alpha: 0.32 * alpha)),
+              ),
+              Positioned.fill(
+                child: ColoredBox(
+                  color: Colors.black.withValues(alpha: 0.28),
                 ),
-              ],
-            );
-          },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -464,8 +504,11 @@ class _LiftedRow extends StatelessWidget {
       child: AnimatedBuilder(
         animation: t,
         builder: (_, c) {
+          // Lifts on a spring: up past 1.04 and settling at 1.03, the
+          // Telegram peek's little hop.
+          final v = _springOrEase(t);
           return Transform.scale(
-            scale: 1 + 0.03 * t.value,
+            scale: 0.97 + 0.06 * v,
             child: DecoratedBox(
               decoration: BoxDecoration(
                 boxShadow: [
@@ -948,9 +991,14 @@ class _ChatRowPreviewCardState extends State<ChatRowPreviewCard> {
 }
 
 class _ChatRowActionRow extends StatefulWidget {
-  const _ChatRowActionRow({required this.action, required this.onTap});
+  const _ChatRowActionRow({
+    required this.action,
+    required this.onTap,
+    this.divider = false,
+  });
   final ChatRowAction action;
   final VoidCallback onTap;
+  final bool divider;
 
   @override
   State<_ChatRowActionRow> createState() => _ChatRowActionRowState();
@@ -978,6 +1026,9 @@ class _ChatRowActionRowState extends State<_ChatRowActionRow> {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final (icon, label) = _spec(AppLocalizations.of(context));
+    // The iOS context-menu row: label on the left in body type, the glyph on
+    // the right, a hairline between rows. Fixed at the overlay's row height
+    // so its placement maths stays exact.
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTapDown: (_) => setState(() => _pressed = true),
@@ -985,16 +1036,36 @@ class _ChatRowActionRowState extends State<_ChatRowActionRow> {
       onTapUp: (_) => setState(() => _pressed = false),
       onTap: widget.onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        color: _pressed ? theme.accentSoft : Colors.transparent,
+        duration: _pressed ? Duration.zero : const Duration(milliseconds: 200),
+        height: _ChatRowActionMenuOverlayState._rowHeight,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: _pressed ? theme.ink.withValues(alpha: 0.08) : null,
+          border: widget.divider
+              ? Border(
+                  bottom: BorderSide(
+                    color: theme.ink.withValues(alpha: 0.10),
+                    width: 1 / MediaQuery.devicePixelRatioOf(context),
+                  ),
+                )
+              : null,
+        ),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: theme.ink),
-            const SizedBox(width: 14),
             Expanded(
-              child: Text(label, style: theme.label.copyWith(color: theme.ink)),
+              child: Text(
+                sentenceCaseOf(context, label),
+                style: theme.body.copyWith(
+                  fontSize: 17,
+                  color: theme.ink,
+                  letterSpacing: -0.3,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
+            const SizedBox(width: 12),
+            Icon(icon, size: 19, color: theme.ink),
           ],
         ),
       ),

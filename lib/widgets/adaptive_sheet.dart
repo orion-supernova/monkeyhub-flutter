@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../theme/layout.dart';
+import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'glass_surface.dart';
+import 'sheet_kit.dart' show sheetTopRadius;
 
 /// Presents modal content adaptively: a bottom sheet on compact (phone)
 /// windows, a floating desktop popover on wider (desktop/web) windows — where
@@ -51,6 +53,7 @@ Future<T?> showAdaptiveSheet<T>(
   bool useSafeArea = false,
 }) {
   if (context.isCompact) {
+    final calm = MotionScope.of(context).calm;
     return showModalBottomSheet<T>(
       context: context,
       isScrollControlled: isScrollControlled,
@@ -59,7 +62,33 @@ Future<T?> showAdaptiveSheet<T>(
       isDismissible: isDismissible,
       enableDrag: enableDrag,
       useSafeArea: useSafeArea,
-      builder: builder,
+      // The iOS dim: lighter than Material's 54%, so the page underneath
+      // still reads as the place the sheet came from.
+      barrierColor: Colors.black.withValues(alpha: 0.32),
+      // A fast, decelerating rise with no overshoot — a bottom-anchored card
+      // that bounces past its rest lifts off the screen edge and shows the
+      // page through the gap. The liveliness lives in the content instead
+      // (see `SheetRise`).
+      sheetAnimationStyle: calm
+          ? AnimationStyle.noAnimation
+          : const AnimationStyle(
+              duration: Duration(milliseconds: 420),
+              curve: Cubic(0.16, 1, 0.3, 1),
+              reverseDuration: Duration(milliseconds: 260),
+              reverseCurve: Curves.easeInCubic,
+            ),
+      // One corner for every sheet, whatever its content paints. Around
+      // fifty sheets draw their own top-rounded panel, at whichever radius
+      // their theme's `sheetDecoration` or their own code picked; clipping
+      // here gives them all the iOS 26 corner (`sheetTopRadius`) in one
+      // place. A plain clip, never animated — the route slides it, the clip
+      // rides along for free.
+      builder: (ctx) => ClipRRect(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(sheetTopRadius(ThemeScope.of(ctx))),
+        ),
+        child: builder(ctx),
+      ),
     );
   }
   final theme = ThemeScope.of(context);

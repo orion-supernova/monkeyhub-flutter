@@ -10270,6 +10270,81 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get riOwnerNote => 'A medalha marca quem criou esta sala.';
+
+  @override
+  String get famPair => 'Emparelhar';
+
+  @override
+  String get famRelease => 'Libertar';
+
+  @override
+  String get famSettings => 'Definições';
+
+  @override
+  String get famAddChild => 'Adicionar criança';
+
+  @override
+  String get famEmptyTitle => 'Ainda sem crianças';
+
+  @override
+  String get famOnlineNow => 'Online agora';
+
+  @override
+  String get famNotPaired => 'Ainda não emparelhado';
+
+  @override
+  String get famJustNow => 'Agora mesmo';
+
+  @override
+  String get apprEmptyTitle => 'Nada pendente';
+
+  @override
+  String get apprEmptySub => 'Está tudo em dia.';
+
+  @override
+  String get apprNotYet => 'Ainda não';
+
+  @override
+  String get apprAllow => 'Permitir';
+
+  @override
+  String get compGeneral => 'Geral';
+
+  @override
+  String get compStorage => 'Armazenamento';
+
+  @override
+  String get compTranslateInto => 'Traduzir para';
+
+  @override
+  String get compBrain => 'Cérebro';
+
+  @override
+  String laUnlinkProvider(String provider) {
+    return 'Desassociar $provider';
+  }
+
+  @override
+  String laLinkProvider(String provider) {
+    return 'Associar $provider';
+  }
+
+  @override
+  String get laUnlink => 'Desassociar';
+
+  @override
+  String get laLink => 'Associar';
+
+  @override
+  String get laLinked => 'Associada';
+
+  @override
+  String get laNotLinked => 'Não associada';
+
+  @override
+  String rdSignOut(String name) {
+    return 'Terminar a sessão de $name';
+  }
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -20536,4 +20611,79 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get riOwnerNote => 'A medalha marca quem criou esta sala.';
+
+  @override
+  String get famPair => 'Parear';
+
+  @override
+  String get famRelease => 'Liberar';
+
+  @override
+  String get famSettings => 'Ajustes';
+
+  @override
+  String get famAddChild => 'Adicionar criança';
+
+  @override
+  String get famEmptyTitle => 'Nenhuma criança ainda';
+
+  @override
+  String get famOnlineNow => 'Online agora';
+
+  @override
+  String get famNotPaired => 'Ainda não pareado';
+
+  @override
+  String get famJustNow => 'Agora mesmo';
+
+  @override
+  String get apprEmptyTitle => 'Nada pendente';
+
+  @override
+  String get apprEmptySub => 'Tudo em dia.';
+
+  @override
+  String get apprNotYet => 'Ainda não';
+
+  @override
+  String get apprAllow => 'Permitir';
+
+  @override
+  String get compGeneral => 'Geral';
+
+  @override
+  String get compStorage => 'Armazenamento';
+
+  @override
+  String get compTranslateInto => 'Traduzir para';
+
+  @override
+  String get compBrain => 'Cérebro';
+
+  @override
+  String laUnlinkProvider(String provider) {
+    return 'Desvincular $provider';
+  }
+
+  @override
+  String laLinkProvider(String provider) {
+    return 'Vincular $provider';
+  }
+
+  @override
+  String get laUnlink => 'Desvincular';
+
+  @override
+  String get laLink => 'Vincular';
+
+  @override
+  String get laLinked => 'Vinculada';
+
+  @override
+  String get laNotLinked => 'Não vinculada';
+
+  @override
+  String rdSignOut(String name) {
+    return 'Desconectar $name';
+  }
 }

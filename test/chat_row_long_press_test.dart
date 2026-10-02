@@ -8,6 +8,7 @@ import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/interaction.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/chat_row_action_menu.dart';
+import 'package:monkeyhub/widgets/sheet_kit.dart' show sentenceCase;
 
 /// The *beat* a chat-list row answers on, as opposed to what its menu then
 /// offers.
@@ -112,7 +113,8 @@ void main() {
   }
 
   // Finders re-run on every use, so one is enough for the whole file.
-  final menu = find.text(l10n.chatRowActionMenuPinLabel);
+  // The menu prints its labels in sentence case.
+  final menu = find.text(sentenceCase(l10n.chatRowActionMenuPinLabel));
 
   testWidgets('the menu is still shut a frame short of the shared hold', (
     tester,

@@ -1,15 +1,15 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
-import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
-import 'destructive_sheet.dart' show SheetGrabber;
+import 'ios_kit.dart';
 import 'people_picker.dart';
+import 'sheet_kit.dart';
 
 /// What the chat list's `+` offers besides a person.
 enum NewChatChoice { createRoom, joinWithCode }
@@ -112,169 +112,65 @@ class _NewChatMenuState extends State<_NewChatMenu> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    final media = MediaQuery.of(context);
     final friends = _friends;
 
-    return Material(
-      type: MaterialType.transparency,
-      child: Container(
-        decoration: BoxDecoration(
-          color: theme.surface,
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(theme.radiusLg),
-          ),
-        ),
-        // Nearly the whole window, and a FIXED size.
-        //
-        // Tall because this is a list you scroll, and a sheet that stops
-        // halfway shows a handful of rows and makes the rest feel like work.
-        // Fixed because the alternative — fitting the list — resizes the sheet
-        // on every keystroke as the filter narrows, which walks the rows out
-        // from under the finger reaching for them. `useSafeArea` on the route
-        // keeps it clear of the status bar, so this never actually reaches the
-        // top of the screen.
-        constraints: BoxConstraints(
-          maxHeight: media.size.height * 0.92,
-        ),
-        padding: EdgeInsets.fromLTRB(
-          20,
-          12,
-          20,
-          // `viewInsets` and `padding` are never both non-zero — raising the
-          // keyboard is what zeroes the second — so adding them covers a
-          // sheet at rest and a sheet being typed into with one expression.
-          12 + media.padding.bottom + media.viewInsets.bottom,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SheetGrabber(),
+    // The Messages "New Message" sheet: a centred title over a close button,
+    // the search capsule, the two room actions as a grouped block with
+    // coloured tiles, then the people. Nearly full height and FIXED, so the
+    // list never resizes under the finger as the filter narrows.
+    return SheetFrame(
+      title: l10n.newChatMenuTitle,
+      leading: const SheetCloseButton(),
+      maxHeightFraction: 0.92,
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: PeoplePicker(
+        people: friends,
+        api: widget.api,
+        // Never autofocused. The sheet opens onto a list you can just tap;
+        // raising the keyboard on arrival would cover half of it to answer a
+        // question nobody asked.
+        hintText: l10n.newChatMenuSearchHint,
+        emptyLabel: l10n.newChatMenuNoFriendsYet,
+        noMatchLabel: l10n.newChatMenuNoFriendsMatch,
+        localHeader: l10n.newChatMenuFriendsHeader,
+        leading: [
+          if (widget.canCreateRoom || widget.canJoinByCode)
             Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Text(l10n.newChatMenuTitle, style: theme.displaySmall),
-            ),
-            // Expanded, not Flexible: the picker owns everything below the
-            // title, and there is no longer a pinned footer competing with it
-            // for height. The room actions live INSIDE its scroller now — see
-            // `leading` below.
-            Expanded(
-              child: PeoplePicker(
-                people: friends,
-                api: widget.api,
-                // Never autofocused. The sheet opens onto a list you can just
-                // tap; raising the keyboard on arrival would cover the bottom
-                // half of it to answer a question nobody asked.
-                hintText: l10n.newChatMenuSearchHint,
-                emptyLabel: l10n.newChatMenuNoFriendsYet,
-                noMatchLabel: l10n.newChatMenuNoFriendsMatch,
-                localHeader: l10n.newChatMenuFriendsHeader,
-                leading: [
-                  if (widget.canCreateRoom)
-                    _Choice(
-                      icon: Icons.add_comment_outlined,
-                      title: l10n.newChatMenuCreateTitle,
-                      sub: l10n.newChatMenuCreateSub,
-                      onTap: () => Navigator.of(context).pop((
-                        choice: NewChatChoice.createRoom,
-                        friend: null,
-                      )),
-                    ),
-                  if (widget.canJoinByCode)
-                    _Choice(
-                      icon: Icons.vpn_key_outlined,
-                      title: l10n.newChatMenuJoinTitle,
-                      sub: l10n.newChatMenuJoinSub,
-                      onTap: () => Navigator.of(context).pop((
-                        choice: NewChatChoice.joinWithCode,
-                        friend: null,
-                      )),
-                    ),
-                ],
-                onPick: (u) =>
-                    Navigator.of(context).pop((choice: null, friend: u)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Choice extends StatefulWidget {
-  const _Choice({
-    required this.icon,
-    required this.title,
-    required this.sub,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String sub;
-  final VoidCallback onTap;
-
-  @override
-  State<_Choice> createState() => _ChoiceState();
-}
-
-class _ChoiceState extends State<_Choice> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: widget.onTap,
-      semanticLabel: '${widget.title}. ${widget.sub}',
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onTap,
-        onTapDown: (_) => setState(() => _pressed = true),
-        onTapCancel: () => setState(() => _pressed = false),
-        onTapUp: (_) => setState(() => _pressed = false),
-        child: AnimatedContainer(
-          duration: theme.motionFast,
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-          decoration: BoxDecoration(
-            color: _pressed
-                ? theme.ink.withValues(alpha: 0.08)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: theme.accentSoft,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(widget.icon, size: 19, color: theme.accent),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+              padding: const EdgeInsets.only(top: 6, bottom: 4),
+              child: SheetRise(
+                child: SheetGroup(
                   children: [
-                    Text(widget.title, style: theme.body),
-                    const SizedBox(height: 2),
-                    Text(widget.sub, style: theme.monoTiny),
+                    if (widget.canCreateRoom)
+                      GroupedRow(
+                        icon: CupertinoIcons.person_2_fill,
+                        tone: TileTone.blue,
+                        title: l10n.newChatMenuCreateTitle,
+                        subtitle: l10n.newChatMenuCreateSub,
+                        onTap: () => Navigator.of(context).pop((
+                          choice: NewChatChoice.createRoom,
+                          friend: null,
+                        )),
+                      ),
+                    if (widget.canJoinByCode)
+                      GroupedRow(
+                        icon: CupertinoIcons.qrcode,
+                        tone: TileTone.orange,
+                        title: l10n.newChatMenuJoinTitle,
+                        subtitle: l10n.newChatMenuJoinSub,
+                        onTap: () => Navigator.of(context).pop((
+                          choice: NewChatChoice.joinWithCode,
+                          friend: null,
+                        )),
+                      ),
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
-            ],
-          ),
-        ),
+            ),
+        ],
+        onPick: (u) => Navigator.of(context).pop((choice: null, friend: u)),
       ),
     );
   }
 }
+

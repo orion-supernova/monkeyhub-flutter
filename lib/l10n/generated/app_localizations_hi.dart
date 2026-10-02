@@ -10168,4 +10168,79 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get riOwnerNote => 'मेडल इस रूम को बनाने वाले को दर्शाता है।';
+
+  @override
+  String get famPair => 'पेयर करें';
+
+  @override
+  String get famRelease => 'रिलीज़ करें';
+
+  @override
+  String get famSettings => 'सेटिंग्स';
+
+  @override
+  String get famAddChild => 'बच्चा जोड़ें';
+
+  @override
+  String get famEmptyTitle => 'अभी कोई बच्चा नहीं';
+
+  @override
+  String get famOnlineNow => 'अभी ऑनलाइन';
+
+  @override
+  String get famNotPaired => 'अभी पेयर नहीं हुआ';
+
+  @override
+  String get famJustNow => 'अभी-अभी';
+
+  @override
+  String get apprEmptyTitle => 'कुछ बाकी नहीं';
+
+  @override
+  String get apprEmptySub => 'सब हो गया।';
+
+  @override
+  String get apprNotYet => 'अभी नहीं';
+
+  @override
+  String get apprAllow => 'अनुमति दें';
+
+  @override
+  String get compGeneral => 'सामान्य';
+
+  @override
+  String get compStorage => 'स्टोरेज';
+
+  @override
+  String get compTranslateInto => 'इसमें अनुवाद करें';
+
+  @override
+  String get compBrain => 'दिमाग';
+
+  @override
+  String laUnlinkProvider(String provider) {
+    return '$provider अनलिंक करें';
+  }
+
+  @override
+  String laLinkProvider(String provider) {
+    return '$provider लिंक करें';
+  }
+
+  @override
+  String get laUnlink => 'अनलिंक';
+
+  @override
+  String get laLink => 'लिंक करें';
+
+  @override
+  String get laLinked => 'लिंक है';
+
+  @override
+  String get laNotLinked => 'लिंक नहीं';
+
+  @override
+  String rdSignOut(String name) {
+    return '$name को साइन आउट करें';
+  }
 }
