@@ -18,9 +18,9 @@ import '../../data/settings_store.dart';
 import '../../keyboard/focusable_tap.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../theme/app_theme.dart';
-import '../../theme/layout.dart';
 import '../../theme/theme_scope.dart';
-import '../../widgets/adaptive_page_body.dart';
+import '../../widgets/account_kit.dart';
+import '../../widgets/ios_kit.dart';
 
 /// The house settings-detail page: background layer, back arrow, big title,
 /// accent rule, caption, then content. Copied in shape from `LanguageScreen`
@@ -39,62 +39,13 @@ class CompanionPage extends StatelessWidget {
   final List<Widget> children;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          // See home_screen: the bottom inset leaves a dead strip of
-          // background under the scroller, which reads as a solid bar. The
-          // list clears the home indicator with its own padding instead.
-          SafeArea(
-            bottom: false,
-            child: AdaptivePageBody(
-              child: ListView(
-                padding: EdgeInsets.fromLTRB(
-                  20,
-                  14,
-                  20,
-                  edgeToEdgeBottom(context, 40),
-                ),
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        onPressed: () => Navigator.of(context).maybePop(),
-                        icon: Icon(
-                          Icons.arrow_back,
-                          color: theme.inkSoft,
-                          size: 18,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(title, style: theme.displayMedium),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Container(width: 18, height: 1, color: theme.accent),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(subtitle, style: theme.caption)),
-                    ],
-                  ),
-                  const SizedBox(height: 28),
-                  ...children,
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => IosPage(
+        title: title,
+        subtitle: subtitle,
+        slivers: readableSlivers(context, children),
+      );
 }
 
-/// A block of rows in the surface card the settings screens use.
 class CompanionCard extends StatelessWidget {
   const CompanionCard({super.key, required this.children, this.padding});
 
@@ -104,12 +55,12 @@ class CompanionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    // A grouped block: the theme's grouped fill, no border.
     return Container(
       padding: padding ?? const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.surface,
-        border: Border.all(color: theme.divider),
-        borderRadius: BorderRadius.circular(theme.radiusMd),
+        color: groupedFill(theme),
+        borderRadius: BorderRadius.circular(groupedRadius(theme)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,9 +78,13 @@ class CompanionSectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    // An inset-grouped section header: sentence case, small, muted.
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12, left: 2),
-      child: Text(label.toUpperCase(), style: theme.label),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 7),
+      child: Text(
+        label,
+        style: theme.caption.copyWith(fontSize: 13, color: theme.inkMuted),
+      ),
     );
   }
 }

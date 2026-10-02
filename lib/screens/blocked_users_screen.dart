@@ -1,12 +1,14 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
-import '../theme/layout.dart';
+import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/adaptive_page_body.dart';
+import '../widgets/account_kit.dart';
+import '../widgets/ios_kit.dart';
 import '../widgets/user_avatar.dart';
 
 class BlockedUsersScreen extends StatefulWidget {
@@ -65,106 +67,105 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          // See home_screen: the bottom inset leaves a dead strip of
-          // background under the scroller, which reads as a solid bar. The
-          // list clears the home indicator with its own padding instead.
-          SafeArea(
-            bottom: false,
-            child: AdaptivePageBody(
-              child: Column(
+    return IosPage(
+      title: l10n.acctRowBlocked,
+      slivers: readableSlivers(context, [
+        if (_loading)
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Center(
+              child: CircularProgressIndicator(
+                color: theme.accent,
+                strokeWidth: 2,
+              ),
+            ),
+          )
+        else if (_blocked.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 60),
+            child: Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 8, 20, 8),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        onPressed: () => Navigator.of(context).maybePop(),
-                        icon: Icon(Icons.arrow_back, color: theme.inkSoft, size: 18),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(l10n.roomCardBlockedScreenTitle, style: theme.label.copyWith(letterSpacing: 3)),
-                    ],
-                  ),
+                Icon(
+                  CupertinoIcons.hand_raised,
+                  size: 44,
+                  color: theme.inkMuted.withValues(alpha: 0.6),
                 ),
-                Expanded(
-                  child: _loading
-                      ? Center(child: CircularProgressIndicator(color: theme.accent, strokeWidth: 2))
-                      : _blocked.isEmpty
-                          ? Center(
-                              child: Text(
-                                l10n.roomCardBlockedEmptyState,
-                                style: theme.bodySoft,
-                              ),
-                            )
-                          : ListView.separated(
-                              padding: EdgeInsets.fromLTRB(
-                                20,
-                                4,
-                                20,
-                                edgeToEdgeBottom(context, 24),
-                              ),
-                              itemCount: _blocked.length,
-                              separatorBuilder: (_, _) => const SizedBox(height: 10),
-                              itemBuilder: (context, i) {
-                                final u = _blocked[i];
-                                final busy = _pendingUnblock == u.id;
-                                return Container(
-                                  padding: const EdgeInsets.all(14),
-                                  decoration: BoxDecoration(
-                                    color: theme.surface,
-                                    border: Border.all(color: theme.divider),
-                                    borderRadius: BorderRadius.circular(theme.radiusMd),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      UserAvatar(user: u, size: 36, api: widget.api, showStatus: false),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(u.displayName, style: theme.displaySmall.copyWith(fontSize: 16)),
-                                            Text('@${u.username}', style: theme.monoTiny),
-                                          ],
-                                        ),
-                                      ),
-                                      GestureDetector(
-                                        onTap: busy ? null : () => _unblock(u),
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                          decoration: BoxDecoration(
-                                            color: theme.surfaceRaised,
-                                            borderRadius: BorderRadius.circular(theme.radiusMd),
-                                            border: Border.all(color: theme.divider),
-                                          ),
-                                          child: busy
-                                              ? SizedBox(
-                                                  width: 12,
-                                                  height: 12,
-                                                  child: CircularProgressIndicator(
-                                                    strokeWidth: 2,
-                                                    color: theme.accent,
-                                                  ),
-                                                )
-                                              : Text(l10n.roomCardUnblockButton,
-                                                  style: theme.monoTiny.copyWith(color: theme.accent)),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
+                const SizedBox(height: 12),
+                Text(
+                  l10n.acctBlockedEmpty,
+                  textAlign: TextAlign.center,
+                  style: theme.bodySoft,
                 ),
               ],
             ),
+          )
+        else
+          InsetGroup(
+            dividerInset: 66,
+            children: [
+              for (final u in _blocked) _row(theme, l10n, u),
+            ],
+          ),
+      ]),
+    );
+  }
+
+  Widget _row(AppTheme theme, AppLocalizations l10n, ChatUser u) {
+    final busy = _pendingUnblock == u.id;
+    return PressRow(
+      padding: const EdgeInsets.fromLTRB(14, 9, 12, 9),
+      child: Row(
+        children: [
+          UserAvatar(user: u, size: 38, api: widget.api, showStatus: false),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  u.displayName,
+                  style: theme.body.copyWith(color: theme.ink),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  '@${u.username}',
+                  style: theme.caption.copyWith(color: theme.inkMuted),
+                ),
+              ],
             ),
           ),
+          busy
+              ? SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: theme.accent,
+                  ),
+                )
+              : SpringPress(
+                  onTap: () => _unblock(u),
+                  semanticLabel: l10n.acctUnblock,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.accent.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      l10n.acctUnblock,
+                      style: theme.body.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: theme.accent,
+                      ),
+                    ),
+                  ),
+                ),
         ],
       ),
     );

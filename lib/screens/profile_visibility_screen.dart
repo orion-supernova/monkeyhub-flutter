@@ -1,4 +1,6 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
@@ -6,9 +8,11 @@ import '../data/settings_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
-import '../theme/layout.dart';
+import '../theme/motion.dart';
+import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/adaptive_page_body.dart';
+import '../widgets/account_kit.dart';
+import '../widgets/ios_kit.dart';
 
 /// Visibility & privacy preferences, grouped into PROFILE / MESSAGES / PEOPLE.
 ///
@@ -129,237 +133,158 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          // See home_screen: the bottom inset leaves a dead strip of
-          // background under the scroller, which reads as a solid bar. The
-          // list clears the home indicator with its own padding instead.
-          SafeArea(
-            bottom: false,
-            child: AdaptivePageBody(
-              child: Column(
-              children: [
-                _backBar(theme),
-                Expanded(
-                  child: _loading
-                      ? Center(
-                          child: CircularProgressIndicator(
-                            color: theme.accent, strokeWidth: 2,
-                          ),
-                        )
-                      : SingleChildScrollView(
-                          padding: EdgeInsets.fromLTRB(
-                            20,
-                            4,
-                            20,
-                            edgeToEdgeBottom(context, 40),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(AppLocalizations.of(context).profileVisibilityScreenTitle,
-                                  style: theme.displayMedium),
-                              const SizedBox(height: 10),
-                              Row(children: [
-                                Container(width: 18, height: 1, color: theme.accent),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    AppLocalizations.of(context).profileVisibilityScreenSubtitle,
-                                    style: theme.caption,
-                                  ),
-                                ),
-                              ]),
-                              const SizedBox(height: 24),
-                              if (widget.readOnly) ...[
-                                _SupervisedNotice(theme: theme),
-                                const SizedBox(height: 24),
-                              ],
-                              const SizedBox(height: 12),
-
-                              // ───── PROFILE ─────
-                              _Section(theme: theme, label: AppLocalizations.of(context).profileVisibilityScreenSectionProfile),
-                              const SizedBox(height: 22),
-                              _Row(
-                                theme: theme,
-                                label: AppLocalizations.of(context).profileVisibilityScreenAvatarLabel,
-                                desc: AppLocalizations.of(context).profileVisibilityScreenAvatarDesc,
-                                value: _vis.avatar,
-                                onChanged: (v) => _patch(avatar: v),
-                                enabled: !widget.readOnly,
-                              ),
-                              const SizedBox(height: 26),
-                              _Row(
-                                theme: theme,
-                                label: AppLocalizations.of(context).profileVisibilityScreenOnlineAwayLabel,
-                                desc: AppLocalizations.of(context).profileVisibilityScreenOnlineAwayDesc,
-                                value: _vis.status,
-                                onChanged: (v) => _patch(status: v),
-                                enabled: !widget.readOnly,
-                              ),
-                              const SizedBox(height: 26),
-                              _Row(
-                                theme: theme,
-                                label: AppLocalizations.of(context).profileVisibilityScreenLastSeenLabel,
-                                desc: AppLocalizations.of(context).profileVisibilityScreenLastSeenDesc,
-                                value: _vis.lastSeen,
-                                onChanged: (v) => _patch(lastSeen: v),
-                                enabled: !widget.readOnly,
-                              ),
-                              const SizedBox(height: 40),
-
-                              // ───── MESSAGES ─────
-                              _Section(theme: theme, label: AppLocalizations.of(context).profileVisibilityScreenSectionMessages),
-                              const SizedBox(height: 22),
-                              _Row(
-                                theme: theme,
-                                label: AppLocalizations.of(context).profileVisibilityScreenSendReadReceiptsLabel,
-                                desc: AppLocalizations.of(context).profileVisibilityScreenSendReadReceiptsDesc,
-                                value: _vis.seen,
-                                onChanged: (v) => _patch(seen: v),
-                                enabled: !widget.readOnly,
-                              ),
-                              const SizedBox(height: 26),
-                              _RowBool(
-                                theme: theme,
-                                label: AppLocalizations.of(context).profileVisibilityScreenShowReadReceiptsLabel,
-                                desc: AppLocalizations.of(context).profileVisibilityScreenShowReadReceiptsDesc,
-                                hint: AppLocalizations.of(context).profileVisibilityScreenShowReadReceiptsHint,
-                                value: SettingsStore.instance.viewReadReceipts,
-                                onChanged: (v) =>
-                                    SettingsStore.instance.setViewReadReceipts(v),
-                              ),
-                              const SizedBox(height: 40),
-
-                              // ───── PEOPLE ─────
-                              _Section(theme: theme, label: AppLocalizations.of(context).profileVisibilityScreenSectionPeople),
-                              const SizedBox(height: 22),
-                              _RowBinary(
-                                theme: theme,
-                                label: AppLocalizations.of(context).profileVisibilityScreenFriendRequestsLabel,
-                                desc: AppLocalizations.of(context).profileVisibilityScreenFriendRequestsDesc,
-                                value: _vis.friendRequests,
-                                onChanged: (v) => _patch(friendRequests: v),
-                                enabled: !widget.readOnly,
-                              ),
-
-                              const SizedBox(height: 34),
-                              _Section(theme: theme, label: AppLocalizations.of(context).profileVisibilityScreenSectionFeed),
-                              const SizedBox(height: 22),
-                              _RowFeed(
-                                theme: theme,
-                                label: AppLocalizations.of(context).profileVisibilityScreenFeedLabel,
-                                desc: AppLocalizations.of(context).profileVisibilityScreenFeedDesc,
-                                value: _vis.feed,
-                                onChanged: (v) => _patch(feed: v),
-                                enabled: !widget.readOnly,
-                              ),
-                              const SizedBox(height: 22),
-                              _RowFeed(
-                                theme: theme,
-                                label: AppLocalizations.of(context).profileVisibilityScreenPointsLabel,
-                                desc: AppLocalizations.of(context).profileVisibilityScreenPointsDesc,
-                                value: _vis.points,
-                                onChanged: (v) => _patch(points: v),
-                                enabled: !widget.readOnly,
-                              ),
-                              const SizedBox(height: 22),
-                              _RowFeed(
-                                theme: theme,
-                                label: AppLocalizations.of(context).profileVisibilityScreenPuzzleLabel,
-                                desc: AppLocalizations.of(context).profileVisibilityScreenPuzzleDesc,
-                                value: _vis.puzzle,
-                                onChanged: (v) => _patch(puzzle: v),
-                                enabled: !widget.readOnly,
-                              ),
-                              const SizedBox(height: 22),
-                              _RowFeed(
-                                theme: theme,
-                                label: AppLocalizations.of(context).profileVisibilityScreenPointsPastLabel,
-                                desc: AppLocalizations.of(context).profileVisibilityScreenPointsPastDesc,
-                                value: _vis.pointsPast,
-                                onChanged: (v) => _patch(pointsPast: v),
-                                enabled: !widget.readOnly,
-                              ),
-
-                              if (_error != null) ...[
-                                const SizedBox(height: 24),
-                                Text(_error!,
-                                    style: theme.body.copyWith(color: theme.danger)),
-                              ],
-                            ],
-                          ),
-                        ),
-                ),
-              ],
-            ),
+    final l10n = AppLocalizations.of(context);
+    final ro = widget.readOnly;
+    return IosPage(
+      title: l10n.acctRowVisibility,
+      subtitle: l10n.pvSubtitle,
+      actions: [
+        // Every choice saves itself; this is the only sign one is in flight.
+        AnimatedOpacity(
+          opacity: _saving ? 1 : 0,
+          duration: theme.motionFast,
+          child: SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: theme.accent,
             ),
           ),
-          if (_saving)
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 14,
-              right: 20,
-              child: SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: theme.accent,
+        ),
+      ],
+      slivers: _loading
+          ? [
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: theme.accent,
+                    strokeWidth: 2,
+                  ),
                 ),
               ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _backBar(AppTheme theme) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 8, 20, 8),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Navigator.of(context).maybePop(),
-            icon: Icon(Icons.arrow_back, color: theme.inkSoft, size: 18),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Section extends StatelessWidget {
-  const _Section({required this.theme, required this.label});
-  final AppTheme theme;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Container(
-          width: 3,
-          height: 14,
-          decoration: BoxDecoration(
-            color: theme.accent,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          label,
-          style: theme.label.copyWith(
-            letterSpacing: 2.8,
-            color: theme.accent,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(child: Container(height: 1, color: theme.divider)),
-      ],
+            ]
+          : readableSlivers(context, [
+              if (ro) ...[
+                SoftNote(
+                  icon: CupertinoIcons.shield_lefthalf_fill,
+                  tone: theme.accent,
+                  text: '${l10n.pvSupervisedTitle}. '
+                      '${l10n.profileVisibilityScreenSupervisedBody}',
+                ),
+                const SizedBox(height: 24),
+              ],
+              InsetGroup(
+                header: l10n.pvSectionProfile,
+                children: [
+                  _Row(
+                    theme: theme,
+                    label: l10n.pvAvatar,
+                    desc: l10n.pvAvatarDesc,
+                    value: _vis.avatar,
+                    onChanged: (v) => _patch(avatar: v),
+                    enabled: !ro,
+                  ),
+                  _Row(
+                    theme: theme,
+                    label: l10n.pvOnline,
+                    desc: l10n.pvOnlineDesc,
+                    value: _vis.status,
+                    onChanged: (v) => _patch(status: v),
+                    enabled: !ro,
+                  ),
+                  _Row(
+                    theme: theme,
+                    label: l10n.pvLastSeen,
+                    desc: l10n.pvLastSeenDesc,
+                    value: _vis.lastSeen,
+                    onChanged: (v) => _patch(lastSeen: v),
+                    enabled: !ro,
+                  ),
+                ],
+              ),
+              InsetGroup(
+                header: l10n.pvSectionMessages,
+                children: [
+                  _Row(
+                    theme: theme,
+                    label: l10n.pvSendReceipts,
+                    desc: l10n.pvSendReceiptsDesc,
+                    value: _vis.seen,
+                    onChanged: (v) => _patch(seen: v),
+                    enabled: !ro,
+                  ),
+                  _RowBool(
+                    theme: theme,
+                    label: l10n.pvShowReceipts,
+                    desc: l10n.pvShowReceiptsDesc,
+                    hint: l10n.pvShowReceiptsHint,
+                    value: SettingsStore.instance.viewReadReceipts,
+                    onChanged: (v) =>
+                        SettingsStore.instance.setViewReadReceipts(v),
+                  ),
+                ],
+              ),
+              InsetGroup(
+                header: l10n.pvSectionPeople,
+                children: [
+                  _RowBinary(
+                    theme: theme,
+                    label: l10n.pvFriendRequests,
+                    desc: l10n.pvFriendRequestsDesc,
+                    value: _vis.friendRequests,
+                    onChanged: (v) => _patch(friendRequests: v),
+                    enabled: !ro,
+                  ),
+                ],
+              ),
+              InsetGroup(
+                header: l10n.pvSectionFeed,
+                children: [
+                  _RowFeed(
+                    theme: theme,
+                    label: l10n.pvHighlights,
+                    desc: l10n.pvHighlightsDesc,
+                    value: _vis.feed,
+                    onChanged: (v) => _patch(feed: v),
+                    enabled: !ro,
+                  ),
+                  _RowFeed(
+                    theme: theme,
+                    label: l10n.pvPoints,
+                    desc: l10n.pvPointsDesc,
+                    value: _vis.points,
+                    onChanged: (v) => _patch(points: v),
+                    enabled: !ro,
+                  ),
+                  _RowFeed(
+                    theme: theme,
+                    label: l10n.pvPuzzle,
+                    desc: l10n.pvPuzzleDesc,
+                    value: _vis.puzzle,
+                    onChanged: (v) => _patch(puzzle: v),
+                    enabled: !ro,
+                  ),
+                  _RowFeed(
+                    theme: theme,
+                    label: l10n.pvPast,
+                    desc: l10n.pvPastDesc,
+                    value: _vis.pointsPast,
+                    onChanged: (v) => _patch(pointsPast: v),
+                    enabled: !ro,
+                  ),
+                ],
+              ),
+              if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    _error!,
+                    style: theme.body.copyWith(color: theme.danger),
+                  ),
+                ),
+            ]),
     );
   }
 }
@@ -380,65 +305,29 @@ class _Field extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: theme.label.copyWith(letterSpacing: 1.8)),
-        const SizedBox(height: 3),
-        Text(desc, style: theme.monoTiny),
-        const SizedBox(height: 10),
-        child,
-        if (hint != null) ...[
-          const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(Icons.info_outline, size: 12, color: theme.inkMuted),
-              const SizedBox(width: 6),
-              Expanded(child: Text(hint!, style: theme.monoTiny)),
-            ],
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-/// Shown at the top of this screen for a child: their visibility isn't
-/// theirs to set, and their grown-ups can see everything regardless. Better
-/// to say that plainly than to let them wonder why nothing moves.
-class _SupervisedNotice extends StatelessWidget {
-  const _SupervisedNotice({required this.theme});
-  final AppTheme theme;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.accentSoft,
-        border: Border.all(color: theme.accent.withValues(alpha: 0.35)),
-        borderRadius: BorderRadius.circular(theme.radiusMd),
-      ),
-      child: Row(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.shield_outlined, size: 16, color: theme.accent),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(AppLocalizations.of(context).profileVisibilityScreenSupervisedTitle,
-                    style: theme.label.copyWith(color: theme.accent)),
-                const SizedBox(height: 6),
-                Text(
-                  AppLocalizations.of(context).profileVisibilityScreenSupervisedBody,
-                  style: theme.bodySoft,
-                ),
-              ],
-            ),
+          Text(
+            label,
+            style: theme.body.copyWith(fontSize: 17, color: theme.ink),
           ),
+          const SizedBox(height: 2),
+          Text(
+            desc,
+            style: theme.caption.copyWith(fontSize: 13, color: theme.inkMuted),
+          ),
+          const SizedBox(height: 10),
+          child,
+          if (hint != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              hint!,
+              style: theme.caption.copyWith(color: theme.inkMuted),
+            ),
+          ],
         ],
       ),
     );
@@ -470,9 +359,9 @@ class _Row extends StatelessWidget {
       child: _Seg<FieldVisibility>(
         theme: theme,
         options: [
-          (FieldVisibility.public, AppLocalizations.of(context).profileVisibilityScreenOptionPublic),
-          (FieldVisibility.friends, AppLocalizations.of(context).profileVisibilityScreenOptionFriends),
-          (FieldVisibility.nobody, AppLocalizations.of(context).profileVisibilityScreenOptionNobody),
+          (FieldVisibility.public, AppLocalizations.of(context).pvEveryone),
+          (FieldVisibility.friends, AppLocalizations.of(context).pvFriends),
+          (FieldVisibility.nobody, AppLocalizations.of(context).pvNobody),
         ],
         value: value,
         onChanged: onChanged,
@@ -508,8 +397,8 @@ class _RowBool extends StatelessWidget {
       child: _Seg<bool>(
         theme: theme,
         options: [
-          (true, AppLocalizations.of(context).profileVisibilityScreenOptionOn),
-          (false, AppLocalizations.of(context).profileVisibilityScreenOptionOff),
+          (true, AppLocalizations.of(context).pvOn),
+          (false, AppLocalizations.of(context).pvOff),
         ],
         value: value,
         onChanged: onChanged,
@@ -543,8 +432,8 @@ class _RowBinary extends StatelessWidget {
       child: _Seg<FieldVisibility>(
         theme: theme,
         options: [
-          (FieldVisibility.public, AppLocalizations.of(context).profileVisibilityScreenOptionAnyone),
-          (FieldVisibility.nobody, AppLocalizations.of(context).profileVisibilityScreenOptionNobody),
+          (FieldVisibility.public, AppLocalizations.of(context).pvAnyone),
+          (FieldVisibility.nobody, AppLocalizations.of(context).pvNobody),
         ],
         value: value == FieldVisibility.friends ? FieldVisibility.public : value,
         onChanged: onChanged,
@@ -585,8 +474,8 @@ class _RowFeed extends StatelessWidget {
       child: _Seg<FieldVisibility>(
         theme: theme,
         options: [
-          (FieldVisibility.friends, AppLocalizations.of(context).profileVisibilityScreenOptionFriends),
-          (FieldVisibility.nobody, AppLocalizations.of(context).profileVisibilityScreenOptionNobody),
+          (FieldVisibility.friends, AppLocalizations.of(context).pvFriends),
+          (FieldVisibility.nobody, AppLocalizations.of(context).pvNobody),
         ],
         // A stored "public" from some future client collapses to friends
         // rather than leaving the segment showing neither option selected.
@@ -598,6 +487,8 @@ class _RowFeed extends StatelessWidget {
   }
 }
 
+/// The iOS segmented control: a recessed track and a raised thumb that slides
+/// to the chosen option on a spring.
 class _Seg<T> extends StatelessWidget {
   const _Seg({
     required this.theme,
@@ -611,51 +502,90 @@ class _Seg<T> extends StatelessWidget {
   final T value;
   final ValueChanged<T> onChanged;
 
-  /// When false the control still shows the current value but ignores taps —
-  /// used for a child, whose visibility is guardian-controlled.
+  /// False for a supervised child: the control still shows what is set, but
+  /// only a grown-up can move it.
   final bool enabled;
 
   @override
   Widget build(BuildContext context) {
+    final motion = MotionScope.of(context);
+    final index = options.indexWhere((o) => o.$1 == value).clamp(0, 99);
+    final n = options.length;
+    final thumb = theme.isLight
+        ? Colors.white
+        : Color.alphaBlend(
+            Colors.white.withValues(alpha: 0.16),
+            groupedFill(theme),
+          );
     return Opacity(
       opacity: enabled ? 1 : 0.45,
       child: Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: theme.surfaceSunken,
-        border: Border.all(color: theme.divider),
-        borderRadius: BorderRadius.circular(theme.radiusMd),
-      ),
-      child: Row(
-        children: [
-          for (final o in options)
-            Expanded(
-              child: GestureDetector(
-                onTap: enabled ? () => onChanged(o.$1) : null,
-                behavior: HitTestBehavior.opaque,
-                child: AnimatedContainer(
-                  duration: theme.motionFast,
-                  curve: Curves.easeOutCubic,
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  alignment: Alignment.center,
+        height: 34,
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          color: theme.ink.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(9),
+        ),
+        child: Stack(
+          children: [
+            AnimatedAlign(
+              alignment: Alignment(n == 1 ? 0 : -1 + index * 2 / (n - 1), 0),
+              duration: motion.d(const Duration(milliseconds: 380)),
+              curve: Curves.easeOutBack,
+              child: FractionallySizedBox(
+                widthFactor: 1 / n,
+                heightFactor: 1,
+                child: Container(
                   decoration: BoxDecoration(
-                    color: value == o.$1 ? theme.accent : Colors.transparent,
-                    borderRadius: BorderRadius.circular(theme.radiusMd - 2),
-                  ),
-                  child: AnimatedDefaultTextStyle(
-                    duration: theme.motionFast,
-                    curve: Curves.easeOutCubic,
-                    style: theme.label.copyWith(
-                      color: value == o.$1 ? theme.accentInk : theme.inkSoft,
-                      letterSpacing: 1.6,
-                    ),
-                    child: Text(o.$2),
+                    color: thumb,
+                    borderRadius: BorderRadius.circular(7),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.12),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-        ],
-      ),
+            Row(
+              children: [
+                for (final o in options)
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: enabled && o.$1 != value
+                          ? () {
+                              HapticFeedback.selectionClick();
+                              onChanged(o.$1);
+                            }
+                          : null,
+                      behavior: HitTestBehavior.opaque,
+                      child: Center(
+                        child: AnimatedDefaultTextStyle(
+                          duration: theme.motionFast,
+                          style: theme.body.copyWith(
+                            fontSize: 13,
+                            letterSpacing: 0,
+                            fontWeight: o.$1 == value
+                                ? FontWeight.w600
+                                : FontWeight.w500,
+                            color: o.$1 == value ? theme.ink : theme.inkSoft,
+                          ),
+                          child: Text(
+                            o.$2,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

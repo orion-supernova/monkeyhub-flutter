@@ -176,9 +176,9 @@ void main() {
     await tester.pumpAndSettle();
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    expect(find.text(l10n.devicesScreenThisDevice), findsOneWidget);
+    expect(find.textContaining(l10n.acctThisDevice), findsOneWidget);
     // Two others, so two Remove controls — never three.
-    expect(find.text(l10n.devicesScreenRemove), findsNWidgets(2));
+    expect(find.text(l10n.acctRemove), findsNWidgets(2));
   });
 
   testWidgets('says so when a device cannot be reached', (tester) async {
@@ -186,7 +186,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    expect(find.text(l10n.devicesScreenNoNotifications), findsOneWidget);
+    expect(find.textContaining(l10n.acctNoNotifications), findsOneWidget);
   });
 
   testWidgets('the copy promises the sign-out that now actually happens', (
@@ -233,7 +233,7 @@ void main() {
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
     expect(find.text(l10n.devicesScreenRemoveAll), findsNothing);
-    expect(find.text(l10n.devicesScreenRemove), findsNothing);
+    expect(find.text(l10n.acctRemove), findsNothing);
   });
 
   testWidgets('removing one device asks first, then drops just that row', (
@@ -244,14 +244,14 @@ void main() {
     await tester.pumpAndSettle();
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    await tester.tap(find.text(l10n.devicesScreenRemove).first);
+    await tester.tap(find.text(l10n.acctRemove).first);
     await tester.pumpAndSettle();
 
     // The confirm sheet, not a silent deletion.
-    expect(find.text(l10n.devicesScreenRemoveTitle), findsOneWidget);
+    expect(find.text(l10n.acctRemoveDeviceTitle), findsOneWidget);
     expect(api.removed, isEmpty);
 
-    await tester.tap(find.text(l10n.devicesScreenRemoveConfirm).last);
+    await tester.tap(find.text(l10n.acctRemove).last);
     await tester.pumpAndSettle();
 
     expect(api.removed, ['b']);
@@ -267,7 +267,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    await tester.tap(find.text(l10n.devicesScreenRemove).first);
+    await tester.tap(find.text(l10n.acctRemove).first);
     await tester.pumpAndSettle();
     Navigator.of(tester.element(find.byType(DevicesScreen))).maybePop();
     await tester.pumpAndSettle();
@@ -286,7 +286,7 @@ void main() {
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
     await tester.tap(find.text(l10n.devicesScreenRemoveAll));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(l10n.devicesScreenRemoveAllConfirm).last);
+    await tester.tap(find.text(l10n.acctRemoveAll).last);
     await tester.pumpAndSettle();
 
     expect(api.removeOthersCalls, 1);

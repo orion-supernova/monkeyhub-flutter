@@ -36,7 +36,6 @@ final _me = _user('me', 'Murat Can');
 final _ece = _user('u_ece', 'Ece', status: 'online');
 final _deniz = _user('u_deniz', 'Deniz Kaya', status: 'away');
 final _mom = _user('u_mom', 'Mom', status: 'offline');
-final _arda = _user('u_arda', 'Arda');
 
 /// One row of the fake list: the room plus what the repository would have
 /// resolved for it (the DM peer, who is typing).
@@ -294,9 +293,8 @@ class _FakeHome extends StatelessWidget {
 /// The redesigned home: iOS bar + large title + [ChatListRow]s. Mirrors
 /// `HomeScreen.build` / `_Header` / `_LargeTitle` after the redesign.
 class _FakeHomeV2 extends StatelessWidget {
-  const _FakeHomeV2({required this.rows, this.chips = true});
+  const _FakeHomeV2({required this.rows});
   final List<_Row> rows;
-  final bool chips;
 
   @override
   Widget build(BuildContext context) {
@@ -348,7 +346,7 @@ class _FakeHomeV2 extends StatelessWidget {
                               .copyWith(letterSpacing: 0.37),
                         ),
                       ),
-                      if (chips) ...[
+                      ...[
                         RoomFilterBar(
                           filter: RoomFilter.empty,
                           counts:

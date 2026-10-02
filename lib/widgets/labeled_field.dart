@@ -1,20 +1,42 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
+import 'sheet_kit.dart' show sentenceCaseOf;
 
 /// The small uppercase caption that sits above a form control.
 ///
 /// Kept separate from [LabeledField] because several screens put a label above
 /// something that isn't a text input (a visibility picker, a members list).
+/// The iOS 26 text field: a soft filled rounded rect and nothing else. The
+/// theme's input box drew a hairline border, which is the Material field; the
+/// fill is the theme's own ink at a low alpha so it follows every palette, on
+/// a page or on a sheet.
+BoxDecoration fieldDecoration(AppTheme theme) => BoxDecoration(
+      color: theme.ink.withValues(alpha: theme.isLight ? 0.055 : 0.09),
+      borderRadius: BorderRadius.circular(
+        (theme.radiusXl * 0.6).clamp(6.0, 13.0),
+      ),
+    );
+
 class FieldLabel extends StatelessWidget {
   const FieldLabel(this.text, {super.key});
   final String text;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Text(text, style: ThemeScope.of(context).label),
-      );
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    // The iOS section header over a field: sentence case, footnote size,
+    // muted, inset to the field's text rather than its edge.
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 7),
+      child: Text(
+        sentenceCaseOf(context, text),
+        style: theme.caption.copyWith(fontSize: 13, color: theme.inkMuted),
+      ),
+    );
+  }
 }
 
 /// A themed single-line (or multi-line) text input.
@@ -81,21 +103,21 @@ class ThemedInput extends StatelessWidget {
       maxLines: obscure ? 1 : maxLines,
       autocorrect: autocorrect,
       enableSuggestions: enableSuggestions,
-      style: theme.body.copyWith(color: theme.ink),
+      style: theme.body.copyWith(color: theme.ink, fontSize: 17),
       cursorColor: theme.accent,
       decoration: InputDecoration(
         isCollapsed: true,
         border: InputBorder.none,
-        hintText: hint,
-        hintStyle: theme.body.copyWith(color: theme.inkMuted),
+        hintText: sentenceCaseOf(context, hint),
+        hintStyle: theme.body.copyWith(color: theme.inkMuted, fontSize: 17),
         contentPadding: const EdgeInsets.symmetric(vertical: 14),
       ),
       onChanged: onChanged,
       onSubmitted: onSubmitted,
     );
     return Container(
-      decoration: theme.inputDecoration(),
-      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: fieldDecoration(theme),
+      padding: EdgeInsets.only(left: 16, right: trailing == null ? 16 : 6),
       child: trailing == null
           ? field
           : Row(children: [Expanded(child: field), trailing!]),

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -6,9 +7,9 @@ import '../backend/convex_client.dart';
 import '../family/family_service.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/family.dart';
-import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/adaptive_page_body.dart';
+import '../widgets/account_kit.dart';
+import '../widgets/ios_kit.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/user_avatar.dart';
 
@@ -174,74 +175,38 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final loc = AppLocalizations.of(context);
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          // See home_screen: the bottom inset leaves a dead strip of
-          // background under the scroller, which reads as a solid bar. The
-          // list clears the home indicator with its own padding instead.
-          SafeArea(
-            bottom: false,
-            child: AdaptivePageBody(
-              child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => Navigator.of(context).pop(),
-                        behavior: HitTestBehavior.opaque,
-                        child: Icon(Icons.arrow_back,
-                            size: 20, color: theme.inkSoft),
-                      ),
-                      const SizedBox(width: 14),
-                      Text(loc.approvalsScreenTitle,
-                          style: theme.label.copyWith(letterSpacing: 2.8)),
-                      const SizedBox(width: 10),
-                      if (_items.isNotEmpty)
-                        Text('${_items.length}', style: theme.monoTiny),
-                    ],
+    return RefreshIndicator(
+      color: theme.accent,
+      onRefresh: () {
+        HapticFeedback.lightImpact();
+        return _load();
+      },
+      child: IosPage(
+        title: loc.acctRowApprovals,
+        slivers: _loading
+            ? [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: theme.accent,
+                      strokeWidth: 2,
+                    ),
                   ),
                 ),
-                Expanded(
-                  child: _loading
-                      ? Center(
-                          child: CircularProgressIndicator(
-                              color: theme.accent, strokeWidth: 2),
-                        )
-                      : _items.isEmpty
-                          ? _EmptyState()
-                          : RefreshIndicator(
-                              color: theme.accent,
-                              onRefresh: () {
-                                HapticFeedback.lightImpact();
-                                return _load();
-                              },
-                              child: ListView.builder(
-                                padding: EdgeInsets.fromLTRB(
-                                  20,
-                                  4,
-                                  20,
-                                  edgeToEdgeBottom(context, 40),
-                                ),
-                                itemCount: _items.length,
-                                itemBuilder: (_, i) => _QueueCard(
-                                  item: _items[i],
-                                  api: widget.api,
-                                  busy: _deciding.contains(_items[i].id),
-                                  onDecide: (ok) => _decide(_items[i], ok),
-                                ),
-                              ),
-                            ),
-                ),
-              ],
-            ),
-            ),
-          ),
-        ],
+              ]
+            : _items.isEmpty
+                ? [SliverFillRemaining(hasScrollBody: false, child: _EmptyState())]
+                : readableSlivers(context, [
+                    for (final item in _items)
+                      _QueueCard(
+                        key: ValueKey(item.id),
+                        item: item,
+                        api: widget.api,
+                        busy: _deciding.contains(item.id),
+                        onDecide: (ok) => _decide(item, ok),
+                      ),
+                  ]),
       ),
     );
   }
@@ -253,15 +218,24 @@ class _EmptyState extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final loc = AppLocalizations.of(context);
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.check_circle_outline, size: 34, color: theme.inkMuted),
-          const SizedBox(height: 14),
-          Text(loc.approvalsScreenEmptyTitle, style: theme.displaySmall),
-          const SizedBox(height: 6),
-          Text(loc.approvalsScreenEmptySubtitle, style: theme.bodySoft),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 80),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AvatarPop(
+              child: Icon(
+                CupertinoIcons.checkmark_seal_fill,
+                size: 52,
+                color: theme.success,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(loc.apprEmptyTitle, style: theme.displaySmall),
+            const SizedBox(height: 4),
+            Text(loc.apprEmptySub, style: theme.bodySoft),
+          ],
+        ),
       ),
     );
   }
@@ -269,6 +243,7 @@ class _EmptyState extends StatelessWidget {
 
 class _QueueCard extends StatelessWidget {
   const _QueueCard({
+    super.key,
     required this.item,
     required this.api,
     required this.busy,
@@ -339,14 +314,14 @@ class _QueueCard extends StatelessWidget {
   IconData get _icon {
     switch (item.type) {
       case QueueItemType.contactOutgoing:
-        return Icons.person_add_alt;
+        return CupertinoIcons.person_badge_plus;
       case QueueItemType.contactIncoming:
-        return Icons.waving_hand_outlined;
+        return CupertinoIcons.hand_raised;
       case QueueItemType.joinRoom:
-        return Icons.tag;
+        return CupertinoIcons.number;
       case QueueItemType.roomInviteOutgoing:
       case QueueItemType.roomInviteIncoming:
-        return Icons.group_add_outlined;
+        return CupertinoIcons.person_3;
     }
   }
 
@@ -355,137 +330,119 @@ class _QueueCard extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final loc = AppLocalizations.of(context);
     final subject = item.other;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.surface,
-        border: Border.all(color: theme.divider),
-        borderRadius: BorderRadius.circular(theme.radiusLg),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return InsetGroup(
+      margin: const EdgeInsets.only(bottom: 16),
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (subject != null)
-                UserAvatar(user: subject, size: 38, api: api)
-              else
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: theme.accentSoft,
-                    borderRadius: BorderRadius.circular(theme.radiusMd),
+              Row(
+                children: [
+                  if (subject != null)
+                    UserAvatar(user: subject, size: 40, api: api)
+                  else
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: theme.accent.withValues(alpha: 0.14),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(_icon, size: 18, color: theme.accent),
+                    ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _headline(loc),
+                          style: theme.bodyEmph.copyWith(
+                            fontSize: 16,
+                            color: theme.ink,
+                          ),
+                        ),
+                        if (subject != null) ...[
+                          const SizedBox(height: 1),
+                          Text(
+                            '@${subject.username}',
+                            style: theme.caption.copyWith(
+                              color: theme.inkMuted,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                  alignment: Alignment.center,
-                  child: Icon(_icon, size: 16, color: theme.accent),
+                ],
+              ),
+              if (item.note.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                // The child's own words, as a message bubble — it is one.
+                Container(
+                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                  decoration: BoxDecoration(
+                    color: theme.ink.withValues(alpha: 0.07),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    item.note,
+                    style: theme.body.copyWith(fontSize: 15, color: theme.ink),
+                  ),
                 ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(_headline(loc), style: theme.displaySmall),
-                    if (subject != null) ...[
-                      const SizedBox(height: 2),
-                      Text('@${subject.username}',
-                          style: theme.mono.copyWith(color: theme.inkMuted)),
-                    ],
-                  ],
+              ],
+              const SizedBox(height: 10),
+              Text(
+                _consequence(loc),
+                style: theme.caption.copyWith(
+                  fontSize: 13,
+                  height: 1.35,
+                  color: theme.inkMuted,
                 ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: SheetButton(
+                      label: loc.apprNotYet,
+                      onTap: busy ? null : () => onDecide(false),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: busy
+                        ? Container(
+                            height: 50,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: theme.accent.withValues(alpha: 0.35),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: theme.accentInk,
+                              ),
+                            ),
+                          )
+                        : SheetButton(
+                            label: loc.apprAllow,
+                            filled: true,
+                            onTap: () => onDecide(true),
+                          ),
+                  ),
+                ],
               ),
             ],
           ),
-          if (item.note.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.surfaceSunken,
-                border: Border(
-                  left: BorderSide(color: theme.accent, width: 2),
-                ),
-                borderRadius: BorderRadius.circular(theme.radiusMd),
-              ),
-              child: Text('“${item.note}”', style: theme.bodySoft),
-            ),
-          ],
-          const SizedBox(height: 10),
-          Text(_consequence(loc), style: theme.bodySoft),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _Btn(
-                  label: loc.approvalsScreenNotYetButton,
-                  filled: false,
-                  onTap: busy ? null : () => onDecide(false),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _Btn(
-                  label: loc.approvalsScreenAllowButton,
-                  filled: true,
-                  busy: busy,
-                  onTap: busy ? null : () => onDecide(true),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Btn extends StatelessWidget {
-  const _Btn({
-    required this.label,
-    required this.filled,
-    required this.onTap,
-    this.busy = false,
-  });
-  final String label;
-  final bool filled;
-  final VoidCallback? onTap;
-  final bool busy;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 13),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: filled
-              ? (busy ? theme.accentSoft : theme.accent)
-              : Colors.transparent,
-          border: filled ? null : Border.all(color: theme.divider),
-          borderRadius: BorderRadius.circular(theme.radiusMd),
         ),
-        child: busy
-            ? SizedBox(
-                width: 15,
-                height: 15,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: theme.accentInk,
-                ),
-              )
-            : Text(
-                label,
-                style: theme.label.copyWith(
-                  color: filled ? theme.accentInk : theme.inkSoft,
-                  letterSpacing: 2.2,
-                ),
-              ),
-      ),
+      ],
     );
   }
 }

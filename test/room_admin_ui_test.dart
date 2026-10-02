@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
@@ -173,7 +174,7 @@ void main() {
       await t.pumpAndSettle();
 
       await t.enterText(find.byType(TextField), 'After');
-      await t.tap(find.byIcon(Icons.check_rounded));
+      await t.tap(find.byIcon(CupertinoIcons.checkmark_circle_fill));
       await t.pumpAndSettle();
 
       expect(committed, 'After');
@@ -188,7 +189,7 @@ void main() {
       await t.pumpAndSettle();
 
       await t.enterText(find.byType(TextField), 'Garbled');
-      await t.tap(find.byIcon(Icons.close_rounded));
+      await t.tap(find.byIcon(CupertinoIcons.xmark_circle_fill));
       await t.pumpAndSettle();
 
       expect(commits, 0, reason: 'cancel must never commit');
@@ -218,7 +219,7 @@ void main() {
       await t.pumpWidget(row(c: c, value: 'Same', onCommit: (_) => commits++));
       await t.tap(find.text('Same'));
       await t.pumpAndSettle();
-      await t.tap(find.byIcon(Icons.check_rounded));
+      await t.tap(find.byIcon(CupertinoIcons.checkmark_circle_fill));
       await t.pumpAndSettle();
       expect(commits, 0, reason: 'unchanged text is not a change');
     });
@@ -235,7 +236,7 @@ void main() {
         enabled: false,
         onCommit: (_) {},
       )));
-      expect(find.byIcon(Icons.edit_outlined), findsNothing);
+      expect(find.byIcon(CupertinoIcons.pencil), findsNothing);
       await t.tap(find.text('Read only'));
       await t.pumpAndSettle();
       expect(find.byType(TextField), findsNothing);

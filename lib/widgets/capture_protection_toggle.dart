@@ -2,13 +2,14 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../data/settings_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../privacy/capture_protection.dart';
-import '../theme/theme_scope.dart';
+import 'ios_kit.dart';
 
 class CaptureProtectionToggle extends StatefulWidget {
   const CaptureProtectionToggle({super.key});
@@ -26,62 +27,22 @@ class _CaptureProtectionToggleState extends State<CaptureProtectionToggle> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     return AnimatedBuilder(
       animation: SettingsStore.instance,
       builder: (context, _) {
         final on = SettingsStore.instance.captureProtection;
-        return GestureDetector(
-          onTap: () => _toggle(!on),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-            decoration: BoxDecoration(
-              color: theme.surface,
-              border: Border.all(color: theme.divider),
-              borderRadius: BorderRadius.circular(theme.radiusMd),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  on ? Icons.shield_outlined : Icons.shield_moon_outlined,
-                  size: 16,
-                  color: on ? theme.accent : theme.inkMuted,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context).countBadgeCaptureProtectionLabel,
-                        style: theme.label,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        on
-                            ? (!kIsWeb && Platform.isAndroid)
-                                ? AppLocalizations.of(context).countBadgeCaptureProtectionOnAndroidBody
-                                : AppLocalizations.of(context).countBadgeCaptureProtectionOnIosBody
-                            : AppLocalizations.of(context).countBadgeCaptureProtectionOffBody,
-                        style: theme.bodySoft,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        AppLocalizations.of(context).countBadgeCaptureProtectionForcedNote,
-                        style: theme.bodySoft.copyWith(color: theme.accent),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Switch.adaptive(
-                  value: on,
-                  onChanged: _toggle,
-                  activeThumbColor: theme.accent,
-                ),
-              ],
-            ),
-          ),
+        return GroupedRow.toggle(
+          icon: on ? CupertinoIcons.eye_slash_fill : CupertinoIcons.eye_fill,
+          tone: TileTone.indigo,
+          title: l10n.acctCaptureTitle,
+          subtitle: on
+              ? (!kIsWeb && Platform.isAndroid)
+                  ? l10n.acctCaptureOnAndroid
+                  : l10n.acctCaptureOnIos
+              : l10n.acctCaptureOff,
+          value: on,
+          onChanged: _toggle,
         );
       },
     );

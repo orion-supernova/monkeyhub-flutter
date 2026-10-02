@@ -292,11 +292,12 @@ class BasicTheme implements AppTheme {
       decoration: BoxDecoration(
         color: accent,
         borderRadius: BorderRadius.circular(size * 0.225),
+        // A centred glow, not a drop: offset, it read as a grey lip under
+        // the tile on the light palettes.
         boxShadow: [
           BoxShadow(
-            color: accent.withValues(alpha: 0.30),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+            color: accent.withValues(alpha: 0.22),
+            blurRadius: 14,
           ),
         ],
       ),

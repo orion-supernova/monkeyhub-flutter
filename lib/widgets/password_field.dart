@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../l10n/generated/app_localizations.dart';
@@ -63,15 +64,25 @@ class _PasswordFieldState extends State<PasswordField> {
       enableSuggestions: false,
       onChanged: widget.onChanged,
       onSubmitted: widget.onSubmitted,
-      trailing: IconButton(
-        onPressed: () => setState(() => _obscure = !_obscure),
-        tooltip: _obscure
+      // A bare glyph that toggles, never an IconButton — the app renders no
+      // ink anywhere.
+      trailing: Semantics(
+        button: true,
+        label: _obscure
             ? AppLocalizations.of(context).countBadgeShowPasswordTooltip
             : AppLocalizations.of(context).countBadgeHidePasswordTooltip,
-        icon: Icon(
-          _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-          color: theme.inkMuted,
-          size: 18,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => setState(() => _obscure = !_obscure),
+          child: SizedBox(
+            width: 40,
+            height: 44,
+            child: Icon(
+              _obscure ? CupertinoIcons.eye : CupertinoIcons.eye_slash,
+              color: theme.inkMuted,
+              size: 20,
+            ),
+          ),
         ),
       ),
     );

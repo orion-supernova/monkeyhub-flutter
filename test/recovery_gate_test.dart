@@ -97,8 +97,8 @@ void main() {
       roomToBreathe(tester);
       await tester.pumpWidget(host(gate()));
 
-      expect(find.text('COPY'), findsOneWidget);
-      expect(find.text('I SAVED THEM'), findsOneWidget);
+      expect(find.text('Copy'), findsOneWidget);
+      expect(find.text('I saved them'), findsOneWidget);
     });
   });
 
@@ -108,7 +108,7 @@ void main() {
       roomToBreathe(tester);
       await tester.pumpWidget(host(gate()));
 
-      expect(find.text('← back'), findsOneWidget);
+      expect(find.text('Back'), findsOneWidget);
     });
 
     testWidgets('a dismissible repair offers "not now"', (tester) async {
@@ -119,7 +119,7 @@ void main() {
         knownPassword: 'pw',
       )));
 
-      expect(find.text('not now — keep my current phrase'), findsOneWidget);
+      expect(find.text('Not now — keep my current phrase'), findsOneWidget);
     });
 
     testWidgets('a non-dismissible repair offers nothing but the CTA',
@@ -130,9 +130,9 @@ void main() {
         knownPassword: 'pw',
       )));
 
-      expect(find.text('not now — keep my current phrase'), findsNothing);
-      expect(find.text('← back'), findsNothing);
-      expect(find.text('I SAVED THEM'), findsOneWidget);
+      expect(find.text('Not now — keep my current phrase'), findsNothing);
+      expect(find.text('Back'), findsNothing);
+      expect(find.text('I saved them'), findsOneWidget);
     });
   });
 
@@ -196,7 +196,7 @@ void main() {
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('I SAVED THEM'));
+      await tester.tap(find.text('I saved them'));
       await tester.pumpAndSettle();
 
       expect(find.byType(RecoveryPhraseScreen), findsNothing);
@@ -222,7 +222,7 @@ void main() {
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('I SAVED THEM'));
+      await tester.tap(find.text('I saved them'));
       await tester.pumpAndSettle();
 
       expect(committed, isTrue);
@@ -247,7 +247,7 @@ void main() {
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('I SAVED THEM'));
+      await tester.tap(find.text('I saved them'));
       await tester.pumpAndSettle();
 
       expect(find.byType(RecoveryPhraseScreen), findsOneWidget);
@@ -264,8 +264,8 @@ void main() {
       // The words must not be on screen yet — being told to save twelve words
       // and only then discovering you can't remember your password is the
       // failure this ordering avoids.
-      expect(find.text('CONTINUE'), findsOneWidget);
-      expect(find.text('I SAVED THEM'), findsNothing);
+      expect(find.text('Continue'), findsOneWidget);
+      expect(find.text('I saved them'), findsNothing);
     });
 
     testWidgets('a known password skips straight to the words',
@@ -276,8 +276,8 @@ void main() {
         knownPassword: 'pw',
       )));
 
-      expect(find.text('CONTINUE'), findsNothing);
-      expect(find.text('I SAVED THEM'), findsOneWidget);
+      expect(find.text('Continue'), findsNothing);
+      expect(find.text('I saved them'), findsOneWidget);
     });
   });
 }

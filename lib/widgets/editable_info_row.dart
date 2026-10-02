@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../keyboard/focusable_tap.dart';
@@ -182,65 +183,64 @@ class _EditableInfoRowState extends State<EditableInfoRow> {
     );
   }
 
+  /// Laid out to sit inside a grouped block (see `InsetGroup`): it brings its
+  /// own row padding and no border of its own, so the block is the frame.
   Widget _field(AppTheme theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(widget.label,
-                    style: theme.label.copyWith(color: theme.accent)),
-              ),
-            ),
-            // On the label line, not below the field: a multi-line description
-            // pushes anything under it out of reach of the thumb that is
-            // already up there typing.
-            _IconAction(
-              icon: Icons.close_rounded,
-              tint: theme.inkMuted,
-              semantic: widget.cancelLabel,
-              onTap: _cancel,
-            ),
-            const SizedBox(width: 4),
-            _IconAction(
-              icon: Icons.check_rounded,
-              tint: theme.accent,
-              semantic: widget.saveLabel,
-              // `onTapDown` claims the commit BEFORE the tap moves focus off
-              // the field — otherwise the focus loss it causes is read as a
-              // tap-away and cancels the very edit this button exists to save.
-              onTapDown: () => _committing = true,
-              onTap: _commit,
-            ),
-          ],
-        ),
-        Container(
-          decoration: theme.inputDecoration(),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-          child: TextField(
-            controller: widget.controller,
-            focusNode: _focus,
-            style: theme.body,
-            maxLines: widget.maxLines,
-            // Submitting is a commit; so is tapping away. Both land in [_end].
-            textInputAction:
-                widget.maxLines == 1 ? TextInputAction.done : TextInputAction.newline,
-            onSubmitted: (_) => _commit(),
-            decoration: InputDecoration(
-              border: InputBorder.none,
-              hintText: widget.placeholder,
-              hintStyle: theme.bodySoft.copyWith(color: theme.inkMuted),
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(vertical: 12),
-            ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            widget.label,
+            style: theme.caption.copyWith(fontSize: 13, color: theme.accent),
           ),
-        ),
-        _note(theme),
-      ],
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: widget.controller,
+                  focusNode: _focus,
+                  style: theme.body.copyWith(fontSize: 17, color: theme.ink),
+                  cursorColor: theme.accent,
+                  maxLines: widget.maxLines,
+                  minLines: 1,
+                  textInputAction: widget.maxLines == 1
+                      ? TextInputAction.done
+                      : TextInputAction.newline,
+                  onSubmitted: (_) => _commit(),
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    hintText: widget.placeholder,
+                    hintStyle: theme.body.copyWith(
+                      fontSize: 17,
+                      color: theme.inkMuted,
+                    ),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 6),
+                  ),
+                ),
+              ),
+              _IconAction(
+                icon: CupertinoIcons.xmark_circle_fill,
+                tint: theme.inkMuted.withValues(alpha: 0.6),
+                semantic: widget.cancelLabel,
+                onTap: _cancel,
+              ),
+              _IconAction(
+                icon: CupertinoIcons.checkmark_circle_fill,
+                tint: theme.accent,
+                semantic: widget.saveLabel,
+                onTapDown: () => _committing = true,
+                onTap: _commit,
+              ),
+            ],
+          ),
+          _note(theme),
+        ],
+      ),
     );
   }
 
@@ -248,10 +248,10 @@ class _EditableInfoRowState extends State<EditableInfoRow> {
     final note = widget.note;
     if (note == null || note.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.only(top: 2),
       child: Text(
         note,
-        style: theme.monoTiny.copyWith(color: theme.inkMuted),
+        style: theme.caption.copyWith(color: theme.inkMuted),
       ),
     );
   }
@@ -263,34 +263,41 @@ class _EditableInfoRowState extends State<EditableInfoRow> {
       return const SizedBox.shrink();
     }
     final row = Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.fromLTRB(16, 10, 14, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(widget.label, style: theme.label.copyWith(color: theme.inkMuted)),
-          const SizedBox(height: 6),
+          Text(
+            widget.label,
+            style: theme.caption.copyWith(fontSize: 13, color: theme.inkMuted),
+          ),
+          const SizedBox(height: 3),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: Text(
                   empty ? widget.placeholder : value,
-                  style: empty
-                      ? theme.body.copyWith(color: theme.inkMuted)
-                      : theme.body,
+                  style: theme.body.copyWith(
+                    fontSize: 17,
+                    color: empty ? theme.inkMuted : theme.ink,
+                  ),
                   maxLines: widget.maxLines == 1 ? 1 : 4,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              // The affordance is a glyph, not a button. It says "this is
-              // editable" without competing with the value for attention —
-              // which is the whole point of showing the value as text.
+              // The affordance is a glyph, not a button: it says "editable"
+              // without competing with the value for attention.
               if (widget.enabled) ...[
                 const SizedBox(width: 10),
                 Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Icon(Icons.edit_outlined, size: 15, color: theme.inkMuted),
+                  padding: const EdgeInsets.only(top: 3),
+                  child: Icon(
+                    CupertinoIcons.pencil,
+                    size: 17,
+                    color: theme.inkMuted.withValues(alpha: 0.7),
+                  ),
                 ),
               ],
             ],
@@ -343,7 +350,7 @@ class _IconAction extends StatelessWidget {
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(6),
-          child: Icon(icon, size: 19, color: tint),
+          child: Icon(icon, size: 22, color: tint),
         ),
       ),
     );

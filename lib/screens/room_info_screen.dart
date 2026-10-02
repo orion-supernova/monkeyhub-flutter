@@ -25,13 +25,13 @@ import '../models/room_admin.dart';
 import '../models/room_capabilities.dart';
 import '../models/room_content_item.dart';
 import '../theme/app_theme.dart';
-import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/adaptive_page_body.dart';
+import '../widgets/account_kit.dart';
 import '../widgets/app_toast.dart';
+import '../widgets/chat_list_row.dart' show MonogramAvatar;
 import '../widgets/companion_install_sheet.dart';
 import '../widgets/editable_info_row.dart';
-import '../widgets/labeled_field.dart';
+import '../widgets/ios_kit.dart';
 import '../widgets/mute_room_sheet.dart';
 import '../widgets/password_field.dart';
 import '../widgets/photo_chrome.dart';
@@ -723,89 +723,13 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   /// The collapsed password row: what the room's state is, and a way in.
   Widget _passwordSummary(AppTheme theme, ChatRoom r, bool busy) {
     final l10n = AppLocalizations.of(context);
-    void open() => setState(() => _passwordOpen = true);
-    return FocusableTap(
-      onTap: busy ? null : open,
-      semanticLabel: l10n.roomInfoScreenPasswordLabel,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: busy ? null : open,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(l10n.roomInfoScreenPasswordLabel,
-                  style: theme.label.copyWith(color: theme.inkMuted)),
-              const SizedBox(height: 6),
-              Row(children: [
-                Icon(
-                  r.hasPassword ? Icons.lock_outline : Icons.lock_open_outlined,
-                  size: 15,
-                  color: r.hasPassword ? theme.accent : theme.inkMuted,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    r.hasPassword
-                        ? l10n.roomInfoScreenPasswordSetState
-                        : l10n.roomInfoScreenPasswordUnsetState,
-                    style: r.hasPassword
-                        ? theme.body
-                        : theme.body.copyWith(color: theme.inkMuted),
-                  ),
-                ),
-                Icon(Icons.edit_outlined, size: 15, color: theme.inkMuted),
-              ]),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// One of the password block's two buttons. Shared so set and remove cannot
-  /// end up different heights next to each other.
-  Widget _pwAction(
-    AppTheme theme, {
-    required String label,
-    required Color color,
-    required bool filled,
-    required VoidCallback? onTap,
-  }) {
-    final enabled = onTap != null;
-    return FocusableTap(
-      onTap: onTap,
-      enabled: enabled,
-      semanticLabel: label,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: filled
-                ? (enabled ? color : theme.accentSoft)
-                : Colors.transparent,
-            border: filled
-                ? null
-                : Border.all(color: color.withValues(alpha: 0.55), width: 1),
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-          ),
-          child: Text(
-            label,
-            style: theme.monoTiny.copyWith(
-              color: filled
-                  ? (enabled ? theme.accentInk : theme.inkMuted)
-                  : color,
-              letterSpacing: 1.4,
-            ),
-          ),
-        ),
-      ),
+    return GroupedRow(
+      icon: r.hasPassword ? CupertinoIcons.lock_fill : CupertinoIcons.lock_open_fill,
+      tone: r.hasPassword ? TileTone.orange : TileTone.gray,
+      title: r.hasPassword
+          ? l10n.roomInfoScreenPasswordSetState
+          : l10n.roomInfoScreenPasswordUnsetState,
+      onTap: busy ? null : () => setState(() => _passwordOpen = true),
     );
   }
 
@@ -1163,395 +1087,422 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     // The genuine CONTROLS below — visibility, disappearing messages, password
     // — are still permission-gated, because they have no read-only meaning.
     // Their arrival is eased rather than popped; see the AnimatedSize there.
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          // See home_screen: the bottom inset leaves a dead strip of
-          // background under the scroller, which reads as a solid bar. The
-          // list clears the home indicator with its own padding instead.
-          SafeArea(
-            bottom: false,
-            child: AdaptivePageBody(
-              child: Column(
-              children: [
-                _header(theme, r, title),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.fromLTRB(
-                      22,
-                      18,
-                      22,
-                      edgeToEdgeBottom(context, 32),
+    final l10n = AppLocalizations.of(context);
+    final canEditFields = _perms.canEditRoom ||
+        !r.isGroupChat ||
+        _perms.canSuggestChanges;
+    return HeroPage(
+      title: title,
+      hero: _hero(theme, r, peer, title, caps),
+      children: [
+        // Name/visibility don't apply to a 1:1 DM — the room is just the two
+        // people — nor to a room the app owns. Text, not a text field, until
+        // tapped: a page made of empty input boxes reads as a form to fill in
+        // rather than a room to look at. See [EditableInfoRow].
+        if (caps.canEditSettings || caps.hasDescription)
+          InsetGroup(
+            children: [
+              if (caps.canEditSettings)
+                EditableInfoRow(
+                  label: l10n.riName,
+                  value: r.name,
+                  saveLabel: l10n.roomInfoScreenEditSave,
+                  cancelLabel: l10n.roomInfoScreenEditCancel,
+                  controller: _name,
+                  placeholder: l10n.roomInfoScreenNameHint,
+                  // A member who may SUGGEST gets the same editable row an
+                  // admin gets, with a note saying where the edit goes —
+                  // the ask exists so "can I fix the name" is not "no".
+                  enabled: canEditFields,
+                  note: _suggestNote(),
+                  onCommit: (v) => _commitText(RoomChangeField.name, v),
+                ),
+              // Nothing to describe about a chat with only yourself in it, one
+              // the app writes to you, or one with exactly one other person —
+              // see [RoomCapabilities.hasDescription].
+              if (caps.hasDescription)
+                EditableInfoRow(
+                  label: l10n.riDescription,
+                  value: r.description ?? '',
+                  saveLabel: l10n.roomInfoScreenEditSave,
+                  cancelLabel: l10n.roomInfoScreenEditCancel,
+                  controller: _desc,
+                  placeholder: l10n.roomInfoScreenDescriptionHint,
+                  enabled: canEditFields,
+                  note: _suggestNote(),
+                  maxLines: 3,
+                  onCommit: (v) =>
+                      _commitText(RoomChangeField.description, v),
+                ),
+            ],
+          ),
+        // Directly under the fields it is about; a member never sees the
+        // admin-only controls below, so for them this reads as the next thing
+        // after the description.
+        _mySuggestionsBlock(theme),
+        // Eased, not popped. These appear one round trip after the page does
+        // (permissions), and a hard insert is the jump this screen was once
+        // reported for.
+        AnimatedSize(
+          duration: theme.motionMed,
+          curve: Curves.easeOutCubic,
+          alignment: Alignment.topCenter,
+          child: !(_perms.canEditRoom && caps.canEditSettings)
+              ? const SizedBox(width: double.infinity)
+              : GroupedSection(
+                  header: l10n.riVisibility,
+                  children: [
+                    GroupedRow.choice(
+                      icon: CupertinoIcons.globe,
+                      tone: TileTone.blue,
+                      title: l10n.riPublic,
+                      subtitle: l10n.riPublicSub,
+                      selected: !_isPrivate,
+                      onTap: () {
+                        setState(() => _isPrivate = false);
+                        unawaited(_pushRoom());
+                      },
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _avatarBlock(theme, r, peer),
-                        const SizedBox(height: 26),
-                        // Name/visibility don't apply to a 1:1 DM — the room is
-                        // just the two people — nor to a room the app owns.
-                        // Text, not a text field, until tapped. See
-                        // [EditableInfoRow] — a screen made of empty input
-                        // boxes reads as a form to fill in rather than a room
-                        // to look at, and five of them pushed the roster and
-                        // the media row off the first screenful.
-                        if (caps.canEditSettings) ...[
-                          EditableInfoRow(
-                            label: AppLocalizations.of(context).roomInfoScreenNameLabel,
-                            value: r.name,
-                            saveLabel: AppLocalizations.of(context).roomInfoScreenEditSave,
-                            cancelLabel:
-                                AppLocalizations.of(context).roomInfoScreenEditCancel,
-                            controller: _name,
-                            placeholder:
-                                AppLocalizations.of(context).roomInfoScreenNameHint,
-                            // A member who may SUGGEST gets the same editable
-                            // row an admin gets, with a line underneath saying
-                            // where the edit goes. Locking them out and hiding
-                            // the affordance would be the honest rendering of
-                            // "you cannot change this", but it is the wrong
-                            // one now — the ask exists precisely so the answer
-                            // to "can I fix the name" is not "no".
-                            enabled: _perms.canEditRoom ||
-                                !r.isGroupChat ||
-                                _perms.canSuggestChanges,
-                            note: _suggestNote(),
-                            onCommit: (v) =>
-                                _commitText(RoomChangeField.name, v),
+                    GroupedRow.choice(
+                      icon: CupertinoIcons.lock_fill,
+                      tone: TileTone.gray,
+                      title: l10n.riPrivate,
+                      subtitle: l10n.riPrivateSub,
+                      selected: _isPrivate,
+                      onTap: () {
+                        setState(() => _isPrivate = true);
+                        unawaited(_pushRoom());
+                      },
+                    ),
+                  ],
+                ),
+        ),
+        if (r.isEphemeral)
+          InsetGroup(
+            header: l10n.riMessageLife,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final t in _ttlOptions)
+                      SpringPress(
+                        onTap: () {
+                          setState(() => _ttl = t);
+                          unawaited(_pushRoom());
+                        },
+                        child: AnimatedContainer(
+                          duration: theme.motionFast,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
                           ),
-                          const SizedBox(height: 14),
-                        ],
-                        // Nothing to describe about a chat with only yourself
-                        // in it, one the app writes to you, or one with exactly
-                        // one other person — see [RoomCapabilities.hasDescription].
-                        if (caps.hasDescription) ...[
-                          EditableInfoRow(
-                            label: AppLocalizations.of(context)
-                                .roomInfoScreenDescriptionLabel,
-                            value: r.description ?? '',
-                            saveLabel: AppLocalizations.of(context).roomInfoScreenEditSave,
-                            cancelLabel:
-                                AppLocalizations.of(context).roomInfoScreenEditCancel,
-                            controller: _desc,
-                            placeholder: AppLocalizations.of(context)
-                                .roomInfoScreenDescriptionHint,
-                            enabled: _perms.canEditRoom ||
-                                !r.isGroupChat ||
-                                _perms.canSuggestChanges,
-                            note: _suggestNote(),
-                            maxLines: 3,
-                            onCommit: (v) =>
-                                _commitText(RoomChangeField.description, v),
+                          decoration: BoxDecoration(
+                            color: _ttl == t
+                                ? theme.accent
+                                : theme.ink.withValues(alpha: 0.07),
+                            borderRadius: BorderRadius.circular(999),
                           ),
-                        ],
-                        // Directly under the fields it is about, above the
-                        // admin-only block below — a member never sees that
-                        // one, so for them this reads as the next thing after
-                        // the description rather than as an orphan.
-                        _mySuggestionsBlock(theme),
-                        // Eased, not popped. These appear one round trip after
-                        // the screen does, and a hard insert of three controls
-                        // under the description is the jump this screen was
-                        // reported for. AnimatedSize turns the same arrival
-                        // into a short grow, which reads as loading.
-                        AnimatedSize(
-                          duration: theme.motionMed,
-                          curve: Curves.easeOutCubic,
-                          alignment: Alignment.topCenter,
-                          child: !(_perms.canEditRoom && caps.canEditSettings)
-                              ? const SizedBox(width: double.infinity)
-                              : Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                          const SizedBox(height: 22),
-                          FieldLabel(AppLocalizations.of(context).roomInfoScreenVisibilityLabel),
-                          Row(children: [
-                            Expanded(
-                              child: _seg(
-                                theme,
-                                active: !_isPrivate,
-                                onTap: () {
-                                  setState(() => _isPrivate = false);
-                                  unawaited(_pushRoom());
-                                },
-                                icon: theme.visibilityIcon(isPublic: true, size: 14),
-                                title: AppLocalizations.of(context).roomInfoScreenPublicTitle,
-                                sub: AppLocalizations.of(context).roomInfoScreenPublicSub,
-                              ),
+                          child: Text(
+                            _fmtTtl(context, t),
+                            style: theme.body.copyWith(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                              color: _ttl == t ? theme.accentInk : theme.ink,
                             ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: _seg(
-                                theme,
-                                active: _isPrivate,
-                                onTap: () {
-                                  setState(() => _isPrivate = true);
-                                  unawaited(_pushRoom());
-                                },
-                                icon: theme.visibilityIcon(isPublic: false, size: 14),
-                                title: AppLocalizations.of(context).roomInfoScreenPrivateTitle,
-                                sub: AppLocalizations.of(context).roomInfoScreenPrivateSub,
-                              ),
-                            ),
-                          ]),
-                                ],
-                              ),
+                          ),
                         ),
-                        if (r.isEphemeral) ...[
-                          const SizedBox(height: 22),
-                          Row(children: [
-                            FieldLabel(AppLocalizations.of(context).roomInfoScreenMessageLifeLabel),
-                            const Spacer(),
-                            if (_ttl != null)
-                              Text(_fmtTtl(context, _ttl!), style: theme.monoLarge.copyWith(color: theme.accent)),
-                          ]),
-                          const SizedBox(height: 10),
-                          Wrap(
-                            spacing: 8,
-                            children: [
-                              for (final t in _ttlOptions)
-                                GestureDetector(
-                                  onTap: () {
-                                    setState(() => _ttl = t);
-                                    unawaited(_pushRoom());
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                                    decoration: theme.chipDecoration(filled: _ttl == t),
-                                    child: Text(
-                                      _fmtTtl(context, t),
-                                      style: theme.label.copyWith(
-                                        color: _ttl == t ? theme.accentInk : theme.inkSoft,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                        // Password, collapsed to a status line until tapped —
-                        // the same disclosure the name and description use, and
-                        // for a stronger reason: an always-visible password box
-                        // on a screen you open to read the member list is an
-                        // invitation to type a secret nobody asked for.
-                        //
-                        // Reveals the field AND its two actions together, so
-                        // set and remove live in one place instead of one being
-                        // permanently on screen.
-                        if (_perms.canEditRoom && caps.canEditSettings) ...[
-                          const SizedBox(height: 18),
-                          if (!_passwordOpen)
-                            _passwordSummary(theme, r, busy)
-                          else ...[
-                            FieldLabel(AppLocalizations.of(context)
-                                .roomInfoScreenPasswordLabel),
-                            const SizedBox(height: 6),
-                            PasswordField(
-                              controller: _newPassword,
-                              hint: r.hasPassword
-                                  ? AppLocalizations.of(context)
-                                      .roomInfoScreenReplacePasswordHint
-                                  : AppLocalizations.of(context)
-                                      .roomInfoScreenSetPasswordHint,
-                              onSubmitted: (_) => _applyPassword(),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        // Password, collapsed to a status row until tapped: an always-visible
+        // password box on a page you open to read the member list invites a
+        // secret nobody asked for. Opening reveals the field and both actions.
+        if (_perms.canEditRoom && caps.canEditSettings)
+          InsetGroup(
+            header: l10n.riPassword,
+            children: [
+              if (!_passwordOpen)
+                _passwordSummary(theme, r, busy)
+              else
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      PasswordField(
+                        controller: _newPassword,
+                        hint: r.hasPassword
+                            ? l10n.roomInfoScreenReplacePasswordHint
+                            : l10n.roomInfoScreenSetPasswordHint,
+                        onSubmitted: (_) => _applyPassword(),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(children: [
+                        if (r.hasPassword) ...[
+                          Expanded(
+                            child: SheetButton(
+                              label: l10n.riRemovePassword,
+                              danger: true,
+                              onTap: busy ? null : _clearPassword,
                             ),
-                            const SizedBox(height: 10),
-                            Row(children: [
-                              if (r.hasPassword)
-                                Expanded(
-                                  child: _pwAction(
-                                    theme,
-                                    label: AppLocalizations.of(context)
-                                        .roomInfoScreenRemovePasswordButton,
-                                    color: theme.danger,
-                                    filled: false,
-                                    onTap: busy ? null : _clearPassword,
-                                  ),
-                                ),
-                              if (r.hasPassword) const SizedBox(width: 10),
-                              Expanded(
-                                child: _pwAction(
-                                  theme,
-                                  label: AppLocalizations.of(context)
-                                      .roomInfoScreenSetPasswordButton,
+                          ),
+                          const SizedBox(width: 10),
+                        ],
+                        Expanded(
+                          child: SheetButton(
+                            label: l10n.riSetPassword,
+                            filled: true,
+                            // Dead until there is something to set — the one
+                            // commit on this page, so it must never fire on an
+                            // empty field.
+                            onTap: (busy || !_passwordHasText)
+                                ? null
+                                : _applyPassword,
+                          ),
+                        ),
+                      ]),
+                      const SizedBox(height: 4),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: FocusableTap(
+                          onTap: _closePassword,
+                          semanticLabel: l10n.roomInfoScreenPasswordCancel,
+                          radius: theme.radiusSm,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: _closePassword,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 8,
+                              ),
+                              child: Text(
+                                l10n.roomInfoScreenPasswordCancel,
+                                style: theme.body.copyWith(
+                                  fontSize: 15,
                                   color: theme.accent,
-                                  filled: true,
-                                  // Dead until there is something to set —
-                                  // the one commit on this screen, so it must
-                                  // never fire on an empty field.
-                                  onTap: (busy || !_passwordHasText)
-                                      ? null
-                                      : _applyPassword,
-                                ),
-                              ),
-                            ]),
-                            const SizedBox(height: 8),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: FocusableTap(
-                                onTap: _closePassword,
-                                semanticLabel: AppLocalizations.of(context)
-                                    .roomInfoScreenPasswordCancel,
-                                radius: theme.radiusSm,
-                                child: GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: _closePassword,
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 6, vertical: 4),
-                                    child: Text(
-                                      AppLocalizations.of(context)
-                                          .roomInfoScreenPasswordCancel,
-                                      style: theme.monoTiny,
-                                    ),
-                                  ),
                                 ),
                               ),
                             ),
-                          ],
-                        ],
-                        // No SAVE button: every control above applies itself.
-                        // This slot is where a refused change speaks — a name
-                        // already taken, a write that failed offline. It is
-                        // deliberately the LAST thing in the settings block, so
-                        // it appears under whatever was being edited rather
-                        // than pushing the form around.
-                        if (_error != null) ...[
-                          const SizedBox(height: 16),
-                          Text(_error!, style: theme.body.copyWith(color: theme.danger)),
-                        ],
-                        const SizedBox(height: 28),
-                        FieldLabel(AppLocalizations.of(context).roomInfoScreenSharedContentLabel),
-                        const SizedBox(height: 6),
-                        _sharedContent(theme, caps),
-                        // The caption the deleted SAVED MESSAGES block used to
-                        // carry, kept because the row label cannot carry it.
-                        // "SAVED" next to MEDIA and FILES reads as a fifth
-                        // bucket of the room's stuff, which is exactly the
-                        // wrong model — and the reader has no way to find out
-                        // otherwise until they have already saved something in
-                        // front of people. Under the group rather than in it:
-                        // it is about one row but it is also the only sentence
-                        // on this screen that says what a pin is, so it sits
-                        // where a caption sits.
-                        if (caps.canSaveMessages) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            AppLocalizations.of(context).roomInfoScreenSharedContentSavedNote,
-                            style: theme.bodySoft.copyWith(fontSize: 12),
                           ),
-                        ],
-                        // "Members (1): you" is not information — and neither
-                        // is "Members (2): you and a bot", or "you and the
-                        // person this screen is already titled after".
-                        //
-                        // The invite controls are the HEAD of this section, not
-                        // a section of their own further up. Every mainstream
-                        // group screen does it this way — WhatsApp, Signal and
-                        // Telegram all make "add" the first row of the roster —
-                        // and the version that had a separate GROUP block above
-                        // ALSO had an add row inside the list, so the same
-                        // action appeared twice on one screen.
-                        if (caps.hasMembers) ...[
-                          const SizedBox(height: 28),
-                          FieldLabel(AppLocalizations.of(context).roomInfoScreenMembersLabel(_members.length)),
-                          const SizedBox(height: 6),
-                          if (r.isGroupChat &&
-                              (_perms.canInvite || _perms.canManageLink)) ...[
-                            _groupAdmin(theme),
-                            const SizedBox(height: 6),
-                            Divider(height: 1, thickness: 1, color: theme.divider),
-                            const SizedBox(height: 6),
-                          ],
-                          _membersList(theme, r),
-                          // Under the roster, not above it: the rings on the
-                          // faces are the answer, and this row is the place to
-                          // go when you want to argue with one of them.
-                          const SizedBox(height: 14),
-                          _speakerColorsRow(theme),
-                        ],
-                        // Last of the ordinary sections, above only the
-                        // destructive pair. It is one row, it is set once and
-                        // forgotten, and it is the only block here that changes
-                        // nothing for anybody but the reader.
-                        if (caps.canMute) ...[
-                          const SizedBox(height: 28),
-                          FieldLabel(AppLocalizations.of(context).roomInfoScreenMuteLabel),
-                          const SizedBox(height: 6),
-                          _muteRow(theme, r),
-                        ],
-                        // Beside MUTE by the argument written directly above
-                        // it: this is the other block that changes nothing for
-                        // anybody but the reader. Nobody else in the room
-                        // learns that you are reading it in another language,
-                        // and nothing leaves the device for it to happen.
-                        //
-                        // Offered on every room kind, including Saved Messages
-                        // and the system rooms — a note you left yourself in a
-                        // language you were practising is a real thing to want
-                        // translated, and there is no capability that could
-                        // sensibly refuse it.
-                        const SizedBox(height: 28),
-                        FieldLabel(
-                          AppLocalizations.of(context).roomTranslateSectionLabel,
                         ),
-                        const SizedBox(height: 6),
-                        _translateRow(theme, r),
-                        const SizedBox(height: 28),
-                        // A DM has no "leave" that makes sense — it's just the
-                        // two people, and leaving alone silently strands you
-                        // (you'd stop being a member but the room lives on,
-                        // and re-opening the DM wouldn't re-add you). The only
-                        // real action for a DM is ending it outright, which is
-                        // available to either side, not just whoever created
-                        // it — except Saved Messages and the system rooms,
-                        // permanent fixtures with nothing to end or delete.
-                        //
-                        // `_isOwner` stays here rather than moving into the
-                        // capability: whether a KIND of room can be deleted and
-                        // whether THIS viewer may delete it are different
-                        // questions, and only this screen knows the second.
-                        Row(children: [
-                          if (caps.canLeave) ...[
-                            Expanded(
-                              child: _dangerButton(
-                                theme,
-                                label: _leaving
-                                    ? AppLocalizations.of(context).roomInfoScreenLeavingButton
-                                    : AppLocalizations.of(context).roomInfoScreenLeaveRoomButton,
-                                onTap: busy ? null : _leave,
-                              ),
-                            ),
-                          ],
-                          if (caps.canDelete && (_isOwner || r.isDm)) ...[
-                            if (caps.canLeave) const SizedBox(width: 10),
-                            Expanded(
-                              child: _dangerButton(
-                                theme,
-                                label: _deleting
-                                    ? (r.isDm
-                                        ? AppLocalizations.of(context).roomInfoScreenEndingConversationButton
-                                        : AppLocalizations.of(context).roomInfoScreenDeletingButton)
-                                    : (r.isDm
-                                        ? AppLocalizations.of(context).roomInfoScreenEndConversationButton
-                                        : AppLocalizations.of(context).roomInfoScreenDeleteButtonLabel),
-                                onTap: busy ? null : _delete,
-                                filled: true,
-                              ),
-                            ),
-                          ],
-                        ]),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+            ],
+          ),
+        // No Save button: every control above applies itself. This is where a
+        // refused change speaks — a name already taken, a write that failed
+        // offline — under whatever was being edited.
+        if (_error != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+            child: Text(
+              _error!,
+              style: theme.body.copyWith(fontSize: 15, color: theme.danger),
             ),
           ),
+        // Rebuilt on every repository notify: the SAVED count rides the
+        // bookmark subscription, which the screen-wide filter ignores.
+        AnimatedBuilder(
+          animation: widget.repo,
+          builder: (context, _) => GroupedSection(
+          header: l10n.riSharedContent,
+          // What a save is, said once under the group: SAVED next to MEDIA and
+          // FILES otherwise reads as a fifth bucket of the room's stuff.
+          footer: caps.canSaveMessages
+              ? l10n.riSavedNote
+              : null,
+          children: _sharedContentRows(theme, caps),
+        ),
+        ),
+        // "Members (1): you" is not information — nor is "you and a bot", or
+        // "you and the person this page is already titled after". The invite
+        // controls are the HEAD of the roster, the WhatsApp/Signal/Telegram
+        // arrangement.
+        if (caps.hasMembers)
+          InsetGroup(
+            header: l10n.riMembers(
+              _members.isEmpty ? r.memberCount : _members.length,
+            ),
+            footer: _members.any(
+                    (m) => RoomRoleWire.parse(m.role) == RoomRole.owner)
+                ? l10n.riOwnerNote
+                : null,
+            dividerInset: 66,
+            children: [
+              if (r.isGroupChat && (_perms.canInvite || _perms.canManageLink))
+                ..._groupAdminRows(theme),
+              ..._memberRows(theme, r),
+            ],
+          ),
+        // Outstanding invites, below the real roster and visibly apart from
+        // it: these people have been asked and have not answered.
+        if (caps.hasMembers && _pendingInvites.isNotEmpty)
+          InsetGroup(
+            header: l10n.riInvited(_pendingInvites.length),
+            dividerInset: 66,
+            children: [
+              for (final inv in _pendingInvites) _pendingInviteRow(theme, inv),
+            ],
+          ),
+        // Under the roster: the rings on the faces are the answer, and this is
+        // the place to go to argue with one of them.
+        if (caps.hasMembers)
+          GroupedSection(
+            header: l10n.riNameColours,
+            children: [_speakerColorsRow(theme)],
+          ),
+        // The blocks that change nothing for anybody but the reader.
+        if (caps.canMute)
+          GroupedSection(
+            header: l10n.riNotifications,
+            children: [_muteRow(theme, r)],
+          ),
+        // Offered on every room kind — a note you left yourself in a language
+        // you were practising is a real thing to want translated.
+        GroupedSection(
+          header: l10n.riTranslation,
+          children: [_translateRow(theme, r)],
+        ),
+        // A DM has no "leave" that makes sense; its one real action is ending
+        // it outright, available to either side. Saved Messages and the system
+        // rooms have nothing to end. `_isOwner` stays here: whether a KIND of
+        // room can be deleted and whether THIS viewer may are different
+        // questions, and only this page knows the second.
+        if (caps.canLeave || (caps.canDelete && (_isOwner || r.isDm)))
+          GroupedSection(
+            children: [
+              if (caps.canLeave)
+                GroupedRow(
+                  icon: CupertinoIcons.arrow_right_square,
+                  tone: TileTone.red,
+                  title: _leaving ? l10n.riLeaving : l10n.riLeaveRoom,
+                  destructive: true,
+                  onTap: busy ? null : _leave,
+                ),
+              if (caps.canDelete && (_isOwner || r.isDm))
+                GroupedRow(
+                  icon: CupertinoIcons.trash_fill,
+                  tone: TileTone.red,
+                  title: _deleting
+                      ? (r.isDm ? l10n.riEnding : l10n.riDeleting)
+                      : (r.isDm ? l10n.riEndConversation : l10n.riDeleteRoom),
+                  destructive: true,
+                  onTap: busy ? null : _delete,
+                ),
+            ],
+          ),
+      ],
+    );
+  }
+
+  /// The Contacts-style head: the face, the name, who or how many, and the
+  /// things you can do from here as tiles.
+  Widget _hero(
+    AppTheme theme,
+    ChatRoom r,
+    ChatUser? peer,
+    String title,
+    RoomCapabilities caps,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    final String? subtitle = r.isDm
+        ? (peer == null || r.isSavedMessages ? null : '@${peer.username}')
+        : (caps.hasMembers
+            ? l10n.riMembers(
+                _members.isEmpty ? r.memberCount : _members.length,
+              )
+            : null);
+    final callable = r.isDm &&
+        !r.isSavedMessages &&
+        caps.canCall &&
+        peer != null &&
+        !peer.isSystem;
+    final tiles = <Widget>[
+      if (callable) ...[
+        ProfileActionTile(
+          icon: CupertinoIcons.phone_fill,
+          label: l10n.riActionCall,
+          emphasis: true,
+          onTap: () => _callMember(peer, CallMediaKind.audio),
+        ),
+        ProfileActionTile(
+          icon: CupertinoIcons.video_camera_solid,
+          label: l10n.riActionVideo,
+          emphasis: true,
+          onTap: () => _callMember(peer, CallMediaKind.video),
+        ),
+      ],
+      if (r.isGroupChat && _perms.canInvite)
+        ProfileActionTile(
+          icon: CupertinoIcons.person_badge_plus_fill,
+          label: l10n.riActionAdd,
+          emphasis: true,
+          onTap: () async {
+            await showRoomInviteFriendsSheet(
+              context,
+              repo: widget.repo,
+              api: widget.api,
+              roomId: widget.roomId,
+            );
+            await _refreshAdminLists();
+          },
+        ),
+      if (caps.canMute)
+        ProfileActionTile(
+          icon: r.isMuted
+              ? CupertinoIcons.bell_fill
+              : CupertinoIcons.bell_slash_fill,
+          label: r.isMuted ? l10n.riActionUnmute : l10n.riActionMute,
+          onTap: () =>
+              showMuteRoomSheet(context, repo: widget.repo, room: r),
+        ),
+      ProfileActionTile(
+        icon: CupertinoIcons.photo_on_rectangle,
+        label: l10n.riActionMedia,
+        onTap: () => _openContent(RoomContentTab.media),
+      ),
+    ];
+    return Padding(
+      padding: readableInset(context, top: 6, bottom: 24),
+      child: Column(
+        children: [
+          AvatarPop(child: _avatarBlock(theme, r, peer)),
+          const SizedBox(height: 14),
+          RiseIn(
+            index: 1,
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              style: theme.displayMedium,
+            ),
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 4),
+            RiseIn(
+              index: 2,
+              child: Text(
+                subtitle,
+                style: theme.body.copyWith(
+                  fontSize: 16,
+                  color: theme.inkMuted,
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 20),
+          RiseIn(index: 3, child: ProfileActionBar(tiles: tiles)),
         ],
       ),
     );
@@ -1569,42 +1520,8 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     return room == null ? null : widget.repo.otherUserFor(room);
   }
 
-  Widget _header(AppTheme theme, ChatRoom r, String title) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 12, 20, 14),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: theme.divider, width: 1)),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Navigator.of(context).maybePop(),
-            icon: Icon(Icons.arrow_back, color: theme.inkSoft, size: 18),
-            visualDensity: VisualDensity.compact,
-          ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  r.isDm
-                      ? AppLocalizations.of(context).roomInfoScreenHeaderConversation
-                      : AppLocalizations.of(context).roomInfoScreenHeaderRoomSettings,
-                  style: theme.monoTiny,
-                ),
-                const SizedBox(height: 2),
-                Text(title, style: theme.displayMedium, overflow: TextOverflow.ellipsis),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   /// Diameter of the avatar at the top of this screen.
-  static const _avatarSize = 92.0;
+  static const _avatarSize = 104.0;
 
   /// How far the camera badge hangs past the avatar's circle.
   static const _badgeOverhang = 2.0;
@@ -1630,8 +1547,18 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
           width: size,
           height: size,
           alignment: Alignment.center,
-          decoration: BoxDecoration(color: theme.accentSoft, shape: BoxShape.circle),
-          child: Icon(CupertinoIcons.bookmark_fill, size: size * 0.43, color: theme.accent),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color.lerp(theme.accent, Colors.white, 0.18)!,
+                theme.accent,
+              ],
+            ),
+          ),
+          child: Icon(CupertinoIcons.bookmark_fill, size: size * 0.40, color: theme.accentInk),
         ),
       );
     }
@@ -1671,16 +1598,15 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                 width: size,
                 height: size,
                 decoration: BoxDecoration(
-                  color: theme.surfaceSunken,
+                  color: theme.ink.withValues(alpha: 0.08),
                   shape: BoxShape.circle,
-                  border: Border.all(color: theme.divider),
                 ),
-                child: Icon(Icons.person_outline, color: theme.inkMuted, size: 32),
+                child: Icon(
+                  CupertinoIcons.person_fill,
+                  color: theme.inkMuted,
+                  size: size * 0.42,
+                ),
               ),
-            if (peer != null) ...[
-              const SizedBox(height: 8),
-              Text('@${peer.username}', style: theme.monoTiny),
-            ],
           ],
         ),
       );
@@ -1690,11 +1616,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     final Widget picture = Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        color: theme.surfaceSunken,
-        shape: BoxShape.circle,
-        border: Border.all(color: theme.divider),
-      ),
+      decoration: const BoxDecoration(shape: BoxShape.circle),
       clipBehavior: Clip.antiAlias,
       child: hasAvatar
           ? SteadyHero(
@@ -1707,9 +1629,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                 borderRadius: BorderRadius.circular(size),
               ),
             )
-          : Center(
-              child: Icon(Icons.tag, color: theme.inkMuted, size: 32),
-            ),
+          : MonogramAvatar(label: r.name, seed: r.id, size: size),
     );
     // The badge means two different things now — "set this" for an admin,
     // "ask for this" for everybody else — and the badge itself cannot say
@@ -1801,13 +1721,18 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                       onTap: _working ? null : _changeAvatar,
                       behavior: HitTestBehavior.opaque,
                       child: Container(
-                        padding: const EdgeInsets.all(6),
+                        width: 32,
+                        height: 32,
                         decoration: BoxDecoration(
                           color: theme.accent,
                           shape: BoxShape.circle,
-                          border: Border.all(color: theme.background, width: 2),
+                          border: Border.all(color: theme.background, width: 3),
                         ),
-                        child: Icon(Icons.camera_alt_outlined, size: 14, color: theme.accentInk),
+                        child: Icon(
+                          CupertinoIcons.camera_fill,
+                          size: 14,
+                          color: theme.accentInk,
+                        ),
                       ),
                     ),
                   ),
@@ -1819,7 +1744,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
             const SizedBox(height: 8),
             Text(
               AppLocalizations.of(context).roomInfoScreenSuggestAvatarNote,
-              style: theme.monoTiny.copyWith(color: theme.inkMuted),
+              style: theme.caption.copyWith(color: theme.inkMuted),
               textAlign: TextAlign.center,
             ),
           ],
@@ -1847,18 +1772,12 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   Widget _mySuggestionsBlock(AppTheme theme) {
     if (_mySuggestions.isEmpty) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(top: 22),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FieldLabel(l10n.roomInfoScreenSuggestionsLabel),
-          const SizedBox(height: 6),
-          for (final s in _mySuggestions)
-            _suggestionRow(theme, s),
-        ],
-      ),
+    return InsetGroup(
+      header: l10n.riYouSuggested,
+      dividerInset: 66,
+      children: [
+        for (final s in _mySuggestions) _suggestionRow(theme, s),
+      ],
     );
   }
 
@@ -1893,12 +1812,12 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
         storageId.isNotEmpty;
     return Padding(
       key: ValueKey('suggestion-${s.requestId}'),
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.fromLTRB(14, 9, 14, 9),
       child: Row(
         children: [
           Container(
-            width: 32,
-            height: 32,
+            width: 38,
+            height: 38,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: theme.accentSoft,
@@ -1913,31 +1832,33 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                 ? RemoteImage(
                     storageId: storageId,
                     api: widget.api,
-                    width: 32,
-                    height: 32,
-                    borderRadius: BorderRadius.circular(32),
+                    width: 38,
+                    height: 38,
+                    borderRadius: BorderRadius.circular(38),
                   )
                 : Icon(
                     s.field == RoomChangeField.avatar
-                        ? Icons.photo_camera_back_outlined
-                        : Icons.edit_outlined,
+                        ? CupertinoIcons.camera
+                        : CupertinoIcons.pencil,
                     size: 16,
                     color: theme.accent,
                   ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   what,
-                  style: theme.body,
+                  style: theme.body.copyWith(color: theme.ink),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                Text(l10n.roomInfoScreenSuggestionPending,
-                    style: theme.monoTiny),
+                Text(
+                  l10n.roomInfoScreenSuggestionPending,
+                  style: theme.caption.copyWith(color: theme.inkMuted),
+                ),
               ],
             ),
           ),
@@ -1960,14 +1881,18 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                 onTap: () => _withdrawSuggestion(s),
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    border: Border.all(color: theme.inkMuted, width: 1.2),
-                    borderRadius: BorderRadius.circular(theme.radiusSm),
+                    color: theme.ink.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    l10n.roomInfoScreenSuggestionWithdraw,
-                    style: theme.monoTiny.copyWith(color: theme.inkSoft),
+                    l10n.riTakeBack,
+                    style: theme.body.copyWith(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: theme.accent,
+                    ),
                   ),
                 ),
               ),
@@ -1977,24 +1902,21 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     );
   }
 
-  Widget _membersList(AppTheme theme, ChatRoom r) {
+  /// The roster, as rows for the members group.
+  List<Widget> _memberRows(AppTheme theme, ChatRoom r) {
     if (_members.isEmpty) {
-      // A skeleton, not "Loading members…". The string was one line where the
-      // answer is many, so the section collapsed and then jumped to full
-      // height the moment the roster landed — and on a slow connection it read
-      // as an empty group rather than a pending one.
-      //
-      // Sized to the room's own member count where we have it: `memberCount`
-      // is denormalized on the room row and arrives with the chat list, long
-      // before the roster query resolves. So the placeholder is usually the
-      // exact height of the answer and nothing moves at all when it lands.
-      return SkeletonRows(count: r.memberCount.clamp(1, 8));
+      // A skeleton, not "Loading members…": one line where the answer is many
+      // made the section jump when the roster landed. Sized to the room's own
+      // denormalized member count, so usually nothing moves at all.
+      return [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: SkeletonRows(count: r.memberCount.clamp(1, 8)),
+        ),
+      ];
     }
     // Ranked, then alphabetical. Sorting on the ROLE rather than on
-    // `rooms.createdBy` is what makes a promoted admin actually rise up the
-    // list — the old comparator only ever knew about one privileged person and
-    // pinned whoever happened to create the room, even after the room had been
-    // handed to somebody else.
+    // `rooms.createdBy` is what makes a promoted admin rise up the list.
     final ordered = [..._members]..sort((a, b) {
       final ra = _rankOf(a);
       final rb = _rankOf(b);
@@ -2002,33 +1924,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       return a.displayName.compareTo(b.displayName);
     });
     final me = widget.repo.userId;
-    return Column(
-      children: [
-        for (final m in ordered) _memberRow(theme, r, m, me),
-        // Outstanding invites, below the real roster and visibly apart from it.
-        // These people are NOT members — they have been asked and have not
-        // answered — and a list that mixed the two would be a roster nobody
-        // could trust.
-        if (_pendingInvites.isNotEmpty) ...[
-          const SizedBox(height: 14),
-          FieldLabel(AppLocalizations.of(context)
-              .roomInfoScreenInvitedLabel(_pendingInvites.length)),
-          const SizedBox(height: 4),
-          for (final inv in _pendingInvites) _pendingInviteRow(theme, inv),
-        ],
-        // Explains the medal on [RoleChip] once for the whole roster, the same
-        // way the SAVED row gets one caption instead of every pin re-arguing
-        // the point. Gated on an owner actually being in `ordered` rather than
-        // on room type, so it can never appear pointing at a badge nobody sees.
-        if (ordered.any((m) => RoomRoleWire.parse(m.role) == RoomRole.owner)) ...[
-          const SizedBox(height: 8),
-          Text(
-            AppLocalizations.of(context).roomInfoScreenOwnerBadgeNote,
-            style: theme.bodySoft.copyWith(fontSize: 12),
-          ),
-        ],
-      ],
-    );
+    return [for (final m in ordered) _memberRow(theme, r, m, me)];
   }
 
   /// Owner first, then admins, then everyone else.
@@ -2064,78 +1960,75 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       if (hasSheet) _openMemberActions(m, role, isSelf: isSelf);
     }
 
-    return GestureDetector(
+    return PressRow(
       onTap: hasSheet ? open : null,
-      // Long-press lands on the same sheet. Muscle memory from every other
-      // chat app expects it, and a long-press that does nothing reads as the
-      // row being broken rather than as the gesture being unsupported.
+      // Long-press lands on the same sheet: muscle memory from every other
+      // chat app expects it.
       onLongPress: hasSheet ? open : null,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Row(
-          children: [
-            // Ringed in the colour this person speaks in, so the roster IS the
-            // legend for the transcript. Without it a reader can see that
-            // somebody is "the teal one" and have nowhere to look up which
-            // teal one they are.
-            Builder(builder: (context) {
-              final slot = _speakerSlots.slotOf(m.id);
-              final ring = slot == null
-                  ? null
-                  : theme.speakerMark(slot, on: theme.background);
-              return UserAvatar(
-                user: m,
-                size: 32,
-                api: widget.api,
-                ring: ring != null,
-                ringColor: ring,
-              );
-            }),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          m.displayName,
-                          style: theme.body,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+      semanticLabel: m.displayName,
+      padding: const EdgeInsets.fromLTRB(14, 8, 12, 8),
+      child: Row(
+        children: [
+          // Ringed in the colour this person speaks in, so the roster IS the
+          // legend for the transcript.
+          Builder(builder: (context) {
+            final slot = _speakerSlots.slotOf(m.id);
+            final ring = slot == null
+                ? null
+                : theme.speakerMark(slot, on: groupedFill(theme));
+            return UserAvatar(
+              user: m,
+              size: 38,
+              api: widget.api,
+              ring: ring != null,
+              ringColor: ring,
+            );
+          }),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        m.displayName,
+                        style: theme.body.copyWith(color: theme.ink),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      if (isSelf) ...[
-                        const SizedBox(width: 6),
-                        Text(
-                          AppLocalizations.of(context).roomAdminYouSuffix,
-                          style: theme.monoTiny,
-                        ),
-                      ],
+                    ),
+                    if (isSelf) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        AppLocalizations.of(context).roomAdminYouSuffix,
+                        style: theme.caption.copyWith(color: theme.inkMuted),
+                      ),
                     ],
-                  ),
-                  Text(
-                    '@${m.username}',
-                    style: theme.monoTiny,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
+                  ],
+                ),
+                Text(
+                  '@${m.username}',
+                  style: theme.caption.copyWith(color: theme.inkMuted),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
-            // The badge reads the ROLE. It used to read `id == r.createdBy`,
-            // which is why a transferred room kept labelling the wrong person.
-            // Shared with the sheet's header via [RoleChip] so one fact cannot
-            // be styled two ways.
-            if (role != RoomRole.member) RoleChip(role: role, dense: true),
-            if (hasSheet) ...[
-              const SizedBox(width: 6),
-              Icon(Icons.more_horiz, size: 16, color: theme.inkMuted),
-            ],
+          ),
+          // The badge reads the ROLE, shared with the sheet's header via
+          // [RoleChip] so one fact cannot be styled two ways.
+          if (role != RoomRole.member) RoleChip(role: role, dense: true),
+          if (hasSheet) ...[
+            const SizedBox(width: 8),
+            Icon(
+              CupertinoIcons.chevron_forward,
+              size: 15,
+              color: theme.inkMuted.withValues(alpha: 0.7),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -2143,52 +2036,63 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   Widget _pendingInviteRow(AppTheme theme, PendingRoomInvite inv) {
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Opacity(
-        // Dimmed rather than badged: the whole block is already labelled
-        // "invited", and the row needs to read as provisional at a glance.
-        opacity: 0.7,
-        child: Row(
-          children: [
-            UserAvatar(user: inv.invitee, size: 28, api: widget.api),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(inv.invitee.displayName, style: theme.bodySoft),
-                  Text(
-                    // "Waiting on a parent" instead of nothing, because two
-                    // days of silence from a supervised invitee otherwise
-                    // reads as a snub rather than as a guardian who has not
-                    // looked yet.
-                    inv.awaitingGuardian
-                        ? l10n.roomInfoScreenInviteAwaitingGuardian
-                        : '@${inv.invitee.username}',
-                    style: theme.monoTiny,
-                  ),
-                ],
-              ),
+      padding: const EdgeInsets.fromLTRB(14, 8, 12, 8),
+      child: Row(
+        children: [
+          // Dimmed rather than badged: the group is already headed "invited",
+          // and the face should read as provisional at a glance.
+          Opacity(
+            opacity: 0.6,
+            child: UserAvatar(user: inv.invitee, size: 38, api: widget.api),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  inv.invitee.displayName,
+                  style: theme.body.copyWith(color: theme.inkSoft),
+                ),
+                Text(
+                  // "Waiting on a parent" rather than nothing: two days of
+                  // silence from a supervised invitee otherwise reads as a
+                  // snub rather than as a guardian who has not looked yet.
+                  inv.awaitingGuardian
+                      ? l10n.roomInfoScreenInviteAwaitingGuardian
+                      : '@${inv.invitee.username}',
+                  style: theme.caption.copyWith(color: theme.inkMuted),
+                ),
+              ],
             ),
-            if (inv.canCancel)
-              FocusableTap(
+          ),
+          if (inv.canCancel)
+            FocusableTap(
+              onTap: () => _cancelInvite(inv),
+              semanticLabel: l10n.riWithdraw,
+              radius: 999,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
                 onTap: () => _cancelInvite(inv),
-                semanticLabel: l10n.roomInfoScreenInviteWithdraw,
-                radius: theme.radiusSm,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => _cancelInvite(inv),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                    child: Text(
-                      l10n.roomInfoScreenInviteWithdraw,
-                      style: theme.monoTiny.copyWith(color: theme.danger),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: theme.danger.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    l10n.riWithdraw,
+                    style: theme.body.copyWith(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: theme.danger,
                     ),
                   ),
                 ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -2371,17 +2275,15 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   /// row appears on its own condition — a plain member in a room that still
   /// allows member invites gets the friend picker and nothing else, which is
   /// exactly the surface their permissions describe.
-  Widget _groupAdmin(AppTheme theme) {
+  List<Widget> _groupAdminRows(AppTheme theme) {
     final l10n = AppLocalizations.of(context);
     final pendingRequests = _joinRequests.length;
     final pendingChanges = _changeRequests.length;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
+    return [
         if (_perms.canInvite)
           _adminRow(
             theme,
-            icon: Icons.person_add_alt,
+            icon: CupertinoIcons.person_badge_plus,
             label: l10n.roomAdminAddFriendsRow,
             onTap: () async {
               await showRoomInviteFriendsSheet(
@@ -2396,7 +2298,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
         if (_perms.canManageLink)
           _adminRow(
             theme,
-            icon: Icons.link,
+            icon: CupertinoIcons.link,
             label: l10n.roomAdminInviteLinkRow,
             onTap: () => showRoomInviteSheet(
               context,
@@ -2411,7 +2313,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
         if (_perms.canReviewJoinRequests && pendingRequests > 0)
           _adminRow(
             theme,
-            icon: Icons.how_to_reg_outlined,
+            icon: CupertinoIcons.person_crop_circle_badge_checkmark,
             label: l10n.roomAdminJoinRequestsRow,
             badge: pendingRequests,
             onTap: () async {
@@ -2430,13 +2332,12 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
         if (_perms.canReviewChangeRequests && pendingChanges > 0)
           _adminRow(
             theme,
-            icon: Icons.published_with_changes_outlined,
+            icon: CupertinoIcons.arrow_2_squarepath,
             label: l10n.roomAdminChangeRequestsRow,
             badge: pendingChanges,
             onTap: _openChangeRequests,
           ),
-      ],
-    );
+    ];
   }
 
   /// One row at the head of the member list: add, invite link, join requests.
@@ -2452,84 +2353,58 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     required VoidCallback onTap,
     int? badge,
   }) {
-    return FocusableTap(
+    return PressRow(
       onTap: onTap,
       semanticLabel: label,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Row(
-            children: [
-              // A 32px circle, not a bare glyph. These rows are now the head of
-              // the member list, sitting directly above avatars — the circle is
-              // what puts them on the roster's rhythm instead of looking like
-              // buttons that wandered into a list. Same treatment WhatsApp
-              // gives "Add participants".
-              Container(
-                width: 32,
-                height: 32,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: theme.accentSoft,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, size: 17, color: theme.accent),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  label,
-                  style: theme.body.copyWith(color: theme.accent),
-                ),
-              ),
-              if (badge != null && badge > 0) ...[
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: theme.accent,
-                    borderRadius: BorderRadius.circular(theme.radiusSm),
-                  ),
-                  child: Text(
-                    '$badge',
-                    style: theme.monoTiny.copyWith(color: theme.accentInk),
-                  ),
-                ),
-                const SizedBox(width: 6),
-              ],
-              Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
-            ],
+      padding: const EdgeInsets.fromLTRB(14, 8, 12, 8),
+      child: Row(
+        children: [
+          // A circle the size of the avatars below, the WhatsApp "Add
+          // participants" treatment: these rows head the roster and should
+          // sit on its rhythm.
+          Container(
+            width: 38,
+            height: 38,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: theme.accent.withValues(alpha: 0.14),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 19, color: theme.accent),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _dangerButton(
-    AppTheme theme, {
-    required String label,
-    required VoidCallback? onTap,
-    bool filled = false,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: filled ? theme.danger : Colors.transparent,
-          border: Border.all(color: theme.danger, width: 1.2),
-          borderRadius: BorderRadius.circular(theme.radiusMd),
-        ),
-        child: Text(
-          label,
-          style: theme.label.copyWith(
-            color: filled ? Colors.white : theme.danger,
-            letterSpacing: 2,
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              label,
+              style: theme.body.copyWith(color: theme.accent),
+            ),
           ),
-        ),
+          if (badge != null && badge > 0) ...[
+            Container(
+              constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
+              padding: const EdgeInsets.symmetric(horizontal: 7),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: theme.danger,
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: Text(
+                '$badge',
+                style: theme.caption.copyWith(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          Icon(
+            CupertinoIcons.chevron_forward,
+            size: 15,
+            color: theme.inkMuted.withValues(alpha: 0.7),
+          ),
+        ],
       ),
     );
   }
@@ -2570,43 +2445,44 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     final value = pinned.isEmpty
         ? l10n.roomInfoScreenSpeakerColorsAutomatic
         : l10n.roomInfoScreenSpeakerColorsCustom;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        FieldLabel(l10n.roomInfoScreenSpeakerColorsLabel),
-        const SizedBox(height: 6),
-        FocusableTap(
-          onTap: open,
-          semanticLabel: l10n.roomInfoScreenSpeakerColorsLabel,
-          radius: theme.radiusMd,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: open,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
-              decoration: BoxDecoration(
-                color: theme.surfaceSunken,
-                borderRadius: BorderRadius.circular(theme.radiusMd),
-                border: Border.all(color: theme.divider, width: 1.4),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.palette_outlined,
-                      size: 18, color: theme.inkMuted),
-                  const SizedBox(width: 14),
-                  Expanded(child: Text(value, style: theme.body)),
-                  // A strip of the room's own colours rather than a chevron.
-                  // The row is about colour; showing three of them says what it
-                  // leads to more directly than any wording would.
-                  ..._speakerColorPreview(theme),
-                  const SizedBox(width: 8),
-                  Icon(Icons.chevron_right, size: 18, color: theme.inkMuted),
-                ],
-              ),
+    return PressRow(
+      onTap: open,
+      semanticLabel: l10n.riNameColours,
+      padding: const EdgeInsets.fromLTRB(14, 9, 14, 9),
+      child: Row(
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: tileColor(theme, TileTone.pink),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              CupertinoIcons.paintbrush_fill,
+              size: 17,
+              color: Colors.white,
             ),
           ),
-        ),
-      ],
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              value,
+              style: theme.body.copyWith(fontSize: 17, color: theme.ink),
+            ),
+          ),
+          // A strip of the room's own colours rather than a value: the row is
+          // about colour, and three of them say where it leads.
+          ..._speakerColorPreview(theme),
+          const SizedBox(width: 8),
+          Icon(
+            CupertinoIcons.chevron_forward,
+            size: 15,
+            color: theme.inkMuted.withValues(alpha: 0.7),
+          ),
+        ],
+      ),
     );
   }
 
@@ -2625,7 +2501,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
           height: 10,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: theme.speakerMark(slot, on: theme.surfaceSunken),
+            color: theme.speakerMark(slot, on: groupedFill(theme)),
           ),
         ),
       ));
@@ -2652,7 +2528,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     if (!sebastian.isAvailable) {
       return _translateRowShell(
         theme: theme,
-        icon: Icons.translate,
+        icon: CupertinoIcons.globe,
         title: l10n.roomTranslateTitle,
         detail: l10n.companionUnsupportedPlatform,
         active: false,
@@ -2662,7 +2538,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
 
     return _translateRowShell(
       theme: theme,
-      icon: Icons.translate,
+      icon: CupertinoIcons.globe,
       title: on ? l10n.roomTranslateOnRow : l10n.roomTranslateTitle,
       detail: on
           ? sebastian.targetLanguage.autonym
@@ -2705,45 +2581,12 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     required bool active,
     required VoidCallback? onTap,
   }) {
-    final enabled = onTap != null;
-    return GestureDetector(
+    return GroupedRow(
+      icon: icon,
+      tone: active ? TileTone.accent : TileTone.teal,
+      title: title,
+      subtitle: detail,
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-        decoration: BoxDecoration(
-          color: theme.surface,
-          border: Border.all(
-            color: active ? theme.accent.withValues(alpha: 0.4) : theme.divider,
-          ),
-          borderRadius: BorderRadius.circular(theme.radiusMd),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: active ? theme.accent : theme.inkMuted,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: theme.body),
-                  const SizedBox(height: 2),
-                  Text(
-                    detail,
-                    style: theme.caption.copyWith(color: theme.inkMuted),
-                  ),
-                ],
-              ),
-            ),
-            if (enabled)
-              Icon(Icons.chevron_right, size: 18, color: theme.inkMuted),
-          ],
-        ),
-      ),
     );
   }
 
@@ -2757,55 +2600,14 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
             : r.badgesMuted
                 ? l10n.muteSummaryBadgesOnly
                 : l10n.muteSummaryNotificationsOnly;
-    void open() => showMuteRoomSheet(context, repo: widget.repo, room: r);
-    return FocusableTap(
-      onTap: open,
-      semanticLabel: summary,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: open,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
-          decoration: BoxDecoration(
-            color: theme.surfaceSunken,
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-            border: Border.all(color: theme.divider, width: 1.4),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                muted ? CupertinoIcons.bell_slash_fill : CupertinoIcons.bell,
-                size: 18,
-                color: muted ? theme.accent : theme.inkMuted,
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(summary, style: theme.body),
-                    if (muted) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        // `r.mute.until` is null for "always" as well as for
-                        // no mute at all, and this branch has already ruled the
-                        // second one out — so the sentence helper lands on
-                        // "until you turn it back on" without this screen ever
-                        // having to know what the sentinel is.
-                        muteDeadlineSentence(context, until: r.mute.until),
-                        style: theme.monoTiny.copyWith(color: theme.accent),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              Icon(Icons.chevron_right, size: 18, color: theme.inkMuted),
-            ],
-          ),
-        ),
-      ),
+    return GroupedRow(
+      icon: muted ? CupertinoIcons.bell_slash_fill : CupertinoIcons.bell_fill,
+      tone: muted ? TileTone.indigo : TileTone.red,
+      title: summary,
+      // `r.mute.until` is null for "always" as well as for no mute at all,
+      // and this branch has already ruled the second one out.
+      subtitle: muted ? muteDeadlineSentence(context, until: r.mute.until) : null,
+      onTap: () => showMuteRoomSheet(context, repo: widget.repo, room: r),
     );
   }
 
@@ -2840,55 +2642,45 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   /// notify: `_onRepo` filters those down to room-field changes for the whole
   /// screen's sake, and a bookmark is not a room field. Five rows is a fraction
   /// of what the block this replaced rebuilt on the same signal.
-  Widget _sharedContent(AppTheme theme, RoomCapabilities caps) {
-    final rows = <(RoomContentTab, IconData)>[
-      (RoomContentTab.media, CupertinoIcons.photo),
-      (RoomContentTab.file, CupertinoIcons.doc),
-      (RoomContentTab.voice, CupertinoIcons.waveform),
-      (RoomContentTab.links, CupertinoIcons.link),
-      // The outline, where every other mark of a save in the app is the fill.
-      // Deliberate: these five icons are doors, not states — a filled bookmark
-      // in a column of line glyphs would read as "this one is on".
-      if (caps.canSaveMessages) (RoomContentTab.saved, CupertinoIcons.bookmark),
+  List<Widget> _sharedContentRows(AppTheme theme, RoomCapabilities caps) {
+    final l10n = AppLocalizations.of(context);
+    final rows = <(RoomContentTab, IconData, TileTone)>[
+      (RoomContentTab.media, CupertinoIcons.photo_fill, TileTone.blue),
+      (RoomContentTab.file, CupertinoIcons.doc_fill, TileTone.indigo),
+      (RoomContentTab.voice, CupertinoIcons.waveform, TileTone.orange),
+      (RoomContentTab.links, CupertinoIcons.link, TileTone.teal),
+      if (caps.canSaveMessages)
+        (RoomContentTab.saved, CupertinoIcons.bookmark_fill, TileTone.purple),
     ];
-
-    return AnimatedBuilder(
-      animation: widget.repo,
-      builder: (context, _) => Container(
-        decoration: BoxDecoration(
-          color: theme.surfaceSunken,
-          borderRadius: BorderRadius.circular(theme.radiusMd),
-          border: Border.all(color: theme.divider, width: 1.4),
-        ),
-        // Clipped so the first and last rows' press highlight cannot paint over
-        // the rounded corners.
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          children: [
-            for (var i = 0; i < rows.length; i++) ...[
-              if (i > 0)
-                // Inset to the text column, so the dividers read as separating
-                // rows rather than as a table grid.
-                Padding(
-                  padding: const EdgeInsets.only(left: 52),
-                  child: Divider(height: 1, thickness: 1, color: theme.divider),
-                ),
-              _SharedContentRow(
-                theme: theme,
-                tab: rows[i].$1,
-                icon: rows[i].$2,
-                count: roomContentCountFor(
-                  rows[i].$1,
-                  serverCounts: _contentCounts,
-                  savedCount: widget.repo.savedFor(widget.roomId).length,
-                ),
-                onTap: () => _openContent(rows[i].$1),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
+    return [
+      for (final (tab, icon, tone) in rows)
+        Builder(builder: (context) {
+          final count = roomContentCountFor(
+            tab,
+            serverCounts: _contentCounts,
+            savedCount: widget.repo.savedFor(widget.roomId).length,
+          );
+          // An empty tab says so in words — "0" beside a chevron reads as a
+          // number that failed to load — and a count still in flight shows
+          // nothing at all rather than a placeholder dash.
+          final value = count == null
+              ? null
+              : (count.count == 0 ? l10n.riNone : count.badge);
+          return GroupedRow(
+            icon: icon,
+            tone: tone,
+            title: switch (tab) {
+              RoomContentTab.media => l10n.riTabMedia,
+              RoomContentTab.file => l10n.riTabFiles,
+              RoomContentTab.voice => l10n.riTabVoice,
+              RoomContentTab.links => l10n.riTabLinks,
+              RoomContentTab.saved => l10n.riTabSaved,
+            },
+            value: value,
+            onTap: () => _openContent(tab),
+          );
+        }),
+    ];
   }
 
   /// Opens the browser, and passes any "show in chat" it returns straight
@@ -2913,146 +2705,4 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     Navigator.of(context).pop(jump);
   }
 
-  Widget _seg(AppTheme theme, {
-    required bool active,
-    required VoidCallback onTap,
-    required Widget icon,
-    required String title,
-    required String sub,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: theme.motionFast,
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-        decoration: BoxDecoration(
-          // Active uses the accent color across border + faint fill so the
-          // selected state reads clearly on every theme, independent of
-          // surfaceRaised/surfaceSunken contrast.
-          color: active ? theme.accent.withValues(alpha: 0.12) : theme.surfaceSunken,
-          borderRadius: BorderRadius.circular(theme.radiusMd),
-          // Constant border width — switching width between states caused a
-          // 0.8px layout shift on toggle.
-          border: Border.all(
-            color: active ? theme.accent : theme.divider,
-            width: 1.4,
-          ),
-        ),
-        child: Row(
-          children: [
-            SizedBox(width: 16, height: 16, child: Center(child: icon)),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: theme.displaySmall.copyWith(
-                      color: active ? theme.accent : theme.inkSoft,
-                      fontSize: 16,
-                    ),
-                  ),
-                  Text(sub, style: theme.monoTiny),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// One row of the SHARED CONTENT group: icon, name, how much, chevron.
-///
-/// Pressed state is drawn here rather than by an overlay because this row sits
-/// inside a clipped, bordered container — an ink splash would have to be
-/// clipped to the group's radius, and this app draws no ink anywhere regardless.
-class _SharedContentRow extends StatefulWidget {
-  const _SharedContentRow({
-    required this.theme,
-    required this.tab,
-    required this.icon,
-    required this.count,
-    required this.onTap,
-  });
-
-  final AppTheme theme;
-  final RoomContentTab tab;
-  final IconData icon;
-
-  /// Null until the counts query lands. Rendered as nothing rather than as a
-  /// placeholder — see [_RoomInfoScreenState._sharedContent].
-  final RoomContentCount? count;
-
-  final VoidCallback onTap;
-
-  @override
-  State<_SharedContentRow> createState() => _SharedContentRowState();
-}
-
-class _SharedContentRowState extends State<_SharedContentRow> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = widget.theme;
-    final count = widget.count;
-    final empty = count != null && count.count == 0;
-
-    // `FocusableTap` registers no gesture recognizer of its own, so the bare
-    // `GestureDetector` inside is what actually receives the pointer. Both
-    // carry the handler; wrapping alone would render a row that does nothing.
-    // Never an InkWell — this app draws no ink anywhere.
-    return FocusableTap(
-      onTap: widget.onTap,
-      semanticLabel: count?.badge == null
-          ? widget.tab.label(context)
-          : '${widget.tab.label(context)}, ${count!.badge}',
-      radius: theme.radiusSm,
-      inset: 1,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        onTapDown: (_) => setState(() => _pressed = true),
-        onTapUp: (_) => setState(() => _pressed = false),
-        onTapCancel: () => setState(() => _pressed = false),
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 90),
-          curve: Curves.easeOut,
-          color: _pressed ? theme.accent.withValues(alpha: 0.10) : null,
-          padding: const EdgeInsets.fromLTRB(12, 13, 12, 13),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 28,
-                child: Icon(widget.icon, size: 18, color: theme.accent),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  widget.tab.label(context),
-                  style: theme.body.copyWith(color: theme.ink),
-                ),
-              ),
-              // An empty tab says so in words rather than showing a zero: "0"
-              // next to a chevron reads as a number that failed to load, where
-              // "none" reads as an answer. Nothing at all while the count is
-              // still in flight.
-              if (empty)
-                Text(AppLocalizations.of(context).roomInfoScreenNoneCount, style: theme.caption.copyWith(color: theme.inkMuted))
-              else if (count?.badge != null)
-                Text(
-                  count!.badge!,
-                  style: theme.bodyEmph.copyWith(color: theme.accent),
-                ),
-              const SizedBox(width: 8),
-              Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

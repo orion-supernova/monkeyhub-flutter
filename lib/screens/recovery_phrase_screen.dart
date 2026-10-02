@@ -10,6 +10,8 @@ import '../platform.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/account_kit.dart';
+import '../widgets/ios_kit.dart' show groupedFill;
 import '../widgets/app_toast.dart';
 import '../widgets/password_field.dart';
 
@@ -245,14 +247,14 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
       ],
       const SizedBox(height: 20),
       _Cta(
-        label: l10n.recoveryPhraseScreenContinueButton,
+        label: l10n.rpContinue,
         busy: _busy,
         onTap: _submitPassword,
       ),
       if (widget.dismissible) ...[
         const SizedBox(height: 16),
         _TextLink(
-          label: l10n.recoveryPhraseScreenNotNowLink,
+          label: l10n.acctNotNow,
           onTap: () => Navigator.of(context).pop(false),
         ),
       ],
@@ -287,14 +289,14 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
       const SizedBox(height: 24),
       _PhraseGrid(words: widget.phrase.words),
       const SizedBox(height: 16),
-      _OutlineCta(label: l10n.recoveryPhraseScreenCopyButton, onTap: _copy),
+      _OutlineCta(label: l10n.rpCopy, onTap: _copy),
       const SizedBox(height: 10),
       Text(
         // Honest rather than reassuring: on mobile the clipboard is readable
         // by other apps. We deliberately do NOT try to clear it afterwards —
         // that can't be done reliably and it would break the paste.
         l10n.recoveryPhraseScreenPaperHint,
-        style: theme.monoTiny.copyWith(color: theme.inkMuted),
+        style: theme.caption.copyWith(color: theme.inkMuted),
       ),
       if (_error != null) ...[
         const SizedBox(height: 14),
@@ -302,7 +304,7 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
       ],
       const SizedBox(height: 24),
       _Cta(
-        label: l10n.recoveryPhraseScreenSavedButton,
+        label: l10n.rpSaved,
         busy: _busy,
         onTap: _save,
       ),
@@ -324,9 +326,9 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
   ///  * repair, not dismissible — post-reset rotation. No way out but forward.
   String? _backLabel(AppLocalizations l10n) {
     if (widget.mode == RecoveryGateMode.setup) {
-      return l10n.recoveryPhraseScreenBackLink;
+      return l10n.rpBack;
     }
-    if (widget.dismissible) return l10n.recoveryPhraseScreenKeepPhraseLink;
+    if (widget.dismissible) return l10n.rpKeep;
     return null;
   }
 
@@ -390,9 +392,8 @@ class _WordCell extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
-        color: theme.surfaceSunken,
-        border: Border.all(color: theme.divider),
-        borderRadius: BorderRadius.circular(theme.radiusMd),
+        color: groupedFill(theme),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
@@ -454,8 +455,7 @@ class _ErrorBanner extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
       decoration: BoxDecoration(
         color: theme.danger.withValues(alpha: 0.12),
-        border: Border(left: BorderSide(color: theme.danger, width: 2)),
-        borderRadius: BorderRadius.circular(theme.radiusMd),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Text(message, style: theme.body.copyWith(color: theme.danger)),
     );
@@ -474,73 +474,35 @@ class _Cta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: busy ? null : onTap,
-      enabled: !busy,
-      semanticLabel: label,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        onTap: busy ? null : onTap,
-        child: AnimatedContainer(
-          duration: theme.motionFast,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: busy ? theme.accentSoft : theme.accent,
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-          ),
-          child: busy
-              ? SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: theme.accentInk,
-                  ),
-                )
-              : Text(
-                  label,
-                  style: theme.label
-                      .copyWith(color: theme.accentInk, letterSpacing: 2.4),
-                ),
+    if (busy) {
+      return Container(
+        height: 50,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: theme.accent.withValues(alpha: 0.35),
+          borderRadius: BorderRadius.circular(999),
         ),
-      ),
-    );
+        child: SizedBox(
+          width: 18,
+          height: 18,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: theme.accentInk,
+          ),
+        ),
+      );
+    }
+    return SheetButton(label: label, filled: true, onTap: onTap);
   }
 }
 
-/// Secondary action — same shape as [_Cta], outlined instead of filled, so
-/// COPY reads as subordinate to the primary CTA below it.
 class _OutlineCta extends StatelessWidget {
   const _OutlineCta({required this.label, required this.onTap});
   final String label;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: label,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            border: Border.all(color: theme.accent),
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-          ),
-          child: Text(
-            label,
-            style:
-                theme.label.copyWith(color: theme.accent, letterSpacing: 2.4),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => SheetButton(label: label, onTap: onTap);
 }
 
 class _TextLink extends StatelessWidget {
@@ -561,10 +523,10 @@ class _TextLink extends StatelessWidget {
           onTap: onTap,
           behavior: HitTestBehavior.opaque,
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
             child: Text(
               label,
-              style: theme.monoTiny.copyWith(color: theme.inkMuted),
+              style: theme.body.copyWith(fontSize: 16, color: theme.accent),
             ),
           ),
         ),

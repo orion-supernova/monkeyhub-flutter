@@ -108,9 +108,9 @@ class _MarloweScreenState extends State<MarloweScreen> {
     final active = _active;
 
     return CompanionPage(
-      // Lowercase with a full stop, matching `language.` and every other
-      // settings detail screen. A name is still a name in lower case.
-      title: '${_companion.displayName.toLowerCase()}.',
+      // The companion's own name as the large title, the way a Contacts card
+      // is titled by the person.
+      title: _companion.displayName,
       subtitle: _companion.tagline(l10n),
       children: [
         Row(
@@ -137,7 +137,7 @@ class _MarloweScreenState extends State<MarloweScreen> {
         // two gigabytes.
         _ComingSoonNote(theme: theme, l10n: l10n),
         const SizedBox(height: 26),
-        CompanionSectionLabel(l10n.marloweBrainsSection),
+        CompanionSectionLabel(l10n.compBrain),
         Padding(
           padding: const EdgeInsets.only(bottom: 14, left: 2, right: 2),
           child: Text(

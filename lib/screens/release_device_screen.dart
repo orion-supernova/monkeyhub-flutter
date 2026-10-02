@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../auth/auth_service.dart';
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
-import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/adaptive_page_body.dart';
+import '../widgets/account_kit.dart';
+import '../widgets/ios_kit.dart';
 import '../widgets/code_field.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/password_field.dart';
@@ -124,168 +123,83 @@ class _ReleaseDeviceScreenState extends State<ReleaseDeviceScreen> {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final childName = _childName(context);
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          // See home_screen: the bottom inset leaves a dead strip of
-          // background under the scroller, which reads as a solid bar. The
-          // list clears the home indicator with its own padding instead.
-          SafeArea(
-            bottom: false,
-            child: AdaptivePageBody(
-              child: Column(
-              children: [
-                _Header(onClose: () => Navigator.of(context).maybePop()),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.fromLTRB(
-                      28,
-                      8,
-                      28,
-                      edgeToEdgeBottom(context, 32),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          l10n.releaseDeviceScreenIntro(childName),
-                          style: theme.bodySoft,
-                        ),
-                        const SizedBox(height: 10),
-                        // A grown-up standing here needs to know this is not
-                        // the delete button. Nothing about the account changes.
-                        Text(
-                          l10n.releaseDeviceScreenAccountKeptNote,
-                          style: theme.monoTiny.copyWith(color: theme.inkMuted),
-                        ),
-                        const SizedBox(height: 22),
-                        Text(
-                          l10n.releaseDeviceScreenAskGrownUp(childName),
-                          style: theme.bodySoft,
-                        ),
-                        const SizedBox(height: 24),
-                        CodeField(
-                          controller: _code,
-                          enabled: !_busy,
-                          onCompleted: _submitCode,
-                        ),
-                        const SizedBox(height: 26),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Container(height: 1, color: theme.divider),
-                            ),
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 12),
-                              child: Text(
-                                l10n.releaseDeviceScreenOrDivider,
-                                style: theme.monoTiny,
-                              ),
-                            ),
-                            Expanded(
-                              child: Container(height: 1, color: theme.divider),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 26),
-                        Text(
-                          l10n.releaseDeviceScreenOnePhoneNote,
-                          style: theme.bodySoft,
-                        ),
-                        const SizedBox(height: 14),
-                        ThemedInput(
-                          controller: _username,
-                          hint: l10n.releaseDeviceScreenUsernameHint,
-                          autocorrect: false,
-                          enableSuggestions: false,
-                        ),
-                        const SizedBox(height: 10),
-                        PasswordField(
-                          controller: _password,
-                          hint: l10n.releaseDeviceScreenPasswordHint,
-                          onSubmitted: (_) => _submitPassword(),
-                        ),
-                        const SizedBox(height: 16),
-                        FocusableTap(
-                          onTap: _busy ? null : _submitPassword,
-                          enabled: !_busy,
-                          semanticLabel: l10n.releaseDeviceScreenSignOutSemanticLabel,
-                          radius: theme.radiusMd,
-                          child: GestureDetector(
-                          onTap: _busy ? null : _submitPassword,
-                          behavior: HitTestBehavior.opaque,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 15),
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: _busy ? theme.surfaceSunken : theme.accent,
-                              borderRadius:
-                                  BorderRadius.circular(theme.radiusMd),
-                            ),
-                            child: Text(
-                              _busy
-                                  ? l10n.releaseDeviceScreenChecking
-                                  : l10n.releaseDeviceScreenSignOutButton(
-                                      childName.toUpperCase()),
-                              style: theme.label.copyWith(
-                                color:
-                                    _busy ? theme.inkMuted : theme.accentInk,
-                                letterSpacing: 2.4,
-                              ),
-                            ),
-                          ),
-                          ),
-                        ),
-                        if (_error != null) ...[
-                          const SizedBox(height: 18),
-                          Text(
-                            _error!,
-                            style: theme.bodySoft.copyWith(color: theme.danger),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ],
+    return IosPage(
+      title: l10n.acctHandPhoneBack,
+      slivers: readableSlivers(context, [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                l10n.releaseDeviceScreenIntro(childName),
+                style: theme.bodySoft,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l10n.releaseDeviceScreenAccountKeptNote,
+                style: theme.caption.copyWith(color: theme.inkMuted),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                l10n.releaseDeviceScreenAskGrownUp(childName),
+                style: theme.bodySoft,
+              ),
+              const SizedBox(height: 20),
+              CodeField(
+                controller: _code,
+                enabled: !_busy,
+                onCompleted: _submitCode,
+              ),
+              const SizedBox(height: 26),
+              Row(
+                children: [
+                  Expanded(child: Container(height: 0.5, color: theme.divider)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(
+                      l10n.releaseDeviceScreenOrDivider,
+                      style: theme.caption.copyWith(color: theme.inkMuted),
                     ),
                   ),
+                  Expanded(child: Container(height: 0.5, color: theme.divider)),
+                ],
+              ),
+              const SizedBox(height: 26),
+              Text(l10n.releaseDeviceScreenOnePhoneNote, style: theme.bodySoft),
+              const SizedBox(height: 14),
+              ThemedInput(
+                controller: _username,
+                hint: l10n.releaseDeviceScreenUsernameHint,
+                autocorrect: false,
+                enableSuggestions: false,
+              ),
+              const SizedBox(height: 10),
+              PasswordField(
+                controller: _password,
+                hint: l10n.releaseDeviceScreenPasswordHint,
+                onSubmitted: (_) => _submitPassword(),
+              ),
+              const SizedBox(height: 18),
+              SheetButton(
+                label: _busy
+                    ? l10n.linkedAccountsScreenStatusChecking
+                    : l10n.rdSignOut(childName),
+                filled: true,
+                onTap: _busy ? null : _submitPassword,
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: 16),
+                Text(
+                  _error!,
+                  style: theme.bodySoft.copyWith(color: theme.danger),
+                  textAlign: TextAlign.center,
                 ),
               ],
-            ),
-            ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  const _Header({required this.onClose});
-  final VoidCallback onClose;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: onClose,
-            behavior: HitTestBehavior.opaque,
-            child: Icon(Icons.arrow_back, size: 20, color: theme.inkSoft),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(
-              AppLocalizations.of(context).releaseDeviceScreenHeaderTitle,
-              style: theme.label.copyWith(letterSpacing: 2.8),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ]),
     );
   }
 }

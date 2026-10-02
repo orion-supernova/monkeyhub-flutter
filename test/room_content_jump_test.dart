@@ -180,7 +180,7 @@ void main() {
     test('the SAVED row is gated on the capability, not on a room name', () {
       final code = codeOf(
         roomInfo,
-        'Widget _sharedContent(AppTheme theme, RoomCapabilities caps)',
+        'List<Widget> _sharedContentRows(AppTheme theme, RoomCapabilities caps)',
       );
       expect(
         code.contains('caps.canSaveMessages'),
@@ -202,7 +202,7 @@ void main() {
       // Deleting the block that carried this sentence without rehoming it is
       // the regression this exists to catch.
       expect(
-        roomInfo.contains('roomInfoScreenSharedContentSavedNote'),
+        roomInfo.contains('riSavedNote'),
         isTrue,
         reason: 'saved is per-reader, pinned is room state — say so somewhere',
       );

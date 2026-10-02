@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../auth/auth_service.dart';
@@ -6,11 +7,11 @@ import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/user_device.dart';
 import '../push/device_identity.dart';
-import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/adaptive_page_body.dart';
+import '../widgets/account_kit.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/destructive_sheet.dart';
+import '../widgets/ios_kit.dart';
 
 /// Every device this account has signed in on.
 ///
@@ -79,7 +80,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
       // screen honest about not knowing instead of claiming an empty list.
       if (mounted) {
         setState(() {
-          _error = AppLocalizations.of(context).devicesScreenLoadFailed;
+          _error = AppLocalizations.of(context).acctDevicesLoadFailed;
         });
       }
     }
@@ -91,9 +92,9 @@ class _DevicesScreenState extends State<DevicesScreen> {
     final l10n = AppLocalizations.of(context);
     final go = await showConfirmSheet(
       context,
-      headline: l10n.devicesScreenRemoveTitle,
+      headline: l10n.acctRemoveDeviceTitle,
       body: l10n.devicesScreenRemoveBody(_label(context, device)),
-      confirmLabel: l10n.devicesScreenRemoveConfirm,
+      confirmLabel: l10n.acctRemove,
     );
     if (!go || !mounted) return;
     setState(() {
@@ -123,9 +124,9 @@ class _DevicesScreenState extends State<DevicesScreen> {
     final l10n = AppLocalizations.of(context);
     final go = await showConfirmSheet(
       context,
-      headline: l10n.devicesScreenRemoveAllTitle,
+      headline: l10n.acctRemoveAllTitle,
       body: l10n.devicesScreenRemoveAllBody,
-      confirmLabel: l10n.devicesScreenRemoveAllConfirm,
+      confirmLabel: l10n.acctRemoveAll,
     );
     if (!go || !mounted) return;
     setState(() {
@@ -173,91 +174,75 @@ class _DevicesScreenState extends State<DevicesScreen> {
     final l10n = AppLocalizations.of(context);
     final devices = _devices;
     final others = devices?.where((d) => !d.isThis).length ?? 0;
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          // See home_screen: the bottom inset leaves a dead strip of
-          // background under the scroller, which reads as a solid bar. The
-          // list clears the home indicator with its own padding instead.
-          SafeArea(
-            bottom: false,
-            child: AdaptivePageBody(
-              child: ListView(
-                padding: EdgeInsets.fromLTRB(
-                  20,
-                  8,
-                  20,
-                  edgeToEdgeBottom(context, 32),
-                ),
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        onPressed: () => Navigator.of(context).maybePop(),
-                        icon: Icon(
-                          Icons.arrow_back,
-                          color: theme.inkSoft,
-                          size: 18,
-                        ),
-                      ),
-                      Text(
-                        l10n.devicesScreenTitle,
-                        style: theme.label.copyWith(letterSpacing: 2.4),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(l10n.devicesScreenSubtitle, style: theme.bodySoft),
-                  const SizedBox(height: 24),
-                  if (_error != null) ...[
-                    Text(
-                      _error!,
-                      style: theme.body.copyWith(color: theme.danger),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                  if (devices == null)
-                    Text(l10n.devicesScreenLoading, style: theme.bodySoft)
-                  else
-                    for (final device in devices) ...[
-                      _DeviceCard(
-                        label: _label(context, device),
-                        device: device,
-                        busy: _busyDeviceId == device.deviceId,
-                        enabled: _busyDeviceId == null && !_busyAll,
-                        onRemove: () => _remove(device),
-                      ),
-                      const SizedBox(height: 10),
-                    ],
-                  if (others > 0) ...[
-                    const SizedBox(height: 14),
-                    _RemoveAllRow(
-                      busy: _busyAll,
-                      enabled: _busyDeviceId == null && !_busyAll,
-                      onTap: _removeOthers,
-                    ),
-                  ],
-                  const SizedBox(height: 20),
-                  // The honest footnote. See the class doc: this screen must
-                  // not read as a remote kill switch while it isn't one.
-                  Text(
-                    l10n.devicesScreenFootnote,
-                    style: theme.bodySoft.copyWith(color: theme.inkMuted),
-                  ),
-                ],
-              ),
+    return IosPage(
+      title: l10n.acctRowDevices,
+      subtitle: l10n.devicesScreenSubtitle,
+      slivers: readableSlivers(context, [
+        if (_error != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 16),
+            child: SoftNote(
+              icon: CupertinoIcons.exclamationmark_triangle_fill,
+              text: _error!,
+              tone: theme.danger,
             ),
           ),
-        ],
-      ),
+        if (devices == null)
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Center(
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: theme.accent,
+              ),
+            ),
+          )
+        else
+          GroupedSection(
+            footer: others > 0 ? null : l10n.devicesScreenFootnote,
+            children: [
+              for (final device in devices)
+                _DeviceRow(
+                  label: _label(context, device),
+                  device: device,
+                  busy: _busyDeviceId == device.deviceId,
+                  enabled: _busyDeviceId == null && !_busyAll,
+                  onRemove: () => _remove(device),
+                ),
+            ],
+          ),
+        if (others > 0)
+          GroupedSection(
+            footer: l10n.devicesScreenFootnote,
+            children: [
+              GroupedRow(
+                title: l10n.devicesScreenRemoveAll,
+                destructive: true,
+                trailing: _busyAll
+                    ? SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: theme.inkMuted,
+                        ),
+                      )
+                    : null,
+                onTap: (_busyDeviceId == null && !_busyAll)
+                    ? _removeOthers
+                    : null,
+              ),
+            ],
+          ),
+      ]),
     );
   }
 }
 
-class _DeviceCard extends StatelessWidget {
-  const _DeviceCard({
+/// One signed-in device: a platform glyph on a tile, its name, where and when
+/// it was last seen, and — for anything but this phone — a way to sign it out.
+class _DeviceRow extends StatelessWidget {
+  const _DeviceRow({
     required this.label,
     required this.device,
     required this.busy,
@@ -271,161 +256,80 @@ class _DeviceCard extends StatelessWidget {
   final bool enabled;
   final VoidCallback onRemove;
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
-      decoration: theme.inputDecoration(),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.body.copyWith(color: theme.ink),
-                      ),
-                    ),
-                    if (device.isThis) ...[
-                      const SizedBox(width: 8),
-                      Text(
-                        l10n.devicesScreenThisDevice,
-                        style: theme.label.copyWith(color: theme.accent),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${device.platform} · ${_seen(context, device)}',
-                  style: theme.bodySoft.copyWith(color: theme.inkMuted),
-                ),
-                // Said out loud rather than left to be inferred from silence:
-                // a device that cannot be reached still belongs on this list,
-                // and "why didn't my iPad buzz" is answered here.
-                if (!device.reachable) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    l10n.devicesScreenNoNotifications,
-                    style: theme.bodySoft.copyWith(color: theme.inkMuted),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          // No Remove on this device: signing yourself out lives on the
-          // profile screen, and offering it here would make the row that says
-          // "this device" the easiest one to destroy by accident.
-          if (!device.isThis)
-            busy
-                ? SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: theme.inkMuted,
-                    ),
-                  )
-                : FocusableTap(
-                    onTap: enabled ? onRemove : null,
-                    semanticLabel: l10n.devicesScreenRemove,
-                    child: GestureDetector(
-                      onTap: enabled ? onRemove : null,
-                      behavior: HitTestBehavior.opaque,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 6,
-                        ),
-                        child: Text(
-                          l10n.devicesScreenRemove,
-                          style: theme.label.copyWith(
-                            color: enabled ? theme.danger : theme.inkMuted,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-        ],
-      ),
-    );
+  IconData get _glyph {
+    final p = device.platform.toLowerCase();
+    if (p.contains('ios') || p.contains('iphone')) {
+      return CupertinoIcons.device_phone_portrait;
+    }
+    if (p.contains('android')) return CupertinoIcons.device_phone_portrait;
+    if (p.contains('ipad')) return CupertinoIcons.device_laptop;
+    if (p.contains('web') || p.contains('browser')) return CupertinoIcons.globe;
+    return CupertinoIcons.device_desktop;
   }
-
-  /// Coarse on purpose. A device seen four minutes ago and one seen six are
-  /// the same fact to the person reading, and a precise timestamp would only
-  /// invite them to reason about a clock they cannot see.
-  static String _seen(BuildContext context, UserDevice d) {
-    final l10n = AppLocalizations.of(context);
-    final delta = DateTime.now().difference(d.lastSeenAt);
-    if (delta.inMinutes < 2) return l10n.devicesScreenActiveNow;
-    if (delta.inHours < 1) return l10n.devicesScreenMinutesAgo(delta.inMinutes);
-    if (delta.inDays < 1) return l10n.devicesScreenHoursAgo(delta.inHours);
-    return l10n.devicesScreenDaysAgo(delta.inDays);
-  }
-}
-
-class _RemoveAllRow extends StatelessWidget {
-  const _RemoveAllRow({
-    required this.busy,
-    required this.enabled,
-    required this.onTap,
-  });
-
-  final bool busy;
-  final bool enabled;
-  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    return FocusableTap(
-      onTap: enabled ? onTap : null,
-      semanticLabel: l10n.devicesScreenRemoveAll,
-      child: GestureDetector(
-        onTap: enabled ? onTap : null,
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Row(
-            children: [
-              if (busy) ...[
-                SizedBox(
-                  width: 16,
-                  height: 16,
+    final seen = _seen(context, device);
+    return GroupedRow(
+      icon: _glyph,
+      tone: device.isThis ? TileTone.accent : TileTone.gray,
+      title: label,
+      subtitle: [
+        device.isThis ? l10n.acctThisDevice : seen,
+        if (!device.reachable) l10n.acctNoNotifications,
+      ].join(' · '),
+      chevron: false,
+      trailing: device.isThis
+          ? null
+          : busy
+              ? SizedBox(
+                  width: 18,
+                  height: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
                     color: theme.inkMuted,
                   ),
-                ),
-                const SizedBox(width: 10),
-              ],
-              // Flexible, not bare: this label is a full sentence, and it is
-              // the longest string on the screen in several languages
-              // ("Diğer tüm cihazları kaldır", "Quitar todos los demás
-              // dispositivos"). Unconstrained in a Row it overflowed the width
-              // outright — caught by rendering the screen, not by the tests,
-              // which all passed while it was broken.
-              Flexible(
-                child: Text(
-                  l10n.devicesScreenRemoveAll,
-                  style: theme.body.copyWith(
-                    color: enabled ? theme.danger : theme.inkMuted,
+                )
+              : FocusableTap(
+                  onTap: enabled ? onRemove : null,
+                  semanticLabel: l10n.acctRemove,
+                  radius: 999,
+                  child: GestureDetector(
+                    onTap: enabled ? onRemove : null,
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.danger.withValues(
+                          alpha: enabled ? 0.12 : 0.05,
+                        ),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        l10n.acctRemove,
+                        style: theme.body.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: enabled ? theme.danger : theme.inkMuted,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
+  }
+
+  static String _seen(BuildContext context, UserDevice d) {
+    final l10n = AppLocalizations.of(context);
+    final delta = DateTime.now().difference(d.lastSeenAt);
+    if (delta.inMinutes < 2) return l10n.acctActiveNow;
+    if (delta.inHours < 1) return l10n.devicesScreenMinutesAgo(delta.inMinutes);
+    if (delta.inDays < 1) return l10n.devicesScreenHoursAgo(delta.inHours);
+    return l10n.devicesScreenDaysAgo(delta.inDays);
   }
 }

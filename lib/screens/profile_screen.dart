@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:camera/camera.dart' show CameraLensDirection;
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:gal/gal.dart';
 import 'package:http/http.dart' as http;
@@ -28,12 +29,12 @@ import '../platform.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/adaptive_page_body.dart';
+import '../widgets/account_kit.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/block_choice_sheet.dart';
 import '../widgets/capture_protection_toggle.dart';
-import '../widgets/detail_link_row.dart';
+import '../widgets/ios_kit.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/password_prompt_sheet.dart';
 import '../widgets/recovery_banner.dart';
@@ -93,7 +94,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  static const double _avatarSize = 96;
+  static const double _avatarSize = 104;
 
   /// How far the camera badge used to poke past the avatar's edge. Kept so the
   /// badge lands on the same pixels now that it is positioned from a box that
@@ -1092,340 +1093,254 @@ class _ProfileScreenState extends State<ProfileScreen> {
   /// with REQUEST_ALREADY_RECEIVED. `users:getProfile` supplies the flag.
   bool get _heldByGrownUp => _u.awaitingGuardian;
 
-  String _actionLabel() {
-    final l10n = AppLocalizations.of(context);
-    if (_heldByGrownUp) return l10n.searchScreenActionWithGrownUp;
-    switch (_u.friendshipStatus) {
-      case FriendshipStatus.none:
-        return l10n.profileScreenSendRequestAction;
-      case FriendshipStatus.outgoingPending:
-        return l10n.profileScreenCancelRequestAction;
-      case FriendshipStatus.incomingPending:
-        return l10n.profileScreenApproveAction;
-      case FriendshipStatus.friend:
-        return l10n.profileScreenOpenDmAction;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          // See home_screen: the bottom inset leaves a dead strip of
-          // background under the scroller, which reads as a solid bar. The
-          // list clears the home indicator with its own padding instead.
-          SafeArea(
-            bottom: false,
-            child: AdaptivePageBody(
-              child: ListView(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                14,
-                20,
-                edgeToEdgeBottom(context, 40),
+    return HeroPage(
+      title: _u.displayName,
+      hero: _hero(theme),
+      children: [
+        if (!_isMe && _u.isRedacted) ...[
+          SoftNote(
+            icon: CupertinoIcons.eye_slash,
+            text: _u.friendshipStatus == FriendshipStatus.friend
+                ? AppLocalizations.of(context).profileScreenRedactedFriend
+                : AppLocalizations.of(context).profileScreenRedactedStranger,
+          ),
+          const SizedBox(height: 20),
+        ],
+        if (_isMe) ..._meSections(theme) else ..._readSections(theme),
+        if (_loading)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Center(
+              child: CircularProgressIndicator(
+                color: theme.accent,
+                strokeWidth: 2,
               ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// The Contacts-style head of the page: the face, the name, the handle and
+  /// presence under it, and — on someone else's profile — the action tiles.
+  Widget _hero(AppTheme theme) {
+    final l10n = AppLocalizations.of(context);
+    final canEditMe = _isMe && widget.api != null && widget.repo != null;
+    return Padding(
+      padding: readableInset(context, top: 6, bottom: 24),
+      child: Column(
+        children: [
+          AvatarPop(child: _avatarWithBadge(theme)),
+          const SizedBox(height: 14),
+          RiseIn(
+            index: 1,
+            child: GestureDetector(
+              onTap: canEditMe
+                  ? () => _confirmAndEdit(
+                      title: _u.name.trim().isNotEmpty
+                          ? l10n.acctEditNameTitle
+                          : l10n.acctAddNameTitle,
+                      currentValue: _u.name,
+                      hint: l10n.profileScreenNameHint,
+                      onSave: _updateName,
+                    )
+                  : null,
+              behavior: HitTestBehavior.opaque,
+              child: Text(
+                _u.displayName,
+                textAlign: TextAlign.center,
+                style: theme.displayMedium,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          RiseIn(
+            index: 2,
+            child: Column(
               children: [
-                Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => Navigator.of(context).maybePop(),
-                      icon: Icon(Icons.arrow_back, color: theme.inkSoft, size: 18),
+                GestureDetector(
+                  onTap: _canRenameUsername
+                      ? () => _confirmAndEdit(
+                          title: l10n.acctChangeUsernameTitle,
+                          confirmBody: l10n.profileScreenChangeUsernameWarning,
+                          currentValue: _u.username,
+                          hint: l10n.profileScreenUsernameHint,
+                          checksAvailability: true,
+                          onSave: _updateUsername,
+                        )
+                      : null,
+                  behavior: HitTestBehavior.opaque,
+                  child: Text(
+                    '@${_u.username}',
+                    style: theme.body.copyWith(
+                      fontSize: 16,
+                      color: theme.inkMuted,
                     ),
-                    const Spacer(),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 20),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Sized to _avatarSize + _badgeOverhang rather than letting
-                    // the Stack take the avatar's 96×96: RenderBox.hitTest bails
-                    // before descending when the point is outside `size`, and
-                    // Clip.none only affects painting. The badge used to sit at
-                    // right/bottom -2, so its outer ~2px was unreachable.
-                    SizedBox(
-                      width: _avatarSize + _badgeOverhang,
-                      height: _avatarSize + _badgeOverhang,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Positioned(
-                            left: 0,
-                            top: 0,
-                            width: _avatarSize,
-                            height: _avatarSize,
-                            child: FocusableTap(
-                              onTap: _canViewAvatar ? _openAvatarFullscreen : null,
-                              shape: FocusRingShape.circle,
-                              semanticLabel: AppLocalizations.of(context).profileScreenViewProfilePictureSemantic,
-                              child: GestureDetector(
-                                onTap: _canViewAvatar ? _openAvatarFullscreen : null,
-                                child: Builder(builder: (context) {
-                                  final avatar = UserAvatar(
-                                    user: _u,
-                                    size: _avatarSize,
-                                    api: widget.api,
-                                    // Own presence is never news, and the dot
-                                    // sits exactly where the camera badge goes.
-                                    showStatus: !_isMe,
-                                  );
-                                  // Only the real-image case flies — a gradient
-                                  // initials placeholder has nothing to fly to,
-                                  // and mounting a Hero for it would leave a
-                                  // tag with no counterpart.
-                                  if (!_canViewAvatar) return avatar;
-                                  return SteadyHero(
-                                    tag: _avatarHeroTag,
-                                    child: avatar,
-                                  );
-                                }),
-                              ),
-                            ),
-                          ),
-                          if (_changingAvatar)
-                            Positioned(
-                              left: 0,
-                              top: 0,
-                              width: _avatarSize,
-                              height: _avatarSize,
-                              // Must not swallow taps meant for the badge.
-                              child: IgnorePointer(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.black.withValues(alpha: 0.45),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: SizedBox(
-                                    width: 26,
-                                    height: 26,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.4,
-                                      color: Colors.white.withValues(alpha: 0.95),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          if (_isMe)
-                            Positioned(
-                              right: 0,
-                              bottom: 0,
-                              child: FocusableTap(
-                                onTap: _busy ? null : _openAvatarSheet,
-                                shape: FocusRingShape.circle,
-                                semanticLabel: AppLocalizations.of(context).profileScreenChangeProfilePictureSemantic,
-                                child: GestureDetector(
-                                  onTap: _busy ? null : _openAvatarSheet,
-                                  behavior: HitTestBehavior.opaque,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: BoxDecoration(
-                                      color: theme.accent,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: theme.background, width: 2),
-                                    ),
-                                    child: Icon(Icons.camera_alt_outlined, size: 14, color: theme.accentInk),
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
+                // Only while the handle is actually locked. Saying "changeable
+                // again on…" to someone who could change it right now would
+                // read as a restriction, the opposite of the truth.
+                if (_showsUsernameLock) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    l10n.profileScreenUsernameLockedUntil(
+                      MaterialLocalizations.of(context)
+                          .formatMediumDate(_usernameUnlocksAt!),
                     ),
-                    const SizedBox(width: 18),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          GestureDetector(
-                            onTap: _isMe && widget.api != null && widget.repo != null
-                                ? () => _confirmAndEdit(
-                                    title: _u.name.trim().isNotEmpty
-                                        ? AppLocalizations.of(context).profileScreenChangeNameTitle
-                                        : AppLocalizations.of(context).profileScreenAddNameTitle,
-                                    currentValue: _u.name,
-                                    hint: AppLocalizations.of(context).profileScreenNameHint,
-                                    onSave: _updateName,
-                                  )
-                                : null,
-                            behavior: HitTestBehavior.opaque,
-                            child: Text(_u.displayName, style: theme.displayLarge),
-                          ),
-                          const SizedBox(height: 6),
-                          GestureDetector(
-                            onTap: _canRenameUsername
-                                ? () => _confirmAndEdit(
-                                    title: AppLocalizations.of(context).profileScreenChangeUsernameTitle,
-                                    confirmBody: AppLocalizations.of(context)
-                                        .profileScreenChangeUsernameWarning,
-                                    currentValue: _u.username,
-                                    hint: AppLocalizations.of(context).profileScreenUsernameHint,
-                                    checksAvailability: true,
-                                    onSave: _updateUsername,
-                                  )
-                                : null,
-                            behavior: HitTestBehavior.opaque,
-                            child: Text('@${_u.username}', style: theme.mono.copyWith(color: theme.inkMuted)),
-                          ),
-                          // Only while the handle is actually locked. Saying
-                          // "changeable again on…" to someone who could change
-                          // it right now would read as a restriction, which is
-                          // the opposite of the truth.
-                          if (_showsUsernameLock) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              AppLocalizations.of(context).profileScreenUsernameLockedUntil(
-                                MaterialLocalizations.of(context)
-                                    .formatMediumDate(_usernameUnlocksAt!),
-                              ),
-                              style: theme.monoTiny.copyWith(color: theme.inkMuted),
-                            ),
-                          ],
-                          if (_isMe && widget.api != null && widget.repo != null) ...[
-                            const SizedBox(height: 6),
-                            GestureDetector(
-                              onTap: () => _confirmAndEdit(
-                                title: (_u.email?.isNotEmpty ?? false)
-                                    ? AppLocalizations.of(context).profileScreenChangeEmailTitle
-                                    : AppLocalizations.of(context).profileScreenAddEmailTitle,
-                                currentValue: _u.email ?? '',
-                                // Was 'only for recovery, never shown', which
-                                // was never true — this app sends no mail, and
-                                // recovery is the 12-word phrase. It is now
-                                // honestly just an optional contact note.
-                                hint: AppLocalizations.of(context).profileScreenEmailHint,
-                                keyboardType: TextInputType.emailAddress,
-                                onSave: _updateEmail,
-                              ),
-                              behavior: HitTestBehavior.opaque,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.mail_outline, size: 12, color: theme.inkMuted),
-                                  const SizedBox(width: 6),
-                                  Flexible(
-                                    child: Text(
-                                      (_u.email?.isNotEmpty ?? false)
-                                          ? _u.email!
-                                          : AppLocalizations.of(context).profileScreenAddEmailPlaceholder,
-                                      style: theme.mono.copyWith(
-                                        color: (_u.email?.isNotEmpty ?? false) ? theme.inkSoft : theme.inkMuted,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                          if (!_isMe) ...[const SizedBox(height: 8), _FriendshipChip(status: _u.friendshipStatus)],
-                          if (_u.status != null) ...[
-                            const SizedBox(height: 8),
-                            Row(children: [Text(_u.status!.toUpperCase(), style: theme.monoTiny)]),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                if (!_isMe && _u.isRedacted) ...[
-                  const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-                    decoration: BoxDecoration(
-                      color: theme.surfaceSunken,
-                      border: Border(left: BorderSide(color: theme.accent, width: 2)),
-                      borderRadius: BorderRadius.circular(theme.radiusMd),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.visibility_off_outlined, size: 14, color: theme.accent),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _u.friendshipStatus == FriendshipStatus.friend
-                                ? AppLocalizations.of(context).profileScreenRedactedFriend
-                                : AppLocalizations.of(context).profileScreenRedactedStranger,
-                            style: theme.monoTiny.copyWith(color: theme.accent),
-                          ),
-                        ),
-                      ],
-                    ),
+                    style: theme.caption.copyWith(color: theme.inkMuted),
                   ),
                 ],
-                const SizedBox(height: 24),
-
-                if (_isMe) _meView(theme) else _readView(theme),
-
-                if (!_isMe && widget.repo != null) ...[
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _Action(
-                          label: _busy
-                              ? '…'
-                              : (!_heldByGrownUp &&
-                                        _u.friendshipStatus == FriendshipStatus.none &&
-                                        !_u.acceptsFriendRequests
-                                    ? AppLocalizations.of(context).profileScreenNotAcceptingRequestsAction
-                                    : _actionLabel()),
-                          filled: !_heldByGrownUp &&
-                              _u.friendshipStatus != FriendshipStatus.outgoingPending,
-                          onTap: (_busy ||
-                                  _heldByGrownUp ||
-                                  (_u.friendshipStatus == FriendshipStatus.none && !_u.acceptsFriendRequests))
-                              ? null
-                              : _friendshipAction,
-                        ),
-                      ),
-                      if (_u.friendshipStatus == FriendshipStatus.friend) ...[
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _Action(
-                            label: AppLocalizations.of(context).profileScreenUnfriendAction,
-                            filled: false,
-                            onTap: _busy ? null : _removeFriend,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _Action(
-                          label: AppLocalizations.of(context).profileScreenBlockAction,
-                          filled: false,
-                          onTap: _busy ? null : _confirmBlock,
-                          danger: true,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _Action(
-                          label: AppLocalizations.of(context).profileScreenReportAction,
-                          filled: false,
-                          onTap: _busy ? null : _confirmReport,
-                          danger: true,
-                        ),
-                      ),
-                    ],
-                  ),
+                if (canEditMe) ...[
+                  const SizedBox(height: 8),
+                  _emailLine(theme),
                 ],
-
-                if (_loading) ...[
-                  const SizedBox(height: 24),
-                  Center(child: CircularProgressIndicator(color: theme.accent, strokeWidth: 2)),
+                if (!_isMe) ...[
+                  const SizedBox(height: 8),
+                  _relationLine(theme),
                 ],
               ],
             ),
+          ),
+          if (!_isMe && widget.repo != null) ...[
+            const SizedBox(height: 20),
+            RiseIn(index: 3, child: _actionBar(theme)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _avatarWithBadge(AppTheme theme) {
+    final l10n = AppLocalizations.of(context);
+    // Sized to _avatarSize + _badgeOverhang rather than letting the Stack take
+    // the avatar's own size: RenderBox.hitTest bails before descending when
+    // the point is outside `size`, and Clip.none only affects painting.
+    return SizedBox(
+      width: _avatarSize + _badgeOverhang,
+      height: _avatarSize + _badgeOverhang,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: 0,
+            top: 0,
+            width: _avatarSize,
+            height: _avatarSize,
+            child: FocusableTap(
+              onTap: _canViewAvatar ? _openAvatarFullscreen : null,
+              shape: FocusRingShape.circle,
+              semanticLabel: l10n.profileScreenViewProfilePictureSemantic,
+              child: GestureDetector(
+                onTap: _canViewAvatar ? _openAvatarFullscreen : null,
+                child: Builder(builder: (context) {
+                  final avatar = UserAvatar(
+                    user: _u,
+                    size: _avatarSize,
+                    api: widget.api,
+                    // Own presence is never news, and the dot sits exactly
+                    // where the camera badge goes.
+                    showStatus: false,
+                  );
+                  // Only the real-image case flies — a lettered placeholder
+                  // has nothing to fly to, and a Hero for it would leave a tag
+                  // with no counterpart.
+                  if (!_canViewAvatar) return avatar;
+                  return SteadyHero(tag: _avatarHeroTag, child: avatar);
+                }),
+              ),
+            ),
+          ),
+          if (_changingAvatar)
+            Positioned(
+              left: 0,
+              top: 0,
+              width: _avatarSize,
+              height: _avatarSize,
+              // Must not swallow taps meant for the badge.
+              child: IgnorePointer(
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.black.withValues(alpha: 0.45),
+                  ),
+                  alignment: Alignment.center,
+                  child: const SizedBox(
+                    width: 26,
+                    height: 26,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.4,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          if (_isMe)
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: SpringPress(
+                onTap: _busy ? null : _openAvatarSheet,
+                semanticLabel: l10n.profileScreenChangeProfilePictureSemantic,
+                scale: 0.88,
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: theme.accent,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: theme.background, width: 3),
+                  ),
+                  child: Icon(
+                    CupertinoIcons.camera_fill,
+                    size: 14,
+                    color: theme.accentInk,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Your saved email under your handle, or an invitation to add one. Tapping
+  /// either edits it.
+  Widget _emailLine(AppTheme theme) {
+    final l10n = AppLocalizations.of(context);
+    final has = _u.email?.isNotEmpty ?? false;
+    return GestureDetector(
+      onTap: () => _confirmAndEdit(
+        title: has ? l10n.acctEditEmailTitle : l10n.acctAddEmail,
+        currentValue: _u.email ?? '',
+        // An optional contact note: this app sends no mail, and recovery is
+        // the 12-word phrase.
+        hint: l10n.profileScreenEmailHint,
+        keyboardType: TextInputType.emailAddress,
+        onSave: _updateEmail,
+      ),
+      behavior: HitTestBehavior.opaque,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            has ? CupertinoIcons.envelope : CupertinoIcons.plus_circle,
+            size: 15,
+            color: has ? theme.inkMuted : theme.accent,
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              has ? _u.email! : l10n.acctAddEmail,
+              style: theme.body.copyWith(
+                fontSize: 15,
+                color: has ? theme.inkSoft : theme.accent,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -1433,302 +1348,327 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _readView(AppTheme theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+  /// Where you stand with this person, and whether they're around.
+  Widget _relationLine(AppTheme theme) {
+    final l10n = AppLocalizations.of(context);
+    final relation = switch (_u.friendshipStatus) {
+      FriendshipStatus.friend => l10n.acctStatusFriends,
+      FriendshipStatus.outgoingPending => l10n.acctStatusRequestSent,
+      FriendshipStatus.incomingPending => l10n.acctStatusWantsToConnect,
+      FriendshipStatus.none => l10n.acctStatusNotConnected,
+    };
+    final presence = switch (_u.status) {
+      'online' => (theme.success, l10n.acctPresenceOnline),
+      'away' => (const Color(0xFFE0A33C), l10n.acctPresenceAway),
+      'offline' => (theme.inkMuted, l10n.acctPresenceOffline),
+      _ => null,
+    };
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 8,
+      runSpacing: 4,
       children: [
-        if (_u.email != null && _u.email!.isNotEmpty)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 70,
-                child: Text(AppLocalizations.of(context).profileScreenEmailSectionLabel, style: theme.label),
-              ),
-              Expanded(child: Text(_u.email!, style: theme.body)),
-            ],
+        if (presence != null)
+          StatusDotLine(color: presence.$1, label: presence.$2),
+        if (presence != null)
+          Text('·', style: theme.caption.copyWith(color: theme.inkMuted)),
+        Text(
+          relation,
+          style: theme.caption.copyWith(
+            fontSize: 14,
+            color: _u.friendshipStatus == FriendshipStatus.incomingPending
+                ? theme.accent
+                : theme.inkMuted,
           ),
+        ),
       ],
     );
   }
 
-  Widget _meView(AppTheme theme) {
+  /// Someone else's profile: what you can do about them, as tiles.
+  Widget _actionBar(AppTheme theme) {
+    final l10n = AppLocalizations.of(context);
+    final status = _u.friendshipStatus;
+    final closed = !_heldByGrownUp &&
+        status == FriendshipStatus.none &&
+        !_u.acceptsFriendRequests;
+    final primaryBlocked = _busy || _heldByGrownUp || closed;
+    // Waiting on a guardian outranks every friendship state: the request
+    // exists, it just hasn't been released, and offering to send one would
+    // only bounce off REQUEST_ALREADY_RECEIVED.
+    final (IconData icon, String label) = _heldByGrownUp
+        ? (CupertinoIcons.hourglass, l10n.acctActionPending)
+        : closed
+        ? (CupertinoIcons.person_crop_circle_badge_xmark, l10n.acctActionNotAccepting)
+        : switch (status) {
+            FriendshipStatus.none => (
+              CupertinoIcons.person_badge_plus,
+              l10n.acctActionAddFriend,
+            ),
+            FriendshipStatus.outgoingPending => (
+              CupertinoIcons.clock,
+              l10n.acctActionRequested,
+            ),
+            FriendshipStatus.incomingPending => (
+              CupertinoIcons.checkmark_alt_circle,
+              l10n.acctActionAccept,
+            ),
+            FriendshipStatus.friend => (
+              CupertinoIcons.chat_bubble_fill,
+              l10n.acctActionMessage,
+            ),
+          };
+    return ProfileActionBar(
+      tiles: [
+        ProfileActionTile(
+          icon: icon,
+          label: label,
+          emphasis: status != FriendshipStatus.outgoingPending,
+          busy: _busy,
+          onTap: primaryBlocked ? null : _friendshipAction,
+        ),
+        if (status == FriendshipStatus.friend)
+          ProfileActionTile(
+            icon: CupertinoIcons.person_badge_minus,
+            label: l10n.acctActionUnfriend,
+            onTap: _busy ? null : _removeFriend,
+          ),
+        ProfileActionTile(
+          icon: CupertinoIcons.hand_raised_fill,
+          label: l10n.acctActionBlock,
+          danger: true,
+          onTap: _busy ? null : _confirmBlock,
+        ),
+        ProfileActionTile(
+          icon: CupertinoIcons.exclamationmark_bubble_fill,
+          label: l10n.acctActionReport,
+          danger: true,
+          onTap: _busy ? null : _confirmReport,
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _readSections(AppTheme theme) {
+    final email = _u.email;
+    if (email == null || email.isEmpty) return const [];
+    return [
+      GroupedSection(
+        children: [
+          GroupedRow(
+            title: email,
+            icon: CupertinoIcons.envelope_fill,
+            tone: TileTone.blue,
+          ),
+        ],
+      ),
+    ];
+  }
+
+  List<Widget> _meSections(AppTheme theme) {
+    final l10n = AppLocalizations.of(context);
     final repo = widget.repo;
     final api = widget.api;
     final canPrivacy = repo != null && api != null;
     // A child has no way out of their own account — no sign out, no delete.
     // That's the point of a supervised device, so the section is absent
-    // rather than disabled: a greyed-out SIGN OUT just invites nagging.
-    // `AuthService` and the backend both refuse these too, in case a route
-    // reaches them another way.
-    //
-    // What a child DOES get is "hand this phone back" below, which is not an
-    // exception to the above: it releases the handset only against a grown-up's
-    // release code or password, and is visible precisely because the credential
-    // is the real gate. A parent who can't find the button can't use it.
+    // rather than disabled. What a child DOES get is "hand this phone back",
+    // gated by a grown-up's release code or password rather than by hiding.
     final canAccount = widget.auth != null && !widget.auth!.isChild;
     final isChildAccount = widget.auth != null && widget.auth!.isChild;
     final family = widget.family;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (canPrivacy) ...[
-          _sectionHeader(theme, AppLocalizations.of(context).profileScreenPrivacySection),
-          const SizedBox(height: 12),
-          DetailLinkRow(
-            label: AppLocalizations.of(context).profileScreenVisibilityPreferences,
-            icon: Icons.visibility_outlined,
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => ProfileVisibilityScreen(
-                  repo: repo,
-                  api: api,
-                  readOnly: widget.auth?.isChild ?? false,
+    return [
+      // Explicitly `== false`: null means the backend didn't say, which must
+      // never be read as "no phrase set".
+      if (canAccount && _u.hasRecoveryKey == false) ...[
+        RecoveryPhraseBanner(onTap: _openRecoveryPhrase),
+        const SizedBox(height: 20),
+      ],
+      if (canPrivacy)
+        GroupedSection(
+          header: l10n.acctSectionPrivacy,
+          children: [
+            GroupedRow(
+              icon: CupertinoIcons.eye_fill,
+              tone: TileTone.blue,
+              title: l10n.acctRowVisibility,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ProfileVisibilityScreen(
+                    repo: repo,
+                    api: api,
+                    readOnly: widget.auth?.isChild ?? false,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          DetailLinkRow(
-            label: AppLocalizations.of(context).profileScreenBlockedUsers,
-            icon: Icons.block,
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => BlockedUsersScreen(repo: repo, api: api),
+            GroupedRow(
+              icon: CupertinoIcons.hand_raised_fill,
+              tone: TileTone.red,
+              title: l10n.acctRowBlocked,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => BlockedUsersScreen(repo: repo, api: api),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          const CaptureProtectionToggle(),
-        ],
-        if (canAccount) ...[
-          const SizedBox(height: 28),
-          _sectionHeader(theme, AppLocalizations.of(context).profileScreenAccountSection),
-          const SizedBox(height: 10),
-          // Explicitly `== false`: null means the backend didn't say (an older
-          // deploy, or a non-self fetch), which must never be read as "no
-          // phrase set".
-          if (_u.hasRecoveryKey == false) ...[
-            RecoveryPhraseBanner(onTap: _openRecoveryPhrase),
-            const SizedBox(height: 8),
           ],
-          if (family != null) ...[
-            DetailLinkRow(
-              label: AppLocalizations.of(context).profileScreenFamilyLabel,
-              value: _familyLabel,
-              badge: family.pendingCount,
-              icon: Icons.family_restroom,
-              onTap: _openFamily,
-            ),
-            const SizedBox(height: 8),
-            // No children, nothing to approve — the row would be a permanent
-            // "nothing waiting" for everyone who never adds one.
-            if (family.context.children.isNotEmpty) ...[
-              DetailLinkRow(
-                label: AppLocalizations.of(context).profileScreenApprovalsLabel,
-                value: family.pendingCount == 0
-                    ? AppLocalizations.of(context).profileScreenApprovalsNothingWaiting
-                    : AppLocalizations.of(context).profileScreenApprovalsCountWaiting(family.pendingCount),
-                icon: Icons.pending_actions,
-                iconColor: family.pendingCount > 0 ? theme.accent : null,
-                onTap: _openApprovals,
+        ),
+      if (canPrivacy)
+        GroupedSection(
+          footer: l10n.acctCaptureFooter,
+          children: const [CaptureProtectionToggle()],
+        ),
+      if (canAccount)
+        GroupedSection(
+          header: l10n.acctSectionAccount,
+          children: [
+            if (family != null) ...[
+              GroupedRow(
+                icon: CupertinoIcons.person_3_fill,
+                tone: TileTone.green,
+                title: l10n.acctSectionFamily,
+                value: _familyLabel,
+                badge: family.pendingCount,
+                onTap: _openFamily,
               ),
-              const SizedBox(height: 8),
+              // No children, nothing to approve — the row would be a
+              // permanent "nothing waiting" for everyone who never adds one.
+              if (family.context.children.isNotEmpty)
+                GroupedRow(
+                  icon: CupertinoIcons.checkmark_seal_fill,
+                  tone: TileTone.orange,
+                  title: l10n.acctRowApprovals,
+                  value: family.pendingCount == 0
+                      ? l10n.acctNothingWaiting
+                      : l10n.profileScreenApprovalsCountWaiting(
+                          family.pendingCount,
+                        ),
+                  onTap: _openApprovals,
+                ),
             ],
-          ],
-          // Hidden where neither provider is offered — a row promising a screen
-          // that would open empty is worse than no row.
-          if (SocialSignInButtons.available.isNotEmpty) ...[
-            DetailLinkRow(
-              label: AppLocalizations.of(context).profileScreenLinkedAccountsLabel,
-              value: _linkedAccountsLabel,
-              icon: Icons.link_rounded,
-              onTap: _openLinkedAccounts,
+            // Hidden where neither provider is offered — a row promising a
+            // screen that would open empty is worse than no row.
+            if (SocialSignInButtons.available.isNotEmpty)
+              GroupedRow(
+                icon: CupertinoIcons.link,
+                tone: TileTone.indigo,
+                title: l10n.acctRowLinked,
+                value: _linkedAccountsLabel,
+                onTap: _openLinkedAccounts,
+              ),
+            GroupedRow(
+              icon: CupertinoIcons.device_laptop,
+              tone: TileTone.gray,
+              title: l10n.acctRowDevices,
+              onTap: _openDevices,
             ),
-            const SizedBox(height: 8),
-          ],
-          // Every platform — a device list is the same question wherever it
-          // is asked, and the desktop is where someone is most likely to
-          // wonder what else is signed in.
-          DetailLinkRow(
-            label: AppLocalizations.of(context).devicesScreenTitle,
-            icon: Icons.devices_other_rounded,
-            onTap: _openDevices,
-          ),
-          const SizedBox(height: 8),
-          // Mobile only — approving a desktop/web sign-in needs a camera (or
-          // at least a keyboard for the fallback code), and the counterpart
-          // QR screen only ever shows up on desktop/web in the first place.
-          if (!isWebOrDesktop) ...[
-            DetailLinkRow(
-              label: AppLocalizations.of(context).profileScreenScanToSignInLabel,
-              icon: Icons.qr_code_scanner,
-              onTap: _openDeviceLoginScan,
+            // Mobile only — approving a desktop/web sign-in needs a camera,
+            // and the QR it scans only ever shows on desktop/web.
+            if (!isWebOrDesktop)
+              GroupedRow(
+                icon: CupertinoIcons.qrcode_viewfinder,
+                tone: TileTone.teal,
+                title: l10n.acctRowScanToSignIn,
+                onTap: _openDeviceLoginScan,
+              ),
+            GroupedRow(
+              icon: CupertinoIcons.lock_shield_fill,
+              tone: TileTone.purple,
+              title: _u.hasRecoveryKey == true
+                  ? l10n.acctRowChangeRecovery
+                  : l10n.acctRowSetUpRecovery,
+              onTap: _openRecoveryPhrase,
             ),
-            const SizedBox(height: 8),
           ],
-          DetailLinkRow(
-            label: _u.hasRecoveryKey == true
-                ? AppLocalizations.of(context).profileScreenChangeRecoveryPhrase
-                : AppLocalizations.of(context).profileScreenSetUpRecoveryPhrase,
-            icon: Icons.key_outlined,
-            onTap: _openRecoveryPhrase,
-          ),
-          const SizedBox(height: 8),
-          _RowActionTile(
-            label: AppLocalizations.of(context).profileScreenSignOut,
-            danger: false,
-            busy: _signingOut,
-            onTap: _signOut,
-          ),
-          const SizedBox(height: 8),
-          _RowActionTile(
-            label: _confirmDelete
-                ? AppLocalizations.of(context).profileScreenTapAgainToConfirmDelete
-                : AppLocalizations.of(context).profileScreenDeleteAccount,
-            danger: true,
-            busy: _deletingAccount,
-            onTap: () {
-              if (!_confirmDelete) {
-                setState(() => _confirmDelete = true);
-                Future.delayed(const Duration(seconds: 4), () {
-                  if (mounted) setState(() => _confirmDelete = false);
-                });
-              } else {
-                _deleteAccount();
-              }
-            },
-          ),
-        ],
-        // A child's half of the same idea. Read-only — there's nothing here for
-        // them to change, and pretending otherwise would be worse than saying
-        // so plainly.
-        if (isChildAccount && family != null) ...[
-          const SizedBox(height: 28),
-          _sectionHeader(theme, AppLocalizations.of(context).profileScreenFamilyLabel),
-          const SizedBox(height: 10),
-          _GuardiansCard(family: family),
-        ],
-        if (isChildAccount) ...[
-          const SizedBox(height: 28),
-          _sectionHeader(theme, AppLocalizations.of(context).profileScreenThisPhoneSection),
-          const SizedBox(height: 10),
-          _RowActionTile(
-            label: AppLocalizations.of(context).profileScreenHandPhoneBack,
-            danger: false,
-            busy: false,
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => ReleaseDeviceScreen(auth: widget.auth!),
+        ),
+      if (canAccount)
+        GroupedSection(
+          children: [
+            GroupedRow(
+              title: l10n.acctSignOut,
+              trailing: _signingOut ? _spinner(theme) : null,
+              chevron: false,
+              onTap: _busy ? null : _signOut,
+            ),
+            GroupedRow(
+              title: _confirmDelete
+                  ? l10n.acctConfirmDelete
+                  : l10n.acctDeleteAccount,
+              destructive: true,
+              trailing: _deletingAccount ? _spinner(theme) : null,
+              onTap: _deletingAccount
+                  ? null
+                  : () {
+                      if (!_confirmDelete) {
+                        setState(() => _confirmDelete = true);
+                        Future.delayed(const Duration(seconds: 4), () {
+                          if (mounted) setState(() => _confirmDelete = false);
+                        });
+                      } else {
+                        _deleteAccount();
+                      }
+                    },
+            ),
+          ],
+        ),
+      // A child's half of the same idea. Read-only — there's nothing here for
+      // them to change, and pretending otherwise would be worse than saying so.
+      if (isChildAccount && family != null)
+        GroupedSection(
+          header: l10n.acctSectionFamily,
+          footer: l10n.profileScreenGuardiansCanSee,
+          children: [_GuardiansRow(family: family)],
+        ),
+      if (isChildAccount)
+        GroupedSection(
+          header: l10n.acctSectionThisPhone,
+          footer: l10n.profileScreenGrownUpOnlyNote,
+          children: [
+            GroupedRow(
+              icon: CupertinoIcons.arrow_turn_up_left,
+              tone: TileTone.gray,
+              title: l10n.acctHandPhoneBack,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ReleaseDeviceScreen(auth: widget.auth!),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            AppLocalizations.of(context).profileScreenGrownUpOnlyNote,
-            style: theme.monoTiny.copyWith(color: theme.inkMuted),
-          ),
-        ],
-        // LEGAL used to sit here, below everything else. It has moved to
-        // Settings: the privacy policy, the terms and the licence say nothing
-        // about *this* account, so they never belonged among the rows that do.
-        // The store requirement they satisfy — Guideline 5.1.1(i) and Google's
-        // User Data policy, a privacy policy reachable from inside the app with
-        // no carve-out for supervised accounts — is unchanged, because Settings
-        // is reachable by every account, children included.
-      ],
-    );
+          ],
+        ),
+      // Legal lives in Settings: the privacy policy, terms and licence say
+      // nothing about *this* account. Settings is reachable by every account,
+      // children included, which is what the store requirement needs.
+    ];
   }
 
-  Widget _sectionHeader(AppTheme theme, String t) => Row(
-    children: [
-      Text(t, style: theme.label),
-      const SizedBox(width: 8),
-      Expanded(child: Container(height: 1, color: theme.divider)),
-    ],
-  );
+  Widget _spinner(AppTheme theme) => SizedBox(
+        width: 16,
+        height: 16,
+        child: CircularProgressIndicator(strokeWidth: 2, color: theme.accent),
+      );
 }
 
 /// Who looks after this child, stated plainly. Moved here from Settings when
 /// family became an account fact rather than a preference.
-class _GuardiansCard extends StatelessWidget {
-  const _GuardiansCard({required this.family});
+class _GuardiansRow extends StatelessWidget {
+  const _GuardiansRow({required this.family});
   final FamilyService family;
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final guardians = family.context.guardians;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      decoration: BoxDecoration(
-        color: theme.surface,
-        border: Border.all(color: theme.divider),
-        borderRadius: BorderRadius.circular(theme.radiusMd),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.shield_outlined, size: 16, color: theme.accent),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(AppLocalizations.of(context).profileScreenMyGrownUps, style: theme.label),
-                const SizedBox(height: 4),
-                Text(
-                  guardians.isEmpty
-                      ? AppLocalizations.of(context).profileScreenNobodyLookingAfter
-                      : guardians.map((g) => g.displayName).join(' · '),
-                  style: theme.body.copyWith(color: theme.inkSoft),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  AppLocalizations.of(context).profileScreenGuardiansCanSee,
-                  style: theme.bodySoft,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RowActionTile extends StatelessWidget {
-  const _RowActionTile({required this.label, required this.danger, required this.busy, required this.onTap});
-  final String label;
-  final bool danger;
-  final bool busy;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return GestureDetector(
-      onTap: busy ? null : onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-        decoration: BoxDecoration(
-          color: theme.surface,
-          border: Border.all(color: danger ? theme.danger.withValues(alpha: 0.5) : theme.divider),
-          borderRadius: BorderRadius.circular(theme.radiusMd),
-        ),
-        child: Row(
-          children: [
-            Icon(danger ? Icons.delete_outline : Icons.logout, size: 16, color: danger ? theme.danger : theme.inkSoft),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(label, style: theme.label.copyWith(color: danger ? theme.danger : theme.ink)),
-            ),
-            if (busy)
-              SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: theme.accent)),
-          ],
-        ),
-      ),
+    return GroupedRow(
+      icon: CupertinoIcons.shield_lefthalf_fill,
+      tone: TileTone.green,
+      title: l10n.acctMyGrownUps,
+      subtitle: guardians.isEmpty
+          ? l10n.profileScreenNobodyLookingAfter
+          : guardians.map((g) => g.displayName).join(' · '),
     );
   }
 }
@@ -1753,20 +1693,31 @@ class _ConfirmEditDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final body = this.body;
+    // The iOS 26 alert: generously rounded, centred, capsule buttons.
     return Dialog(
       backgroundColor: theme.surfaceRaised,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 32),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(theme.radiusLg)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 36),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(theme.radiusXl.clamp(14.0, 30.0)),
+      ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
+        padding: const EdgeInsets.fromLTRB(20, 22, 20, 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(title, style: theme.displaySmall),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: theme.bodyEmph.copyWith(fontSize: 17, color: theme.ink),
+            ),
             if (body != null) ...[
-              const SizedBox(height: 12),
-              Text(body, style: theme.bodySoft),
+              const SizedBox(height: 8),
+              Text(
+                body,
+                textAlign: TextAlign.center,
+                style: theme.bodySoft.copyWith(height: 1.35),
+              ),
             ],
             const SizedBox(height: 20),
             // IntrinsicHeight + stretch: a longer label on one side (a
@@ -1780,7 +1731,7 @@ class _ConfirmEditDialog extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _Action(
-                      label: AppLocalizations.of(context).profileScreenJustTappedAction,
+                      label: AppLocalizations.of(context).acctNotNow,
                       filled: false,
                       onTap: () => Navigator.of(context).pop(false),
                     ),
@@ -1788,7 +1739,7 @@ class _ConfirmEditDialog extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: _Action(
-                      label: AppLocalizations.of(context).profileScreenChangeAction,
+                      label: AppLocalizations.of(context).acctChange,
                       filled: true,
                       onTap: () => Navigator.of(context).pop(true),
                     ),
@@ -1917,8 +1868,12 @@ class _EditFieldSheetState extends State<_EditFieldSheet> {
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(color: theme.divider, borderRadius: BorderRadius.circular(2)),
               ),
-            Text(widget.title, style: theme.displaySmall),
-            const SizedBox(height: 14),
+            Text(
+              widget.title,
+              textAlign: TextAlign.center,
+              style: theme.bodyEmph.copyWith(fontSize: 17, color: theme.ink),
+            ),
+            const SizedBox(height: 16),
             ThemedInput(
               controller: _controller,
               hint: widget.hint,
@@ -1935,7 +1890,7 @@ class _EditFieldSheetState extends State<_EditFieldSheet> {
                 children: [
                   Expanded(
                     child: _Action(
-                      label: AppLocalizations.of(context).profileScreenCancelAction,
+                      label: AppLocalizations.of(context).acctCancel,
                       filled: false,
                       onTap: () => Navigator.of(context).pop(),
                     ),
@@ -1943,7 +1898,7 @@ class _EditFieldSheetState extends State<_EditFieldSheet> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: _Action(
-                      label: AppLocalizations.of(context).profileScreenSaveAction,
+                      label: AppLocalizations.of(context).acctSave,
                       filled: true,
                       onTap: () => Navigator.of(context).pop(_controller.text),
                     ),
@@ -1958,85 +1913,17 @@ class _EditFieldSheetState extends State<_EditFieldSheet> {
   }
 }
 
+/// A dialog or sheet button — the shared capsule, kept under this name so the
+/// call sites read the same as before.
 class _Action extends StatelessWidget {
-  const _Action({required this.label, required this.filled, required this.onTap, this.danger = false});
+  const _Action({required this.label, required this.filled, required this.onTap});
   final String label;
   final bool filled;
   final VoidCallback? onTap;
-  final bool danger;
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final accent = danger ? theme.danger : theme.accent;
-    // `theme.label` carries letterSpacing on every theme, and Flutter tacks
-    // that spacing on AFTER the last glyph too, not just between glyphs — so
-    // centering the raw text box leaves a one-sided trailing gap and the
-    // glyphs read as shifted left. Nudging right by half the tracking cancels
-    // it out. https://github.com/flutter/flutter/issues/53092
-    final tracking = theme.label.letterSpacing ?? 0;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: filled ? (onTap == null ? theme.accentSoft : accent) : Colors.transparent,
-          border: Border.all(
-            color: filled ? accent : (danger ? accent.withValues(alpha: 0.45) : theme.divider),
-            width: 1.2,
-          ),
-          borderRadius: BorderRadius.circular(theme.radiusMd),
-        ),
-        child: Transform.translate(
-          offset: Offset(tracking / 2, 0),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: theme.label.copyWith(
-              color: filled ? (danger ? Colors.white : theme.accentInk) : (danger ? accent : theme.ink),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FriendshipChip extends StatelessWidget {
-  const _FriendshipChip({required this.status});
-  final FriendshipStatus status;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    final (label, icon, color) = switch (status) {
-      FriendshipStatus.friend => (l10n.profileScreenFriendsChip, Icons.check_circle_outline, theme.success),
-      FriendshipStatus.outgoingPending => (l10n.profileScreenRequestPendingChip, Icons.schedule, theme.accent),
-      FriendshipStatus.incomingPending => (
-          l10n.profileScreenIncomingRequestChip,
-          Icons.markunread_mailbox_outlined,
-          theme.accent,
-        ),
-      FriendshipStatus.none => (l10n.profileScreenNotConnectedChip, Icons.person_outline, theme.inkMuted),
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        border: Border.all(color: color.withValues(alpha: 0.5), width: 1),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 11, color: color),
-          const SizedBox(width: 5),
-          Text(label, style: theme.monoTiny.copyWith(color: color, letterSpacing: 1.4)),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      SheetButton(label: label, filled: filled, onTap: onTap);
 }
 
 enum AvatarAction { download, capture, library }
@@ -2049,90 +1936,77 @@ Future<AvatarAction?> showAvatarActionSheet(
     context,
     builder: (ctx) {
       final theme = ThemeScope.of(ctx);
+      final l10n = AppLocalizations.of(ctx);
       return SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
           child: Container(
-            decoration: theme.sheetDecoration(),
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            decoration: theme.sheetDecoration().copyWith(
+              color: theme.background,
+              borderRadius: BorderRadius.circular(
+                theme.radiusXl.clamp(14.0, 32.0),
+              ),
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Meaningless once dismiss-by-drag isn't a thing — the
-                // desktop popover closes via barrier tap / Esc, not a drag
-                // gesture.
-                if (ctx.isCompact) ...[
+                // desktop popover closes via barrier tap / Esc.
+                if (ctx.isCompact)
                   Center(
                     child: Container(
                       width: 36,
-                      height: 4,
+                      height: 5,
+                      margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
-                        color: theme.divider,
-                        borderRadius: BorderRadius.circular(2),
+                        color: theme.inkMuted.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(3),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 14),
-                ],
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Text(AppLocalizations.of(ctx).profileScreenProfilePictureTitle, style: theme.label),
+                Text(
+                  l10n.acctProfilePhoto,
+                  textAlign: TextAlign.center,
+                  style: theme.bodyEmph.copyWith(color: theme.ink),
                 ),
-                const SizedBox(height: 12),
-                Container(
-                  decoration: BoxDecoration(
-                    color: theme.surface,
-                    border: Border.all(color: theme.divider),
-                    borderRadius: BorderRadius.circular(theme.radiusMd),
-                  ),
-                  child: Column(
-                    children: [
-                      // Not in a browser: `gal` writes to the system photo
-                      // library and ships no web implementation, so the tile
-                      // would throw MissingPluginException the moment it was
-                      // tapped. A browser download is a different feature, not
-                      // this one.
-                      if (hasAvatar && !kIsWeb) ...[
-                        _AvatarSheetTile(
-                          icon: Icons.download_outlined,
-                          label: AppLocalizations.of(ctx).profileScreenSaveToPhotos,
-                          onTap: () => Navigator.of(ctx).pop(AvatarAction.download),
-                        ),
-                        Divider(height: 1, color: theme.divider),
-                      ],
-                      _AvatarSheetTile(
-                        icon: Icons.camera_alt_outlined,
-                        label: AppLocalizations.of(ctx).profileScreenTakeSelfie,
-                        onTap: () => Navigator.of(ctx).pop(AvatarAction.capture),
+                const SizedBox(height: 14),
+                GroupedSection(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  children: [
+                    // Not in a browser: `gal` writes to the system photo
+                    // library and ships no web implementation, so the row
+                    // would throw MissingPluginException the moment it was
+                    // tapped.
+                    if (hasAvatar && !kIsWeb)
+                      GroupedRow(
+                        icon: CupertinoIcons.arrow_down_to_line,
+                        tone: TileTone.blue,
+                        title: l10n.acctSaveToPhotos,
+                        chevron: false,
+                        onTap: () => Navigator.of(ctx).pop(AvatarAction.download),
                       ),
-                      Divider(height: 1, color: theme.divider),
-                      _AvatarSheetTile(
-                        icon: Icons.photo_library_outlined,
-                        label: AppLocalizations.of(ctx).profileScreenChooseFromLibrary,
-                        onTap: () => Navigator.of(ctx).pop(AvatarAction.library),
-                      ),
-                    ],
-                  ),
+                    GroupedRow(
+                      icon: CupertinoIcons.camera_fill,
+                      tone: TileTone.gray,
+                      title: l10n.acctTakeSelfie,
+                      chevron: false,
+                      onTap: () => Navigator.of(ctx).pop(AvatarAction.capture),
+                    ),
+                    GroupedRow(
+                      icon: CupertinoIcons.photo_fill_on_rectangle_fill,
+                      tone: TileTone.orange,
+                      title: l10n.acctChooseFromLibrary,
+                      chevron: false,
+                      onTap: () => Navigator.of(ctx).pop(AvatarAction.library),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 10),
-                GestureDetector(
+                SheetButton(
+                  label: l10n.acctCancel,
                   onTap: () => Navigator.of(ctx).pop(),
-                  behavior: HitTestBehavior.opaque,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: theme.surface,
-                      border: Border.all(color: theme.divider),
-                      borderRadius: BorderRadius.circular(theme.radiusMd),
-                    ),
-                    child: Text(
-                      AppLocalizations.of(ctx).profileScreenCancelAction,
-                      style: theme.label.copyWith(color: theme.inkSoft),
-                    ),
-                  ),
                 ),
               ],
             ),
@@ -2141,37 +2015,4 @@ Future<AvatarAction?> showAvatarActionSheet(
       );
     },
   );
-}
-
-class _AvatarSheetTile extends StatelessWidget {
-  const _AvatarSheetTile({required this.icon, required this.label, required this.onTap});
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    // Bare GestureDetector, never InkWell — this app renders no ink anywhere.
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: label,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-          child: Row(
-            children: [
-              Icon(icon, size: 18, color: theme.accent),
-              const SizedBox(width: 14),
-              Expanded(child: Text(label, style: theme.label.copyWith(color: theme.ink))),
-              Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

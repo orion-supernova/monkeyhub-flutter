@@ -244,7 +244,7 @@ void main() {
           'ask — the refresh behind it must not be gated on isAdmin, which '
           'never changes for a plain member',
     );
-    expect(find.text('TAKE BACK'), findsOneWidget);
+    expect(find.text('Take back'), findsOneWidget);
   });
 
   testWidgets('and it shows WHAT was suggested, not just that something was',
@@ -273,6 +273,6 @@ void main() {
     await settle(t);
 
     expect(api.mineCalls, greaterThan(0));
-    expect(find.text('TAKE BACK'), findsNothing);
+    expect(find.text('Take back'), findsNothing);
   });
 }

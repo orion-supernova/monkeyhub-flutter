@@ -149,9 +149,9 @@ class _SebastianScreenState extends State<SebastianScreen> {
     final available = _sebastian.isAvailable;
 
     return CompanionPage(
-      // Lowercase with a full stop, matching `language.` and every other
-      // settings detail screen. A name is still a name in lower case.
-      title: '${_companion.displayName.toLowerCase()}.',
+      // The companion's own name as the large title, the way a Contacts card
+      // is titled by the person.
+      title: _companion.displayName,
       subtitle: _companion.tagline(l10n),
       children: [
         _Portrait(companion: _companion, theme: theme, l10n: l10n),
@@ -182,10 +182,10 @@ class _SebastianScreenState extends State<SebastianScreen> {
           // one their phone can hold. The panel offers whichever one they are
           // getting; this says what the other is and why it is not on offer.
           const SizedBox(height: 24),
-          CompanionSectionLabel(l10n.companionSectionStorage),
+          CompanionSectionLabel(l10n.compStorage),
           ..._shelf(l10n),
         ] else ...[
-          CompanionSectionLabel(l10n.companionSectionGeneral),
+          CompanionSectionLabel(l10n.compGeneral),
           CompanionCard(
             padding: EdgeInsets.zero,
             children: [
@@ -199,7 +199,7 @@ class _SebastianScreenState extends State<SebastianScreen> {
             ],
           ),
           const SizedBox(height: 24),
-          CompanionSectionLabel(l10n.sebastianLanguageSection),
+          CompanionSectionLabel(l10n.compTranslateInto),
           _LanguagePicker(
             current: SettingsStore.instance.translationTarget,
             resolved: _sebastian.targetLanguage,
@@ -209,7 +209,7 @@ class _SebastianScreenState extends State<SebastianScreen> {
             onPick: _setLanguage,
           ),
           const SizedBox(height: 24),
-          CompanionSectionLabel(l10n.companionSectionStorage),
+          CompanionSectionLabel(l10n.compStorage),
           ..._shelf(l10n),
           _CacheLine(theme: theme, l10n: l10n, onCleared: _onChange),
         ],
