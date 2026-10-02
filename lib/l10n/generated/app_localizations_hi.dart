@@ -9145,4 +9145,28 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get expressionYourStickers => 'आपके स्टिकर';
+
+  @override
+  String get chatListYesterday => 'कल';
+
+  @override
+  String get roomLayoutScreenCardsLayoutLabel => 'कार्ड';
+
+  @override
+  String get roomLayoutScreenCardsLayoutDescription =>
+      'हर रूम अपने कार्ड में, हर जानकारी साफ़ लिखी हुई।';
+
+  @override
+  String get homeScreenTitle => 'चैट';
+
+  @override
+  String get glassScreenNativeLabel => 'iOS लिक्विड ग्लास';
+
+  @override
+  String get glassScreenNativeOnBody =>
+      'टैब बार iOS खुद बनाता है। नीचे के स्लाइडर बाकी ऐप को ट्यून करते हैं।';
+
+  @override
+  String get glassScreenNativeOffBody =>
+      'MonkeyHub हर जगह अपना ग्लास खुद बनाता है, जिसे नीचे के स्लाइडर ट्यून करते हैं।';
 }

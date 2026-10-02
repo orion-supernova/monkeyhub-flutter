@@ -2532,5 +2532,12 @@
   "expressionSearchKlipyFor": "ابحث عن «{query}» في KLIPY",
   "expressionHideKeyboard": "إخفاء لوحة المفاتيح",
   "expressionSearchStickers": "ابحث في الملصقات",
-  "expressionYourStickers": "ملصقاتك"
+  "expressionYourStickers": "ملصقاتك",
+  "chatListYesterday": "أمس",
+  "roomLayoutScreenCardsLayoutLabel": "بطاقات",
+  "roomLayoutScreenCardsLayoutDescription": "كل غرفة في بطاقتها الخاصة، وكل التفاصيل مكتوبة.",
+  "homeScreenTitle": "الدردشات",
+  "glassScreenNativeLabel": "زجاج iOS السائل",
+  "glassScreenNativeOnBody": "يرسم iOS شريط التبويب بنفسه. تضبط المنزلقات أدناه بقية التطبيق.",
+  "glassScreenNativeOffBody": "يرسم MonkeyHub زجاجه الخاص في كل مكان، وتضبطه المنزلقات أدناه."
 }

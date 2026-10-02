@@ -7706,7 +7706,7 @@ abstract class AppLocalizations {
   /// Lowercase chip/filter label for the 'direct messages' (1:1 chat) facet in the chat-list filter bar/drawer.
   ///
   /// In en, this message translates to:
-  /// **'dms'**
+  /// **'DMs'**
   String get roomFacetLabelDms;
 
   /// Lowercase chip/filter label for the 'group chat' facet.
@@ -15354,6 +15354,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your stickers'**
   String get expressionYourStickers;
+
+  /// Timestamp beside a chat-list row whose last message was sent yesterday, in the style of iOS Messages. Sentence case, one word if the language allows.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get chatListYesterday;
+
+  /// Name of the original card-per-room chat list layout, offered beside the new iOS-style rows and the grid. All caps like the other layout labels.
+  ///
+  /// In en, this message translates to:
+  /// **'CARDS'**
+  String get roomLayoutScreenCardsLayoutLabel;
+
+  /// One-line description under the CARDS layout option.
+  ///
+  /// In en, this message translates to:
+  /// **'every room in its own card, every detail spelled out.'**
+  String get roomLayoutScreenCardsLayoutDescription;
+
+  /// Large iOS-style title at the top of the chat list, and the small title that replaces it once the list scrolls. Plural, like Messages' Chats / WhatsApp's Chats.
+  ///
+  /// In en, this message translates to:
+  /// **'Chats'**
+  String get homeScreenTitle;
+
+  /// Switch at the top of Settings > Glass, shown only on iOS 26+. On: the bottom tab bar is Apple's own Liquid Glass. Off: the app draws its own glass. Keep Apple's product term Liquid Glass untranslated where Apple does.
+  ///
+  /// In en, this message translates to:
+  /// **'iOS Liquid Glass'**
+  String get glassScreenNativeLabel;
+
+  /// Explanation under the iOS Liquid Glass switch while it is on.
+  ///
+  /// In en, this message translates to:
+  /// **'The tab bar is drawn by iOS itself. The sliders below tune the rest of the app.'**
+  String get glassScreenNativeOnBody;
+
+  /// Explanation under the iOS Liquid Glass switch while it is off.
+  ///
+  /// In en, this message translates to:
+  /// **'MonkeyHub draws its own glass everywhere, tuned by the sliders below.'**
+  String get glassScreenNativeOffBody;
 }
 
 class _AppLocalizationsDelegate

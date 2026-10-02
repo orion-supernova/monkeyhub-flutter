@@ -77,6 +77,7 @@
 		9D2F2FDF274BC41FFC415313 /* mh_daylight@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = F051CA90C27F3672EADCD072 /* mh_daylight@2x.png */; };
 		9EF624E4A6C954881E1EDCDF /* SocketConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 732C3E04750261601E5A2D8B /* SocketConnection.swift */; };
 		A13E68C251A00400903F97B5 /* mh_monkey_fields76x76@2x~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = DE247885B702719230FA311A /* mh_monkey_fields76x76@2x~ipad.png */; };
+		A1C0DE5E2F00000000000001 /* NativeChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0DE5E2F00000000000002 /* NativeChrome.swift */; };
 		A5D75FE8698C30F050FB05BB /* Intents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 931FB6B140ECB72648FAA749 /* Intents.framework */; };
 		A6079535CC5AFE828F41EDE4 /* ImageIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 32F3D81015823B9B2158D2A0 /* ImageIO.framework */; };
 		A6C0918010ADE0A402516EA9 /* mh_monkey_astronaut@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = ED626B8ED9B431AD388D1EAF /* mh_monkey_astronaut@2x.png */; };
@@ -257,6 +258,7 @@
 		9AF7909926B8788B10FEB8AF /* basic83.5x83.5@2x~ipad.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "basic83.5x83.5@2x~ipad.png"; sourceTree = "<group>"; };
 		9B83AB1061EFA301FCB2E10E /* Pods-RunnerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release.xcconfig"; sourceTree = "<group>"; };
 		9D2310D4B1FAE16AB14A0618 /* mh_monkey_hiking@3x.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "mh_monkey_hiking@3x.png"; sourceTree = "<group>"; };
+		A1C0DE5E2F00000000000002 /* NativeChrome.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NativeChrome.swift; sourceTree = "<group>"; };
 		A21C87067F7516F6B0D855F8 /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		A34B87169638A605621B5FCD /* mh_monkey_hmm83.5x83.5@2x~ipad.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "mh_monkey_hmm83.5x83.5@2x~ipad.png"; sourceTree = "<group>"; };
 		A5D37F720DD977E979A09956 /* Staging.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Staging.swift; sourceTree = "<group>"; };
@@ -474,6 +476,7 @@
 				CC35154A4A821ED27F80486C /* AlternateIcons */,
 				6694A4EFC4DA6A1410C20B1F /* ShareInbox.swift */,
 				59EBABC3E9A45360119ACB5D /* ShareCache.swift */,
+				A1C0DE5E2F00000000000002 /* NativeChrome.swift */,
 			);
 			path = Runner;
 			sourceTree = "<group>";
@@ -994,6 +997,7 @@
 				EB424356115CDBF65DB1801C /* ShareInbox.swift in Sources */,
 				3EE62EEFD788C0C2FD4851B3 /* ShareSession.swift in Sources */,
 				6A28A9D7A7D25542B1C61A58 /* ShareCache.swift in Sources */,
+				A1C0DE5E2F00000000000001 /* NativeChrome.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

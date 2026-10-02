@@ -10,6 +10,7 @@ import '../widgets/adaptive_page_body.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/value_slider.dart';
+import 'navigation/native_tab_bar.dart' show NativeChrome;
 import 'navigation/pill_bottom_nav.dart';
 
 /// Live tuning for every glass surface, plus named slots to keep looks in.
@@ -351,6 +352,10 @@ class _GlassScreenState extends State<GlassScreen> {
                                     ),
                                   ],
                                 ),
+                                if (NativeChrome.supported) ...[
+                                  const SizedBox(height: 20),
+                                  const _NativeGlassSwitch(),
+                                ],
                               ],
                             ),
                           ),
@@ -1505,4 +1510,55 @@ class _GlassProfileTween extends Tween<GlassProfile> {
 
   @override
   GlassProfile lerp(double t) => GlassProfile.lerp(begin ?? end!, end!, t);
+}
+
+/// iOS's own Liquid Glass or the app's. Only built where iOS has some to give
+/// (see [NativeChrome.supported]); everywhere else there is nothing to choose.
+class _NativeGlassSwitch extends StatelessWidget {
+  const _NativeGlassSwitch();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final store = SettingsStore.instance;
+    final on = store.glassEngine == GlassEngine.native;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+      decoration: BoxDecoration(
+        color: theme.surface,
+        borderRadius: BorderRadius.circular(theme.radiusLg),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.glassScreenNativeLabel,
+                  style: theme.bodyEmph.copyWith(color: theme.ink),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  on
+                      ? l10n.glassScreenNativeOnBody
+                      : l10n.glassScreenNativeOffBody,
+                  style: theme.bodySoft,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Switch.adaptive(
+            value: on,
+            activeThumbColor: theme.accent,
+            onChanged: (v) => store.setGlassEngine(
+              v ? GlassEngine.native : GlassEngine.flutter,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

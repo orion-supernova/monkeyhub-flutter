@@ -2532,5 +2532,12 @@
   "expressionSearchKlipyFor": "在 KLIPY 上搜索“{query}”",
   "expressionHideKeyboard": "隐藏键盘",
   "expressionSearchStickers": "搜索贴纸",
-  "expressionYourStickers": "你的贴纸"
+  "expressionYourStickers": "你的贴纸",
+  "chatListYesterday": "昨天",
+  "roomLayoutScreenCardsLayoutLabel": "卡片",
+  "roomLayoutScreenCardsLayoutDescription": "每个房间一张卡片，所有细节一目了然。",
+  "homeScreenTitle": "聊天",
+  "glassScreenNativeLabel": "iOS 液态玻璃",
+  "glassScreenNativeOnBody": "标签栏由 iOS 自身绘制。下方的滑块调整应用的其余部分。",
+  "glassScreenNativeOffBody": "MonkeyHub 在所有地方绘制自己的玻璃效果，可用下方滑块调整。"
 }

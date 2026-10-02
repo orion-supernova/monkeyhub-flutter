@@ -9095,4 +9095,28 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get expressionYourStickers => 'Çıkartmaların';
+
+  @override
+  String get chatListYesterday => 'Dün';
+
+  @override
+  String get roomLayoutScreenCardsLayoutLabel => 'KARTLAR';
+
+  @override
+  String get roomLayoutScreenCardsLayoutDescription =>
+      'her oda kendi kartında, her ayrıntı açıkça yazılı.';
+
+  @override
+  String get homeScreenTitle => 'Sohbetler';
+
+  @override
+  String get glassScreenNativeLabel => 'iOS Liquid Glass';
+
+  @override
+  String get glassScreenNativeOnBody =>
+      'Sekme çubuğunu iOS\'un kendisi çizer. Aşağıdaki ayarlar uygulamanın geri kalanını düzenler.';
+
+  @override
+  String get glassScreenNativeOffBody =>
+      'MonkeyHub camı her yerde kendisi çizer; aşağıdaki ayarlarla düzenlenir.';
 }

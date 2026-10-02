@@ -9240,6 +9240,30 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get expressionYourStickers => 'Os seus stickers';
+
+  @override
+  String get chatListYesterday => 'Ontem';
+
+  @override
+  String get roomLayoutScreenCardsLayoutLabel => 'CARTÕES';
+
+  @override
+  String get roomLayoutScreenCardsLayoutDescription =>
+      'cada sala no seu próprio cartão, com todos os detalhes.';
+
+  @override
+  String get homeScreenTitle => 'Conversas';
+
+  @override
+  String get glassScreenNativeLabel => 'Liquid Glass do iOS';
+
+  @override
+  String get glassScreenNativeOnBody =>
+      'A barra de separadores é desenhada pelo próprio iOS. Os controlos abaixo ajustam o resto da app.';
+
+  @override
+  String get glassScreenNativeOffBody =>
+      'O MonkeyHub desenha o seu próprio vidro em todo o lado, ajustado pelos controlos abaixo.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -18474,4 +18498,28 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get expressionYourStickers => 'Suas figurinhas';
+
+  @override
+  String get chatListYesterday => 'Ontem';
+
+  @override
+  String get roomLayoutScreenCardsLayoutLabel => 'CARTÕES';
+
+  @override
+  String get roomLayoutScreenCardsLayoutDescription =>
+      'cada sala no seu próprio cartão, com todos os detalhes.';
+
+  @override
+  String get homeScreenTitle => 'Conversas';
+
+  @override
+  String get glassScreenNativeLabel => 'Liquid Glass do iOS';
+
+  @override
+  String get glassScreenNativeOnBody =>
+      'A barra de abas é desenhada pelo próprio iOS. Os controles abaixo ajustam o resto do app.';
+
+  @override
+  String get glassScreenNativeOffBody =>
+      'O MonkeyHub desenha o próprio vidro em todo lugar, ajustado pelos controles abaixo.';
 }

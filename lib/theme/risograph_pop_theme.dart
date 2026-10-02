@@ -14,7 +14,7 @@ class RisographPopTheme implements AppTheme {
   ThemeMood get mood => ThemeMood.riso;
 
   @override
-  List<Color> get swatch => const [Color(0xFFF3EAD3), Color(0xFF1E3A8A), Color(0xFFEA580C)];
+  List<Color> get swatch => const [Color(0xFFF3EAD3), Color(0xFF1E3A8A), Color(0xFFB83D07)];
 
   @override
   Color get background => const Color(0xFFF3EAD3);
@@ -25,7 +25,11 @@ class RisographPopTheme implements AppTheme {
   @override
   Color get surfaceSunken => const Color(0xFFEADFC2);
   @override
-  Color get divider => const Color(0xFF1A1A1A);
+  // Ink at 18%, not solid ink. Every rule in the app is drawn from this, and
+  // a solid black hairline between each chat row turned the list into a
+  // ruled ledger; the slab outlines on cards and bubbles carry the print
+  // look without help from the dividers.
+  Color get divider => const Color(0xFF1A1A1A).withValues(alpha: 0.18);
 
   @override
   Color get ink => const Color(0xFF1A1A1A);
@@ -35,11 +39,14 @@ class RisographPopTheme implements AppTheme {
   Color get inkMuted => const Color(0xFF5A554A);
 
   @override
-  Color get accent => const Color(0xFFEA580C);
+  // Riso fluorescent orange taken one step deeper (#EA580C → #B83D07): the
+  // cream accentInk on the old orange was 3.2:1, too faint for a count pip,
+  // and the orange as text on the paper was 2.97:1. Now 5.1:1 and 4.7:1.
+  Color get accent => const Color(0xFFB83D07);
   @override
   Color get accentInk => const Color(0xFFFAF3DE);
   @override
-  Color get accentSoft => const Color(0xFFEA580C).withValues(alpha: 0.18);
+  Color get accentSoft => accent.withValues(alpha: 0.18);
   @override
   Color get danger => const Color(0xFFC2410C);
   @override
@@ -100,10 +107,12 @@ class RisographPopTheme implements AppTheme {
         color: inkMuted,
       );
   @override
+  // Tracking 0.6, not 1.4: callers set row timestamps from this at 14pt,
+  // where the wide spacing stretched "Yesterday" across a third of the row.
   TextStyle get caption => GoogleFonts.spaceMono(
         fontSize: 11,
         fontWeight: FontWeight.w700,
-        letterSpacing: 1.4,
+        letterSpacing: 0.6,
         height: 1.2,
         color: inkMuted,
       );
@@ -201,14 +210,20 @@ class RisographPopTheme implements AppTheme {
   @override
   BoxDecoration chipDecoration({bool filled = false}) => BoxDecoration(
         color: filled ? blueInk : surface,
-        border: Border.all(color: ink, width: 1.5),
+        // Secondary, so a thin print edge rather than the 1.5pt slab: the
+        // heavy outline belongs to cards and bubbles, and on every chip too
+        // it left the eye nowhere to rest.
+        border: Border.all(
+          color: filled ? blueInk : ink.withValues(alpha: 0.4),
+          width: 1,
+        ),
         borderRadius: BorderRadius.circular(999),
       );
 
   @override
   BoxDecoration inputDecoration() => BoxDecoration(
         color: surfaceRaised,
-        border: Border.all(color: ink, width: 1.8),
+        border: Border.all(color: ink.withValues(alpha: 0.6), width: 1.2),
         borderRadius: BorderRadius.circular(radiusMd),
       );
 
@@ -262,7 +277,14 @@ class RisographPopTheme implements AppTheme {
   Widget brandMark({double size = 28}) {
     return CustomPaint(
       size: Size.square(size),
-      painter: _StarBurstPainter(stroke: ink, fill: accent, secondary: blueInk),
+      // The ORIGINAL fluorescent orange, not [accent]: the launcher icon is a
+      // PNG baked from this mark, and the in-app picker tile has to keep
+      // matching it after the UI accent was deepened for contrast.
+      painter: _StarBurstPainter(
+        stroke: ink,
+        fill: const Color(0xFFEA580C),
+        secondary: blueInk,
+      ),
     );
   }
 
@@ -273,13 +295,15 @@ class RisographPopTheme implements AppTheme {
 
   @override
   List<Color> avatarGradient(int seed) {
+    // Riso drum colours, each deep enough that white initials hold 3:1 on a
+    // monogram's lit top (the old yellow #FFC857 was 1.4:1).
     final palette = [
-      const Color(0xFFEA580C),
+      const Color(0xFFBE3F08),
       const Color(0xFF1E3A8A),
-      const Color(0xFFFFC857),
-      const Color(0xFFE63946),
-      const Color(0xFF2A9D8F),
-      const Color(0xFFA663CC),
+      const Color(0xFFA36C0B),
+      const Color(0xFFCC2B39),
+      const Color(0xFF1A7A6F),
+      const Color(0xFF8A48B0),
     ];
     final rand = math.Random(seed);
     final a = palette[rand.nextInt(palette.length)];

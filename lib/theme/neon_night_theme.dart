@@ -49,36 +49,40 @@ class NeonNightTheme implements AppTheme {
   Color get cyan => const Color(0xFF00FFE0);
   Color get lime => const Color(0xFF00FF66);
 
+  // Anta is narrow and squared; negative tracking ran its letters together.
   TextStyle _disp(double s, FontWeight w) => GoogleFonts.anta(
         fontSize: s,
         fontWeight: w,
         height: 1.05,
-        letterSpacing: -0.5,
+        letterSpacing: 0.2,
         color: ink,
       );
   TextStyle _mono(double s, [FontWeight w = FontWeight.w500]) =>
       GoogleFonts.jetBrainsMono(fontSize: s, fontWeight: w, height: 1.2, color: inkSoft);
 
   @override
-  TextStyle get displayHero => _disp(64, FontWeight.w400).copyWith(letterSpacing: -2);
+  TextStyle get displayHero => _disp(64, FontWeight.w400).copyWith(letterSpacing: -0.5);
   @override
-  TextStyle get displayLarge => _disp(34, FontWeight.w400).copyWith(letterSpacing: -1);
+  TextStyle get displayLarge => _disp(34, FontWeight.w400);
   @override
   TextStyle get displayMedium => _disp(24, FontWeight.w400);
   @override
   TextStyle get displaySmall => _disp(18, FontWeight.w400);
   @override
   TextStyle get body => GoogleFonts.anta(
-      fontSize: 14, fontWeight: FontWeight.w400, height: 1.45, color: inkSoft);
+      fontSize: 15, fontWeight: FontWeight.w400, height: 1.45, letterSpacing: 0.3, color: inkSoft);
   @override
   TextStyle get bodyEmph =>
-      GoogleFonts.anta(fontSize: 14, fontWeight: FontWeight.w400, height: 1.45, color: ink);
+      GoogleFonts.anta(fontSize: 16, fontWeight: FontWeight.w400, height: 1.4, letterSpacing: 0.4, color: ink);
   @override
   TextStyle get bodySoft => GoogleFonts.anta(
-      fontSize: 13, fontWeight: FontWeight.w400, height: 1.4, color: inkMuted);
+      fontSize: 14, fontWeight: FontWeight.w400, height: 1.4, letterSpacing: 0.3, color: inkMuted);
+  // Meta reads in the muted ink, not cyan. Cyan on every timestamp and
+  // member count made it a second accent fighting the yellow one; it stays
+  // in the backdrop glow, where it is atmosphere rather than signal.
   @override
   TextStyle get caption =>
-      _mono(11, FontWeight.w600).copyWith(letterSpacing: 1.4, color: cyan);
+      _mono(11, FontWeight.w600).copyWith(letterSpacing: 0.8, color: inkMuted);
   @override
   TextStyle get mono => _mono(12, FontWeight.w400);
   @override
@@ -88,7 +92,7 @@ class NeonNightTheme implements AppTheme {
       _mono(9, FontWeight.w700).copyWith(letterSpacing: 1.6, color: inkMuted);
   @override
   TextStyle get label =>
-      _mono(10, FontWeight.w700).copyWith(letterSpacing: 2.0, color: cyan);
+      _mono(10, FontWeight.w700).copyWith(letterSpacing: 2.0, color: accent);
 
   @override
   double get radiusSm => 3;
@@ -116,14 +120,16 @@ class NeonNightTheme implements AppTheme {
         color: active ? surfaceRaised : surface,
         borderRadius: BorderRadius.circular(radiusLg),
         border: Border.all(
-          color: ephemeral ? danger.withValues(alpha: 0.6) : cyan.withValues(alpha: 0.30),
-          width: 1.2,
+          color: ephemeral ? danger.withValues(alpha: 0.6) : accent.withValues(alpha: 0.14),
+          width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-              color: (ephemeral ? danger : cyan).withValues(alpha: 0.25),
-              blurRadius: 16),
-        ],
+        boxShadow: ephemeral
+            ? [
+                BoxShadow(
+                    color: danger.withValues(alpha: 0.22),
+                    blurRadius: 16),
+              ]
+            : null,
       );
 
   @override
@@ -139,7 +145,7 @@ class NeonNightTheme implements AppTheme {
         border: Border.all(
           color: ephemeral
               ? danger.withValues(alpha: 0.7)
-              : (isMine ? accent : cyan.withValues(alpha: 0.35)),
+              : (isMine ? accent : accent.withValues(alpha: 0.12)),
           width: 0.8,
         ),
       );
@@ -148,20 +154,20 @@ class NeonNightTheme implements AppTheme {
   BoxDecoration sheetDecoration() => BoxDecoration(
         color: surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-        border: Border(top: BorderSide(color: cyan, width: 2)),
+        border: Border(top: BorderSide(color: accent.withValues(alpha: 0.6), width: 2)),
       );
 
   @override
   BoxDecoration chipDecoration({bool filled = false}) => BoxDecoration(
         color: filled ? accent : Colors.transparent,
-        border: Border.all(color: filled ? accent : cyan.withValues(alpha: 0.5)),
+        border: Border.all(color: filled ? accent : accent.withValues(alpha: 0.28)),
         borderRadius: BorderRadius.circular(999),
       );
 
   @override
   BoxDecoration inputDecoration() => BoxDecoration(
         color: surfaceSunken,
-        border: Border.all(color: cyan.withValues(alpha: 0.4)),
+        border: Border.all(color: accent.withValues(alpha: 0.24)),
         borderRadius: BorderRadius.circular(radiusMd),
       );
 
@@ -220,7 +226,7 @@ class NeonNightTheme implements AppTheme {
 
   @override
   Widget visibilityIcon({required bool isPublic, double size = 14}) =>
-      Icon(isPublic ? Icons.public : Icons.public_off, size: size, color: cyan);
+      Icon(isPublic ? Icons.public : Icons.public_off, size: size, color: inkSoft);
 
   @override
   Widget hourglassIcon({double size = 16, Color? color}) =>
@@ -258,12 +264,14 @@ class NeonNightTheme implements AppTheme {
   @override
   List<Color> avatarGradient(int seed) {
     final r = math.Random(seed);
+    // Pure yellow, cyan and lime put white initials at 1.1–1.4:1. Night
+    // versions of the same signs, deep enough to hold white at 3:1.
     final palette = [
-      const Color(0xFFFFFF00),
-      const Color(0xFF00FFE0),
-      const Color(0xFF00FF66),
-      const Color(0xFFFF00A2),
-      const Color(0xFFA855F7),
+      const Color(0xFF9A7000),
+      const Color(0xFF00897E),
+      const Color(0xFF1A8C42),
+      const Color(0xFFD10085),
+      const Color(0xFF8338E0),
     ];
     return [palette[r.nextInt(palette.length)], palette[r.nextInt(palette.length)]];
   }

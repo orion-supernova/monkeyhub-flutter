@@ -9305,4 +9305,28 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get expressionYourStickers => 'ملصقاتك';
+
+  @override
+  String get chatListYesterday => 'أمس';
+
+  @override
+  String get roomLayoutScreenCardsLayoutLabel => 'بطاقات';
+
+  @override
+  String get roomLayoutScreenCardsLayoutDescription =>
+      'كل غرفة في بطاقتها الخاصة، وكل التفاصيل مكتوبة.';
+
+  @override
+  String get homeScreenTitle => 'الدردشات';
+
+  @override
+  String get glassScreenNativeLabel => 'زجاج iOS السائل';
+
+  @override
+  String get glassScreenNativeOnBody =>
+      'يرسم iOS شريط التبويب بنفسه. تضبط المنزلقات أدناه بقية التطبيق.';
+
+  @override
+  String get glassScreenNativeOffBody =>
+      'يرسم MonkeyHub زجاجه الخاص في كل مكان، وتضبطه المنزلقات أدناه.';
 }

@@ -195,6 +195,10 @@ class BasicTheme implements AppTheme {
   Curve get motionEntrance => Curves.easeOutQuart;
 
   @override
+  // Flat: a fill and a hairline, nothing under it. The soft offset shadow
+  // this used to cast drew a grey lip along every card's bottom edge on the
+  // light palettes — the Material elevated card, which is the look this
+  // family exists to avoid.
   BoxDecoration roomCardDecoration({required bool ephemeral, required bool active}) =>
       BoxDecoration(
         color: active ? surfaceRaised : surface,
@@ -203,19 +207,12 @@ class BasicTheme implements AppTheme {
           color: ephemeral ? accent.withValues(alpha: 0.5) : divider,
           width: ephemeral ? 1 : 0.5,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
       );
 
   @override
   BoxDecoration messageBubbleDecoration({required bool isMine, required bool ephemeral}) =>
       BoxDecoration(
-        color: isMine ? accent : surfaceRaised,
+        color: isMine ? (_p.bubble ?? accent) : surfaceRaised,
         borderRadius: BorderRadius.only(
           topLeft: const Radius.circular(20),
           topRight: const Radius.circular(20),
@@ -223,21 +220,9 @@ class BasicTheme implements AppTheme {
           bottomRight: Radius.circular(isMine ? 6 : 20),
         ),
         border: ephemeral ? Border.all(color: accent.withValues(alpha: 0.4)) : null,
-        boxShadow: isMine
-            ? [
-                BoxShadow(
-                  color: accent.withValues(alpha: 0.18),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ]
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+        // Flat, the way Messages draws them. A coloured glow under every
+        // outgoing bubble is what made a busy transcript look like a stack
+        // of buttons.
       );
 
   @override
@@ -263,19 +248,14 @@ class BasicTheme implements AppTheme {
 
   @override
   Widget backgroundLayer(BuildContext context) {
-    return Stack(fit: StackFit.expand, children: [
-      ColoredBox(color: background),
-      DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [accent.withValues(alpha: 0.10), Colors.transparent],
-            stops: const [0.0, 0.35],
-          ),
-        ),
-      ),
-    ]);
+    // Flat. The accent wash this used to lay over the top third tinted every
+    // header the theme's colour — on Midnight a blue haze behind the title,
+    // which is the single most Android thing the screen did. iOS lets the
+    // content and the glass carry colour, never the page.
+    //
+    // Expanded explicitly: callers drop this into an unpositioned Stack slot,
+    // where a childless ColoredBox sizes itself to nothing.
+    return SizedBox.expand(child: ColoredBox(color: background));
   }
 
   @override
@@ -438,6 +418,7 @@ class _BasicPalette {
     required this.danger,
     required this.success,
     required this.avatarPalette,
+    this.bubble,
   });
 
   final String id;
@@ -456,33 +437,51 @@ class _BasicPalette {
   final Color danger;
   final Color success;
   final List<Color> avatarPalette;
+
+  /// Fill of the viewer's own bubbles, when it is not simply [accent]. A
+  /// bright accent that reads well as text is usually too light to carry
+  /// white text as a fill.
+  final Color? bubble;
 }
 
 // ─── Palettes ────────────────────────────────────────────────────────────
 
+// Near-black with a temperature, not navy. The old #0B1118 put its blue in
+// the SURFACES, and saturated blue-grey elevation is the Material dark look;
+// here the blue is a 3–5 unit lift in the B channel you sense rather than see,
+// and the steps follow iOS's black → #1C1C1E → #2C2C2E rhythm a shade deeper
+// so glass bars separate cleanly from what scrolls under them.
+//
+// The accent and the outgoing bubble are split on purpose. #3D80F2 is the
+// balance point for a token that is both TEXT on the page (5.2:1) and a FILL
+// under white (unread pips, 3.8:1) — on a near-black page no single blue
+// reaches 4.5 on both, so the pip, bold 13pt, takes the large-text floor.
+// The bubble is the deeper #2F6BE8 so white message text clears AA.
 const _midnight = _BasicPalette(
   id: 'basic',
   name: 'Midnight',
   tagline: 'clean. quiet. blue.',
-  background: Color(0xFF0B1118),
-  surface: Color(0xFF131A24),
-  surfaceRaised: Color(0xFF1A2230),
-  surfaceSunken: Color(0xFF070B11),
-  divider: Color(0x14FFFFFF), // white @ ~8%
-  ink: Color(0xFFFFFFFF),
-  inkSoft: Color(0xFFE2E7EE),
-  inkMuted: Color(0xFF8693A4),
-  accent: Color(0xFF007AFF),
+  background: Color(0xFF0A0B0F),
+  surface: Color(0xFF15171D),
+  surfaceRaised: Color(0xFF1F222A),
+  surfaceSunken: Color(0xFF050608),
+  divider: Color(0x12FFFFFF), // white @ 7%
+  ink: Color(0xFFF3F5F9),
+  inkSoft: Color(0xFFA3A9B6),
+  inkMuted: Color(0xFF7C8089),
+  accent: Color(0xFF3D80F2),
   accentInk: Color(0xFFFFFFFF),
+  bubble: Color(0xFF2F6BE8),
   danger: Color(0xFFFF3B30),
   success: Color(0xFF34C759),
+  // Deep enough that a white initial clears 3:1 even at the gradient's lit top.
   avatarPalette: [
-    Color(0xFF007AFF),
-    Color(0xFF34C759),
-    Color(0xFFFF9500),
-    Color(0xFFAF52DE),
+    Color(0xFF0079FC),
+    Color(0xFF248B3E),
+    Color(0xFFB26800),
+    Color(0xFFAD51DC),
     Color(0xFF5856D6),
-    Color(0xFFFF2D55),
+    Color(0xFFFC2D54),
   ],
 );
 
@@ -497,18 +496,19 @@ const _daylight = _BasicPalette(
   divider: Color(0x14000000), // black @ ~8%
   ink: Color(0xFF000000),
   inkSoft: Color(0xFF3C3C43),
-  inkMuted: Color(0xFF8E8E93),
-  accent: Color(0xFF007AFF),
+  inkMuted: Color(0xFF737378),
+  accent: Color(0xFF0064D2),
   accentInk: Color(0xFFFFFFFF),
   danger: Color(0xFFFF3B30),
   success: Color(0xFF34C759),
+  // Deep enough that a white initial clears 3:1 even at the gradient's lit top.
   avatarPalette: [
-    Color(0xFF007AFF),
-    Color(0xFF34C759),
-    Color(0xFFFF9500),
-    Color(0xFFAF52DE),
+    Color(0xFF0079FC),
+    Color(0xFF248B3E),
+    Color(0xFFB26800),
+    Color(0xFFAD51DC),
     Color(0xFF5856D6),
-    Color(0xFFFF2D55),
+    Color(0xFFFC2D54),
   ],
 );
 
@@ -528,13 +528,15 @@ const _graphite = _BasicPalette(
   accentInk: Color(0xFF111111),
   danger: Color(0xFFFF453A),
   success: Color(0xFF30D158),
+  bubble: Color(0xFFD1D1D6),
+  // Mid-tone neutrals, two with a faint cool/warm cast so a column of them isn't one grey. Deep enough that a white initial clears 3:1 even at the gradient's lit top.
   avatarPalette: [
-    Color(0xFF8E8E93),
-    Color(0xFFAEAEB2),
-    Color(0xFFC7C7CC),
     Color(0xFF636366),
     Color(0xFF48484A),
-    Color(0xFFE5E5E5),
+    Color(0xFF76767A),
+    Color(0xFF5A5F6B),
+    Color(0xFF6B625A),
+    Color(0xFF4A4F57),
   ],
 );
 
@@ -550,17 +552,18 @@ const _rose = _BasicPalette(
   ink: Color(0xFF1F0F0F),
   inkSoft: Color(0xFF4A2929),
   inkMuted: Color(0xFF8B6C6C),
-  accent: Color(0xFFE85A8C),
+  accent: Color(0xFFC2386E),
   accentInk: Color(0xFFFFFFFF),
   danger: Color(0xFFCC2D44),
   success: Color(0xFF389C5C),
+  // Deep enough that a white initial clears 3:1 even at the gradient's lit top.
   avatarPalette: [
-    Color(0xFFE85A8C),
-    Color(0xFFFFB2A8),
-    Color(0xFFF99488),
-    Color(0xFFC56C9E),
-    Color(0xFFFFC1D0),
-    Color(0xFFB85970),
+    Color(0xFFC2386E),
+    Color(0xFFC15862),
+    Color(0xFFB3507E),
+    Color(0xFFA8485A),
+    Color(0xFFB56048),
+    Color(0xFF8E4A6E),
   ],
 );
 
@@ -580,12 +583,13 @@ const _forest = _BasicPalette(
   accentInk: Color(0xFF0A1109),
   danger: Color(0xFFC8615A),
   success: Color(0xFF9BBF7C),
+  // Deep enough that a white initial clears 3:1 even at the gradient's lit top.
   avatarPalette: [
-    Color(0xFF9BBF7C),
-    Color(0xFF6E8B5C),
-    Color(0xFFB7CC9C),
+    Color(0xFF598342),
     Color(0xFF4F6A45),
-    Color(0xFFD2A878),
-    Color(0xFF8FA890),
+    Color(0xFF6B7E41),
+    Color(0xFF3F6A5A),
+    Color(0xFF957145),
+    Color(0xFF5F7A68),
   ],
 );

@@ -59,6 +59,17 @@ class RetroWaveTheme implements AppTheme {
   TextStyle _mono(double s, [FontWeight w = FontWeight.w500]) =>
       GoogleFonts.spaceMono(fontSize: s, fontWeight: w, height: 1.2, color: inkSoft);
 
+  /// Reading text. Space Mono at body size spent ~40 characters on a line,
+  /// so a two-line preview held one sentence; the theme's voice stays in the
+  /// Audiowide titles and the mono meta, and prose gets a proportional face.
+  TextStyle _text(double s, FontWeight w, Color c) => GoogleFonts.inter(
+        fontSize: s,
+        fontWeight: w,
+        height: 1.4,
+        letterSpacing: -0.1,
+        color: c,
+      );
+
   @override
   TextStyle get displayHero => _disp(56, FontWeight.w400).copyWith(letterSpacing: 2);
   @override
@@ -69,17 +80,16 @@ class RetroWaveTheme implements AppTheme {
   TextStyle get displaySmall => GoogleFonts.audiowide(
       fontSize: 17, fontWeight: FontWeight.w400, height: 1.2, color: ink);
   @override
-  TextStyle get body => GoogleFonts.spaceMono(
-      fontSize: 14, fontWeight: FontWeight.w400, height: 1.45, color: inkSoft);
+  TextStyle get body => _text(16, FontWeight.w400, inkSoft);
   @override
-  TextStyle get bodyEmph => GoogleFonts.spaceMono(
-      fontSize: 14, fontWeight: FontWeight.w700, height: 1.45, color: ink);
+  TextStyle get bodyEmph => _text(16, FontWeight.w600, ink);
   @override
-  TextStyle get bodySoft => GoogleFonts.spaceMono(
-      fontSize: 12, fontWeight: FontWeight.w400, height: 1.4, color: inkMuted);
+  TextStyle get bodySoft => _text(14, FontWeight.w400, inkMuted);
+  // Tracking held to 0.6: callers set timestamps from this at 14pt, where the
+  // old 1.6 spread "12:29 AM" across a third of the row.
   @override
   TextStyle get caption =>
-      _mono(11, FontWeight.w700).copyWith(letterSpacing: 1.6, color: accent);
+      _mono(11, FontWeight.w700).copyWith(letterSpacing: 0.6, color: accent);
   @override
   TextStyle get mono => _mono(12, FontWeight.w400);
   @override
@@ -117,12 +127,14 @@ class RetroWaveTheme implements AppTheme {
         color: active ? surfaceRaised : surface,
         borderRadius: BorderRadius.circular(radiusLg),
         border: Border.all(
-          color: ephemeral ? magenta : accent.withValues(alpha: 0.45),
-          width: 1.2,
+          color: ephemeral
+              ? magenta.withValues(alpha: 0.7)
+              : accent.withValues(alpha: 0.25),
+          width: 1,
         ),
         boxShadow: [
           BoxShadow(
-              color: (ephemeral ? magenta : accent).withValues(alpha: 0.30),
+              color: (ephemeral ? magenta : accent).withValues(alpha: 0.12),
               blurRadius: 18,
               offset: const Offset(0, 4)),
         ],
@@ -193,34 +205,21 @@ class RetroWaveTheme implements AppTheme {
           ),
         ),
       ),
-      // Sun
-      Positioned(
-        top: 80,
-        left: 0,
-        right: 0,
-        child: Center(
-          child: Container(
-            width: 180,
-            height: 180,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  const Color(0xFFFFD400),
-                  magenta,
-                ],
-              ),
-              boxShadow: [
-                BoxShadow(color: magenta.withValues(alpha: 0.6), blurRadius: 60, spreadRadius: 20),
-              ],
-            ),
+      // Grid horizon
+      // The sun sets ON the horizon, low on the screen, and dimmed. It used to
+      // hang at the top behind the title and the filter chips, where the
+      // orange disc ate the chip labels outright. Down here, at 26% and cut
+      // into bands, every ink colour still clears 4.3:1 over its brightest
+      // (yellow) edge.
+      IgnorePointer(
+        child: CustomPaint(
+          painter: _GridHorizonPainter(
+            color: accent,
+            sunTop: const Color(0xFFFFD400),
+            sunBottom: magenta,
           ),
         ),
       ),
-      // Grid horizon
-      IgnorePointer(child: CustomPaint(painter: _GridHorizonPainter(color: accent))),
     ]);
   }
 
@@ -283,31 +282,81 @@ class RetroWaveTheme implements AppTheme {
   @override
   List<Color> avatarGradient(int seed) {
     final r = math.Random(seed);
+    // The neon hues themselves (cyan #00F9FF, yellow #FFD400) put white
+    // initials at 1.3:1. Same hue families, deep enough that the lit top of
+    // a monogram still holds white at 3:1 or better.
     final palette = [
-      const Color(0xFFFF2E6C),
-      const Color(0xFFFB00FF),
-      const Color(0xFF00F9FF),
-      const Color(0xFFFFD400),
-      const Color(0xFFA855F7),
+      const Color(0xFFD9266A),
+      const Color(0xFFB800C4),
+      const Color(0xFF0080A8),
+      const Color(0xFFB86206),
+      const Color(0xFF8A3FE0),
     ];
     return [palette[r.nextInt(palette.length)], palette[r.nextInt(palette.length)]];
   }
 }
 
 class _GridHorizonPainter extends CustomPainter {
-  _GridHorizonPainter({required this.color});
+  _GridHorizonPainter({
+    required this.color,
+    required this.sunTop,
+    required this.sunBottom,
+  });
   final Color color;
+  final Color sunTop;
+  final Color sunBottom;
+
+  /// The sun's opacity. See the comment at the call site for the contrast
+  /// budget this is held to.
+  static const double _sunAlpha = 0.26;
+
   @override
   void paint(Canvas canvas, Size size) {
-    final horizon = size.height * 0.55;
+    final horizon = size.height * 0.74;
+
+    // Setting sun: a disc centred on the horizon, clipped to the sky, its
+    // lower half cut into the classic thinning bands.
+    final r = size.width * 0.32;
+    final centre = Offset(size.width / 2, horizon);
+    final sunRect = Rect.fromCircle(center: centre, radius: r);
+    canvas.save();
+    canvas.clipRect(Rect.fromLTRB(0, 0, size.width, horizon));
+    final bands = Path()..addRect(Rect.fromLTRB(0, 0, size.width, horizon));
+    for (var i = 0; i < 5; i++) {
+      final y = horizon - r * 0.12 - i * r * 0.11;
+      final gap = r * (0.055 - i * 0.009);
+      bands.addRect(Rect.fromLTRB(0, y - gap, size.width, y));
+    }
+    bands.fillType = PathFillType.evenOdd;
+    canvas.clipPath(bands);
+    canvas.drawCircle(
+      centre,
+      r,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            sunTop.withValues(alpha: _sunAlpha),
+            sunBottom.withValues(alpha: _sunAlpha),
+          ],
+        ).createShader(Rect.fromLTRB(
+          sunRect.left,
+          sunRect.top,
+          sunRect.right,
+          horizon,
+        )),
+    );
+    canvas.restore();
+
     final p = Paint()
-      ..color = color.withValues(alpha: 0.45)
+      ..color = color.withValues(alpha: 0.22)
       ..strokeWidth = 1
       ..style = PaintingStyle.stroke;
 
     // Horizon line glow
     final glow = Paint()
-      ..color = color.withValues(alpha: 0.7)
+      ..color = color.withValues(alpha: 0.4)
       ..strokeWidth = 1.5
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
     canvas.drawLine(Offset(0, horizon), Offset(size.width, horizon), glow);
@@ -326,7 +375,7 @@ class _GridHorizonPainter extends CustomPainter {
     for (var i = 1; i < 12; i++) {
       final t = i / 12.0;
       final y = horizon + math.pow(t, 1.8).toDouble() * (size.height - horizon);
-      final a = (0.4 - i * 0.025).clamp(0.0, 1.0);
+      final a = (0.22 - i * 0.015).clamp(0.0, 1.0);
       final line = Paint()
         ..color = color.withValues(alpha: a)
         ..strokeWidth = 1;
@@ -335,5 +384,8 @@ class _GridHorizonPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _GridHorizonPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _GridHorizonPainter oldDelegate) =>
+      oldDelegate.color != color ||
+      oldDelegate.sunTop != sunTop ||
+      oldDelegate.sunBottom != sunBottom;
 }

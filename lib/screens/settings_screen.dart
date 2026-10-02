@@ -178,10 +178,19 @@ class _SettingsScreenState extends State<SettingsScreen>
 
   String get _layoutLabel {
     final l10n = AppLocalizations.of(context);
-    return SettingsStore.instance.roomLayout == RoomLayout.list
-        ? l10n.settingsScreenValueScrollList
-        : l10n.settingsScreenValueGridSheet;
+    return switch (SettingsStore.instance.roomLayout) {
+      RoomLayout.list => l10n.settingsScreenValueScrollList,
+      RoomLayout.cards => _sentenceCase(l10n.roomLayoutScreenCardsLayoutLabel),
+      RoomLayout.grid => l10n.settingsScreenValueGridSheet,
+    };
   }
+
+  /// The layout screen's labels are set in capitals; the summary beside the
+  /// row reads in sentence case like its neighbours.
+  static String _sentenceCase(String s) => s.isEmpty
+      ? s
+      : s.characters.first.toUpperCase() +
+          s.characters.skip(1).toString().toLowerCase();
 
   String get _navLabel {
     final l10n = AppLocalizations.of(context);

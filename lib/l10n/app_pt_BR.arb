@@ -2532,5 +2532,12 @@
   "expressionSearchKlipyFor": "Buscar “{query}” no KLIPY",
   "expressionHideKeyboard": "Ocultar teclado",
   "expressionSearchStickers": "Buscar figurinhas",
-  "expressionYourStickers": "Suas figurinhas"
+  "expressionYourStickers": "Suas figurinhas",
+  "chatListYesterday": "Ontem",
+  "roomLayoutScreenCardsLayoutLabel": "CARTÕES",
+  "roomLayoutScreenCardsLayoutDescription": "cada sala no seu próprio cartão, com todos os detalhes.",
+  "homeScreenTitle": "Conversas",
+  "glassScreenNativeLabel": "Liquid Glass do iOS",
+  "glassScreenNativeOnBody": "A barra de abas é desenhada pelo próprio iOS. Os controles abaixo ajustam o resto do app.",
+  "glassScreenNativeOffBody": "O MonkeyHub desenha o próprio vidro em todo lugar, ajustado pelos controles abaixo."
 }

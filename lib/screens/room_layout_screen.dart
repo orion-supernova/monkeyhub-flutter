@@ -104,8 +104,20 @@ class _RoomLayoutScreenState extends State<RoomLayoutScreen> {
                       context,
                     ).roomLayoutScreenRowLayoutDescription,
                     active: current == RoomLayout.list,
-                    preview: const _ListPreview(),
+                    preview: const _RowsPreview(),
                     onTap: () => _set(RoomLayout.list),
+                  ),
+                  const SizedBox(height: 14),
+                  _LayoutCard(
+                    label: AppLocalizations.of(
+                      context,
+                    ).roomLayoutScreenCardsLayoutLabel,
+                    sub: AppLocalizations.of(
+                      context,
+                    ).roomLayoutScreenCardsLayoutDescription,
+                    active: current == RoomLayout.cards,
+                    preview: const _CardsPreview(),
+                    onTap: () => _set(RoomLayout.cards),
                   ),
                   const SizedBox(height: 14),
                   _LayoutCard(
@@ -277,8 +289,72 @@ class _LayoutCard extends StatelessWidget {
   }
 }
 
-class _ListPreview extends StatelessWidget {
-  const _ListPreview();
+/// The default rows: a face, a name and a line of preview, an inset hairline
+/// between them and no box around anything.
+class _RowsPreview extends StatelessWidget {
+  const _RowsPreview();
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Column(
+      children: [
+        for (var i = 0; i < 3; i++) _row(theme, unread: i == 0, last: i == 2),
+      ],
+    );
+  }
+
+  Widget _row(AppTheme theme, {required bool unread, required bool last}) {
+    return Expanded(
+      child: Stack(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 18,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: theme.inkMuted.withValues(alpha: 0.5),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(width: 52, height: 5, color: theme.inkSoft),
+                    const SizedBox(height: 4),
+                    Container(height: 4, color: theme.divider),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: unread ? theme.accent : Colors.transparent,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ),
+          if (!last)
+            Positioned(
+              left: 26,
+              right: 0,
+              bottom: 0,
+              child: Container(height: 0.5, color: theme.divider),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CardsPreview extends StatelessWidget {
+  const _CardsPreview();
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);

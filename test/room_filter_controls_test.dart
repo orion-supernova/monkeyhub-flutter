@@ -87,8 +87,8 @@ void main() {
           ),
         ),
       );
-      await revealChip(tester, 'dms');
-      await tester.tap(find.text('dms'));
+      await revealChip(tester, 'DMs');
+      await tester.tap(find.text('DMs'));
       await tester.pump();
 
       RoomFilter? fromDrawer;
@@ -103,7 +103,7 @@ void main() {
           ),
         ),
       );
-      await tester.tap(find.text('dms'));
+      await tester.tap(find.text('DMs'));
       await tester.pump();
 
       expect(fromChips, RoomFilter({RoomFacet.dms}));
@@ -125,8 +125,8 @@ void main() {
           ),
         ),
       );
-      await revealChip(tester, 'dms');
-      await tester.tap(find.text('dms'));
+      await revealChip(tester, 'DMs');
+      await tester.tap(find.text('DMs'));
       await tester.pump();
 
       RoomFilter? fromDrawer;
@@ -141,7 +141,7 @@ void main() {
           ),
         ),
       );
-      await tester.tap(find.text('dms'));
+      await tester.tap(find.text('DMs'));
       await tester.pump();
 
       expect(fromChips, RoomFilter.empty);
@@ -160,11 +160,14 @@ void main() {
           ),
         ),
       );
-      expect(find.text('all'), findsOneWidget);
+      expect(find.text('All'), findsOneWidget);
       for (final f in chipOrder) {
         // The row scrolls, so drag rather than assume everything is on screen.
-        await revealChip(tester, f.label(_l10n));
-        expect(find.text(f.label(_l10n)), findsOneWidget, reason: f.name);
+        // Chips print the label in sentence case.
+        final l = f.label(_l10n);
+        final shown = l[0].toUpperCase() + l.substring(1);
+        await revealChip(tester, shown);
+        expect(find.text(shown), findsOneWidget, reason: f.name);
       }
     });
 
@@ -188,9 +191,9 @@ void main() {
           width: 1400,
         ),
       );
-      final all = tester.getTopLeft(find.text('all')).dx;
-      final unread = tester.getTopLeft(find.text('unread')).dx;
-      final dms = tester.getTopLeft(find.text('dms')).dx;
+      final all = tester.getTopLeft(find.text('All')).dx;
+      final unread = tester.getTopLeft(find.text('Unread')).dx;
+      final dms = tester.getTopLeft(find.text('DMs')).dx;
       expect(unread, greaterThan(all));
       expect(unread, lessThan(dms));
     });
@@ -210,7 +213,7 @@ void main() {
       // `.hitTestable()`, not a plain find: the row's leading gutter shifts every
       // chip inward, and a chip parked in the cache band past the right edge is
       // findable while being neither visible nor tappable.
-      expect(find.text('unread').hitTestable(), findsOneWidget);
+      expect(find.text('Unread').hitTestable(), findsOneWidget);
     });
 
     testWidgets('"all" clears an active filter', (tester) async {
@@ -224,7 +227,7 @@ void main() {
           ),
         ),
       );
-      await tester.tap(find.text('all'));
+      await tester.tap(find.text('All'));
       await tester.pump();
       expect(next, RoomFilter.empty);
     });
@@ -324,7 +327,7 @@ void main() {
       );
       // One DM, one group, both private, one unread — the counts are what make
       // "private matches nearly everything" self-evident rather than a trap.
-      expect(find.text('dms'), findsOneWidget);
+      expect(find.text('DMs'), findsOneWidget);
       expect(find.text('2'), findsWidgets); // private == 2
       expect(find.text('CLEAR'), findsOneWidget);
       expect(find.text('DONE'), findsOneWidget);
@@ -342,7 +345,7 @@ void main() {
           ),
         ),
       );
-      expect(find.text('dms'), findsNothing);
+      expect(find.text('DMs'), findsNothing);
       expect(tester.getSize(find.byType(RoomFilterPanel)).height, 0);
     });
 
@@ -415,7 +418,7 @@ void main() {
           ),
         ),
       );
-      expect(find.text('dms + unread · 0'), findsOneWidget);
+      expect(find.text('DMs + unread · 0'), findsOneWidget);
       expect(find.text('clear'), findsOneWidget);
     });
   });

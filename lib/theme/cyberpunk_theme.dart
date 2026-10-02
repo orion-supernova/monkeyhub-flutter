@@ -48,18 +48,21 @@ class CyberpunkTheme implements AppTheme {
 
   Color get magenta => const Color(0xFF9D00FF);
 
+  // Syne's wide caps already sit close; -1.0 ran letters into each other
+  // ("Weekend Crew"). A light negative keeps the display shape without the
+  // collisions.
   TextStyle _disp(double s, FontWeight w) => GoogleFonts.syne(
         fontSize: s,
         fontWeight: w,
-        height: 1.0,
-        letterSpacing: -1.0,
+        height: 1.05,
+        letterSpacing: -0.3,
         color: ink,
       );
   TextStyle _mono(double s, [FontWeight w = FontWeight.w500]) =>
       GoogleFonts.jetBrainsMono(fontSize: s, fontWeight: w, height: 1.2, color: inkSoft);
 
   @override
-  TextStyle get displayHero => _disp(68, FontWeight.w800).copyWith(letterSpacing: -2);
+  TextStyle get displayHero => _disp(68, FontWeight.w800).copyWith(letterSpacing: -1);
   @override
   TextStyle get displayLarge => _disp(36, FontWeight.w800);
   @override
@@ -68,16 +71,16 @@ class CyberpunkTheme implements AppTheme {
   TextStyle get displaySmall => _disp(20, FontWeight.w600);
   @override
   TextStyle get body => GoogleFonts.syne(
-      fontSize: 15, fontWeight: FontWeight.w500, height: 1.4, color: inkSoft);
+      fontSize: 15, fontWeight: FontWeight.w500, height: 1.4, letterSpacing: 0.15, color: inkSoft);
   @override
   TextStyle get bodyEmph => GoogleFonts.syne(
-      fontSize: 15, fontWeight: FontWeight.w700, height: 1.4, color: ink);
+      fontSize: 16, fontWeight: FontWeight.w700, height: 1.35, letterSpacing: 0.2, color: ink);
   @override
   TextStyle get bodySoft => GoogleFonts.syne(
-      fontSize: 13, fontWeight: FontWeight.w500, height: 1.4, color: inkMuted);
+      fontSize: 14, fontWeight: FontWeight.w500, height: 1.4, letterSpacing: 0.1, color: inkMuted);
   @override
   TextStyle get caption =>
-      _mono(11).copyWith(letterSpacing: 1.4, color: inkMuted, fontWeight: FontWeight.w600);
+      _mono(11).copyWith(letterSpacing: 0.6, color: inkMuted, fontWeight: FontWeight.w600);
   @override
   TextStyle get mono => _mono(12, FontWeight.w400);
   @override
@@ -114,17 +117,21 @@ class CyberpunkTheme implements AppTheme {
       BoxDecoration(
         color: active ? surfaceRaised : surface,
         borderRadius: BorderRadius.circular(radiusLg),
+        // A whisper of an edge. Full-strength green at 1.2pt on every card
+        // stacked into cage bars down the list; the neon is kept for the
+        // things that should glow — the accent, the ephemeral room.
         border: Border.all(
-          color: ephemeral ? danger.withValues(alpha: 0.7) : accent.withValues(alpha: 0.30),
-          width: 1.2,
+          color: ephemeral ? danger.withValues(alpha: 0.6) : accent.withValues(alpha: 0.16),
+          width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: (ephemeral ? danger : accent).withValues(alpha: 0.20),
-            blurRadius: 16,
-            offset: const Offset(0, 0),
-          ),
-        ],
+        boxShadow: ephemeral
+            ? [
+                BoxShadow(
+                  color: danger.withValues(alpha: 0.20),
+                  blurRadius: 16,
+                ),
+              ]
+            : null,
       );
 
   @override
@@ -140,14 +147,16 @@ class CyberpunkTheme implements AppTheme {
         border: Border.all(
             color: ephemeral
                 ? danger.withValues(alpha: 0.6)
-                : (isMine ? accent : accent.withValues(alpha: 0.3)),
+                : (isMine ? accent : accent.withValues(alpha: 0.14)),
             width: 0.8),
-        boxShadow: [
-          BoxShadow(
-            color: (isMine ? accent : danger).withValues(alpha: 0.18),
-            blurRadius: 12,
-          ),
-        ],
+        boxShadow: isMine
+            ? [
+                BoxShadow(
+                  color: accent.withValues(alpha: 0.16),
+                  blurRadius: 12,
+                ),
+              ]
+            : null,
       );
 
   @override
@@ -160,14 +169,14 @@ class CyberpunkTheme implements AppTheme {
   @override
   BoxDecoration chipDecoration({bool filled = false}) => BoxDecoration(
         color: filled ? accent : Colors.transparent,
-        border: Border.all(color: filled ? accent : accent.withValues(alpha: 0.4)),
+        border: Border.all(color: filled ? accent : accent.withValues(alpha: 0.26)),
         borderRadius: BorderRadius.circular(999),
       );
 
   @override
   BoxDecoration inputDecoration() => BoxDecoration(
         color: surfaceSunken,
-        border: Border.all(color: accent.withValues(alpha: 0.35)),
+        border: Border.all(color: accent.withValues(alpha: 0.24)),
         borderRadius: BorderRadius.circular(radiusMd),
       );
 
@@ -254,12 +263,14 @@ class CyberpunkTheme implements AppTheme {
   @override
   List<Color> avatarGradient(int seed) {
     final r = math.Random(seed);
+    // Deepened so a monogram's lit top still holds white at 3:1 — the
+    // signal green and cyan were 1.3–1.5:1.
     final palette = [
-      const Color(0xFFFF0055),
-      const Color(0xFF00FF66),
-      const Color(0xFF9D00FF),
-      const Color(0xFFFF00A2),
-      const Color(0xFF00E0FF),
+      const Color(0xFFE0004C),
+      const Color(0xFF008A3C),
+      const Color(0xFF8A00E6),
+      const Color(0xFFE0008F),
+      const Color(0xFF007F9E),
     ];
     return [palette[r.nextInt(palette.length)], palette[r.nextInt(palette.length)]];
   }

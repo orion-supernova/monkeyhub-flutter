@@ -9,6 +9,10 @@ import UIKit
 /// engine, whether the process was started by the user or by a PushKit
 /// call while the phone was locked.
 class SceneDelegate: FlutterSceneDelegate {
+  /// The native Liquid Glass tab bar's bridge. Held for the scene's life;
+  /// idle until Dart configures it.
+  private var nativeChrome: NativeChrome?
+
   override func scene(
     _ scene: UIScene,
     willConnectTo session: UISceneSession,
@@ -24,6 +28,10 @@ class SceneDelegate: FlutterSceneDelegate {
       )
       let window = UIWindow(windowScene: windowScene)
       window.rootViewController = flutterViewController
+      nativeChrome = NativeChrome(
+        messenger: engine.binaryMessenger,
+        hostController: flutterViewController
+      )
       self.window = window
       window.makeKeyAndVisible()
     }

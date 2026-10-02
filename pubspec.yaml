@@ -474,7 +474,10 @@ flutter:
     # Six of the eleven families ship only as VARIABLE fonts upstream, so those
     # variants are static instances cut with fontTools at the exact weights the
     # themes ask for. All are subset to Latin + Latin Extended — Turkish
-    # (ı İ ş ğ ç ö ü) is verified present in all 37 files. Re-cutting them means
+    # (ı İ ş ğ ç ö ü) is verified present in all 41 files. The four italics
+    # (Cormorant 400/500, Instrument Serif, Spectral 500) were missing until
+    # 2026-10 and silently failed to load; they are subset to exactly the
+    # code points of their upright siblings. Re-cutting them means
     # instancing from google/fonts and subsetting again; do not hand-edit.
     #
     # Note what is NOT here: Google Sans, which is declared under `fonts:`

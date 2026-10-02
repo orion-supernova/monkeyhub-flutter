@@ -2532,5 +2532,12 @@
   "expressionSearchKlipyFor": "Buscar «{query}» en KLIPY",
   "expressionHideKeyboard": "Ocultar teclado",
   "expressionSearchStickers": "Buscar stickers",
-  "expressionYourStickers": "Tus stickers"
+  "expressionYourStickers": "Tus stickers",
+  "chatListYesterday": "Ayer",
+  "roomLayoutScreenCardsLayoutLabel": "TARJETAS",
+  "roomLayoutScreenCardsLayoutDescription": "cada sala en su propia tarjeta, con todos los detalles.",
+  "homeScreenTitle": "Chats",
+  "glassScreenNativeLabel": "Liquid Glass de iOS",
+  "glassScreenNativeOnBody": "iOS dibuja la barra de pestañas. Los controles de abajo ajustan el resto de la app.",
+  "glassScreenNativeOffBody": "MonkeyHub dibuja su propio cristal en toda la app, ajustado con los controles de abajo."
 }

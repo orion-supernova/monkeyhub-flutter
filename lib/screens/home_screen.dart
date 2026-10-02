@@ -17,6 +17,7 @@ import '../drop/drop_item.dart';
 import '../drop/drop_zone.dart';
 import '../widgets/pending_placeholder.dart';
 import '../widgets/skeleton_rows.dart';
+import '../data/glass_config.dart';
 import '../data/room_filter.dart';
 import '../data/settings_store.dart';
 import 'navigation/scroll_memory.dart';
@@ -27,10 +28,13 @@ import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
+import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/archived_chats_sheet.dart';
+import '../widgets/chat_list_row.dart';
 import '../widgets/chat_row_action_menu.dart';
+import '../widgets/liquid_glass.dart';
 import '../widgets/mute_room_sheet.dart';
 import '../widgets/pull_reveal_panel.dart';
 import '../widgets/room_card.dart';
@@ -523,7 +527,7 @@ class _HomeScreenState extends State<HomeScreen>
                 _Header(
                   me: me,
                   api: widget.api,
-                  greeting: session.name.split(' ').first.toLowerCase(),
+                  scroll: _scroll,
                   // The same profile Settings opens, not a lesser one. Without
                   // `auth` and `family` the screen silently drops its whole
                   // ACCOUNT section — family, linked accounts, recovery phrase,
@@ -596,11 +600,12 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                         padding: EdgeInsets.fromLTRB(
                           0,
-                          14,
+                          0,
                           0,
                           sectionBottomPadding(context),
                         ),
                         children: [
+                          const _LargeTitle(),
                           PullRevealSlot(
                             panelKey: _pullPanelKey,
                             dragExtent: _pullDrag,
@@ -662,7 +667,12 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                       const SizedBox(height: 14),
                       Padding(
-                        padding: _gutter,
+                        // Rows carry 4pt of their own inset for the press
+                        // highlight, so 16 here puts the avatars on the same
+                        // 20pt edge as the large title.
+                        padding: settings.roomLayout == RoomLayout.list
+                            ? const EdgeInsets.symmetric(horizontal: 16)
+                            : _gutter,
                         child: _RoomsPanel(
                           repo: widget.repo,
                           api: widget.api,
@@ -691,14 +701,17 @@ class _Header extends StatelessWidget {
   const _Header({
     required this.me,
     required this.api,
-    required this.greeting,
+    required this.scroll,
     required this.onProfileTap,
     this.onCreateTap,
     this.filterButton,
   });
   final ChatUser me;
   final ChatApi api;
-  final String greeting;
+
+  /// The list's controller: the small centred title fades in as the large
+  /// one scrolls out from under the bar, the iOS navigation-bar handoff.
+  final ScrollController scroll;
   final VoidCallback onProfileTap;
   final VoidCallback? onCreateTap;
 
@@ -708,90 +721,107 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          FocusableTap(
-            onTap: onProfileTap,
-            semanticLabel: AppLocalizations.of(context).homeScreenProfileSemanticLabel,
-            shape: FocusRingShape.circle,
-            radius: 999,
-            child: GestureDetector(
-              onTap: onProfileTap,
-              child: UserAvatar(
-                user: me,
-                size: 36,
-                api: api,
-                showStatus: false,
+    final l10n = AppLocalizations.of(context);
+    return SizedBox(
+      height: 52,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Compact title. Listens to the scroll on its own so the rest of
+            // the header never rebuilds with it.
+            AnimatedBuilder(
+              animation: scroll,
+              builder: (context, child) {
+                final offset = scroll.hasClients ? scroll.offset : 0.0;
+                final t = ((offset - 20) / 24).clamp(0.0, 1.0);
+                return Opacity(opacity: t, child: child);
+              },
+              child: Text(
+                l10n.homeScreenTitle,
+                style: theme.bodyEmph.copyWith(color: theme.ink),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              AppLocalizations.of(context).homeScreenGreeting(greeting),
-              style: theme.displayMedium,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          if (filterButton != null)
-            Padding(
-              padding: const EdgeInsets.only(left: 10),
-              child: filterButton,
-            ),
-          AnimatedSwitcher(
-            duration: theme.motionFast,
-            switchInCurve: Curves.easeOutBack,
-            switchOutCurve: Curves.easeInCubic,
-            transitionBuilder: (child, anim) => ScaleTransition(
-              scale: anim,
-              child: FadeTransition(opacity: anim, child: child),
-            ),
-            child: onCreateTap != null
-                ? Padding(
-                    key: const ValueKey('plus_visible'),
-                    padding: const EdgeInsets.only(left: 10),
-                    child: FocusableTap(
+            Row(
+              children: [
+                FocusableTap(
+                  onTap: onProfileTap,
+                  semanticLabel: l10n.homeScreenProfileSemanticLabel,
+                  shape: FocusRingShape.circle,
+                  radius: 999,
+                  child: GestureDetector(
+                    onTap: onProfileTap,
+                    child: UserAvatar(
+                      user: me,
+                      size: 34,
+                      api: api,
+                      showStatus: false,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                if (filterButton != null)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: filterButton,
+                  ),
+                // Unconditional: the sheet draws only the actions the account
+                // actually has, and a locked-down child account still starts
+                // chats with people its guardian approved.
+                if (onCreateTap != null)
+                  Semantics(
+                    button: true,
+                    label: l10n.homeScreenNewRoomSemanticLabel,
+                    child: LiquidGlass(
+                      size: const Size(40, 40),
                       onTap: onCreateTap,
-                      semanticLabel: AppLocalizations.of(context).homeScreenNewRoomSemanticLabel,
-                      shape: FocusRingShape.circle,
-                      radius: 999,
-                      child: GestureDetector(
-                        onTap: onCreateTap,
-                        behavior: HitTestBehavior.opaque,
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: theme.accent,
-                            border: Border.all(
-                              color: theme.ink.withValues(alpha: 0.18),
-                              width: 1,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: theme.accent.withValues(alpha: 0.32),
-                                blurRadius: 14,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            CupertinoIcons.plus,
-                            size: 16,
-                            color: theme.accentInk,
-                          ),
-                        ),
+                      config: _buttonGlass(theme),
+                      child: Icon(
+                        CupertinoIcons.square_pencil,
+                        size: 19,
+                        color: theme.ink,
                       ),
                     ),
-                  )
-                : const SizedBox.shrink(key: ValueKey('plus_hidden')),
-          ),
-        ],
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The app-wide glass, with its drop shadow centred on light themes.
+///
+/// The standard recipe drops the shadow a few points below the glass, which
+/// on a dark page is depth and on a light one is a hard grey lip under a
+/// toolbar button — the elevated-FAB look this header exists to get away
+/// from. Dark themes keep exactly what the user has tuned.
+GlassConfig? _buttonGlass(AppTheme theme) {
+  if (!theme.isLight) return null;
+  final app = SettingsStore.instance.glass.app;
+  return app
+      .set(kShadowY, 0)
+      .set(kShadowOpacity, app.of(kShadowOpacity) * 0.5);
+}
+
+/// The large title, as the first thing in the list so it scrolls away under
+/// the bar like a Messages or Mail title does.
+class _LargeTitle extends StatelessWidget {
+  const _LargeTitle();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+      child: Text(
+        AppLocalizations.of(context).homeScreenTitle,
+        style: theme.displayLarge.copyWith(letterSpacing: 0.37),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
@@ -1010,12 +1040,38 @@ class _RoomsPanelState extends State<_RoomsPanel> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           for (var i = 0; i < rooms.length; i++)
-            _row(context, theme, rooms[i], i),
+            _row(
+              context,
+              theme,
+              rooms[i],
+              i,
+              showDivider: i < rooms.length - 1,
+            ),
         ],
       );
     }
 
     final parts = partitionPinned(rooms);
+    if (layout == RoomLayout.list) {
+      // One continuous list, pinned first. The cards below need a seam to
+      // tell the groups apart; a row carries its own pin glyph in the slot
+      // the unread count would use, and a gap in a hairline-ruled list reads
+      // as a rendering fault rather than a section break.
+      final ordered = [...parts.pinned, ...parts.regular];
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < ordered.length; i++)
+            _row(
+              context,
+              theme,
+              ordered[i],
+              i,
+              showDivider: i < ordered.length - 1,
+            ),
+        ],
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1092,7 +1148,13 @@ class _RoomsPanelState extends State<_RoomsPanel> {
     return widget.repo.otherUserFor(room)?.displayName ?? room.name;
   }
 
-  Widget _row(BuildContext context, AppTheme theme, ChatRoom room, int index) {
+  Widget _row(
+    BuildContext context,
+    AppTheme theme,
+    ChatRoom room,
+    int index, {
+    bool showDivider = true,
+  }) {
     final repo = widget.repo;
     final api = widget.api;
     // Saved Messages gets the same long-press menu as any other row. It is
@@ -1105,13 +1167,24 @@ class _RoomsPanelState extends State<_RoomsPanel> {
       ChatRowLongPress(
         key: _keyFor(room.id),
         onLongPress: () => _showRowMenu(room),
-        child: RoomCard(
-          room: room,
-          api: api,
-          dmUser: repo.otherUserFor(room),
-          typists: repo.typingIn(room.id),
-          onTap: () => openRoom(context, roomId: room.id, repo: repo, api: api),
-        ),
+        child: SettingsStore.instance.roomLayout == RoomLayout.cards
+            ? RoomCard(
+                room: room,
+                api: api,
+                dmUser: repo.otherUserFor(room),
+                typists: repo.typingIn(room.id),
+                onTap: () =>
+                    openRoom(context, roomId: room.id, repo: repo, api: api),
+              )
+            : ChatListRow(
+                room: room,
+                api: api,
+                dmUser: repo.otherUserFor(room),
+                typists: repo.typingIn(room.id),
+                showDivider: showDivider,
+                onTap: () =>
+                    openRoom(context, roomId: room.id, repo: repo, api: api),
+              ),
       ),
     );
     return TweenAnimationBuilder<double>(

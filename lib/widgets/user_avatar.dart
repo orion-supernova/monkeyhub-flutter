@@ -1,9 +1,9 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../backend/chat_api.dart';
 import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'chat_list_row.dart' show monogramGradient;
 import 'remote_image.dart';
 
 class UserAvatar extends StatelessWidget {
@@ -98,9 +98,6 @@ class UserAvatar extends StatelessWidget {
               color: color,
               shape: BoxShape.circle,
               border: Border.all(color: theme.background, width: 1.5),
-              boxShadow: user.status == 'online'
-                  ? [BoxShadow(color: color.withValues(alpha: 0.55), blurRadius: 6)]
-                  : null,
             ),
           ),
         ),
@@ -111,10 +108,6 @@ class UserAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final gradient = theme.avatarGradient(_seed);
-    final angle = (_seed % 360) * math.pi / 180;
-    final dx = math.cos(angle);
-    final dy = math.sin(angle);
     final hasRemote = api != null &&
         user.avatarStorageId != null &&
         user.avatarStorageId!.isNotEmpty;
@@ -132,13 +125,6 @@ class UserAvatar extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: ringBorder,
-            boxShadow: [
-              BoxShadow(
-                color: gradient.first.withValues(alpha: 0.25),
-                blurRadius: size * 0.3,
-                spreadRadius: -size * 0.1,
-              ),
-            ],
           ),
           clipBehavior: Clip.antiAlias,
           child: RemoteImage(
@@ -160,27 +146,22 @@ class UserAvatar extends StatelessWidget {
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          gradient: LinearGradient(
-            colors: gradient,
-            begin: Alignment(-dx, -dy),
-            end: Alignment(dx, dy),
-          ),
+          // One hue, lit from above — the same face a lettered room wears.
+          // Two hues picked independently at random were how a list ended
+          // up with a green-to-red disc beside an orange-to-purple one, and
+          // the glow under each was the most Android thing on the row.
+          gradient: monogramGradient(theme, _seed),
           border: ringBorder,
-          boxShadow: [
-            BoxShadow(
-              color: gradient.first.withValues(alpha: 0.35),
-              blurRadius: size * 0.4,
-              spreadRadius: -size * 0.1,
-            ),
-          ],
         ),
         alignment: Alignment.center,
         child: Text(
           _initials,
-          style: theme.label.copyWith(
-            fontSize: size * 0.34,
-            color: Colors.white.withValues(alpha: 0.95),
-            letterSpacing: 1.2,
+          style: TextStyle(
+            fontFamily: 'CupertinoSystemDisplay',
+            fontSize: size * 0.40,
+            fontWeight: FontWeight.w600,
+            height: 1,
+            color: Colors.white,
           ),
         ),
       ),

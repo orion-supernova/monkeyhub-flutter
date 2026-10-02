@@ -62,6 +62,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kGlassProfile = 'mh.glass.profile';
   static const _kGlassSlots = 'mh.glass.slots';
   static const _kGlassPreset = 'mh.glass.preset';
+  static const _kGlassEngine = 'mh.glass.engine';
   static const _kLocale = 'mh.locale';
   static const _kMotionLevel = 'mh.motionLevel';
   static const _kScheduledIndicator = 'mh.schedule.indicator';
@@ -141,6 +142,7 @@ class SettingsStore extends ChangeNotifier {
   Set<String> _composerModeHintSeenRoomIds = {};
   Set<String>? _diagHiddenCategories;
   FilterStyle _filterStyle = FilterStyle.chips;
+  GlassEngine _glassEngine = GlassEngine.native;
   RoomFilter _roomFilter = RoomFilter.empty;
   GlassProfile _glass = _presetById(kDefaultGlassPresetId).profile;
   List<GlassPreset> _glassSlots = const [];
@@ -333,6 +335,13 @@ class SettingsStore extends ChangeNotifier {
   /// you have to open first is a control most people never find.
   FilterStyle get filterStyle => _filterStyle;
 
+  /// Who draws the glass chrome. [GlassEngine.native] — the default — hands
+  /// the bottom bar to iOS itself wherever the OS has Liquid Glass (iOS 26+);
+  /// anywhere it doesn't, the app's own glass is drawn whatever this says, so
+  /// the setting only ever means something on a phone that can honour it.
+  /// See `NativeChrome.supported`.
+  GlassEngine get glassEngine => _glassEngine;
+
   /// Active chat-list filter. Persisted, so a cold start can open onto a
   /// filtered — possibly empty — list. The chat screen therefore always renders
   /// an active-filter cue and a one-tap "show all" escape when this is set.
@@ -478,7 +487,10 @@ class SettingsStore extends ChangeNotifier {
     _darkThemeId = look.darkId;
     _themeOnboarded = look.onboarded;
     final lay = s[_kLayout];
-    _roomLayout = lay == 'grid' ? RoomLayout.grid : RoomLayout.list;
+    _roomLayout = RoomLayout.values.firstWhere(
+      (l) => l.name == lay,
+      orElse: () => RoomLayout.list,
+    );
     final mono = s[_kMonogram];
     _roomMonogram = mono == 'true'; // default false
     final nav = s[_kNav];
@@ -572,6 +584,9 @@ class SettingsStore extends ChangeNotifier {
     // First-launch default is chips; honour an explicit 'drawer' selection.
     _filterStyle = fs == 'drawer' ? FilterStyle.drawer : FilterStyle.chips;
     _roomFilter = RoomFilter.decode(s[_kRoomFilter]);
+    _glassEngine = s[_kGlassEngine] == 'flutter'
+        ? GlassEngine.flutter
+        : GlassEngine.native;
     _glassSlots = _decodeSlots(s[_kGlassSlots]);
     final rawGlass = s[_kGlassProfile];
     // The stored profile wins, because a look can be selected and then
@@ -708,6 +723,13 @@ class SettingsStore extends ChangeNotifier {
     } else {
       await _storage.write(key: _kMotionLevel, value: m.name);
     }
+  }
+
+  Future<void> setGlassEngine(GlassEngine e) async {
+    if (_glassEngine == e) return;
+    _glassEngine = e;
+    notifyListeners();
+    await _storage.write(key: _kGlassEngine, value: e.name);
   }
 
   Future<void> setFilterStyle(FilterStyle s) async {
@@ -1179,9 +1201,24 @@ class SettingsStore extends ChangeNotifier {
   }
 }
 
-enum RoomLayout { list, grid }
+/// How the home list draws a room.
+///
+/// * `list` (default) — iOS-style rows: avatar, name, time, two lines of
+///   preview, separated by an inset hairline. See `ChatListRow`.
+/// * `cards` — the original bordered card per room, every fact about the room
+///   spelled out as a pill. Kept for anyone who preferred it.
+/// * `grid` — two (or three) columns of tiles.
+enum RoomLayout { list, cards, grid }
 
 enum NavStyle { radial, pill }
+
+/// Who draws the app's glass chrome on a phone that offers a choice.
+///
+/// * `native` (default) — iOS's own Liquid Glass: the bottom bar is a real
+///   `UITabBar` laid over the Flutter view (`ios/Runner/NativeChrome.swift`).
+/// * `flutter` — the app's own frosted glass, the same on every platform and
+///   tunable in Settings › Glass.
+enum GlassEngine { native, flutter }
 
 /// Shape of the chat list's filter control.
 ///

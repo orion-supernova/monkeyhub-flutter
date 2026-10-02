@@ -8682,4 +8682,25 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get expressionYourStickers => '你的贴纸';
+
+  @override
+  String get chatListYesterday => '昨天';
+
+  @override
+  String get roomLayoutScreenCardsLayoutLabel => '卡片';
+
+  @override
+  String get roomLayoutScreenCardsLayoutDescription => '每个房间一张卡片，所有细节一目了然。';
+
+  @override
+  String get homeScreenTitle => '聊天';
+
+  @override
+  String get glassScreenNativeLabel => 'iOS 液态玻璃';
+
+  @override
+  String get glassScreenNativeOnBody => '标签栏由 iOS 自身绘制。下方的滑块调整应用的其余部分。';
+
+  @override
+  String get glassScreenNativeOffBody => 'MonkeyHub 在所有地方绘制自己的玻璃效果，可用下方滑块调整。';
 }

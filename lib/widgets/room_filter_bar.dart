@@ -45,7 +45,7 @@ class RoomFilterBar extends StatelessWidget {
     // at a flat 34 it clipped the label at accessibility text sizes — nothing
     // in the app clamps `textScaler`. Scaling the box keeps the chips whole;
     // the cap stops a 3x setting from eating the room list.
-    final scaled = MediaQuery.textScalerOf(context).scale(34).clamp(34.0, 56.0);
+    final scaled = MediaQuery.textScalerOf(context).scale(32).clamp(32.0, 56.0);
     return SizedBox(
       height: scaled,
       child: ListView(
@@ -107,6 +107,12 @@ class _Separator extends StatelessWidget {
   );
 }
 
+/// The facet labels are authored lower-case for the old letter-spaced chips;
+/// the filled capsules read in sentence case.
+String _sentence(String s) => s.isEmpty
+    ? s
+    : s.characters.first.toUpperCase() + s.characters.skip(1).toString();
+
 class _Chip extends StatelessWidget {
   const _Chip({
     required this.label,
@@ -146,38 +152,45 @@ class _Chip extends StatelessWidget {
           child: AnimatedContainer(
             duration: theme.motionFast,
             curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
             alignment: Alignment.center,
+            // Soft filled capsules with no outline, the iOS 26 filter-chip
+            // treatment (Mail, WhatsApp). A hairline-bordered pill on a dark
+            // page is a Material chip; a tinted fill is a control.
             decoration: BoxDecoration(
-              color: active ? theme.accent : Colors.transparent,
+              color: active
+                  ? theme.accent.withValues(alpha: 0.18)
+                  : theme.ink.withValues(alpha: 0.07),
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: active ? theme.accent : theme.divider,
-                width: active ? 1 : 0.5,
-              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 AnimatedDefaultTextStyle(
                   duration: theme.motionFast,
-                  style: theme.label.copyWith(
+                  style: theme.bodySoft.copyWith(
+                    fontSize: 15,
+                    fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                    letterSpacing: -0.2,
                     color: active
-                        ? theme.accentInk
+                        ? theme.accent
                         // A facet matching nothing is dimmed rather than
                         // hidden — the row would otherwise reshuffle itself
                         // every time a room was read or archived.
                         : (empty ? theme.inkMuted : theme.inkSoft),
                   ),
-                  child: Text(label),
+                  child: Text(_sentence(label)),
                 ),
                 if (count != null && count! > 0) ...[
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 5),
                   Text(
                     '$count',
-                    style: theme.monoTiny.copyWith(
+                    style: theme.caption.copyWith(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                       color: active
-                          ? theme.accentInk.withValues(alpha: 0.8)
+                          ? theme.accent.withValues(alpha: 0.75)
                           : theme.inkMuted,
                     ),
                   ),

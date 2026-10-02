@@ -322,8 +322,10 @@ class TypingLine extends StatelessWidget {
         Flexible(
           child: Text(
             typingLabel(context, typists),
-            style: theme.bodySoft
-                .copyWith(color: theme.accent, fontStyle: FontStyle.italic),
+            // Upright, in the accent — the Telegram treatment. A slant
+            // asked of a face with no italic cut is a synthetic skew, which
+            // in a serif or a display face reads as a rendering fault.
+            style: theme.bodySoft.copyWith(color: theme.accent),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

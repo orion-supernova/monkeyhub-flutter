@@ -97,11 +97,13 @@ class VaultNoirTheme implements AppTheme {
         color: inkSoft,
       );
   @override
+  // Upright semibold, not italic: this is the weight every name in the chat
+  // list is set in, and a column of italic names reads as a column of
+  // quotations. The italic voice stays on the hero.
   TextStyle get bodyEmph => GoogleFonts.cormorant(
-        fontSize: 16,
-        fontWeight: FontWeight.w500,
-        fontStyle: FontStyle.italic,
-        height: 1.4,
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        height: 1.3,
         color: ink,
       );
   @override
@@ -112,40 +114,48 @@ class VaultNoirTheme implements AppTheme {
         color: inkMuted,
       );
   @override
-  TextStyle get caption => GoogleFonts.jetBrainsMono(
-        fontSize: 11,
-        fontWeight: FontWeight.w500,
-        letterSpacing: 1.2,
-        height: 1.2,
-        color: inkMuted,
-      );
-  @override
-  TextStyle get mono => GoogleFonts.jetBrainsMono(
+  // Metadata — times, counts, member lines — is set in a quiet sans with
+  // tabular figures. Letter-spaced JetBrains Mono here read as terminal
+  // output beside the Cormorant names: two display voices fighting over one
+  // row. The serif carries the character; the sans just tells the time.
+  TextStyle get caption => GoogleFonts.inter(
         fontSize: 12,
         fontWeight: FontWeight.w400,
-        height: 1.2,
-        color: inkSoft,
+        height: 1.25,
+        color: inkMuted,
+        fontFeatures: const [FontFeature.tabularFigures()],
       );
   @override
-  TextStyle get monoLarge => GoogleFonts.jetBrainsMono(
-        fontSize: 16,
+  TextStyle get mono => GoogleFonts.inter(
+        fontSize: 13,
+        fontWeight: FontWeight.w500,
+        height: 1.25,
+        color: inkSoft,
+        fontFeatures: const [FontFeature.tabularFigures()],
+      );
+  @override
+  TextStyle get monoLarge => GoogleFonts.inter(
+        fontSize: 17,
         fontWeight: FontWeight.w500,
         height: 1.2,
         color: ink,
+        fontFeatures: const [FontFeature.tabularFigures()],
       );
   @override
-  TextStyle get monoTiny => GoogleFonts.jetBrainsMono(
-        fontSize: 9,
+  TextStyle get monoTiny => GoogleFonts.inter(
+        fontSize: 11,
         fontWeight: FontWeight.w500,
-        letterSpacing: 1.5,
+        letterSpacing: 0.2,
         height: 1.2,
         color: inkMuted,
+        fontFeatures: const [FontFeature.tabularFigures()],
       );
+  // Section headers keep a little tracking — they are set in capitals.
   @override
-  TextStyle get label => GoogleFonts.jetBrainsMono(
-        fontSize: 10,
+  TextStyle get label => GoogleFonts.inter(
+        fontSize: 11,
         fontWeight: FontWeight.w600,
-        letterSpacing: 1.8,
+        letterSpacing: 0.8,
         height: 1.2,
         color: inkSoft,
       );
@@ -371,12 +381,12 @@ const _noir = _VaultPalette(
   shadowColor: Color(0x99000000),
   grainColor: Color(0x0FF4F1EA), // bone @ ~6% for visible texture on dark
   avatarPalette: [
-    Color(0xFFD63B2A),
-    Color(0xFFE9B872),
-    Color(0xFF6B8E5A),
-    Color(0xFFA88B6E),
-    Color(0xFF8A857A),
-    Color(0xFFB0492D),
+    Color(0xFFB8442F),
+    Color(0xFF917138),
+    Color(0xFF4F7A52),
+    Color(0xFF6E5A8A),
+    Color(0xFF3F6A86),
+    Color(0xFF8C5A3C),
   ],
 );
 
@@ -392,19 +402,21 @@ const _ivory = _VaultPalette(
   ink: Color(0xFF1A1209),
   inkSoft: Color(0xFF3F3328),
   inkMuted: Color(0xFF7A6B5A),
-  accent: Color(0xFFD63B2A),
+  // Deeper than Noir's red: on parchment the brighter one fell to 4.1:1 as
+  // text. This clears 5.3, and 5.7 under the cream ink.
+  accent: Color(0xFFB33A26),
   accentInk: Color(0xFFFFFAEF),
   danger: Color(0xFFA1281A),
   success: Color(0xFF5F8458),
   shadowColor: Color(0x141A1209), // ink @ ~8%, subtle on parchment
   grainColor: Color(0x0F1A1209), // dark coffee @ ~6% for texture on light
   avatarPalette: [
-    Color(0xFFD63B2A),
-    Color(0xFFB0492D),
-    Color(0xFFA88B6E),
-    Color(0xFF6B8E5A),
-    Color(0xFF8A6E48),
-    Color(0xFFC58B4A),
+    Color(0xFFB23A2B),
+    Color(0xFF2F5D50),
+    Color(0xFF3E5A7A),
+    Color(0xFF8A5A2B),
+    Color(0xFF6B4E71),
+    Color(0xFFA0522D),
   ],
 );
 

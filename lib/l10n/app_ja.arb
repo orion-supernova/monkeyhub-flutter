@@ -2532,5 +2532,12 @@
   "expressionSearchKlipyFor": "KLIPYで「{query}」を検索",
   "expressionHideKeyboard": "キーボードを閉じる",
   "expressionSearchStickers": "スタンプを検索",
-  "expressionYourStickers": "あなたのスタンプ"
+  "expressionYourStickers": "あなたのスタンプ",
+  "chatListYesterday": "昨日",
+  "roomLayoutScreenCardsLayoutLabel": "カード",
+  "roomLayoutScreenCardsLayoutDescription": "ルームごとにカード表示。詳細もすべて表示。",
+  "homeScreenTitle": "チャット",
+  "glassScreenNativeLabel": "iOS Liquid Glass",
+  "glassScreenNativeOnBody": "タブバーをiOS自身が描画します。下のスライダーはアプリのその他の部分を調整します。",
+  "glassScreenNativeOffBody": "MonkeyHubが独自のガラスをすべての場所で描画します。下のスライダーで調整できます。"
 }

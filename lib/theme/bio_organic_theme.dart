@@ -56,10 +56,12 @@ class BioOrganicTheme implements AppTheme {
   // negative for shape, everything else uses near-neutral tracking and a
   // tiny positive value on body sizes for readability.
   @override
+  // Upright: only InstrumentSerif-Regular is bundled (assets/google_fonts),
+  // and with runtime fetching off an italic request fails to load and drops
+  // the text to the platform default face.
   TextStyle get displayHero => GoogleFonts.instrumentSerif(
         fontSize: 64,
         fontWeight: FontWeight.w400,
-        fontStyle: FontStyle.italic,
         height: 1.0,
         letterSpacing: -0.4,
         color: ink,
@@ -89,28 +91,30 @@ class BioOrganicTheme implements AppTheme {
         color: ink,
       );
   @override
-  TextStyle get body => GoogleFonts.instrumentSerif(
+  // Reading text is Inter. Instrument Serif is a display face — at 14–16pt
+  // it is thin and condensed, and set beside the Inter meta it read as two
+  // themes in one row. The serif keeps the titles, where it is the voice.
+  TextStyle get body => GoogleFonts.inter(
         fontSize: 16,
         fontWeight: FontWeight.w400,
-        height: 1.5,
-        letterSpacing: 0.25,
+        height: 1.45,
+        letterSpacing: -0.1,
         color: inkSoft,
       );
   @override
-  TextStyle get bodyEmph => GoogleFonts.instrumentSerif(
+  TextStyle get bodyEmph => GoogleFonts.inter(
         fontSize: 16,
-        fontWeight: FontWeight.w400,
-        fontStyle: FontStyle.italic,
-        height: 1.5,
-        letterSpacing: 0.25,
+        fontWeight: FontWeight.w600,
+        height: 1.45,
+        letterSpacing: -0.1,
         color: ink,
       );
   @override
-  TextStyle get bodySoft => GoogleFonts.instrumentSerif(
+  TextStyle get bodySoft => GoogleFonts.inter(
         fontSize: 14,
         fontWeight: FontWeight.w400,
-        height: 1.45,
-        letterSpacing: 0.2,
+        height: 1.4,
+        letterSpacing: -0.05,
         color: inkMuted,
       );
   // Labels switch from IBM Plex Mono → Inter for a warmer, less code-y feel
@@ -196,13 +200,19 @@ class BioOrganicTheme implements AppTheme {
               ],
             )
           : null,
-      boxShadow: [
-        BoxShadow(
-          color: ephemeral ? magenta.withValues(alpha: 0.30) : accent.withValues(alpha: 0.10),
-          blurRadius: ephemeral ? 32 : 18,
-          offset: const Offset(0, 8),
-        ),
-      ],
+      // Centred and pulled in by a negative spread, never offset. The card
+      // fill is translucent (surface @ 70%), so an offset shadow shows
+      // THROUGH the card shifted 8pt down — which read as a second card
+      // ledge under every room. Pulled in, the glow only escapes at the edges.
+      boxShadow: ephemeral
+          ? [
+              BoxShadow(
+                color: magenta.withValues(alpha: 0.22),
+                blurRadius: 28,
+                spreadRadius: -8,
+              ),
+            ]
+          : null,
     );
   }
 
@@ -299,13 +309,16 @@ class BioOrganicTheme implements AppTheme {
 
   @override
   List<Color> avatarGradient(int seed) {
+    // The aurora hues themselves put white initials at 1.6–2.7:1; these are
+    // the same families, deep enough to hold white at 3:1 on a monogram's
+    // lit top edge.
     final palette = [
-      const Color(0xFF22D3EE),
-      const Color(0xFFD946EF),
-      const Color(0xFF38BDF8),
-      const Color(0xFF34D399),
-      const Color(0xFFA78BFA),
-      const Color(0xFFF472B6),
+      const Color(0xFF0B8199),
+      const Color(0xFFB033C4),
+      const Color(0xFF2A73CC),
+      const Color(0xFF128A62),
+      const Color(0xFF7552E0),
+      const Color(0xFFC93A83),
     ];
     final rand = math.Random(seed);
     final a = palette[rand.nextInt(palette.length)];

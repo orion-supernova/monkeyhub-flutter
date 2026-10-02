@@ -2532,5 +2532,12 @@
   "expressionSearchKlipyFor": "KLIPY’de “{query}” ara",
   "expressionHideKeyboard": "Klavyeyi gizle",
   "expressionSearchStickers": "Çıkartma ara",
-  "expressionYourStickers": "Çıkartmaların"
+  "expressionYourStickers": "Çıkartmaların",
+  "chatListYesterday": "Dün",
+  "roomLayoutScreenCardsLayoutLabel": "KARTLAR",
+  "roomLayoutScreenCardsLayoutDescription": "her oda kendi kartında, her ayrıntı açıkça yazılı.",
+  "homeScreenTitle": "Sohbetler",
+  "glassScreenNativeLabel": "iOS Liquid Glass",
+  "glassScreenNativeOnBody": "Sekme çubuğunu iOS'un kendisi çizer. Aşağıdaki ayarlar uygulamanın geri kalanını düzenler.",
+  "glassScreenNativeOffBody": "MonkeyHub camı her yerde kendisi çizer; aşağıdaki ayarlarla düzenlenir."
 }

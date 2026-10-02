@@ -1270,7 +1270,7 @@
   "roomContentTabHeaderVoice": "vocal",
   "roomContentTabHeaderLinks": "liens",
   "roomContentTabHeaderSaved": "enregistrés",
-  "roomFacetLabelDms": "mp",
+  "roomFacetLabelDms": "MP",
   "roomFacetLabelGroups": "groupes",
   "roomFacetLabelPublic": "public",
   "roomFacetLabelPrivate": "privé",
@@ -2532,5 +2532,12 @@
   "expressionSearchKlipyFor": "Chercher « {query} » sur KLIPY",
   "expressionHideKeyboard": "Masquer le clavier",
   "expressionSearchStickers": "Rechercher des stickers",
-  "expressionYourStickers": "Vos stickers"
+  "expressionYourStickers": "Vos stickers",
+  "chatListYesterday": "Hier",
+  "roomLayoutScreenCardsLayoutLabel": "CARTES",
+  "roomLayoutScreenCardsLayoutDescription": "chaque salon dans sa propre carte, chaque détail affiché.",
+  "homeScreenTitle": "Discussions",
+  "glassScreenNativeLabel": "Liquid Glass d’iOS",
+  "glassScreenNativeOnBody": "iOS dessine lui-même la barre d’onglets. Les curseurs ci-dessous règlent le reste de l’app.",
+  "glassScreenNativeOffBody": "MonkeyHub dessine son propre verre partout, réglé par les curseurs ci-dessous."
 }

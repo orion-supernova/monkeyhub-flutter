@@ -1270,7 +1270,7 @@
   "roomContentTabHeaderVoice": "röst",
   "roomContentTabHeaderLinks": "länkar",
   "roomContentTabHeaderSaved": "sparade",
-  "roomFacetLabelDms": "dm",
+  "roomFacetLabelDms": "DM",
   "roomFacetLabelGroups": "grupper",
   "roomFacetLabelPublic": "publika",
   "roomFacetLabelPrivate": "privata",
@@ -2532,5 +2532,12 @@
   "expressionSearchKlipyFor": "Sök ”{query}” på KLIPY",
   "expressionHideKeyboard": "Dölj tangentbordet",
   "expressionSearchStickers": "Sök klistermärken",
-  "expressionYourStickers": "Dina klistermärken"
+  "expressionYourStickers": "Dina klistermärken",
+  "chatListYesterday": "Igår",
+  "roomLayoutScreenCardsLayoutLabel": "KORT",
+  "roomLayoutScreenCardsLayoutDescription": "varje rum på ett eget kort, varje detalj utskriven.",
+  "homeScreenTitle": "Chattar",
+  "glassScreenNativeLabel": "iOS Liquid Glass",
+  "glassScreenNativeOnBody": "Flikfältet ritas av iOS själv. Reglagen nedan justerar resten av appen.",
+  "glassScreenNativeOffBody": "MonkeyHub ritar sitt eget glas överallt, justerat med reglagen nedan."
 }

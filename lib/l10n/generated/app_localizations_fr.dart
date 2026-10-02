@@ -4601,7 +4601,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get roomContentTabHeaderSaved => 'enregistrés';
 
   @override
-  String get roomFacetLabelDms => 'mp';
+  String get roomFacetLabelDms => 'MP';
 
   @override
   String get roomFacetLabelGroups => 'groupes';
@@ -9280,4 +9280,28 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get expressionYourStickers => 'Vos stickers';
+
+  @override
+  String get chatListYesterday => 'Hier';
+
+  @override
+  String get roomLayoutScreenCardsLayoutLabel => 'CARTES';
+
+  @override
+  String get roomLayoutScreenCardsLayoutDescription =>
+      'chaque salon dans sa propre carte, chaque détail affiché.';
+
+  @override
+  String get homeScreenTitle => 'Discussions';
+
+  @override
+  String get glassScreenNativeLabel => 'Liquid Glass d’iOS';
+
+  @override
+  String get glassScreenNativeOnBody =>
+      'iOS dessine lui-même la barre d’onglets. Les curseurs ci-dessous règlent le reste de l’app.';
+
+  @override
+  String get glassScreenNativeOffBody =>
+      'MonkeyHub dessine son propre verre partout, réglé par les curseurs ci-dessous.';
 }

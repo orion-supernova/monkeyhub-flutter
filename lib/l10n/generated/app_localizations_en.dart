@@ -4515,7 +4515,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomContentTabHeaderSaved => 'saved';
 
   @override
-  String get roomFacetLabelDms => 'dms';
+  String get roomFacetLabelDms => 'DMs';
 
   @override
   String get roomFacetLabelGroups => 'groups';
@@ -9129,4 +9129,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get expressionYourStickers => 'Your stickers';
+
+  @override
+  String get chatListYesterday => 'Yesterday';
+
+  @override
+  String get roomLayoutScreenCardsLayoutLabel => 'CARDS';
+
+  @override
+  String get roomLayoutScreenCardsLayoutDescription =>
+      'every room in its own card, every detail spelled out.';
+
+  @override
+  String get homeScreenTitle => 'Chats';
+
+  @override
+  String get glassScreenNativeLabel => 'iOS Liquid Glass';
+
+  @override
+  String get glassScreenNativeOnBody =>
+      'The tab bar is drawn by iOS itself. The sliders below tune the rest of the app.';
+
+  @override
+  String get glassScreenNativeOffBody =>
+      'MonkeyHub draws its own glass everywhere, tuned by the sliders below.';
 }

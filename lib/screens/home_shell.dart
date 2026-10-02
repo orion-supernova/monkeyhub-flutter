@@ -23,6 +23,7 @@ import 'discover_screen.dart';
 import 'feed_screen.dart';
 import 'home_screen.dart' as chat;
 import 'navigation/destinations.dart';
+import 'navigation/native_tab_bar.dart';
 import 'navigation/open_room.dart';
 import 'navigation/pill_bottom_nav.dart';
 import 'navigation/section_switcher.dart';
@@ -197,6 +198,18 @@ class _HomeShellState extends State<HomeShell> {
                       badgeCount: _badges[d.section] ?? 0,
                     ),
                 ],
+              ),
+            )
+          else if (NativeChrome.active)
+            // Positioned, not a bare child. It paints nothing, and a Stack
+            // sizes itself to its unpositioned children — the pill is
+            // full-size, so it was holding this Stack open; a 0×0 child in its
+            // place collapsed the whole shell, section and all, to nothing.
+            Positioned.fill(
+              child: NativeTabBar(
+                active: settings.section,
+                onSelect: _select,
+                badges: _badges,
               ),
             )
           else

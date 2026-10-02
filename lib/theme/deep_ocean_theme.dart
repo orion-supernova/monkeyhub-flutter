@@ -62,7 +62,9 @@ class DeepOceanTheme implements AppTheme {
       GoogleFonts.inter(fontSize: s, fontWeight: w, height: 1.2, color: inkSoft);
 
   @override
-  TextStyle get displayHero => _disp(64, FontWeight.w300).copyWith(letterSpacing: -1.5, fontStyle: FontStyle.italic);
+  // Upright: no Spectral italic is bundled, and with runtime fetching off an
+  // italic request fails and falls back to the platform face.
+  TextStyle get displayHero => _disp(64, FontWeight.w300).copyWith(letterSpacing: -1.5);
   @override
   TextStyle get displayLarge => _disp(34, FontWeight.w400);
   @override
@@ -70,14 +72,17 @@ class DeepOceanTheme implements AppTheme {
   @override
   TextStyle get displaySmall => _disp(18, FontWeight.w500);
   @override
-  TextStyle get body => GoogleFonts.spectral(
-      fontSize: 15, fontWeight: FontWeight.w400, height: 1.5, color: inkSoft);
+  // Reading text is Inter; Spectral stays on the titles. A serif body beside
+  // Inter captions made every row two typefaces at the same size, and the
+  // italic emphasis asked for a Spectral italic the bundle doesn't carry.
+  TextStyle get body => GoogleFonts.inter(
+      fontSize: 16, fontWeight: FontWeight.w400, height: 1.45, letterSpacing: -0.1, color: inkSoft);
   @override
-  TextStyle get bodyEmph => GoogleFonts.spectral(
-      fontSize: 15, fontWeight: FontWeight.w500, fontStyle: FontStyle.italic, height: 1.5, color: ink);
+  TextStyle get bodyEmph => GoogleFonts.inter(
+      fontSize: 16, fontWeight: FontWeight.w600, height: 1.45, letterSpacing: -0.1, color: ink);
   @override
-  TextStyle get bodySoft => GoogleFonts.spectral(
-      fontSize: 13, fontWeight: FontWeight.w400, height: 1.4, color: inkMuted);
+  TextStyle get bodySoft => GoogleFonts.inter(
+      fontSize: 14, fontWeight: FontWeight.w400, height: 1.4, letterSpacing: -0.05, color: inkMuted);
   @override
   TextStyle get caption =>
       _mono(12, FontWeight.w500).copyWith(letterSpacing: 0.4, color: inkMuted);
@@ -121,11 +126,16 @@ class DeepOceanTheme implements AppTheme {
           color: ephemeral ? accent : accent.withValues(alpha: 0.20),
           width: 1,
         ),
+        // A soft dark drop, not an accent glow pushed 8pt down: the teal
+        // band that leaked out under each card read as a second card's edge.
         boxShadow: [
           BoxShadow(
-              color: accent.withValues(alpha: ephemeral ? 0.25 : 0.10),
-              blurRadius: 22,
-              offset: const Offset(0, 8)),
+              color: ephemeral
+                  ? accent.withValues(alpha: 0.18)
+                  : Colors.black.withValues(alpha: 0.28),
+              blurRadius: 18,
+              spreadRadius: -4,
+              offset: const Offset(0, 6)),
         ],
       );
 
@@ -232,13 +242,15 @@ class DeepOceanTheme implements AppTheme {
   @override
   List<Color> avatarGradient(int seed) {
     final r = math.Random(seed);
+    // Mid-depth sea hues: the old teal and sky blues held white initials at
+    // 1.7–2.1:1, and #1A2980 sank into the background.
     final palette = [
-      const Color(0xFF26D0CE),
-      const Color(0xFF1A2980),
-      const Color(0xFF38BDF8),
-      const Color(0xFF60A5FA),
-      const Color(0xFF14B8A6),
-      const Color(0xFF6366F1),
+      const Color(0xFF107F86),
+      const Color(0xFF2B44B8),
+      const Color(0xFF1C72B4),
+      const Color(0xFF3A63D6),
+      const Color(0xFF0D7F74),
+      const Color(0xFF5458E0),
     ];
     return [palette[r.nextInt(palette.length)], palette[r.nextInt(palette.length)]];
   }

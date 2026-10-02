@@ -9229,4 +9229,28 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get expressionYourStickers => 'Tus stickers';
+
+  @override
+  String get chatListYesterday => 'Ayer';
+
+  @override
+  String get roomLayoutScreenCardsLayoutLabel => 'TARJETAS';
+
+  @override
+  String get roomLayoutScreenCardsLayoutDescription =>
+      'cada sala en su propia tarjeta, con todos los detalles.';
+
+  @override
+  String get homeScreenTitle => 'Chats';
+
+  @override
+  String get glassScreenNativeLabel => 'Liquid Glass de iOS';
+
+  @override
+  String get glassScreenNativeOnBody =>
+      'iOS dibuja la barra de pestañas. Los controles de abajo ajustan el resto de la app.';
+
+  @override
+  String get glassScreenNativeOffBody =>
+      'MonkeyHub dibuja su propio cristal en toda la app, ajustado con los controles de abajo.';
 }

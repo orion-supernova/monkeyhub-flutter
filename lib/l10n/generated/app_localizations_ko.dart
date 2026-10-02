@@ -8801,4 +8801,28 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get expressionYourStickers => '내 스티커';
+
+  @override
+  String get chatListYesterday => '어제';
+
+  @override
+  String get roomLayoutScreenCardsLayoutLabel => '카드';
+
+  @override
+  String get roomLayoutScreenCardsLayoutDescription =>
+      '방마다 카드 한 장, 모든 정보를 표시해요.';
+
+  @override
+  String get homeScreenTitle => '채팅';
+
+  @override
+  String get glassScreenNativeLabel => 'iOS 리퀴드 글래스';
+
+  @override
+  String get glassScreenNativeOnBody =>
+      '탭 바를 iOS가 직접 그려요. 아래 슬라이더로 앱의 나머지 부분을 조정해요.';
+
+  @override
+  String get glassScreenNativeOffBody =>
+      'MonkeyHub가 모든 곳에 자체 글래스를 그려요. 아래 슬라이더로 조정할 수 있어요.';
 }

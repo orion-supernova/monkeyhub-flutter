@@ -2532,5 +2532,12 @@
   "expressionSearchKlipyFor": "KLIPY에서 ‘{query}’ 검색",
   "expressionHideKeyboard": "키보드 숨기기",
   "expressionSearchStickers": "스티커 검색",
-  "expressionYourStickers": "내 스티커"
+  "expressionYourStickers": "내 스티커",
+  "chatListYesterday": "어제",
+  "roomLayoutScreenCardsLayoutLabel": "카드",
+  "roomLayoutScreenCardsLayoutDescription": "방마다 카드 한 장, 모든 정보를 표시해요.",
+  "homeScreenTitle": "채팅",
+  "glassScreenNativeLabel": "iOS 리퀴드 글래스",
+  "glassScreenNativeOnBody": "탭 바를 iOS가 직접 그려요. 아래 슬라이더로 앱의 나머지 부분을 조정해요.",
+  "glassScreenNativeOffBody": "MonkeyHub가 모든 곳에 자체 글래스를 그려요. 아래 슬라이더로 조정할 수 있어요."
 }

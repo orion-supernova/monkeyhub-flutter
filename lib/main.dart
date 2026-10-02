@@ -16,6 +16,7 @@ import 'diagnostics/diag_boot.dart';
 import 'media/file_url_cache.dart';
 import 'media/media_aspect_cache.dart';
 import 'push/push_manager.dart';
+import 'screens/navigation/native_tab_bar.dart' show NativeChrome;
 
 /// Root navigator key — exposed so non-widget code (push handlers, native
 /// callbacks) can push routes without a BuildContext.
@@ -112,6 +113,9 @@ Future<void> main() async {
     SettingsStore.instance.load(),
     FileUrlCache.instance.load(),
     MediaAspectCache.instance.load(),
+    // One hop, in parallel with the rest, so the shell's first frame already
+    // knows whether iOS is drawing the bottom bar.
+    NativeChrome.init(),
   ]);
 
   // Strictly AFTER dotenv, and strictly before runApp. After, because a store

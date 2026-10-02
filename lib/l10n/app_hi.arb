@@ -2532,5 +2532,12 @@
   "expressionSearchKlipyFor": "KLIPY पर “{query}” खोजें",
   "expressionHideKeyboard": "कीबोर्ड छिपाएँ",
   "expressionSearchStickers": "स्टिकर खोजें",
-  "expressionYourStickers": "आपके स्टिकर"
+  "expressionYourStickers": "आपके स्टिकर",
+  "chatListYesterday": "कल",
+  "roomLayoutScreenCardsLayoutLabel": "कार्ड",
+  "roomLayoutScreenCardsLayoutDescription": "हर रूम अपने कार्ड में, हर जानकारी साफ़ लिखी हुई।",
+  "homeScreenTitle": "चैट",
+  "glassScreenNativeLabel": "iOS लिक्विड ग्लास",
+  "glassScreenNativeOnBody": "टैब बार iOS खुद बनाता है। नीचे के स्लाइडर बाकी ऐप को ट्यून करते हैं।",
+  "glassScreenNativeOffBody": "MonkeyHub हर जगह अपना ग्लास खुद बनाता है, जिसे नीचे के स्लाइडर ट्यून करते हैं।"
 }

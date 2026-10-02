@@ -4547,7 +4547,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get roomContentTabHeaderSaved => 'sparade';
 
   @override
-  String get roomFacetLabelDms => 'dm';
+  String get roomFacetLabelDms => 'DM';
 
   @override
   String get roomFacetLabelGroups => 'grupper';
@@ -9165,4 +9165,28 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get expressionYourStickers => 'Dina klistermärken';
+
+  @override
+  String get chatListYesterday => 'Igår';
+
+  @override
+  String get roomLayoutScreenCardsLayoutLabel => 'KORT';
+
+  @override
+  String get roomLayoutScreenCardsLayoutDescription =>
+      'varje rum på ett eget kort, varje detalj utskriven.';
+
+  @override
+  String get homeScreenTitle => 'Chattar';
+
+  @override
+  String get glassScreenNativeLabel => 'iOS Liquid Glass';
+
+  @override
+  String get glassScreenNativeOnBody =>
+      'Flikfältet ritas av iOS själv. Reglagen nedan justerar resten av appen.';
+
+  @override
+  String get glassScreenNativeOffBody =>
+      'MonkeyHub ritar sitt eget glas överallt, justerat med reglagen nedan.';
 }

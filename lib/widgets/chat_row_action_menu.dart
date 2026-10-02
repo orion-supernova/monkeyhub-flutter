@@ -26,6 +26,7 @@ import 'room_identity.dart';
 import 'typing_indicator.dart';
 import 'user_avatar.dart';
 import 'visibility_badge.dart';
+import '../screens/navigation/native_tab_bar.dart' show NativeChrome;
 
 enum ChatRowAction {
   pin,
@@ -151,6 +152,9 @@ Future<ChatRowAction?> showChatRowActionMenu({
   final safeInsets = MediaQuery.paddingOf(context);
 
   final completer = Completer<ChatRowAction?>();
+  // The native tab bar draws over every Flutter pixel, this menu's dimmed
+  // backdrop included; out of the way until the menu resolves.
+  final releaseChrome = NativeChrome.hold();
   late OverlayEntry entry;
   entry = OverlayEntry(
     builder: (_) => _ChatRowActionMenuOverlay(
@@ -164,6 +168,7 @@ Future<ChatRowAction?> showChatRowActionMenu({
       canMute: canMute,
       onResolve: (result) {
         if (!completer.isCompleted) completer.complete(result);
+        releaseChrome();
         try {
           entry.remove();
         } catch (_) {}

@@ -5058,7 +5058,7 @@
   "@roomContentTabHeaderSaved": {
     "description": "Lowercase form of the Saved tab name, used in the shared-content screen's large heading. Pre-authored per locale rather than lowercased in code, because Dart's toLowerCase() is not locale-aware."
   },
-  "roomFacetLabelDms": "dms",
+  "roomFacetLabelDms": "DMs",
   "@roomFacetLabelDms": {
     "description": "Lowercase chip/filter label for the 'direct messages' (1:1 chat) facet in the chat-list filter bar/drawer."
   },
@@ -10479,5 +10479,33 @@
   "expressionYourStickers": "Your stickers",
   "@expressionYourStickers": {
     "description": "Heading over sticker search results from the packs the viewer has added."
+  },
+  "chatListYesterday": "Yesterday",
+  "@chatListYesterday": {
+    "description": "Timestamp beside a chat-list row whose last message was sent yesterday, in the style of iOS Messages. Sentence case, one word if the language allows."
+  },
+  "roomLayoutScreenCardsLayoutLabel": "CARDS",
+  "@roomLayoutScreenCardsLayoutLabel": {
+    "description": "Name of the original card-per-room chat list layout, offered beside the new iOS-style rows and the grid. All caps like the other layout labels."
+  },
+  "roomLayoutScreenCardsLayoutDescription": "every room in its own card, every detail spelled out.",
+  "@roomLayoutScreenCardsLayoutDescription": {
+    "description": "One-line description under the CARDS layout option."
+  },
+  "homeScreenTitle": "Chats",
+  "@homeScreenTitle": {
+    "description": "Large iOS-style title at the top of the chat list, and the small title that replaces it once the list scrolls. Plural, like Messages' Chats / WhatsApp's Chats."
+  },
+  "glassScreenNativeLabel": "iOS Liquid Glass",
+  "@glassScreenNativeLabel": {
+    "description": "Switch at the top of Settings > Glass, shown only on iOS 26+. On: the bottom tab bar is Apple's own Liquid Glass. Off: the app draws its own glass. Keep Apple's product term Liquid Glass untranslated where Apple does."
+  },
+  "glassScreenNativeOnBody": "The tab bar is drawn by iOS itself. The sliders below tune the rest of the app.",
+  "@glassScreenNativeOnBody": {
+    "description": "Explanation under the iOS Liquid Glass switch while it is on."
+  },
+  "glassScreenNativeOffBody": "MonkeyHub draws its own glass everywhere, tuned by the sliders below.",
+  "@glassScreenNativeOffBody": {
+    "description": "Explanation under the iOS Liquid Glass switch while it is off."
   }
 }
