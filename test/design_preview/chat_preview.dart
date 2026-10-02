@@ -14,7 +14,6 @@ import 'package:monkeyhub/models/chat_message.dart';
 import 'package:monkeyhub/models/chat_user.dart';
 import 'package:monkeyhub/models/enums.dart';
 import 'package:monkeyhub/models/message_reaction.dart';
-import 'package:monkeyhub/theme/layout.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/data/settings_store.dart';
 import 'package:monkeyhub/models/chat_room.dart';
@@ -111,7 +110,17 @@ List<ChatMessage> _transcript() => [
           type: MessageType.text,
         ),
       ),
-      _m('me', 'deal', min: 5),
+      _m(
+        'me',
+        'deal',
+        min: 5,
+        reply: const ReplyPreview(
+          senderId: 'ece',
+          senderName: 'Ece',
+          contentPreview: 'just yourself. and maybe that playlist from last week',
+          type: MessageType.text,
+        ),
+      ),
       _m('me', 'on my way', min: 12, status: MessageStatus.sent),
     ];
 
@@ -129,11 +138,7 @@ class _Transcript extends StatelessWidget {
       final next = i < msgs.length - 1 ? msgs[i + 1] : null;
       final grouped = prev != null && prev.senderId == m.senderId;
       final last = next == null || next.senderId != m.senderId;
-      rows.add(SizedBox(
-        height: i == 0
-            ? 0
-            : (grouped ? MessageGap.withinRun : MessageGap.betweenRuns),
-      ));
+      // No spacer: each MessageBubble owns the gap above it (MessageGap).
       rows.add(MessageBubble(
         message: m,
         now: _day.add(const Duration(minutes: 20)),
@@ -212,6 +217,15 @@ void main() {
       );
     });
   }
+  for (final id in ['basic', 'basic_daylight']) {
+    testWidgets('classic chrome: $id', (tester) async {
+      await snap(
+        tester,
+        previewApp(ThemeController.byId(id), const _ClassicChrome()),
+        'chat_classic_$id.png',
+      );
+    });
+  }
   testWidgets('reply styles', (tester) async {
     await snap(
       tester,
@@ -256,3 +270,50 @@ class _ReplyStyles extends StatelessWidget {
   }
 }
 
+
+class _ClassicChrome extends StatelessWidget {
+  const _ClassicChrome();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Scaffold(
+      backgroundColor: theme.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            debugRoomHeader(
+              room: _dm,
+              api: _api,
+              caps: _noCaps,
+              dmUser: _ece,
+              typists: [_ece],
+              classic: true,
+            ),
+            debugRoomHeader(
+              room: _group,
+              api: _api,
+              caps: _noCaps,
+              classic: true,
+            ),
+            const Spacer(),
+            ChatComposerClassic(
+              controller: TextEditingController(text: 'see you in a bit'),
+              ephemeral: false,
+              onSend: () {},
+              onAttach: () {},
+              onCamera: () {},
+            ),
+            ChatComposerClassic(
+              controller: TextEditingController(),
+              ephemeral: false,
+              onSend: () {},
+              onAttach: () {},
+              onCamera: () {},
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

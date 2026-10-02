@@ -163,27 +163,11 @@ class _SendButtonState extends State<_SendButton>
     final l10n = AppLocalizations.of(context);
     final size = widget.classic ? 38.0 : 44.0;
 
-    Widget core = widget.classic
-        ? Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              color: theme.accent,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: theme.accent.withValues(alpha: 0.38),
-                  blurRadius: 14,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Icon(Icons.north_east, color: theme.accentInk, size: 16),
-          )
-        // A solid disc in the outgoing-bubble colour, not tinted glass: send
-        // is the one control on screen that commits something, and it wears
-        // the colour of what it is about to create.
-        : Container(
+    // A solid disc in the outgoing-bubble colour on both composers, not
+    // tinted glass and not a glowing accent button: send is the one control on
+    // screen that commits something, and it wears the colour of what it is
+    // about to create. Only the size differs.
+    Widget core = Container(
             width: size,
             height: size,
             decoration: BoxDecoration(
@@ -192,7 +176,7 @@ class _SendButtonState extends State<_SendButton>
             ),
             child: Icon(
               CupertinoIcons.arrow_up,
-              size: 21,
+              size: widget.classic ? 19 : 21,
               color: theme.accentInk,
             ),
           );
@@ -644,7 +628,12 @@ class ChatComposerClassic extends StatelessWidget {
     return Container(
       padding: padding ?? const EdgeInsets.fromLTRB(14, 8, 14, 12),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: theme.divider, width: 1)),
+        border: Border(
+          top: BorderSide(
+            color: theme.divider,
+            width: 1 / MediaQuery.devicePixelRatioOf(context),
+          ),
+        ),
       ),
       child: ComposerCaptureHost(
         capture: capture,
@@ -664,12 +653,13 @@ class ChatComposerClassic extends StatelessWidget {
                   width: 38,
                   height: 38,
                   alignment: Alignment.center,
+                  // The same iOS glyph the floating composer uses, on a plain
+                  // raised disc — no outline.
                   decoration: BoxDecoration(
                     color: theme.surfaceRaised,
                     shape: BoxShape.circle,
-                    border: Border.all(color: theme.divider),
                   ),
-                  child: Icon(Icons.add, color: theme.inkSoft, size: 18),
+                  child: Icon(CupertinoIcons.plus, color: theme.ink, size: 20),
                 ),
               ),
             ),
@@ -677,7 +667,12 @@ class ChatComposerClassic extends StatelessWidget {
           ],
           Expanded(
             child: Container(
-              decoration: theme.inputDecoration(),
+              // A capsule, like Messages' field, rather than the theme's
+              // bordered form input.
+              decoration: BoxDecoration(
+                color: theme.surfaceRaised,
+                borderRadius: BorderRadius.circular(20),
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 14),
               // No `onSubmitted` here: a multi-line TextField never fires it —
               // Flutter turns Enter into a newline. SubmitOnEnter intercepts
@@ -696,7 +691,7 @@ class ChatComposerClassic extends StatelessWidget {
                     onTap: onFieldTap,
                     contentInsertionConfiguration:
                         _insertion(onContentInserted),
-                    style: theme.body.copyWith(color: theme.ink),
+                    style: theme.body.copyWith(color: theme.ink, fontSize: 17),
                     cursorColor: theme.accent,
                     minLines: 1,
                     maxLines: 4,
@@ -714,7 +709,8 @@ class ChatComposerClassic extends StatelessWidget {
                       hintText: ephemeral
                           ? AppLocalizations.of(context).deepOceanThemeEphemeralHint
                           : AppLocalizations.of(context).deepOceanThemeDefaultHint,
-                      hintStyle: theme.body.copyWith(color: theme.inkMuted),
+                      hintStyle: theme.body
+                          .copyWith(color: theme.inkMuted, fontSize: 17),
                       // One line, always. The field is `minLines: 1`, but a
                       // hint is laid out like any other text and wraps: the
                       // ephemeral hint is the longest string here and it grew
@@ -741,12 +737,24 @@ class ChatComposerClassic extends StatelessWidget {
           _ComposerEmptiness(
             controller: controller,
             builder: (context, hasText) => AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
+              // The floating composer's spring: pops in with overshoot the
+              // moment there is something to send, slips out quickly.
+              duration: MotionScope.of(context)
+                  .d(const Duration(milliseconds: 420)),
+              reverseDuration: MotionScope.of(context)
+                  .d(const Duration(milliseconds: 140)),
               transitionBuilder: (child, animation) => FadeTransition(
-                opacity: animation,
+                opacity: CurvedAnimation(
+                  parent: animation,
+                  curve: const Interval(0, 0.4),
+                ),
                 child: ScaleTransition(
-                  scale: Tween<double>(begin: 0.8, end: 1.0).animate(
-                    CurvedAnimation(parent: animation, curve: Curves.easeInOutCubic),
+                  scale: Tween<double>(begin: 0.4, end: 1.0).animate(
+                    CurvedAnimation(
+                      parent: animation,
+                      curve: Curves.elasticOut,
+                      reverseCurve: Curves.easeIn,
+                    ),
                   ),
                   child: child,
                 ),
@@ -782,12 +790,11 @@ class ChatComposerClassic extends StatelessWidget {
                                   decoration: BoxDecoration(
                                     color: theme.surfaceRaised,
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: theme.divider),
                                   ),
                                   child: Icon(
-                                    Icons.photo_camera_outlined,
-                                    color: theme.inkSoft,
-                                    size: 18,
+                                    CupertinoIcons.camera,
+                                    color: theme.ink,
+                                    size: 20,
                                   ),
                                 ),
                               ),

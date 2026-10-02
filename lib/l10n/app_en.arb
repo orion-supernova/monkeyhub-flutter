@@ -11876,5 +11876,25 @@
         "type": "String"
       }
     }
+  },
+  "rpContinue": "Continue",
+  "@rpContinue": {
+    "description": "Primary button after entering your password on the recovery-phrase flow."
+  },
+  "rpCopy": "Copy",
+  "@rpCopy": {
+    "description": "Button that copies the 12 recovery words."
+  },
+  "rpSaved": "I saved them",
+  "@rpSaved": {
+    "description": "Primary button confirming the recovery words were saved."
+  },
+  "rpBack": "Back",
+  "@rpBack": {
+    "description": "Text link going back a step in the recovery-phrase flow."
+  },
+  "rpKeep": "Not now — keep my current phrase",
+  "@rpKeep": {
+    "description": "Text link leaving the flow without changing the existing phrase."
   }
 }

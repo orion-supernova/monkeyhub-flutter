@@ -122,7 +122,7 @@ class SettingsStore extends ChangeNotifier {
   bool _friendActivity = true;
   bool _captureProtection = false;
   ChatStyle _chatStyle = ChatStyle.compact;
-  ReplyStyle _replyStyle = ReplyStyle.phantomEcho;
+  ReplyStyle _replyStyle = ReplyStyle.quote;
   BubbleStyle _bubbleStyle = BubbleStyle.tailed;
   // On, and on all the way, by default. A group room where five people's
   // messages are all drawn in the same ink is the problem this setting is the
@@ -521,8 +521,13 @@ class SettingsStore extends ChangeNotifier {
       case 'classic':
         _replyStyle = ReplyStyle.classic;
         break;
-      default:
+      // Stored only when somebody picked it: an install on the default never
+      // wrote this key, so it moves to the new default with everyone else.
+      case 'phantomEcho':
         _replyStyle = ReplyStyle.phantomEcho;
+        break;
+      default:
+        _replyStyle = ReplyStyle.quote;
     }
     final bs = s[_kBubbleStyle];
     switch (bs) {
@@ -1238,14 +1243,17 @@ enum ChatStyle { classic, compact }
 
 /// Visual style for the inline reply indicator. User-selectable via settings.
 ///
-/// * `phantomEcho` (default) — ghost-bubble above with a curved connector
+/// * `phantomEcho` — ghost-bubble above with a curved connector
 ///   and a branch icon at the join point.
 /// * `stickyNote` — rotated polaroid clipped to the bubble corner.
 /// * `comicTail` — mini parent bubble with a downward-pointing comic-book
 ///   triangle tail.
 /// * `classic` — accent-tinted inset row with tether bar, avatar, mono-caps
 ///   header, and content snippet. The original quote-pill look.
-enum ReplyStyle { phantomEcho, stickyNote, comicTail, classic }
+///
+/// * `quote` (default) — Telegram/WhatsApp: a compact quote block (accent
+///   rail, name, one line) at the top INSIDE the reply's own bubble.
+enum ReplyStyle { quote, phantomEcho, stickyNote, comicTail, classic }
 
 enum LogoMode { auto, manual, alwaysDefault }
 

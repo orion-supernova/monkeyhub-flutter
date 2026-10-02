@@ -2870,5 +2870,10 @@
   "laLink": "Vincular",
   "laLinked": "Vinculada",
   "laNotLinked": "No vinculada",
-  "rdSignOut": "Cerrar la sesión de {name}"
+  "rdSignOut": "Cerrar la sesión de {name}",
+  "rpContinue": "Continuar",
+  "rpCopy": "Copiar",
+  "rpSaved": "Ya las guardé",
+  "rpBack": "Atrás",
+  "rpKeep": "Ahora no, mantener mi frase actual"
 }

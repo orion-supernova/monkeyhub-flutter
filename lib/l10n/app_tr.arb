@@ -2870,5 +2870,10 @@
   "laLink": "Bağla",
   "laLinked": "Bağlı",
   "laNotLinked": "Bağlı değil",
-  "rdSignOut": "{name} hesabından çıkış yap"
+  "rdSignOut": "{name} hesabından çıkış yap",
+  "rpContinue": "Devam",
+  "rpCopy": "Kopyala",
+  "rpSaved": "Kaydettim",
+  "rpBack": "Geri",
+  "rpKeep": "Şimdi değil — mevcut ifademi koru"
 }

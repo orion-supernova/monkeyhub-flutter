@@ -9729,4 +9729,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String rdSignOut(String name) {
     return '让 $name 退出登录';
   }
+
+  @override
+  String get rpContinue => '继续';
+
+  @override
+  String get rpCopy => '复制';
+
+  @override
+  String get rpSaved => '我已保存';
+
+  @override
+  String get rpBack => '返回';
+
+  @override
+  String get rpKeep => '暂不，保留当前短语';
 }

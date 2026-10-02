@@ -32,7 +32,7 @@ import '../widgets/remote_image.dart';
 import 'fullscreen_video_viewer.dart';
 import 'media_pager_screen.dart';
 import 'room_content_actions.dart';
-import 'room_items.dart' show humanDay;
+import 'room_items.dart' show transcriptDay;
 
 /// Everything a room has shared, by kind, with multi-select.
 ///
@@ -841,10 +841,14 @@ class _DayHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(2, 16, 2, 6),
+      // Sentence case and localized, like the transcript's day pills — the
+      // two screens group the same messages by the same days.
       child: Text(
-        humanDay(DateTime(at.year, at.month, at.day)),
-        style: theme.monoTiny.copyWith(
-          letterSpacing: 1.8,
+        transcriptDay(context, at),
+        style: theme.caption.copyWith(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0,
           color: theme.inkMuted,
         ),
       ),

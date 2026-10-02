@@ -2870,5 +2870,10 @@
   "laLink": "Vincular",
   "laLinked": "Vinculada",
   "laNotLinked": "Não vinculada",
-  "rdSignOut": "Desconectar {name}"
+  "rdSignOut": "Desconectar {name}",
+  "rpContinue": "Continuar",
+  "rpCopy": "Copiar",
+  "rpSaved": "Já salvei",
+  "rpBack": "Voltar",
+  "rpKeep": "Agora não — manter minha frase atual"
 }

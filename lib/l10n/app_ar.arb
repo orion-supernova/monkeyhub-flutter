@@ -2870,5 +2870,10 @@
   "laLink": "ربط",
   "laLinked": "مرتبط",
   "laNotLinked": "غير مرتبط",
-  "rdSignOut": "تسجيل خروج {name}"
+  "rdSignOut": "تسجيل خروج {name}",
+  "rpContinue": "متابعة",
+  "rpCopy": "نسخ",
+  "rpSaved": "حفظتها",
+  "rpBack": "رجوع",
+  "rpKeep": "ليس الآن — احتفظ بعبارتي الحالية"
 }

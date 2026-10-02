@@ -69,6 +69,7 @@ class MessageBubble extends StatelessWidget {
     this.highlightT = 0,
     this.useHero = true,
     this.replyMarker = ReplyMarker.full,
+    this.replyStyle,
     this.seenByOthers = false,
     this.deliveredToOthers = false,
     this.saved = false,
@@ -211,6 +212,10 @@ class MessageBubble extends StatelessWidget {
   /// measured rect, an overflow.
   final ReplyMarker replyMarker;
 
+  /// Renders this reply style instead of the user's setting — for previews
+  /// that must show one specific design, and for tests.
+  final ReplyStyle? replyStyle;
+
   final bool seenByOthers;
 
   /// Whether anyone else's device is known to hold this yet — the second
@@ -271,6 +276,25 @@ class MessageBubble extends StatelessWidget {
     final metrics = ChatMetricsScope.maybeOf(context);
     final maxWidth = metrics?.bubbleMaxWidth ?? messageMaxWidth(context);
 
+    // A full reply in the default style quotes INSIDE its own bubble, so
+    // there is nothing above it: no card, no connector, no reserved gap.
+    final quoteInside = message.isReply &&
+        replyMarker == ReplyMarker.full &&
+        (replyStyle ?? SettingsStore.instance.replyStyle) ==
+            ReplyStyle.quote &&
+        quoteFitsInside(message);
+    final Widget? insideQuote = quoteInside
+        ? InlineReplyQuote(
+            preview: message.replyToPreview!,
+            isMine: isMine,
+            api: api,
+            onTap: () {
+              final id = message.replyToId;
+              if (id != null) onReplyIndicatorTap?.call(id);
+            },
+          )
+        : null;
+
     // The main bubble with halo wrapper. The reply indicator (when present)
     // sits in a sibling Column ABOVE this — outside the bubble — so it can
     // adopt its own visual identity (phantom / sticky / comic) without
@@ -290,7 +314,10 @@ class MessageBubble extends StatelessWidget {
           lastInRun: lastInRun,
         ),
         child: _bubbleContent(context, theme, isMine,
-            ephemeral: false, metrics: metrics, bubbleStyle: bubbleStyle),
+            ephemeral: false,
+            metrics: metrics,
+            bubbleStyle: bubbleStyle,
+            quote: insideQuote),
       ),
     );
 
@@ -305,7 +332,9 @@ class MessageBubble extends StatelessWidget {
 
     // `isReply` is the veto: a marker can only draw when there is a preview to
     // draw it from, and that is exactly what `isReply` asserts.
-    final marker = message.isReply ? replyMarker : ReplyMarker.none;
+    final marker = message.isReply && !quoteInside
+        ? replyMarker
+        : ReplyMarker.none;
     // The name sits OUTSIDE the bubble, on the room's own ground — so the ink
     // is conditioned against the background rather than against the fill the
     // bubble under it happens to be washed with.
@@ -345,6 +374,7 @@ class MessageBubble extends StatelessWidget {
             )
           else
             ReplyIndicator(
+              styleOverride: replyStyle,
               preview: message.replyToPreview!,
               isMine: isMine,
               parentIsMine:
@@ -423,7 +453,8 @@ class MessageBubble extends StatelessWidget {
   Widget _bubbleContent(BuildContext context, AppTheme theme, bool isMine,
       {required bool ephemeral,
       required BubbleStyle bubbleStyle,
-      ChatMetrics? metrics}) {
+      ChatMetrics? metrics,
+      Widget? quote}) {
     return buildMessageContent(
       context: context,
       theme: theme,
@@ -431,6 +462,7 @@ class MessageBubble extends StatelessWidget {
       isMine: isMine,
       ephemeral: ephemeral,
       api: api,
+      quote: quote,
       useHero: useHero,
       metrics: metrics,
       bubbleStyle: bubbleStyle,
@@ -457,6 +489,24 @@ class MessageBubble extends StatelessWidget {
       interactionActions: interactionActions,
     );
   }
+}
+
+/// Whether [message]'s reply quote can be drawn inside its bubble: a plain
+/// text bubble with words in it. Media, stickers, jumbo emoji and URL-only
+/// cards have no bubble to put it in, and draw it above instead.
+bool quoteFitsInside(ChatMessage message) {
+  if (message.type != MessageType.text && message.type != MessageType.url) {
+    return false;
+  }
+  if (messageJumboEmoji(message, ephemeral: false) != null) return false;
+  final hidden = !SettingsStore.instance.showLinkUrls;
+  final text = hidden
+      ? DisplayTransform.of(
+          message.content,
+          hidden: UrlDetector.matches(message.content),
+        ).text
+      : message.content;
+  return text.trim().isNotEmpty;
 }
 
 /// The entrance ramp on the themed dissolve overlay, as opposed to the fade on
@@ -1288,6 +1338,11 @@ Widget buildMessageContent({
   required bool isMine,
   required bool ephemeral,
   required ChatApi api,
+
+  /// A reply quote to draw at the top INSIDE the bubble ([ReplyStyle.quote]).
+  /// Only text bubbles take it — see [quoteFitsInside]; every other shape
+  /// ignores it and the caller draws the quote above instead.
+  Widget? quote,
   bool useHero = true,
   /// Pane geometry, when this bubble is inside a `ChatPane`. Media tiles grow
   /// with the bubble on wide panes; when null (or on a phone, where the
@@ -1854,6 +1909,7 @@ Widget buildMessageContent({
         theme: theme,
         message: message,
         isMine: isMine,
+        quote: quote,
         decoration: deco,
         stamp: stampFor(bubbleTone),
         currentUserId: currentUserId,
@@ -3054,6 +3110,7 @@ class _LinkAwareBubble extends StatelessWidget {
     required this.theme,
     required this.message,
     required this.isMine,
+    this.quote,
     required this.decoration,
     required this.stamp,
     this.currentUserId,
@@ -3082,6 +3139,10 @@ class _LinkAwareBubble extends StatelessWidget {
   /// `BoxDecoration`. `Container` still clips to it (`getClipPath`) and still
   /// adds its `padding`, which is where the tail's gutter comes from.
   final Decoration decoration;
+
+  /// The reply quote block, first thing inside the bubble. Null for a
+  /// non-reply or any other reply style.
+  final Widget? quote;
 
   static const int _maxPreviews = 2;
 
@@ -3224,10 +3285,7 @@ class _LinkAwareBubble extends StatelessWidget {
           spoilerDust: theme.spoilerDust(isMine: isMine),
         );
 
-        return Container(
-          decoration: decoration,
-          clipBehavior: Clip.antiAlias,
-          child: Column(
+        final column = Column(
             // Stretch ONLY when there are preview cards to fill the bubble.
             // Unconditionally, it forced every text bubble out to the full
             // maxWidth of its ConstrainedBox — a two-letter "hey" rendered as
@@ -3238,10 +3296,17 @@ class _LinkAwareBubble extends StatelessWidget {
             // precisely so it cannot break that — the Stack hugs the
             // paragraph, and the paragraph now includes the room the stamp
             // needs.
-            crossAxisAlignment:
-                hasUrls ? CrossAxisAlignment.stretch : CrossAxisAlignment.start,
+            crossAxisAlignment: hasUrls || quote != null
+                ? CrossAxisAlignment.stretch
+                : CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (quote != null)
+                Padding(
+                  // Inset so its corners sit concentric inside the bubble's.
+                  padding: const EdgeInsets.fromLTRB(5, 5, 5, 0),
+                  child: quote,
+                ),
               if (hasText)
                 if (stamp == null)
                   Padding(padding: textPad, child: body)
@@ -3263,7 +3328,20 @@ class _LinkAwareBubble extends StatelessWidget {
               // for why it is safe to mount in every text bubble.
               MessageTranslation(message: message, isMine: isMine),
             ],
-          ),
+          );
+        return Container(
+          decoration: decoration,
+          clipBehavior: Clip.antiAlias,
+          // With a quote, the quote spans the bubble: the column is sized to
+          // its widest child (quote or text) and then stretched to it, so a
+          // short reply under a long quote widens to the quote, and a short
+          // quote over a long reply reaches the bubble's edge. Paid only on
+          // replies — everything else keeps the plain hugging column.
+          // Not with link cards: they already stretch to the bubble's max, and
+          // a card's intrinsic width is not a size worth asking it for.
+          child: quote == null || hasUrls
+              ? column
+              : IntrinsicWidth(child: column),
         );
       },
     );

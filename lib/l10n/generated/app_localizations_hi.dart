@@ -10243,4 +10243,19 @@ class AppLocalizationsHi extends AppLocalizations {
   String rdSignOut(String name) {
     return '$name को साइन आउट करें';
   }
+
+  @override
+  String get rpContinue => 'जारी रखें';
+
+  @override
+  String get rpCopy => 'कॉपी करें';
+
+  @override
+  String get rpSaved => 'मैंने सहेज लिए';
+
+  @override
+  String get rpBack => 'वापस';
+
+  @override
+  String get rpKeep => 'अभी नहीं — मेरा मौजूदा वाक्यांश रखें';
 }

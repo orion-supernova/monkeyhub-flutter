@@ -10339,4 +10339,19 @@ class AppLocalizationsEs extends AppLocalizations {
   String rdSignOut(String name) {
     return 'Cerrar la sesión de $name';
   }
+
+  @override
+  String get rpContinue => 'Continuar';
+
+  @override
+  String get rpCopy => 'Copiar';
+
+  @override
+  String get rpSaved => 'Ya las guardé';
+
+  @override
+  String get rpBack => 'Atrás';
+
+  @override
+  String get rpKeep => 'Ahora no, mantener mi frase actual';
 }

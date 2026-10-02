@@ -10199,4 +10199,19 @@ class AppLocalizationsTr extends AppLocalizations {
   String rdSignOut(String name) {
     return '$name hesabından çıkış yap';
   }
+
+  @override
+  String get rpContinue => 'Devam';
+
+  @override
+  String get rpCopy => 'Kopyala';
+
+  @override
+  String get rpSaved => 'Kaydettim';
+
+  @override
+  String get rpBack => 'Geri';
+
+  @override
+  String get rpKeep => 'Şimdi değil — mevcut ifademi koru';
 }

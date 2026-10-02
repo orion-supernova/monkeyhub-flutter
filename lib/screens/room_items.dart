@@ -1,5 +1,7 @@
 import '../models/chat_message.dart';
 import '../models/enums.dart';
+import '../l10n/generated/app_localizations.dart';
+import 'package:flutter/material.dart';
 
 /// Flattening of a room's message list into renderable rows.
 ///
@@ -49,6 +51,23 @@ String humanDay(DateTime d) {
   return sameYear
       ? '${_monthAbbrev[d.month - 1]} ${d.day}'
       : '${_monthAbbrev[d.month - 1]} ${d.day} · ${d.year}';
+}
+
+/// The day a transcript row belongs to, the way Messages and Telegram write
+/// it: "Today", "Yesterday", then the system's own short date — localized,
+/// where the shared [humanDay] is fixed English capitals.
+String transcriptDay(BuildContext context, DateTime at) {
+  final local = at.toLocal();
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final day = DateTime(local.year, local.month, local.day);
+  final l10n = AppLocalizations.of(context);
+  if (day == today) return l10n.transcriptDayToday;
+  if (today.difference(day).inDays == 1) return l10n.chatListYesterday;
+  final material = MaterialLocalizations.of(context);
+  return day.year == now.year
+      ? material.formatShortMonthDay(day)
+      : material.formatMediumDate(day);
 }
 
 /// A playing time as `m:ss` — `0:07`, `3:42`, `12:05`.

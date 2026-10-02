@@ -128,7 +128,6 @@ import '../widgets/companion_install_sheet.dart';
 import '../widgets/message_action_menu.dart';
 import '../widgets/room_translate_bar.dart';
 import '../widgets/report_sheet.dart';
-import '../widgets/visibility_badge.dart';
 import '../share/share_intake.dart';
 import '../share/share_targets.dart';
 import '../share/shared_payload.dart';
@@ -5406,167 +5405,123 @@ class _Header extends StatelessWidget {
     // A profile that offers a friend request the bot will refuse and a call it
     // cannot take is a dead end; leave the row inert instead.
     final onTapPeer = caps.canOpenPeerProfile ? onTapDmUser : null;
-    // The rule stays full-bleed while the header CONTENT shares the chat
-    // column — the macOS/Slack convention, and what stops the remaining
-    // gutter on an ultrawide monitor from reading as a rendering bug. The
-    // padding lives inside the column rather than on the Container: on the
-    // Container it would be applied outside the constraint and the header
-    // would sit 12px in from the column while the transcript sits 20px in.
+    final status = roomHeaderStatus(
+      context,
+      room: room,
+      dmUser: dmUser,
+      typists: typing,
+    );
+    // The same anatomy as the floating header — glass back, face, name over a
+    // status line, calls — on a solid bar with a hairline, which is what
+    // "classic" means now. The old visibility pill, the "N INSIDE" chip and
+    // the separate typing row all collapse into the one status line. The rule
+    // stays full-bleed while the content shares the chat column.
     return Container(
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: theme.divider, width: 1)),
+        border: Border(
+          bottom: BorderSide(
+            color: theme.divider,
+            width: 1 / MediaQuery.devicePixelRatioOf(context),
+          ),
+        ),
       ),
       child: ChatColumn(
         child: Padding(
-          // Tightened with the title. The bar is two stacked rows — name over
-          // a subtitle — inside a fixed frame, so its height is the title's
-          // line box plus this padding, and it was the tallest chrome on the
-          // chat screen. 12/14 of air around a 28pt title made sense when the
-          // title WAS 28pt; against a 20pt one it just reads as a gap. The
-          // back button and the call buttons are 40pt boxes and still clear
-          // the row's own height, so nothing here is a hit-target trade.
-          padding: const EdgeInsets.fromLTRB(12, 8, 20, 9),
+          padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
           child: Row(
-        children: [
-          IconButton(
-            onPressed: () => _roomBack(context),
-            icon: Icon(Icons.arrow_back, color: theme.inkSoft, size: 18),
-            visualDensity: VisualDensity.compact,
-          ),
-          const SizedBox(width: 4),
-          if (room.isSavedMessages) ...[
-            Container(
-              width: 32,
-              height: 32,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(color: theme.accentSoft, shape: BoxShape.circle),
-              child: Icon(CupertinoIcons.bookmark_fill, size: 16, color: theme.accent),
-            ),
-            const SizedBox(width: 10),
-          ] else if (dmUser != null) ...[
-            GestureDetector(
-              onTap: onTapPeer,
-              child: UserAvatar(user: dmUser!, size: 32, api: api),
-            ),
-            const SizedBox(width: 10),
-          ] else ...[
-            _RoomAvatar(room: room, api: api, size: 32),
-            const SizedBox(width: 10),
-          ],
-          Expanded(
-            child: GestureDetector(
-              // Matches the liquid header's title capsule: a tap opens Room
-              // Info regardless of DM or group. The peer's own profile is
-              // still one tap away from there, and from the avatar beside
-              // this title, which keeps its dedicated `onTapPeer`.
-              onTap: onOpenInfo,
-              behavior: HitTestBehavior.opaque,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    room.isSavedMessages
-                        ? AppLocalizations.of(context).savedMessagesTitle
-                        : (dmUser?.displayName ?? room.name),
-                    // `displayMedium` is a SCREEN title — 22 to 28pt across
-                    // the themes — and this header already carries a subtitle
-                    // row under it, so at full size the bar was the tallest
-                    // thing on the chat and the name was the loudest. Capped
-                    // rather than replaced: the cap keeps each theme's face,
-                    // weight and tracking and only takes the size down, and
-                    // the `min` leaves a theme that already sits below 20
-                    // alone instead of scaling it up.
-                    style: theme.displayMedium.copyWith(
-                      fontSize: math.min(theme.displayMedium.fontSize ?? 20, 20),
-                    ),
-                    // One line, then an ellipsis. Two lines was the wrong
-                    // trade here: the classic header is a fixed bar with a
-                    // subtitle beneath, so a second title line grows the bar
-                    // and pushes the transcript down. The liquid capsule can
-                    // afford two because it floats and has no subtitle. Room
-                    // Info has the full name either way.
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+            children: [
+              LiquidGlass(
+                shape: LiquidGlassShape.circle,
+                size: const Size(40, 40),
+                onTap: () => _roomBack(context),
+                child: Icon(
+                  CupertinoIcons.chevron_back,
+                  size: 20,
+                  color: theme.ink,
+                ),
+              ),
+              const SizedBox(width: 10),
+              if (room.isSavedMessages)
+                Container(
+                  width: 36,
+                  height: 36,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: theme.accentSoft,
+                    shape: BoxShape.circle,
                   ),
-                  // 4 was set against a title that could wrap; under a single
-                  // line the name and its subtitle read as one block, and the
-                  // pair is tighter for it.
-                  const SizedBox(height: 2),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
+                  child: Icon(
+                    CupertinoIcons.bookmark_fill,
+                    size: 17,
+                    color: theme.accent,
+                  ),
+                )
+              else if (dmUser != null)
+                GestureDetector(
+                  onTap: onTapPeer,
+                  child: UserAvatar(user: dmUser!, size: 36, api: api),
+                )
+              else
+                _RoomAvatar(room: room, api: api, size: 36),
+              const SizedBox(width: 10),
+              Expanded(
+                child: GestureDetector(
+                  onTap: onOpenInfo,
+                  behavior: HitTestBehavior.opaque,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Two different lines, asked for separately: a DM names
-                      // the person (`@handle` is what tells two people called
-                      // "Sam" apart), a group counts them. A chat with only
-                      // yourself, or with the app itself, says neither.
-                      if (caps.hasPeerHandle && dmUser != null)
-                        Text('@${dmUser!.username}', style: theme.monoTiny.copyWith(color: theme.inkMuted))
-                      else if (caps.hasMembers) ...[
-                        VisibilityBadge(isPublic: room.isPublic, dense: true),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                          decoration: theme.chipDecoration(),
-                          child: Text(
-                            AppLocalizations.of(context)
-                                .roomScreenMemberCountBadge(room.memberCount),
-                            style: theme.monoTiny,
-                          ),
+                      Text(
+                        room.isSavedMessages
+                            ? AppLocalizations.of(context).savedMessagesTitle
+                            : (dmUser?.displayName ?? room.name),
+                        style: theme.body.copyWith(
+                          fontSize: 17,
+                          height: 1.2,
+                          fontWeight: FontWeight.w600,
+                          color: theme.ink,
                         ),
-                      ],
-                      if (room.isEphemeral && room.messageLifetime != null)
-                        EphemeralBadge(ttl: room.messageLifetime!, dense: true),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      ?status,
                     ],
                   ),
-                  if (typing.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        TypingDots(color: theme.accent),
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: Text(
-                            typingLabel(context, typing),
-                            style: theme.monoTiny.copyWith(color: theme.accent),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
+                ),
               ),
-            ),
-          ),
-          // Video call, then voice call, both always on show. Room Info has
-          // no button of its own — the title is its tap target, so the "···"
-          // that used to sit here was a second way to the same place.
-          //
-          // Nobody to call in a chat with only yourself, and nobody home in a
-          // chat with the app — `calls.ts` refuses a system account outright,
-          // so a button here would ring nothing.
-          if (!caps.canCall)
-            const SizedBox.shrink()
-          else if (room.isDm && dmUser != null) ...[
-            CallButton(
-              peerUserId: dmUser!.id,
-              peerName: dmUser!.displayName,
-              roomId: room.id,
-              variant: CallButtonVariant.classic,
-              kind: CallMediaKind.video,
-            ),
-            CallButton(
-              peerUserId: dmUser!.id,
-              peerName: dmUser!.displayName,
-              roomId: room.id,
-              variant: CallButtonVariant.classic,
-              kind: CallMediaKind.audio,
-            ),
-          ] else ...[
-            GroupCallButton(roomId: room.id, kind: CallMediaKind.video),
-            GroupCallButton(roomId: room.id, kind: CallMediaKind.audio),
-          ],
-        ],
+              if (!caps.canCall)
+                const SizedBox.shrink()
+              else if (room.isDm && dmUser != null) ...[
+                CallButton(
+                  peerUserId: dmUser!.id,
+                  peerName: dmUser!.displayName,
+                  roomId: room.id,
+                  variant: CallButtonVariant.liquid,
+                  kind: CallMediaKind.video,
+                ),
+                const SizedBox(width: 6),
+                CallButton(
+                  peerUserId: dmUser!.id,
+                  peerName: dmUser!.displayName,
+                  roomId: room.id,
+                  variant: CallButtonVariant.liquid,
+                  kind: CallMediaKind.audio,
+                ),
+              ] else ...[
+                GroupCallButton(
+                  roomId: room.id,
+                  liquid: true,
+                  kind: CallMediaKind.video,
+                ),
+                const SizedBox(width: 6),
+                GroupCallButton(
+                  roomId: room.id,
+                  liquid: true,
+                  kind: CallMediaKind.audio,
+                ),
+              ],
+            ],
           ),
         ),
       ),
@@ -5756,23 +5711,6 @@ class _FoldSender extends StatelessWidget {
 
 /// The icon + label row a date marker renders, inline or floating — the one
 /// place to touch to change what a date marker looks like everywhere at once.
-/// The day a transcript row belongs to, the way Messages and Telegram write
-/// it: "Today", "Yesterday", then the system's own short date — localized,
-/// where the shared [humanDay] is fixed English capitals.
-String transcriptDay(BuildContext context, DateTime at) {
-  final local = at.toLocal();
-  final now = DateTime.now();
-  final today = DateTime(now.year, now.month, now.day);
-  final day = DateTime(local.year, local.month, local.day);
-  final l10n = AppLocalizations.of(context);
-  if (day == today) return l10n.transcriptDayToday;
-  if (today.difference(day).inDays == 1) return l10n.chatListYesterday;
-  final material = MaterialLocalizations.of(context);
-  return day.year == now.year
-      ? material.formatShortMonthDay(day)
-      : material.formatMediumDate(day);
-}
-
 class _DateChipContent extends StatelessWidget {
   const _DateChipContent({required this.label});
   final String label;
@@ -6122,7 +6060,57 @@ class _NoMessagesPlaceholder extends StatelessWidget {
 
 // ───────────────────────── liquid variant chrome ─────────────────────────
 
-/// The conversation header on its own, for design previews.
+/// The line under a conversation's name, shared by both headers: typing,
+/// else online for a DM, else the member count for a group. Null when there
+/// is nothing true to say — a DM with someone offline shows their name alone
+/// rather than a guess.
+Widget? roomHeaderStatus(
+  BuildContext context, {
+  required ChatRoom room,
+  required ChatUser? dmUser,
+  required List<ChatUser> typists,
+}) {
+  final theme = ThemeScope.of(context);
+  final l10n = AppLocalizations.of(context);
+  final base = theme.caption.copyWith(
+    fontSize: 12.5,
+    height: 1.2,
+    letterSpacing: 0,
+  );
+  final String text;
+  var color = theme.inkMuted;
+  if (typists.isNotEmpty) {
+    // In a DM the name is the line above, so the verb alone; a group needs
+    // to say who.
+    text = dmUser != null && typists.length == 1
+        ? l10n.roomHeaderStatusTyping
+        : typingLabel(context, typists);
+    color = theme.accent;
+  } else if (room.isSavedMessages) {
+    return null;
+  } else if (dmUser != null) {
+    if (dmUser.status != 'online') return null;
+    text = l10n.roomHeaderStatusOnline;
+    color = theme.success;
+  } else if (room.isGroupChat) {
+    text = l10n.roomHeaderStatusMembers(room.memberCount);
+  } else {
+    return null;
+  }
+  return AnimatedSwitcher(
+    duration: const Duration(milliseconds: 220),
+    child: Text(
+      text,
+      key: ValueKey(text),
+      style: base.copyWith(color: color),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    ),
+  );
+}
+
+/// The conversation header on its own, for design previews. [classic] picks
+/// the solid-bar header the classic chat style uses.
 @visibleForTesting
 Widget debugRoomHeader({
   required ChatRoom room,
@@ -6130,8 +6118,18 @@ Widget debugRoomHeader({
   required RoomCapabilities caps,
   ChatUser? dmUser,
   List<ChatUser> typists = const [],
+  bool classic = false,
 }) =>
-    _LiquidHeader(
+    classic
+        ? _Header(
+            room: room,
+            typing: typists,
+            onOpenInfo: () {},
+            api: api,
+            caps: caps,
+            dmUser: dmUser,
+          )
+        : _LiquidHeader(
       room: room,
       api: api,
       caps: caps,
@@ -6278,48 +6276,8 @@ class _LiquidHeader extends StatelessWidget {
     ];
   }
 
-  /// The line under the name: typing, else online for a DM, else the member
-  /// count for a group. Null when there is nothing true to say — a DM with
-  /// someone offline shows their name alone rather than a guess.
-  Widget? _status(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    final base = theme.caption.copyWith(
-      fontSize: 12.5,
-      height: 1.2,
-      letterSpacing: 0,
-    );
-    final String text;
-    var color = theme.inkMuted;
-    if (typists.isNotEmpty) {
-      // In a DM the name is the line above, so the verb alone; a group needs
-      // to say who.
-      text = dmUser != null && typists.length == 1
-          ? l10n.roomHeaderStatusTyping
-          : typingLabel(context, typists);
-      color = theme.accent;
-    } else if (room.isSavedMessages) {
-      return null;
-    } else if (dmUser != null) {
-      if (dmUser!.status != 'online') return null;
-      text = l10n.roomHeaderStatusOnline;
-      color = theme.success;
-    } else if (room.isGroupChat) {
-      text = l10n.roomHeaderStatusMembers(room.memberCount);
-    } else {
-      return null;
-    }
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 220),
-      child: Text(
-        text,
-        key: ValueKey(text),
-        style: base.copyWith(color: color),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-    );
-  }
+  Widget? _status(BuildContext context) =>
+      roomHeaderStatus(context, room: room, dmUser: dmUser, typists: typists);
 
   @override
   Widget build(BuildContext context) {

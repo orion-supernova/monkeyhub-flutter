@@ -2870,5 +2870,10 @@
   "laLink": "연결",
   "laLinked": "연결됨",
   "laNotLinked": "연결 안 됨",
-  "rdSignOut": "{name} 로그아웃"
+  "rdSignOut": "{name} 로그아웃",
+  "rpContinue": "계속",
+  "rpCopy": "복사",
+  "rpSaved": "저장했어요",
+  "rpBack": "뒤로",
+  "rpKeep": "나중에 — 현재 문구 유지"
 }

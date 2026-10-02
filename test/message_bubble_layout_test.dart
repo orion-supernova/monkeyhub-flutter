@@ -294,6 +294,58 @@ void main() {
   });
 
   testWidgets(
+    'the default reply style quotes INSIDE the bubble, and a tap on the quote '
+    'jumps to the original',
+    (tester) async {
+      String? jumpedTo;
+      await tester.pumpWidget(
+        host(
+          MessageBubble(
+            message: ChatMessage(
+              id: 'm1',
+              roomId: 'r',
+              senderId: 'alice',
+              senderName: 'alice',
+              content: 'ok',
+              createdAt: DateTime(2026, 3, 1, 12),
+              type: MessageType.text,
+              status: MessageStatus.sent,
+              replyToId: 'parent',
+              rootId: 'parent',
+              replyToPreview: const ReplyPreview(
+                senderId: 'bob',
+                senderName: 'bob',
+                contentPreview: 'an older message being quoted back',
+                type: MessageType.text,
+              ),
+            ),
+            now: DateTime(2026, 3, 1, 12),
+            currentUserId: 'bob',
+            api: api,
+            author: ChatUser(id: 'alice', username: 'alice', name: 'Alice'),
+            replyMarker: ReplyMarker.full,
+            replyStyle: ReplyStyle.quote,
+            onReplyIndicatorTap: (id) => jumpedTo = id,
+          ),
+        ),
+      );
+
+      // Nothing detached above the bubble: no card, no connector, no gap.
+      expect(find.byType(ReplyIndicator), findsNothing);
+      final quote = tester.getRect(find.byType(InlineReplyQuote));
+      final bubble_ = bubbleRect(tester);
+      expect(bubble_.contains(quote.topLeft + const Offset(1, 1)), isTrue,
+          reason: 'the quote is drawn inside the bubble');
+      expect(bubble_.contains(quote.bottomRight - const Offset(1, 1)), isTrue);
+      // A one-word reply widens to its quote rather than clipping it.
+      expect(quote.width, greaterThan(bubble_.width - 20));
+
+      await tester.tap(find.text('an older message being quoted back'));
+      expect(jumpedTo, 'parent');
+    },
+  );
+
+  testWidgets(
     'a full-quote reply keeps the sender name beside the bubble it names, '
     'not floating above the quote card',
     (tester) async {
@@ -328,6 +380,9 @@ void main() {
             api: api,
             author: ChatUser(id: 'alice', username: 'alice', name: 'Alice'),
             replyMarker: ReplyMarker.full,
+            // A detached quote card — the styles that draw one above the
+            // bubble. The default quotes inside it; see the next test.
+            replyStyle: ReplyStyle.phantomEcho,
             senderName: 'Alice',
           ),
         ),

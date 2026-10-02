@@ -17382,6 +17382,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sign {name} out'**
   String rdSignOut(String name);
+
+  /// Primary button after entering your password on the recovery-phrase flow.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get rpContinue;
+
+  /// Button that copies the 12 recovery words.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get rpCopy;
+
+  /// Primary button confirming the recovery words were saved.
+  ///
+  /// In en, this message translates to:
+  /// **'I saved them'**
+  String get rpSaved;
+
+  /// Text link going back a step in the recovery-phrase flow.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get rpBack;
+
+  /// Text link leaving the flow without changing the existing phrase.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now — keep my current phrase'**
+  String get rpKeep;
 }
 
 class _AppLocalizationsDelegate

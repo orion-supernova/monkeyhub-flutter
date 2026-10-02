@@ -10399,4 +10399,19 @@ class AppLocalizationsAr extends AppLocalizations {
   String rdSignOut(String name) {
     return 'تسجيل خروج $name';
   }
+
+  @override
+  String get rpContinue => 'متابعة';
+
+  @override
+  String get rpCopy => 'نسخ';
+
+  @override
+  String get rpSaved => 'حفظتها';
+
+  @override
+  String get rpBack => 'رجوع';
+
+  @override
+  String get rpKeep => 'ليس الآن — احتفظ بعبارتي الحالية';
 }

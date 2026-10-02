@@ -2870,5 +2870,10 @@
   "laLink": "Koppla",
   "laLinked": "Kopplad",
   "laNotLinked": "Inte kopplad",
-  "rdSignOut": "Logga ut {name}"
+  "rdSignOut": "Logga ut {name}",
+  "rpContinue": "Fortsätt",
+  "rpCopy": "Kopiera",
+  "rpSaved": "Jag har sparat dem",
+  "rpBack": "Tillbaka",
+  "rpKeep": "Inte nu – behåll min nuvarande fras"
 }

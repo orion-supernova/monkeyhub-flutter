@@ -10265,4 +10265,19 @@ class AppLocalizationsSv extends AppLocalizations {
   String rdSignOut(String name) {
     return 'Logga ut $name';
   }
+
+  @override
+  String get rpContinue => 'Fortsätt';
+
+  @override
+  String get rpCopy => 'Kopiera';
+
+  @override
+  String get rpSaved => 'Jag har sparat dem';
+
+  @override
+  String get rpBack => 'Tillbaka';
+
+  @override
+  String get rpKeep => 'Inte nu – behåll min nuvarande fras';
 }

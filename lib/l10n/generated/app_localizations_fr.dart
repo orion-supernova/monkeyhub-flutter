@@ -10394,4 +10394,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String rdSignOut(String name) {
     return 'Déconnecter $name';
   }
+
+  @override
+  String get rpContinue => 'Continuer';
+
+  @override
+  String get rpCopy => 'Copier';
+
+  @override
+  String get rpSaved => 'Je les ai enregistrés';
+
+  @override
+  String get rpBack => 'Retour';
+
+  @override
+  String get rpKeep => 'Pas maintenant — garder ma phrase actuelle';
 }

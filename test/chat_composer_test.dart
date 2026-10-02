@@ -115,14 +115,13 @@ void main() {
     });
   });
 
-  // The liquid composer draws iOS glyphs (Messages' "+" and camera); the
-  // classic one keeps its own.
+  // Both composers draw the iOS glyphs (Messages' "+" and camera).
   const cameraIcon = {
-    'classic': Icons.photo_camera_outlined,
+    'classic': CupertinoIcons.camera,
     'liquid': CupertinoIcons.camera,
   };
   const attachIcon = {
-    'classic': Icons.add,
+    'classic': CupertinoIcons.plus,
     'liquid': CupertinoIcons.plus,
   };
 
@@ -169,7 +168,7 @@ void main() {
   // The send glyph differs between the two styles, and it is the only reliable
   // handle on the button: the composer row is full of GestureDetectors.
   const sendIcon = {
-    'classic': Icons.north_east,
+    'classic': CupertinoIcons.arrow_up,
     'liquid': CupertinoIcons.arrow_up,
   };
 

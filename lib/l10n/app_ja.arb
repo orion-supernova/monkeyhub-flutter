@@ -2870,5 +2870,10 @@
   "laLink": "リンク",
   "laLinked": "リンク済み",
   "laNotLinked": "未リンク",
-  "rdSignOut": "{name} をサインアウト"
+  "rdSignOut": "{name} をサインアウト",
+  "rpContinue": "続ける",
+  "rpCopy": "コピー",
+  "rpSaved": "保存しました",
+  "rpBack": "戻る",
+  "rpKeep": "今はしない（現在のフレーズを使う）"
 }

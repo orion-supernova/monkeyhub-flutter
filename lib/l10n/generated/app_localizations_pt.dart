@@ -10345,6 +10345,21 @@ class AppLocalizationsPt extends AppLocalizations {
   String rdSignOut(String name) {
     return 'Terminar a sessão de $name';
   }
+
+  @override
+  String get rpContinue => 'Continuar';
+
+  @override
+  String get rpCopy => 'Copiar';
+
+  @override
+  String get rpSaved => 'Já guardei';
+
+  @override
+  String get rpBack => 'Voltar';
+
+  @override
+  String get rpKeep => 'Agora não — manter a minha frase atual';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -20686,4 +20701,19 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String rdSignOut(String name) {
     return 'Desconectar $name';
   }
+
+  @override
+  String get rpContinue => 'Continuar';
+
+  @override
+  String get rpCopy => 'Copiar';
+
+  @override
+  String get rpSaved => 'Já salvei';
+
+  @override
+  String get rpBack => 'Voltar';
+
+  @override
+  String get rpKeep => 'Agora não — manter minha frase atual';
 }

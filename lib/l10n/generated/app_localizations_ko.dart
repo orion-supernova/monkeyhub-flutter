@@ -9854,4 +9854,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String rdSignOut(String name) {
     return '$name 로그아웃';
   }
+
+  @override
+  String get rpContinue => '계속';
+
+  @override
+  String get rpCopy => '복사';
+
+  @override
+  String get rpSaved => '저장했어요';
+
+  @override
+  String get rpBack => '뒤로';
+
+  @override
+  String get rpKeep => '나중에 — 현재 문구 유지';
 }

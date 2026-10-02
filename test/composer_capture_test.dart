@@ -89,10 +89,8 @@ void main() {
             .pumpWidget(host(build(onCamera: () => taps++)));
         await tester.pumpAndSettle();
 
-        // Each composer draws its own camera glyph: the liquid one is iOS's.
-        final camera = find.byIcon(name == 'liquid'
-            ? CupertinoIcons.camera
-            : Icons.photo_camera_outlined);
+        // Both composers draw iOS's camera glyph.
+        final camera = find.byIcon(CupertinoIcons.camera);
         expect(camera, findsOneWidget);
         expect(find.byIcon(Icons.mic_none_outlined), findsNothing);
         await tester.tap(camera);

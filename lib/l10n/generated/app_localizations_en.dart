@@ -10235,4 +10235,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String rdSignOut(String name) {
     return 'Sign $name out';
   }
+
+  @override
+  String get rpContinue => 'Continue';
+
+  @override
+  String get rpCopy => 'Copy';
+
+  @override
+  String get rpSaved => 'I saved them';
+
+  @override
+  String get rpBack => 'Back';
+
+  @override
+  String get rpKeep => 'Not now — keep my current phrase';
 }

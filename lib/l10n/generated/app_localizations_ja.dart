@@ -9829,4 +9829,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String rdSignOut(String name) {
     return '$name をサインアウト';
   }
+
+  @override
+  String get rpContinue => '続ける';
+
+  @override
+  String get rpCopy => 'コピー';
+
+  @override
+  String get rpSaved => '保存しました';
+
+  @override
+  String get rpBack => '戻る';
+
+  @override
+  String get rpKeep => '今はしない（現在のフレーズを使う）';
 }

@@ -116,6 +116,24 @@ class ReplyIndicator extends StatelessWidget {
     final style = styleOverride ?? SettingsStore.instance.replyStyle;
     final tone = _quoteTone(context, ThemeScope.of(context), preview);
     switch (style) {
+      case ReplyStyle.quote:
+        // Reached only where the quote cannot live inside a bubble — media,
+        // a self-destructing row, the style picker — so it stands just above
+        // the message as the same block, with no connector and no gap held
+        // for one.
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 3),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: messageMaxWidth(context)),
+            child: InlineReplyQuote(
+              preview: preview,
+              isMine: false,
+              api: api,
+              onTap: onTap,
+              standalone: true,
+            ),
+          ),
+        );
       case ReplyStyle.phantomEcho:
         return _PhantomEcho(
           preview: preview,
@@ -1478,6 +1496,123 @@ class _ClassicQuote extends StatelessWidget {
                     _BranchButton(onTap: onViewThread!, theme: theme, size: 24),
                     const SizedBox(width: 2),
                   ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+// ───────────────────────── Quote (default) ─────────────────────────
+
+/// The reply quote Telegram and WhatsApp draw: a compact block at the top of
+/// the reply's OWN bubble — an accent rail, who said it, one line of what they
+/// said. Tapping it jumps to the original.
+///
+/// [isMine] is the bubble it sits in, not the quoted author: inside an
+/// outgoing bubble every colour comes from the bubble's own ink, since the
+/// fill is the accent and an accent rail on it would vanish.
+///
+/// [standalone] draws the same block on its own surface, for the few places
+/// the quote cannot live inside a bubble (see the [ReplyStyle.quote] branch of
+/// [ReplyIndicator]).
+class InlineReplyQuote extends StatelessWidget {
+  const InlineReplyQuote({
+    super.key,
+    required this.preview,
+    required this.isMine,
+    required this.api,
+    required this.onTap,
+    this.standalone = false,
+  });
+
+  final ReplyPreview preview;
+  final bool isMine;
+  final ChatApi api;
+  final VoidCallback onTap;
+  final bool standalone;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final tone = _quoteTone(context, theme, preview);
+    final deleted = preview.isDeleted;
+    final onAccent = isMine && !standalone;
+    final rail = deleted
+        ? theme.inkMuted
+        : (onAccent ? theme.accentInk : tone.mark);
+    final nameInk = onAccent ? theme.accentInk : tone.ink;
+    final lineInk = onAccent
+        ? theme.accentInk.withValues(alpha: 0.82)
+        : (standalone ? theme.inkSoft : theme.ink.withValues(alpha: 0.82));
+    final fill = standalone
+        ? Color.alphaBlend(tone.mark.withValues(alpha: 0.10), theme.surfaceRaised)
+        : (onAccent ? theme.accentInk : tone.mark).withValues(alpha: 0.13);
+    final isMedia =
+        preview.type == MessageType.image || preview.type == MessageType.video;
+    final line = deleted
+        ? AppLocalizations.of(context).replyIndicatorMessageRemoved
+        : _previewLabel(context, preview);
+    final lineStyle = theme.bodySoft.copyWith(
+      fontSize: 14,
+      height: 1.25,
+      color: deleted ? theme.inkMuted : lineInk,
+    );
+
+    return Semantics(
+      button: !deleted,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: deleted ? null : onTap,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(standalone ? 12 : 8),
+          child: ColoredBox(
+            color: fill,
+            child: IntrinsicHeight(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(width: 3, color: rail),
+                  if (isMedia && !deleted)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(7, 5, 0, 5),
+                      child: _mediaThumb(
+                        preview: preview,
+                        api: api,
+                        theme: theme,
+                      ),
+                    ),
+                  Flexible(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 5, 10, 6),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            preview.senderName,
+                            style: replyNameStyle(theme).copyWith(
+                              color: deleted ? theme.inkMuted : nameInk,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 1),
+                          Text(
+                            line,
+                            style: lineStyle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

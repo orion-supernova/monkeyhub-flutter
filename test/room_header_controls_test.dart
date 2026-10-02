@@ -109,16 +109,15 @@ void main() {
     });
   }
 
-  test('the classic title is taken below displayMedium\'s own size', () {
-    // Capped rather than replaced: the cap keeps each theme's face, weight and
-    // tracking and only takes the size down, and the `min` leaves a theme
-    // already below the cap alone instead of scaling it up.
+  test('the classic title is drawn at a bar size, not a display size', () {
+    // The classic bar names the room the way the floating capsule does: the
+    // theme's body face at 17pt semibold, never a display style — a display
+    // face at full size made the bar the tallest thing on the chat.
     final body = headers['classic']!();
-    expect(
-      body.contains('math.min(theme.displayMedium.fontSize ?? 20, 20)'),
-      isTrue,
-      reason: 'the classic room title must not be drawn at full display size',
-    );
+    expect(body.contains('theme.displayMedium'), isFalse,
+        reason: 'the classic room title must not use a display style');
+    expect(body.contains('fontSize: 17,'), isTrue,
+        reason: 'the title is set at the bar size');
   });
 
   test('the classic bar is not padded for a display-sized title', () {
