@@ -3158,7 +3158,10 @@ class _LinkAwareBubble extends StatelessWidget {
         final linkAccent = theme.linkInk(isMine: isMine);
 
         final stamp = this.stamp;
-        final textPad = EdgeInsets.fromLTRB(14, 10, 14, hasUrls ? 8 : 10);
+        // iMessage proportions: a one-line bubble lands near 36pt tall at a 17pt
+        // body. The old 14/10 made every line a slab, and a run of short
+        // replies read as a stack of buttons.
+        final textPad = EdgeInsets.fromLTRB(12, 7, 12, hasUrls ? 6 : 7);
         // Mentions borrow the link's ink for the same reason it was computed
         // that way: an outgoing bubble is FILLED with `theme.accent`, so an
         // accent-coloured word inside one is invisible. Weight carries the

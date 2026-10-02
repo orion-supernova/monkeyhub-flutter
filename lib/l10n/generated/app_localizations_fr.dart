@@ -10159,4 +10159,110 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get acctUnblock => 'Débloquer';
+
+  @override
+  String get pvSubtitle =>
+      'Choisissez ce que les autres voient et comment ils peuvent vous joindre.';
+
+  @override
+  String get pvSectionProfile => 'Profil';
+
+  @override
+  String get pvSectionMessages => 'Messages';
+
+  @override
+  String get pvSectionPeople => 'Personnes';
+
+  @override
+  String get pvSectionFeed => 'Fil';
+
+  @override
+  String get pvAvatar => 'Photo de profil';
+
+  @override
+  String get pvAvatarDesc => 'Qui peut voir votre photo';
+
+  @override
+  String get pvOnline => 'Statut en ligne';
+
+  @override
+  String get pvOnlineDesc => 'Si vous apparaissez actif en ce moment';
+
+  @override
+  String get pvLastSeen => 'Vu pour la dernière fois';
+
+  @override
+  String get pvLastSeenDesc => 'Quand vous étiez là pour la dernière fois';
+
+  @override
+  String get pvSendReceipts => 'Envoyer les accusés de lecture';
+
+  @override
+  String get pvSendReceiptsDesc =>
+      'Permet aux autres de voir quand vous avez lu leurs messages';
+
+  @override
+  String get pvShowReceipts => 'Afficher les accusés de lecture';
+
+  @override
+  String get pvShowReceiptsDesc => 'Voir qui a lu vos messages';
+
+  @override
+  String get pvShowReceiptsHint =>
+      'Seules les personnes qui envoient des accusés de lecture sont comptées.';
+
+  @override
+  String get pvFriendRequests => 'Demandes d’ami';
+
+  @override
+  String get pvFriendRequestsDesc => 'Qui peut vous envoyer des demandes';
+
+  @override
+  String get pvSupervisedTitle => 'Vos adultes choisissent ces réglages';
+
+  @override
+  String get pvEveryone => 'Tout le monde';
+
+  @override
+  String get pvFriends => 'Amis';
+
+  @override
+  String get pvNobody => 'Personne';
+
+  @override
+  String get pvOn => 'Activé';
+
+  @override
+  String get pvOff => 'Désactivé';
+
+  @override
+  String get pvAnyone => 'N’importe qui';
+
+  @override
+  String get pvHighlights => 'Mes moments forts';
+
+  @override
+  String get pvHighlightsDesc =>
+      'Si vos photos et vidéos apparaissent sur les tableaux de vos amis du jour';
+
+  @override
+  String get pvPuzzle => 'Mon score au puzzle';
+
+  @override
+  String get pvPuzzleDesc =>
+      'Si vos amis voient votre résultat au puzzle du jour';
+
+  @override
+  String get pvPast => 'Mon historique';
+
+  @override
+  String get pvPastDesc =>
+      'Aujourd’hui est toujours partagé avec vos amis — ceci ouvre tout ce qui précède';
+
+  @override
+  String get pvPoints => 'Mes points';
+
+  @override
+  String get pvPointsDesc =>
+      'Si les points que vous enregistrez apparaissent sur les tableaux de vos amis';
 }

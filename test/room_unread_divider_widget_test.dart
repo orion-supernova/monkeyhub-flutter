@@ -175,7 +175,7 @@ void main() {
     await t.pump();
     await t.pump(const Duration(milliseconds: 300));
 
-    expect(find.text('UNREAD MESSAGES'), findsOneWidget);
+    expect(find.text('Unread messages'), findsOneWidget);
     expect(api.reads.map((r) => r.upTo), contains(t1),
         reason:
             'a room opened before `attach` published a user id used to stay '
@@ -222,7 +222,7 @@ void main() {
     cv.sinks['messages:list']!([msgWire('m0', 'someone', t0)]);
     await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 600)));
     await t.pumpAndSettle();
-    expect(find.text('UNREAD MESSAGES'), findsNothing,
+    expect(find.text('Unread messages'), findsNothing,
         reason: 'nothing was unread when this screen opened');
     api.reads.clear();
 
@@ -255,7 +255,7 @@ void main() {
           'not inherited from the screen it is replacing',
     );
     expect(
-      find.text('UNREAD MESSAGES'),
+      find.text('Unread messages'),
       findsOneWidget,
       reason:
           'a new screen is a new reading session even when the room did not '
@@ -287,7 +287,7 @@ void main() {
     );
 
     expect(
-      find.text('UNREAD MESSAGES'),
+      find.text('Unread messages'),
       findsNothing,
       reason: 'nothing past the cursor is loaded yet, so there is no row to mark',
     );
@@ -303,7 +303,7 @@ void main() {
     await t.pump(const Duration(seconds: 2));
 
     expect(
-      find.text('UNREAD MESSAGES'),
+      find.text('Unread messages'),
       findsOneWidget,
       reason:
           'this is the tap the label never used to appear on: the old gate '

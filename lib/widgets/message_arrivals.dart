@@ -97,6 +97,18 @@ class MessageArrivals {
   /// Whether the row keyed [rowKey] should play an entrance.
   bool isArriving(String rowKey) => _arriving.contains(rowKey);
 
+  /// True while one of the reader's OWN fresh sends is playing its entrance.
+  ///
+  /// Not an exception to "sends are direct manipulation" but its other half:
+  /// the row still takes its full height on the first frame — nothing moves
+  /// under the thumb — and only the bubble itself rises out of the composer
+  /// on a spring, the way a sent message leaves Telegram's field. See
+  /// [ArrivingRow.sent].
+  bool isSending(String rowKey) => _sending.contains(rowKey);
+
+  /// Own sends currently rising. Cleared by the same timer as [_arriving].
+  final Set<String> _sending = {};
+
   /// Take a delivery. [myUserId] is the signed-in user, [nearBottom] whether the
   /// transcript is parked at the newest message.
   void observe(
@@ -152,27 +164,37 @@ class MessageArrivals {
 
     var tailNew = 0;
     final fresh = <String>[];
+    final sent = <String>[];
     for (var i = lastKnown + 1; i < keys.length; i++) {
       if (_drawn.contains(keys[i])) continue;
       tailNew++;
-      // Ours already appeared the moment it was tapped.
-      if (timeline[i].senderId == myUserId) continue;
+      // Ours appears the moment it was tapped, at full height; it plays the
+      // rise instead of the grow. Its server echo folds onto this same key
+      // (see [_fold]), so the rise never plays twice.
+      if (timeline[i].senderId == myUserId) {
+        sent.add(keys[i]);
+        continue;
+      }
       fresh.add(keys[i]);
     }
     _remember(keys);
 
-    if (fresh.isEmpty) return;
+    if (fresh.isEmpty && sent.isEmpty) return;
     if (tailNew > maxBurst) return;
-    if (!nearBottom) return;
 
-    _arriving.addAll(fresh);
+    // A send always scrolls to the bottom, so it is always in view; an
+    // arrival below the fold is not.
+    _sending.addAll(sent);
+    if (nearBottom) _arriving.addAll(fresh);
+    if (_arriving.isEmpty && _sending.isEmpty) return;
     // One timer for the whole burst rather than one per id: rows that land
     // together should finish together, and the caller is about to rebuild for
     // its own reasons anyway.
     _timer?.cancel();
     _timer = Timer(hold, () {
-      if (_arriving.isEmpty) return;
+      if (_arriving.isEmpty && _sending.isEmpty) return;
       _arriving.clear();
+      _sending.clear();
       onSettled();
     });
   }
@@ -183,6 +205,7 @@ class MessageArrivals {
     _drawn.clear();
     _folded.clear();
     _arriving.clear();
+    _sending.clear();
     _timer?.cancel();
     _timer = null;
   }
@@ -236,9 +259,19 @@ class ArrivingRow extends StatefulWidget {
     required this.duration,
     required this.curve,
     required this.child,
+    this.sent = false,
+    this.mine = false,
   });
 
   final bool animate;
+
+  /// The reader's own send: full height from the first frame, the bubble
+  /// rising out of the composer on a spring instead of the row growing in.
+  final bool sent;
+
+  /// Which side the row hangs from, so a rising send scales about its own
+  /// corner rather than the middle of the screen.
+  final bool mine;
   final Duration duration;
   final Curve curve;
   final Widget child;
@@ -247,6 +280,8 @@ class ArrivingRow extends StatefulWidget {
   State<ArrivingRow> createState() => _ArrivingRowState();
 }
 
+const Duration _riseDuration = Duration(milliseconds: 380);
+
 class _ArrivingRowState extends State<ArrivingRow>
     with SingleTickerProviderStateMixin {
   AnimationController? _ctrl;
@@ -254,9 +289,11 @@ class _ArrivingRowState extends State<ArrivingRow>
   @override
   void initState() {
     super.initState();
-    if (widget.animate) {
-      _ctrl = AnimationController(vsync: this, duration: widget.duration)
-        ..forward();
+    if (widget.animate || widget.sent) {
+      _ctrl = AnimationController(
+        vsync: this,
+        duration: widget.sent ? _riseDuration : widget.duration,
+      )..forward();
     }
   }
 
@@ -272,6 +309,33 @@ class _ArrivingRowState extends State<ArrivingRow>
     // Nothing to play, or it has finished: hand back the child itself so a
     // settled transcript carries no extra layout or opacity layer per row.
     if (ctrl == null || ctrl.isCompleted) return widget.child;
+    if (widget.sent) {
+      // The rise: from just above the composer to its place, overshooting a
+      // touch on the way in. Transform only — no layout, so the list under it
+      // has already settled and the reader's thumb sees nothing move but the
+      // bubble.
+      final rise = CurvedAnimation(parent: ctrl, curve: Curves.easeOutBack);
+      final fade = CurvedAnimation(
+        parent: ctrl,
+        curve: const Interval(0, 0.35, curve: Curves.easeOut),
+      );
+      return AnimatedBuilder(
+        animation: ctrl,
+        child: widget.child,
+        builder: (context, child) => Opacity(
+          opacity: fade.value,
+          child: Transform.translate(
+            offset: Offset(0, (1 - rise.value) * 36),
+            child: Transform.scale(
+              scale: 0.92 + 0.08 * rise.value,
+              alignment:
+                  widget.mine ? Alignment.bottomRight : Alignment.bottomLeft,
+              child: child,
+            ),
+          ),
+        ),
+      );
+    }
     final t = CurvedAnimation(parent: ctrl, curve: widget.curve);
     return AnimatedBuilder(
       animation: t,
@@ -281,7 +345,15 @@ class _ArrivingRowState extends State<ArrivingRow>
       builder: (context, child) => Align(
         alignment: Alignment.topCenter,
         heightFactor: t.value,
-        child: Opacity(opacity: t.value, child: child),
+        child: Opacity(
+          opacity: t.value,
+          // A short slide up as it grows, so an incoming message arrives
+          // rather than unrolls.
+          child: Transform.translate(
+            offset: Offset(0, (1 - t.value) * 14),
+            child: child,
+          ),
+        ),
       ),
     );
   }

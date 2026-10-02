@@ -130,4 +130,24 @@ void main() {
       );
     }
   });
+
+  // The redesigned hero is a title and a subtitle per mode; the first-run /
+  // returning split has to survive the move in every language.
+  test('every locale greets a new device differently from a returning one',
+      () async {
+    for (final locale in AppLocalizations.supportedLocales) {
+      final l10n = await AppLocalizations.delegate.load(locale);
+      expect(l10n.loginTitleFirst, isNotEmpty, reason: '$locale');
+      expect(
+        l10n.loginTitleFirst,
+        isNot(l10n.loginTitleReturning),
+        reason: '$locale greets a new device as a returning one',
+      );
+      expect(
+        l10n.loginSubtitleFirst,
+        isNot(l10n.loginSubtitleSignIn),
+        reason: '$locale',
+      );
+    }
+  });
 }

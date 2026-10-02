@@ -1,4 +1,5 @@
 import 'package:flutter/gestures.dart' show kLongPressTimeout;
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -88,9 +89,13 @@ void main() {
             .pumpWidget(host(build(onCamera: () => taps++)));
         await tester.pumpAndSettle();
 
-        expect(find.byIcon(Icons.photo_camera_outlined), findsOneWidget);
+        // Each composer draws its own camera glyph: the liquid one is iOS's.
+        final camera = find.byIcon(name == 'liquid'
+            ? CupertinoIcons.camera
+            : Icons.photo_camera_outlined);
+        expect(camera, findsOneWidget);
         expect(find.byIcon(Icons.mic_none_outlined), findsNothing);
-        await tester.tap(find.byIcon(Icons.photo_camera_outlined));
+        await tester.tap(camera);
         expect(taps, 1);
       });
 

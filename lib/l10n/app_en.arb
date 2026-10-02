@@ -11568,5 +11568,137 @@
   "acctUnblock": "Unblock",
   "@acctUnblock": {
     "description": "Button beside a blocked person that unblocks them."
+  },
+  "pvSubtitle": "Control what others see and how they can reach you.",
+  "@pvSubtitle": {
+    "description": "Line under the Profile visibility title."
+  },
+  "pvSectionProfile": "Profile",
+  "@pvSectionProfile": {
+    "description": "Section header."
+  },
+  "pvSectionMessages": "Messages",
+  "@pvSectionMessages": {
+    "description": "Section header."
+  },
+  "pvSectionPeople": "People",
+  "@pvSectionPeople": {
+    "description": "Section header."
+  },
+  "pvSectionFeed": "Feed",
+  "@pvSectionFeed": {
+    "description": "Section header over feed-sharing settings."
+  },
+  "pvAvatar": "Profile photo",
+  "@pvAvatar": {
+    "description": "Setting: who can see your profile photo."
+  },
+  "pvAvatarDesc": "Who can see your picture",
+  "@pvAvatarDesc": {
+    "description": "Explanation under Profile photo."
+  },
+  "pvOnline": "Online status",
+  "@pvOnline": {
+    "description": "Setting: who sees whether you're online/away."
+  },
+  "pvOnlineDesc": "Whether you appear active right now",
+  "@pvOnlineDesc": {
+    "description": "Explanation under Online status."
+  },
+  "pvLastSeen": "Last seen",
+  "@pvLastSeen": {
+    "description": "Setting: who sees when you were last online."
+  },
+  "pvLastSeenDesc": "When you were last around",
+  "@pvLastSeenDesc": {
+    "description": "Explanation under Last seen."
+  },
+  "pvSendReceipts": "Send read receipts",
+  "@pvSendReceipts": {
+    "description": "Setting: whether others can see you've read their messages."
+  },
+  "pvSendReceiptsDesc": "Let others see when you've read their messages",
+  "@pvSendReceiptsDesc": {
+    "description": "Explanation under Send read receipts."
+  },
+  "pvShowReceipts": "Show read receipts",
+  "@pvShowReceipts": {
+    "description": "Setting: whether you see who read your messages."
+  },
+  "pvShowReceiptsDesc": "See who has read your messages",
+  "@pvShowReceiptsDesc": {
+    "description": "Explanation under Show read receipts."
+  },
+  "pvShowReceiptsHint": "Only people who send read receipts are counted.",
+  "@pvShowReceiptsHint": {
+    "description": "Note under Show read receipts."
+  },
+  "pvFriendRequests": "Friend requests",
+  "@pvFriendRequests": {
+    "description": "Setting: who can send you friend requests."
+  },
+  "pvFriendRequestsDesc": "Who can send you friend requests",
+  "@pvFriendRequestsDesc": {
+    "description": "Explanation under Friend requests."
+  },
+  "pvSupervisedTitle": "Your grown-ups set these",
+  "@pvSupervisedTitle": {
+    "description": "Heading of the notice a supervised child sees on visibility settings."
+  },
+  "pvEveryone": "Everyone",
+  "@pvEveryone": {
+    "description": "Visibility option."
+  },
+  "pvFriends": "Friends",
+  "@pvFriends": {
+    "description": "Visibility option."
+  },
+  "pvNobody": "Nobody",
+  "@pvNobody": {
+    "description": "Visibility option."
+  },
+  "pvOn": "On",
+  "@pvOn": {
+    "description": "Toggle option."
+  },
+  "pvOff": "Off",
+  "@pvOff": {
+    "description": "Toggle option."
+  },
+  "pvAnyone": "Anyone",
+  "@pvAnyone": {
+    "description": "Friend-request option: anyone may send one."
+  },
+  "pvHighlights": "My highlights",
+  "@pvHighlights": {
+    "description": "Feed setting."
+  },
+  "pvHighlightsDesc": "Whether your photos and videos show on friends' boards for the day",
+  "@pvHighlightsDesc": {
+    "description": "Explanation under My highlights."
+  },
+  "pvPuzzle": "My puzzle score",
+  "@pvPuzzle": {
+    "description": "Feed setting."
+  },
+  "pvPuzzleDesc": "Whether friends see how you did on the daily puzzle",
+  "@pvPuzzleDesc": {
+    "description": "Explanation under My puzzle score."
+  },
+  "pvPast": "My past",
+  "@pvPast": {
+    "description": "Feed setting about sharing older points/history."
+  },
+  "pvPastDesc": "Today is always shared with friends — this opens up everything before it",
+  "@pvPastDesc": {
+    "description": "Explanation under My past."
+  },
+  "pvPoints": "My points",
+  "@pvPoints": {
+    "description": "Feed setting."
+  },
+  "pvPointsDesc": "Whether the points you log show on friends' boards",
+  "@pvPointsDesc": {
+    "description": "Explanation under My points."
   }
 }

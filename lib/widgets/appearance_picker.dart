@@ -1,9 +1,11 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
+import '../theme/motion.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 
@@ -27,124 +29,166 @@ class ThemeMiniPreview extends StatelessWidget {
     this.onTap,
   });
 
-  /// The theme being previewed. Distinct from the one the preview sits on.
   final AppTheme candidate;
   final double width;
   final bool selected;
 
-  /// A word in the corner — NOW, LIGHT, DARK. Null for none.
+  /// A small tag over the top edge — NOW, on the half of a light/dark pair the
+  /// device is showing.
   final String? badge;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final outer = ThemeScope.of(context);
+    final motion = MotionScope.of(context);
     final t = candidate;
     final height = width / 0.64;
-    final radius = width * 0.17;
+    final radius = width * 0.2;
+    const ring = 2.5;
+    const gap = 3.0;
 
-    final phone = AnimatedContainer(
-      duration: outer.motionFast,
-      curve: outer.motionCurve,
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
-        border: Border.all(
-          color: selected ? outer.accent : outer.divider,
-          width: selected ? 2 : 1,
-        ),
-        boxShadow: selected
-            ? [
-                BoxShadow(
-                  color: outer.accent.withValues(alpha: 0.35),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ]
-            : null,
-      ),
-      child: Padding(
-        // Inside the stroke, so the corners of the screen never cut across it.
-        padding: EdgeInsets.all(selected ? 2 : 1),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(radius - 2),
-          child: ColoredBox(
-            color: t.background,
-            child: Padding(
-              padding: EdgeInsets.all(width * 0.08),
+    // A phone showing this theme's chat list as it really is now: a large
+    // title, a few rows (face, name, preview, inset hairline) and the floating
+    // bar — not a generic stack of bubbles, which is not the first thing
+    // anyone sees in the app.
+    final screen = ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: Stack(
+          children: [
+            Positioned.fill(child: ColoredBox(color: t.background)),
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                width * 0.09,
+                width * 0.12,
+                width * 0.09,
+                0,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _Header(t: t, width: width),
-                  const Spacer(),
-                  _Bubble(t: t, mine: false, fraction: 0.62, width: width),
-                  SizedBox(height: width * 0.05),
-                  _Bubble(t: t, mine: true, fraction: 0.5, width: width),
-                  SizedBox(height: width * 0.05),
-                  _Bubble(t: t, mine: false, fraction: 0.4, width: width),
-                  SizedBox(height: width * 0.08),
-                  Container(
-                    height: width * 0.12,
-                    decoration: BoxDecoration(
-                      color: t.surfaceSunken,
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: t.divider),
-                    ),
-                    alignment: Alignment.centerRight,
-                    padding: EdgeInsets.all(width * 0.02),
-                    child: AspectRatio(
-                      aspectRatio: 1,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: t.accent,
-                          shape: BoxShape.circle,
-                        ),
+                  FractionallySizedBox(
+                    widthFactor: 0.48,
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      height: width * 0.07,
+                      decoration: BoxDecoration(
+                        color: t.ink,
+                        borderRadius: BorderRadius.circular(999),
                       ),
                     ),
                   ),
+                  SizedBox(height: width * 0.07),
+                  for (var i = 0; i < 4; i++)
+                    _Row(t: t, width: width, seed: i, unread: i == 0, last: i == 3),
                 ],
               ),
             ),
-          ),
+            Positioned(
+              left: width * 0.14,
+              right: width * 0.14,
+              bottom: width * 0.07,
+              child: Container(
+                height: width * 0.13,
+                decoration: BoxDecoration(
+                  color: Color.alphaBlend(
+                    t.ink.withValues(alpha: 0.08),
+                    t.surface,
+                  ),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    for (var i = 0; i < 4; i++)
+                      Container(
+                        width: width * 0.05,
+                        height: width * 0.05,
+                        decoration: BoxDecoration(
+                          color: i == 0 ? t.accent : t.inkMuted,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
 
-    final framed = Stack(
-      clipBehavior: Clip.none,
-      children: [
-        phone,
-        if (badge != null)
-          Positioned(
-            top: -7,
-            left: 0,
-            right: 0,
-            child: Center(child: _Badge(text: badge!)),
-          ),
-        if (selected)
-          Positioned(
-            right: -5,
-            bottom: -5,
+    final framed = SizedBox(
+      width: width + 2 * (ring + gap),
+      height: height + 2 * (ring + gap),
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          // The chosen one wears a ring with a gap, never a glow.
+          AnimatedOpacity(
+            opacity: selected ? 1 : 0,
+            duration: motion.d(const Duration(milliseconds: 180)),
             child: Container(
-              width: 20,
-              height: 20,
               decoration: BoxDecoration(
-                color: outer.accent,
-                shape: BoxShape.circle,
-                border: Border.all(color: outer.background, width: 2),
+                borderRadius: BorderRadius.circular(radius + ring + gap),
+                border: Border.all(color: outer.accent, width: ring),
               ),
-              child: Icon(Icons.check, size: 12, color: outer.accentInk),
             ),
           ),
-      ],
+          DecoratedBox(
+            position: DecorationPosition.foreground,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(radius),
+              border: Border.all(
+                color: outer.ink.withValues(alpha: 0.10),
+                width: 0.5,
+              ),
+            ),
+            child: screen,
+          ),
+          if (badge != null)
+            Positioned(
+              top: -4,
+              left: 0,
+              right: 0,
+              child: Center(child: _Badge(text: badge!)),
+            ),
+          Positioned(
+            right: -3,
+            bottom: -3,
+            child: AnimatedScale(
+              scale: selected ? 1 : 0,
+              duration: motion.d(const Duration(milliseconds: 420)),
+              curve: selected ? Curves.elasticOut : Curves.easeIn,
+              child: Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  color: outer.accent,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: outer.background, width: 2),
+                ),
+                child: Icon(
+                  CupertinoIcons.checkmark_alt,
+                  size: 13,
+                  color: outer.accentInk,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
 
     final labelled = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         framed,
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         SizedBox(
           width: width + 12,
           child: Text(
@@ -152,9 +196,10 @@ class ThemeMiniPreview extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: outer.monoTiny.copyWith(
-              color: selected ? outer.accent : outer.inkSoft,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+            style: outer.caption.copyWith(
+              fontSize: 13,
+              color: selected ? outer.ink : outer.inkSoft,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
             ),
           ),
         ),
@@ -167,93 +212,138 @@ class ThemeMiniPreview extends StatelessWidget {
       semanticLabel: t.name,
       selected: selected,
       radius: radius,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: labelled,
+      child: _Springy(onTap: onTap!, child: labelled),
+    );
+  }
+}
+
+/// Dip on press, overshoot on release — the tile feels like it has mass.
+class _Springy extends StatefulWidget {
+  const _Springy({required this.onTap, required this.child});
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  State<_Springy> createState() => _SpringyState();
+}
+
+class _SpringyState extends State<_Springy> {
+  bool _down = false;
+
+  void _set(bool v) {
+    if (_down != v) setState(() => _down = v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final motion = MotionScope.of(context);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => _set(true),
+      onTapUp: (_) => _set(false),
+      onTapCancel: () => _set(false),
+      onTap: widget.onTap,
+      child: AnimatedScale(
+        scale: _down ? 0.94 : 1,
+        duration: motion.d(
+          _down
+              ? const Duration(milliseconds: 90)
+              : const Duration(milliseconds: 460),
+        ),
+        curve: _down ? Curves.easeOut : Curves.elasticOut,
+        child: widget.child,
       ),
     );
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.t, required this.width});
+/// One chat row in miniature.
+class _Row extends StatelessWidget {
+  const _Row({
+    required this.t,
+    required this.width,
+    required this.seed,
+    required this.unread,
+    required this.last,
+  });
+
   final AppTheme t;
   final double width;
+  final int seed;
+  final bool unread;
+  final bool last;
 
   @override
   Widget build(BuildContext context) {
-    final dot = width * 0.13;
-    return Row(
-      children: [
-        Container(
-          width: dot,
-          height: dot,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(colors: t.avatarGradient(7)),
-          ),
-        ),
-        SizedBox(width: width * 0.05),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    final face = width * 0.15;
+    final hue = t.avatarGradient(seed * 7 + 3).first;
+    return Padding(
+      padding: EdgeInsets.only(bottom: width * 0.035),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
             children: [
-              _line(t.ink, 0.7),
-              SizedBox(height: width * 0.025),
-              _line(t.inkMuted, 0.45),
+              Container(
+                width: face,
+                height: face,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color.lerp(hue, Colors.white, 0.2)!, hue],
+                  ),
+                ),
+              ),
+              SizedBox(width: width * 0.05),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _line(t.ink, 0.55 - seed * 0.06),
+                    SizedBox(height: width * 0.022),
+                    _line(t.inkMuted, 0.85 - seed * 0.08),
+                  ],
+                ),
+              ),
+              SizedBox(width: width * 0.04),
+              Container(
+                width: width * 0.055,
+                height: width * 0.055,
+                decoration: BoxDecoration(
+                  color: unread ? t.bubbleFill(isMine: true) : Colors.transparent,
+                  shape: BoxShape.circle,
+                ),
+              ),
             ],
           ),
-        ),
-      ],
+          if (!last) ...[
+            SizedBox(height: width * 0.035),
+            Padding(
+              padding: EdgeInsets.only(left: face + width * 0.05),
+              child: Container(
+                height: 0.5,
+                color: t.ink.withValues(alpha: 0.12),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
   Widget _line(Color c, double fraction) => FractionallySizedBox(
-        widthFactor: fraction,
+        widthFactor: fraction.clamp(0.2, 1.0),
         alignment: Alignment.centerLeft,
         child: Container(
-          height: width * 0.035,
+          height: width * 0.032,
           decoration: BoxDecoration(
             color: c.withValues(alpha: 0.85),
             borderRadius: BorderRadius.circular(999),
           ),
         ),
       );
-}
-
-class _Bubble extends StatelessWidget {
-  const _Bubble({
-    required this.t,
-    required this.mine,
-    required this.fraction,
-    required this.width,
-  });
-
-  final AppTheme t;
-  final bool mine;
-  final double fraction;
-  final double width;
-
-  @override
-  Widget build(BuildContext context) {
-    final deco = t.messageBubbleDecoration(isMine: mine, ephemeral: false);
-    return Align(
-      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
-      child: FractionallySizedBox(
-        widthFactor: fraction,
-        child: Container(
-          height: width * 0.12,
-          decoration: BoxDecoration(
-            color: deco.color ?? (mine ? t.accent : t.surfaceRaised),
-            gradient: deco.gradient,
-            border: deco.border,
-            borderRadius: BorderRadius.circular(width * 0.06),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _Badge extends StatelessWidget {
@@ -271,22 +361,17 @@ class _Badge extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: outer.monoTiny.copyWith(
+        style: outer.caption.copyWith(
           color: outer.accentInk,
-          fontSize: 8.5,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 1.2,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
         ),
       ),
     );
   }
 }
 
-/// Match device, or one theme — the first question, as two cards.
-///
-/// Cards rather than a two-word segmented control, because the two options
-/// need their one line of explanation to be chosen between: "Match device"
-/// alone does not say that the app will go dark at night.
 class AppearanceModeSwitch extends StatelessWidget {
   const AppearanceModeSwitch({
     super.key,
@@ -312,9 +397,9 @@ class AppearanceModeSwitch extends StatelessWidget {
         children: [
           Expanded(
             child: _ModeCard(
-              icon: Icons.brightness_auto_outlined,
+              icon: CupertinoIcons.circle_lefthalf_fill,
               title: l10n.appearanceMatchDevice,
-              sub: l10n.appearanceMatchDeviceSub,
+              sub: l10n.appearanceMatchDeviceSubtitle,
               selected: mode == AppearanceMode.system,
               onTap: () => pick(AppearanceMode.system),
             ),
@@ -322,9 +407,9 @@ class AppearanceModeSwitch extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: _ModeCard(
-              icon: Icons.palette_outlined,
+              icon: CupertinoIcons.paintbrush_fill,
               title: l10n.appearanceOneTheme,
-              sub: l10n.appearanceOneThemeSub,
+              sub: l10n.appearanceOneThemeSubtitle,
               selected: mode == AppearanceMode.fixed,
               onTap: () => pick(AppearanceMode.fixed),
             ),
@@ -365,13 +450,20 @@ class _ModeCard extends StatelessWidget {
           duration: theme.motionFast,
           curve: theme.motionCurve,
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+          // Filled, never outlined: the chosen card takes a wash of the
+          // accent and the other stays a plain grouped surface, the way an
+          // iOS picker marks its selection.
           decoration: BoxDecoration(
-            color: selected ? theme.accentSoft : theme.surface,
-            borderRadius: BorderRadius.circular(theme.radiusLg),
-            border: Border.all(
-              color: selected ? theme.accent : theme.divider,
-              width: selected ? 1.6 : 1,
-            ),
+            color: selected
+                ? Color.alphaBlend(
+                    theme.accent.withValues(alpha: 0.16),
+                    theme.surface,
+                  )
+                : Color.alphaBlend(
+                    theme.ink.withValues(alpha: 0.04),
+                    theme.surface,
+                  ),
+            borderRadius: BorderRadius.circular(theme.radiusXl.clamp(10, 22)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -380,25 +472,38 @@ class _ModeCard extends StatelessWidget {
                 children: [
                   Icon(
                     icon,
-                    size: 20,
+                    size: 22,
                     color: selected ? theme.accent : theme.inkSoft,
                   ),
                   const Spacer(),
-                  AnimatedOpacity(
-                    duration: theme.motionFast,
-                    opacity: selected ? 1 : 0,
+                  AnimatedScale(
+                    scale: selected ? 1 : 0,
+                    duration: MotionScope.of(context).d(
+                      const Duration(milliseconds: 420),
+                    ),
+                    curve: selected ? Curves.elasticOut : Curves.easeIn,
                     child: Icon(
-                      Icons.check_circle,
-                      size: 18,
+                      CupertinoIcons.checkmark_alt_circle_fill,
+                      size: 20,
                       color: theme.accent,
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 10),
-              Text(title, style: theme.bodyEmph.copyWith(fontSize: 15)),
+              Text(
+                title,
+                style: theme.bodyEmph.copyWith(fontSize: 16, color: theme.ink),
+              ),
               const SizedBox(height: 3),
-              Text(sub, style: theme.caption),
+              Text(
+                sub,
+                style: theme.caption.copyWith(
+                  fontSize: 13,
+                  height: 1.3,
+                  color: theme.inkMuted,
+                ),
+              ),
             ],
           ),
         ),
@@ -407,8 +512,6 @@ class _ModeCard extends StatelessWidget {
   }
 }
 
-/// The two halves of the device-following pair, side by side, with NOW on the
-/// one showing. Tapping a half calls [onTapSlot] with its brightness.
 class ThemeSlotPair extends StatelessWidget {
   const ThemeSlotPair({
     super.key,
@@ -491,13 +594,13 @@ class ThemeStrip extends StatelessWidget {
     return SizedBox(
       // The preview, its caption, and room for the badge and the check to
       // overhang without being clipped by the list.
-      height: previewWidth / 0.64 + 44,
+      height: previewWidth / 0.64 + 58,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(4, 10, 4, 4),
+        padding: const EdgeInsets.fromLTRB(2, 8, 2, 4),
         clipBehavior: Clip.none,
         itemCount: themes.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 14),
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (context, i) {
           final t = themes[i];
           return ThemeMiniPreview(

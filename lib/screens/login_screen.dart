@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/gestures.dart' show TapGestureRecognizer;
 import 'package:flutter/material.dart';
 
@@ -18,11 +19,15 @@ import '../platform.dart';
 import '../services/link_opener.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
+import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
+import '../data/settings_store.dart';
 import '../data/username_availability_controller.dart';
+import '../widgets/app_icon_picker.dart';
 import '../widgets/device_login_panel.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/password_field.dart';
+import '../widgets/prominent_button.dart';
 import '../widgets/self_host_badge.dart' show shortHost;
 import '../widgets/social_sign_in_buttons.dart';
 import '../widgets/username_status_label.dart';
@@ -68,44 +73,33 @@ enum _AuthMode {
   /// "welcome back" is a claim we have no basis for. Sign-up and reset read the
   /// same either way — one is addressed to a new account by definition, the
   /// other to someone who already has one.
-  String heroMuted(BuildContext context, {required bool returning}) {
+  String title(BuildContext context, {required bool returning}) {
     final l10n = AppLocalizations.of(context);
-    switch (this) {
-      case _AuthMode.signIn:
-        return returning
-            ? l10n.loginScreenSignInHeroMuted
-            : l10n.loginScreenSignInFirstHeroMuted;
-      case _AuthMode.signUp:
-        return l10n.loginScreenSignUpHeroMuted;
-      case _AuthMode.reset:
-        return l10n.loginScreenResetHeroMuted;
-    }
+    return switch (this) {
+      _AuthMode.signIn =>
+        returning ? l10n.loginTitleReturning : l10n.loginTitleFirst,
+      _AuthMode.signUp => l10n.loginTitleSignUp,
+      _AuthMode.reset => l10n.loginTitleReset,
+    };
   }
 
-  String heroInk(BuildContext context, {required bool returning}) {
+  String subtitle(BuildContext context, {required bool returning}) {
     final l10n = AppLocalizations.of(context);
-    switch (this) {
-      case _AuthMode.signIn:
-        return returning
-            ? l10n.loginScreenSignInHeroInk
-            : l10n.loginScreenSignInFirstHeroInk;
-      case _AuthMode.signUp:
-        return l10n.loginScreenSignUpHeroInk;
-      case _AuthMode.reset:
-        return l10n.loginScreenResetHeroInk;
-    }
+    return switch (this) {
+      _AuthMode.signIn =>
+        returning ? l10n.loginSubtitleSignIn : l10n.loginSubtitleFirst,
+      _AuthMode.signUp => l10n.loginSubtitleSignUp,
+      _AuthMode.reset => l10n.loginSubtitleReset,
+    };
   }
 
   String cta(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    switch (this) {
-      case _AuthMode.signIn:
-        return l10n.loginScreenSignInCta;
-      case _AuthMode.signUp:
-        return l10n.loginScreenSignUpCta;
-      case _AuthMode.reset:
-        return l10n.loginScreenResetCta;
-    }
+    return switch (this) {
+      _AuthMode.signIn => l10n.loginCtaSignIn,
+      _AuthMode.signUp => l10n.loginCtaSignUp,
+      _AuthMode.reset => l10n.loginCtaReset,
+    };
   }
 }
 
@@ -438,14 +432,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _Hero(mode: _mode),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 30),
                     ..._fields(),
                     if (_error != null) ...[
                       const SizedBox(height: 14),
                       _ErrorBanner(_error!),
                     ],
                     const SizedBox(height: 20),
-                    _SubmitButton(
+                    ProminentButton(
                       busy: _busy,
                       label: _mode.cta(context),
                       onTap: _submit,
@@ -486,7 +480,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return [
       ThemedInput(
         controller: _username,
-        hint: l10n.loginScreenUsernameHint,
+        hint: l10n.loginUsernameField,
         autocorrect: false,
         enableSuggestions: false,
         autofocus: isPhysicalKeyboardPlatform,
@@ -500,7 +494,7 @@ class _LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: 12),
         PasswordField(
           controller: _password,
-          hint: l10n.loginScreenPasswordHint,
+          hint: l10n.loginPasswordField,
           textInputAction: passwordIsLast
               ? TextInputAction.done
               : TextInputAction.next,
@@ -511,7 +505,7 @@ class _LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: 12),
         PasswordField(
           controller: _confirmPassword,
-          hint: l10n.loginScreenConfirmPasswordHint,
+          hint: l10n.loginConfirmPasswordField,
           textInputAction: TextInputAction.next,
           onSubmitted: (_) => _next(),
         ),
@@ -522,7 +516,7 @@ class _LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: 12),
         ThemedInput(
           controller: _name,
-          hint: l10n.loginScreenNameOptionalHint,
+          hint: l10n.loginNameField,
           textInputAction: TextInputAction.done,
           onSubmitted: (_) => _submit(),
         ),
@@ -535,7 +529,7 @@ class _LoginScreenState extends State<LoginScreen> {
         // it right and it says wrong".
         ThemedInput(
           controller: _phrase,
-          hint: l10n.loginScreenRecoveryPhraseHint,
+          hint: l10n.loginRecoveryPhraseField,
           minLines: 2,
           maxLines: 4,
           autocorrect: false,
@@ -551,7 +545,7 @@ class _LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: 12),
         PasswordField(
           controller: _newPassword,
-          hint: l10n.loginScreenNewPasswordHint,
+          hint: l10n.loginNewPasswordField,
           textInputAction: TextInputAction.done,
           onSubmitted: (_) => _submit(),
         ),
@@ -573,7 +567,7 @@ class _LoginScreenState extends State<LoginScreen> {
         children: [
           if (_mode == _AuthMode.reset)
             _TextLink(
-              label: l10n.loginScreenBackToSignIn,
+              label: l10n.loginBackToSignIn,
               onTap: () => _switchTo(_AuthMode.signIn),
             )
           else ...[
@@ -586,12 +580,12 @@ class _LoginScreenState extends State<LoginScreen> {
             if (_mode == _AuthMode.signIn) ...[
               const SizedBox(height: 10),
               _TextLink(
-                label: l10n.loginScreenForgotPassword,
+                label: l10n.loginForgotPassword,
                 onTap: () => _switchTo(_AuthMode.reset),
               ),
               const SizedBox(height: 10),
               _TextLink(
-                label: l10n.loginScreenSettingUpKidsPhone,
+                label: l10n.loginChildAccount,
                 onTap: () => setState(() => _pairing = true),
               ),
               // Desktop/web only — scanning a QR needs a phone on the other
@@ -602,7 +596,7 @@ class _LoginScreenState extends State<LoginScreen> {
               if (isWebOrDesktop && showPhoneLink) ...[
                 const SizedBox(height: 10),
                 _TextLink(
-                  label: l10n.loginScreenSignInWithPhone,
+                  label: l10n.loginWithPhone,
                   onTap: () => setState(() => _deviceLogin = true),
                 ),
               ],
@@ -699,7 +693,7 @@ class _ServerChip extends StatelessWidget {
                     const SizedBox(width: 7),
                     Text(
                       label,
-                      style: theme.monoTiny.copyWith(color: tone),
+                      style: theme.caption.copyWith(fontSize: 12, color: tone),
                       maxLines: 1,
                     ),
                   ],
@@ -725,7 +719,11 @@ class _LegalNote extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final base = theme.monoTiny.copyWith(color: theme.inkMuted);
+    final base = theme.caption.copyWith(
+      fontSize: 12,
+      height: 1.4,
+      color: theme.inkMuted,
+    );
     final link = base.copyWith(
       color: theme.inkSoft,
       decoration: TextDecoration.underline,
@@ -757,6 +755,10 @@ class _LegalNote extends StatelessWidget {
   }
 }
 
+/// The brand, then what this screen is for: the app's mark arriving on a
+/// spring, a large title and one line under it. The title cross-fades when
+/// the mode changes, so switching to sign-up reads as the same screen
+/// changing its mind rather than a new one.
 class _Hero extends StatelessWidget {
   const _Hero({required this.mode});
   final _AuthMode mode;
@@ -764,21 +766,90 @@ class _Hero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final motion = MotionScope.of(context);
     // Read straight off the in-memory marker rather than awaiting the keychain:
     // it was populated by `loadSession()` during boot, which is the same
     // guarantee `_pairing` relies on, and a future here would flash the wrong
     // greeting for a frame.
     final returning = SessionStore.instance.hasSignedInBefore;
-    return RichText(
-      text: TextSpan(
-        style: theme.displayHero,
-        children: [
-          TextSpan(
-            text: mode.heroMuted(context, returning: returning),
-            style: theme.displayHero.copyWith(color: theme.inkMuted),
+    return Column(
+      children: [
+        TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0, end: 1),
+          duration: motion.d(const Duration(milliseconds: 1100)),
+          curve: Curves.elasticOut,
+          builder: (context, v, child) => Transform.scale(
+            scale: 0.5 + 0.5 * v,
+            child: Opacity(opacity: v.clamp(0.0, 1.0), child: child),
           ),
-          TextSpan(text: mode.heroInk(context, returning: returning)),
+          child: const _BrandTile(),
+        ),
+        const SizedBox(height: 22),
+        AnimatedSwitcher(
+          duration: motion.d(const Duration(milliseconds: 260)),
+          transitionBuilder: (child, anim) => FadeTransition(
+            opacity: anim,
+            child: SlideTransition(
+              position: Tween(
+                begin: const Offset(0, 0.15),
+                end: Offset.zero,
+              ).animate(anim),
+              child: child,
+            ),
+          ),
+          child: Column(
+            key: ValueKey(mode),
+            children: [
+              Text(
+                mode.title(context, returning: returning),
+                textAlign: TextAlign.center,
+                style: theme.displayLarge.copyWith(letterSpacing: 0.37),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                mode.subtitle(context, returning: returning),
+                textAlign: TextAlign.center,
+                style: theme.bodySoft.copyWith(height: 1.35),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The app's current mark on an icon-shaped tile, as it sits on the home
+/// screen — the same face the person tapped to get here.
+class _BrandTile extends StatelessWidget {
+  const _BrandTile();
+
+  @override
+  Widget build(BuildContext context) {
+    const size = 84.0;
+    return Container(
+      width: size,
+      height: size,
+      clipBehavior: Clip.antiAlias,
+      decoration: ShapeDecoration(
+        shape: ContinuousRectangleBorder(
+          borderRadius: BorderRadius.circular(size * 0.45),
+        ),
+        shadows: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.14),
+            blurRadius: 22,
+            offset: const Offset(0, 4),
+          ),
         ],
+      ),
+      child: AnimatedBuilder(
+        animation: SettingsStore.instance,
+        builder: (context, _) => appIconArt(
+          SettingsStore.instance,
+          currentIconChoice(SettingsStore.instance),
+          size,
+        ),
       ),
     );
   }
@@ -792,71 +863,27 @@ class _ErrorBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
         color: theme.danger.withValues(alpha: 0.12),
-        border: Border(left: BorderSide(color: theme.danger, width: 2)),
-        borderRadius: BorderRadius.circular(theme.radiusMd),
+        borderRadius: BorderRadius.circular(14),
       ),
-      child: Text(message, style: theme.body.copyWith(color: theme.danger)),
-    );
-  }
-}
-
-class _SubmitButton extends StatelessWidget {
-  const _SubmitButton({
-    required this.busy,
-    required this.label,
-    required this.onTap,
-  });
-  final bool busy;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: busy ? null : onTap,
-      enabled: !busy,
-      semanticLabel: label,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: theme.motionFast,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: busy ? theme.accentSoft : theme.accent,
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-            boxShadow: busy
-                ? null
-                : [
-                    BoxShadow(
-                      color: theme.accent.withValues(alpha: 0.4),
-                      blurRadius: 20,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            CupertinoIcons.exclamationmark_circle_fill,
+            size: 18,
+            color: theme.danger,
           ),
-          child: busy
-              ? SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: theme.accentInk,
-                  ),
-                )
-              : Text(
-                  label,
-                  style: theme.label.copyWith(
-                    color: theme.accentInk,
-                    letterSpacing: 2.4,
-                  ),
-                ),
-        ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: theme.body.copyWith(fontSize: 15, color: theme.danger),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -878,18 +905,21 @@ class _ModeToggle extends StatelessWidget {
         onTap: onTap,
         child: RichText(
           text: TextSpan(
-            style: theme.bodySoft,
+            style: theme.bodySoft.copyWith(color: theme.inkMuted),
             children: [
               TextSpan(
                 text: isSignUp
-                    ? l10n.loginScreenAlreadyHerePrompt
-                    : l10n.loginScreenNoAccountPrompt,
+                    ? l10n.loginHaveAccountPrompt
+                    : l10n.loginNoAccountPrompt,
               ),
               TextSpan(
                 text: isSignUp
-                    ? l10n.loginScreenSignInLink
-                    : l10n.loginScreenOpenOneLink,
-                style: theme.body.copyWith(color: theme.accent),
+                    ? l10n.loginSignInLink
+                    : l10n.loginCreateAccountLink,
+                style: theme.bodySoft.copyWith(
+                  color: theme.accent,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -916,8 +946,10 @@ class _WordCounter extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: Text(
         AppLocalizations.of(context).loginScreenWordCounter(count),
-        style: theme.monoTiny.copyWith(
+        style: theme.caption.copyWith(
+          fontSize: 13,
           color: complete ? theme.accent : theme.inkMuted,
+          fontFeatures: const [FontFeature.tabularFigures()],
         ),
       ),
     );
@@ -935,9 +967,15 @@ class _TextLink extends StatelessWidget {
     return Center(
       child: GestureDetector(
         onTap: onTap,
-        child: Text(
-          label,
-          style: theme.monoTiny.copyWith(color: theme.inkMuted),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Text(
+            label,
+            style: theme.bodySoft.copyWith(
+              fontSize: 15,
+              color: theme.inkSoft,
+            ),
+          ),
         ),
       ),
     );

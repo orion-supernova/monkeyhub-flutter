@@ -192,14 +192,20 @@ class _LiquidGlassState extends State<LiquidGlass> {
     );
 
     // Stroke + shadow live outside the clip so the shadow casts past the glass.
+    // On a light page a dropped shadow reads as a hard grey lip under the
+    // glass — the elevated-FAB look. Centred and halved there, it floats the
+    // surface instead; dark themes keep exactly what was tuned.
+    final lightPage = theme.background.computeLuminance() > 0.5;
     final framed = DecoratedBox(
       decoration: ShapeDecoration(
         shape: framedShape,
         shadows: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: cfg.of(kShadowOpacity)),
+            color: Colors.black.withValues(
+              alpha: cfg.of(kShadowOpacity) * (lightPage ? 0.5 : 1),
+            ),
             blurRadius: cfg.of(kShadowBlur),
-            offset: Offset(0, cfg.of(kShadowY)),
+            offset: Offset(0, lightPage ? 0 : cfg.of(kShadowY)),
           ),
         ],
       ),

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -114,6 +115,17 @@ void main() {
     });
   });
 
+  // The liquid composer draws iOS glyphs (Messages' "+" and camera); the
+  // classic one keeps its own.
+  const cameraIcon = {
+    'classic': Icons.photo_camera_outlined,
+    'liquid': CupertinoIcons.camera,
+  };
+  const attachIcon = {
+    'classic': Icons.add,
+    'liquid': CupertinoIcons.plus,
+  };
+
   composers.forEach((name, build) {
     group(name, () {
       testWidgets('shows a camera button when one is wired up', (tester) async {
@@ -121,7 +133,7 @@ void main() {
         await tester.pumpWidget(host(build(onCamera: () => taps++)));
         await tester.pumpAndSettle();
 
-        final camera = find.byIcon(Icons.photo_camera_outlined);
+        final camera = find.byIcon(cameraIcon[name]!);
         expect(camera, findsOneWidget);
 
         await tester.tap(camera);
@@ -135,10 +147,10 @@ void main() {
         await tester.pumpWidget(host(build()));
         await tester.pumpAndSettle();
 
-        expect(find.byIcon(Icons.photo_camera_outlined), findsNothing);
+        expect(find.byIcon(cameraIcon[name]!), findsNothing);
         // The rest of the composer is untouched — this is an absent button, not
         // a broken row.
-        expect(find.byIcon(Icons.add), findsOneWidget);
+        expect(find.byIcon(attachIcon[name]!), findsOneWidget);
         expect(find.byType(TextField), findsOneWidget);
       });
     });
@@ -158,7 +170,7 @@ void main() {
   // handle on the button: the composer row is full of GestureDetectors.
   const sendIcon = {
     'classic': Icons.north_east,
-    'liquid': Icons.arrow_upward,
+    'liquid': CupertinoIcons.arrow_up,
   };
 
   /// Every haptic the widget plays, by type, until the test ends.
@@ -418,7 +430,7 @@ void main() {
       controller.clear();
       await tester.pumpAndSettle();
       expect(send, findsNothing);
-      expect(find.byIcon(Icons.photo_camera_outlined), findsOneWidget);
+      expect(find.byIcon(cameraIcon[name]!), findsOneWidget);
     });
   });
 }

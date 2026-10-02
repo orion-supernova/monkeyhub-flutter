@@ -624,6 +624,16 @@ class _BranchButton extends StatelessWidget {
 
 // ───────────────────────── A) Phantom Echo ─────────────────────────
 
+/// The quoted author's name, in every reply style: sentence case, semibold,
+/// untracked. It was tracked-out monospace capitals, which shouted the one
+/// word in the quote that matters least.
+TextStyle replyNameStyle(AppTheme theme) => theme.caption.copyWith(
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0,
+      height: 1.2,
+    );
+
 class _PhantomEcho extends StatelessWidget {
   const _PhantomEcho({
     required this.preview,
@@ -676,38 +686,49 @@ class _PhantomEcho extends StatelessWidget {
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: deleted ? null : onTap,
+              // No BackdropFilter. There used to be one at sigma 0.4 — a blur
+              // too faint to see that still cost a full compositing pass per
+              // reply row. The card reads as a quote by its accent rail, the
+              // Telegram mark for "this is what was being answered".
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: BackdropFilter(
-                  // A whisper of blur to give the "phantom" feel without
-                  // making it illegible.
-                  filter: ImageFilter.blur(sigmaX: 0.4, sigmaY: 0.4),
-                  child: Container(
-                    padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
-                    decoration: BoxDecoration(
-                      color: phantomBg.withValues(alpha: 0.88),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: tone.mark.withValues(alpha: 0.28),
-                        width: 0.8,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.10),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: phantomBg.withValues(alpha: 0.88),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: IntrinsicHeight(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      // The rail sits on the edge the thread below drops from,
+                      // which is the edge the reply bubble aligns to.
+                      textDirection: isMine
+                          ? (Directionality.of(context) == TextDirection.ltr
+                              ? TextDirection.rtl
+                              : TextDirection.ltr)
+                          : null,
+                      children: [
+                        Container(
+                          width: 3,
+                          color: deleted ? phantomMuted : tone.mark,
+                        ),
+                        Flexible(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(9, 6, 12, 6),
+                            child: _PhantomBody(
+                              preview: preview,
+                              api: api,
+                              parentAuthor: parentAuthor,
+                              theme: theme,
+                              tone: tone,
+                              phantomInk: phantomInk,
+                              phantomMuted: phantomMuted,
+                              deleted: deleted,
+                            ),
+                          ),
                         ),
                       ],
-                    ),
-                    child: _PhantomBody(
-                      preview: preview,
-                      api: api,
-                      parentAuthor: parentAuthor,
-                      theme: theme,
-                      tone: tone,
-                      phantomInk: phantomInk,
-                      phantomMuted: phantomMuted,
-                      deleted: deleted,
                     ),
                   ),
                 ),
@@ -771,31 +792,19 @@ class _PhantomConnectorPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5
+      ..strokeWidth = 2
       ..strokeCap = StrokeCap.round
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [color.withValues(alpha: 0.35), color.withValues(alpha: 0.95)],
+        colors: [color.withValues(alpha: 0.9), color.withValues(alpha: 0.15)],
       ).createShader(Offset.zero & size);
 
-    final path = Path();
-    if (isMine) {
-      // Curve emerges from the trailing side of the phantom (right) and
-      // dives down to the main bubble's leading (still on the right since
-      // mine bubbles are right-aligned). Soft S-curve.
-      path.moveTo(size.width - 8, 2);
-      path.quadraticBezierTo(
-        size.width - 36,
-        size.height / 2,
-        size.width - 12,
-        size.height - 2,
-      );
-    } else {
-      path.moveTo(8, 2);
-      path.quadraticBezierTo(36, size.height / 2, 12, size.height - 2);
-    }
-    canvas.drawPath(path, paint);
+    // A straight thread continuing the quote's accent rail down to the
+    // bubble. It used to be a quadratic S-curve, which on its own between two
+    // boxes read as a stray parenthesis rather than as a connection.
+    final x = isMine ? size.width - 1.5 : 1.5;
+    canvas.drawLine(Offset(x, 2), Offset(x, size.height - 4), paint);
   }
 
   @override
@@ -846,8 +855,8 @@ class _PhantomBody extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                preview.senderName.toUpperCase(),
-                style: theme.monoTiny.copyWith(
+                preview.senderName,
+                style: replyNameStyle(theme).copyWith(
                   color: deleted ? phantomMuted : tone.ink,
                 ),
                 maxLines: 1,
@@ -988,8 +997,8 @@ class _StickyNote extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  preview.senderName.toUpperCase(),
-                                  style: theme.monoTiny.copyWith(
+                                  preview.senderName,
+                                  style: replyNameStyle(theme).copyWith(
                                     color: deleted ? theme.inkMuted : tone.ink,
                                   ),
                                   maxLines: 1,
@@ -1182,8 +1191,8 @@ class _ComicTail extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              preview.senderName.toUpperCase(),
-                              style: theme.monoTiny.copyWith(
+                              preview.senderName,
+                              style: replyNameStyle(theme).copyWith(
                                 color: deleted ? theme.inkMuted : tone.ink,
                               ),
                               maxLines: 1,
@@ -1408,8 +1417,8 @@ class _ClassicQuote extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            preview.senderName.toUpperCase(),
-                            style: theme.monoTiny.copyWith(
+                            preview.senderName,
+                            style: replyNameStyle(theme).copyWith(
                               color: deleted ? mutedInk : tone.ink,
                             ),
                             maxLines: 1,

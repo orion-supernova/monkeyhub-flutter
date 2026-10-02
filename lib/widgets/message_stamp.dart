@@ -183,7 +183,15 @@ class MessageStamp extends StatelessWidget {
       StampTone.onMedia => Colors.white,
     };
 
-    final style = theme.monoTiny.copyWith(
+    // The theme's caption face at Telegram's size, untracked. It used to be
+    // `monoTiny` — tracked-out small caps meant for section labels — which
+    // made every clock in the transcript read like terminal output and, at
+    // its width, pushed the stamp onto a line of its own far more often.
+    final style = theme.caption.copyWith(
+      fontSize: 11.5,
+      height: 1.0,
+      letterSpacing: 0,
+      fontWeight: FontWeight.w400,
       color: quiet,
       // `monoTiny` has none. Without them a per-second countdown breathes the
       // paragraph's wrap point, because the stamp now shares a line box with
@@ -338,7 +346,7 @@ class StampSpacer extends StatelessWidget {
         child: Opacity(
           opacity: 0,
           child: Padding(
-            padding: const EdgeInsetsDirectional.only(start: 10),
+            padding: const EdgeInsetsDirectional.only(start: 6),
             child: stamp,
           ),
         ),

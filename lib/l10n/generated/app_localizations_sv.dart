@@ -10035,4 +10035,106 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get acctUnblock => 'Avblockera';
+
+  @override
+  String get pvSubtitle => 'Styr vad andra ser och hur de kan nå dig.';
+
+  @override
+  String get pvSectionProfile => 'Profil';
+
+  @override
+  String get pvSectionMessages => 'Meddelanden';
+
+  @override
+  String get pvSectionPeople => 'Personer';
+
+  @override
+  String get pvSectionFeed => 'Flöde';
+
+  @override
+  String get pvAvatar => 'Profilbild';
+
+  @override
+  String get pvAvatarDesc => 'Vem kan se din bild';
+
+  @override
+  String get pvOnline => 'Onlinestatus';
+
+  @override
+  String get pvOnlineDesc => 'Om du syns som aktiv just nu';
+
+  @override
+  String get pvLastSeen => 'Senast sedd';
+
+  @override
+  String get pvLastSeenDesc => 'När du senast var här';
+
+  @override
+  String get pvSendReceipts => 'Skicka läskvitton';
+
+  @override
+  String get pvSendReceiptsDesc =>
+      'Låt andra se när du har läst deras meddelanden';
+
+  @override
+  String get pvShowReceipts => 'Visa läskvitton';
+
+  @override
+  String get pvShowReceiptsDesc => 'Se vem som har läst dina meddelanden';
+
+  @override
+  String get pvShowReceiptsHint => 'Bara de som skickar läskvitton räknas.';
+
+  @override
+  String get pvFriendRequests => 'Vänförfrågningar';
+
+  @override
+  String get pvFriendRequestsDesc => 'Vem kan skicka vänförfrågningar';
+
+  @override
+  String get pvSupervisedTitle => 'Dina vuxna ställer in detta';
+
+  @override
+  String get pvEveryone => 'Alla';
+
+  @override
+  String get pvFriends => 'Vänner';
+
+  @override
+  String get pvNobody => 'Ingen';
+
+  @override
+  String get pvOn => 'På';
+
+  @override
+  String get pvOff => 'Av';
+
+  @override
+  String get pvAnyone => 'Vem som helst';
+
+  @override
+  String get pvHighlights => 'Mina höjdpunkter';
+
+  @override
+  String get pvHighlightsDesc =>
+      'Om dina bilder och videor syns på vännernas tavlor för dagen';
+
+  @override
+  String get pvPuzzle => 'Mitt pusselresultat';
+
+  @override
+  String get pvPuzzleDesc => 'Om vänner ser hur det gick på dagens pussel';
+
+  @override
+  String get pvPast => 'Min historik';
+
+  @override
+  String get pvPastDesc =>
+      'Idag delas alltid med vänner — det här öppnar allt före det';
+
+  @override
+  String get pvPoints => 'Mina poäng';
+
+  @override
+  String get pvPointsDesc => 'Om poängen du loggar syns på vännernas tavlor';
 }

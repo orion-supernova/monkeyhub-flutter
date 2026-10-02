@@ -11,6 +11,7 @@ import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/code_field.dart';
+import '../widgets/ios_kit.dart' show GlassBackButton;
 
 enum _Stage { entry, confirm, done }
 
@@ -272,19 +273,15 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 14),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: onClose,
-            behavior: HitTestBehavior.opaque,
-            child: Icon(Icons.arrow_back, size: 20, color: theme.inkSoft),
-          ),
-          const SizedBox(width: 14),
+          GlassBackButton(onTap: onClose),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               AppLocalizations.of(context).profileScreenScanToSignInLabel,
-              style: theme.label.copyWith(letterSpacing: 2.8),
+              style: theme.bodyEmph.copyWith(color: theme.ink),
               overflow: TextOverflow.ellipsis,
             ),
           ),

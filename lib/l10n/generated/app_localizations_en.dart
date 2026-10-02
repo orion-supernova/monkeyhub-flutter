@@ -10001,4 +10001,110 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get acctUnblock => 'Unblock';
+
+  @override
+  String get pvSubtitle =>
+      'Control what others see and how they can reach you.';
+
+  @override
+  String get pvSectionProfile => 'Profile';
+
+  @override
+  String get pvSectionMessages => 'Messages';
+
+  @override
+  String get pvSectionPeople => 'People';
+
+  @override
+  String get pvSectionFeed => 'Feed';
+
+  @override
+  String get pvAvatar => 'Profile photo';
+
+  @override
+  String get pvAvatarDesc => 'Who can see your picture';
+
+  @override
+  String get pvOnline => 'Online status';
+
+  @override
+  String get pvOnlineDesc => 'Whether you appear active right now';
+
+  @override
+  String get pvLastSeen => 'Last seen';
+
+  @override
+  String get pvLastSeenDesc => 'When you were last around';
+
+  @override
+  String get pvSendReceipts => 'Send read receipts';
+
+  @override
+  String get pvSendReceiptsDesc =>
+      'Let others see when you\'ve read their messages';
+
+  @override
+  String get pvShowReceipts => 'Show read receipts';
+
+  @override
+  String get pvShowReceiptsDesc => 'See who has read your messages';
+
+  @override
+  String get pvShowReceiptsHint =>
+      'Only people who send read receipts are counted.';
+
+  @override
+  String get pvFriendRequests => 'Friend requests';
+
+  @override
+  String get pvFriendRequestsDesc => 'Who can send you friend requests';
+
+  @override
+  String get pvSupervisedTitle => 'Your grown-ups set these';
+
+  @override
+  String get pvEveryone => 'Everyone';
+
+  @override
+  String get pvFriends => 'Friends';
+
+  @override
+  String get pvNobody => 'Nobody';
+
+  @override
+  String get pvOn => 'On';
+
+  @override
+  String get pvOff => 'Off';
+
+  @override
+  String get pvAnyone => 'Anyone';
+
+  @override
+  String get pvHighlights => 'My highlights';
+
+  @override
+  String get pvHighlightsDesc =>
+      'Whether your photos and videos show on friends\' boards for the day';
+
+  @override
+  String get pvPuzzle => 'My puzzle score';
+
+  @override
+  String get pvPuzzleDesc =>
+      'Whether friends see how you did on the daily puzzle';
+
+  @override
+  String get pvPast => 'My past';
+
+  @override
+  String get pvPastDesc =>
+      'Today is always shared with friends — this opens up everything before it';
+
+  @override
+  String get pvPoints => 'My points';
+
+  @override
+  String get pvPointsDesc =>
+      'Whether the points you log show on friends\' boards';
 }

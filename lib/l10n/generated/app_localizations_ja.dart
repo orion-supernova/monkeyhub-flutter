@@ -9605,4 +9605,103 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get acctUnblock => 'ブロック解除';
+
+  @override
+  String get pvSubtitle => '他の人に見える内容と、連絡できる方法を管理します。';
+
+  @override
+  String get pvSectionProfile => 'プロフィール';
+
+  @override
+  String get pvSectionMessages => 'メッセージ';
+
+  @override
+  String get pvSectionPeople => '人';
+
+  @override
+  String get pvSectionFeed => 'フィード';
+
+  @override
+  String get pvAvatar => 'プロフィール写真';
+
+  @override
+  String get pvAvatarDesc => '写真を見られる人';
+
+  @override
+  String get pvOnline => 'オンライン状態';
+
+  @override
+  String get pvOnlineDesc => '今アクティブに見えるかどうか';
+
+  @override
+  String get pvLastSeen => '最終ログイン';
+
+  @override
+  String get pvLastSeenDesc => '最後にいた時間';
+
+  @override
+  String get pvSendReceipts => '既読を送信';
+
+  @override
+  String get pvSendReceiptsDesc => 'メッセージを読んだことを相手に表示します';
+
+  @override
+  String get pvShowReceipts => '既読を表示';
+
+  @override
+  String get pvShowReceiptsDesc => 'メッセージを読んだ人を確認';
+
+  @override
+  String get pvShowReceiptsHint => '既読を送信している人だけが数えられます。';
+
+  @override
+  String get pvFriendRequests => '友達リクエスト';
+
+  @override
+  String get pvFriendRequestsDesc => '友達リクエストを送れる人';
+
+  @override
+  String get pvSupervisedTitle => 'これは見守る大人が設定します';
+
+  @override
+  String get pvEveryone => '全員';
+
+  @override
+  String get pvFriends => '友達';
+
+  @override
+  String get pvNobody => 'なし';
+
+  @override
+  String get pvOn => 'オン';
+
+  @override
+  String get pvOff => 'オフ';
+
+  @override
+  String get pvAnyone => '誰でも';
+
+  @override
+  String get pvHighlights => 'マイハイライト';
+
+  @override
+  String get pvHighlightsDesc => '写真や動画をその日の友達のボードに表示するかどうか';
+
+  @override
+  String get pvPuzzle => 'パズルのスコア';
+
+  @override
+  String get pvPuzzleDesc => 'デイリーパズルの結果を友達に見せるかどうか';
+
+  @override
+  String get pvPast => '過去の記録';
+
+  @override
+  String get pvPastDesc => '今日の分は常に友達と共有されます。これはそれ以前の記録を公開します';
+
+  @override
+  String get pvPoints => 'マイポイント';
+
+  @override
+  String get pvPointsDesc => '記録したポイントを友達のボードに表示するかどうか';
 }

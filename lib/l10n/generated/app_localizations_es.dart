@@ -10106,4 +10106,109 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get acctUnblock => 'Desbloquear';
+
+  @override
+  String get pvSubtitle =>
+      'Controla lo que ven los demás y cómo pueden contactarte.';
+
+  @override
+  String get pvSectionProfile => 'Perfil';
+
+  @override
+  String get pvSectionMessages => 'Mensajes';
+
+  @override
+  String get pvSectionPeople => 'Personas';
+
+  @override
+  String get pvSectionFeed => 'Feed';
+
+  @override
+  String get pvAvatar => 'Foto de perfil';
+
+  @override
+  String get pvAvatarDesc => 'Quién puede ver tu foto';
+
+  @override
+  String get pvOnline => 'Estado en línea';
+
+  @override
+  String get pvOnlineDesc => 'Si apareces activo ahora';
+
+  @override
+  String get pvLastSeen => 'Última vez';
+
+  @override
+  String get pvLastSeenDesc => 'Cuándo estuviste por última vez';
+
+  @override
+  String get pvSendReceipts => 'Enviar confirmaciones de lectura';
+
+  @override
+  String get pvSendReceiptsDesc =>
+      'Deja que otros vean cuándo has leído sus mensajes';
+
+  @override
+  String get pvShowReceipts => 'Mostrar confirmaciones de lectura';
+
+  @override
+  String get pvShowReceiptsDesc => 'Ver quién ha leído tus mensajes';
+
+  @override
+  String get pvShowReceiptsHint =>
+      'Solo cuentan quienes envían confirmaciones de lectura.';
+
+  @override
+  String get pvFriendRequests => 'Solicitudes de amistad';
+
+  @override
+  String get pvFriendRequestsDesc => 'Quién puede enviarte solicitudes';
+
+  @override
+  String get pvSupervisedTitle => 'Tus adultos eligen esto';
+
+  @override
+  String get pvEveryone => 'Todos';
+
+  @override
+  String get pvFriends => 'Amigos';
+
+  @override
+  String get pvNobody => 'Nadie';
+
+  @override
+  String get pvOn => 'Sí';
+
+  @override
+  String get pvOff => 'No';
+
+  @override
+  String get pvAnyone => 'Cualquiera';
+
+  @override
+  String get pvHighlights => 'Mis momentos';
+
+  @override
+  String get pvHighlightsDesc =>
+      'Si tus fotos y vídeos aparecen en los tableros de tus amigos del día';
+
+  @override
+  String get pvPuzzle => 'Mi puntuación del puzle';
+
+  @override
+  String get pvPuzzleDesc => 'Si tus amigos ven cómo te fue en el puzle diario';
+
+  @override
+  String get pvPast => 'Mi historial';
+
+  @override
+  String get pvPastDesc =>
+      'Hoy siempre se comparte con amigos; esto abre todo lo anterior';
+
+  @override
+  String get pvPoints => 'Mis puntos';
+
+  @override
+  String get pvPointsDesc =>
+      'Si los puntos que registras aparecen en los tableros de tus amigos';
 }

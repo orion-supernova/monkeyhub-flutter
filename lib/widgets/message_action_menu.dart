@@ -535,27 +535,31 @@ class _Scrim extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
+        // A fixed blur faded in by opacity — never a blur whose sigma moves.
+        // Animating sigma re-runs the whole-screen blur at a new radius every
+        // frame of the menu's entrance and exit; a constant one is the same
+        // filter each frame, and only the layer's alpha changes over it.
         child: AnimatedBuilder(
           animation: t,
-          builder: (_, _) {
-            return Stack(
-              children: [
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 22 * t.value, sigmaY: 22 * t.value),
-                      child: const SizedBox.expand(),
-                    ),
+          // Clamped: the curve is the theme's entrance, and a springy one
+          // overshoots past 1, which an opacity cannot take.
+          builder: (_, child) =>
+              Opacity(opacity: t.value.clamp(0.0, 1.0), child: child),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+                    child: const SizedBox.expand(),
                   ),
                 ),
-                Positioned.fill(
-                  child: ColoredBox(
-                    color: Colors.black.withValues(alpha: 0.32 * t.value),
-                  ),
-                ),
-              ],
-            );
-          },
+              ),
+              const Positioned.fill(
+                child: ColoredBox(color: Color(0x52000000)),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -587,7 +591,9 @@ class _LiftedBubble extends StatelessWidget {
         child: AnimatedBuilder(
           animation: t,
           builder: (_, c) {
-            final scale = 1 + 0.04 * t.value;
+            // Lifts toward 1.03 — the long-press "pick up", subtle enough
+            // that the bubble reads as raised rather than zoomed.
+            final scale = 1 + 0.03 * t.value;
             return Transform.scale(
               scale: scale,
               alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,

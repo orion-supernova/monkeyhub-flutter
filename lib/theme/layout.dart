@@ -99,10 +99,12 @@ class MessageGap {
 
   /// Between two messages from the same sender. Tight on purpose — this is what
   /// makes a run read as one block of speech instead of four separate cards.
-  static const double withinRun = 3;
+  static const double withinRun = 2;
 
   /// Between runs: a new speaker, or the same one returning after a break.
-  static const double betweenRuns = 14;
+  // iMessage's rhythm: runs held together at 2, speakers parted by 10. At 14
+  // a short back-and-forth spent more of the screen on air than on words.
+  static const double betweenRuns = 10;
 
   /// Above a date divider or the room intro. Equal to [betweenRuns] so the air
   /// above a marker matches the air below it — which the following row owns.

@@ -10171,4 +10171,105 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get acctUnblock => 'إلغاء الحظر';
+
+  @override
+  String get pvSubtitle => 'تحكّم فيما يراه الآخرون وكيف يمكنهم الوصول إليك.';
+
+  @override
+  String get pvSectionProfile => 'الملف الشخصي';
+
+  @override
+  String get pvSectionMessages => 'الرسائل';
+
+  @override
+  String get pvSectionPeople => 'الأشخاص';
+
+  @override
+  String get pvSectionFeed => 'الموجز';
+
+  @override
+  String get pvAvatar => 'صورة الملف الشخصي';
+
+  @override
+  String get pvAvatarDesc => 'من يمكنه رؤية صورتك';
+
+  @override
+  String get pvOnline => 'حالة الاتصال';
+
+  @override
+  String get pvOnlineDesc => 'هل تظهر نشطًا الآن';
+
+  @override
+  String get pvLastSeen => 'آخر ظهور';
+
+  @override
+  String get pvLastSeenDesc => 'متى كنت متواجدًا آخر مرة';
+
+  @override
+  String get pvSendReceipts => 'إرسال إشعارات القراءة';
+
+  @override
+  String get pvSendReceiptsDesc => 'السماح للآخرين برؤية أنك قرأت رسائلهم';
+
+  @override
+  String get pvShowReceipts => 'إظهار إشعارات القراءة';
+
+  @override
+  String get pvShowReceiptsDesc => 'معرفة من قرأ رسائلك';
+
+  @override
+  String get pvShowReceiptsHint => 'يُحتسب فقط من يرسلون إشعارات القراءة.';
+
+  @override
+  String get pvFriendRequests => 'طلبات الصداقة';
+
+  @override
+  String get pvFriendRequestsDesc => 'من يمكنه إرسال طلبات صداقة إليك';
+
+  @override
+  String get pvSupervisedTitle => 'يضبط هذه الإعدادات الكبار المسؤولون عنك';
+
+  @override
+  String get pvEveryone => 'الجميع';
+
+  @override
+  String get pvFriends => 'الأصدقاء';
+
+  @override
+  String get pvNobody => 'لا أحد';
+
+  @override
+  String get pvOn => 'تشغيل';
+
+  @override
+  String get pvOff => 'إيقاف';
+
+  @override
+  String get pvAnyone => 'أي شخص';
+
+  @override
+  String get pvHighlights => 'أبرز لحظاتي';
+
+  @override
+  String get pvHighlightsDesc =>
+      'هل تظهر صورك ومقاطعك في لوحات أصدقائك لهذا اليوم';
+
+  @override
+  String get pvPuzzle => 'نتيجتي في اللغز';
+
+  @override
+  String get pvPuzzleDesc => 'هل يرى أصدقاؤك أداءك في لغز اليوم';
+
+  @override
+  String get pvPast => 'ماضيّ';
+
+  @override
+  String get pvPastDesc =>
+      'يُشارك اليوم دائمًا مع الأصدقاء — هذا يفتح كل ما قبله';
+
+  @override
+  String get pvPoints => 'نقاطي';
+
+  @override
+  String get pvPointsDesc => 'هل تظهر النقاط التي تسجلها في لوحات أصدقائك';
 }

@@ -9,6 +9,7 @@ import '../widgets/adaptive_page_body.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/username_status_label.dart';
 import 'pairing_code_screen.dart';
+import '../widgets/ios_kit.dart' show GlassBackButton;
 
 /// Creates a child account, then goes straight to pairing.
 ///
@@ -118,18 +119,15 @@ class _ChildSetupScreenState extends State<ChildSetupScreen> {
               child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 14),
                   child: Row(
                     children: [
-                      GestureDetector(
-                        onTap: () => Navigator.of(context).pop(),
-                        behavior: HitTestBehavior.opaque,
-                        child: Icon(Icons.arrow_back,
-                            size: 20, color: theme.inkSoft),
+                      const GlassBackButton(),
+                      const SizedBox(width: 12),
+                      Text(
+                        l10n.childSetupScreenTitle,
+                        style: theme.bodyEmph.copyWith(color: theme.ink),
                       ),
-                      const SizedBox(width: 14),
-                      Text(l10n.childSetupScreenTitle,
-                          style: theme.label.copyWith(letterSpacing: 2.8)),
                     ],
                   ),
                 ),

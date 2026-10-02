@@ -669,6 +669,7 @@ class SettingsStore extends ChangeNotifier {
     _themeOnboarded = true;
     notifyListeners();
     await _storage.write(key: _kThemeOnboarded, value: 'true');
+    _applyLauncherIcon();
   }
 
   Future<void> setRoomLayout(RoomLayout l) async {
@@ -1197,6 +1198,11 @@ class SettingsStore extends ChangeNotifier {
     // Midnight would swap the home-screen icon — and on iOS raise the system's
     // icon-changed alert — for a selection the person never made.
     if (_unread) return;
+    // Nor during first-run onboarding: picking a theme there must not swap
+    // the home-screen icon (and raise iOS's alert) before the icon step has
+    // asked whether the icon should follow it. [markThemeOnboarded] applies
+    // whatever was chosen.
+    if (!_themeOnboarded) return;
     LauncherIconService.applyFromSettings(ThemeController.byId(_iconThemeId));
   }
 }

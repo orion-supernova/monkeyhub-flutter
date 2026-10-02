@@ -213,4 +213,52 @@ void main() {
       a.dispose();
     });
   });
+
+  // A send rises out of the composer instead of growing in. It is still direct
+  // manipulation — the row is full height on the first frame — so it plays
+  // even when the reader is scrolled away (a send scrolls to the bottom), and
+  // its server echo folds onto the bubble's identity and never plays it again.
+  test('your own send rises once, and its echo does not replay it', () {
+    final a = ledger();
+    a.observe([msg('a')], myUserId: 'me', nearBottom: false);
+    a.observe(
+      [msg('a'), msg('tmp_1', senderId: 'me')],
+      myUserId: 'me',
+      nearBottom: false,
+    );
+    expect(a.isSending('tmp_1'), isTrue);
+    expect(a.isArriving('tmp_1'), isFalse, reason: 'a send never grows in');
+
+    fakeAsync((clock) {
+      final b = ledger();
+      b.observe([msg('a')], myUserId: 'me', nearBottom: true);
+      b.observe(
+        [msg('a'), msg('tmp_1', senderId: 'me')],
+        myUserId: 'me',
+        nearBottom: true,
+      );
+      clock.elapse(MessageArrivals.hold);
+      expect(b.isSending('tmp_1'), isFalse, reason: 'settles after the hold');
+      // The echo names the bubble it replaces: same identity, no second rise.
+      b.observe(
+        [msg('a'), msg('srv_1', senderId: 'me', clientId: 'tmp_1')],
+        myUserId: 'me',
+        nearBottom: true,
+      );
+      expect(b.keyFor(msg('srv_1', senderId: 'me', clientId: 'tmp_1')),
+          'tmp_1');
+      expect(b.isSending('tmp_1'), isFalse);
+    });
+  });
+
+  test('a burst of your own rows is a load, not a send', () {
+    final a = ledger();
+    a.observe([msg('a')], myUserId: 'me', nearBottom: true);
+    a.observe([
+      msg('a'),
+      for (var i = 0; i < MessageArrivals.maxBurst + 1; i++)
+        msg('mine_$i', senderId: 'me'),
+    ], myUserId: 'me', nearBottom: true);
+    expect(a.isSending('mine_0'), isFalse);
+  });
 }

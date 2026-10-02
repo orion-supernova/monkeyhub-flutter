@@ -10011,4 +10011,108 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get acctUnblock => 'अनब्लॉक';
+
+  @override
+  String get pvSubtitle => 'तय करें कि दूसरे क्या देखें और आप तक कैसे पहुँचें।';
+
+  @override
+  String get pvSectionProfile => 'प्रोफ़ाइल';
+
+  @override
+  String get pvSectionMessages => 'संदेश';
+
+  @override
+  String get pvSectionPeople => 'लोग';
+
+  @override
+  String get pvSectionFeed => 'फ़ीड';
+
+  @override
+  String get pvAvatar => 'प्रोफ़ाइल फ़ोटो';
+
+  @override
+  String get pvAvatarDesc => 'आपकी फ़ोटो कौन देख सकता है';
+
+  @override
+  String get pvOnline => 'ऑनलाइन स्थिति';
+
+  @override
+  String get pvOnlineDesc => 'क्या आप अभी सक्रिय दिखते हैं';
+
+  @override
+  String get pvLastSeen => 'अंतिम बार देखा गया';
+
+  @override
+  String get pvLastSeenDesc => 'आप आख़िरी बार कब थे';
+
+  @override
+  String get pvSendReceipts => 'पढ़ने की रसीद भेजें';
+
+  @override
+  String get pvSendReceiptsDesc =>
+      'दूसरों को दिखाएँ कि आपने उनके संदेश पढ़ लिए हैं';
+
+  @override
+  String get pvShowReceipts => 'पढ़ने की रसीद दिखाएँ';
+
+  @override
+  String get pvShowReceiptsDesc => 'देखें कि आपके संदेश किसने पढ़े';
+
+  @override
+  String get pvShowReceiptsHint =>
+      'केवल वही लोग गिने जाते हैं जो पढ़ने की रसीद भेजते हैं।';
+
+  @override
+  String get pvFriendRequests => 'मित्रता अनुरोध';
+
+  @override
+  String get pvFriendRequestsDesc => 'कौन आपको मित्रता अनुरोध भेज सकता है';
+
+  @override
+  String get pvSupervisedTitle => 'इन्हें आपके बड़े सेट करते हैं';
+
+  @override
+  String get pvEveryone => 'सभी';
+
+  @override
+  String get pvFriends => 'मित्र';
+
+  @override
+  String get pvNobody => 'कोई नहीं';
+
+  @override
+  String get pvOn => 'चालू';
+
+  @override
+  String get pvOff => 'बंद';
+
+  @override
+  String get pvAnyone => 'कोई भी';
+
+  @override
+  String get pvHighlights => 'मेरे हाइलाइट्स';
+
+  @override
+  String get pvHighlightsDesc =>
+      'क्या आपकी फ़ोटो और वीडियो दिन भर दोस्तों के बोर्ड पर दिखें';
+
+  @override
+  String get pvPuzzle => 'मेरा पहेली स्कोर';
+
+  @override
+  String get pvPuzzleDesc =>
+      'क्या दोस्त देखें कि दैनिक पहेली में आपने कैसा किया';
+
+  @override
+  String get pvPast => 'मेरा पिछला';
+
+  @override
+  String get pvPastDesc =>
+      'आज हमेशा दोस्तों के साथ साझा होता है — यह उससे पहले का सब खोलता है';
+
+  @override
+  String get pvPoints => 'मेरे पॉइंट्स';
+
+  @override
+  String get pvPointsDesc => 'क्या आपके दर्ज पॉइंट दोस्तों के बोर्ड पर दिखें';
 }

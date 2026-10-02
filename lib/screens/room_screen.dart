@@ -113,6 +113,7 @@ import '../widgets/scroll_to_latest.dart';
 import '../widgets/selection_check.dart';
 import '../widgets/skeleton_rows.dart';
 import '../widgets/speaker_scope.dart';
+import '../widgets/chat_list_row.dart' show MonogramAvatar, monogramGradient;
 import '../widgets/typing_indicator.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/room_gallery_scope.dart';
@@ -4149,6 +4150,7 @@ class _RoomScreenState extends State<RoomScreen>
                       dmUser: widget.repo.otherUserFor(room),
                       api: widget.api,
                       caps: widget.repo.capabilitiesFor(room),
+                      typists: widget.repo.typingIn(room.id),
                       onOpenInfo: () => _openRoomInfo(room),
                     ),
                     if (!room.isDm && GroupCallService.maybeInstance != null)
@@ -4945,7 +4947,7 @@ class _RoomScreenState extends State<RoomScreen>
                 if (departing != null) {
                   return _trackedDate(
                     stableId: 'm_${m.id}',
-                    label: humanDay(DateTime(m.createdAt.year, m.createdAt.month, m.createdAt.day)),
+                    label: transcriptDay(context, m.createdAt),
                     isDivider: false,
                     child: DepartingRow(
                       key: ValueKey('depart_$rowKey'),
@@ -5116,7 +5118,7 @@ class _RoomScreenState extends State<RoomScreen>
                 );
                 final tracked = _trackedDate(
                   stableId: 'm_${m.id}',
-                  label: humanDay(DateTime(m.createdAt.year, m.createdAt.month, m.createdAt.day)),
+                  label: transcriptDay(context, m.createdAt),
                   isDivider: false,
                   child: selecting
                       ? _SelectableRow(
@@ -5153,6 +5155,9 @@ class _RoomScreenState extends State<RoomScreen>
                   // sent themselves — draws at full size on the first frame.
                   key: ValueKey('arrive_$rowKey'),
                   animate: _arrivals.isArriving(rowKey),
+                  sent: !MotionScope.of(context).calm &&
+                      _arrivals.isSending(rowKey),
+                  mine: m.senderId == me,
                   duration: theme.motionMed,
                   curve: theme.motionEntrance,
                   child: tracked,
@@ -5751,30 +5756,52 @@ class _FoldSender extends StatelessWidget {
 
 /// The icon + label row a date marker renders, inline or floating — the one
 /// place to touch to change what a date marker looks like everywhere at once.
+/// The day a transcript row belongs to, the way Messages and Telegram write
+/// it: "Today", "Yesterday", then the system's own short date — localized,
+/// where the shared [humanDay] is fixed English capitals.
+String transcriptDay(BuildContext context, DateTime at) {
+  final local = at.toLocal();
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final day = DateTime(local.year, local.month, local.day);
+  final l10n = AppLocalizations.of(context);
+  if (day == today) return l10n.transcriptDayToday;
+  if (today.difference(day).inDays == 1) return l10n.chatListYesterday;
+  final material = MaterialLocalizations.of(context);
+  return day.year == now.year
+      ? material.formatShortMonthDay(day)
+      : material.formatMediumDate(day);
+}
+
 class _DateChipContent extends StatelessWidget {
   const _DateChipContent({required this.label});
   final String label;
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(CupertinoIcons.calendar, size: 11, color: theme.accent),
-        const SizedBox(width: 6),
-        Text(label, style: theme.monoTiny.copyWith(letterSpacing: 1.8)),
-      ],
+    return Text(
+      label,
+      style: theme.caption.copyWith(
+        fontSize: 13,
+        height: 1.2,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0,
+        color: theme.inkSoft,
+      ),
     );
   }
 }
 
-/// The decoration a date marker's pill sits on, shared by the inline divider
-/// and the floating chip so the two read as the same object, not a hard cut
-/// between "a line with text on it" and "a glass pill" mid-scroll.
+/// A soft pill in the page's own ink, no outline — Telegram's day marker. It
+/// used to be an accent-tinted, bordered capsule with a calendar glyph and
+/// tracked capitals, which made every day boundary the loudest thing on
+/// screen.
 BoxDecoration _dateChipDecoration(AppTheme theme, {List<BoxShadow>? shadow}) =>
     BoxDecoration(
-      color: theme.accentSoft,
-      border: Border.all(color: theme.divider, width: 1),
+      color: Color.alphaBlend(
+        theme.ink.withValues(alpha: 0.08),
+        theme.background,
+      ).withValues(alpha: 0.92),
       borderRadius: BorderRadius.circular(999),
       boxShadow: shadow,
     );
@@ -5791,7 +5818,7 @@ class _DateDivider extends StatelessWidget {
       padding: const EdgeInsets.only(top: MessageGap.aroundMarker),
       child: Center(
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: _dateChipDecoration(theme),
           child: _DateChipContent(label: label),
         ),
@@ -5834,10 +5861,11 @@ class _UnreadDivider extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         AppLocalizations.of(context).roomScreenUnreadDivider,
-        style: theme.monoTiny.copyWith(
+        style: theme.caption.copyWith(
+          fontSize: 13,
           color: theme.accent,
-          letterSpacing: 1.8,
-          fontWeight: FontWeight.w700,
+          letterSpacing: 0,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -5877,7 +5905,7 @@ class _FloatingDateChip extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: _dateChipDecoration(theme, shadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.16),
@@ -6094,6 +6122,24 @@ class _NoMessagesPlaceholder extends StatelessWidget {
 
 // ───────────────────────── liquid variant chrome ─────────────────────────
 
+/// The conversation header on its own, for design previews.
+@visibleForTesting
+Widget debugRoomHeader({
+  required ChatRoom room,
+  required ChatApi api,
+  required RoomCapabilities caps,
+  ChatUser? dmUser,
+  List<ChatUser> typists = const [],
+}) =>
+    _LiquidHeader(
+      room: room,
+      api: api,
+      caps: caps,
+      dmUser: dmUser,
+      typists: typists,
+      onOpenInfo: () {},
+    );
+
 class _LiquidHeader extends StatelessWidget {
   const _LiquidHeader({
     required this.room,
@@ -6101,6 +6147,7 @@ class _LiquidHeader extends StatelessWidget {
     required this.onOpenInfo,
     required this.caps,
     this.dmUser,
+    this.typists = const [],
   });
   final ChatRoom room;
   final ChatApi api;
@@ -6108,8 +6155,13 @@ class _LiquidHeader extends StatelessWidget {
   final RoomCapabilities caps;
   final ChatUser? dmUser;
 
-  /// Avatar diameter inside the title capsule.
-  static const _avatarSize = 32.0;
+  /// Who is typing right now. Takes over the status line while non-empty —
+  /// the place every messenger says it.
+  final List<ChatUser> typists;
+
+  /// Avatar diameter inside the title capsule — large enough to be a face,
+  /// and to hold a two-line name/status block level beside it.
+  static const _avatarSize = 34.0;
 
   /// Diameter of the round glass controls either side of the title.
   static const _controlSize = 44.0;
@@ -6226,6 +6278,49 @@ class _LiquidHeader extends StatelessWidget {
     ];
   }
 
+  /// The line under the name: typing, else online for a DM, else the member
+  /// count for a group. Null when there is nothing true to say — a DM with
+  /// someone offline shows their name alone rather than a guess.
+  Widget? _status(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final base = theme.caption.copyWith(
+      fontSize: 12.5,
+      height: 1.2,
+      letterSpacing: 0,
+    );
+    final String text;
+    var color = theme.inkMuted;
+    if (typists.isNotEmpty) {
+      // In a DM the name is the line above, so the verb alone; a group needs
+      // to say who.
+      text = dmUser != null && typists.length == 1
+          ? l10n.roomHeaderStatusTyping
+          : typingLabel(context, typists);
+      color = theme.accent;
+    } else if (room.isSavedMessages) {
+      return null;
+    } else if (dmUser != null) {
+      if (dmUser!.status != 'online') return null;
+      text = l10n.roomHeaderStatusOnline;
+      color = theme.success;
+    } else if (room.isGroupChat) {
+      text = l10n.roomHeaderStatusMembers(room.memberCount);
+    } else {
+      return null;
+    }
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 220),
+      child: Text(
+        text,
+        key: ValueKey(text),
+        style: base.copyWith(color: color),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -6241,7 +6336,9 @@ class _LiquidHeader extends StatelessWidget {
             shape: LiquidGlassShape.circle,
             size: const Size(_controlSize, _controlSize),
             onTap: () => _roomBack(context),
-            child: Icon(Icons.arrow_back, size: 18, color: theme.accent),
+            // The iOS 26 toolbar back: a chevron in the label colour. The
+            // accent arrow was Material's.
+            child: Icon(CupertinoIcons.chevron_back, size: 21, color: theme.ink),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -6253,20 +6350,31 @@ class _LiquidHeader extends StatelessWidget {
             child: Center(
               child: LiquidGlass(
                 shape: LiquidGlassShape.capsule,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.fromLTRB(5, 5, 16, 5),
                 onTap: onOpenInfo,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _buildAvatar(context),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 9),
                     Flexible(
-                      child: Text(
-                        title,
-                        style: theme.body
-                            .copyWith(fontWeight: FontWeight.w600, color: theme.ink),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: theme.body.copyWith(
+                              fontSize: 16,
+                              height: 1.2,
+                              fontWeight: FontWeight.w600,
+                              color: theme.ink,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          ?_status(context),
+                        ],
                       ),
                     ),
                   ],
@@ -6305,17 +6413,21 @@ class _RoomAvatar extends StatelessWidget {
         ),
       );
     }
-    return Container(
-      width: size,
-      height: size,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: theme.accent.withValues(alpha: 0.10),
-      ),
-      child: room.isEphemeral
-          ? theme.hourglassIcon(size: size * 0.56, color: theme.accent)
-          : Icon(Icons.tag, size: size * 0.56, color: theme.accent),
-    );
+    // The same lettered face the chat list gives this room, so the header
+    // and the row it was opened from show one identity. A secret room keeps
+    // its hourglass — that is the one thing worth knowing at a glance.
+    if (room.isEphemeral) {
+      return Container(
+        width: size,
+        height: size,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: monogramGradient(theme, room.id.hashCode),
+        ),
+        child: theme.hourglassIcon(size: size * 0.5, color: Colors.white),
+      );
+    }
+    return MonogramAvatar(label: room.name, seed: room.id, size: size);
   }
 }

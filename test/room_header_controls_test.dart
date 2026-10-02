@@ -51,15 +51,13 @@ void main() {
     'liquid': () => classBody('class _LiquidHeader extends StatelessWidget {'),
   };
 
-  /// How many lines each header gives the room name, which is NOT the same
-  /// number for the two of them.
+  /// How many lines each header gives the room name.
   ///
-  /// The classic header is a fixed bar with a subtitle row under the title, so
-  /// a second title line grows the bar and pushes the transcript down — it was
-  /// already the tallest thing on the chat at one line. The liquid capsule
-  /// floats over the transcript and carries no subtitle, so a second line
-  /// costs it nothing. Room Info has the full name either way.
-  const titleLines = {'classic': 1, 'liquid': 2};
+  /// Both carry a status line under the title now — the classic bar always
+  /// did, and the liquid capsule gained one (typing / online / members) — so a
+  /// second title line would grow either one and push the transcript down.
+  /// Room Info has the full name either way.
+  const titleLines = {'classic': 1, 'liquid': 1};
 
   for (final entry in headers.entries) {
     group('${entry.key} header', () {

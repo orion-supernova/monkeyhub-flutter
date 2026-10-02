@@ -9964,4 +9964,111 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get acctUnblock => 'Engeli kaldır';
+
+  @override
+  String get pvSubtitle =>
+      'Başkalarının ne gördüğünü ve sana nasıl ulaşabileceğini belirle.';
+
+  @override
+  String get pvSectionProfile => 'Profil';
+
+  @override
+  String get pvSectionMessages => 'Mesajlar';
+
+  @override
+  String get pvSectionPeople => 'Kişiler';
+
+  @override
+  String get pvSectionFeed => 'Akış';
+
+  @override
+  String get pvAvatar => 'Profil fotoğrafı';
+
+  @override
+  String get pvAvatarDesc => 'Fotoğrafını kimler görebilir';
+
+  @override
+  String get pvOnline => 'Çevrimiçi durumu';
+
+  @override
+  String get pvOnlineDesc => 'Şu an etkin görünüp görünmediğin';
+
+  @override
+  String get pvLastSeen => 'Son görülme';
+
+  @override
+  String get pvLastSeenDesc => 'En son ne zaman buralardaydın';
+
+  @override
+  String get pvSendReceipts => 'Okundu bilgisi gönder';
+
+  @override
+  String get pvSendReceiptsDesc =>
+      'Mesajlarını okuduğunda başkaları görebilsin';
+
+  @override
+  String get pvShowReceipts => 'Okundu bilgisini göster';
+
+  @override
+  String get pvShowReceiptsDesc => 'Mesajlarını kimin okuduğunu gör';
+
+  @override
+  String get pvShowReceiptsHint =>
+      'Yalnızca okundu bilgisi gönderenler sayılır.';
+
+  @override
+  String get pvFriendRequests => 'Arkadaşlık istekleri';
+
+  @override
+  String get pvFriendRequestsDesc =>
+      'Sana kimler arkadaşlık isteği gönderebilir';
+
+  @override
+  String get pvSupervisedTitle => 'Bunları büyüklerin ayarlar';
+
+  @override
+  String get pvEveryone => 'Herkes';
+
+  @override
+  String get pvFriends => 'Arkadaşlar';
+
+  @override
+  String get pvNobody => 'Hiç kimse';
+
+  @override
+  String get pvOn => 'Açık';
+
+  @override
+  String get pvOff => 'Kapalı';
+
+  @override
+  String get pvAnyone => 'Herkes';
+
+  @override
+  String get pvHighlights => 'Öne çıkanlarım';
+
+  @override
+  String get pvHighlightsDesc =>
+      'Fotoğraf ve videolarının günlük olarak arkadaşlarının panolarında görünüp görünmediği';
+
+  @override
+  String get pvPuzzle => 'Bulmaca puanım';
+
+  @override
+  String get pvPuzzleDesc =>
+      'Arkadaşların günlük bulmacada nasıl yaptığını görsün mü';
+
+  @override
+  String get pvPast => 'Geçmişim';
+
+  @override
+  String get pvPastDesc =>
+      'Bugün her zaman arkadaşlarla paylaşılır — bu, öncesini de açar';
+
+  @override
+  String get pvPoints => 'Puanlarım';
+
+  @override
+  String get pvPointsDesc =>
+      'Kaydettiğin puanların arkadaşlarının panolarında görünüp görünmediği';
 }

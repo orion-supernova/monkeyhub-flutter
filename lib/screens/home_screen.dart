@@ -17,7 +17,6 @@ import '../drop/drop_item.dart';
 import '../drop/drop_zone.dart';
 import '../widgets/pending_placeholder.dart';
 import '../widgets/skeleton_rows.dart';
-import '../data/glass_config.dart';
 import '../data/room_filter.dart';
 import '../data/settings_store.dart';
 import 'navigation/scroll_memory.dart';
@@ -28,7 +27,6 @@ import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
-import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/archived_chats_sheet.dart';
@@ -44,7 +42,6 @@ import '../widgets/room_filter_drawer.dart';
 import '../widgets/room_grid_tile.dart';
 import '../widgets/user_avatar.dart';
 import 'navigation/destinations.dart';
-import 'navigation/native_tab_bar.dart' show NativeChrome;
 import 'navigation/open_room.dart';
 import 'navigation/tab_reselect.dart';
 import '../widgets/app_toast.dart';
@@ -778,7 +775,6 @@ class _Header extends StatelessWidget {
                     child: LiquidGlass(
                       size: const Size(40, 40),
                       onTap: onCreateTap,
-                      config: _buttonGlass(theme),
                       child: Icon(
                         CupertinoIcons.square_pencil,
                         size: 19,
@@ -793,22 +789,6 @@ class _Header extends StatelessWidget {
       ),
     );
   }
-}
-
-/// The app-wide glass, with its drop shadow centred on light themes.
-///
-/// The standard recipe drops the shadow a few points below the glass, which
-/// on a dark page is depth and on a light one is a hard grey lip under a
-/// toolbar button — the elevated-FAB look this header exists to get away
-/// from. Dark themes keep exactly what the user has tuned.
-GlassConfig? _buttonGlass(AppTheme theme) {
-  // Under iOS Liquid Glass the button wears the matched recipe instead, whose
-  // shadow is already a soft float.
-  if (!theme.isLight || NativeChrome.active) return null;
-  final app = SettingsStore.instance.glass.app;
-  return app
-      .set(kShadowY, 0)
-      .set(kShadowOpacity, app.of(kShadowOpacity) * 0.5);
 }
 
 /// The large title, as the first thing in the list so it scrolls away under

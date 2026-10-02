@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -11,6 +12,7 @@ import '../keyboard/mention_keyboard_nav.dart';
 import '../keyboard/submit_on_enter.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/interaction.dart';
+import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'composer_capture.dart';
@@ -178,11 +180,21 @@ class _SendButtonState extends State<_SendButton>
             ),
             child: Icon(Icons.north_east, color: theme.accentInk, size: 16),
           )
-        : LiquidGlass(
-            shape: LiquidGlassShape.circle,
-            size: Size(size, size),
-            tinted: true,
-            child: Icon(Icons.arrow_upward, size: 18, color: theme.accentInk),
+        // A solid disc in the outgoing-bubble colour, not tinted glass: send
+        // is the one control on screen that commits something, and it wears
+        // the colour of what it is about to create.
+        : Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: theme.bubbleFill(isMine: true),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              CupertinoIcons.arrow_up,
+              size: 21,
+              color: theme.accentInk,
+            ),
           );
 
     if (widget.scheduledCount > 0) {
@@ -888,15 +900,17 @@ class ChatComposerLiquid extends StatelessWidget {
               shape: LiquidGlassShape.circle,
               size: const Size(44, 44),
               onTap: onAttach,
-              child: Icon(Icons.add, size: 18, color: theme.accent),
+              // The Messages "+": a glyph in the label colour on glass. The
+              // accent is kept for the one control that sends.
+              child: Icon(CupertinoIcons.plus, size: 21, color: theme.ink),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
           ],
           Expanded(
             child: LiquidGlass(
               shape: LiquidGlassShape.rounded,
               radius: 22,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.fromLTRB(16, 11, 10, 11),
               // See ChatComposerClassic — multi-line fields never fire
               // onSubmitted.
               child: SubmitOnEnter(
@@ -913,7 +927,7 @@ class ChatComposerLiquid extends StatelessWidget {
                     onTap: onFieldTap,
                     contentInsertionConfiguration:
                         _insertion(onContentInserted),
-                    style: theme.body.copyWith(color: theme.ink, fontSize: 16),
+                    style: theme.body.copyWith(color: theme.ink, fontSize: 17),
                     cursorColor: theme.accent,
                     minLines: 1,
                     maxLines: 5,
@@ -928,7 +942,8 @@ class ChatComposerLiquid extends StatelessWidget {
                       hintText: ephemeral
                           ? AppLocalizations.of(context).deepOceanThemeEphemeralHint
                           : AppLocalizations.of(context).deepOceanThemeMessageHint,
-                      hintStyle: theme.body.copyWith(color: theme.inkMuted),
+                      hintStyle: theme.body
+                          .copyWith(color: theme.inkMuted, fontSize: 17),
                       // See the classic composer — a wrapping hint grew the
                       // glass pill to two rows before anything was typed.
                       hintMaxLines: 1,
@@ -946,16 +961,28 @@ class ChatComposerLiquid extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           _ComposerEmptiness(
             controller: controller,
             builder: (context, hasText) => AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
+              // Springs in with a little overshoot the moment there is
+              // something to send — the Telegram pop — and slips out quickly.
+              duration: MotionScope.of(context)
+                  .d(const Duration(milliseconds: 420)),
+              reverseDuration: MotionScope.of(context)
+                  .d(const Duration(milliseconds: 140)),
               transitionBuilder: (child, animation) => FadeTransition(
-                opacity: animation,
+                opacity: CurvedAnimation(
+                  parent: animation,
+                  curve: const Interval(0, 0.4),
+                ),
                 child: ScaleTransition(
-                  scale: Tween<double>(begin: 0.8, end: 1.0).animate(
-                    CurvedAnimation(parent: animation, curve: Curves.easeInOutCubic),
+                  scale: Tween<double>(begin: 0.4, end: 1.0).animate(
+                    CurvedAnimation(
+                      parent: animation,
+                      curve: Curves.elasticOut,
+                      reverseCurve: Curves.easeIn,
+                    ),
                   ),
                   child: child,
                 ),
@@ -983,9 +1010,9 @@ class ChatComposerLiquid extends StatelessWidget {
                               size: const Size(44, 44),
                               onTap: onCamera,
                               child: Icon(
-                                Icons.photo_camera_outlined,
-                                size: 18,
-                                color: theme.accent,
+                                CupertinoIcons.camera,
+                                size: 21,
+                                color: theme.ink,
                               ),
                             )
                           : const SizedBox(

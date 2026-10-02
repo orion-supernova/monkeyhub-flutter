@@ -9505,4 +9505,103 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get acctUnblock => '取消屏蔽';
+
+  @override
+  String get pvSubtitle => '控制别人能看到什么，以及如何联系你。';
+
+  @override
+  String get pvSectionProfile => '个人资料';
+
+  @override
+  String get pvSectionMessages => '消息';
+
+  @override
+  String get pvSectionPeople => '联系人';
+
+  @override
+  String get pvSectionFeed => '动态';
+
+  @override
+  String get pvAvatar => '头像';
+
+  @override
+  String get pvAvatarDesc => '谁能看到你的头像';
+
+  @override
+  String get pvOnline => '在线状态';
+
+  @override
+  String get pvOnlineDesc => '你现在是否显示为活跃';
+
+  @override
+  String get pvLastSeen => '最近上线';
+
+  @override
+  String get pvLastSeenDesc => '你上次出现的时间';
+
+  @override
+  String get pvSendReceipts => '发送已读回执';
+
+  @override
+  String get pvSendReceiptsDesc => '让别人看到你已读他们的消息';
+
+  @override
+  String get pvShowReceipts => '显示已读回执';
+
+  @override
+  String get pvShowReceiptsDesc => '查看谁读了你的消息';
+
+  @override
+  String get pvShowReceiptsHint => '只统计发送已读回执的人。';
+
+  @override
+  String get pvFriendRequests => '好友请求';
+
+  @override
+  String get pvFriendRequestsDesc => '谁能向你发送好友请求';
+
+  @override
+  String get pvSupervisedTitle => '这些由你的监护人设置';
+
+  @override
+  String get pvEveryone => '所有人';
+
+  @override
+  String get pvFriends => '好友';
+
+  @override
+  String get pvNobody => '没有人';
+
+  @override
+  String get pvOn => '开';
+
+  @override
+  String get pvOff => '关';
+
+  @override
+  String get pvAnyone => '任何人';
+
+  @override
+  String get pvHighlights => '我的精彩';
+
+  @override
+  String get pvHighlightsDesc => '你的照片和视频是否在当天显示在好友的看板上';
+
+  @override
+  String get pvPuzzle => '我的谜题成绩';
+
+  @override
+  String get pvPuzzleDesc => '好友能否看到你每日谜题的成绩';
+
+  @override
+  String get pvPast => '我的过往';
+
+  @override
+  String get pvPastDesc => '今天的内容始终与好友共享——此项会开放之前的全部记录';
+
+  @override
+  String get pvPoints => '我的积分';
+
+  @override
+  String get pvPointsDesc => '你记录的积分是否显示在好友的看板上';
 }

@@ -9630,4 +9630,103 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get acctUnblock => '차단 해제';
+
+  @override
+  String get pvSubtitle => '다른 사람에게 보이는 정보와 연락 방법을 관리하세요.';
+
+  @override
+  String get pvSectionProfile => '프로필';
+
+  @override
+  String get pvSectionMessages => '메시지';
+
+  @override
+  String get pvSectionPeople => '사람';
+
+  @override
+  String get pvSectionFeed => '피드';
+
+  @override
+  String get pvAvatar => '프로필 사진';
+
+  @override
+  String get pvAvatarDesc => '내 사진을 볼 수 있는 사람';
+
+  @override
+  String get pvOnline => '온라인 상태';
+
+  @override
+  String get pvOnlineDesc => '지금 활동 중으로 보일지 여부';
+
+  @override
+  String get pvLastSeen => '마지막 접속';
+
+  @override
+  String get pvLastSeenDesc => '마지막으로 있었던 시간';
+
+  @override
+  String get pvSendReceipts => '읽음 확인 보내기';
+
+  @override
+  String get pvSendReceiptsDesc => '상대가 내가 메시지를 읽었는지 볼 수 있어요';
+
+  @override
+  String get pvShowReceipts => '읽음 확인 표시';
+
+  @override
+  String get pvShowReceiptsDesc => '누가 내 메시지를 읽었는지 확인';
+
+  @override
+  String get pvShowReceiptsHint => '읽음 확인을 보내는 사람만 표시돼요.';
+
+  @override
+  String get pvFriendRequests => '친구 요청';
+
+  @override
+  String get pvFriendRequestsDesc => '친구 요청을 보낼 수 있는 사람';
+
+  @override
+  String get pvSupervisedTitle => '보호자가 설정해요';
+
+  @override
+  String get pvEveryone => '모두';
+
+  @override
+  String get pvFriends => '친구';
+
+  @override
+  String get pvNobody => '아무도';
+
+  @override
+  String get pvOn => '켬';
+
+  @override
+  String get pvOff => '끔';
+
+  @override
+  String get pvAnyone => '누구나';
+
+  @override
+  String get pvHighlights => '내 하이라이트';
+
+  @override
+  String get pvHighlightsDesc => '사진과 동영상을 그날 친구들의 보드에 표시할지 여부';
+
+  @override
+  String get pvPuzzle => '내 퍼즐 점수';
+
+  @override
+  String get pvPuzzleDesc => '친구가 오늘의 퍼즐 결과를 볼 수 있는지 여부';
+
+  @override
+  String get pvPast => '지난 기록';
+
+  @override
+  String get pvPastDesc => '오늘 기록은 항상 친구와 공유돼요. 이 옵션은 이전 기록도 공개해요';
+
+  @override
+  String get pvPoints => '내 포인트';
+
+  @override
+  String get pvPointsDesc => '기록한 포인트를 친구들의 보드에 표시할지 여부';
 }

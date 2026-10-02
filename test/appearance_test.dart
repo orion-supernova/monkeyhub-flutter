@@ -184,8 +184,8 @@ void main() {
     await t.pumpAndSettle();
 
     // Following the device: a strip for each half of the pair.
-    expect(find.text('LIGHT MODE'), findsOneWidget);
-    expect(find.text('DARK MODE'), findsOneWidget);
+    expect(find.text('Light mode'), findsOneWidget);
+    expect(find.text('Dark mode'), findsOneWidget);
 
     await t.tap(find.text('Rose'));
     await t.pump();
@@ -194,11 +194,22 @@ void main() {
     await t.tap(find.text('One theme'));
     await t.pumpAndSettle();
     expect(store.appearanceMode, AppearanceMode.fixed);
-    expect(find.text('YOUR THEME'), findsOneWidget);
+    // One theme splits the list into the calm set and the characterful one.
+    expect(find.text('Essentials'), findsOneWidget);
+    expect(find.text('Characters'), findsOneWidget);
 
-    await t.tap(find.text('CONTINUE'));
-    await t.pump();
+    // Continue moves on to the icon step; it does not finish the flow.
+    await t.tap(find.text('Continue'));
+    await t.pumpAndSettle();
+    expect(store.themeOnboarded, isFalse);
+    expect(find.text('Your app icon'), findsOneWidget);
+
+    // Untouched, the icon step keeps the icon already on the home screen —
+    // a fresh install's MonkeyHub mark — rather than following the theme.
+    await t.tap(find.text('Get started'));
+    await t.pumpAndSettle();
     expect(store.themeOnboarded, isTrue);
+    expect(store.logoMode, LogoMode.alwaysDefault);
   });
 
   // End to end, through the real app: the device goes light and the app goes

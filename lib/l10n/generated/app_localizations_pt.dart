@@ -10112,6 +10112,111 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get acctUnblock => 'Desbloquear';
+
+  @override
+  String get pvSubtitle =>
+      'Controle o que os outros veem e como o podem contactar.';
+
+  @override
+  String get pvSectionProfile => 'Perfil';
+
+  @override
+  String get pvSectionMessages => 'Mensagens';
+
+  @override
+  String get pvSectionPeople => 'Pessoas';
+
+  @override
+  String get pvSectionFeed => 'Feed';
+
+  @override
+  String get pvAvatar => 'Fotografia de perfil';
+
+  @override
+  String get pvAvatarDesc => 'Quem pode ver a sua fotografia';
+
+  @override
+  String get pvOnline => 'Estado online';
+
+  @override
+  String get pvOnlineDesc => 'Se aparece ativo agora';
+
+  @override
+  String get pvLastSeen => 'Visto pela última vez';
+
+  @override
+  String get pvLastSeenDesc => 'Quando esteve por cá pela última vez';
+
+  @override
+  String get pvSendReceipts => 'Enviar confirmações de leitura';
+
+  @override
+  String get pvSendReceiptsDesc =>
+      'Deixe os outros verem quando leu as mensagens deles';
+
+  @override
+  String get pvShowReceipts => 'Mostrar confirmações de leitura';
+
+  @override
+  String get pvShowReceiptsDesc => 'Ver quem leu as suas mensagens';
+
+  @override
+  String get pvShowReceiptsHint =>
+      'Só contam as pessoas que enviam confirmações de leitura.';
+
+  @override
+  String get pvFriendRequests => 'Pedidos de amizade';
+
+  @override
+  String get pvFriendRequestsDesc => 'Quem lhe pode enviar pedidos de amizade';
+
+  @override
+  String get pvSupervisedTitle => 'Os seus responsáveis definem isto';
+
+  @override
+  String get pvEveryone => 'Todos';
+
+  @override
+  String get pvFriends => 'Amigos';
+
+  @override
+  String get pvNobody => 'Ninguém';
+
+  @override
+  String get pvOn => 'Ativado';
+
+  @override
+  String get pvOff => 'Desativado';
+
+  @override
+  String get pvAnyone => 'Qualquer pessoa';
+
+  @override
+  String get pvHighlights => 'Os meus destaques';
+
+  @override
+  String get pvHighlightsDesc =>
+      'Se as suas fotos e vídeos aparecem nos murais dos amigos no dia';
+
+  @override
+  String get pvPuzzle => 'A minha pontuação no puzzle';
+
+  @override
+  String get pvPuzzleDesc => 'Se os amigos veem como foi no puzzle do dia';
+
+  @override
+  String get pvPast => 'O meu histórico';
+
+  @override
+  String get pvPastDesc =>
+      'Hoje é sempre partilhado com amigos — isto abre tudo o que veio antes';
+
+  @override
+  String get pvPoints => 'Os meus pontos';
+
+  @override
+  String get pvPointsDesc =>
+      'Se os pontos que regista aparecem nos murais dos amigos';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -20219,4 +20324,110 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get acctUnblock => 'Desbloquear';
+
+  @override
+  String get pvSubtitle =>
+      'Controle o que os outros veem e como podem falar com você.';
+
+  @override
+  String get pvSectionProfile => 'Perfil';
+
+  @override
+  String get pvSectionMessages => 'Mensagens';
+
+  @override
+  String get pvSectionPeople => 'Pessoas';
+
+  @override
+  String get pvSectionFeed => 'Feed';
+
+  @override
+  String get pvAvatar => 'Foto do perfil';
+
+  @override
+  String get pvAvatarDesc => 'Quem pode ver sua foto';
+
+  @override
+  String get pvOnline => 'Status online';
+
+  @override
+  String get pvOnlineDesc => 'Se você aparece ativo agora';
+
+  @override
+  String get pvLastSeen => 'Visto por último';
+
+  @override
+  String get pvLastSeenDesc => 'Quando você esteve por aqui pela última vez';
+
+  @override
+  String get pvSendReceipts => 'Enviar confirmações de leitura';
+
+  @override
+  String get pvSendReceiptsDesc =>
+      'Deixe outras pessoas verem quando você leu as mensagens delas';
+
+  @override
+  String get pvShowReceipts => 'Mostrar confirmações de leitura';
+
+  @override
+  String get pvShowReceiptsDesc => 'Ver quem leu suas mensagens';
+
+  @override
+  String get pvShowReceiptsHint =>
+      'Só contam as pessoas que enviam confirmações de leitura.';
+
+  @override
+  String get pvFriendRequests => 'Pedidos de amizade';
+
+  @override
+  String get pvFriendRequestsDesc => 'Quem pode enviar pedidos de amizade';
+
+  @override
+  String get pvSupervisedTitle => 'Seus responsáveis definem isto';
+
+  @override
+  String get pvEveryone => 'Todos';
+
+  @override
+  String get pvFriends => 'Amigos';
+
+  @override
+  String get pvNobody => 'Ninguém';
+
+  @override
+  String get pvOn => 'Ativado';
+
+  @override
+  String get pvOff => 'Desativado';
+
+  @override
+  String get pvAnyone => 'Qualquer pessoa';
+
+  @override
+  String get pvHighlights => 'Meus destaques';
+
+  @override
+  String get pvHighlightsDesc =>
+      'Se suas fotos e vídeos aparecem nos murais dos amigos no dia';
+
+  @override
+  String get pvPuzzle => 'Minha pontuação no quebra-cabeça';
+
+  @override
+  String get pvPuzzleDesc =>
+      'Se os amigos veem como você foi no quebra-cabeça do dia';
+
+  @override
+  String get pvPast => 'Meu histórico';
+
+  @override
+  String get pvPastDesc =>
+      'Hoje é sempre compartilhado com amigos — isto libera todo o resto';
+
+  @override
+  String get pvPoints => 'Meus pontos';
+
+  @override
+  String get pvPointsDesc =>
+      'Se os pontos que você registra aparecem nos murais dos amigos';
 }

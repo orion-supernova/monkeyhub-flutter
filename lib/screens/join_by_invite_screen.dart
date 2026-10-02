@@ -7,7 +7,6 @@ import '../backend/server_store.dart';
 import '../data/chat_repository.dart';
 import '../invites/invite_link.dart';
 import '../invites/room_admin_errors.dart';
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../data/settings_store.dart';
 import '../data/ui_selection_store.dart';
@@ -21,6 +20,7 @@ import '../widgets/labeled_field.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/sheet_buttons.dart';
 import 'room_screen.dart';
+import '../widgets/ios_kit.dart' show GlassBackButton;
 
 /// Where a tapped invite link lands, and where a typed code is entered.
 ///
@@ -304,24 +304,16 @@ class _JoinByInviteScreenState extends State<JoinByInviteScreen> {
   }
 
   Widget _header(AppTheme theme, AppLocalizations l10n) => Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 22, 6),
+        padding: const EdgeInsets.fromLTRB(16, 6, 22, 6),
         child: Row(
           children: [
-            FocusableTap(
-              onTap: () => Navigator.of(context).maybePop(),
-              semanticLabel: l10n.joinInviteBack,
-              radius: theme.radiusSm,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => Navigator.of(context).maybePop(),
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Icon(Icons.arrow_back, color: theme.ink, size: 22),
-                ),
-              ),
-            ),
+            const GlassBackButton(),
+            const SizedBox(width: 12),
             Expanded(
-              child: Text(l10n.joinInviteTitle, style: theme.displaySmall),
+              child: Text(
+                l10n.joinInviteTitle,
+                style: theme.bodyEmph.copyWith(color: theme.ink),
+              ),
             ),
           ],
         ),

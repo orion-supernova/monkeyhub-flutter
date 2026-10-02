@@ -16950,6 +16950,204 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unblock'**
   String get acctUnblock;
+
+  /// Line under the Profile visibility title.
+  ///
+  /// In en, this message translates to:
+  /// **'Control what others see and how they can reach you.'**
+  String get pvSubtitle;
+
+  /// Section header.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get pvSectionProfile;
+
+  /// Section header.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages'**
+  String get pvSectionMessages;
+
+  /// Section header.
+  ///
+  /// In en, this message translates to:
+  /// **'People'**
+  String get pvSectionPeople;
+
+  /// Section header over feed-sharing settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Feed'**
+  String get pvSectionFeed;
+
+  /// Setting: who can see your profile photo.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile photo'**
+  String get pvAvatar;
+
+  /// Explanation under Profile photo.
+  ///
+  /// In en, this message translates to:
+  /// **'Who can see your picture'**
+  String get pvAvatarDesc;
+
+  /// Setting: who sees whether you're online/away.
+  ///
+  /// In en, this message translates to:
+  /// **'Online status'**
+  String get pvOnline;
+
+  /// Explanation under Online status.
+  ///
+  /// In en, this message translates to:
+  /// **'Whether you appear active right now'**
+  String get pvOnlineDesc;
+
+  /// Setting: who sees when you were last online.
+  ///
+  /// In en, this message translates to:
+  /// **'Last seen'**
+  String get pvLastSeen;
+
+  /// Explanation under Last seen.
+  ///
+  /// In en, this message translates to:
+  /// **'When you were last around'**
+  String get pvLastSeenDesc;
+
+  /// Setting: whether others can see you've read their messages.
+  ///
+  /// In en, this message translates to:
+  /// **'Send read receipts'**
+  String get pvSendReceipts;
+
+  /// Explanation under Send read receipts.
+  ///
+  /// In en, this message translates to:
+  /// **'Let others see when you\'ve read their messages'**
+  String get pvSendReceiptsDesc;
+
+  /// Setting: whether you see who read your messages.
+  ///
+  /// In en, this message translates to:
+  /// **'Show read receipts'**
+  String get pvShowReceipts;
+
+  /// Explanation under Show read receipts.
+  ///
+  /// In en, this message translates to:
+  /// **'See who has read your messages'**
+  String get pvShowReceiptsDesc;
+
+  /// Note under Show read receipts.
+  ///
+  /// In en, this message translates to:
+  /// **'Only people who send read receipts are counted.'**
+  String get pvShowReceiptsHint;
+
+  /// Setting: who can send you friend requests.
+  ///
+  /// In en, this message translates to:
+  /// **'Friend requests'**
+  String get pvFriendRequests;
+
+  /// Explanation under Friend requests.
+  ///
+  /// In en, this message translates to:
+  /// **'Who can send you friend requests'**
+  String get pvFriendRequestsDesc;
+
+  /// Heading of the notice a supervised child sees on visibility settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Your grown-ups set these'**
+  String get pvSupervisedTitle;
+
+  /// Visibility option.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone'**
+  String get pvEveryone;
+
+  /// Visibility option.
+  ///
+  /// In en, this message translates to:
+  /// **'Friends'**
+  String get pvFriends;
+
+  /// Visibility option.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody'**
+  String get pvNobody;
+
+  /// Toggle option.
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get pvOn;
+
+  /// Toggle option.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get pvOff;
+
+  /// Friend-request option: anyone may send one.
+  ///
+  /// In en, this message translates to:
+  /// **'Anyone'**
+  String get pvAnyone;
+
+  /// Feed setting.
+  ///
+  /// In en, this message translates to:
+  /// **'My highlights'**
+  String get pvHighlights;
+
+  /// Explanation under My highlights.
+  ///
+  /// In en, this message translates to:
+  /// **'Whether your photos and videos show on friends\' boards for the day'**
+  String get pvHighlightsDesc;
+
+  /// Feed setting.
+  ///
+  /// In en, this message translates to:
+  /// **'My puzzle score'**
+  String get pvPuzzle;
+
+  /// Explanation under My puzzle score.
+  ///
+  /// In en, this message translates to:
+  /// **'Whether friends see how you did on the daily puzzle'**
+  String get pvPuzzleDesc;
+
+  /// Feed setting about sharing older points/history.
+  ///
+  /// In en, this message translates to:
+  /// **'My past'**
+  String get pvPast;
+
+  /// Explanation under My past.
+  ///
+  /// In en, this message translates to:
+  /// **'Today is always shared with friends — this opens up everything before it'**
+  String get pvPastDesc;
+
+  /// Feed setting.
+  ///
+  /// In en, this message translates to:
+  /// **'My points'**
+  String get pvPoints;
+
+  /// Explanation under My points.
+  ///
+  /// In en, this message translates to:
+  /// **'Whether the points you log show on friends\' boards'**
+  String get pvPointsDesc;
 }
 
 class _AppLocalizationsDelegate

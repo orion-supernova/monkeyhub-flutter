@@ -10,6 +10,7 @@ import '../models/chat_user.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
+import '../widgets/ios_kit.dart' show GlassBackButton;
 
 /// URI the QR encodes. The child app also accepts the bare six digits, so a
 /// parent reading them down the phone works just as well as a scan.
@@ -353,19 +354,15 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 14),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            behavior: HitTestBehavior.opaque,
-            child: Icon(Icons.arrow_back, size: 20, color: theme.inkSoft),
-          ),
-          const SizedBox(width: 14),
+          const GlassBackButton(),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
-              '$title ${name.toUpperCase()}',
-              style: theme.label.copyWith(letterSpacing: 2.8),
+              '$title $name',
+              style: theme.bodyEmph.copyWith(color: theme.ink),
               overflow: TextOverflow.ellipsis,
             ),
           ),
