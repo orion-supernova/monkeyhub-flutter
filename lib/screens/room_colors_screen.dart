@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
@@ -6,11 +7,11 @@ import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
-import '../theme/layout.dart';
 import '../theme/speaker_colors.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/adaptive_page_body.dart';
 import '../widgets/app_toast.dart';
+import '../widgets/ios_kit.dart';
+import '../widgets/settings_pickers.dart';
 import '../widgets/user_avatar.dart';
 
 /// Who speaks in which colour, for one room, for one reader.
@@ -117,103 +118,76 @@ class _RoomColorsScreenState extends State<RoomColorsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final roster = _roster;
     final slots = _slots;
     final pinned = _pinned;
     final off = SettingsStore.instance.speakerTint == SpeakerTint.off;
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          // See home_screen: the bottom inset leaves a dead strip of
-          // background under the scroller, which reads as a solid bar. The
-          // list clears the home indicator with its own padding instead.
-          SafeArea(
-            bottom: false,
-            child: AdaptivePageBody(
-              child: ListView(
-                padding: EdgeInsets.fromLTRB(
-                  20,
-                  14,
-                  20,
-                  edgeToEdgeBottom(context, 40),
-                ),
-                children: [
-                  Row(children: [
-                    IconButton(
-                      onPressed: () => Navigator.of(context).maybePop(),
-                      icon:
-                          Icon(Icons.arrow_back, color: theme.inkSoft, size: 18),
-                    ),
-                  ]),
-                  const SizedBox(height: 10),
-                  Text(l10n.roomColorsScreenTitle, style: theme.displayMedium),
-                  const SizedBox(height: 10),
-                  Row(children: [
-                    Container(width: 18, height: 1, color: theme.accent),
-                    const SizedBox(width: 8),
-                    // Flexible, because this caption is a sentence rather than
-                    // a label: it is the longest string on the screen in
-                    // English and longer still in German-shaped translations,
-                    // and a Row will happily run it off the edge.
-                    Flexible(
-                      child: Text(l10n.roomColorsScreenSubtitle,
-                          style: theme.caption),
-                    ),
-                  ]),
-                  const SizedBox(height: 22),
-                  // The switch itself, not a signpost to it. Sending somebody
-                  // who is standing in the colour screen off to Settings to
-                  // find a switch is making them do navigation work to reach a
-                  // control that could simply be here — and they would have to
-                  // find their way back afterwards to use what they came for.
-                  if (off) ...[
-                    _OffCard(onEnable: () {
-                      SettingsStore.instance.setSpeakerTint(SpeakerTint.bubble);
-                    }),
-                    const SizedBox(height: 22),
-                  ],
-                  for (final m in roster) ...[
-                    _MemberColorRow(
-                      member: m,
-                      api: widget.api,
-                      slot: slots.slotOf(m.id),
-                      isPinned: pinned.containsKey(m.id),
-                      expanded: _expanded == m.id,
-                      sharedWith: [
-                        for (final id in slots.holdersOf(slots.slotOf(m.id) ?? -1))
-                          if (id != m.id)
-                            (widget.members
-                                    .where((u) => u.id == id)
-                                    .firstOrNull
-                                    ?.displayName ??
-                                '')
-                      ]..removeWhere((n) => n.isEmpty),
-                      onToggle: () => setState(
-                          () => _expanded = _expanded == m.id ? null : m.id),
-                      onPick: (slot) => _pick(m, slot),
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                  if (pinned.isNotEmpty) ...[
-                    const SizedBox(height: 18),
-                    _ResetButton(
-                      onTap: () {
-                        setState(() => _expanded = null);
-                        widget.repo.clearSpeakerSlots(widget.roomId);
-                      },
-                    ),
-                  ],
-                ],
+    return SettingsPage(
+      title: l10n.roomColorsPageTitle,
+      children: [
+        // The switch itself, not a signpost to it: sending somebody standing
+        // in the colour screen off to Settings to find it is making them do
+        // navigation work for a control that can simply be here.
+        if (off)
+          GroupedSection(
+            footer: l10n.roomColorsOffFooter,
+            children: [
+              GroupedRow.toggle(
+                icon: CupertinoIcons.paintbrush,
+                tone: TileTone.orange,
+                title: l10n.settingsHubSpeakerColors,
+                value: false,
+                onChanged: (_) {
+                  pickFeedback();
+                  SettingsStore.instance.setSpeakerTint(SpeakerTint.bubble);
+                },
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        GroupedSection(
+          header: l10n.roomColorsPageHeader,
+          children: [
+            for (final m in roster)
+              _MemberColorRow(
+                member: m,
+                api: widget.api,
+                slot: slots.slotOf(m.id),
+                isPinned: pinned.containsKey(m.id),
+                expanded: _expanded == m.id,
+                sharedWith: [
+                  for (final id in slots.holdersOf(slots.slotOf(m.id) ?? -1))
+                    if (id != m.id)
+                      (widget.members
+                              .where((u) => u.id == id)
+                              .firstOrNull
+                              ?.displayName ??
+                          '')
+                ]..removeWhere((n) => n.isEmpty),
+                onToggle: () => setState(
+                    () => _expanded = _expanded == m.id ? null : m.id),
+                onPick: (slot) => _pick(m, slot),
+              ),
+          ],
+        ),
+        if (pinned.isNotEmpty)
+          GroupedSection(
+            children: [
+              GroupedRow(
+                title: l10n.roomColorsReset,
+                icon: CupertinoIcons.arrow_counterclockwise,
+                tone: TileTone.gray,
+                chevron: false,
+                onTap: () {
+                  pickFeedback();
+                  setState(() => _expanded = null);
+                  widget.repo.clearSpeakerSlots(widget.roomId);
+                },
+              ),
+            ],
+          ),
+      ],
     );
   }
 }
@@ -254,15 +228,8 @@ class _MemberColorRow extends StatelessWidget {
     return AnimatedContainer(
       duration: theme.motionFast,
       curve: theme.motionCurve,
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      decoration: BoxDecoration(
-        color: expanded ? theme.surfaceSunken : Colors.transparent,
-        borderRadius: BorderRadius.circular(theme.radiusMd),
-        border: Border.all(
-          color: expanded ? theme.divider : Colors.transparent,
-          width: 1.4,
-        ),
-      ),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+      color: expanded ? theme.ink.withValues(alpha: 0.04) : Colors.transparent,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -277,7 +244,7 @@ class _MemberColorRow extends StatelessWidget {
                 children: [
                   UserAvatar(
                     user: member,
-                    size: 32,
+                    size: 36,
                     api: api,
                     showStatus: false,
                     ring: slot != null,
@@ -310,9 +277,11 @@ class _MemberColorRow extends StatelessWidget {
                           // and a picker that blocked it would be overruling
                           // the person it is supposed to be serving.
                           Text(
-                            l10n.roomColorsScreenAlsoUsedBy(
-                                sharedWith.join(', ')),
-                            style: theme.monoTiny,
+                            l10n.roomColorsSharedWith(sharedWith.join(', ')),
+                            style: theme.caption.copyWith(
+                              fontSize: 13,
+                              color: theme.inkMuted,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -337,8 +306,11 @@ class _MemberColorRow extends StatelessWidget {
                   AnimatedRotation(
                     turns: expanded ? 0.5 : 0,
                     duration: theme.motionFast,
-                    child: Icon(Icons.expand_more,
-                        size: 18, color: theme.inkMuted),
+                    child: Icon(
+                      CupertinoIcons.chevron_down,
+                      size: 14,
+                      color: theme.inkMuted,
+                    ),
                   ),
                 ],
               ),
@@ -392,7 +364,7 @@ class _PaletteRail extends StatelessWidget {
           // rather than under it.
           FocusableTap(
             onTap: () => onPick(null),
-            semanticLabel: l10n.roomColorsScreenAutoChip,
+            semanticLabel: l10n.roomColorsAuto,
             radius: theme.radiusSm,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -403,22 +375,23 @@ class _PaletteRail extends StatelessWidget {
               // full-width slab with the word AUTO adrift in the middle of it.
               // The padding centres the text on its own.
               child: Container(
-                height: 40,
+                height: 32,
                 margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(theme.radiusSm),
-                  border: Border.all(
-                    color: isPinned ? theme.divider : theme.accent,
-                    width: isPinned ? 1 : 1.6,
-                  ),
+                  borderRadius: BorderRadius.circular(999),
+                  color: isPinned
+                      ? theme.ink.withValues(alpha: 0.07)
+                      : theme.accent.withValues(alpha: 0.18),
                 ),
                 child: Center(
                   widthFactor: 1,
                   child: Text(
-                    l10n.roomColorsScreenAutoChip,
-                    style: theme.monoTiny.copyWith(
-                      color: isPinned ? theme.inkMuted : theme.accent,
+                    l10n.roomColorsAuto,
+                    style: theme.body.copyWith(
+                      fontSize: 15,
+                      fontWeight: isPinned ? FontWeight.w500 : FontWeight.w600,
+                      color: isPinned ? theme.inkSoft : theme.accent,
                     ),
                   ),
                 ),
@@ -469,8 +442,8 @@ class _Swatch extends StatelessWidget {
             height: 40,
             alignment: Alignment.center,
             child: AnimatedContainer(
-              duration: theme.motionFast,
-              curve: theme.motionCurve,
+              duration: const Duration(milliseconds: 380),
+              curve: Curves.elasticOut,
               // The chosen one grows and gains a halo of the page behind it, so
               // selection survives being one saturated circle among twelve.
               width: selected ? 30 : 24,
@@ -481,101 +454,8 @@ class _Swatch extends StatelessWidget {
                 border: selected
                     ? Border.all(color: theme.background, width: 3)
                     : null,
-                boxShadow: selected
-                    ? [BoxShadow(color: color.withValues(alpha: 0.55), blurRadius: 10)]
-                    : null,
               ),
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Shown when speaker colours are switched off app-wide: what is off, and the
-/// switch, in that order.
-class _OffCard extends StatelessWidget {
-  const _OffCard({required this.onEnable});
-
-  final VoidCallback onEnable;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.surface,
-        borderRadius: BorderRadius.circular(theme.radiusLg),
-        border: Border.all(color: theme.divider),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(l10n.roomColorsScreenOffTitle, style: theme.label),
-          const SizedBox(height: 8),
-          Text(l10n.roomColorsScreenOffBody, style: theme.bodySoft),
-          const SizedBox(height: 14),
-          FocusableTap(
-            onTap: onEnable,
-            semanticLabel: l10n.roomColorsScreenOffAction,
-            radius: theme.radiusMd,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onEnable,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: theme.accent,
-                  borderRadius: BorderRadius.circular(theme.radiusMd),
-                ),
-                child: Text(
-                  l10n.roomColorsScreenOffAction,
-                  style: theme.label.copyWith(color: theme.accentInk),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          // The one thing the button cannot say for itself: this is not a room
-          // setting, and turning it on here turns it on everywhere.
-          Text(l10n.roomColorsScreenOffHint, style: theme.monoTiny),
-        ],
-      ),
-    );
-  }
-}
-
-class _ResetButton extends StatelessWidget {
-  const _ResetButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: l10n.roomColorsScreenResetAll,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-            border: Border.all(color: theme.divider, width: 1.4),
-          ),
-          child: Text(
-            l10n.roomColorsScreenResetAll,
-            style: theme.monoTiny.copyWith(color: theme.inkSoft),
           ),
         ),
       ),

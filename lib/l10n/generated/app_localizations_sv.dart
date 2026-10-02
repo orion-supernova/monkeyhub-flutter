@@ -10137,4 +10137,57 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get pvPointsDesc => 'Om poängen du loggar syns på vännernas tavlor';
+
+  @override
+  String get roomColorsPageTitle => 'Vem är vem';
+
+  @override
+  String get roomColorsPageHeader => 'Färgen varje person pratar i';
+
+  @override
+  String get roomColorsAuto => 'Automatisk';
+
+  @override
+  String get roomColorsReset => 'Tillbaka till automatiskt';
+
+  @override
+  String get roomColorsOffFooter =>
+      'Talarfärger är av. Slår du på dem här blir de på i alla rum.';
+
+  @override
+  String roomColorsSharedWith(String name) {
+    return 'Delas med $name';
+  }
+
+  @override
+  String get settingsScreenValueReplyQuote => 'Citat';
+
+  @override
+  String get replyQuoteSub =>
+      'Originalet visas överst i svaret, inuti bubblan.';
+
+  @override
+  String get riTabMedia => 'Bilder och videor';
+
+  @override
+  String get riTabFiles => 'Filer';
+
+  @override
+  String get riTabVoice => 'Röstmeddelanden';
+
+  @override
+  String get riTabLinks => 'Länkar';
+
+  @override
+  String get riTabSaved => 'Sparade';
+
+  @override
+  String get riNone => 'Inga';
+
+  @override
+  String get riSavedNote =>
+      'Bara du ser det du sparar. Ett fäst meddelande är tvärtom — hela rummet ser det.';
+
+  @override
+  String get riOwnerNote => 'Medaljen visar vem som skapade rummet.';
 }

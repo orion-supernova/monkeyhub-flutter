@@ -10115,4 +10115,57 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get pvPointsDesc => 'क्या आपके दर्ज पॉइंट दोस्तों के बोर्ड पर दिखें';
+
+  @override
+  String get roomColorsPageTitle => 'कौन कौन है';
+
+  @override
+  String get roomColorsPageHeader => 'हर व्यक्ति किस रंग में बोलता है';
+
+  @override
+  String get roomColorsAuto => 'स्वचालित';
+
+  @override
+  String get roomColorsReset => 'वापस स्वचालित पर';
+
+  @override
+  String get roomColorsOffFooter =>
+      'बोलने वालों के रंग बंद हैं। यहाँ चालू करने से हर रूम में चालू हो जाएँगे।';
+
+  @override
+  String roomColorsSharedWith(String name) {
+    return '$name के साथ साझा';
+  }
+
+  @override
+  String get settingsScreenValueReplyQuote => 'उद्धरण';
+
+  @override
+  String get replyQuoteSub =>
+      'मूल संदेश जवाब के बबल के अंदर सबसे ऊपर दिखता है।';
+
+  @override
+  String get riTabMedia => 'फ़ोटो और वीडियो';
+
+  @override
+  String get riTabFiles => 'फ़ाइलें';
+
+  @override
+  String get riTabVoice => 'वॉइस संदेश';
+
+  @override
+  String get riTabLinks => 'लिंक';
+
+  @override
+  String get riTabSaved => 'सहेजे गए';
+
+  @override
+  String get riNone => 'कोई नहीं';
+
+  @override
+  String get riSavedNote =>
+      'आप जो सहेजते हैं उसे केवल आप देखते हैं। पिन किया गया संदेश उल्टा है — पूरा रूम उसे देखता है।';
+
+  @override
+  String get riOwnerNote => 'मेडल इस रूम को बनाने वाले को दर्शाता है।';
 }

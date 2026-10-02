@@ -10265,4 +10265,58 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get pvPointsDesc =>
       'Si les points que vous enregistrez apparaissent sur les tableaux de vos amis';
+
+  @override
+  String get roomColorsPageTitle => 'Qui est qui';
+
+  @override
+  String get roomColorsPageHeader => 'La couleur dans laquelle chacun parle';
+
+  @override
+  String get roomColorsAuto => 'Automatique';
+
+  @override
+  String get roomColorsReset => 'Revenir en automatique';
+
+  @override
+  String get roomColorsOffFooter =>
+      'Les couleurs des membres sont désactivées. Les activer ici les active dans tous les salons.';
+
+  @override
+  String roomColorsSharedWith(String name) {
+    return 'Partagée avec $name';
+  }
+
+  @override
+  String get settingsScreenValueReplyQuote => 'Citation';
+
+  @override
+  String get replyQuoteSub =>
+      'L’original s’affiche en haut de la réponse, dans sa bulle.';
+
+  @override
+  String get riTabMedia => 'Photos et vidéos';
+
+  @override
+  String get riTabFiles => 'Fichiers';
+
+  @override
+  String get riTabVoice => 'Messages vocaux';
+
+  @override
+  String get riTabLinks => 'Liens';
+
+  @override
+  String get riTabSaved => 'Enregistrés';
+
+  @override
+  String get riNone => 'Aucun';
+
+  @override
+  String get riSavedNote =>
+      'Vous seul voyez ce que vous enregistrez. Un message épinglé, c’est l’inverse — tout le salon le voit.';
+
+  @override
+  String get riOwnerNote =>
+      'La médaille désigne la personne qui a créé ce salon.';
 }

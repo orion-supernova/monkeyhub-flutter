@@ -2831,5 +2831,21 @@
   "pvPast": "ماضيّ",
   "pvPastDesc": "يُشارك اليوم دائمًا مع الأصدقاء — هذا يفتح كل ما قبله",
   "pvPoints": "نقاطي",
-  "pvPointsDesc": "هل تظهر النقاط التي تسجلها في لوحات أصدقائك"
+  "pvPointsDesc": "هل تظهر النقاط التي تسجلها في لوحات أصدقائك",
+  "roomColorsPageTitle": "من هو من",
+  "roomColorsPageHeader": "اللون الذي يتحدث به كل شخص",
+  "roomColorsAuto": "تلقائي",
+  "roomColorsReset": "العودة إلى التلقائي",
+  "roomColorsOffFooter": "ألوان المتحدثين متوقفة. تشغيلها هنا يشغّلها في كل الغرف.",
+  "roomColorsSharedWith": "مشترك مع {name}",
+  "settingsScreenValueReplyQuote": "اقتباس",
+  "replyQuoteSub": "تظهر الرسالة الأصلية في أعلى الرد، داخل فقاعته.",
+  "riTabMedia": "الصور ومقاطع الفيديو",
+  "riTabFiles": "الملفات",
+  "riTabVoice": "الرسائل الصوتية",
+  "riTabLinks": "الروابط",
+  "riTabSaved": "المحفوظة",
+  "riNone": "لا شيء",
+  "riSavedNote": "أنت فقط ترى ما تحفظه. الرسالة المثبّتة عكس ذلك — تراها الغرفة كلها.",
+  "riOwnerNote": "الوسام يميّز منشئ هذه الغرفة."
 }

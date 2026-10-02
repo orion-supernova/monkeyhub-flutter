@@ -2831,5 +2831,21 @@
   "pvPast": "지난 기록",
   "pvPastDesc": "오늘 기록은 항상 친구와 공유돼요. 이 옵션은 이전 기록도 공개해요",
   "pvPoints": "내 포인트",
-  "pvPointsDesc": "기록한 포인트를 친구들의 보드에 표시할지 여부"
+  "pvPointsDesc": "기록한 포인트를 친구들의 보드에 표시할지 여부",
+  "roomColorsPageTitle": "누가 누구",
+  "roomColorsPageHeader": "각자가 말하는 색",
+  "roomColorsAuto": "자동",
+  "roomColorsReset": "자동으로 되돌리기",
+  "roomColorsOffFooter": "말하는 사람 색상이 꺼져 있어요. 여기서 켜면 모든 방에서 켜져요.",
+  "roomColorsSharedWith": "{name}님과 같은 색",
+  "settingsScreenValueReplyQuote": "인용",
+  "replyQuoteSub": "원래 메시지가 답장 말풍선 안 맨 위에 표시돼요.",
+  "riTabMedia": "사진 및 동영상",
+  "riTabFiles": "파일",
+  "riTabVoice": "음성 메시지",
+  "riTabLinks": "링크",
+  "riTabSaved": "저장됨",
+  "riNone": "없음",
+  "riSavedNote": "저장한 내용은 나만 볼 수 있어요. 고정 메시지는 반대로 방 전체가 봐요.",
+  "riOwnerNote": "메달은 이 방을 만든 사람을 나타내요."
 }

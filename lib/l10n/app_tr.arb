@@ -2831,5 +2831,21 @@
   "pvPast": "Geçmişim",
   "pvPastDesc": "Bugün her zaman arkadaşlarla paylaşılır — bu, öncesini de açar",
   "pvPoints": "Puanlarım",
-  "pvPointsDesc": "Kaydettiğin puanların arkadaşlarının panolarında görünüp görünmediği"
+  "pvPointsDesc": "Kaydettiğin puanların arkadaşlarının panolarında görünüp görünmediği",
+  "roomColorsPageTitle": "Kim kim",
+  "roomColorsPageHeader": "Herkesin konuştuğu renk",
+  "roomColorsAuto": "Otomatik",
+  "roomColorsReset": "Otomatiğe dön",
+  "roomColorsOffFooter": "Konuşan renkleri kapalı. Burada açarsan tüm odalarda açılır.",
+  "roomColorsSharedWith": "{name} ile ortak",
+  "settingsScreenValueReplyQuote": "Alıntı",
+  "replyQuoteSub": "Orijinal mesaj, yanıtın balonunun içinde en üstte durur.",
+  "riTabMedia": "Fotoğraflar ve videolar",
+  "riTabFiles": "Dosyalar",
+  "riTabVoice": "Sesli mesajlar",
+  "riTabLinks": "Bağlantılar",
+  "riTabSaved": "Kaydedilenler",
+  "riNone": "Yok",
+  "riSavedNote": "Kaydettiklerini yalnızca sen görürsün. Sabitlenen mesaj ise tam tersi — tüm oda görür.",
+  "riOwnerNote": "Madalya bu odayı kuranı gösterir."
 }

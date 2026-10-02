@@ -17148,6 +17148,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Whether the points you log show on friends\' boards'**
   String get pvPointsDesc;
+
+  /// Room speaker-colour page (Who's who). Large title.
+  ///
+  /// In en, this message translates to:
+  /// **'Who\'s who'**
+  String get roomColorsPageTitle;
+
+  /// Room speaker-colour page (Who's who). Header over the member list.
+  ///
+  /// In en, this message translates to:
+  /// **'The colour each person speaks in'**
+  String get roomColorsPageHeader;
+
+  /// Room speaker-colour page (Who's who). First option on a member's palette: let the room pick.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get roomColorsAuto;
+
+  /// Room speaker-colour page (Who's who). Row that clears every hand-picked colour in this room.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to automatic'**
+  String get roomColorsReset;
+
+  /// Room speaker-colour page (Who's who). Footer under the switch while speaker colours are off.
+  ///
+  /// In en, this message translates to:
+  /// **'Speaker colours are off. Turning them on here turns them on in every room.'**
+  String get roomColorsOffFooter;
+
+  /// Room speaker-colour page (Who's who). Under a member whose colour someone else also has. {name} is a comma-separated list.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared with {name}'**
+  String roomColorsSharedWith(String name);
+
+  /// Name of the default reply style in Settings › Reply style: the quoted message shown as a small block (accent rail, name, one line) at the top of the reply bubble, like Telegram/WhatsApp. Title case like the other style names.
+  ///
+  /// In en, this message translates to:
+  /// **'Quote'**
+  String get settingsScreenValueReplyQuote;
+
+  /// One-line description under the Quote reply style option.
+  ///
+  /// In en, this message translates to:
+  /// **'The original sits at the top of the reply, inside its bubble.'**
+  String get replyQuoteSub;
+
+  /// Room info row opening shared photos and videos.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos and videos'**
+  String get riTabMedia;
+
+  /// Room info row opening shared files.
+  ///
+  /// In en, this message translates to:
+  /// **'Files'**
+  String get riTabFiles;
+
+  /// Room info row opening voice messages.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice messages'**
+  String get riTabVoice;
+
+  /// Room info row opening shared links.
+  ///
+  /// In en, this message translates to:
+  /// **'Links'**
+  String get riTabLinks;
+
+  /// Room info row opening messages you saved from this room.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get riTabSaved;
+
+  /// Value beside a shared-content row with nothing in it.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get riNone;
+
+  /// Footer under shared content explaining saved vs pinned.
+  ///
+  /// In en, this message translates to:
+  /// **'Only you see what you save. A pinned message is the opposite — the whole room sees it.'**
+  String get riSavedNote;
+
+  /// Footer under the member list explaining the owner medal.
+  ///
+  /// In en, this message translates to:
+  /// **'The medal marks whoever created this room.'**
+  String get riOwnerNote;
 }
 
 class _AppLocalizationsDelegate

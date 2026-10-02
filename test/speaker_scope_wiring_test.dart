@@ -166,11 +166,9 @@ void main() {
     await SettingsStore.instance.setSpeakerTint(SpeakerTint.bubble);
   });
 
-  testWidgets('the picker draws three live previews and one of them takes',
+  testWidgets('the picker draws a live preview and a choice takes',
       (tester) async {
     await SettingsStore.instance.setSpeakerTint(SpeakerTint.bubble);
-    // Tall enough for all three cards: the list is lazy, and on the default
-    // 800px viewport the third one is never built at all.
     tester.view.physicalSize = const Size(600, 2200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -184,13 +182,13 @@ void main() {
     ));
     await tester.pump();
 
-    // Each card previews the same three speakers, so every name appears once
-    // per card. The preview is the whole argument for the setting; a card that
-    // silently rendered nothing would still look like a working picker.
-    expect(find.text('ada'), findsNWidgets(3));
-    expect(find.text('mira'), findsNWidgets(3));
+    // One live preview of the three speakers above the choices. The preview
+    // is the whole argument for the setting; a picker that silently rendered
+    // nothing would still look like a working one.
+    expect(find.text('ada'), findsOneWidget);
+    expect(find.text('mira'), findsOneWidget);
 
-    await tester.tap(find.text('OFF'));
+    await tester.tap(find.text('Off'));
     await tester.pump();
     expect(SettingsStore.instance.speakerTint, SpeakerTint.off);
 

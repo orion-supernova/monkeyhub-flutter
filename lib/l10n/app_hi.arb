@@ -2831,5 +2831,21 @@
   "pvPast": "मेरा पिछला",
   "pvPastDesc": "आज हमेशा दोस्तों के साथ साझा होता है — यह उससे पहले का सब खोलता है",
   "pvPoints": "मेरे पॉइंट्स",
-  "pvPointsDesc": "क्या आपके दर्ज पॉइंट दोस्तों के बोर्ड पर दिखें"
+  "pvPointsDesc": "क्या आपके दर्ज पॉइंट दोस्तों के बोर्ड पर दिखें",
+  "roomColorsPageTitle": "कौन कौन है",
+  "roomColorsPageHeader": "हर व्यक्ति किस रंग में बोलता है",
+  "roomColorsAuto": "स्वचालित",
+  "roomColorsReset": "वापस स्वचालित पर",
+  "roomColorsOffFooter": "बोलने वालों के रंग बंद हैं। यहाँ चालू करने से हर रूम में चालू हो जाएँगे।",
+  "roomColorsSharedWith": "{name} के साथ साझा",
+  "settingsScreenValueReplyQuote": "उद्धरण",
+  "replyQuoteSub": "मूल संदेश जवाब के बबल के अंदर सबसे ऊपर दिखता है।",
+  "riTabMedia": "फ़ोटो और वीडियो",
+  "riTabFiles": "फ़ाइलें",
+  "riTabVoice": "वॉइस संदेश",
+  "riTabLinks": "लिंक",
+  "riTabSaved": "सहेजे गए",
+  "riNone": "कोई नहीं",
+  "riSavedNote": "आप जो सहेजते हैं उसे केवल आप देखते हैं। पिन किया गया संदेश उल्टा है — पूरा रूम उसे देखता है।",
+  "riOwnerNote": "मेडल इस रूम को बनाने वाले को दर्शाता है।"
 }

@@ -10071,4 +10071,57 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get pvPointsDesc =>
       'Kaydettiğin puanların arkadaşlarının panolarında görünüp görünmediği';
+
+  @override
+  String get roomColorsPageTitle => 'Kim kim';
+
+  @override
+  String get roomColorsPageHeader => 'Herkesin konuştuğu renk';
+
+  @override
+  String get roomColorsAuto => 'Otomatik';
+
+  @override
+  String get roomColorsReset => 'Otomatiğe dön';
+
+  @override
+  String get roomColorsOffFooter =>
+      'Konuşan renkleri kapalı. Burada açarsan tüm odalarda açılır.';
+
+  @override
+  String roomColorsSharedWith(String name) {
+    return '$name ile ortak';
+  }
+
+  @override
+  String get settingsScreenValueReplyQuote => 'Alıntı';
+
+  @override
+  String get replyQuoteSub =>
+      'Orijinal mesaj, yanıtın balonunun içinde en üstte durur.';
+
+  @override
+  String get riTabMedia => 'Fotoğraflar ve videolar';
+
+  @override
+  String get riTabFiles => 'Dosyalar';
+
+  @override
+  String get riTabVoice => 'Sesli mesajlar';
+
+  @override
+  String get riTabLinks => 'Bağlantılar';
+
+  @override
+  String get riTabSaved => 'Kaydedilenler';
+
+  @override
+  String get riNone => 'Yok';
+
+  @override
+  String get riSavedNote =>
+      'Kaydettiklerini yalnızca sen görürsün. Sabitlenen mesaj ise tam tersi — tüm oda görür.';
+
+  @override
+  String get riOwnerNote => 'Madalya bu odayı kuranı gösterir.';
 }

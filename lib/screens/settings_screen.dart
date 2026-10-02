@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -23,20 +24,19 @@ import '../push/android_call_reliability.dart';
 import '../push/push_manager.dart';
 import '../services/link_opener.dart';
 import '../services/mac_app_chrome.dart';
-import '../theme/bubble_shape.dart';
+import '../theme/app_theme.dart';
 import '../theme/speaker_colors.dart';
 import '../theme/layout.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import '../update/update_availability.dart';
 import '../update/update_checker.dart';
-import '../widgets/adaptive_page_body.dart';
 import '../widgets/app_brand_mark.dart' show canonicalLogoId;
-import '../widgets/count_badge.dart';
-import '../widgets/detail_link_row.dart';
 import '../widgets/monkey_collection.dart';
 import '../widgets/self_host_badge.dart' show shortHost;
 import '../widgets/recovery_banner.dart';
+import '../widgets/ios_kit.dart';
+import '../widgets/settings_pickers.dart';
 import '../widgets/user_avatar.dart';
 import 'bubble_style_screen.dart';
 import 'chat_style_screen.dart';
@@ -53,6 +53,7 @@ import 'logo_screen.dart';
 import 'motion_screen.dart';
 import 'navigation_screen.dart';
 import 'navigation/destinations.dart';
+import 'navigation/native_tab_bar.dart' show NativeChrome;
 import 'navigation/open_room.dart';
 import 'navigation/tab_reselect.dart';
 import 'profile_screen.dart';
@@ -125,6 +126,13 @@ class _SettingsScreenState extends State<SettingsScreen>
     // when the screen opened and then sits there, which reads as a stalled
     // download rather than a stale label.
     BrainManager.instance.addListener(_onSettings);
+    _callDelivery.addListener(_onSettings);
+    if (MacAppChrome.isSupported) {
+      MacAppChrome.instance.addListener(_onSettings);
+      // Re-read on every visit: the item can also be removed by ⌘-dragging it
+      // out of the menu bar, and the switch has to show what happened.
+      MacAppChrome.instance.load();
+    }
     // The approvals badge should be right whenever this screen is opened.
     widget.family.refresh();
     _loadMe();
@@ -137,6 +145,12 @@ class _SettingsScreenState extends State<SettingsScreen>
     widget.auth.removeListener(_onAuth);
     UiSelectionStore.instance.removeListener(_onSettings);
     BrainManager.instance.removeListener(_onSettings);
+    _callDelivery
+      ..removeListener(_onSettings)
+      ..dispose();
+    if (MacAppChrome.isSupported) {
+      MacAppChrome.instance.removeListener(_onSettings);
+    }
     _scroll.dispose();
     super.dispose();
   }
@@ -172,31 +186,24 @@ class _SettingsScreenState extends State<SettingsScreen>
   String get _accountHint {
     final l10n = AppLocalizations.of(context);
     return widget.auth.isChild
-        ? l10n.settingsScreenAccountHintChild
-        : l10n.settingsScreenAccountHintAdult;
+        ? l10n.settingsHubAccountHintChild
+        : l10n.settingsHubAccountHintAdult;
   }
 
   String get _layoutLabel {
     final l10n = AppLocalizations.of(context);
     return switch (SettingsStore.instance.roomLayout) {
-      RoomLayout.list => l10n.settingsScreenValueScrollList,
-      RoomLayout.cards => _sentenceCase(l10n.roomLayoutScreenCardsLayoutLabel),
-      RoomLayout.grid => l10n.settingsScreenValueGridSheet,
+      RoomLayout.list => l10n.settingsHubLayoutRows,
+      RoomLayout.cards => l10n.settingsHubLayoutCards,
+      RoomLayout.grid => l10n.settingsHubLayoutGrid,
     };
   }
-
-  /// The layout screen's labels are set in capitals; the summary beside the
-  /// row reads in sentence case like its neighbours.
-  static String _sentenceCase(String s) => s.isEmpty
-      ? s
-      : s.characters.first.toUpperCase() +
-          s.characters.skip(1).toString().toLowerCase();
 
   String get _navLabel {
     final l10n = AppLocalizations.of(context);
     return SettingsStore.instance.navStyle == NavStyle.radial
         ? l10n.settingsScreenValueRadialOrb
-        : l10n.settingsScreenValueBottomPill;
+        : l10n.settingsHubNavTabBar;
   }
 
   /// The active look's name, marked when it has been tuned away from what it
@@ -204,6 +211,9 @@ class _SettingsScreenState extends State<SettingsScreen>
   String get _glassLabel {
     final l10n = AppLocalizations.of(context);
     final store = SettingsStore.instance;
+    // Under iOS's own glass the dials do not apply, so naming a preset here
+    // would describe something that is not on screen.
+    if (_nativeGlass) return l10n.glassStyleLiquidTitle;
     final id = store.glassPresetId;
     if (id == null) return l10n.settingsScreenValueCustom;
     for (final p in store.glassPresets) {
@@ -215,6 +225,10 @@ class _SettingsScreenState extends State<SettingsScreen>
     }
     return l10n.settingsScreenValueCustom;
   }
+
+  bool get _nativeGlass =>
+      NativeChrome.supported &&
+      SettingsStore.instance.glassEngine == GlassEngine.native;
 
   String get _videoQualityLabel {
     final l10n = AppLocalizations.of(context);
@@ -284,6 +298,8 @@ class _SettingsScreenState extends State<SettingsScreen>
   String get _replyStyleLabel {
     final l10n = AppLocalizations.of(context);
     switch (SettingsStore.instance.replyStyle) {
+      case ReplyStyle.quote:
+        return l10n.settingsScreenValueReplyQuote;
       case ReplyStyle.phantomEcho:
         return l10n.settingsScreenValueReplyPhantomEcho;
       case ReplyStyle.stickyNote:
@@ -342,642 +358,706 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
 
+  void _openProfile(ChatUser me) => openSettingsDetail(
+        context,
+        key: 'profile',
+        builder: (_) => ProfileScreen(
+          user: me,
+          repo: widget.repo,
+          api: widget.api,
+          auth: widget.auth,
+          family: widget.family,
+        ),
+      );
+
+  void _open(String key, WidgetBuilder builder) =>
+      openSettingsDetail(context, key: key, builder: builder);
+
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final activeTheme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final s = widget.auth.session;
-    return Stack(
+    final store = SettingsStore.instance;
+    final me = s == null
+        ? null
+        : (_me ?? ChatUser(id: s.userId, username: s.username, name: s.name));
+
+    // Sections run in descending order of how often anyone opens them, not in
+    // the order they were built: the part people came for first, the part
+    // they browse after it, the facts about the app last.
+    return SettingsPage(
+      title: l10n.settingsHubTitle,
+      controller: _scroll,
+      showBack: false,
+      bottomPadding: sectionBottomPadding(context),
       children: [
-        theme.backgroundLayer(context),
-        SafeArea(
-          // See home_screen: the bottom inset leaves a dead strip of background
-          // under the scroller. The list's own bottom padding clears the
-          // floating pill and the home indicator.
-          bottom: false,
-          // On a tablet-width standalone window (before the two-pane shell
-          // kicks in at WindowClass.expanded) this keeps rows from
-          // stretching edge to edge; a no-op in the desktop shell's fixed
-          // 360px master pane, since that's already narrower than the cap.
-          child: AdaptivePageBody(
-            child: ListView(
-              controller: _scroll,
-              padding: EdgeInsets.fromLTRB(
-                20,
-                28,
-                20,
-                sectionBottomPadding(context),
-              ),
-              children: [
-                Text(
-                  l10n.settingsScreenTitle,
-                  style: theme.label.copyWith(letterSpacing: 3),
-                ),
-                const SizedBox(height: 28),
-                Text(l10n.settingsScreenTagline, style: theme.displayLarge),
-                const SizedBox(height: 28),
-                if (s != null) ...[
-                  // An account with no recovery phrase is one forgotten password
-                  // away from being gone. Shown here because Settings is the
-                  // screen people actually open — profile carries the same
-                  // banner. `_loadMe()` already fetches with viewerUserId ==
-                  // userId, so hasRecoveryKey arrives with no extra query.
-                  //
-                  // Explicitly `== false`: null means "unknown" (older backend,
-                  // or not a self-fetch) and must not be read as "none set".
-                  // The isChild check is belt-and-braces — the server already
-                  // returns null for children, who have no reset path at all.
-                  if (_me?.hasRecoveryKey == false && !widget.auth.isChild) ...[
-                    RecoveryPhraseBanner(
-                      onTap: () => openSettingsDetail(
-                        context,
-                        key: 'profile',
-                        builder: (_) => ProfileScreen(
-                          user: _me!,
-                          repo: widget.repo,
-                          api: widget.api,
-                          auth: widget.auth,
-                          family: widget.family,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  () {
-                    final me =
-                        _me ??
-                        ChatUser(
-                          id: s.userId,
-                          username: s.username,
-                          name: s.name,
-                        );
-                    return GestureDetector(
-                      onTap: () => openSettingsDetail(
-                        context,
-                        key: 'profile',
-                        builder: (_) => ProfileScreen(
-                          user: me,
-                          repo: widget.repo,
-                          api: widget.api,
-                          auth: widget.auth,
-                          family: widget.family,
-                        ),
-                      ),
-                      behavior: HitTestBehavior.opaque,
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: theme.roomCardDecoration(
-                          ephemeral: false,
-                          active: _isOpen('profile'),
-                        ),
-                        child: Row(
-                          children: [
-                            UserAvatar(user: me, size: 48, api: widget.api),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    me.displayName,
-                                    style: theme.displaySmall,
-                                  ),
-                                  Text(
-                                    '@${me.username}',
-                                    style: theme.mono.copyWith(
-                                      color: theme.inkMuted,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  // Says where the account settings went, now
-                                  // that family is one of them.
-                                  Text(
-                                    _accountHint,
-                                    style: theme.monoTiny.copyWith(
-                                      color: theme.inkMuted,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // Approvals used to badge their own top-level row.
-                            // That row now lives inside the account screen, so
-                            // the count rides the way in — otherwise a guardian
-                            // would have to go looking to find out anything was
-                            // waiting.
-                            if (widget.family.pendingCount > 0) ...[
-                              CountBadge(count: widget.family.pendingCount),
-                              const SizedBox(width: 8),
-                            ],
-                            Icon(
-                              Icons.chevron_right,
-                              size: 18,
-                              color: theme.inkMuted,
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }(),
-                ],
-                const SizedBox(height: 24),
-
-                // Sections run in descending order of how often anyone opens
-                // them, not in the order they were built. The nine appearance
-                // and chat-styling rows used to sit up here, which meant that
-                // changing your language or silencing push started with a scroll
-                // past six flavours of message bubble. The customisation is the
-                // part people browse; the rest is the part they came for.
-                _SectionHeader(label: l10n.settingsScreenSectionGeneral),
-                const SizedBox(height: 12),
-                _DisclosureRow(
-                  label: l10n.settingsLanguageRowLabel,
-                  value: _languageLabel,
-                  selected: _isOpen('language'),
-                  leading: Icon(
-                    Icons.language_outlined,
-                    size: 16,
-                    color: theme.inkSoft,
-                  ),
-                  onTap: () => openSettingsDetail(
-                    context,
-                    key: 'language',
-                    builder: (_) => const LanguageScreen(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const _CheckForUpdatesRow(),
-                const SizedBox(height: 10),
-                // Absorbed from a LINKS section that existed to hold this one
-                // toggle. A heading, a gap and a scroll for a single switch is a
-                // worse deal than the switch is worth, and how a link renders is
-                // a reading preference like any other on this list.
-                _ShowLinkUrlsToggle(),
-                const SizedBox(height: 10),
-                // Reading preferences too: whether the transcript moves, and
-                // whether an emoji offers stickers.
-                _ExpressionSettingToggle(
-                  icon: Icons.gif_box_outlined,
-                  label: l10n.settingsAutoplayExpressionsLabel,
-                  onBody: l10n.settingsAutoplayExpressionsOnBody,
-                  offBody: l10n.settingsAutoplayExpressionsOffBody,
-                  value: () => SettingsStore.instance.autoplayExpressions,
-                  onChanged: SettingsStore.instance.setAutoplayExpressions,
-                ),
-                const SizedBox(height: 10),
-                _ExpressionSettingToggle(
-                  icon: Icons.emoji_emotions_outlined,
-                  label: l10n.settingsStickerSuggestionsLabel,
-                  onBody: l10n.settingsStickerSuggestionsBody,
-                  offBody: l10n.settingsStickerSuggestionsBody,
-                  value: () => SettingsStore.instance.stickerSuggestions,
-                  onChanged: SettingsStore.instance.setStickerSuggestions,
-                ),
-
-                const SizedBox(height: 28),
-                _SectionHeader(label: l10n.settingsScreenSectionNotifications),
-                const SizedBox(height: 12),
-                _PushToggle(),
-                // Nested under the switch above rather than beside it, and only
-                // while that one is on: a reminder toggle offered to somebody
-                // who has turned notifications off entirely is a control with
-                // nothing to control.
-                _GameRemindersToggle(),
-                _FriendActivityToggle(),
-                // Android's two call-delivery settings. Renders nothing at all
-                // when there is nothing to fix — see _CallDeliveryRows.
-                const _CallDeliveryRows(),
-                // macOS's. Sits with the notification switches rather than
-                // under APPEARANCE because that is what the item is for: on a
-                // platform with no push, the menu bar is where the unread count
-                // lives once the window is hidden. Renders nothing off macOS.
-                const _MenuBarToggle(),
-
-                const SizedBox(height: 28),
-                _SectionHeader(label: l10n.settingsScreenSectionCalls),
-                const SizedBox(height: 12),
-                _DisclosureRow(
-                  label: l10n.settingsScreenRowVideoQuality,
-                  value: _videoQualityLabel,
-                  selected: _isOpen('videoQuality'),
-                  leading: Icon(
-                    Icons.high_quality_outlined,
-                    size: 16,
-                    color: theme.inkSoft,
-                  ),
-                  onTap: () => openSettingsDetail(
-                    context,
-                    key: 'videoQuality',
-                    builder: (_) => const VideoQualityScreen(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                _ShowNetworkStatsToggle(),
-
-                // Appearance is everything that dresses the app as a whole —
-                // Navigation and Motion moved in from LAYOUT because a switcher
-                // animation is app chrome, not a property of a conversation.
-                const SizedBox(height: 28),
-                _SectionHeader(label: l10n.settingsScreenSectionAppearance),
-                const SizedBox(height: 12),
-                _DisclosureRow(
-                  label: l10n.settingsScreenRowTheme,
-                  // "auto · Midnight" while it follows the device, so the row
-                  // says the theme will change by itself before it does.
-                  value: SettingsStore.instance.appearanceMode ==
-                          AppearanceMode.system
-                      ? l10n.appearanceAutoValue(activeTheme.name)
-                      : activeTheme.name,
-                  selected: _isOpen('theme'),
-                  leading: _SwatchDot(color: activeTheme.accent),
-                  onTap: () => openSettingsDetail(
-                    context,
-                    key: 'theme',
-                    builder: (_) => const ThemeScreen(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                _DisclosureRow(
-                  label: l10n.settingsScreenRowAppLogo,
-                  value: _logoLabel,
-                  selected: _isOpen('logo'),
-                  leading: Icon(
-                    Icons.workspaces_outline,
-                    size: 16,
-                    color: theme.inkSoft,
-                  ),
-                  onTap: () => openSettingsDetail(
-                    context,
-                    key: 'logo',
-                    builder: (_) => const LogoScreen(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                _DisclosureRow(
-                  label: l10n.settingsScreenRowGlass,
-                  value: _glassLabel,
-                  selected: _isOpen('glass'),
-                  leading: Icon(
-                    Icons.blur_on_outlined,
-                    size: 16,
-                    color: theme.inkSoft,
-                  ),
-                  onTap: () => openSettingsDetail(
-                    context,
-                    key: 'glass',
-                    builder: (_) => const GlassScreen(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                _DisclosureRow(
-                  label: l10n.settingsScreenRowNavigation,
-                  value: _navLabel,
-                  selected: _isOpen('navigation'),
-                  leading: Icon(
-                    Icons.swap_horiz,
-                    size: 16,
-                    color: theme.inkSoft,
-                  ),
-                  onTap: () => openSettingsDetail(
-                    context,
-                    key: 'navigation',
-                    builder: (_) => const NavigationScreen(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                _DisclosureRow(
-                  label: l10n.settingsScreenRowMotion,
-                  value: _motionLabel,
-                  selected: _isOpen('motion'),
-                  leading: Icon(
-                    Icons.animation_outlined,
-                    size: 16,
-                    color: theme.inkSoft,
-                  ),
-                  onTap: () => openSettingsDetail(
-                    context,
-                    key: 'motion',
-                    builder: (_) => const MotionScreen(),
-                  ),
-                ),
-
-                // Its own section, above CHAT rather than inside it.
-                //
-                // A companion is not a rendering preference. It is a resident
-                // that costs hundreds of megabytes of the user's disk, runs a
-                // language model on their handset, and can be switched off —
-                // which is a category of setting, not a flavour of bubble.
-                const SizedBox(height: 28),
-                _SectionHeader(label: l10n.settingsScreenSectionCompanions),
-                const SizedBox(height: 12),
-                // One row per resident, rather than one row for the group.
-                //
-                // This used to be a single COMPANIONS row inside CHAT, argued
-                // for on the grounds that a companion only changes how a
-                // conversation reads. That stopped being true: there are two of
-                // them, they cost between 328 MB and 2.6 GB of the user's disk,
-                // and the row behind the row was a hub that did nothing this
-                // section does not now do itself. Naming them here is also the
-                // only version that lets the right-hand column say something
-                // specific — "Translating into Türkçe" beats "On".
-                _CompanionRow(
-                  companion: Companion.sebastian,
-                  selected: _isOpen('sebastian'),
-                  onTap: () => openSettingsDetail(
-                    context,
-                    key: 'sebastian',
-                    builder: (_) => const SebastianScreen(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                _CompanionRow(
-                  companion: Companion.marlowe,
-                  selected: _isOpen('marlowe'),
-                  onTap: () => openSettingsDetail(
-                    context,
-                    key: 'marlowe',
-                    builder: (_) => const MarloweScreen(),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                const CompanionStorageLine(),
-
-                // What used to be LAYOUT, minus the two rows that were never
-                // about layout. Everything left answers one question — how a
-                // conversation renders — so the header says so.
-                const SizedBox(height: 28),
-                _SectionHeader(label: l10n.settingsScreenSectionChat),
-                const SizedBox(height: 12),
-                _DisclosureRow(
-                  label: l10n.settingsScreenRowChatList,
-                  value: _layoutLabel,
-                  selected: _isOpen('roomLayout'),
-                  leading: Icon(
-                    Icons.dashboard_outlined,
-                    size: 16,
-                    color: theme.inkSoft,
-                  ),
-                  onTap: () => openSettingsDetail(
-                    context,
-                    key: 'roomLayout',
-                    builder: (_) => const RoomLayoutScreen(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                _DisclosureRow(
-                  label: l10n.settingsScreenRowChatStyle,
-                  value: _chatStyleLabel,
-                  selected: _isOpen('chatStyle'),
-                  leading: Icon(
-                    Icons.bubble_chart_outlined,
-                    size: 16,
-                    color: theme.inkSoft,
-                  ),
-                  onTap: () => openSettingsDetail(
-                    context,
-                    key: 'chatStyle',
-                    builder: (_) => const ChatStyleScreen(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                _DisclosureRow(
-                  label: l10n.settingsScreenRowBubbleStyle,
-                  value: _bubbleStyleLabel,
-                  selected: _isOpen('bubbleStyle'),
-                  leading: Icon(
-                    Icons.chat_bubble_outline,
-                    size: 16,
-                    color: theme.inkSoft,
-                  ),
-                  onTap: () => openSettingsDetail(
-                    context,
-                    key: 'bubbleStyle',
-                    builder: (_) => const BubbleStyleScreen(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                _DisclosureRow(
-                  label: l10n.settingsScreenRowSpeakerColors,
-                  value: _speakerTintLabel,
-                  selected: _isOpen('speakerColors'),
-                  leading: Icon(
-                    Icons.palette_outlined,
-                    size: 16,
-                    color: theme.inkSoft,
-                  ),
-                  onTap: () => openSettingsDetail(
-                    context,
-                    key: 'speakerColors',
-                    builder: (_) => const SpeakerColorScreen(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                _DisclosureRow(
-                  label: l10n.settingsScreenRowReplyStyle,
-                  value: _replyStyleLabel,
-                  selected: _isOpen('replyStyle'),
-                  leading: Icon(
-                    Icons.reply_outlined,
-                    size: 16,
-                    color: theme.inkSoft,
-                  ),
-                  onTap: () => openSettingsDetail(
-                    context,
-                    key: 'replyStyle',
-                    builder: (_) => ReplyStyleScreen(api: widget.api),
-                  ),
-                ),
-
-                // Report a Problem used to float here without a header of its
-                // own, in the middle of the screen. It belongs with the legal
-                // links by the same argument that brought those up from Profile:
-                // none of the four says anything about the account you are
-                // looking at — they are facts about the app.
-                //
-                // The privacy policy stays unconditional, and it has to:
-                // Guideline 5.1.1(i) and Google's User Data policy both want one
-                // reachable from inside the app for EVERY account, children
-                // included, and Settings is the one screen all of them can open.
-                const SizedBox(height: 28),
-                _SectionHeader(label: l10n.settingsScreenSectionHelpAndLegal),
-                const SizedBox(height: 12),
-                _DisclosureRow(
-                  label: l10n.reportProblemRowLabel,
-                  value: l10n.reportProblemRowValue,
-                  selected: _isOpen('report'),
-                  leading: Icon(
-                    Icons.bug_report_outlined,
-                    size: 16,
-                    color: theme.inkSoft,
-                  ),
-                  onTap: () => openSettingsDetail(
-                    context,
-                    key: 'report',
-                    builder: (_) =>
-                        ReportProblemScreen(auth: widget.auth, api: widget.api),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                // The same row Profile stacks — these three came from there, and
-                // arriving looking like something else would read as three new
-                // rows rather than three moved ones.
-                DetailLinkRow(
-                  label: l10n.settingsScreenPrivacyPolicy,
-                  icon: Icons.privacy_tip_outlined,
-                  onTap: () => LinkOpener.open(context, kPrivacyPolicyUrl),
-                ),
-                const SizedBox(height: 10),
-                DetailLinkRow(
-                  label: l10n.settingsScreenTermsOfService,
-                  icon: Icons.gavel_outlined,
-                  onTap: () => LinkOpener.open(context, kTermsOfServiceUrl),
-                ),
-                const SizedBox(height: 10),
-                DetailLinkRow(
-                  label: l10n.settingsScreenLicence,
-                  icon: Icons.description_outlined,
-                  onTap: () => LinkOpener.open(context, kEulaUrl),
-                ),
-
-                // Last, and in a section of its own. Which server holds the
-                // account is not a preference — changing it signs this device out
-                // and starts over — so it sits below everything that is one,
-                // where nobody arrives at it by scrolling.
-                //
-                // Hidden from children entirely: a supervised device is pinned to
-                // a family that exists on ONE deployment, and it cannot sign
-                // itself out to leave (see `ServerSwitch`). A row that would
-                // refuse is worse than no row.
-                if (!widget.auth.isChild) ...[
-                  const SizedBox(height: 28),
-                  _SectionHeader(label: l10n.settingsScreenSectionAdvanced),
-                  const SizedBox(height: 12),
-                  _ServerRow(selected: _isOpen('server')),
-                ],
-
-                const SizedBox(height: 36),
-                _VersionStamp(),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.label});
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Container(
-          width: 3,
-          height: 14,
-          decoration: BoxDecoration(
-            color: theme.accent,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          label,
-          style: theme.label.copyWith(letterSpacing: 2.8, color: theme.accent),
-        ),
-        const SizedBox(width: 12),
-        Expanded(child: Container(height: 1, color: theme.divider)),
-      ],
-    );
-  }
-}
-
-class _DisclosureRow extends StatelessWidget {
-  const _DisclosureRow({
-    required this.label,
-    required this.value,
-    required this.onTap,
-    this.leading,
-    this.selected = false,
-  });
-  final String label;
-  final String value;
-  final VoidCallback onTap;
-  final Widget? leading;
-
-  /// Whether this row's sub-screen is currently open in the desktop detail
-  /// pane. Renders an accent-tinted surface so the two-pane selection is clear.
-  final bool selected;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-        decoration: BoxDecoration(
-          color: selected
-              ? theme.accent.withValues(alpha: 0.14)
-              : theme.surface,
-          border: Border.all(
-            color: selected
-                ? theme.accent.withValues(alpha: 0.4)
-                : theme.divider,
-          ),
-          borderRadius: BorderRadius.circular(theme.radiusMd),
-        ),
-        child: Row(
-          children: [
-            if (leading != null) ...[leading!, const SizedBox(width: 12)],
-            SizedBox(width: 110, child: Text(label, style: theme.label)),
-            Expanded(
-              child: Text(
-                value,
-                style: theme.body.copyWith(color: theme.inkSoft),
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.right,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
+        if (me != null) ...[
+          // An account with no recovery phrase is one forgotten password away
+          // from being gone. Explicitly `== false`: null means "unknown" and
+          // must not be read as "none set"; children have no reset path.
+          if (_me?.hasRecoveryKey == false && !widget.auth.isChild) ...[
+            RecoveryPhraseBanner(onTap: () => _openProfile(_me!)),
+            const SizedBox(height: 16),
           ],
+          GroupedSection(
+            children: [
+              _ProfileCard(
+                user: me,
+                api: widget.api,
+                hint: _accountHint,
+                // Approvals live inside the account screen, so the count
+                // rides the way in.
+                pending: widget.family.pendingCount,
+                selected: _isOpen('profile'),
+                onTap: () => _openProfile(me),
+              ),
+            ],
+          ),
+        ],
+
+        GroupedSection(
+          header: l10n.settingsHubSectionGeneral,
+          children: [
+            _HubRow(
+              icon: CupertinoIcons.globe,
+              tone: TileTone.blue,
+              title: l10n.settingsHubLanguage,
+              value: _languageLabel,
+              selected: _isOpen('language'),
+              onTap: () => _open('language', (_) => const LanguageScreen()),
+            ),
+            const _CheckForUpdatesRow(),
+            _StoreToggle(
+              icon: CupertinoIcons.link,
+              tone: TileTone.teal,
+              title: l10n.settingsHubShowLinkUrls,
+              subtitle: l10n.settingsHubShowLinkUrlsSubtitle,
+              value: () => store.showLinkUrls,
+              onChanged: store.setShowLinkUrls,
+            ),
+            _StoreToggle(
+              icon: CupertinoIcons.play_rectangle_fill,
+              tone: TileTone.pink,
+              title: l10n.settingsAutoplayExpressionsLabel,
+              subtitle: store.autoplayExpressions
+                  ? l10n.settingsAutoplayExpressionsOnBody
+                  : l10n.settingsAutoplayExpressionsOffBody,
+              value: () => store.autoplayExpressions,
+              onChanged: store.setAutoplayExpressions,
+            ),
+            _StoreToggle(
+              icon: CupertinoIcons.smiley_fill,
+              tone: TileTone.orange,
+              title: l10n.settingsStickerSuggestionsLabel,
+              subtitle: l10n.settingsStickerSuggestionsBody,
+              value: () => store.stickerSuggestions,
+              onChanged: store.setStickerSuggestions,
+            ),
+          ],
+        ),
+
+        GroupedSection(
+          header: l10n.settingsHubSectionNotifications,
+          children: [
+            _StoreToggle(
+              icon: CupertinoIcons.bell_fill,
+              tone: TileTone.red,
+              title: l10n.settingsHubPush,
+              subtitle: l10n.settingsHubPushSubtitle,
+              value: () => store.pushEnabled,
+              onChanged: (v) async {
+                await store.setPushEnabled(v);
+                if (v) {
+                  await PushManager.instance.optIn();
+                } else {
+                  await PushManager.instance.optOut();
+                }
+              },
+            ),
+            // Nested under push, and only while it is on: a reminder toggle
+            // offered to somebody who turned notifications off has nothing to
+            // control.
+            if (store.pushEnabled) ...[
+              _StoreToggle(
+                icon: CupertinoIcons.game_controller_solid,
+                tone: TileTone.purple,
+                title: l10n.settingsHubGameReminders,
+                subtitle: l10n.settingsHubGameRemindersSubtitle,
+                value: () => store.gameReminders,
+                onChanged: (v) async {
+                  await store.setGameReminders(v);
+                  await PushManager.instance.setGameReminders(v);
+                },
+              ),
+              _StoreToggle(
+                icon: CupertinoIcons.person_2_fill,
+                tone: TileTone.green,
+                title: l10n.settingsHubFriendActivity,
+                subtitle: l10n.settingsHubFriendActivitySubtitle,
+                value: () => store.friendActivity,
+                onChanged: (v) async {
+                  await store.setFriendActivity(v);
+                  await PushManager.instance.setFriendActivity(v);
+                },
+              ),
+            ],
+            // Android's two call-delivery settings and macOS's menu-bar item.
+            // Each renders as no rows at all when there is nothing to show.
+            ..._CallDeliveryRows.rows(context, _callDelivery),
+            if (_menuBarVisible != null)
+              _HubToggle(
+                icon: CupertinoIcons.device_laptop,
+                tone: TileTone.gray,
+                title: l10n.settingsHubMenuBar,
+                subtitle: l10n.settingsHubMenuBarSubtitle,
+                value: _menuBarVisible!,
+                onChanged: MacAppChrome.instance.setVisible,
+              ),
+          ],
+        ),
+
+        GroupedSection(
+          header: l10n.settingsHubSectionCalls,
+          children: [
+            _HubRow(
+              icon: CupertinoIcons.videocam_fill,
+              tone: TileTone.green,
+              title: l10n.settingsScreenRowVideoQuality,
+              value: _videoQualityLabel,
+              selected: _isOpen('videoQuality'),
+              onTap: () =>
+                  _open('videoQuality', (_) => const VideoQualityScreen()),
+            ),
+            _StoreToggle(
+              icon: CupertinoIcons.speedometer,
+              tone: TileTone.gray,
+              title: l10n.settingsHubCallStats,
+              subtitle: l10n.settingsHubCallStatsSubtitle,
+              value: () => store.showNetworkStats,
+              onChanged: store.setShowNetworkStats,
+            ),
+          ],
+        ),
+
+        GroupedSection(
+          header: l10n.settingsHubSectionAppearance,
+          children: [
+            _HubRow(
+              icon: CupertinoIcons.paintbrush_fill,
+              tone: TileTone.indigo,
+              title: l10n.settingsHubTheme,
+              // "Auto · Midnight" while it follows the device, so the row says
+              // the theme will change by itself before it does.
+              value: store.appearanceMode == AppearanceMode.system
+                  ? l10n.settingsHubThemeAuto(activeTheme.name)
+                  : activeTheme.name,
+              selected: _isOpen('theme'),
+              onTap: () => _open('theme', (_) => const ThemeScreen()),
+            ),
+            _HubRow(
+              icon: CupertinoIcons.app_fill,
+              tone: TileTone.blue,
+              title: l10n.settingsHubAppIcon,
+              value: _logoLabel,
+              selected: _isOpen('logo'),
+              onTap: () => _open('logo', (_) => const LogoScreen()),
+            ),
+            _HubRow(
+              icon: CupertinoIcons.drop_fill,
+              tone: TileTone.teal,
+              title: l10n.settingsHubGlass,
+              value: _glassLabel,
+              selected: _isOpen('glass'),
+              onTap: () => _open('glass', (_) => const GlassScreen()),
+            ),
+            _HubRow(
+              icon: CupertinoIcons.square_grid_2x2_fill,
+              tone: TileTone.orange,
+              title: l10n.settingsHubNavigation,
+              value: _navLabel,
+              selected: _isOpen('navigation'),
+              onTap: () =>
+                  _open('navigation', (_) => const NavigationScreen()),
+            ),
+            _HubRow(
+              icon: CupertinoIcons.wand_stars,
+              tone: TileTone.pink,
+              title: l10n.settingsHubMotion,
+              value: _motionLabel,
+              selected: _isOpen('motion'),
+              onTap: () => _open('motion', (_) => const MotionScreen()),
+            ),
+          ],
+        ),
+
+        // A companion is not a rendering preference: it is a resident that
+        // costs hundreds of megabytes and runs a model on the handset, so it
+        // gets its own section. One row per resident, so the value can say
+        // something specific — "Translating into Türkçe" beats "On".
+        GroupedSection(
+          header: l10n.settingsHubSectionCompanions,
+          margin: const EdgeInsets.only(bottom: 8),
+          children: [
+            _CompanionRow(
+              companion: Companion.sebastian,
+              selected: _isOpen('sebastian'),
+              onTap: () => _open('sebastian', (_) => const SebastianScreen()),
+            ),
+            _CompanionRow(
+              companion: Companion.marlowe,
+              selected: _isOpen('marlowe'),
+              onTap: () => _open('marlowe', (_) => const MarloweScreen()),
+            ),
+          ],
+        ),
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 0, 16, 28),
+          child: CompanionStorageLine(),
+        ),
+
+        GroupedSection(
+          header: l10n.settingsHubSectionChats,
+          children: [
+            _HubRow(
+              icon: CupertinoIcons.list_bullet,
+              tone: TileTone.blue,
+              title: l10n.settingsHubChatList,
+              value: _layoutLabel,
+              selected: _isOpen('roomLayout'),
+              onTap: () =>
+                  _open('roomLayout', (_) => const RoomLayoutScreen()),
+            ),
+            _HubRow(
+              icon: CupertinoIcons.chat_bubble_2_fill,
+              tone: TileTone.green,
+              title: l10n.settingsHubChatStyle,
+              value: _chatStyleLabel,
+              selected: _isOpen('chatStyle'),
+              onTap: () => _open('chatStyle', (_) => const ChatStyleScreen()),
+            ),
+            _HubRow(
+              icon: CupertinoIcons.bubble_left_fill,
+              tone: TileTone.teal,
+              title: l10n.settingsHubBubbleStyle,
+              value: _bubbleStyleLabel,
+              selected: _isOpen('bubbleStyle'),
+              onTap: () =>
+                  _open('bubbleStyle', (_) => const BubbleStyleScreen()),
+            ),
+            _HubRow(
+              icon: CupertinoIcons.paintbrush,
+              tone: TileTone.orange,
+              title: l10n.settingsHubSpeakerColors,
+              value: _speakerTintLabel,
+              selected: _isOpen('speakerColors'),
+              onTap: () =>
+                  _open('speakerColors', (_) => const SpeakerColorScreen()),
+            ),
+            _HubRow(
+              icon: CupertinoIcons.reply,
+              tone: TileTone.indigo,
+              title: l10n.settingsHubReplyStyle,
+              value: _replyStyleLabel,
+              selected: _isOpen('replyStyle'),
+              onTap: () => _open(
+                'replyStyle',
+                (_) => ReplyStyleScreen(api: widget.api),
+              ),
+            ),
+          ],
+        ),
+
+        // The privacy policy stays unconditional: Guideline 5.1.1(i) and
+        // Google's User Data policy want one reachable for EVERY account,
+        // children included, and Settings is the one screen all of them open.
+        GroupedSection(
+          header: l10n.settingsHubSectionHelp,
+          children: [
+            _HubRow(
+              icon: CupertinoIcons.ant_fill,
+              tone: TileTone.red,
+              title: l10n.reportProblemRowLabel,
+              selected: _isOpen('report'),
+              onTap: () => _open(
+                'report',
+                (_) => ReportProblemScreen(auth: widget.auth, api: widget.api),
+              ),
+            ),
+            _HubRow(
+              icon: CupertinoIcons.hand_raised_fill,
+              tone: TileTone.blue,
+              title: l10n.settingsHubPrivacyPolicy,
+              onTap: () => LinkOpener.open(context, kPrivacyPolicyUrl),
+            ),
+            _HubRow(
+              icon: CupertinoIcons.doc_text_fill,
+              tone: TileTone.gray,
+              title: l10n.settingsHubTerms,
+              onTap: () => LinkOpener.open(context, kTermsOfServiceUrl),
+            ),
+            _HubRow(
+              icon: CupertinoIcons.doc_fill,
+              tone: TileTone.gray,
+              title: l10n.settingsHubLicence,
+              onTap: () => LinkOpener.open(context, kEulaUrl),
+            ),
+          ],
+        ),
+
+        // Last. Which server holds the account is not a preference — changing
+        // it signs this device out — so it sits below everything that is one.
+        // Hidden from children: a supervised device is pinned to a family on
+        // ONE deployment and cannot sign itself out to leave.
+        if (!widget.auth.isChild)
+          GroupedSection(
+            header: l10n.settingsHubSectionAdvanced,
+            children: [_ServerRow(selected: _isOpen('server'))],
+          ),
+
+        const SizedBox(height: 4),
+        Center(child: _VersionStamp()),
+      ],
+    );
+  }
+
+  // ── Platform rows whose state lives outside SettingsStore ──────────────
+
+  /// Android call-delivery permissions: null = not read yet (treated as fine
+  /// so nothing scary flashes in).
+  final _callDelivery = _CallDeliveryState();
+
+  bool? get _menuBarVisible =>
+      MacAppChrome.isSupported ? MacAppChrome.instance.visible : null;
+}
+
+/// The account at the top of the list, the way iOS Settings puts your Apple
+/// Account there: a large face, the name, the handle and what is inside.
+class _ProfileCard extends StatefulWidget {
+  const _ProfileCard({
+    required this.user,
+    required this.api,
+    required this.hint,
+    required this.pending,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final ChatUser user;
+  final ChatApi api;
+  final String hint;
+  final int pending;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  State<_ProfileCard> createState() => _ProfileCardState();
+}
+
+class _ProfileCardState extends State<_ProfileCard> {
+  bool _pressed = false;
+
+  void _set(bool v) {
+    if (_pressed != v) setState(() => _pressed = v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final u = widget.user;
+    return FocusableTap(
+      onTap: widget.onTap,
+      semanticLabel: u.displayName,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (_) => _set(true),
+        onTapUp: (_) => _set(false),
+        onTapCancel: () => _set(false),
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration:
+              _pressed ? Duration.zero : const Duration(milliseconds: 260),
+          color: _rowFill(theme, pressed: _pressed, selected: widget.selected),
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          child: Row(
+            children: [
+              UserAvatar(user: u, size: 60, api: widget.api, showStatus: false),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      u.displayName,
+                      style: theme.displaySmall.copyWith(
+                        fontSize: 20,
+                        color: theme.ink,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '@${u.username}',
+                      style: theme.bodySoft.copyWith(
+                        fontSize: 15,
+                        color: theme.inkSoft,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      widget.hint,
+                      style: theme.bodySoft.copyWith(
+                        fontSize: 13,
+                        color: theme.inkMuted,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              if (widget.pending > 0) ...[
+                const SizedBox(width: 8),
+                _RedBadge(count: widget.pending),
+              ],
+              const SizedBox(width: 8),
+              _Chevron(),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// The way into [ServerScreen], showing which deployment is live.
+/// The fill a hub row takes when pressed, or when it is the page open in the
+/// desktop detail pane — the selected cell of a split view.
+Color _rowFill(AppTheme theme, {required bool pressed, required bool selected}) {
+  if (pressed) return theme.ink.withValues(alpha: 0.08);
+  if (selected) return theme.accent.withValues(alpha: 0.14);
+  return Colors.transparent;
+}
+
+class _Chevron extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Icon(
+      CupertinoIcons.chevron_forward,
+      size: 15,
+      color: theme.inkMuted.withValues(alpha: 0.7),
+    );
+  }
+}
+
+class _RedBadge extends StatelessWidget {
+  const _RedBadge({required this.count});
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Container(
+      constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
+      padding: const EdgeInsets.symmetric(horizontal: 7),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: theme.danger,
+        borderRadius: BorderRadius.circular(11),
+      ),
+      child: Text(
+        count > 99 ? '99+' : '$count',
+        style: theme.caption.copyWith(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
+      ),
+    );
+  }
+}
+
+/// A [GroupedRow] that can also show itself as the page open in the desktop
+/// detail pane. A subclass rather than a wrapper so [GroupedSection] still
+/// recognises it and insets the hairline under it to the text.
+class _HubRow extends GroupedRow {
+  const _HubRow({
+    required super.title,
+    required IconData super.icon,
+    super.tone,
+    super.value,
+    super.onTap,
+    super.trailing,
+    super.chevron,
+    super.badge,
+    this.selected = false,
+    this.leading,
+  });
+
+  final bool selected;
+
+  /// Replaces the coloured tile with any 30×30 widget (a companion's mark).
+  final Widget? leading;
+
+  @override
+  State<GroupedRow> createState() => _HubRowState();
+}
+
+class _HubRowState extends State<GroupedRow> {
+  bool _pressed = false;
+
+  void _set(bool v) {
+    if (_pressed != v) setState(() => _pressed = v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final w = widget as _HubRow;
+    final theme = ThemeScope.of(context);
+    if (w.leading == null) {
+      // The plain row draws its own press highlight; the selected fill sits
+      // under it.
+      return ColoredBox(
+        color: _rowFill(theme, pressed: false, selected: w.selected),
+        child: GroupedRow(
+          title: w.title,
+          icon: w.icon,
+          tone: w.tone,
+          value: w.value,
+          onTap: w.onTap,
+          trailing: w.trailing,
+          chevron: w.chevron,
+          badge: w.badge,
+        ),
+      );
+    }
+    return FocusableTap(
+      onTap: w.onTap,
+      semanticLabel: w.title,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (_) => _set(true),
+        onTapUp: (_) => _set(false),
+        onTapCancel: () => _set(false),
+        onTap: w.onTap,
+        child: AnimatedContainer(
+          duration:
+              _pressed ? Duration.zero : const Duration(milliseconds: 260),
+          color: _rowFill(theme, pressed: _pressed, selected: w.selected),
+          constraints: const BoxConstraints(minHeight: 48),
+          padding: const EdgeInsets.fromLTRB(14, 7, 14, 7),
+          child: Row(
+            children: [
+              SizedBox(width: 30, height: 30, child: w.leading),
+              const SizedBox(width: 16),
+              // The name is a proper noun and never breaks; the status beside
+              // it is what gives way.
+              Text(
+                w.title,
+                maxLines: 1,
+                style: theme.body.copyWith(
+                  fontSize: 17,
+                  height: 1.25,
+                  color: theme.ink,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  w.value ?? '',
+                  style: theme.body.copyWith(
+                    fontSize: 17,
+                    color: theme.inkMuted,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                ),
+              ),
+              const SizedBox(width: 8),
+              _Chevron(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A switch row with its tap haptic. `Switch.adaptive` is silent even on iOS,
+/// where the real UISwitch always ticks.
+class _HubToggle extends StatelessWidget {
+  const _HubToggle({
+    required this.icon,
+    required this.tone,
+    required this.title,
+    required this.value,
+    required this.onChanged,
+    this.subtitle,
+  });
+
+  final IconData icon;
+  final TileTone tone;
+  final String title;
+  final String? subtitle;
+  final bool value;
+  final Future<void> Function(bool) onChanged;
+
+  @override
+  Widget build(BuildContext context) => GroupedRow.toggle(
+        icon: icon,
+        tone: tone,
+        title: title,
+        subtitle: subtitle,
+        value: value,
+        onChanged: (v) {
+          HapticFeedback.lightImpact();
+          onChanged(v);
+        },
+      );
+}
+
+/// A [_HubToggle] over a [SettingsStore] value. The hub rebuilds on every
+/// store change, so this reads the value fresh each build.
+class _StoreToggle extends StatelessWidget {
+  const _StoreToggle({
+    required this.icon,
+    required this.tone,
+    required this.title,
+    required this.value,
+    required this.onChanged,
+    this.subtitle,
+  });
+
+  final IconData icon;
+  final TileTone tone;
+  final String title;
+  final String? subtitle;
+  final bool Function() value;
+  final Future<void> Function(bool) onChanged;
+
+  @override
+  Widget build(BuildContext context) => _HubToggle(
+        icon: icon,
+        tone: tone,
+        title: title,
+        subtitle: subtitle,
+        value: value(),
+        onChanged: onChanged,
+      );
+}
+
+/// One resident, its monogram on a coloured tile where the other rows have a
+/// glyph. Never a sparkle or a brain: every icon that reads as "AI" says the
+/// opposite of what a companion is for (see [CompanionMark]).
 ///
-/// Its own widget rather than a [_DisclosureRow] for one reason: it has to
-/// rebuild when [ServerStore] changes, and everything else on this screen is
-/// driven off [SettingsStore]. It borrows the disclosure row's exact geometry
-/// so it still reads as one of the list.
-/// One resident, in the shape every other row on this screen uses.
-///
-/// A [_DisclosureRow] rather than a control of its own, so the Companions
-/// section reads as part of Settings rather than as a widget someone dropped
-/// into it. Two things it does NOT take from the caller, on purpose:
-///
-///  * the LABEL, which is the companion's name. Proper nouns are the same in
-///    every locale (see [Companion.displayName]) — a name that changed language
-///    when the UI did would stop being a name.
-///  * the VALUE, which comes from [companionStatusLine]. The alternative was a
-///    string computed at the call site, and this screen has already had one of
-///    those disagree with the screen it opened.
-///
-/// The leading glyph is the monogram, not an icon. This row used to wear
-/// `Icons.auto_awesome_outlined`, which is the one thing `CompanionMark`'s own
-/// doc comment asks nobody to do: every icon that reads as "AI" — sparkles, a
-/// brain, a robot — says the opposite of what a companion is for.
+/// The label is the companion's name, the same in every locale, and the value
+/// comes from [companionStatusLine] so this row and the screen it opens can
+/// never disagree.
 class _CompanionRow extends StatelessWidget {
   const _CompanionRow({
     required this.companion,
@@ -992,26 +1072,30 @@ class _CompanionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return _DisclosureRow(
-      // Upper-cased to match its siblings, all of which arrive from the ARB
-      // already shouting ("CHAT LIST", "LANGUAGE"). A proper noun set in caps
-      // is still the same name — it is a typographic treatment, and the
-      // alternative is the one mixed-case label in a column of capitals.
-      label: companion.displayName.toUpperCase(),
+    return _HubRow(
+      icon: CupertinoIcons.person_fill,
+      title: companion.displayName,
       value: companionStatusLine(companion, AppLocalizations.of(context)),
       selected: selected,
-      leading: CompanionMark(
-        companion: companion,
-        size: 16,
-        // Follows the row's own selection, like the icon it replaces: the
-        // leading glyph is chrome here, not the accent moment.
-        foreground: selected ? theme.accent : theme.inkSoft,
-      ),
       onTap: onTap,
+      leading: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: CompanionMark(
+          companion: companion,
+          size: 30,
+          foreground: Colors.white,
+          background: tileColor(
+            theme,
+            companion == Companion.sebastian ? TileTone.indigo : TileTone.teal,
+          ),
+        ),
+      ),
     );
   }
 }
 
+/// The way into [ServerScreen], showing which deployment is live. Rebuilds on
+/// [ServerStore], which nothing else on this screen listens to.
 class _ServerRow extends StatelessWidget {
   const _ServerRow({required this.selected});
   final bool selected;
@@ -1024,389 +1108,62 @@ class _ServerRow extends StatelessWidget {
         final theme = ThemeScope.of(context);
         final l10n = AppLocalizations.of(context);
         final store = ServerStore.instance;
-        // isSelfHosted, NOT isCustom. Following a directive onto the home
-        // server writes a custom URL, so isCustom is true there too — and
-        // reading it is what made this row present a temporary move as a
-        // self-hosting choice the user had made.
+        // isSelfHosted, NOT isCustom: following a directive onto the home
+        // server writes a custom URL too, and reading isCustom presented a
+        // temporary move as a self-hosting choice the user had made.
         final own = store.isSelfHosted;
-        final marked = store.announcesRole;
-        return GestureDetector(
+        return _HubRow(
+          icon: CupertinoIcons.cloud_fill,
+          tone: TileTone.gray,
+          title: l10n.settingsHubServer,
+          // The address only ever appears for a server the user typed in; the
+          // operator's deployment URLs are infrastructure.
+          value: own
+              ? shortHost(store.host)
+              : (store.role == ServerRole.homeserver
+                    ? l10n.serverValueHomeserver
+                    : l10n.serverValueDefault),
+          trailing: store.announcesRole
+              ? Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: theme.accent,
+                    shape: BoxShape.circle,
+                  ),
+                )
+              : null,
+          chevron: true,
+          selected: selected,
           onTap: () => openSettingsDetail(
             context,
             key: 'server',
             builder: (_) => const ServerScreen(),
           ),
-          behavior: HitTestBehavior.opaque,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-            decoration: BoxDecoration(
-              color: selected
-                  ? theme.accent.withValues(alpha: 0.14)
-                  : theme.surface,
-              border: Border.all(
-                color: selected || marked
-                    ? theme.accent.withValues(alpha: 0.4)
-                    : theme.divider,
-              ),
-              borderRadius: BorderRadius.circular(theme.radiusMd),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.dns_outlined,
-                  size: 16,
-                  color: marked ? theme.accent : theme.inkSoft,
-                ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  width: 110,
-                  child: Text(l10n.settingsScreenRowServer, style: theme.label),
-                ),
-                Expanded(
-                  child: Text(
-                    // The address only ever appears for a server the user
-                    // typed in. The operator's deployment URLs are
-                    // infrastructure, not something to publish on every user's
-                    // settings screen.
-                    own
-                        ? shortHost(store.host)
-                        : (store.role == ServerRole.homeserver
-                              ? l10n.serverValueHomeserver
-                              : l10n.serverValueDefault),
-                    style: theme.body.copyWith(
-                      color: marked ? theme.accent : theme.inkSoft,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.right,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
-              ],
-            ),
-          ),
         );
       },
     );
   }
 }
 
-class _SwatchDot extends StatelessWidget {
-  const _SwatchDot({required this.color});
-  final Color color;
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Container(
-      width: 14,
-      height: 14,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-        border: Border.all(color: theme.divider, width: 0.5),
-      ),
-    );
-  }
-}
-
-class _PushToggle extends StatefulWidget {
-  @override
-  State<_PushToggle> createState() => _PushToggleState();
-}
-
-class _PushToggleState extends State<_PushToggle> {
-  Future<void> _toggle(bool v) async {
-    // The tap a native switch gives as it flips. `Switch.adaptive` builds a
-    // Material switch, which is silent everywhere — even on iOS, where the
-    // real UISwitch always taps. Every toggle below does the same.
-    HapticFeedback.lightImpact();
-    await SettingsStore.instance.setPushEnabled(v);
-    if (v) {
-      await PushManager.instance.optIn();
-    } else {
-      await PushManager.instance.optOut();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return AnimatedBuilder(
-      animation: SettingsStore.instance,
-      builder: (context, _) {
-        final l10n = AppLocalizations.of(context);
-        final on = SettingsStore.instance.pushEnabled;
-        return GestureDetector(
-          onTap: () => _toggle(!on),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-            decoration: BoxDecoration(
-              color: theme.surface,
-              border: Border.all(color: theme.divider),
-              borderRadius: BorderRadius.circular(theme.radiusMd),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  on
-                      ? Icons.notifications_active_outlined
-                      : Icons.notifications_off_outlined,
-                  size: 16,
-                  color: on ? theme.accent : theme.inkMuted,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.settingsScreenPushNotificationsLabel,
-                        style: theme.label,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        on
-                            ? l10n.settingsScreenPushOnBody
-                            : l10n.settingsScreenPushOffBody,
-                        style: theme.bodySoft,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Switch.adaptive(
-                  value: on,
-                  onChanged: _toggle,
-                  activeThumbColor: theme.accent,
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-/// The once-a-day "you haven't played today" reminder, on or off.
+/// Android's two call-delivery permissions — full-screen intents and the
+/// battery exemption — as rows that exist only while something is wrong.
 ///
-/// A second switch rather than a mode of the one above, because the two mean
-/// genuinely different things: that one is "reach this device at all", and
-/// somebody who wants the daily nudge to stop almost never also means "and stop
-/// telling me when a friend messages me". A daily broadcast whose only off
-/// button costs you your messages is a daily broadcast people answer by
-/// disabling notifications for the whole app.
-///
-/// Per device, like [_PushToggle] and for the same reason — the preference is
-/// stored on this device's `userDevices` row, so a phone and a laptop can
-/// disagree, and the sender reads it there.
-class _GameRemindersToggle extends StatefulWidget {
-  @override
-  State<_GameRemindersToggle> createState() => _GameRemindersToggleState();
-}
-
-class _GameRemindersToggleState extends State<_GameRemindersToggle> {
-  Future<void> _toggle(bool v) async {
-    HapticFeedback.lightImpact();
-    await SettingsStore.instance.setGameReminders(v);
-    await PushManager.instance.setGameReminders(v);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return AnimatedBuilder(
-      animation: SettingsStore.instance,
-      builder: (context, _) {
-        // Notifications off means there is nothing here to decide.
-        if (!SettingsStore.instance.pushEnabled) {
-          return const SizedBox.shrink();
-        }
-        final l10n = AppLocalizations.of(context);
-        final on = SettingsStore.instance.gameReminders;
-        return Padding(
-          padding: const EdgeInsets.only(top: 10),
-          child: GestureDetector(
-            onTap: () => _toggle(!on),
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-              decoration: BoxDecoration(
-                color: theme.surface,
-                border: Border.all(color: theme.divider),
-                borderRadius: BorderRadius.circular(theme.radiusMd),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.grid_view_outlined,
-                    size: 16,
-                    color: on ? theme.accent : theme.inkMuted,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n.settingsScreenGameRemindersLabel,
-                          style: theme.label,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          on
-                              ? l10n.settingsScreenGameRemindersOnBody
-                              : l10n.settingsScreenGameRemindersOffBody,
-                          style: theme.bodySoft,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Switch.adaptive(
-                    value: on,
-                    onChanged: _toggle,
-                    activeThumbColor: theme.accent,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-/// "Tell me when friends post" — a third switch, under the other two.
-///
-/// The narrowest of the three and the only one whose volume is set by other
-/// people: a person with twelve chatty friends needs a way to quiet highlights,
-/// points and shared game results that does not also cost them the daily
-/// reminder they still want, or the messages those same friends send them
-/// directly. Folding it into either of the switches above would make that
-/// unrepresentable, which is how somebody ends up turning the whole app's
-/// notifications off instead.
-///
-/// Per device, like the two above and for the same reason — the preference
-/// lives on this device's `userDevices` row, where socialPush.ts reads it.
-class _FriendActivityToggle extends StatefulWidget {
-  @override
-  State<_FriendActivityToggle> createState() => _FriendActivityToggleState();
-}
-
-class _FriendActivityToggleState extends State<_FriendActivityToggle> {
-  Future<void> _toggle(bool v) async {
-    HapticFeedback.lightImpact();
-    await SettingsStore.instance.setFriendActivity(v);
-    await PushManager.instance.setFriendActivity(v);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return AnimatedBuilder(
-      animation: SettingsStore.instance,
-      builder: (context, _) {
-        // Notifications off means there is nothing here to decide.
-        if (!SettingsStore.instance.pushEnabled) {
-          return const SizedBox.shrink();
-        }
-        final l10n = AppLocalizations.of(context);
-        final on = SettingsStore.instance.friendActivity;
-        return Padding(
-          padding: const EdgeInsets.only(top: 10),
-          child: GestureDetector(
-            onTap: () => _toggle(!on),
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-              decoration: BoxDecoration(
-                color: theme.surface,
-                border: Border.all(color: theme.divider),
-                borderRadius: BorderRadius.circular(theme.radiusMd),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.people_outline,
-                    size: 16,
-                    color: on ? theme.accent : theme.inkMuted,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n.settingsScreenFriendActivityLabel,
-                          style: theme.label,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          on
-                              ? l10n.settingsScreenFriendActivityOnBody
-                              : l10n.settingsScreenFriendActivityOffBody,
-                          style: theme.bodySoft,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Switch.adaptive(
-                    value: on,
-                    onChanged: _toggle,
-                    activeThumbColor: theme.accent,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-/// The Android-only OS settings that decide whether a call reaches the user:
-/// full-screen-intent access and the battery-optimization exemption.
-///
-/// These used to be asked for during onboarding, from a post-frame callback in
-/// `_bootstrap` — two explain-dialogs that each ejected a brand-new user into a
-/// system settings page before they had sent a message, with nothing equivalent
-/// on iOS. This is where they live now instead: reachable when a user goes
-/// looking because their calls are not ringing, and silent otherwise.
-///
-/// "Silent otherwise" is literal — a row that is already granted renders
-/// NOTHING, so a healthy install shows an empty slot here rather than two
-/// reassurance rows nobody needs. That also means the section can only ever say
-/// something actionable, which is what makes "Tap to allow" sufficient as its
-/// own explanation.
-class _CallDeliveryRows extends StatefulWidget {
-  const _CallDeliveryRows();
-
-  @override
-  State<_CallDeliveryRows> createState() => _CallDeliveryRowsState();
-}
-
-class _CallDeliveryRowsState extends State<_CallDeliveryRows>
-    with WidgetsBindingObserver {
-  bool? _fullScreen;
-  bool? _battery;
-
-  @override
-  void initState() {
-    super.initState();
-    // Both fixes happen in a system settings page we don't control, so the
-    // only signal that one landed is coming back to the app. Re-read on every
-    // resume rather than trusting the answer from mount.
+/// These used to be asked for during onboarding, ejecting a brand-new user
+/// into system settings before they had sent a message. Here they are
+/// reachable when someone goes looking because calls are not ringing, and
+/// silent otherwise: a granted permission renders no row at all.
+class _CallDeliveryState extends ChangeNotifier with WidgetsBindingObserver {
+  _CallDeliveryState() {
+    if (!AndroidCallReliability.supported) return;
+    // Both fixes happen in a system page we don't control, so coming back to
+    // the app is the only signal one landed. Re-read on every resume.
     WidgetsBinding.instance.addObserver(this);
     _refresh();
   }
 
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
+  bool? fullScreen;
+  bool? battery;
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -1414,404 +1171,55 @@ class _CallDeliveryRowsState extends State<_CallDeliveryRows>
   }
 
   Future<void> _refresh() async {
-    if (!AndroidCallReliability.supported) return;
-    final fullScreen = await AndroidCallReliability.instance
-        .fullScreenIntentAllowed();
-    final battery = await AndroidCallReliability.instance.batteryExempt();
-    if (!mounted) return;
-    setState(() {
-      _fullScreen = fullScreen;
-      _battery = battery;
-    });
+    fullScreen =
+        await AndroidCallReliability.instance.fullScreenIntentAllowed();
+    battery = await AndroidCallReliability.instance.batteryExempt();
+    notifyListeners();
   }
 
   @override
-  Widget build(BuildContext context) {
-    if (!AndroidCallReliability.supported) return const SizedBox.shrink();
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+}
+
+abstract final class _CallDeliveryRows {
+  static List<Widget> rows(BuildContext context, _CallDeliveryState state) {
+    if (!AndroidCallReliability.supported) return const [];
     final l10n = AppLocalizations.of(context);
-    // Null = not read yet. Treated as granted so the section never flashes a
-    // scary row on the way to discovering there was nothing wrong.
-    final rows = <Widget>[
-      if (_fullScreen == false)
-        _CallDeliveryRow(
-          icon: Icons.lock_clock_outlined,
-          label: l10n.settingsCallDeliveryLockScreenLabel,
-          // Reuses the copy the retired pre-prompt dialog already carried in
-          // all 12 locales, which says exactly what this row needs to say.
-          body: l10n.bulkActionBarFullScreenIntentDialogBody,
-          onTap: AndroidCallReliability.instance.openFullScreenIntentSettings,
+    final theme = ThemeScope.of(context);
+    Widget row(IconData icon, String title, VoidCallback onTap) => _HubRow(
+          icon: icon,
+          tone: TileTone.red,
+          title: title,
+          trailing: Text(
+            l10n.settingsCallDeliveryStatusOff,
+            style: theme.body.copyWith(fontSize: 15, color: theme.danger),
+          ),
+          chevron: true,
+          onTap: onTap,
+        );
+    return [
+      if (state.fullScreen == false)
+        row(
+          CupertinoIcons.lock_fill,
+          l10n.settingsCallDeliveryLockScreenLabel,
+          AndroidCallReliability.instance.openFullScreenIntentSettings,
         ),
-      if (_battery == false)
-        _CallDeliveryRow(
-          icon: Icons.battery_saver_outlined,
-          label: l10n.settingsCallDeliveryBackgroundLabel,
-          body: l10n.bulkActionBarBatteryExemptionDialogBody,
-          onTap: AndroidCallReliability.instance.openBatterySettings,
+      if (state.battery == false)
+        row(
+          CupertinoIcons.battery_25,
+          l10n.settingsCallDeliveryBackgroundLabel,
+          AndroidCallReliability.instance.openBatterySettings,
         ),
     ];
-    if (rows.isEmpty) return const SizedBox.shrink();
-    return Column(
-      children: [
-        for (final row in rows) ...[const SizedBox(height: 10), row],
-      ],
-    );
-  }
-}
-
-class _CallDeliveryRow extends StatelessWidget {
-  const _CallDeliveryRow({
-    required this.icon,
-    required this.label,
-    required this.body,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final String body;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    // BOTH wrappers, per FocusableTap's doc comment: it binds Enter/Space and
-    // the semantics but registers no gesture recognizer, so the bare detector
-    // is what makes the row answer a touch at all.
-    return FocusableTap(
-      onTap: onTap,
-      radius: theme.radiusMd,
-      semanticLabel: label,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-          decoration: BoxDecoration(
-            color: theme.surface,
-            border: Border.all(color: theme.divider),
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, size: 16, color: theme.inkMuted),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(label, style: theme.label),
-                    const SizedBox(height: 2),
-                    Text(body, style: theme.bodySoft),
-                    const SizedBox(height: 6),
-                    Text(
-                      l10n.settingsCallDeliveryStatusOff,
-                      style: theme.monoTiny.copyWith(color: theme.accent),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ShowLinkUrlsToggle extends StatelessWidget {
-  Future<void> _toggle(bool v) {
-    HapticFeedback.lightImpact();
-    return SettingsStore.instance.setShowLinkUrls(v);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return AnimatedBuilder(
-      animation: SettingsStore.instance,
-      builder: (context, _) {
-        final l10n = AppLocalizations.of(context);
-        final on = SettingsStore.instance.showLinkUrls;
-        return GestureDetector(
-          onTap: () => _toggle(!on),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-            decoration: BoxDecoration(
-              color: theme.surface,
-              border: Border.all(color: theme.divider),
-              borderRadius: BorderRadius.circular(theme.radiusMd),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  on ? Icons.link_rounded : Icons.link_off_rounded,
-                  size: 16,
-                  color: on ? theme.accent : theme.inkMuted,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.settingsScreenShowLinkUrlsLabel,
-                        style: theme.label,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        on
-                            ? l10n.settingsScreenLinksUrlsOnBody
-                            : l10n.settingsScreenLinksUrlsOffBody,
-                        style: theme.bodySoft,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Switch.adaptive(
-                  value: on,
-                  onChanged: _toggle,
-                  activeThumbColor: theme.accent,
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-/// One of the GIF/sticker preferences — the same card as
-/// [_ShowLinkUrlsToggle], parameterised because there are two of them.
-class _ExpressionSettingToggle extends StatelessWidget {
-  const _ExpressionSettingToggle({
-    required this.icon,
-    required this.label,
-    required this.onBody,
-    required this.offBody,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final IconData icon;
-  final String label;
-  final String onBody;
-  final String offBody;
-  final bool Function() value;
-  final Future<void> Function(bool) onChanged;
-
-  Future<void> _toggle(bool v) {
-    HapticFeedback.lightImpact();
-    return onChanged(v);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return AnimatedBuilder(
-      animation: SettingsStore.instance,
-      builder: (context, _) {
-        final on = value();
-        return GestureDetector(
-          onTap: () => _toggle(!on),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-            decoration: BoxDecoration(
-              color: theme.surface,
-              border: Border.all(color: theme.divider),
-              borderRadius: BorderRadius.circular(theme.radiusMd),
-            ),
-            child: Row(
-              children: [
-                Icon(icon, size: 16, color: on ? theme.accent : theme.inkMuted),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(label, style: theme.label),
-                      const SizedBox(height: 2),
-                      Text(on ? onBody : offBody, style: theme.bodySoft),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Switch.adaptive(
-                  value: on,
-                  onChanged: _toggle,
-                  activeThumbColor: theme.accent,
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-/// macOS's menu-bar item, on or off.
-///
-/// Renders nothing on every other platform, and nothing on macOS either until
-/// the native side has answered — see [MacAppChrome], which owns the
-/// preference and explains why it lives in `UserDefaults` rather than here.
-class _MenuBarToggle extends StatefulWidget {
-  const _MenuBarToggle();
-
-  @override
-  State<_MenuBarToggle> createState() => _MenuBarToggleState();
-}
-
-class _MenuBarToggleState extends State<_MenuBarToggle> {
-  @override
-  void initState() {
-    super.initState();
-    // Re-read on every visit rather than once per session: the item can also be
-    // removed by ⌘-dragging it out of the menu bar, and the switch has to come
-    // back showing what actually happened.
-    MacAppChrome.instance.load();
-  }
-
-  Future<void> _toggle(bool v) {
-    HapticFeedback.lightImpact();
-    return MacAppChrome.instance.setVisible(v);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!MacAppChrome.isSupported) return const SizedBox.shrink();
-    final theme = ThemeScope.of(context);
-    return AnimatedBuilder(
-      animation: MacAppChrome.instance,
-      builder: (context, _) {
-        final on = MacAppChrome.instance.visible;
-        if (on == null) return const SizedBox.shrink();
-        final l10n = AppLocalizations.of(context);
-        return Padding(
-          padding: const EdgeInsets.only(top: 10),
-          child: GestureDetector(
-            onTap: () => _toggle(!on),
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-              decoration: BoxDecoration(
-                color: theme.surface,
-                border: Border.all(color: theme.divider),
-                borderRadius: BorderRadius.circular(theme.radiusMd),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    on
-                        ? Icons.desktop_mac_outlined
-                        : Icons.desktop_access_disabled_outlined,
-                    size: 16,
-                    color: on ? theme.accent : theme.inkMuted,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n.settingsScreenMenuBarLabel,
-                          style: theme.label,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          on
-                              ? l10n.settingsScreenMenuBarOnBody
-                              : l10n.settingsScreenMenuBarOffBody,
-                          style: theme.bodySoft,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Switch.adaptive(
-                    value: on,
-                    onChanged: _toggle,
-                    activeThumbColor: theme.accent,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _ShowNetworkStatsToggle extends StatelessWidget {
-  Future<void> _toggle(bool v) {
-    HapticFeedback.lightImpact();
-    return SettingsStore.instance.setShowNetworkStats(v);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return AnimatedBuilder(
-      animation: SettingsStore.instance,
-      builder: (context, _) {
-        final l10n = AppLocalizations.of(context);
-        final on = SettingsStore.instance.showNetworkStats;
-        return GestureDetector(
-          onTap: () => _toggle(!on),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-            decoration: BoxDecoration(
-              color: theme.surface,
-              border: Border.all(color: theme.divider),
-              borderRadius: BorderRadius.circular(theme.radiusMd),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.speed_outlined,
-                  size: 16,
-                  color: on ? theme.accent : theme.inkMuted,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.settingsScreenShowNetworkStatsLabel,
-                        style: theme.label,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        l10n.settingsScreenShowNetworkStatsBody,
-                        style: theme.bodySoft,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Switch.adaptive(
-                  value: on,
-                  onChanged: _toggle,
-                  activeThumbColor: theme.accent,
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
   }
 }
 
 /// Manual counterpart to `UpdateChecker.ensure`'s launch-time check — every
-/// tap is a real round trip to the backend, unlike `ensure`'s once-per-launch
-/// guard. Reflects `UpdateAvailability` so the row itself stays lit after a
-/// launch check the user dismissed with LATER, not just right after a tap.
+/// tap is a real round trip. Reflects `UpdateAvailability` so the row stays lit
+/// after a launch check the user dismissed with LATER.
 class _CheckForUpdatesRow extends StatefulWidget {
   const _CheckForUpdatesRow();
 
@@ -1837,68 +1245,42 @@ class _CheckForUpdatesRowState extends State<_CheckForUpdatesRow> {
         l10n.settingsScreenUpdateUnsupportedSnackbar,
       UpdateCheckOutcome.error => l10n.settingsScreenUpdateErrorSnackbar,
     };
-    if (message != null) {
-      showAppToast(context, message);
-    }
+    if (message != null) showAppToast(context, message);
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     return AnimatedBuilder(
       animation: UpdateAvailability.instance,
       builder: (context, _) {
+        final theme = ThemeScope.of(context);
         final l10n = AppLocalizations.of(context);
         final available = UpdateAvailability.instance.available;
-        return GestureDetector(
-          onTap: _check,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-            decoration: BoxDecoration(
-              color: theme.surface,
-              border: Border.all(
-                color: available
-                    ? theme.accent.withValues(alpha: 0.4)
-                    : theme.divider,
-              ),
-              borderRadius: BorderRadius.circular(theme.radiusMd),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.system_update_alt_rounded,
-                  size: 16,
-                  color: available ? theme.accent : theme.inkSoft,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    l10n.settingsScreenCheckForUpdatesLabel,
-                    style: theme.label,
+        return _HubRow(
+          icon: CupertinoIcons.arrow_down_circle_fill,
+          tone: TileTone.gray,
+          title: l10n.settingsHubCheckForUpdates,
+          badge: available && !_checking ? 1 : 0,
+          trailing: _checking
+              ? SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator.adaptive(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation(theme.inkMuted),
                   ),
-                ),
-                if (_checking)
-                  SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: theme.inkMuted,
-                    ),
-                  )
-                else ...[
-                  if (available) ...[
-                    Text(
-                      l10n.settingsScreenUpdateAvailableValue,
-                      style: theme.monoTiny.copyWith(color: theme.accent),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                  Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
-                ],
-              ],
-            ),
-          ),
+                )
+              : (available
+                    ? Text(
+                        l10n.settingsHubUpdateAvailable,
+                        style: theme.body.copyWith(
+                          fontSize: 15,
+                          color: theme.accent,
+                        ),
+                      )
+                    : null),
+          chevron: true,
+          onTap: _check,
         );
       },
     );
@@ -1929,20 +1311,11 @@ class _VersionStampState extends State<_VersionStamp> {
     setState(() => _stamp = 'MonkeyHub · v${info.version}');
   }
 
-  /// Opens the diagnostics viewer.
-  ///
-  /// Reachable on every device. This used to be gated on a backend allowlist,
-  /// and the gate cost more than it bought: a lookup, a copy-pasted device id,
-  /// a deploy and a cold start standing between a bug report and any evidence
-  /// about it — while what it protected turned out not to need protecting.
-  /// [Redactor] withholds message content, credentials and capability URLs at
-  /// capture time, so the log holds a trace of the reader's own app timings and
-  /// their own device id and nothing else. Somebody who finds this by accident
-  /// learns nothing they did not already have.
-  ///
-  /// The obscurity that remains — five taps, or a long press, on an unlabelled
-  /// version string — is there to keep it out of the way, not to keep anyone
-  /// out.
+  /// Opens the diagnostics viewer. Reachable on every device: [Redactor]
+  /// withholds message content, credentials and capability URLs at capture
+  /// time, so the log holds nothing a stranger could use. The five taps — or
+  /// a long press — on an unlabelled version string keep it out of the way,
+  /// not out of reach.
   void _openDiagnostics() {
     openSettingsDetail(
       context,
@@ -1979,21 +1352,22 @@ class _VersionStampState extends State<_VersionStamp> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    // Two triggers on purpose. The bug this exists to diagnose includes taps
-    // that do not land, so a tap burst may be untriggerable on the very device
-    // we are targeting — the long-press is the one that will actually work
-    // there.
+    // Two triggers on purpose: the bug this exists to diagnose includes taps
+    // that do not land, so the long press is the one that works there.
     //
-    // Deliberately NOT wrapped in FocusableTap, the one considered exception to
-    // the both-wrappers rule used everywhere else in this file: FocusableTap
-    // attaches a semantics label and keyboard activation, which would announce
-    // a hidden developer affordance to every screen-reader user in the shipped
-    // app. A bare detector stays invisible to everything except a finger.
+    // Deliberately NOT wrapped in FocusableTap: its semantics label would
+    // announce a hidden developer affordance to every screen-reader user.
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: _onTap,
       onLongPress: _openDiagnostics,
-      child: Text(_stamp ?? 'MonkeyHub', style: theme.monoTiny),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
+        child: Text(
+          _stamp ?? 'MonkeyHub',
+          style: theme.caption.copyWith(fontSize: 13, color: theme.inkMuted),
+        ),
+      ),
     );
   }
 }

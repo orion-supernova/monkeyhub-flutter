@@ -9704,4 +9704,54 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get pvPointsDesc => '記録したポイントを友達のボードに表示するかどうか';
+
+  @override
+  String get roomColorsPageTitle => 'メンバーの色';
+
+  @override
+  String get roomColorsPageHeader => 'それぞれの発言の色';
+
+  @override
+  String get roomColorsAuto => '自動';
+
+  @override
+  String get roomColorsReset => '自動に戻す';
+
+  @override
+  String get roomColorsOffFooter => '話者の色はオフです。ここでオンにするとすべてのルームでオンになります。';
+
+  @override
+  String roomColorsSharedWith(String name) {
+    return '$nameと同じ色';
+  }
+
+  @override
+  String get settingsScreenValueReplyQuote => '引用';
+
+  @override
+  String get replyQuoteSub => '元のメッセージが返信の吹き出しの上部に表示されます。';
+
+  @override
+  String get riTabMedia => '写真とビデオ';
+
+  @override
+  String get riTabFiles => 'ファイル';
+
+  @override
+  String get riTabVoice => 'ボイスメッセージ';
+
+  @override
+  String get riTabLinks => 'リンク';
+
+  @override
+  String get riTabSaved => '保存済み';
+
+  @override
+  String get riNone => 'なし';
+
+  @override
+  String get riSavedNote => '保存した内容は自分だけに表示されます。ピン留めは逆で、ルーム全員に表示されます。';
+
+  @override
+  String get riOwnerNote => 'メダルはこのルームの作成者を示します。';
 }

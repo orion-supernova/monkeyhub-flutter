@@ -321,7 +321,10 @@ class GroupedSection extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 7),
               child: Text(
                 header!,
-                style: theme.caption.copyWith(
+                // The theme's body face, not its caption: on a character theme
+                // the caption slot is often a tracked monospace, which turns a
+                // sentence of help text into a wall of terminal output.
+                style: theme.bodySoft.copyWith(
                   fontSize: 13,
                   color: theme.inkMuted,
                 ),
@@ -354,7 +357,7 @@ class GroupedSection extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 7, 16, 0),
               child: Text(
                 footer!,
-                style: theme.caption.copyWith(
+                style: theme.bodySoft.copyWith(
                   fontSize: 13,
                   height: 1.35,
                   color: theme.inkMuted,
@@ -566,7 +569,7 @@ class _GroupedRowState extends State<GroupedRow> {
                     const SizedBox(height: 2),
                     Text(
                       w.subtitle!,
-                      style: theme.caption.copyWith(
+                      style: theme.bodySoft.copyWith(
                         fontSize: 13,
                         height: 1.3,
                         color: theme.inkMuted,

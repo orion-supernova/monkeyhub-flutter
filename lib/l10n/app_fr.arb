@@ -2831,5 +2831,21 @@
   "pvPast": "Mon historique",
   "pvPastDesc": "Aujourd’hui est toujours partagé avec vos amis — ceci ouvre tout ce qui précède",
   "pvPoints": "Mes points",
-  "pvPointsDesc": "Si les points que vous enregistrez apparaissent sur les tableaux de vos amis"
+  "pvPointsDesc": "Si les points que vous enregistrez apparaissent sur les tableaux de vos amis",
+  "roomColorsPageTitle": "Qui est qui",
+  "roomColorsPageHeader": "La couleur dans laquelle chacun parle",
+  "roomColorsAuto": "Automatique",
+  "roomColorsReset": "Revenir en automatique",
+  "roomColorsOffFooter": "Les couleurs des membres sont désactivées. Les activer ici les active dans tous les salons.",
+  "roomColorsSharedWith": "Partagée avec {name}",
+  "settingsScreenValueReplyQuote": "Citation",
+  "replyQuoteSub": "L’original s’affiche en haut de la réponse, dans sa bulle.",
+  "riTabMedia": "Photos et vidéos",
+  "riTabFiles": "Fichiers",
+  "riTabVoice": "Messages vocaux",
+  "riTabLinks": "Liens",
+  "riTabSaved": "Enregistrés",
+  "riNone": "Aucun",
+  "riSavedNote": "Vous seul voyez ce que vous enregistrez. Un message épinglé, c’est l’inverse — tout le salon le voit.",
+  "riOwnerNote": "La médaille désigne la personne qui a créé ce salon."
 }

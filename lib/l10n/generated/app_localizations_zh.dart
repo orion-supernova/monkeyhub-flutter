@@ -9604,4 +9604,54 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pvPointsDesc => '你记录的积分是否显示在好友的看板上';
+
+  @override
+  String get roomColorsPageTitle => '谁是谁';
+
+  @override
+  String get roomColorsPageHeader => '每个人说话的颜色';
+
+  @override
+  String get roomColorsAuto => '自动';
+
+  @override
+  String get roomColorsReset => '恢复自动';
+
+  @override
+  String get roomColorsOffFooter => '发言人颜色已关闭。在此开启会在所有房间开启。';
+
+  @override
+  String roomColorsSharedWith(String name) {
+    return '与 $name 相同';
+  }
+
+  @override
+  String get settingsScreenValueReplyQuote => '引用';
+
+  @override
+  String get replyQuoteSub => '原消息显示在回复气泡内的顶部。';
+
+  @override
+  String get riTabMedia => '照片和视频';
+
+  @override
+  String get riTabFiles => '文件';
+
+  @override
+  String get riTabVoice => '语音消息';
+
+  @override
+  String get riTabLinks => '链接';
+
+  @override
+  String get riTabSaved => '已保存';
+
+  @override
+  String get riNone => '无';
+
+  @override
+  String get riSavedNote => '你保存的内容只有你能看到。置顶消息则相反——整个房间都能看到。';
+
+  @override
+  String get riOwnerNote => '奖章标示房间的创建者。';
 }

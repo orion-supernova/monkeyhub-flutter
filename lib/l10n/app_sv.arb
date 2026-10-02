@@ -2831,5 +2831,21 @@
   "pvPast": "Min historik",
   "pvPastDesc": "Idag delas alltid med vänner — det här öppnar allt före det",
   "pvPoints": "Mina poäng",
-  "pvPointsDesc": "Om poängen du loggar syns på vännernas tavlor"
+  "pvPointsDesc": "Om poängen du loggar syns på vännernas tavlor",
+  "roomColorsPageTitle": "Vem är vem",
+  "roomColorsPageHeader": "Färgen varje person pratar i",
+  "roomColorsAuto": "Automatisk",
+  "roomColorsReset": "Tillbaka till automatiskt",
+  "roomColorsOffFooter": "Talarfärger är av. Slår du på dem här blir de på i alla rum.",
+  "roomColorsSharedWith": "Delas med {name}",
+  "settingsScreenValueReplyQuote": "Citat",
+  "replyQuoteSub": "Originalet visas överst i svaret, inuti bubblan.",
+  "riTabMedia": "Bilder och videor",
+  "riTabFiles": "Filer",
+  "riTabVoice": "Röstmeddelanden",
+  "riTabLinks": "Länkar",
+  "riTabSaved": "Sparade",
+  "riNone": "Inga",
+  "riSavedNote": "Bara du ser det du sparar. Ett fäst meddelande är tvärtom — hela rummet ser det.",
+  "riOwnerNote": "Medaljen visar vem som skapade rummet."
 }

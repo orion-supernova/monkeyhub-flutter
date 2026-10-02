@@ -10211,4 +10211,57 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get pvPointsDesc =>
       'Si los puntos que registras aparecen en los tableros de tus amigos';
+
+  @override
+  String get roomColorsPageTitle => 'Quién es quién';
+
+  @override
+  String get roomColorsPageHeader => 'El color en el que habla cada persona';
+
+  @override
+  String get roomColorsAuto => 'Automático';
+
+  @override
+  String get roomColorsReset => 'Volver a automático';
+
+  @override
+  String get roomColorsOffFooter =>
+      'Los colores por persona están desactivados. Activarlos aquí los activa en todas las salas.';
+
+  @override
+  String roomColorsSharedWith(String name) {
+    return 'Compartido con $name';
+  }
+
+  @override
+  String get settingsScreenValueReplyQuote => 'Cita';
+
+  @override
+  String get replyQuoteSub =>
+      'El original aparece arriba de la respuesta, dentro de su burbuja.';
+
+  @override
+  String get riTabMedia => 'Fotos y vídeos';
+
+  @override
+  String get riTabFiles => 'Archivos';
+
+  @override
+  String get riTabVoice => 'Mensajes de voz';
+
+  @override
+  String get riTabLinks => 'Enlaces';
+
+  @override
+  String get riTabSaved => 'Guardados';
+
+  @override
+  String get riNone => 'Ninguno';
+
+  @override
+  String get riSavedNote =>
+      'Solo tú ves lo que guardas. Un mensaje fijado es lo contrario: lo ve toda la sala.';
+
+  @override
+  String get riOwnerNote => 'La medalla marca a quien creó esta sala.';
 }

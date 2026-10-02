@@ -3,117 +3,70 @@ import 'package:flutter/material.dart';
 import '../data/settings_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
-import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/adaptive_page_body.dart';
+import '../widgets/ios_kit.dart';
+import '../widgets/settings_pickers.dart';
 
-/// Picker for the shape every message bubble is drawn with. Each card previews
-/// a real three-message exchange — one incoming message, then a two-message
-/// run going out — because the interesting part of a bubble shape is what it
-/// does across a *run*, not on a single bubble.
-class BubbleStyleScreen extends StatefulWidget {
+/// Picker for the shape every message bubble is drawn with: a live exchange
+/// in the chosen shape on top — one incoming message, then a two-message run
+/// going out, because what a shape does across a *run* is the interesting
+/// part — and the four shapes as a checked list under it.
+class BubbleStyleScreen extends StatelessWidget {
   const BubbleStyleScreen({super.key});
 
   @override
-  State<BubbleStyleScreen> createState() => _BubbleStyleScreenState();
-}
-
-class _BubbleStyleScreenState extends State<BubbleStyleScreen> {
-  void _onSettings() {
-    if (mounted) setState(() {});
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    SettingsStore.instance.addListener(_onSettings);
-  }
-
-  @override
-  void dispose() {
-    SettingsStore.instance.removeListener(_onSettings);
-    super.dispose();
-  }
-
-  void _set(BubbleStyle v) => SettingsStore.instance.setBubbleStyle(v);
-
-  @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    final current = SettingsStore.instance.bubbleStyle;
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          // See home_screen: the bottom inset leaves a dead strip of
-          // background under the scroller, which reads as a solid bar. The
-          // list clears the home indicator with its own padding instead.
-          SafeArea(
-            bottom: false,
-            child: AdaptivePageBody(
-              child: ListView(
-                padding: EdgeInsets.fromLTRB(
-                  20,
-                  14,
-                  20,
-                  edgeToEdgeBottom(context, 40),
-                ),
-                children: [
-                  Row(children: [
-                    IconButton(
-                      onPressed: () => Navigator.of(context).maybePop(),
-                      icon: Icon(Icons.arrow_back,
-                          color: theme.inkSoft, size: 18),
-                    ),
-                  ]),
-                  const SizedBox(height: 10),
-                  Text(l10n.bubbleStyleScreenTitle, style: theme.displayMedium),
-                  const SizedBox(height: 10),
-                  Row(children: [
-                    Container(width: 18, height: 1, color: theme.accent),
-                    const SizedBox(width: 8),
-                    Text(l10n.bubbleStyleScreenSubtitle, style: theme.caption),
-                  ]),
-                  const SizedBox(height: 28),
-                  _StyleCard(
-                    label: l10n.bubbleStyleScreenTailedLabel,
-                    sub: l10n.bubbleStyleScreenTailedDescription,
-                    active: current == BubbleStyle.tailed,
-                    preview: const _Preview(style: BubbleStyle.tailed),
-                    onTap: () => _set(BubbleStyle.tailed),
-                  ),
-                  const SizedBox(height: 14),
-                  _StyleCard(
-                    label: l10n.bubbleStyleScreenSoftLabel,
-                    sub: l10n.bubbleStyleScreenSoftDescription,
-                    active: current == BubbleStyle.soft,
-                    preview: const _Preview(style: BubbleStyle.soft),
-                    onTap: () => _set(BubbleStyle.soft),
-                  ),
-                  const SizedBox(height: 14),
-                  _StyleCard(
-                    label: l10n.bubbleStyleScreenPillLabel,
-                    sub: l10n.bubbleStyleScreenPillDescription,
-                    active: current == BubbleStyle.pill,
-                    preview: const _Preview(style: BubbleStyle.pill),
-                    onTap: () => _set(BubbleStyle.pill),
-                  ),
-                  const SizedBox(height: 14),
-                  _StyleCard(
-                    label: l10n.bubbleStyleScreenSlabLabel,
-                    sub: l10n.bubbleStyleScreenSlabDescription,
-                    active: current == BubbleStyle.slab,
-                    preview: const _Preview(style: BubbleStyle.slab),
-                    onTap: () => _set(BubbleStyle.slab),
-                  ),
-                ],
-              ),
+    return AnimatedBuilder(
+      animation: SettingsStore.instance,
+      builder: (context, _) {
+        final l10n = AppLocalizations.of(context);
+        final current = SettingsStore.instance.bubbleStyle;
+        GroupedRow option(BubbleStyle style, String title, String sub) =>
+            GroupedRow.choice(
+              title: title,
+              subtitle: sub,
+              selected: current == style,
+              onTap: () {
+                pickFeedback();
+                SettingsStore.instance.setBubbleStyle(style);
+              },
+            );
+        return SettingsPage(
+          title: l10n.settingsHubBubbleStyle,
+          children: [
+            HeroPreview(
+              valueKey: current,
+              height: 176,
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+              child: Center(child: _Preview(style: current)),
             ),
-          ),
-        ],
-      ),
+            GroupedSection(
+              children: [
+                option(
+                  BubbleStyle.tailed,
+                  l10n.settingsScreenValueBubbleTailed,
+                  l10n.bubbleTailedSub,
+                ),
+                option(
+                  BubbleStyle.soft,
+                  l10n.settingsScreenValueBubbleSoft,
+                  l10n.bubbleSoftSub,
+                ),
+                option(
+                  BubbleStyle.pill,
+                  l10n.settingsScreenValueBubblePill,
+                  l10n.bubblePillSub,
+                ),
+                option(
+                  BubbleStyle.slab,
+                  l10n.settingsScreenValueBubbleSlab,
+                  l10n.bubbleSlabSub,
+                ),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -173,82 +126,3 @@ class _Preview extends StatelessWidget {
   }
 }
 
-/// Same card chrome as the reply-style picker, so the two settings detail
-/// screens read as one family.
-class _StyleCard extends StatelessWidget {
-  const _StyleCard({
-    required this.label,
-    required this.sub,
-    required this.active,
-    required this.preview,
-    required this.onTap,
-  });
-  final String label;
-  final String sub;
-  final bool active;
-  final Widget preview;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: theme.motionFast,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: theme.surface,
-          borderRadius: BorderRadius.circular(theme.radiusLg),
-          border: Border.all(
-            color: active ? theme.accent : theme.divider,
-            width: active ? 1.6 : 1,
-          ),
-          boxShadow: active
-              ? [
-                  BoxShadow(
-                    color: theme.accent.withValues(alpha: 0.25),
-                    blurRadius: 18,
-                  )
-                ]
-              : null,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(child: Text(label, style: theme.label)),
-                if (active)
-                  Row(children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                          color: theme.accent, shape: BoxShape.circle),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(l10n.bubbleStyleScreenActiveBadge,
-                        style: theme.monoTiny.copyWith(color: theme.accent)),
-                  ]),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(sub, style: theme.monoTiny),
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.surfaceSunken,
-                borderRadius: BorderRadius.circular(theme.radiusMd),
-                border: Border.all(color: theme.divider),
-              ),
-              child: preview,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

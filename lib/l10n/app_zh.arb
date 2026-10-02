@@ -2831,5 +2831,21 @@
   "pvPast": "我的过往",
   "pvPastDesc": "今天的内容始终与好友共享——此项会开放之前的全部记录",
   "pvPoints": "我的积分",
-  "pvPointsDesc": "你记录的积分是否显示在好友的看板上"
+  "pvPointsDesc": "你记录的积分是否显示在好友的看板上",
+  "roomColorsPageTitle": "谁是谁",
+  "roomColorsPageHeader": "每个人说话的颜色",
+  "roomColorsAuto": "自动",
+  "roomColorsReset": "恢复自动",
+  "roomColorsOffFooter": "发言人颜色已关闭。在此开启会在所有房间开启。",
+  "roomColorsSharedWith": "与 {name} 相同",
+  "settingsScreenValueReplyQuote": "引用",
+  "replyQuoteSub": "原消息显示在回复气泡内的顶部。",
+  "riTabMedia": "照片和视频",
+  "riTabFiles": "文件",
+  "riTabVoice": "语音消息",
+  "riTabLinks": "链接",
+  "riTabSaved": "已保存",
+  "riNone": "无",
+  "riSavedNote": "你保存的内容只有你能看到。置顶消息则相反——整个房间都能看到。",
+  "riOwnerNote": "奖章标示房间的创建者。"
 }

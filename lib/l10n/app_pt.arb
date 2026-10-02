@@ -2831,5 +2831,21 @@
   "pvPast": "O meu histórico",
   "pvPastDesc": "Hoje é sempre partilhado com amigos — isto abre tudo o que veio antes",
   "pvPoints": "Os meus pontos",
-  "pvPointsDesc": "Se os pontos que regista aparecem nos murais dos amigos"
+  "pvPointsDesc": "Se os pontos que regista aparecem nos murais dos amigos",
+  "roomColorsPageTitle": "Quem é quem",
+  "roomColorsPageHeader": "A cor em que cada pessoa fala",
+  "roomColorsAuto": "Automático",
+  "roomColorsReset": "Voltar ao automático",
+  "roomColorsOffFooter": "As cores por pessoa estão desativadas. Ativar aqui ativa-as em todas as salas.",
+  "roomColorsSharedWith": "Partilhada com {name}",
+  "settingsScreenValueReplyQuote": "Citação",
+  "replyQuoteSub": "A mensagem original aparece no topo da resposta, dentro do balão.",
+  "riTabMedia": "Fotos e vídeos",
+  "riTabFiles": "Ficheiros",
+  "riTabVoice": "Mensagens de voz",
+  "riTabLinks": "Ligações",
+  "riTabSaved": "Guardados",
+  "riNone": "Nenhum",
+  "riSavedNote": "Só você vê o que guarda. Uma mensagem fixada é o contrário — toda a sala a vê.",
+  "riOwnerNote": "A medalha marca quem criou esta sala."
 }

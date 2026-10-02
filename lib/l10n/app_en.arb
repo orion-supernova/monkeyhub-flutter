@@ -11700,5 +11700,74 @@
   "pvPointsDesc": "Whether the points you log show on friends' boards",
   "@pvPointsDesc": {
     "description": "Explanation under My points."
+  },
+  "roomColorsPageTitle": "Who's who",
+  "@roomColorsPageTitle": {
+    "description": "Room speaker-colour page (Who's who). Large title."
+  },
+  "roomColorsPageHeader": "The colour each person speaks in",
+  "@roomColorsPageHeader": {
+    "description": "Room speaker-colour page (Who's who). Header over the member list."
+  },
+  "roomColorsAuto": "Automatic",
+  "@roomColorsAuto": {
+    "description": "Room speaker-colour page (Who's who). First option on a member's palette: let the room pick."
+  },
+  "roomColorsReset": "Back to automatic",
+  "@roomColorsReset": {
+    "description": "Room speaker-colour page (Who's who). Row that clears every hand-picked colour in this room."
+  },
+  "roomColorsOffFooter": "Speaker colours are off. Turning them on here turns them on in every room.",
+  "@roomColorsOffFooter": {
+    "description": "Room speaker-colour page (Who's who). Footer under the switch while speaker colours are off."
+  },
+  "roomColorsSharedWith": "Shared with {name}",
+  "@roomColorsSharedWith": {
+    "description": "Room speaker-colour page (Who's who). Under a member whose colour someone else also has. {name} is a comma-separated list.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsScreenValueReplyQuote": "Quote",
+  "@settingsScreenValueReplyQuote": {
+    "description": "Name of the default reply style in Settings › Reply style: the quoted message shown as a small block (accent rail, name, one line) at the top of the reply bubble, like Telegram/WhatsApp. Title case like the other style names."
+  },
+  "replyQuoteSub": "The original sits at the top of the reply, inside its bubble.",
+  "@replyQuoteSub": {
+    "description": "One-line description under the Quote reply style option."
+  },
+  "riTabMedia": "Photos and videos",
+  "@riTabMedia": {
+    "description": "Room info row opening shared photos and videos."
+  },
+  "riTabFiles": "Files",
+  "@riTabFiles": {
+    "description": "Room info row opening shared files."
+  },
+  "riTabVoice": "Voice messages",
+  "@riTabVoice": {
+    "description": "Room info row opening voice messages."
+  },
+  "riTabLinks": "Links",
+  "@riTabLinks": {
+    "description": "Room info row opening shared links."
+  },
+  "riTabSaved": "Saved",
+  "@riTabSaved": {
+    "description": "Room info row opening messages you saved from this room."
+  },
+  "riNone": "None",
+  "@riNone": {
+    "description": "Value beside a shared-content row with nothing in it."
+  },
+  "riSavedNote": "Only you see what you save. A pinned message is the opposite — the whole room sees it.",
+  "@riSavedNote": {
+    "description": "Footer under shared content explaining saved vs pinned."
+  },
+  "riOwnerNote": "The medal marks whoever created this room.",
+  "@riOwnerNote": {
+    "description": "Footer under the member list explaining the owner medal."
   }
 }

@@ -2831,5 +2831,21 @@
   "pvPast": "過去の記録",
   "pvPastDesc": "今日の分は常に友達と共有されます。これはそれ以前の記録を公開します",
   "pvPoints": "マイポイント",
-  "pvPointsDesc": "記録したポイントを友達のボードに表示するかどうか"
+  "pvPointsDesc": "記録したポイントを友達のボードに表示するかどうか",
+  "roomColorsPageTitle": "メンバーの色",
+  "roomColorsPageHeader": "それぞれの発言の色",
+  "roomColorsAuto": "自動",
+  "roomColorsReset": "自動に戻す",
+  "roomColorsOffFooter": "話者の色はオフです。ここでオンにするとすべてのルームでオンになります。",
+  "roomColorsSharedWith": "{name}と同じ色",
+  "settingsScreenValueReplyQuote": "引用",
+  "replyQuoteSub": "元のメッセージが返信の吹き出しの上部に表示されます。",
+  "riTabMedia": "写真とビデオ",
+  "riTabFiles": "ファイル",
+  "riTabVoice": "ボイスメッセージ",
+  "riTabLinks": "リンク",
+  "riTabSaved": "保存済み",
+  "riNone": "なし",
+  "riSavedNote": "保存した内容は自分だけに表示されます。ピン留めは逆で、ルーム全員に表示されます。",
+  "riOwnerNote": "メダルはこのルームの作成者を示します。"
 }

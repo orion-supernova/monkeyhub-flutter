@@ -10217,6 +10217,59 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get pvPointsDesc =>
       'Se os pontos que regista aparecem nos murais dos amigos';
+
+  @override
+  String get roomColorsPageTitle => 'Quem é quem';
+
+  @override
+  String get roomColorsPageHeader => 'A cor em que cada pessoa fala';
+
+  @override
+  String get roomColorsAuto => 'Automático';
+
+  @override
+  String get roomColorsReset => 'Voltar ao automático';
+
+  @override
+  String get roomColorsOffFooter =>
+      'As cores por pessoa estão desativadas. Ativar aqui ativa-as em todas as salas.';
+
+  @override
+  String roomColorsSharedWith(String name) {
+    return 'Partilhada com $name';
+  }
+
+  @override
+  String get settingsScreenValueReplyQuote => 'Citação';
+
+  @override
+  String get replyQuoteSub =>
+      'A mensagem original aparece no topo da resposta, dentro do balão.';
+
+  @override
+  String get riTabMedia => 'Fotos e vídeos';
+
+  @override
+  String get riTabFiles => 'Ficheiros';
+
+  @override
+  String get riTabVoice => 'Mensagens de voz';
+
+  @override
+  String get riTabLinks => 'Ligações';
+
+  @override
+  String get riTabSaved => 'Guardados';
+
+  @override
+  String get riNone => 'Nenhum';
+
+  @override
+  String get riSavedNote =>
+      'Só você vê o que guarda. Uma mensagem fixada é o contrário — toda a sala a vê.';
+
+  @override
+  String get riOwnerNote => 'A medalha marca quem criou esta sala.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -20430,4 +20483,57 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get pvPointsDesc =>
       'Se os pontos que você registra aparecem nos murais dos amigos';
+
+  @override
+  String get roomColorsPageTitle => 'Quem é quem';
+
+  @override
+  String get roomColorsPageHeader => 'A cor em que cada pessoa fala';
+
+  @override
+  String get roomColorsAuto => 'Automático';
+
+  @override
+  String get roomColorsReset => 'Voltar ao automático';
+
+  @override
+  String get roomColorsOffFooter =>
+      'As cores por pessoa estão desativadas. Ativar aqui ativa em todas as salas.';
+
+  @override
+  String roomColorsSharedWith(String name) {
+    return 'Compartilhada com $name';
+  }
+
+  @override
+  String get settingsScreenValueReplyQuote => 'Citação';
+
+  @override
+  String get replyQuoteSub =>
+      'A mensagem original aparece no topo da resposta, dentro do balão.';
+
+  @override
+  String get riTabMedia => 'Fotos e vídeos';
+
+  @override
+  String get riTabFiles => 'Arquivos';
+
+  @override
+  String get riTabVoice => 'Mensagens de voz';
+
+  @override
+  String get riTabLinks => 'Links';
+
+  @override
+  String get riTabSaved => 'Salvos';
+
+  @override
+  String get riNone => 'Nenhum';
+
+  @override
+  String get riSavedNote =>
+      'Só você vê o que salva. Uma mensagem fixada é o contrário — a sala toda vê.';
+
+  @override
+  String get riOwnerNote => 'A medalha marca quem criou esta sala.';
 }

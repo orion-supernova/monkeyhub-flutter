@@ -9729,4 +9729,54 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get pvPointsDesc => '기록한 포인트를 친구들의 보드에 표시할지 여부';
+
+  @override
+  String get roomColorsPageTitle => '누가 누구';
+
+  @override
+  String get roomColorsPageHeader => '각자가 말하는 색';
+
+  @override
+  String get roomColorsAuto => '자동';
+
+  @override
+  String get roomColorsReset => '자동으로 되돌리기';
+
+  @override
+  String get roomColorsOffFooter => '말하는 사람 색상이 꺼져 있어요. 여기서 켜면 모든 방에서 켜져요.';
+
+  @override
+  String roomColorsSharedWith(String name) {
+    return '$name님과 같은 색';
+  }
+
+  @override
+  String get settingsScreenValueReplyQuote => '인용';
+
+  @override
+  String get replyQuoteSub => '원래 메시지가 답장 말풍선 안 맨 위에 표시돼요.';
+
+  @override
+  String get riTabMedia => '사진 및 동영상';
+
+  @override
+  String get riTabFiles => '파일';
+
+  @override
+  String get riTabVoice => '음성 메시지';
+
+  @override
+  String get riTabLinks => '링크';
+
+  @override
+  String get riTabSaved => '저장됨';
+
+  @override
+  String get riNone => '없음';
+
+  @override
+  String get riSavedNote => '저장한 내용은 나만 볼 수 있어요. 고정 메시지는 반대로 방 전체가 봐요.';
+
+  @override
+  String get riOwnerNote => '메달은 이 방을 만든 사람을 나타내요.';
 }

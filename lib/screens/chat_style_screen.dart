@@ -3,170 +3,57 @@ import 'package:flutter/material.dart';
 import '../data/settings_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
-import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/adaptive_page_body.dart';
+import '../widgets/settings_pickers.dart';
 
-class ChatStyleScreen extends StatefulWidget {
+/// How a room's chrome is drawn: a solid header over a flat composer, or
+/// frosted controls floating over the conversation. Two pictures of a room,
+/// side by side.
+class ChatStyleScreen extends StatelessWidget {
   const ChatStyleScreen({super.key});
 
   @override
-  State<ChatStyleScreen> createState() => _ChatStyleScreenState();
-}
-
-class _ChatStyleScreenState extends State<ChatStyleScreen> {
-  void _onSettings() {
-    if (mounted) setState(() {});
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    SettingsStore.instance.addListener(_onSettings);
-  }
-
-  @override
-  void dispose() {
-    SettingsStore.instance.removeListener(_onSettings);
-    super.dispose();
-  }
-
-  void _set(ChatStyle v) => SettingsStore.instance.setChatStyle(v);
-
-  @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    final current = SettingsStore.instance.chatStyle;
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          // See home_screen: the bottom inset leaves a dead strip of
-          // background under the scroller, which reads as a solid bar. The
-          // list clears the home indicator with its own padding instead.
-          SafeArea(
-            bottom: false,
-            child: AdaptivePageBody(
-              child: ListView(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                14,
-                20,
-                edgeToEdgeBottom(context, 40),
-              ),
-              children: [
-                Row(children: [
-                  IconButton(
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    icon: Icon(Icons.arrow_back, color: theme.inkSoft, size: 18),
-                  ),
-                ]),
-                const SizedBox(height: 10),
-                Text(l10n.pinnedBannerChatStyleTitle, style: theme.displayMedium),
-                const SizedBox(height: 10),
-                Row(children: [
-                  Container(width: 18, height: 1, color: theme.accent),
-                  const SizedBox(width: 8),
-                  Text(l10n.pinnedBannerChatStyleSubtitle, style: theme.caption),
-                ]),
-                const SizedBox(height: 28),
-                _StyleCard(
-                  label: l10n.pinnedBannerClassicLabel,
-                  sub: l10n.pinnedBannerClassicSubtitle,
-                  active: current == ChatStyle.classic,
-                  preview: const _ClassicPreview(),
-                  onTap: () => _set(ChatStyle.classic),
-                ),
-                const SizedBox(height: 14),
-                _StyleCard(
-                  label: l10n.pinnedBannerCompactLabel,
-                  sub: l10n.pinnedBannerCompactSubtitle,
-                  active: current == ChatStyle.compact,
-                  preview: const _CompactPreview(),
-                  onTap: () => _set(ChatStyle.compact),
-                ),
-              ],
-            ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StyleCard extends StatelessWidget {
-  const _StyleCard({
-    required this.label,
-    required this.sub,
-    required this.active,
-    required this.preview,
-    required this.onTap,
-  });
-  final String label;
-  final String sub;
-  final bool active;
-  final Widget preview;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: theme.motionFast,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: theme.surface,
-          borderRadius: BorderRadius.circular(theme.radiusLg),
-          border: Border.all(
-            color: active ? theme.accent : theme.divider,
-            width: active ? 1.6 : 1,
-          ),
-          boxShadow: active
-              ? [BoxShadow(color: theme.accent.withValues(alpha: 0.25), blurRadius: 18)]
-              : null,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return AnimatedBuilder(
+      animation: SettingsStore.instance,
+      builder: (context, _) {
+        final l10n = AppLocalizations.of(context);
+        final current = SettingsStore.instance.chatStyle;
+        return SettingsPage(
+          title: l10n.settingsHubChatStyle,
           children: [
-            Row(
-              children: [
-                Expanded(child: Text(label, style: theme.label)),
-                if (active)
-                  Row(children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(color: theme.accent, shape: BoxShape.circle),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      AppLocalizations.of(context).pinnedBannerActiveBadge,
-                      style: theme.monoTiny.copyWith(color: theme.accent),
-                    ),
-                  ]),
+            PreviewChoiceTiles<ChatStyle>(
+              selected: current,
+              onChanged: (v) {
+                pickFeedback();
+                SettingsStore.instance.setChatStyle(v);
+              },
+              choices: [
+                PreviewChoice(
+                  value: ChatStyle.classic,
+                  label: l10n.settingsScreenValueClassic,
+                  preview: const Padding(
+                    padding: EdgeInsets.all(9),
+                    child: _ClassicPreview(),
+                  ),
+                ),
+                PreviewChoice(
+                  value: ChatStyle.compact,
+                  label: l10n.settingsScreenValueCompact,
+                  preview: const Padding(
+                    padding: EdgeInsets.all(9),
+                    child: _CompactPreview(),
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 6),
-            Text(sub, style: theme.monoTiny),
-            const SizedBox(height: 14),
-            Container(
-              height: 140,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.surfaceSunken,
-                borderRadius: BorderRadius.circular(theme.radiusMd),
-                border: Border.all(color: theme.divider),
-              ),
-              child: preview,
+            GroupedFooter(
+              '${current == ChatStyle.classic ? l10n.chatStyleClassicSub : l10n.chatStyleCompactSub} '
+              '${l10n.chatStylePageFooter}',
             ),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -204,9 +91,11 @@ class _ClassicPreview extends StatelessWidget {
         Container(height: 1, color: theme.divider),
         const SizedBox(height: 10),
         // Two stacked message-bar mocks
-        Expanded(child: _bubble(theme, mine: false)),
+        const Spacer(),
+        _bubble(theme, mine: false),
         const SizedBox(height: 6),
-        Expanded(child: _bubble(theme, mine: true)),
+        _bubble(theme, mine: true),
+        const Spacer(),
         const SizedBox(height: 10),
         Container(height: 1, color: theme.divider),
         const SizedBox(height: 8),
@@ -253,11 +142,9 @@ class _ClassicPreview extends StatelessWidget {
       child: FractionallySizedBox(
         widthFactor: 0.55,
         child: Container(
+          height: 16,
           decoration: BoxDecoration(
-            color: mine ? theme.accent.withValues(alpha: 0.20) : theme.surface,
-            border: Border.all(
-              color: mine ? theme.accent.withValues(alpha: 0.55) : theme.divider,
-            ),
+            color: theme.bubbleFill(isMine: mine),
             borderRadius: BorderRadius.circular(8),
           ),
         ),
@@ -297,11 +184,10 @@ class _CompactPreview extends StatelessWidget {
                 child: FractionallySizedBox(
                   widthFactor: 0.55,
                   child: Container(
-                    height: 14,
+                    height: 16,
                     decoration: BoxDecoration(
-                      color: theme.surface,
-                      borderRadius: BorderRadius.circular(7),
-                      border: Border.all(color: theme.divider),
+                      color: theme.bubbleFill(isMine: false),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                 ),
@@ -312,10 +198,10 @@ class _CompactPreview extends StatelessWidget {
                 child: FractionallySizedBox(
                   widthFactor: 0.55,
                   child: Container(
-                    height: 14,
+                    height: 16,
                     decoration: BoxDecoration(
-                      color: theme.accent.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(7),
+                      color: theme.bubbleFill(isMine: true),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                 ),

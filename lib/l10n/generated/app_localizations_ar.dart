@@ -10272,4 +10272,56 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get pvPointsDesc => 'هل تظهر النقاط التي تسجلها في لوحات أصدقائك';
+
+  @override
+  String get roomColorsPageTitle => 'من هو من';
+
+  @override
+  String get roomColorsPageHeader => 'اللون الذي يتحدث به كل شخص';
+
+  @override
+  String get roomColorsAuto => 'تلقائي';
+
+  @override
+  String get roomColorsReset => 'العودة إلى التلقائي';
+
+  @override
+  String get roomColorsOffFooter =>
+      'ألوان المتحدثين متوقفة. تشغيلها هنا يشغّلها في كل الغرف.';
+
+  @override
+  String roomColorsSharedWith(String name) {
+    return 'مشترك مع $name';
+  }
+
+  @override
+  String get settingsScreenValueReplyQuote => 'اقتباس';
+
+  @override
+  String get replyQuoteSub => 'تظهر الرسالة الأصلية في أعلى الرد، داخل فقاعته.';
+
+  @override
+  String get riTabMedia => 'الصور ومقاطع الفيديو';
+
+  @override
+  String get riTabFiles => 'الملفات';
+
+  @override
+  String get riTabVoice => 'الرسائل الصوتية';
+
+  @override
+  String get riTabLinks => 'الروابط';
+
+  @override
+  String get riTabSaved => 'المحفوظة';
+
+  @override
+  String get riNone => 'لا شيء';
+
+  @override
+  String get riSavedNote =>
+      'أنت فقط ترى ما تحفظه. الرسالة المثبّتة عكس ذلك — تراها الغرفة كلها.';
+
+  @override
+  String get riOwnerNote => 'الوسام يميّز منشئ هذه الغرفة.';
 }

@@ -2831,5 +2831,21 @@
   "pvPast": "Mi historial",
   "pvPastDesc": "Hoy siempre se comparte con amigos; esto abre todo lo anterior",
   "pvPoints": "Mis puntos",
-  "pvPointsDesc": "Si los puntos que registras aparecen en los tableros de tus amigos"
+  "pvPointsDesc": "Si los puntos que registras aparecen en los tableros de tus amigos",
+  "roomColorsPageTitle": "Quién es quién",
+  "roomColorsPageHeader": "El color en el que habla cada persona",
+  "roomColorsAuto": "Automático",
+  "roomColorsReset": "Volver a automático",
+  "roomColorsOffFooter": "Los colores por persona están desactivados. Activarlos aquí los activa en todas las salas.",
+  "roomColorsSharedWith": "Compartido con {name}",
+  "settingsScreenValueReplyQuote": "Cita",
+  "replyQuoteSub": "El original aparece arriba de la respuesta, dentro de su burbuja.",
+  "riTabMedia": "Fotos y vídeos",
+  "riTabFiles": "Archivos",
+  "riTabVoice": "Mensajes de voz",
+  "riTabLinks": "Enlaces",
+  "riTabSaved": "Guardados",
+  "riNone": "Ninguno",
+  "riSavedNote": "Solo tú ves lo que guardas. Un mensaje fijado es lo contrario: lo ve toda la sala.",
+  "riOwnerNote": "La medalla marca a quien creó esta sala."
 }

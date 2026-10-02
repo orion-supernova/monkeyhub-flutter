@@ -3,632 +3,375 @@ import 'package:flutter/material.dart';
 import '../data/settings_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
-import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/adaptive_page_body.dart';
+import '../widgets/ios_kit.dart';
+import '../widgets/settings_pickers.dart';
 
-class RoomLayoutScreen extends StatefulWidget {
+/// How the chat list is laid out, how its filters are offered, and what an
+/// empty room's tile shows. The two visual choices are pictures — tiny phones
+/// drawn in the current theme — because a layout is judged by looking at it.
+class RoomLayoutScreen extends StatelessWidget {
   const RoomLayoutScreen({super.key});
 
   @override
-  State<RoomLayoutScreen> createState() => _RoomLayoutScreenState();
-}
-
-class _RoomLayoutScreenState extends State<RoomLayoutScreen> {
-  void _onSettings() {
-    if (mounted) setState(() {});
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    SettingsStore.instance.addListener(_onSettings);
-  }
-
-  @override
-  void dispose() {
-    SettingsStore.instance.removeListener(_onSettings);
-    super.dispose();
-  }
-
-  void _set(RoomLayout v) => SettingsStore.instance.setRoomLayout(v);
-  void _setFilter(FilterStyle v) => SettingsStore.instance.setFilterStyle(v);
-  void _setMonogram(bool v) => SettingsStore.instance.setRoomMonogram(v);
-
-  @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final current = SettingsStore.instance.roomLayout;
-    final filter = SettingsStore.instance.filterStyle;
-    final monogram = SettingsStore.instance.roomMonogram;
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          // See home_screen: the bottom inset leaves a dead strip of
-          // background under the scroller, which reads as a solid bar. The
-          // list clears the home indicator with its own padding instead.
-          SafeArea(
-            bottom: false,
-            child: AdaptivePageBody(
-              child: ListView(
-                padding: EdgeInsets.fromLTRB(
-                  20,
-                  14,
-                  20,
-                  edgeToEdgeBottom(context, 40),
-                ),
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        onPressed: () => Navigator.of(context).maybePop(),
-                        icon: Icon(
-                          Icons.arrow_back,
-                          color: theme.inkSoft,
-                          size: 18,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    AppLocalizations.of(context).roomLayoutScreenTitle,
-                    style: theme.displayMedium,
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Container(width: 18, height: 1, color: theme.accent),
-                      const SizedBox(width: 8),
-                      Text(
-                        AppLocalizations.of(context).roomLayoutScreenSubtitle,
-                        style: theme.caption,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 28),
-                  Text(
-                    AppLocalizations.of(
-                      context,
-                    ).roomLayoutScreenLayoutSectionLabel,
-                    style: theme.label,
-                  ),
-                  const SizedBox(height: 12),
-                  _LayoutCard(
-                    label: AppLocalizations.of(
-                      context,
-                    ).roomLayoutScreenRowLayoutLabel,
-                    sub: AppLocalizations.of(
-                      context,
-                    ).roomLayoutScreenRowLayoutDescription,
-                    active: current == RoomLayout.list,
-                    preview: const _RowsPreview(),
-                    onTap: () => _set(RoomLayout.list),
-                  ),
-                  const SizedBox(height: 14),
-                  _LayoutCard(
-                    label: AppLocalizations.of(
-                      context,
-                    ).roomLayoutScreenCardsLayoutLabel,
-                    sub: AppLocalizations.of(
-                      context,
-                    ).roomLayoutScreenCardsLayoutDescription,
-                    active: current == RoomLayout.cards,
-                    preview: const _CardsPreview(),
-                    onTap: () => _set(RoomLayout.cards),
-                  ),
-                  const SizedBox(height: 14),
-                  _LayoutCard(
-                    label: AppLocalizations.of(
-                      context,
-                    ).roomLayoutScreenGridLayoutLabel,
-                    sub: AppLocalizations.of(
-                      context,
-                    ).roomLayoutScreenGridLayoutDescription,
-                    active: current == RoomLayout.grid,
-                    preview: const _GridPreview(),
-                    onTap: () => _set(RoomLayout.grid),
-                  ),
-                  const SizedBox(height: 32),
-                  Text(
-                    AppLocalizations.of(
-                      context,
-                    ).roomLayoutScreenFilterControlSectionLabel,
-                    style: theme.label,
-                  ),
-                  const SizedBox(height: 12),
-                  _LayoutCard(
-                    label: AppLocalizations.of(
-                      context,
-                    ).roomLayoutScreenChipRowLabel,
-                    sub: AppLocalizations.of(
-                      context,
-                    ).roomLayoutScreenChipRowDescription,
-                    active: filter == FilterStyle.chips,
-                    preview: const _ChipsPreview(),
-                    onTap: () => _setFilter(FilterStyle.chips),
-                  ),
-                  const SizedBox(height: 14),
-                  _LayoutCard(
-                    label: AppLocalizations.of(
-                      context,
-                    ).roomLayoutScreenDrawerButtonLabel,
-                    sub: AppLocalizations.of(
-                      context,
-                    ).roomLayoutScreenDrawerButtonDescription,
-                    active: filter == FilterStyle.drawer,
-                    preview: const _DrawerPreview(),
-                    onTap: () => _setFilter(FilterStyle.drawer),
-                  ),
-                  const SizedBox(height: 32),
-                  Text(
-                    AppLocalizations.of(
-                      context,
-                    ).roomLayoutScreenQuietRoomSectionLabel,
-                    style: theme.label,
-                  ),
-                  const SizedBox(height: 12),
-                  _LayoutCard(
-                    label: AppLocalizations.of(
-                      context,
-                    ).roomLayoutScreenPlainCornerLabel,
-                    sub: AppLocalizations.of(
-                      context,
-                    ).roomLayoutScreenPlainCornerDescription,
-                    active: !monogram,
-                    preview: const _QuietTilePreview(monogram: false),
-                    onTap: () => _setMonogram(false),
-                  ),
-                  const SizedBox(height: 14),
-                  _LayoutCard(
-                    label: AppLocalizations.of(
-                      context,
-                    ).roomLayoutScreenMonogramLabel,
-                    sub: AppLocalizations.of(
-                      context,
-                    ).roomLayoutScreenMonogramDescription,
-                    active: monogram,
-                    preview: const _QuietTilePreview(monogram: true),
-                    onTap: () => _setMonogram(true),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LayoutCard extends StatelessWidget {
-  const _LayoutCard({
-    required this.label,
-    required this.sub,
-    required this.active,
-    required this.preview,
-    required this.onTap,
-  });
-  final String label;
-  final String sub;
-  final bool active;
-  final Widget preview;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: theme.motionFast,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: theme.surface,
-          borderRadius: BorderRadius.circular(theme.radiusLg),
-          border: Border.all(
-            color: active ? theme.accent : theme.divider,
-            width: active ? 1.6 : 1,
-          ),
-          boxShadow: active
-              ? [
-                  BoxShadow(
-                    color: theme.accent.withValues(alpha: 0.25),
-                    blurRadius: 18,
-                  ),
-                ]
-              : null,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return AnimatedBuilder(
+      animation: SettingsStore.instance,
+      builder: (context, _) {
+        final l10n = AppLocalizations.of(context);
+        final store = SettingsStore.instance;
+        final layout = store.roomLayout;
+        final filter = store.filterStyle;
+        final monogram = store.roomMonogram;
+        return SettingsPage(
+          title: l10n.settingsHubChatList,
           children: [
-            Row(
-              children: [
-                Expanded(child: Text(label, style: theme.label)),
-                if (active)
-                  Row(
-                    children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: theme.accent,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        AppLocalizations.of(
-                          context,
-                        ).roomLayoutScreenActiveBadge,
-                        style: theme.monoTiny.copyWith(color: theme.accent),
-                      ),
-                    ],
-                  ),
+            _Header(l10n.chatListPageLayoutHeader),
+            PreviewChoiceTiles<RoomLayout>(
+              selected: layout,
+              onChanged: (v) {
+                pickFeedback();
+                store.setRoomLayout(v);
+              },
+              choices: [
+                PreviewChoice(
+                  value: RoomLayout.list,
+                  label: l10n.settingsHubLayoutRows,
+                  preview: const MiniListBackdrop(child: SizedBox.shrink()),
+                ),
+                PreviewChoice(
+                  value: RoomLayout.cards,
+                  label: l10n.settingsHubLayoutCards,
+                  preview: const _Clipped(_CardsPreview()),
+                ),
+                PreviewChoice(
+                  value: RoomLayout.grid,
+                  label: l10n.settingsHubLayoutGrid,
+                  preview: const _Clipped(_GridPreview()),
+                ),
               ],
             ),
-            const SizedBox(height: 6),
-            Text(sub, style: theme.monoTiny),
-            const SizedBox(height: 14),
-            Container(
-              height: 140,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.surfaceSunken,
-                borderRadius: BorderRadius.circular(theme.radiusMd),
-                border: Border.all(color: theme.divider),
-              ),
-              child: preview,
+            GroupedFooter(switch (layout) {
+              RoomLayout.list => l10n.chatListPageRowsSub,
+              RoomLayout.cards => l10n.chatListPageCardsSub,
+              RoomLayout.grid => l10n.chatListPageGridSub,
+            }),
+
+            _Header(l10n.chatListPageFiltersHeader),
+            PreviewChoiceTiles<FilterStyle>(
+              selected: filter,
+              aspectRatio: 1.15,
+              onChanged: (v) {
+                pickFeedback();
+                store.setFilterStyle(v);
+              },
+              choices: [
+                PreviewChoice(
+                  value: FilterStyle.chips,
+                  label: l10n.chatListPageChips,
+                  preview: const _Clipped(_FilterPreview(chips: true)),
+                ),
+                PreviewChoice(
+                  value: FilterStyle.drawer,
+                  label: l10n.chatListPageButton,
+                  preview: const _Clipped(_FilterPreview(chips: false)),
+                ),
+              ],
+            ),
+            GroupedFooter(
+              filter == FilterStyle.chips
+                  ? l10n.chatListPageChipsSub
+                  : l10n.chatListPageButtonSub,
+            ),
+
+            GroupedSection(
+              header: l10n.chatListPageEmptyHeader,
+              footer: l10n.chatListPageEmptyFooter,
+              children: [
+                GroupedRow.choice(
+                  title: l10n.chatListPagePlain,
+                  subtitle: l10n.chatListPagePlainSub,
+                  selected: !monogram,
+                  onTap: () {
+                    pickFeedback();
+                    store.setRoomMonogram(false);
+                  },
+                ),
+                GroupedRow.choice(
+                  title: l10n.chatListPageInitial,
+                  subtitle: l10n.chatListPageInitialSub,
+                  selected: monogram,
+                  onTap: () {
+                    pickFeedback();
+                    store.setRoomMonogram(true);
+                  },
+                ),
+              ],
             ),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 }
 
-/// The default rows: a face, a name and a line of preview, an inset hairline
-/// between them and no box around anything.
-class _RowsPreview extends StatelessWidget {
-  const _RowsPreview();
+/// A section header for content that is not a [GroupedSection], matching its
+/// header exactly.
+class _Header extends StatelessWidget {
+  const _Header(this.text);
+  final String text;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Column(
-      children: [
-        for (var i = 0; i < 3; i++) _row(theme, unread: i == 0, last: i == 2),
-      ],
-    );
-  }
-
-  Widget _row(AppTheme theme, {required bool unread, required bool last}) {
-    return Expanded(
-      child: Stack(
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 18,
-                height: 18,
-                decoration: BoxDecoration(
-                  color: theme.inkMuted.withValues(alpha: 0.5),
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(width: 52, height: 5, color: theme.inkSoft),
-                    const SizedBox(height: 4),
-                    Container(height: 4, color: theme.divider),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: unread ? theme.accent : Colors.transparent,
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ],
-          ),
-          if (!last)
-            Positioned(
-              left: 26,
-              right: 0,
-              bottom: 0,
-              child: Container(height: 0.5, color: theme.divider),
-            ),
-        ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 7),
+      child: Text(
+        text,
+        style: theme.caption.copyWith(fontSize: 13, color: theme.inkMuted),
       ),
     );
   }
 }
 
+/// A miniature drawn at its natural height and cut off at the tile's edge, the
+/// way a phone screen cuts off a list — so a narrow tile shows less list
+/// rather than overflowing.
+class _Clipped extends StatelessWidget {
+  const _Clipped(this.child);
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => ClipRect(
+        child: OverflowBox(
+          alignment: Alignment.topCenter,
+          minHeight: 0,
+          maxHeight: double.infinity,
+          child: child,
+        ),
+      );
+}
+
+/// Bordered cards stacked down a phone — the original layout.
 class _CardsPreview extends StatelessWidget {
   const _CardsPreview();
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Column(
-      children: [
-        for (var i = 0; i < 3; i++) ...[
-          _bar(theme, accent: i == 0),
-          if (i < 2) const SizedBox(height: 10),
-        ],
-      ],
-    );
-  }
-
-  Widget _bar(AppTheme theme, {required bool accent}) {
-    return Expanded(
-      child: Container(
-        decoration: BoxDecoration(
-          color: accent ? theme.accent.withValues(alpha: 0.18) : theme.surface,
-          border: Border.all(
-            color: accent
-                ? theme.accent.withValues(alpha: 0.55)
-                : theme.divider,
-          ),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        child: Row(
-          children: [
-            Container(
-              width: 14,
-              height: 14,
-              decoration: BoxDecoration(
-                color: accent ? theme.accent : theme.inkMuted,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(child: Container(height: 6, color: theme.divider)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// A header row whose only filter affordance is one small button, over an
-/// undisturbed list.
-class _DrawerPreview extends StatelessWidget {
-  const _DrawerPreview();
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(7, 14, 7, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _titleBar(theme),
+          const SizedBox(height: 8),
+          for (var i = 0; i < 4; i++) ...[
             Container(
-              width: 16,
-              height: 16,
-              decoration: BoxDecoration(
-                color: theme.inkMuted,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(child: Container(height: 6, color: theme.divider)),
-            const SizedBox(width: 8),
-            Container(
-              width: 16,
-              height: 16,
-              decoration: BoxDecoration(
-                color: theme.accent,
-                shape: BoxShape.circle,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        for (var i = 0; i < 3; i++) ...[
-          Expanded(
-            child: Container(
+              height: 30,
+              padding: const EdgeInsets.all(5),
               decoration: BoxDecoration(
                 color: theme.surface,
-                border: Border.all(color: theme.divider),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: theme.ink.withValues(alpha: 0.10)),
               ),
-            ),
-          ),
-          if (i < 2) const SizedBox(height: 8),
-        ],
-      ],
-    );
-  }
-}
-
-/// The same header, with a permanent row of capsules beneath it — and one
-/// fewer room visible for it.
-class _ChipsPreview extends StatelessWidget {
-  const _ChipsPreview();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 16,
-              height: 16,
-              decoration: BoxDecoration(
-                color: theme.inkMuted,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(child: Container(height: 6, color: theme.divider)),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            for (var i = 0; i < 4; i++) ...[
-              Container(
-                width: i == 0 ? 22 : 28,
-                height: 14,
-                decoration: BoxDecoration(
-                  color: i == 0 ? theme.accent : Colors.transparent,
-                  border: Border.all(
-                    color: i == 0 ? theme.accent : theme.divider,
-                  ),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              if (i < 3) const SizedBox(width: 5),
-            ],
-          ],
-        ),
-        const SizedBox(height: 10),
-        for (var i = 0; i < 2; i++) ...[
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: theme.surface,
-                border: Border.all(color: theme.divider),
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-          if (i < 1) const SizedBox(height: 8),
-        ],
-      ],
-    );
-  }
-}
-
-class _GridPreview extends StatelessWidget {
-  const _GridPreview();
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Row(
-      children: [
-        for (var c = 0; c < 2; c++) ...[
-          Expanded(
-            child: Column(
-              children: [
-                for (var r = 0; r < 2; r++) ...[
-                  _tile(theme, accent: c == 0 && r == 0),
-                  if (r == 0) const SizedBox(height: 8),
-                ],
-              ],
-            ),
-          ),
-          if (c == 0) const SizedBox(width: 8),
-        ],
-      ],
-    );
-  }
-
-  Widget _tile(AppTheme theme, {required bool accent}) {
-    return Expanded(
-      child: Container(
-        decoration: BoxDecoration(
-          color: accent ? theme.accent.withValues(alpha: 0.18) : theme.surface,
-          border: Border.all(
-            color: accent
-                ? theme.accent.withValues(alpha: 0.55)
-                : theme.divider,
-          ),
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-    );
-  }
-}
-
-/// One grid tile with nothing in it yet: the pill row, the name, the ghost
-/// line and the member count — and, on one of the two, the letter behind them.
-class _QuietTilePreview extends StatelessWidget {
-  const _QuietTilePreview({required this.monogram});
-  final bool monogram;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.surface,
-        border: Border.all(color: theme.divider),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: Stack(
-          children: [
-            if (monogram)
-              Positioned(
-                right: -10,
-                bottom: -26,
-                child: Text(
-                  'T',
-                  style: theme.displayHero.copyWith(
-                    fontSize: 96,
-                    height: 1,
-                    color: theme.accent.withValues(alpha: 0.16),
-                  ),
-                ),
-              ),
-            Padding(
-              padding: const EdgeInsets.all(10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: theme.surfaceSunken,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: theme.divider),
-                        ),
-                      ),
-                      const Spacer(),
-                      for (var i = 0; i < 2; i++) ...[
-                        Container(
-                          width: 14,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: theme.divider),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                        ),
-                        if (i == 0) const SizedBox(width: 4),
-                      ],
-                    ],
+                  Container(
+                    width: 22,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: theme.accent.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                  const Spacer(),
-                  Text('test', style: theme.displaySmall.copyWith(fontSize: 15)),
+                  const SizedBox(height: 4),
+                  FractionallySizedBox(
+                    widthFactor: 0.6,
+                    child: _line(theme, 0.35),
+                  ),
                   const SizedBox(height: 3),
-                  Container(width: 46, height: 5, color: theme.divider),
-                  const Spacer(),
-                  Container(width: 30, height: 7, color: theme.divider),
+                  _line(theme, 0.10),
                 ],
               ),
             ),
+            const SizedBox(height: 5),
           ],
-        ),
+        ],
       ),
     );
   }
 }
+
+/// Two columns of square tiles.
+class _GridPreview extends StatelessWidget {
+  const _GridPreview();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    Widget tile(int i) => Expanded(
+          child: AspectRatio(
+            aspectRatio: 1,
+            child: Container(
+              padding: const EdgeInsets.all(5),
+              decoration: BoxDecoration(
+                color: theme.surface,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: theme.ink.withValues(alpha: 0.08)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 11,
+                    height: 11,
+                    decoration: BoxDecoration(
+                      color: theme.avatarGradient(i * 5 + 2).first,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const Spacer(),
+                  FractionallySizedBox(
+                    widthFactor: 0.7,
+                    child: _line(theme, 0.35),
+                  ),
+                  const SizedBox(height: 3),
+                  _line(theme, 0.10),
+                ],
+              ),
+            ),
+          ),
+        );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(7, 14, 7, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _titleBar(theme),
+          const SizedBox(height: 8),
+          for (var r = 0; r < 3; r++) ...[
+            Row(
+              children: [
+                tile(r * 2),
+                const SizedBox(width: 5),
+                tile(r * 2 + 1),
+              ],
+            ),
+            const SizedBox(height: 5),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The top of the chat list: a title, then either a row of filter capsules
+/// under it, or a single filter button beside it.
+class _FilterPreview extends StatelessWidget {
+  const _FilterPreview({required this.chips});
+  final bool chips;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    Widget capsule(double w, {bool on = false}) => Container(
+          width: w,
+          height: 13,
+          margin: const EdgeInsets.only(right: 4),
+          decoration: BoxDecoration(
+            color: on
+                ? theme.accent.withValues(alpha: 0.22)
+                : theme.ink.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(999),
+          ),
+        );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 12, 10, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _titleBar(theme),
+              const Spacer(),
+              if (!chips)
+                Container(
+                  width: 16,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: theme.ink.withValues(alpha: 0.10),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.tune_rounded,
+                    size: 10,
+                    color: theme.inkSoft,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 9),
+          if (chips) ...[
+            Row(
+              children: [
+                capsule(18, on: true),
+                capsule(30),
+                capsule(36),
+                capsule(22),
+              ],
+            ),
+            const SizedBox(height: 9),
+          ],
+          for (var i = 0; i < (chips ? 2 : 3); i++) ...[
+            Row(
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: theme.avatarGradient(i * 3 + 1).first,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      FractionallySizedBox(
+                        widthFactor: 0.5,
+                        child: _line(theme, 0.35),
+                      ),
+                      const SizedBox(height: 3),
+                      _line(theme, 0.10),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+Widget _titleBar(AppTheme theme) => Container(
+      width: 30,
+      height: 6,
+      decoration: BoxDecoration(
+        color: theme.ink.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(3),
+      ),
+    );
+
+Widget _line(AppTheme theme, double alpha) => Container(
+      height: 3,
+      decoration: BoxDecoration(
+        color: theme.ink.withValues(alpha: alpha),
+        borderRadius: BorderRadius.circular(2),
+      ),
+    );

@@ -10107,4 +10107,57 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get pvPointsDesc =>
       'Whether the points you log show on friends\' boards';
+
+  @override
+  String get roomColorsPageTitle => 'Who\'s who';
+
+  @override
+  String get roomColorsPageHeader => 'The colour each person speaks in';
+
+  @override
+  String get roomColorsAuto => 'Automatic';
+
+  @override
+  String get roomColorsReset => 'Back to automatic';
+
+  @override
+  String get roomColorsOffFooter =>
+      'Speaker colours are off. Turning them on here turns them on in every room.';
+
+  @override
+  String roomColorsSharedWith(String name) {
+    return 'Shared with $name';
+  }
+
+  @override
+  String get settingsScreenValueReplyQuote => 'Quote';
+
+  @override
+  String get replyQuoteSub =>
+      'The original sits at the top of the reply, inside its bubble.';
+
+  @override
+  String get riTabMedia => 'Photos and videos';
+
+  @override
+  String get riTabFiles => 'Files';
+
+  @override
+  String get riTabVoice => 'Voice messages';
+
+  @override
+  String get riTabLinks => 'Links';
+
+  @override
+  String get riTabSaved => 'Saved';
+
+  @override
+  String get riNone => 'None';
+
+  @override
+  String get riSavedNote =>
+      'Only you see what you save. A pinned message is the opposite — the whole room sees it.';
+
+  @override
+  String get riOwnerNote => 'The medal marks whoever created this room.';
 }
