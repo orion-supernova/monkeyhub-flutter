@@ -112,6 +112,11 @@ const double kPhotoFillThreshold = 0.55;
 /// Whether a picture of [aspect] (width ÷ height) should FILL a viewer on a
 /// [screen]-shaped display rather than being letterboxed inside it.
 ///
+/// Only the feed's highlight viewer asks, and only behind its fit/fill toggle.
+/// The chat viewers (single photo, gallery, view-once) always show the whole
+/// picture: a 3:4 shot filled on a tall phone loses ~38% of its width, and a
+/// photo somebody sent you is one you should be able to see all of.
+///
 /// False for an unknown ratio: showing the whole picture is the answer that is
 /// never wrong, and the ratio is usually known a frame later anyway.
 bool photoFillsScreen(double? aspect, Size screen) {

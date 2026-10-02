@@ -180,9 +180,8 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
               // it is part of the backdrop, not part of the picture, so it must
               // not travel with the dismiss drag.
               // Not behind an avatar, which is deliberately a small round
-              // portrait on a plain barrier, and not behind a picture that is
-              // already covering the screen.
-              if (!widget.circular && !_fills(context))
+              // portrait on a plain barrier.
+              if (!widget.circular)
                 Positioned.fill(
                   child: Opacity(
                     opacity: (1 - t).clamp(0.0, 1.0),
@@ -280,26 +279,19 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
     return aspect;
   }
 
-  /// Whether the picture fills the screen rather than sitting inside it. See
-  /// [photoFillsScreen] — portrait shots fill, landscape and square ones stay
-  /// whole over [PhotoBackdrop].
-  bool _fills(BuildContext context) =>
-      !widget.circular && photoFillsScreen(_aspect, MediaQuery.sizeOf(context));
-
-  /// The full-bleed destination.
+  /// The full-bleed destination: always the whole picture, over
+  /// [PhotoBackdrop]. Never a `cover` crop — filling a tall phone with a 3:4
+  /// shot cut about 38% of it off the sides, and a photo someone sent you is
+  /// one you should be able to see all of without pinching.
   Widget _rectImage(BuildContext context) {
-    final fills = _fills(context);
     final image = RemoteImage(
       storageId: widget.storageId,
       api: widget.api,
-      fit: fills ? BoxFit.cover : BoxFit.contain,
+      fit: BoxFit.contain,
       borderRadius: BorderRadius.zero,
       placeholderDecodeWidth: widget.thumbnailDecodeWidth,
       decodeWidth: _deferredDecodeWidth,
     );
-    // Filling takes the whole screen, which is a Hero destination that is right
-    // on the first frame with nothing to measure.
-    if (fills) return SizedBox.expand(child: image);
     final aspect = _aspect;
     if (aspect == null) return image;
     // Pin the box to the picture's shape so the Hero has a stable destination

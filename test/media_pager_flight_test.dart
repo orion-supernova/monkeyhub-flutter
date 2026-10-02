@@ -95,11 +95,8 @@ void main() {
 
   /// Shapes the viewport like a phone in portrait.
   ///
-  /// The default 800×600 test surface is a LANDSCAPE window, on which
-  /// `photoFillsScreen` correctly decides that a 16:9 photograph should fill —
-  /// so the letterbox path these tests are about never runs there. Every
-  /// assertion about a shape-pinned hero has to say which shape of screen it
-  /// means.
+  /// The default 800×600 test surface is a LANDSCAPE window, so every
+  /// assertion about a shape-pinned hero says which shape of screen it means.
   void phone(WidgetTester tester) {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1.0;
@@ -141,11 +138,6 @@ void main() {
       // in before the field existed. The thumbnail measured it once and the
       // cache has held it since.
       //
-      // A LANDSCAPE ratio, because that is the one that still letterboxes on a
-      // phone — a portrait shot fills the screen and has no box to pin. Which
-      // half of the rule runs is `photoFillsScreen`'s business and is pinned in
-      // `photo_fill_rule_test.dart`; this test is only about where the ratio
-      // came from.
       phone(tester);
       MediaAspectCache.instance.debugPersist = false;
       MediaAspectCache.instance.remember('stor_m2', 4 / 3);
@@ -166,25 +158,29 @@ void main() {
       );
     });
 
-    testWidgets('is the whole screen when the picture fills it', (
+    testWidgets('keeps a portrait shot whole rather than cropping it', (
       tester,
     ) async {
-      // A portrait shot on a tall phone fills rather than letterboxing — see
-      // `photoFillsScreen`. That is still a destination the flight can aim at
-      // on its first frame, which is all these tests are really about: it is
-      // the whole route, known before anything has decoded, and it is the same
-      // crop the thumbnail was already showing.
+      // A 3:4 shot on a tall phone used to be `cover`-filled, which cut about
+      // 38% of it off the sides — the report was "it opens zoomed in and I
+      // can't see the whole photo". It is pinned to its own shape like any
+      // other picture, full width, with the backdrop above and below.
       phone(tester);
-      await openPager(tester, items: [photo('m4', w: 900, h: 1600)]);
+      await openPager(tester, items: [photo('m4', w: 900, h: 1200)]);
 
       expect(
-        find.ancestor(of: pageImage, matching: find.byType(AspectRatio)),
-        findsNothing,
+        tester
+            .widget<AspectRatio>(
+              find.ancestor(of: pageImage, matching: find.byType(AspectRatio)),
+            )
+            .aspectRatio,
+        900 / 1200,
       );
-      expect(
-        tester.getSize(find.byType(SteadyHero).first),
-        tester.getSize(find.byType(MediaPagerScreen)),
-      );
+      final hero = tester.getSize(find.byType(SteadyHero).first);
+      final screen = tester.getSize(find.byType(MediaPagerScreen));
+      expect(hero.width, screen.width);
+      expect(hero.height, closeTo(screen.width * 1200 / 900, 0.01));
+      expect(tester.widget<RemoteImage>(pageImage).fit, BoxFit.contain);
     });
 
     testWidgets('is the whole frame when nobody knows the shape', (

@@ -519,15 +519,16 @@ class _Page extends StatelessWidget {
       );
     }
 
-    // A portrait photograph on a tall phone letterboxes to about 60% of the
-    // display; `photoFillsScreen` is what decides whether losing the rest of
-    // the frame is a better trade than the two black bands. A landscape or
-    // square picture stays whole and gets the backdrop instead.
-    final fills = photoFillsScreen(_aspect, MediaQuery.sizeOf(context));
+    // Always the whole picture, never a `cover` crop. A chat photo is
+    // something somebody sent you to look at, and filling a tall phone with a
+    // 3:4 shot cut about 38% of it off the sides — the edges of the frame were
+    // simply not reachable without pinching. The blurred backdrop fills the
+    // space around it instead, so the chrome still floats over the picture's
+    // own colour rather than dead black.
     final image = RemoteImage(
       storageId: id,
       api: api,
-      fit: fills ? BoxFit.cover : BoxFit.contain,
+      fit: BoxFit.contain,
       borderRadius: BorderRadius.zero,
       placeholderDecodeWidth: sourceDecodeWidth,
       decodeWidth: landed ? null : sourceDecodeWidth,
@@ -535,37 +536,26 @@ class _Page extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Only when the picture is not filling — behind a `cover` fit it is
-        // invisible by definition, and an invisible blurred layer still costs
-        // the compositor a filtered pass every frame.
-        //
-        // When it IS visible, the chrome above and the rail below sit on the
-        // picture's own blurred colour rather than on dead black. Reuses the
-        // thumbnail decode where the flight already warmed one, so it costs
-        // nothing on the page you opened.
-        if (!fills)
-          PhotoBackdrop(
-            image: RemoteImage(
-              storageId: id,
-              api: api,
-              fit: BoxFit.cover,
-              borderRadius: BorderRadius.zero,
-              decodeWidth: sourceDecodeWidth ?? kPhotoBackdropDecodeWidth,
-            ),
+        // The chrome above and the rail below sit on the picture's own blurred
+        // colour rather than on dead black. Reuses the thumbnail decode where
+        // the flight already warmed one, so it costs nothing on the page you
+        // opened.
+        PhotoBackdrop(
+          image: RemoteImage(
+            storageId: id,
+            api: api,
+            fit: BoxFit.cover,
+            borderRadius: BorderRadius.zero,
+            decodeWidth: sourceDecodeWidth ?? kPhotoBackdropDecodeWidth,
           ),
+        ),
         PhotoDismissArea(
           drag: drag,
           onDismiss: onDismiss,
           onTap: onToggleChrome,
           onZoomChanged: onZoomChanged,
           maxScale: 4,
-          // A filling picture already occupies the whole page, so there is no
-          // box to pin — and that box is a Hero destination that is correct on
-          // the first frame rather than after the first decode.
-          child: mediaFlight(
-            heroTag,
-            fills ? SizedBox.expand(child: image) : _shaped(image),
-          ),
+          child: mediaFlight(heroTag, _shaped(image)),
         ),
       ],
     );
@@ -575,8 +565,8 @@ class _Page extends StatelessWidget {
   ///
   /// The sender usually tells us, and [MediaAspectCache] remembers the ones who
   /// did not from the last time this device drew the thumbnail. Null when
-  /// neither does, which both [_shaped] and the fill decision read as "show the
-  /// whole thing" — the answer that is never wrong.
+  /// neither does, which [_shaped] reads as "show the whole thing" — the answer
+  /// that is never wrong.
   double? get _aspect {
     final aspect =
         message.mediaAspectRatio ??
