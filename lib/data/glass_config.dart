@@ -585,3 +585,24 @@ const kBuiltInGlassPresets = <GlassPreset>[
 
 /// The preset a fresh install starts on.
 const kDefaultGlassPresetId = 'frosted';
+
+/// The recipe every app-drawn glass surface follows while iOS draws the tab
+/// bar ([GlassEngine.native]), in place of the user's tuning.
+///
+/// Matched by eye to iOS 26 Liquid Glass beside the real `UITabBar`: a thin
+/// fill, a light blur with the colour behind it lifted rather than washed out,
+/// and a soft shadow that floats the surface instead of dropping it. The rim
+/// is drawn white by [LiquidGlass] in this mode — Apple's specular edge, not
+/// the theme's accent — so it is not a dial here. Fixed on purpose: with iOS
+/// drawing half the glass on screen, a slider that moved only the other half
+/// would only ever make the two disagree.
+const kNativeMatchGlass = GlassConfig(<String, double>{
+  'frost': 0.55,
+  'blur': 12,
+  'saturation': 1.6,
+  'rimOpacity': 0.22,
+  'rimWidth': 1,
+  'shadowOpacity': 0.12,
+  'shadowBlur': 20,
+  'shadowY': 4,
+});

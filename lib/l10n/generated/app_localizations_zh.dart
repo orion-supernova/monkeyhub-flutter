@@ -8703,4 +8703,806 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get glassScreenNativeOffBody => 'MonkeyHub 在所有地方绘制自己的玻璃效果，可用下方滑块调整。';
+
+  @override
+  String get glassScreenHeading => '玻璃';
+
+  @override
+  String get glassStyleHeader => '样式';
+
+  @override
+  String get glassStyleLiquidTitle => 'Liquid Glass';
+
+  @override
+  String get glassStyleLiquidBody => '由 iOS 绘制的 Apple 原生玻璃，应用中的按钮也与之一致。';
+
+  @override
+  String get glassStyleFrostedTitle => '磨砂';
+
+  @override
+  String get glassStyleFrostedBody => 'MonkeyHub 自己的玻璃效果，每个参数都可自行调整。';
+
+  @override
+  String get glassStyleRecommended => '推荐';
+
+  @override
+  String get glassStyleLiquidFooter => '无需调整：模糊、色调和光线由 iOS 决定。选择“磨砂”即可自行调整。';
+
+  @override
+  String get acctSectionPrivacy => '隐私';
+
+  @override
+  String get acctSectionAccount => '账户';
+
+  @override
+  String get acctSectionFamily => '家庭';
+
+  @override
+  String get acctSectionThisPhone => '这部手机';
+
+  @override
+  String get acctRowVisibility => '个人资料可见性';
+
+  @override
+  String get acctRowBlocked => '已屏蔽的用户';
+
+  @override
+  String get acctRowApprovals => '审批';
+
+  @override
+  String get acctNothingWaiting => '无待处理';
+
+  @override
+  String get acctRowLinked => '关联账户';
+
+  @override
+  String get acctRowScanToSignIn => '扫码登录';
+
+  @override
+  String get acctRowSetUpRecovery => '设置恢复短语';
+
+  @override
+  String get acctRowChangeRecovery => '更改恢复短语';
+
+  @override
+  String get acctSignOut => '退出登录';
+
+  @override
+  String get acctDeleteAccount => '删除账户';
+
+  @override
+  String get acctConfirmDelete => '再次轻点以删除';
+
+  @override
+  String get acctHandPhoneBack => '交还这部手机';
+
+  @override
+  String get acctMyGrownUps => '我的监护人';
+
+  @override
+  String get acctActionMessage => '发消息';
+
+  @override
+  String get acctActionAddFriend => '添加';
+
+  @override
+  String get acctActionRequested => '已申请';
+
+  @override
+  String get acctActionAccept => '接受';
+
+  @override
+  String get acctActionNotAccepting => '未开放';
+
+  @override
+  String get acctActionUnfriend => '删好友';
+
+  @override
+  String get acctActionBlock => '屏蔽';
+
+  @override
+  String get acctActionReport => '举报';
+
+  @override
+  String get acctStatusFriends => '你们是好友';
+
+  @override
+  String get acctStatusRequestSent => '已发送请求';
+
+  @override
+  String get acctStatusWantsToConnect => '想加你为好友';
+
+  @override
+  String get acctStatusNotConnected => '尚未建立联系';
+
+  @override
+  String get acctPresenceOnline => '在线';
+
+  @override
+  String get acctPresenceAway => '离开';
+
+  @override
+  String get acctPresenceOffline => '离线';
+
+  @override
+  String get acctProfilePhoto => '头像';
+
+  @override
+  String get acctSaveToPhotos => '存储到照片';
+
+  @override
+  String get acctTakeSelfie => '自拍';
+
+  @override
+  String get acctChooseFromLibrary => '从图库选取';
+
+  @override
+  String get acctCancel => '取消';
+
+  @override
+  String get acctSave => '保存';
+
+  @override
+  String get acctChange => '更改';
+
+  @override
+  String get acctNotNow => '暂不';
+
+  @override
+  String get acctAddEmail => '添加邮箱';
+
+  @override
+  String get acctEditNameTitle => '编辑名字';
+
+  @override
+  String get acctAddNameTitle => '添加名字';
+
+  @override
+  String get acctEditEmailTitle => '编辑邮箱';
+
+  @override
+  String get acctChangeUsernameTitle => '更改用户名？';
+
+  @override
+  String get onboardingLookTitle => '打造你的专属风格';
+
+  @override
+  String get onboardingLookBody => '选一个外观。随时可以在设置中更改。';
+
+  @override
+  String get onboardingEssentials => '基础';
+
+  @override
+  String get onboardingEssentialsSub => '简洁原生';
+
+  @override
+  String get onboardingCharacters => '个性';
+
+  @override
+  String get onboardingCharactersSub => '同一个应用，更多个性';
+
+  @override
+  String get onboardingLightMode => '浅色模式';
+
+  @override
+  String get onboardingDarkMode => '深色模式';
+
+  @override
+  String get onboardingNow => '当前';
+
+  @override
+  String get onboardingContinue => '继续';
+
+  @override
+  String get onboardingIconTitle => '你的应用图标';
+
+  @override
+  String get onboardingIconBody => '保留当前图标、让它跟随主题，或任选一个。';
+
+  @override
+  String get onboardingIconIosNote => '每次更换图标时，iOS 都会显示一条简短提示。';
+
+  @override
+  String get onboardingGetStarted => '开始使用';
+
+  @override
+  String get appIconMatchTheme => '跟随主题';
+
+  @override
+  String get appIconCurrent => '当前';
+
+  @override
+  String get appIconSectionCollection => 'MonkeyHub 系列';
+
+  @override
+  String get appIconSectionThemes => '主题图标';
+
+  @override
+  String get appIconScreenTitle => '应用图标';
+
+  @override
+  String get appIconMatchFooter => '“跟随主题”会随深色模式主题更换图标，白天不会来回切换。';
+
+  @override
+  String get loginTitleReturning => '欢迎回来';
+
+  @override
+  String get loginTitleFirst => '欢迎来到 MonkeyHub';
+
+  @override
+  String get loginTitleSignUp => '创建你的账户';
+
+  @override
+  String get loginTitleReset => '重置密码';
+
+  @override
+  String get loginSubtitleSignIn => '登录，从上次离开的地方继续。';
+
+  @override
+  String get loginSubtitleFirst => '登录，或几秒钟创建一个账户。';
+
+  @override
+  String get loginSubtitleSignUp => '只需一个用户名和密码。';
+
+  @override
+  String get loginSubtitleReset => '输入你的 12 个单词恢复短语，并设置新密码。';
+
+  @override
+  String get loginCtaSignIn => '登录';
+
+  @override
+  String get loginCtaSignUp => '创建账户';
+
+  @override
+  String get loginCtaReset => '重置密码';
+
+  @override
+  String get loginNoAccountPrompt => '新用户？';
+
+  @override
+  String get loginCreateAccountLink => '创建账户';
+
+  @override
+  String get loginHaveAccountPrompt => '已有账户？';
+
+  @override
+  String get loginSignInLink => '登录';
+
+  @override
+  String get loginForgotPassword => '忘记密码？';
+
+  @override
+  String get loginChildAccount => '设置儿童账户';
+
+  @override
+  String get loginBackToSignIn => '返回登录';
+
+  @override
+  String get loginWithPhone => '用手机登录';
+
+  @override
+  String get loginUsernameField => '用户名';
+
+  @override
+  String get loginPasswordField => '密码';
+
+  @override
+  String get loginConfirmPasswordField => '确认密码';
+
+  @override
+  String get loginNameField => '姓名（可选）';
+
+  @override
+  String get loginRecoveryPhraseField => '你的 12 个单词恢复短语';
+
+  @override
+  String get loginNewPasswordField => '新密码';
+
+  @override
+  String get roomHeaderStatusOnline => '在线';
+
+  @override
+  String roomHeaderStatusMembers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 位成员',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsHubTitle => '设置';
+
+  @override
+  String get settingsHubAccountHintAdult => '个人资料、家庭、关联账户和隐私';
+
+  @override
+  String get settingsHubAccountHintChild => '个人资料、隐私和你的监护人';
+
+  @override
+  String get settingsHubSectionGeneral => '通用';
+
+  @override
+  String get settingsHubSectionNotifications => '通知';
+
+  @override
+  String get settingsHubSectionCalls => '通话';
+
+  @override
+  String get settingsHubSectionAppearance => '外观';
+
+  @override
+  String get settingsHubSectionCompanions => '伙伴';
+
+  @override
+  String get settingsHubSectionChats => '聊天';
+
+  @override
+  String get settingsHubSectionHelp => '帮助与法律';
+
+  @override
+  String get settingsHubSectionAdvanced => '高级';
+
+  @override
+  String get settingsHubLanguage => '语言';
+
+  @override
+  String get settingsHubCheckForUpdates => '检查更新';
+
+  @override
+  String get settingsHubUpdateAvailable => '有可用更新';
+
+  @override
+  String get settingsHubShowLinkUrls => '显示链接地址';
+
+  @override
+  String get settingsHubShowLinkUrlsSubtitle => '在每个链接预览旁显示地址';
+
+  @override
+  String get settingsHubPush => '推送通知';
+
+  @override
+  String get settingsHubPushSubtitle => '新消息、通话和请求';
+
+  @override
+  String get settingsHubGameReminders => '每日游戏提醒';
+
+  @override
+  String get settingsHubGameRemindersSubtitle => '如果还没玩，午饭时提醒一次';
+
+  @override
+  String get settingsHubFriendActivity => '好友动态';
+
+  @override
+  String get settingsHubFriendActivitySubtitle => '好友的精彩瞬间、积分和游戏结果';
+
+  @override
+  String get settingsHubMenuBar => '菜单栏图标';
+
+  @override
+  String get settingsHubMenuBarSubtitle => '在菜单栏显示未读数';
+
+  @override
+  String get settingsHubCallStats => '显示通话统计';
+
+  @override
+  String get settingsHubCallStatsSubtitle => '通话中的分辨率、码率和延迟';
+
+  @override
+  String get settingsHubTheme => '主题';
+
+  @override
+  String get settingsHubAppIcon => 'App 图标';
+
+  @override
+  String get settingsHubGlass => '玻璃';
+
+  @override
+  String get settingsHubNavigation => '导航';
+
+  @override
+  String get settingsHubMotion => '动效';
+
+  @override
+  String get settingsHubChatList => '聊天列表';
+
+  @override
+  String get settingsHubChatStyle => '聊天样式';
+
+  @override
+  String get settingsHubBubbleStyle => '气泡样式';
+
+  @override
+  String get settingsHubSpeakerColors => '发言人颜色';
+
+  @override
+  String get settingsHubReplyStyle => '回复样式';
+
+  @override
+  String get settingsHubPrivacyPolicy => '隐私政策';
+
+  @override
+  String get settingsHubTerms => '服务条款';
+
+  @override
+  String get settingsHubLicence => '许可协议';
+
+  @override
+  String get settingsHubServer => '服务器';
+
+  @override
+  String get settingsHubLayoutRows => '列表';
+
+  @override
+  String get settingsHubLayoutCards => '卡片';
+
+  @override
+  String get settingsHubLayoutGrid => '网格';
+
+  @override
+  String get settingsHubNavTabBar => '标签栏';
+
+  @override
+  String settingsHubThemeAuto(String name) {
+    return '自动 · $name';
+  }
+
+  @override
+  String get chatListPageRowsSub => '头像、名字和最新消息，就像“信息”一样。';
+
+  @override
+  String get chatListPageCardsSub => '每个房间一张卡片，所有细节一目了然。';
+
+  @override
+  String get chatListPageGridSub => '两列方块，一眼看到更多房间。';
+
+  @override
+  String get chatListPageLayoutHeader => '布局';
+
+  @override
+  String get chatListPageFiltersHeader => '筛选';
+
+  @override
+  String get chatListPageChips => '标签';
+
+  @override
+  String get chatListPageChipsSub => '一排筛选，随时一点即达。';
+
+  @override
+  String get chatListPageButton => '按钮';
+
+  @override
+  String get chatListPageButtonSub => '一个按钮，需要时再打开筛选。';
+
+  @override
+  String get chatListPageEmptyHeader => '空房间';
+
+  @override
+  String get chatListPagePlain => '简洁';
+
+  @override
+  String get chatListPagePlainSub => '还没人说话的房间保持空白。';
+
+  @override
+  String get chatListPageInitial => '首字母';
+
+  @override
+  String get chatListPageInitialSub => '一个淡淡的大字母填满空白角落。';
+
+  @override
+  String get chatListPageEmptyFooter => '适用于网格布局。';
+
+  @override
+  String get chatStylePageFooter => '会话标题栏和输入框的显示方式。';
+
+  @override
+  String get chatStyleClassicSub => '实心标题栏和扁平输入框。';
+
+  @override
+  String get chatStyleCompactSub => '磨砂控件悬浮在对话之上。';
+
+  @override
+  String get bubbleTailedSub => '每组最后一条消息带尾巴，就像“信息”。';
+
+  @override
+  String get bubbleSoftSub => '无尾巴，用圆角把连续消息连成一组。';
+
+  @override
+  String get bubblePillSub => '每条消息都是圆润的胶囊。';
+
+  @override
+  String get bubbleSlabSub => '方正的边角：利落而坚定。';
+
+  @override
+  String get replyStylePageFooter => '回复如何显示它所回复的消息。';
+
+  @override
+  String get replyClassicSub => '消息上方的彩色引用，WhatsApp 风格。';
+
+  @override
+  String get replyPhantomSub => '原消息的虚影浮在上方，以曲线相连。';
+
+  @override
+  String get replyStickySub => '别在角落的小小斜卡片。';
+
+  @override
+  String get replyComicSub => '带漫画尾巴的小气泡。';
+
+  @override
+  String get motionMatchDevice => '跟随设备';
+
+  @override
+  String get motionMatchDeviceCalmSub => '你的设备目前要求减弱动态效果。';
+
+  @override
+  String get motionMatchDeviceFullSub => '你的设备目前允许动画。';
+
+  @override
+  String get motionFullSub => '每一次回弹、漂移和点缀。';
+
+  @override
+  String get motionCalmSub => '装饰保持静止，其余一切照常。';
+
+  @override
+  String get navigationPageFooter => '在聊天、动态、发现和设置之间切换的方式。';
+
+  @override
+  String get navTabBarSub => '始终可见，一点即达任意位置。';
+
+  @override
+  String get navOrbSub => '从角落按住拖动，越用越顺手的手势。';
+
+  @override
+  String get languageSystemLabel => '设备语言';
+
+  @override
+  String get languagePageFooter => '菜单和应用提示。聊天内容保持对方书写的语言。';
+
+  @override
+  String get speakerPageFooter => '在群聊里一眼看出谁在说话。';
+
+  @override
+  String get speakerOffSub => '大家用同一种颜色书写。';
+
+  @override
+  String get speakerNamesSub => '每个人的名字和头像都有自己的颜色。';
+
+  @override
+  String get speakerBubblesSub => '颜色也会延续到他们的消息里。';
+
+  @override
+  String get themePageAutoFooter => '浅色主题用于浅色模式，深色主题用于深色模式。';
+
+  @override
+  String get themePageLightMode => '浅色模式';
+
+  @override
+  String get themePageDarkMode => '深色模式';
+
+  @override
+  String get themePageEssentials => '基础';
+
+  @override
+  String get themePageEssentialsFooter => '沉静原生，五种配色。';
+
+  @override
+  String get themePageCharacters => '个性';
+
+  @override
+  String get themePageCharactersFooter => '布局不变，个性十足。长按任一主题即可预览。';
+
+  @override
+  String get themePageLightBadge => '浅色';
+
+  @override
+  String get themePageDarkBadge => '深色';
+
+  @override
+  String get themePageInUse => '使用中';
+
+  @override
+  String get themePageUseLight => '用于浅色模式';
+
+  @override
+  String get themePageUseDark => '用于深色模式';
+
+  @override
+  String themePageUse(String name) {
+    return '使用 $name';
+  }
+
+  @override
+  String get acctCaptureTitle => '防截屏保护';
+
+  @override
+  String get acctCaptureOnIos => '录屏和镜像时会显示隐私遮罩。';
+
+  @override
+  String get acctCaptureOnAndroid => '截图和录屏会显示为黑屏。';
+
+  @override
+  String get acctCaptureOff => '截图和录屏正常可用。';
+
+  @override
+  String get acctCaptureFooter => '阅后即焚房间始终开启此功能。';
+
+  @override
+  String get acctActionPending => '待审核';
+
+  @override
+  String get chatSwipePin => '置顶';
+
+  @override
+  String get chatSwipeUnpin => '取消置顶';
+
+  @override
+  String get chatSwipeMute => '免打扰';
+
+  @override
+  String get chatSwipeUnmute => '取消免打扰';
+
+  @override
+  String get chatSwipeArchive => '归档';
+
+  @override
+  String get appearanceMatchDeviceSubtitle => '跟随手机，白天浅色、夜晚深色';
+
+  @override
+  String get appearanceOneThemeSubtitle => '全天同一外观';
+
+  @override
+  String get riName => '名称';
+
+  @override
+  String get riDescription => '简介';
+
+  @override
+  String get riVisibility => '谁能找到它';
+
+  @override
+  String get riPublic => '公开';
+
+  @override
+  String get riPublicSub => '任何人都能在发现中找到';
+
+  @override
+  String get riPrivate => '私密';
+
+  @override
+  String get riPrivateSub => '只有你邀请的人能加入';
+
+  @override
+  String get riMessageLife => '消息消失时间';
+
+  @override
+  String get riPassword => '密码';
+
+  @override
+  String get riRemovePassword => '移除密码';
+
+  @override
+  String get riSetPassword => '设置密码';
+
+  @override
+  String get riSharedContent => '共享内容';
+
+  @override
+  String riMembers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 位成员',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String riInvited(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已邀请 $count 人',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get riWithdraw => '撤回';
+
+  @override
+  String get riNotifications => '通知';
+
+  @override
+  String get riTranslation => '翻译';
+
+  @override
+  String get riNameColours => '名字颜色';
+
+  @override
+  String get riYouSuggested => '你的建议';
+
+  @override
+  String get riTakeBack => '撤回';
+
+  @override
+  String get riLeaveRoom => '退出房间';
+
+  @override
+  String get riLeaving => '正在退出…';
+
+  @override
+  String get riDeleteRoom => '删除房间';
+
+  @override
+  String get riDeleting => '正在删除…';
+
+  @override
+  String get riEndConversation => '结束对话';
+
+  @override
+  String get riEnding => '正在结束…';
+
+  @override
+  String get riActionCall => '通话';
+
+  @override
+  String get riActionVideo => '视频';
+
+  @override
+  String get riActionMute => '静音';
+
+  @override
+  String get riActionUnmute => '取消静音';
+
+  @override
+  String get riActionMedia => '媒体';
+
+  @override
+  String get riActionAdd => '添加';
+
+  @override
+  String get roomHeaderStatusTyping => '正在输入…';
+
+  @override
+  String get glassScreenLead => '背后内容透出的程度。';
+
+  @override
+  String get transcriptDayToday => '今天';
+
+  @override
+  String get acctRowDevices => '设备';
+
+  @override
+  String get acctThisDevice => '本机';
+
+  @override
+  String get acctRemove => '移除';
+
+  @override
+  String get acctRemoveDeviceTitle => '移除此设备？';
+
+  @override
+  String get acctRemoveAllTitle => '移除所有其他设备？';
+
+  @override
+  String get acctRemoveAll => '全部移除';
+
+  @override
+  String get acctActiveNow => '当前活跃';
+
+  @override
+  String get acctLoading => '加载中…';
+
+  @override
+  String get acctDevicesLoadFailed => '无法加载你的设备。';
+
+  @override
+  String get acctNoNotifications => '通知无法送达此设备';
+
+  @override
+  String get acctBlockedEmpty => '你还没有屏蔽任何人。';
+
+  @override
+  String get acctUnblock => '取消屏蔽';
 }

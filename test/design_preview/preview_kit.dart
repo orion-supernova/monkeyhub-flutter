@@ -163,7 +163,8 @@ Widget previewApp(AppTheme theme, Widget child, {Locale locale = const Locale('e
 ///
 /// [path] may be a bare file name, in which case it lands in [kPreviewDir].
 /// Animations are not settled (several widgets loop forever); the frame is
-/// captured [settle] after the first pump.
+/// captured [settle] after the first pump — and, when [act] is given, [settle]
+/// after [act] has driven the screen into the state to capture.
 Future<void> snap(
   WidgetTester tester,
   Widget widget,
@@ -173,6 +174,7 @@ Future<void> snap(
   double topInset = kIphoneTopInset,
   double bottomInset = kIphoneBottomInset,
   Duration settle = const Duration(seconds: 2),
+  Future<void> Function()? act,
 }) async {
   tester.view.devicePixelRatio = dpr;
   tester.view.physicalSize = size * dpr;
@@ -188,6 +190,18 @@ Future<void> snap(
   await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
   await tester.pump(settle);
   await tester.pump(const Duration(milliseconds: 16));
+  // Drive the UI into the state worth looking at — a swiped row, an open
+  // menu — then let it come to rest before the capture.
+  //
+  // Frame by frame, not one long pump: a simulation started by the action
+  // only begins on the next tick, so a single 2 s pump captures its first
+  // frame, not its last.
+  if (act != null) {
+    await act();
+    for (var t = Duration.zero; t < settle; t += const Duration(milliseconds: 16)) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+  }
 
   final boundary = key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
   final bytes = await tester.runAsync(() async {

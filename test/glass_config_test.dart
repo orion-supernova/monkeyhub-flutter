@@ -525,7 +525,7 @@ void main() {
       // No `.first` on the target: scrollUntilVisible probes the finder while
       // it still matches nothing, and a first-finder throws there rather than
       // reporting empty.
-      await tester.scrollUntilVisible(find.text('BLUR'), 140, scrollable: page);
+      await tester.scrollUntilVisible(find.text('Blur'), 140, scrollable: page);
       await tester.pumpAndSettle();
       expect(find.byIcon(Icons.undo), findsNothing);
 
@@ -592,7 +592,7 @@ void main() {
 
       // With no look selected the baseline is the untuned recipe.
       expect(store.glassPresetId, isNull);
-      await tester.tap(find.text('RESET EVERY DIAL'));
+      await tester.tap(find.text('Reset every dial'));
       await tester.pumpAndSettle();
 
       expect(store.glass.isUntouched, isTrue);
@@ -607,7 +607,7 @@ void main() {
 
       // Nothing edited yet, so nothing to undo — the control that read as a
       // bug when it stayed lit on a freshly picked preset.
-      expect(find.text('RESET TO CLEAR'), findsOneWidget);
+      expect(find.text('Reset to Clear'), findsOneWidget);
       expect(find.byIcon(Icons.undo), findsNothing);
 
       store.setGlassProfile(
@@ -618,10 +618,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // Still based on Clear, now marked as drifted from it.
-      expect(find.text('RESET TO CLEAR'), findsOneWidget);
-      expect(find.textContaining('edited'), findsOneWidget);
+      expect(find.text('Reset to Clear'), findsOneWidget);
+      expect(find.textContaining('Edited'), findsOneWidget);
 
-      await tester.tap(find.text('RESET TO CLEAR'));
+      await tester.tap(find.text('Reset to Clear'));
       await tester.pumpAndSettle();
       expect(store.glass.nav.of(kBlur), 5);
     });
@@ -634,7 +634,7 @@ void main() {
 
       final page = find.byType(Scrollable).first;
       await tester.scrollUntilVisible(
-        find.text('OTHER SURFACES'),
+        find.text('Other surfaces'),
         200,
         scrollable: page,
       );
@@ -660,7 +660,7 @@ void main() {
       store.flushGlassWrites();
       await pumpScreen(tester);
 
-      final target = find.text('MATCH THE BOTTOM BAR');
+      final target = find.text('Match the bottom bar');
       await tester.scrollUntilVisible(
         target,
         200,

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../data/glass_config.dart';
@@ -8,6 +9,7 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/app_toast.dart';
+import '../widgets/ios_kit.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/value_slider.dart';
 import 'navigation/native_tab_bar.dart' show NativeChrome;
@@ -264,6 +266,8 @@ class _GlassScreenState extends State<GlassScreen> {
     final activeId = _store.glassPresetId;
     final base = _baseline;
     final dirty = profile != base;
+    final liquid = NativeChrome.supported &&
+        _store.glassEngine == GlassEngine.native;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -310,57 +314,36 @@ class _GlassScreenState extends State<GlassScreen> {
                       key: _scrollKey,
                       slivers: [
                         SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
+                          padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
                           sliver: SliverToBoxAdapter(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
-                                  children: [
-                                    IconButton(
-                                      onPressed: () =>
-                                          Navigator.of(context).maybePop(),
-                                      icon: Icon(
-                                        Icons.arrow_back,
-                                        color: theme.inkSoft,
-                                        size: 18,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 10),
+                                if (Navigator.of(context).canPop())
+                                  const GlassBackButton(),
+                                const SizedBox(height: 14),
                                 Text(
-                                  AppLocalizations.of(context).glassScreenTitle,
-                                  style: theme.displayMedium,
+                                  AppLocalizations.of(context).glassScreenHeading,
+                                  style: theme.displayLarge
+                                      .copyWith(letterSpacing: 0.37),
                                 ),
-                                const SizedBox(height: 10),
-                                Row(
-                                  children: [
-                                    Container(
-                                      width: 18,
-                                      height: 1,
-                                      color: theme.accent,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        AppLocalizations.of(
-                                          context,
-                                        ).glassScreenSubtitle,
-                                        style: theme.caption,
-                                      ),
-                                    ),
-                                  ],
+                                const SizedBox(height: 4),
+                                Text(
+                                  AppLocalizations.of(context).glassScreenLead,
+                                  style: theme.bodySoft,
                                 ),
                                 if (NativeChrome.supported) ...[
-                                  const SizedBox(height: 20),
-                                  const _NativeGlassSwitch(),
+                                  const SizedBox(height: 22),
+                                  const _GlassStyleChooser(),
                                 ],
                               ],
                             ),
                           ),
                         ),
 
+                        // Under Liquid Glass iOS owns the look: no preview, no
+                        // dials, nothing that would move only half the glass.
+                        if (!liquid) ...[
                         // Sticks to the top once it gets there, so every dial below
                         // is judged against the thing it changes. Seventeen sliders
                         // is far more than one screen, and a preview you have to
@@ -417,7 +400,7 @@ class _GlassScreenState extends State<GlassScreen> {
                                   : AppLocalizations.of(
                                       context,
                                     ).glassScreenResetToPreset(
-                                      _baselineName.toUpperCase(),
+                                      _baselineName,
                                     ),
                               // Undoes your edits, back to whatever the selected
                               // look says — or to the untuned recipe when nothing
@@ -500,6 +483,7 @@ class _GlassScreenState extends State<GlassScreen> {
                         ),
 
                         const SliverToBoxAdapter(child: SizedBox(height: 260)),
+                        ],
                       ],
                     ),
                   );
@@ -968,10 +952,11 @@ class _PreviewToggle extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                l10n.glassScreenPreviewBadge,
-                style: theme.monoTiny.copyWith(
+                sentenceCaps(l10n.glassScreenPreviewBadge),
+                style: theme.caption.copyWith(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
                   color: theme.inkSoft,
-                  letterSpacing: 1.4,
                 ),
               ),
               const SizedBox(width: 3),
@@ -1240,7 +1225,10 @@ class _KnobRow extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(label, style: theme.label),
+              Text(
+                sentenceCaps(label),
+                style: theme.body.copyWith(fontSize: 15, color: theme.ink),
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -1315,55 +1303,66 @@ class _PresetRow extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: theme.motionFast,
-          padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+        // A grouped-list row: the surface fill and nothing else at rest,
+        // and a checkmark that springs in for the chosen look — not a
+        // glowing border.
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 11, 8, 11),
           decoration: BoxDecoration(
-            color: theme.surface,
-            border: Border.all(
-              color: active ? theme.accent : theme.divider,
-              width: active ? 1.6 : 1,
-            ),
-            borderRadius: BorderRadius.circular(theme.radiusMd),
+            color: groupedFill(theme),
+            borderRadius: BorderRadius.circular(groupedRadius(theme)),
           ),
           child: Row(
             children: [
-              Icon(
-                active ? Icons.circle : Icons.circle_outlined,
-                size: 10,
-                color: active ? theme.accent : theme.inkMuted,
-              ),
-              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(preset.name, style: theme.body),
+                    Text(
+                      preset.name,
+                      style: theme.body.copyWith(fontSize: 17, color: theme.ink),
+                    ),
                     if (subtitle != null) ...[
                       const SizedBox(height: 2),
-                      Text(subtitle!, style: theme.bodySoft),
+                      Text(_capitalized(subtitle!), style: theme.bodySoft),
                     ] else if (preset.builtIn) ...[
                       const SizedBox(height: 2),
-                      Text(l10n.glassScreenBuiltInLabel, style: theme.bodySoft),
+                      Text(
+                        _capitalized(l10n.glassScreenBuiltInLabel),
+                        style: theme.bodySoft,
+                      ),
                     ],
                   ],
                 ),
               ),
+              AnimatedScale(
+                scale: active ? 1 : 0,
+                duration: const Duration(milliseconds: 380),
+                curve: active ? Curves.elasticOut : Curves.easeIn,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: Icon(
+                    CupertinoIcons.checkmark_alt,
+                    size: 20,
+                    color: theme.accent,
+                  ),
+                ),
+              ),
               if (onOverwrite != null)
                 _MiniAction(
-                  icon: Icons.save_outlined,
+                  icon: CupertinoIcons.tray_arrow_down,
                   tip: l10n.glassScreenOverwriteTooltip(preset.name),
                   onTap: onOverwrite!,
                 ),
               if (onRename != null)
                 _MiniAction(
-                  icon: Icons.edit_outlined,
+                  icon: CupertinoIcons.pencil,
                   tip: l10n.glassScreenRenameTooltip(preset.name),
                   onTap: onRename!,
                 ),
               if (onDelete != null)
                 _MiniAction(
-                  icon: Icons.delete_outline,
+                  icon: CupertinoIcons.trash,
                   tip: l10n.glassScreenDeleteTooltip(preset.name),
                   onTap: onDelete!,
                 ),
@@ -1432,18 +1431,31 @@ class _ActionRow extends StatelessWidget {
       child: GestureDetector(
         onTap: enabled ? onTap : null,
         behavior: HitTestBehavior.opaque,
+        // A soft tinted capsule — the iOS 26 secondary button — rather than
+        // an outlined box.
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 13),
           decoration: BoxDecoration(
-            border: Border.all(color: colour.withValues(alpha: 0.5)),
-            borderRadius: BorderRadius.circular(theme.radiusMd),
+            color: colour.withValues(alpha: enabled ? 0.14 : 0.08),
+            borderRadius: BorderRadius.circular(999),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 15, color: colour),
+              Icon(icon, size: 17, color: colour),
               const SizedBox(width: 8),
-              Text(label, style: theme.label.copyWith(color: colour)),
+              Flexible(
+                child: Text(
+                  sentenceCaps(label),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.body.copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: colour,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -1469,39 +1481,50 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The iOS grouped-list section title: sentence case, the theme's own ink,
+    // with the reset as a quiet glyph at the far end.
     return Row(
       children: [
-        Container(width: 3, height: 14, color: theme.accent),
-        const SizedBox(width: 10),
-        // Flexible, and given most of the flex. Laid out at its natural width
-        // the tracked-out label plus a reset button overflowed the row on a
-        // narrow phone; splitting the free space evenly with the rule would
-        // instead ellipsize a label that fits perfectly well.
-        Flexible(
-          flex: 5,
+        Expanded(
           child: Text(
-            label,
+            sentenceCaps(label),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             softWrap: false,
-            style: theme.label.copyWith(
-              letterSpacing: 2.8,
-              color: theme.accent,
-            ),
+            style: theme.bodyEmph.copyWith(fontSize: 20, color: theme.ink),
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(child: Container(height: 1, color: theme.divider)),
         if (onReset != null)
           _MiniAction(
             key: glassPanelResetKey(label),
-            icon: Icons.restart_alt,
+            icon: CupertinoIcons.arrow_counterclockwise,
             tip: AppLocalizations.of(context).glassScreenResetTooltip(label),
             onTap: onReset!,
           ),
       ],
     );
   }
+}
+
+/// [s] with its first letter raised — for the lower-case-styled strings this
+/// screen used to print verbatim.
+String _capitalized(String s) => s.isEmpty
+    ? s
+    : s.characters.first.toUpperCase() + s.characters.skip(1).toString();
+
+/// A label authored in capitals, read in sentence case: every all-caps word
+/// is lowered and the first letter raised, while a mixed-case word — a
+/// preset's own name, "iOS" — is left exactly as it was written.
+String sentenceCaps(String s) {
+  final words = s.split(' ').map((w) {
+    final letters = w.replaceAll(RegExp(r'[^A-Za-zÀ-ÿĞğİıŞş]'), '');
+    return letters.length > 1 && letters == letters.toUpperCase()
+        ? w.toLowerCase()
+        : w;
+  }).join(' ');
+  if (words.isEmpty) return words;
+  return words.characters.first.toUpperCase() +
+      words.characters.skip(1).toString();
 }
 
 /// Lets [TweenAnimationBuilder] drive a whole profile at once.
@@ -1512,53 +1535,77 @@ class _GlassProfileTween extends Tween<GlassProfile> {
   GlassProfile lerp(double t) => GlassProfile.lerp(begin ?? end!, end!, t);
 }
 
-/// iOS's own Liquid Glass or the app's. Only built where iOS has some to give
-/// (see [NativeChrome.supported]); everywhere else there is nothing to choose.
-class _NativeGlassSwitch extends StatelessWidget {
-  const _NativeGlassSwitch();
+/// Apple's Liquid Glass or the app's Frosted glass — the first decision on
+/// this screen, and on iOS 26+ the one that matters most, so it leads and
+/// Liquid Glass is listed (and recommended) first.
+///
+/// Only built where iOS has Liquid Glass to give ([NativeChrome.supported]).
+class _GlassStyleChooser extends StatelessWidget {
+  const _GlassStyleChooser();
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final store = SettingsStore.instance;
-    final on = store.glassEngine == GlassEngine.native;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
-      decoration: BoxDecoration(
-        color: theme.surface,
-        borderRadius: BorderRadius.circular(theme.radiusLg),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.glassScreenNativeLabel,
-                  style: theme.bodyEmph.copyWith(color: theme.ink),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  on
-                      ? l10n.glassScreenNativeOnBody
-                      : l10n.glassScreenNativeOffBody,
-                  style: theme.bodySoft,
-                ),
-              ],
+    final liquid = store.glassEngine == GlassEngine.native;
+    return GroupedSection(
+      header: l10n.glassStyleHeader,
+      footer: liquid ? l10n.glassStyleLiquidFooter : null,
+      margin: EdgeInsets.zero,
+      children: [
+        GroupedRow(
+          icon: CupertinoIcons.drop_fill,
+          tone: TileTone.teal,
+          title: l10n.glassStyleLiquidTitle,
+          subtitle: l10n.glassStyleLiquidBody,
+          chevron: false,
+          onTap: () => store.setGlassEngine(GlassEngine.native),
+          titleTrailing: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+            decoration: BoxDecoration(
+              color: theme.accent.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              l10n.glassStyleRecommended,
+              style: theme.caption.copyWith(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: theme.accent,
+              ),
             ),
           ),
-          const SizedBox(width: 12),
-          Switch.adaptive(
-            value: on,
-            activeThumbColor: theme.accent,
-            onChanged: (v) => store.setGlassEngine(
-              v ? GlassEngine.native : GlassEngine.flutter,
-            ),
-          ),
-        ],
-      ),
+          trailing: _Tick(on: liquid),
+        ),
+        GroupedRow(
+          icon: CupertinoIcons.circle_grid_hex_fill,
+          tone: TileTone.indigo,
+          title: l10n.glassStyleFrostedTitle,
+          subtitle: l10n.glassStyleFrostedBody,
+          chevron: false,
+          onTap: () => store.setGlassEngine(GlassEngine.flutter),
+          trailing: _Tick(on: !liquid),
+        ),
+      ],
+    );
+  }
+}
+
+/// The chooser's checkmark: springs in on the chosen row, and keeps its width
+/// on the other so the two rows' text never shifts as the choice moves.
+class _Tick extends StatelessWidget {
+  const _Tick({required this.on});
+  final bool on;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return AnimatedScale(
+      scale: on ? 1 : 0,
+      duration: const Duration(milliseconds: 380),
+      curve: on ? Curves.elasticOut : Curves.easeIn,
+      child: Icon(CupertinoIcons.checkmark_alt, size: 22, color: theme.accent),
     );
   }
 }

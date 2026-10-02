@@ -96,7 +96,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get roomScreenJumpFailedSnack => 'o mesaja gidilemedi';
 
   @override
-  String get roomScreenUnreadDivider => 'OKUNMAMIŞ MESAJLAR';
+  String get roomScreenUnreadDivider => 'Okunmamış mesajlar';
 
   @override
   String get roomScreenViewOnceAlreadyViewed => 'bu fotoğrafı zaten açtın.';
@@ -9119,4 +9119,849 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get glassScreenNativeOffBody =>
       'MonkeyHub camı her yerde kendisi çizer; aşağıdaki ayarlarla düzenlenir.';
+
+  @override
+  String get glassScreenHeading => 'Cam';
+
+  @override
+  String get glassStyleHeader => 'Stil';
+
+  @override
+  String get glassStyleLiquidTitle => 'Liquid Glass';
+
+  @override
+  String get glassStyleLiquidBody =>
+      'Apple\'ın kendi camı, iOS tarafından çizilir. Uygulamadaki düğmeler de ona uyar.';
+
+  @override
+  String get glassStyleFrostedTitle => 'Buzlu';
+
+  @override
+  String get glassStyleFrostedBody =>
+      'MonkeyHub\'ın kendi camı. Her ayarı kendin şekillendir.';
+
+  @override
+  String get glassStyleRecommended => 'Önerilen';
+
+  @override
+  String get glassStyleLiquidFooter =>
+      'Ayarlanacak bir şey yok: bulanıklığı, tonu ve ışığı iOS belirler. Camı kendin şekillendirmek için Buzlu\'yu seç.';
+
+  @override
+  String get acctSectionPrivacy => 'Gizlilik';
+
+  @override
+  String get acctSectionAccount => 'Hesap';
+
+  @override
+  String get acctSectionFamily => 'Aile';
+
+  @override
+  String get acctSectionThisPhone => 'Bu telefon';
+
+  @override
+  String get acctRowVisibility => 'Profil görünürlüğü';
+
+  @override
+  String get acctRowBlocked => 'Engellenen kullanıcılar';
+
+  @override
+  String get acctRowApprovals => 'Onaylar';
+
+  @override
+  String get acctNothingWaiting => 'Bekleyen yok';
+
+  @override
+  String get acctRowLinked => 'Bağlı hesaplar';
+
+  @override
+  String get acctRowScanToSignIn => 'Giriş için tara';
+
+  @override
+  String get acctRowSetUpRecovery => 'Kurtarma ifadesi oluştur';
+
+  @override
+  String get acctRowChangeRecovery => 'Kurtarma ifadesini değiştir';
+
+  @override
+  String get acctSignOut => 'Çıkış yap';
+
+  @override
+  String get acctDeleteAccount => 'Hesabı sil';
+
+  @override
+  String get acctConfirmDelete => 'Silmek için tekrar dokun';
+
+  @override
+  String get acctHandPhoneBack => 'Bu telefonu geri ver';
+
+  @override
+  String get acctMyGrownUps => 'Büyüklerim';
+
+  @override
+  String get acctActionMessage => 'Mesaj';
+
+  @override
+  String get acctActionAddFriend => 'Ekle';
+
+  @override
+  String get acctActionRequested => 'İstendi';
+
+  @override
+  String get acctActionAccept => 'Kabul et';
+
+  @override
+  String get acctActionNotAccepting => 'Kapalı';
+
+  @override
+  String get acctActionUnfriend => 'Çıkar';
+
+  @override
+  String get acctActionBlock => 'Engelle';
+
+  @override
+  String get acctActionReport => 'Bildir';
+
+  @override
+  String get acctStatusFriends => 'Arkadaşsınız';
+
+  @override
+  String get acctStatusRequestSent => 'İstek gönderildi';
+
+  @override
+  String get acctStatusWantsToConnect => 'Arkadaş olmak istiyor';
+
+  @override
+  String get acctStatusNotConnected => 'Bağlı değilsiniz';
+
+  @override
+  String get acctPresenceOnline => 'çevrimiçi';
+
+  @override
+  String get acctPresenceAway => 'uzakta';
+
+  @override
+  String get acctPresenceOffline => 'çevrimdışı';
+
+  @override
+  String get acctProfilePhoto => 'Profil fotoğrafı';
+
+  @override
+  String get acctSaveToPhotos => 'Fotoğraflar\'a kaydet';
+
+  @override
+  String get acctTakeSelfie => 'Selfie çek';
+
+  @override
+  String get acctChooseFromLibrary => 'Arşivden seç';
+
+  @override
+  String get acctCancel => 'Vazgeç';
+
+  @override
+  String get acctSave => 'Kaydet';
+
+  @override
+  String get acctChange => 'Değiştir';
+
+  @override
+  String get acctNotNow => 'Şimdi değil';
+
+  @override
+  String get acctAddEmail => 'E-posta ekle';
+
+  @override
+  String get acctEditNameTitle => 'Adı düzenle';
+
+  @override
+  String get acctAddNameTitle => 'Adını ekle';
+
+  @override
+  String get acctEditEmailTitle => 'E-postayı düzenle';
+
+  @override
+  String get acctChangeUsernameTitle => 'Kullanıcı adı değişsin mi?';
+
+  @override
+  String get onboardingLookTitle => 'Sana göre olsun';
+
+  @override
+  String get onboardingLookBody =>
+      'Bir görünüm seç. İstediğin zaman Ayarlar\'dan değiştirebilirsin.';
+
+  @override
+  String get onboardingEssentials => 'Temel';
+
+  @override
+  String get onboardingEssentialsSub => 'Sade ve doğal';
+
+  @override
+  String get onboardingCharacters => 'Karakterli';
+
+  @override
+  String get onboardingCharactersSub => 'Aynı uygulama, daha çok kişilik';
+
+  @override
+  String get onboardingLightMode => 'Açık mod';
+
+  @override
+  String get onboardingDarkMode => 'Koyu mod';
+
+  @override
+  String get onboardingNow => 'Şu an';
+
+  @override
+  String get onboardingContinue => 'Devam';
+
+  @override
+  String get onboardingIconTitle => 'Uygulama simgen';
+
+  @override
+  String get onboardingIconBody =>
+      'Simgeni koru, temana uymasına izin ver ya da istediğin bir simgeyi seç.';
+
+  @override
+  String get onboardingIconIosNote =>
+      'iOS, simge her değiştiğinde kısa bir bildirim gösterir.';
+
+  @override
+  String get onboardingGetStarted => 'Başlayalım';
+
+  @override
+  String get appIconMatchTheme => 'Temaya uy';
+
+  @override
+  String get appIconCurrent => 'Mevcut';
+
+  @override
+  String get appIconSectionCollection => 'MonkeyHub koleksiyonu';
+
+  @override
+  String get appIconSectionThemes => 'Tema simgeleri';
+
+  @override
+  String get appIconScreenTitle => 'Uygulama Simgesi';
+
+  @override
+  String get appIconMatchFooter =>
+      'Temaya uy seçeneği simgeyi koyu mod temanla birlikte değiştirir; böylece gün içinde sürekli değişmez.';
+
+  @override
+  String get loginTitleReturning => 'Tekrar hoş geldin';
+
+  @override
+  String get loginTitleFirst => 'MonkeyHub\'a hoş geldin';
+
+  @override
+  String get loginTitleSignUp => 'Hesabını oluştur';
+
+  @override
+  String get loginTitleReset => 'Şifreni sıfırla';
+
+  @override
+  String get loginSubtitleSignIn =>
+      'Kaldığın yerden devam etmek için giriş yap.';
+
+  @override
+  String get loginSubtitleFirst =>
+      'Giriş yap ya da birkaç saniyede hesap oluştur.';
+
+  @override
+  String get loginSubtitleSignUp => 'Bir kullanıcı adı ve şifre yeterli.';
+
+  @override
+  String get loginSubtitleReset =>
+      '12 kelimelik kurtarma ifadeni gir ve yeni bir şifre seç.';
+
+  @override
+  String get loginCtaSignIn => 'Giriş yap';
+
+  @override
+  String get loginCtaSignUp => 'Hesap oluştur';
+
+  @override
+  String get loginCtaReset => 'Şifreyi sıfırla';
+
+  @override
+  String get loginNoAccountPrompt => 'Yeni misin? ';
+
+  @override
+  String get loginCreateAccountLink => 'Hesap oluştur';
+
+  @override
+  String get loginHaveAccountPrompt => 'Hesabın var mı? ';
+
+  @override
+  String get loginSignInLink => 'Giriş yap';
+
+  @override
+  String get loginForgotPassword => 'Şifreni mi unuttun?';
+
+  @override
+  String get loginChildAccount => 'Çocuk hesabı kur';
+
+  @override
+  String get loginBackToSignIn => 'Girişe dön';
+
+  @override
+  String get loginWithPhone => 'Telefonunla giriş yap';
+
+  @override
+  String get loginUsernameField => 'Kullanıcı adı';
+
+  @override
+  String get loginPasswordField => 'Şifre';
+
+  @override
+  String get loginConfirmPasswordField => 'Şifreyi onayla';
+
+  @override
+  String get loginNameField => 'Ad (isteğe bağlı)';
+
+  @override
+  String get loginRecoveryPhraseField => '12 kelimelik kurtarma ifaden';
+
+  @override
+  String get loginNewPasswordField => 'Yeni şifre';
+
+  @override
+  String get roomHeaderStatusOnline => 'çevrimiçi';
+
+  @override
+  String roomHeaderStatusMembers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count üye',
+      one: '$count üye',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsHubTitle => 'Ayarlar';
+
+  @override
+  String get settingsHubAccountHintAdult =>
+      'Profil, aile, bağlı hesaplar ve gizlilik';
+
+  @override
+  String get settingsHubAccountHintChild => 'Profil, gizlilik ve büyüklerin';
+
+  @override
+  String get settingsHubSectionGeneral => 'Genel';
+
+  @override
+  String get settingsHubSectionNotifications => 'Bildirimler';
+
+  @override
+  String get settingsHubSectionCalls => 'Aramalar';
+
+  @override
+  String get settingsHubSectionAppearance => 'Görünüm';
+
+  @override
+  String get settingsHubSectionCompanions => 'Yoldaşlar';
+
+  @override
+  String get settingsHubSectionChats => 'Sohbetler';
+
+  @override
+  String get settingsHubSectionHelp => 'Yardım ve yasal';
+
+  @override
+  String get settingsHubSectionAdvanced => 'Gelişmiş';
+
+  @override
+  String get settingsHubLanguage => 'Dil';
+
+  @override
+  String get settingsHubCheckForUpdates => 'Güncellemeleri denetle';
+
+  @override
+  String get settingsHubUpdateAvailable => 'Güncelleme var';
+
+  @override
+  String get settingsHubShowLinkUrls => 'Bağlantı adreslerini göster';
+
+  @override
+  String get settingsHubShowLinkUrlsSubtitle =>
+      'Her bağlantı önizlemesinin yanında adresi yaz';
+
+  @override
+  String get settingsHubPush => 'Anlık bildirimler';
+
+  @override
+  String get settingsHubPushSubtitle => 'Yeni mesajlar, aramalar ve istekler';
+
+  @override
+  String get settingsHubGameReminders => 'Günlük oyun hatırlatıcısı';
+
+  @override
+  String get settingsHubGameRemindersSubtitle =>
+      'Oynamadıysan öğle vakti bir hatırlatma';
+
+  @override
+  String get settingsHubFriendActivity => 'Arkadaş etkinliği';
+
+  @override
+  String get settingsHubFriendActivitySubtitle =>
+      'Arkadaşlarından öne çıkanlar, puanlar ve oyun sonuçları';
+
+  @override
+  String get settingsHubMenuBar => 'Menü çubuğu simgesi';
+
+  @override
+  String get settingsHubMenuBarSubtitle =>
+      'Okunmamış sayısını menü çubuğunda gösterir';
+
+  @override
+  String get settingsHubCallStats => 'Arama istatistiklerini göster';
+
+  @override
+  String get settingsHubCallStatsSubtitle =>
+      'Arama sırasında çözünürlük, bit hızı ve ping';
+
+  @override
+  String get settingsHubTheme => 'Tema';
+
+  @override
+  String get settingsHubAppIcon => 'Uygulama simgesi';
+
+  @override
+  String get settingsHubGlass => 'Cam';
+
+  @override
+  String get settingsHubNavigation => 'Gezinme';
+
+  @override
+  String get settingsHubMotion => 'Hareket';
+
+  @override
+  String get settingsHubChatList => 'Sohbet listesi';
+
+  @override
+  String get settingsHubChatStyle => 'Sohbet stili';
+
+  @override
+  String get settingsHubBubbleStyle => 'Baloncuk stili';
+
+  @override
+  String get settingsHubSpeakerColors => 'Konuşan renkleri';
+
+  @override
+  String get settingsHubReplyStyle => 'Yanıt stili';
+
+  @override
+  String get settingsHubPrivacyPolicy => 'Gizlilik politikası';
+
+  @override
+  String get settingsHubTerms => 'Hizmet koşulları';
+
+  @override
+  String get settingsHubLicence => 'Lisans';
+
+  @override
+  String get settingsHubServer => 'Sunucu';
+
+  @override
+  String get settingsHubLayoutRows => 'Satırlar';
+
+  @override
+  String get settingsHubLayoutCards => 'Kartlar';
+
+  @override
+  String get settingsHubLayoutGrid => 'Izgara';
+
+  @override
+  String get settingsHubNavTabBar => 'Sekme çubuğu';
+
+  @override
+  String settingsHubThemeAuto(String name) {
+    return 'Otomatik · $name';
+  }
+
+  @override
+  String get chatListPageRowsSub =>
+      'Bir yüz, bir isim ve son mesaj; Mesajlar\'daki gibi.';
+
+  @override
+  String get chatListPageCardsSub =>
+      'Her oda kendi kartında, her ayrıntı açıkça yazılı.';
+
+  @override
+  String get chatListPageGridSub =>
+      'İki sütun kutucuk. Bir bakışta daha çok oda.';
+
+  @override
+  String get chatListPageLayoutHeader => 'Düzen';
+
+  @override
+  String get chatListPageFiltersHeader => 'Filtreler';
+
+  @override
+  String get chatListPageChips => 'Çipler';
+
+  @override
+  String get chatListPageChipsSub =>
+      'Her zaman bir dokunuş uzakta bir filtre sırası.';
+
+  @override
+  String get chatListPageButton => 'Düğme';
+
+  @override
+  String get chatListPageButtonSub =>
+      'İstediğinde filtreleri açan tek bir düğme.';
+
+  @override
+  String get chatListPageEmptyHeader => 'Boş odalar';
+
+  @override
+  String get chatListPagePlain => 'Sade';
+
+  @override
+  String get chatListPagePlainSub => 'Henüz konuşulmamış bir oda sade kalır.';
+
+  @override
+  String get chatListPageInitial => 'Baş harf';
+
+  @override
+  String get chatListPageInitialSub =>
+      'Büyük, soluk bir harf boş köşeyi doldurur.';
+
+  @override
+  String get chatListPageEmptyFooter => 'Izgara düzeninde geçerlidir.';
+
+  @override
+  String get chatStylePageFooter =>
+      'Sohbetin başlığı ve mesaj alanının nasıl çizildiği.';
+
+  @override
+  String get chatStyleClassicSub => 'Dolu bir başlık ve düz bir mesaj alanı.';
+
+  @override
+  String get chatStyleCompactSub =>
+      'Buzlu kontroller sohbetin üzerinde süzülür.';
+
+  @override
+  String get bubbleTailedSub =>
+      'Her serinin son mesajında bir kuyruk; Mesajlar\'daki gibi.';
+
+  @override
+  String get bubbleSoftSub => 'Kuyruk yok. Seri köşeleriyle bir arada durur.';
+
+  @override
+  String get bubblePillSub => 'Her mesajda tamamen yuvarlak kapsüller.';
+
+  @override
+  String get bubbleSlabSub => 'Köşeli omuzlar: keskin ve kararlı.';
+
+  @override
+  String get replyStylePageFooter =>
+      'Bir yanıtın, cevap verdiği mesajı nasıl gösterdiği.';
+
+  @override
+  String get replyClassicSub =>
+      'Mesajın üstünde renkli bir alıntı; WhatsApp tarzı.';
+
+  @override
+  String get replyPhantomSub =>
+      'Orijinalin bir hayaleti üstte süzülür, bir eğriyle bağlanır.';
+
+  @override
+  String get replyStickySub => 'Köşeye tutturulmuş küçük, eğik bir kart.';
+
+  @override
+  String get replyComicSub => 'Çizgi roman kuyruklu mini bir baloncuk.';
+
+  @override
+  String get motionMatchDevice => 'Cihaza uy';
+
+  @override
+  String get motionMatchDeviceCalmSub =>
+      'Cihazın şu anda daha az hareket istiyor.';
+
+  @override
+  String get motionMatchDeviceFullSub =>
+      'Cihazın şu anda animasyona izin veriyor.';
+
+  @override
+  String get motionFullSub => 'Her yay, süzülme ve gösteriş.';
+
+  @override
+  String get motionCalmSub => 'Süslemeler durur. Gerisi aynı çalışır.';
+
+  @override
+  String get navigationPageFooter =>
+      'Sohbetler, Akış, Keşfet ve Ayarlar arasında nasıl geçtiğin.';
+
+  @override
+  String get navTabBarSub => 'Her zaman görünür, her yere tek dokunuş.';
+
+  @override
+  String get navOrbSub =>
+      'Köşeden basılı tut ve sürükle. Alıştıkça sevilen bir hareket.';
+
+  @override
+  String get languageSystemLabel => 'Cihaz dili';
+
+  @override
+  String get languagePageFooter =>
+      'Menüler ve uygulama mesajları. Sohbetler, insanlar hangi dilde yazarsa o dilde kalır.';
+
+  @override
+  String get speakerPageFooter =>
+      'Grup sohbetlerinde kimin konuştuğunu bir bakışta anla.';
+
+  @override
+  String get speakerOffSub => 'Herkes aynı mürekkeple yazar.';
+
+  @override
+  String get speakerNamesSub => 'Herkesin adında ve yüzünde kendi rengi olur.';
+
+  @override
+  String get speakerBubblesSub => 'Renkleri mesajlarına da taşınır.';
+
+  @override
+  String get themePageAutoFooter =>
+      'Açık temalar açık modda, koyu temalar koyu modda kullanılır.';
+
+  @override
+  String get themePageLightMode => 'Açık mod';
+
+  @override
+  String get themePageDarkMode => 'Koyu mod';
+
+  @override
+  String get themePageEssentials => 'Temeller';
+
+  @override
+  String get themePageEssentialsFooter => 'Sakin ve doğal, beş renkte.';
+
+  @override
+  String get themePageCharacters => 'Karakterler';
+
+  @override
+  String get themePageCharactersFooter =>
+      'Aynı düzen, kendine has bir kişilik. Önizlemek için bir temaya basılı tut.';
+
+  @override
+  String get themePageLightBadge => 'Açık';
+
+  @override
+  String get themePageDarkBadge => 'Koyu';
+
+  @override
+  String get themePageInUse => 'Kullanımda';
+
+  @override
+  String get themePageUseLight => 'Açık modda kullan';
+
+  @override
+  String get themePageUseDark => 'Koyu modda kullan';
+
+  @override
+  String themePageUse(String name) {
+    return '$name kullan';
+  }
+
+  @override
+  String get acctCaptureTitle => 'Ekran kaydı koruması';
+
+  @override
+  String get acctCaptureOnIos =>
+      'Kayıt ve yansıtmada gizlilik perdesi görünür.';
+
+  @override
+  String get acctCaptureOnAndroid =>
+      'Ekran görüntüleri ve kayıtlar siyah çıkar.';
+
+  @override
+  String get acctCaptureOff => 'Ekran görüntüleri ve kayıtlar normal çalışır.';
+
+  @override
+  String get acctCaptureFooter =>
+      'Kaybolan mesajlı odalarda bu her zaman açıktır.';
+
+  @override
+  String get acctActionPending => 'Bekliyor';
+
+  @override
+  String get chatSwipePin => 'Sabitle';
+
+  @override
+  String get chatSwipeUnpin => 'Sabitlemeyi kaldır';
+
+  @override
+  String get chatSwipeMute => 'Sessize al';
+
+  @override
+  String get chatSwipeUnmute => 'Sesi aç';
+
+  @override
+  String get chatSwipeArchive => 'Arşivle';
+
+  @override
+  String get appearanceMatchDeviceSubtitle =>
+      'Telefonunla birlikte: gündüz açık, gece koyu';
+
+  @override
+  String get appearanceOneThemeSubtitle => 'Gün boyu aynı görünüm';
+
+  @override
+  String get riName => 'Ad';
+
+  @override
+  String get riDescription => 'Açıklama';
+
+  @override
+  String get riVisibility => 'Kimler bulabilir';
+
+  @override
+  String get riPublic => 'Herkese açık';
+
+  @override
+  String get riPublicSub => 'Herkes Keşfet\'te bulabilir';
+
+  @override
+  String get riPrivate => 'Özel';
+
+  @override
+  String get riPrivateSub => 'Yalnızca davet ettiklerin katılabilir';
+
+  @override
+  String get riMessageLife => 'Mesajlar şu süre sonra kaybolur';
+
+  @override
+  String get riPassword => 'Şifre';
+
+  @override
+  String get riRemovePassword => 'Şifreyi kaldır';
+
+  @override
+  String get riSetPassword => 'Şifre belirle';
+
+  @override
+  String get riSharedContent => 'Paylaşılanlar';
+
+  @override
+  String riMembers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count üye',
+      one: '1 üye',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String riInvited(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count davetli',
+      one: '1 davetli',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get riWithdraw => 'Geri çek';
+
+  @override
+  String get riNotifications => 'Bildirimler';
+
+  @override
+  String get riTranslation => 'Çeviri';
+
+  @override
+  String get riNameColours => 'İsim renkleri';
+
+  @override
+  String get riYouSuggested => 'Önerdiklerin';
+
+  @override
+  String get riTakeBack => 'Geri al';
+
+  @override
+  String get riLeaveRoom => 'Odadan ayrıl';
+
+  @override
+  String get riLeaving => 'Ayrılınıyor…';
+
+  @override
+  String get riDeleteRoom => 'Odayı sil';
+
+  @override
+  String get riDeleting => 'Siliniyor…';
+
+  @override
+  String get riEndConversation => 'Sohbeti sonlandır';
+
+  @override
+  String get riEnding => 'Sonlandırılıyor…';
+
+  @override
+  String get riActionCall => 'Ara';
+
+  @override
+  String get riActionVideo => 'Görüntülü';
+
+  @override
+  String get riActionMute => 'Sessize al';
+
+  @override
+  String get riActionUnmute => 'Sesi aç';
+
+  @override
+  String get riActionMedia => 'Medya';
+
+  @override
+  String get riActionAdd => 'Ekle';
+
+  @override
+  String get roomHeaderStatusTyping => 'yazıyor…';
+
+  @override
+  String get glassScreenLead => 'Arkadakinin ne kadarının görüneceği.';
+
+  @override
+  String get transcriptDayToday => 'Bugün';
+
+  @override
+  String get acctRowDevices => 'Cihazlar';
+
+  @override
+  String get acctThisDevice => 'Bu cihaz';
+
+  @override
+  String get acctRemove => 'Kaldır';
+
+  @override
+  String get acctRemoveDeviceTitle => 'Bu cihaz kaldırılsın mı?';
+
+  @override
+  String get acctRemoveAllTitle => 'Diğer tüm cihazlar kaldırılsın mı?';
+
+  @override
+  String get acctRemoveAll => 'Tümünü kaldır';
+
+  @override
+  String get acctActiveNow => 'Şu an etkin';
+
+  @override
+  String get acctLoading => 'Yükleniyor…';
+
+  @override
+  String get acctDevicesLoadFailed => 'Cihazların yüklenemedi.';
+
+  @override
+  String get acctNoNotifications => 'Bildirimler buna ulaşmıyor';
+
+  @override
+  String get acctBlockedEmpty => 'Kimseyi engellemedin.';
+
+  @override
+  String get acctUnblock => 'Engeli kaldır';
 }

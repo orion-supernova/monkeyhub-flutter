@@ -1,6 +1,7 @@
 import 'dart:io' show Platform;
 
-import 'package:flutter/foundation.dart' show kIsWeb, listEquals;
+import 'package:flutter/foundation.dart'
+    show kIsWeb, listEquals, visibleForTesting;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -20,6 +21,10 @@ abstract final class NativeChrome {
   /// Liquid Glass to give. Resolved once by [init]; false until then and
   /// everywhere else.
   static bool get supported => _supported;
+
+  /// Lets a test or a design preview stand in for an iOS 26 phone.
+  @visibleForTesting
+  static set debugSupported(bool v) => _supported = v;
 
   /// Whether the shell should hand its bottom bar to iOS right now.
   static bool get active =>

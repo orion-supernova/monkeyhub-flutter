@@ -270,7 +270,7 @@ abstract class AppLocalizations {
   /// All-caps label on the divider marking the first unread message when the room screen opens onto a backlog — shown once, above the messages that are new since the reader's last visit.
   ///
   /// In en, this message translates to:
-  /// **'UNREAD MESSAGES'**
+  /// **'Unread messages'**
   String get roomScreenUnreadDivider;
 
   /// SnackBar shown when trying to reopen a view-once photo that was already viewed by this user.
@@ -15396,6 +15396,1560 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'MonkeyHub draws its own glass everywhere, tuned by the sliders below.'**
   String get glassScreenNativeOffBody;
+
+  /// Large title of Settings > Glass, iOS sentence case.
+  ///
+  /// In en, this message translates to:
+  /// **'Glass'**
+  String get glassScreenHeading;
+
+  /// Section header above the choice between Apple's Liquid Glass and the app's own Frosted glass.
+  ///
+  /// In en, this message translates to:
+  /// **'Style'**
+  String get glassStyleHeader;
+
+  /// Option: Apple's own iOS Liquid Glass. Keep Apple's product name untranslated where Apple does.
+  ///
+  /// In en, this message translates to:
+  /// **'Liquid Glass'**
+  String get glassStyleLiquidTitle;
+
+  /// Subtitle under the Liquid Glass option.
+  ///
+  /// In en, this message translates to:
+  /// **'Apple\'s own glass, drawn by iOS. Buttons across the app match it.'**
+  String get glassStyleLiquidBody;
+
+  /// Option: the app's own frosted glass, tunable with sliders.
+  ///
+  /// In en, this message translates to:
+  /// **'Frosted'**
+  String get glassStyleFrostedTitle;
+
+  /// Subtitle under the Frosted option.
+  ///
+  /// In en, this message translates to:
+  /// **'MonkeyHub\'s own glass. Shape every dial yourself.'**
+  String get glassStyleFrostedBody;
+
+  /// Small tag beside the Liquid Glass option marking it as the recommended choice on iOS.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended'**
+  String get glassStyleRecommended;
+
+  /// Footer under the style choice while Liquid Glass is selected, explaining why there are no sliders.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to tune: iOS sets the blur, tint and light. Choose Frosted to shape the glass yourself.'**
+  String get glassStyleLiquidFooter;
+
+  /// Section header on your own profile above privacy rows.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy'**
+  String get acctSectionPrivacy;
+
+  /// Section header on your own profile above account rows (family, linked accounts, devices, sign out).
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get acctSectionAccount;
+
+  /// Family: a profile section header and the row that opens family settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Family'**
+  String get acctSectionFamily;
+
+  /// Section header on a child's profile above 'Hand this phone back'.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone'**
+  String get acctSectionThisPhone;
+
+  /// Row on your profile opening who-can-see-what settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile visibility'**
+  String get acctRowVisibility;
+
+  /// Row on your profile opening the blocked-users list; also that page's title.
+  ///
+  /// In en, this message translates to:
+  /// **'Blocked users'**
+  String get acctRowBlocked;
+
+  /// Row on a guardian's profile opening requests waiting for their approval.
+  ///
+  /// In en, this message translates to:
+  /// **'Approvals'**
+  String get acctRowApprovals;
+
+  /// Value beside Approvals when nothing is waiting.
+  ///
+  /// In en, this message translates to:
+  /// **'None waiting'**
+  String get acctNothingWaiting;
+
+  /// Row on your profile opening Sign in with Apple / Google links.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked accounts'**
+  String get acctRowLinked;
+
+  /// Row on your profile opening the camera to approve a desktop/web sign-in QR code.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan to sign in'**
+  String get acctRowScanToSignIn;
+
+  /// Row on your profile when no 12-word recovery phrase is set yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up recovery phrase'**
+  String get acctRowSetUpRecovery;
+
+  /// Row on your profile when a recovery phrase already exists.
+  ///
+  /// In en, this message translates to:
+  /// **'Change recovery phrase'**
+  String get acctRowChangeRecovery;
+
+  /// Sign out button on your profile.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get acctSignOut;
+
+  /// Destructive row on your profile that deletes the account (asks for a second tap).
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account'**
+  String get acctDeleteAccount;
+
+  /// The delete-account row's label after the first tap, for 4 seconds.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap again to delete'**
+  String get acctConfirmDelete;
+
+  /// Row on a child's profile that starts releasing the phone back to a grown-up.
+  ///
+  /// In en, this message translates to:
+  /// **'Hand this phone back'**
+  String get acctHandPhoneBack;
+
+  /// Heading in a child's profile over the names of the guardians who look after the account.
+  ///
+  /// In en, this message translates to:
+  /// **'My grown-ups'**
+  String get acctMyGrownUps;
+
+  /// Short tile label under an icon on someone's profile: open your DM with them. Max ~10 characters.
+  ///
+  /// In en, this message translates to:
+  /// **'Message'**
+  String get acctActionMessage;
+
+  /// Short tile label: send a friend request. Max ~10 characters.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get acctActionAddFriend;
+
+  /// Short tile label after you sent a friend request; tapping cancels it. Max ~10 characters.
+  ///
+  /// In en, this message translates to:
+  /// **'Requested'**
+  String get acctActionRequested;
+
+  /// Short tile label: accept their friend request. Max ~10 characters.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept'**
+  String get acctActionAccept;
+
+  /// Short disabled tile label when the person isn't accepting friend requests. Max ~10 characters.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed'**
+  String get acctActionNotAccepting;
+
+  /// Short tile label: remove this person as a friend. Max ~10 characters.
+  ///
+  /// In en, this message translates to:
+  /// **'Unfriend'**
+  String get acctActionUnfriend;
+
+  /// Short tile label: block this person. Max ~10 characters.
+  ///
+  /// In en, this message translates to:
+  /// **'Block'**
+  String get acctActionBlock;
+
+  /// Short tile label: report this person. Max ~10 characters.
+  ///
+  /// In en, this message translates to:
+  /// **'Report'**
+  String get acctActionReport;
+
+  /// Line under someone's name on their profile when you are friends.
+  ///
+  /// In en, this message translates to:
+  /// **'Friends'**
+  String get acctStatusFriends;
+
+  /// Line under someone's name when your friend request is pending.
+  ///
+  /// In en, this message translates to:
+  /// **'Request sent'**
+  String get acctStatusRequestSent;
+
+  /// Line under someone's name when they sent you a friend request.
+  ///
+  /// In en, this message translates to:
+  /// **'Wants to be friends'**
+  String get acctStatusWantsToConnect;
+
+  /// Line under someone's name when you are not friends and no request is pending.
+  ///
+  /// In en, this message translates to:
+  /// **'Not connected'**
+  String get acctStatusNotConnected;
+
+  /// Presence word next to a green dot under someone's name.
+  ///
+  /// In en, this message translates to:
+  /// **'online'**
+  String get acctPresenceOnline;
+
+  /// Presence word next to an amber dot under someone's name.
+  ///
+  /// In en, this message translates to:
+  /// **'away'**
+  String get acctPresenceAway;
+
+  /// Presence word next to a grey dot under someone's name.
+  ///
+  /// In en, this message translates to:
+  /// **'offline'**
+  String get acctPresenceOffline;
+
+  /// Title of the sheet for changing or saving your profile photo.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile photo'**
+  String get acctProfilePhoto;
+
+  /// Profile-photo sheet option: save the current photo to the device's photo library.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to Photos'**
+  String get acctSaveToPhotos;
+
+  /// Profile-photo sheet option: take a new photo with the front camera.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a selfie'**
+  String get acctTakeSelfie;
+
+  /// Profile-photo sheet option: pick a photo from the library.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from library'**
+  String get acctChooseFromLibrary;
+
+  /// Cancel button in profile sheets and dialogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get acctCancel;
+
+  /// Save button in the profile edit sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get acctSave;
+
+  /// Confirm button in 'change your name/username/email?' dialogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get acctChange;
+
+  /// Dismiss button in 'change your name/username/email?' dialogs (the tap was accidental).
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get acctNotNow;
+
+  /// Placeholder line under your name when no email is saved, and the add-email dialog title.
+  ///
+  /// In en, this message translates to:
+  /// **'Add email'**
+  String get acctAddEmail;
+
+  /// Title of the dialog/sheet that edits your display name.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit name'**
+  String get acctEditNameTitle;
+
+  /// Title of the dialog/sheet that adds a display name when none is set.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your name'**
+  String get acctAddNameTitle;
+
+  /// Title of the dialog/sheet that edits your saved email.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit email'**
+  String get acctEditEmailTitle;
+
+  /// Title of the dialog confirming you want to change your username.
+  ///
+  /// In en, this message translates to:
+  /// **'Change username?'**
+  String get acctChangeUsernameTitle;
+
+  /// Large title of the first onboarding step, where the user picks a theme. Sentence case, no trailing period.
+  ///
+  /// In en, this message translates to:
+  /// **'Make it yours'**
+  String get onboardingLookTitle;
+
+  /// One line under the onboarding theme title.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a look. You can change it any time in Settings.'**
+  String get onboardingLookBody;
+
+  /// Heading over the calm, native-feeling themes (Midnight, Daylight, Graphite…) in the theme picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Essentials'**
+  String get onboardingEssentials;
+
+  /// Short description beside the Essentials heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Calm and native'**
+  String get onboardingEssentialsSub;
+
+  /// Heading over the expressive themes with personality (Risograph, Retro Wave…) in the theme picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Characters'**
+  String get onboardingCharacters;
+
+  /// Short description beside the Characters heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Same app, more personality'**
+  String get onboardingCharactersSub;
+
+  /// Heading over the light-mode theme choices when the app follows the device. Sentence case.
+  ///
+  /// In en, this message translates to:
+  /// **'Light mode'**
+  String get onboardingLightMode;
+
+  /// Heading over the dark-mode theme choices when the app follows the device. Sentence case.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark mode'**
+  String get onboardingDarkMode;
+
+  /// Small tag beside Light mode / Dark mode marking the half the phone is in right now.
+  ///
+  /// In en, this message translates to:
+  /// **'Now'**
+  String get onboardingNow;
+
+  /// Primary button that moves to the next onboarding step.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get onboardingContinue;
+
+  /// Large title of the onboarding step where the user picks the app's home-screen icon.
+  ///
+  /// In en, this message translates to:
+  /// **'Your app icon'**
+  String get onboardingIconTitle;
+
+  /// Explanation under the app icon title. Themes can change the icon automatically; this lets the user keep it.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the icon you have, let it follow your theme, or pick any mark.'**
+  String get onboardingIconBody;
+
+  /// iOS-only footnote under the app icon grid: iOS shows a system alert whenever an app changes its icon.
+  ///
+  /// In en, this message translates to:
+  /// **'iOS shows a short notice whenever the icon changes.'**
+  String get onboardingIconIosNote;
+
+  /// Primary button on the last onboarding step; finishes onboarding.
+  ///
+  /// In en, this message translates to:
+  /// **'Get started'**
+  String get onboardingGetStarted;
+
+  /// Label of the app-icon tile that makes the home-screen icon follow the chosen theme.
+  ///
+  /// In en, this message translates to:
+  /// **'Match theme'**
+  String get appIconMatchTheme;
+
+  /// Small tag on the app-icon tile that is on the home screen right now.
+  ///
+  /// In en, this message translates to:
+  /// **'Current'**
+  String get appIconCurrent;
+
+  /// Heading over the MonkeyHub mascot icon variants in the app-icon picker.
+  ///
+  /// In en, this message translates to:
+  /// **'MonkeyHub collection'**
+  String get appIconSectionCollection;
+
+  /// Heading over the per-theme icons in the app-icon picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme icons'**
+  String get appIconSectionThemes;
+
+  /// Title of Settings > App icon. Title case like iOS Settings pages.
+  ///
+  /// In en, this message translates to:
+  /// **'App Icon'**
+  String get appIconScreenTitle;
+
+  /// Footnote explaining the Match theme icon option in Settings > App icon.
+  ///
+  /// In en, this message translates to:
+  /// **'Match theme changes the icon along with your dark-mode theme, so it never flips back and forth during the day.'**
+  String get appIconMatchFooter;
+
+  /// Large title on the sign-in screen for a device that has signed in before.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome back'**
+  String get loginTitleReturning;
+
+  /// Large title on the sign-in screen for a device that has never signed in.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to MonkeyHub'**
+  String get loginTitleFirst;
+
+  /// Large title on the create-account form.
+  ///
+  /// In en, this message translates to:
+  /// **'Create your account'**
+  String get loginTitleSignUp;
+
+  /// Large title on the reset-password form.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset your password'**
+  String get loginTitleReset;
+
+  /// One line under the sign-in title.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to pick up where you left off.'**
+  String get loginSubtitleSignIn;
+
+  /// One line under the first-run sign-in title.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in, or create an account in a few seconds.'**
+  String get loginSubtitleFirst;
+
+  /// One line under the create-account title.
+  ///
+  /// In en, this message translates to:
+  /// **'A username and a password is all it takes.'**
+  String get loginSubtitleSignUp;
+
+  /// One line under the reset-password title.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your 12-word recovery phrase and choose a new password.'**
+  String get loginSubtitleReset;
+
+  /// Primary sign-in button. Sentence case.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get loginCtaSignIn;
+
+  /// Primary create-account button. Sentence case.
+  ///
+  /// In en, this message translates to:
+  /// **'Create account'**
+  String get loginCtaSignUp;
+
+  /// Primary reset-password button. Sentence case.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset password'**
+  String get loginCtaReset;
+
+  /// Muted lead-in before the create-account link at the foot of the sign-in screen. Ends with a space.
+  ///
+  /// In en, this message translates to:
+  /// **'New here? '**
+  String get loginNoAccountPrompt;
+
+  /// Link after 'New here?' that switches to the create-account form.
+  ///
+  /// In en, this message translates to:
+  /// **'Create an account'**
+  String get loginCreateAccountLink;
+
+  /// Muted lead-in before the sign-in link at the foot of the create-account form. Ends with a space.
+  ///
+  /// In en, this message translates to:
+  /// **'Already have an account? '**
+  String get loginHaveAccountPrompt;
+
+  /// Link that switches to the sign-in form.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get loginSignInLink;
+
+  /// Link on the sign-in screen to the reset-password form.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password?'**
+  String get loginForgotPassword;
+
+  /// Link on the sign-in screen to pair this phone as a child's device.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up a child account'**
+  String get loginChildAccount;
+
+  /// Link on the reset-password form back to sign-in.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to sign in'**
+  String get loginBackToSignIn;
+
+  /// Desktop/web link to sign in by scanning a QR code with a signed-in phone.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with your phone'**
+  String get loginWithPhone;
+
+  /// Placeholder of the username field on sign-in/sign-up/reset.
+  ///
+  /// In en, this message translates to:
+  /// **'Username'**
+  String get loginUsernameField;
+
+  /// Placeholder of the password field.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get loginPasswordField;
+
+  /// Placeholder of the confirm-password field on sign-up.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm password'**
+  String get loginConfirmPasswordField;
+
+  /// Placeholder of the optional display-name field on sign-up.
+  ///
+  /// In en, this message translates to:
+  /// **'Name (optional)'**
+  String get loginNameField;
+
+  /// Placeholder of the recovery-phrase field on reset password.
+  ///
+  /// In en, this message translates to:
+  /// **'Your 12-word recovery phrase'**
+  String get loginRecoveryPhraseField;
+
+  /// Placeholder of the new-password field on reset password.
+  ///
+  /// In en, this message translates to:
+  /// **'New password'**
+  String get loginNewPasswordField;
+
+  /// Second line under the other person's name in a DM's header while they are online, like the status under a name in WhatsApp/Telegram. Lowercase.
+  ///
+  /// In en, this message translates to:
+  /// **'online'**
+  String get roomHeaderStatusOnline;
+
+  /// Second line under a group's name in the conversation header: how many people are in it. Lowercase, like Telegram's 'N members'.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} member} other{{count} members}}'**
+  String roomHeaderStatusMembers(int count);
+
+  /// Settings hub (iOS-style grouped list). Large title of the Settings tab.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsHubTitle;
+
+  /// Settings hub (iOS-style grouped list). Line under the user's name on the profile card: what's behind it.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile, family, linked accounts and privacy'**
+  String get settingsHubAccountHintAdult;
+
+  /// Settings hub (iOS-style grouped list). Line under a child account's name on the profile card.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile, privacy and your grown-ups'**
+  String get settingsHubAccountHintChild;
+
+  /// Settings hub (iOS-style grouped list). Section header.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get settingsHubSectionGeneral;
+
+  /// Settings hub (iOS-style grouped list). Section header.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get settingsHubSectionNotifications;
+
+  /// Settings hub (iOS-style grouped list). Section header.
+  ///
+  /// In en, this message translates to:
+  /// **'Calls'**
+  String get settingsHubSectionCalls;
+
+  /// Settings hub (iOS-style grouped list). Section header.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get settingsHubSectionAppearance;
+
+  /// Settings hub (iOS-style grouped list). Section header for the on-device AI companions.
+  ///
+  /// In en, this message translates to:
+  /// **'Companions'**
+  String get settingsHubSectionCompanions;
+
+  /// Settings hub (iOS-style grouped list). Section header for how conversations look.
+  ///
+  /// In en, this message translates to:
+  /// **'Chats'**
+  String get settingsHubSectionChats;
+
+  /// Settings hub (iOS-style grouped list). Section header for report a problem and the legal links.
+  ///
+  /// In en, this message translates to:
+  /// **'Help & legal'**
+  String get settingsHubSectionHelp;
+
+  /// Settings hub (iOS-style grouped list). Section header.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced'**
+  String get settingsHubSectionAdvanced;
+
+  /// Settings hub (iOS-style grouped list). Row title.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get settingsHubLanguage;
+
+  /// Settings hub (iOS-style grouped list). Row title; tapping checks for a newer build.
+  ///
+  /// In en, this message translates to:
+  /// **'Check for updates'**
+  String get settingsHubCheckForUpdates;
+
+  /// Settings hub (iOS-style grouped list). Value beside Check for updates when a newer build exists.
+  ///
+  /// In en, this message translates to:
+  /// **'Update available'**
+  String get settingsHubUpdateAvailable;
+
+  /// Settings hub (iOS-style grouped list). Switch title.
+  ///
+  /// In en, this message translates to:
+  /// **'Show link addresses'**
+  String get settingsHubShowLinkUrls;
+
+  /// Settings hub (iOS-style grouped list). Switch subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Print the address next to each link preview'**
+  String get settingsHubShowLinkUrlsSubtitle;
+
+  /// Settings hub (iOS-style grouped list). Switch title.
+  ///
+  /// In en, this message translates to:
+  /// **'Push notifications'**
+  String get settingsHubPush;
+
+  /// Settings hub (iOS-style grouped list). Switch subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New messages, calls and requests'**
+  String get settingsHubPushSubtitle;
+
+  /// Settings hub (iOS-style grouped list). Switch title.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily game reminder'**
+  String get settingsHubGameReminders;
+
+  /// Settings hub (iOS-style grouped list). Switch subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'One nudge at lunchtime if you haven\'t played'**
+  String get settingsHubGameRemindersSubtitle;
+
+  /// Settings hub (iOS-style grouped list). Switch title.
+  ///
+  /// In en, this message translates to:
+  /// **'Friend activity'**
+  String get settingsHubFriendActivity;
+
+  /// Settings hub (iOS-style grouped list). Switch subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlights, points and game results from friends'**
+  String get settingsHubFriendActivitySubtitle;
+
+  /// Settings hub (iOS-style grouped list). macOS switch title.
+  ///
+  /// In en, this message translates to:
+  /// **'Menu bar icon'**
+  String get settingsHubMenuBar;
+
+  /// Settings hub (iOS-style grouped list). macOS switch subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shows your unread count in the menu bar'**
+  String get settingsHubMenuBarSubtitle;
+
+  /// Settings hub (iOS-style grouped list). Switch title.
+  ///
+  /// In en, this message translates to:
+  /// **'Show call stats'**
+  String get settingsHubCallStats;
+
+  /// Settings hub (iOS-style grouped list). Switch subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolution, bitrate and ping during calls'**
+  String get settingsHubCallStatsSubtitle;
+
+  /// Settings hub (iOS-style grouped list). Row title.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get settingsHubTheme;
+
+  /// Settings hub (iOS-style grouped list). Row title.
+  ///
+  /// In en, this message translates to:
+  /// **'App icon'**
+  String get settingsHubAppIcon;
+
+  /// Settings hub (iOS-style grouped list). Row title for the glass effect settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Glass'**
+  String get settingsHubGlass;
+
+  /// Settings hub (iOS-style grouped list). Row title.
+  ///
+  /// In en, this message translates to:
+  /// **'Navigation'**
+  String get settingsHubNavigation;
+
+  /// Settings hub (iOS-style grouped list). Row title.
+  ///
+  /// In en, this message translates to:
+  /// **'Motion'**
+  String get settingsHubMotion;
+
+  /// Settings hub (iOS-style grouped list). Row title.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat list'**
+  String get settingsHubChatList;
+
+  /// Settings hub (iOS-style grouped list). Row title.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat style'**
+  String get settingsHubChatStyle;
+
+  /// Settings hub (iOS-style grouped list). Row title.
+  ///
+  /// In en, this message translates to:
+  /// **'Bubble style'**
+  String get settingsHubBubbleStyle;
+
+  /// Settings hub (iOS-style grouped list). Row title.
+  ///
+  /// In en, this message translates to:
+  /// **'Speaker colours'**
+  String get settingsHubSpeakerColors;
+
+  /// Settings hub (iOS-style grouped list). Row title.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply style'**
+  String get settingsHubReplyStyle;
+
+  /// Settings hub (iOS-style grouped list). Row title.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy policy'**
+  String get settingsHubPrivacyPolicy;
+
+  /// Settings hub (iOS-style grouped list). Row title.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of service'**
+  String get settingsHubTerms;
+
+  /// Settings hub (iOS-style grouped list). Row title for the end-user licence.
+  ///
+  /// In en, this message translates to:
+  /// **'Licence'**
+  String get settingsHubLicence;
+
+  /// Settings hub (iOS-style grouped list). Row title.
+  ///
+  /// In en, this message translates to:
+  /// **'Server'**
+  String get settingsHubServer;
+
+  /// Settings hub (iOS-style grouped list). Chat list layout name.
+  ///
+  /// In en, this message translates to:
+  /// **'Rows'**
+  String get settingsHubLayoutRows;
+
+  /// Settings hub (iOS-style grouped list). Chat list layout name.
+  ///
+  /// In en, this message translates to:
+  /// **'Cards'**
+  String get settingsHubLayoutCards;
+
+  /// Settings hub (iOS-style grouped list). Chat list layout name.
+  ///
+  /// In en, this message translates to:
+  /// **'Grid'**
+  String get settingsHubLayoutGrid;
+
+  /// Settings hub (iOS-style grouped list). Navigation style name: the bottom tab bar.
+  ///
+  /// In en, this message translates to:
+  /// **'Tab bar'**
+  String get settingsHubNavTabBar;
+
+  /// Settings hub (iOS-style grouped list). Theme row value while the theme follows the device. {name} is the theme showing now.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto · {name}'**
+  String settingsHubThemeAuto(String name);
+
+  /// Settings sub-page. Description under the Rows layout.
+  ///
+  /// In en, this message translates to:
+  /// **'A face, a name and the latest message, like Messages.'**
+  String get chatListPageRowsSub;
+
+  /// Settings sub-page. Description under the Cards layout.
+  ///
+  /// In en, this message translates to:
+  /// **'Every room in its own card, every detail spelled out.'**
+  String get chatListPageCardsSub;
+
+  /// Settings sub-page. Description under the Grid layout.
+  ///
+  /// In en, this message translates to:
+  /// **'Two columns of tiles. More rooms at a glance.'**
+  String get chatListPageGridSub;
+
+  /// Settings sub-page. Section header.
+  ///
+  /// In en, this message translates to:
+  /// **'Layout'**
+  String get chatListPageLayoutHeader;
+
+  /// Settings sub-page. Section header for how filters are shown.
+  ///
+  /// In en, this message translates to:
+  /// **'Filters'**
+  String get chatListPageFiltersHeader;
+
+  /// Settings sub-page. Filter style option.
+  ///
+  /// In en, this message translates to:
+  /// **'Chips'**
+  String get chatListPageChips;
+
+  /// Settings sub-page. Filter style description.
+  ///
+  /// In en, this message translates to:
+  /// **'A row of filters, always one tap away.'**
+  String get chatListPageChipsSub;
+
+  /// Settings sub-page. Filter style option.
+  ///
+  /// In en, this message translates to:
+  /// **'Button'**
+  String get chatListPageButton;
+
+  /// Settings sub-page. Filter style description.
+  ///
+  /// In en, this message translates to:
+  /// **'One button that opens the filters when you ask.'**
+  String get chatListPageButtonSub;
+
+  /// Settings sub-page. Section header: how a room with no messages looks.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty rooms'**
+  String get chatListPageEmptyHeader;
+
+  /// Settings sub-page. Empty-room option.
+  ///
+  /// In en, this message translates to:
+  /// **'Plain'**
+  String get chatListPagePlain;
+
+  /// Settings sub-page. Empty-room option description.
+  ///
+  /// In en, this message translates to:
+  /// **'A room with nothing said yet stays bare.'**
+  String get chatListPagePlainSub;
+
+  /// Settings sub-page. Empty-room option.
+  ///
+  /// In en, this message translates to:
+  /// **'Initial'**
+  String get chatListPageInitial;
+
+  /// Settings sub-page. Empty-room option description.
+  ///
+  /// In en, this message translates to:
+  /// **'A large faded letter fills the empty corner.'**
+  String get chatListPageInitialSub;
+
+  /// Settings sub-page. Footer under the empty-rooms choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Applies to the grid layout.'**
+  String get chatListPageEmptyFooter;
+
+  /// Settings sub-page. Footer on the chat style page.
+  ///
+  /// In en, this message translates to:
+  /// **'How a conversation\'s header and message field are drawn.'**
+  String get chatStylePageFooter;
+
+  /// Settings sub-page. Chat style option description.
+  ///
+  /// In en, this message translates to:
+  /// **'A solid header and a flat message field.'**
+  String get chatStyleClassicSub;
+
+  /// Settings sub-page. Chat style option description.
+  ///
+  /// In en, this message translates to:
+  /// **'Frosted controls float over the conversation.'**
+  String get chatStyleCompactSub;
+
+  /// Settings sub-page. Bubble style description.
+  ///
+  /// In en, this message translates to:
+  /// **'A tail on the last message of each run, like Messages.'**
+  String get bubbleTailedSub;
+
+  /// Settings sub-page. Bubble style description.
+  ///
+  /// In en, this message translates to:
+  /// **'No tail. A run holds together by its corners.'**
+  String get bubbleSoftSub;
+
+  /// Settings sub-page. Bubble style description.
+  ///
+  /// In en, this message translates to:
+  /// **'Fully rounded capsules on every message.'**
+  String get bubblePillSub;
+
+  /// Settings sub-page. Bubble style description.
+  ///
+  /// In en, this message translates to:
+  /// **'Square shoulders: sharp and deliberate.'**
+  String get bubbleSlabSub;
+
+  /// Settings sub-page. Footer on the reply style page.
+  ///
+  /// In en, this message translates to:
+  /// **'How a reply shows the message it answers.'**
+  String get replyStylePageFooter;
+
+  /// Settings sub-page. Reply style description.
+  ///
+  /// In en, this message translates to:
+  /// **'A tinted quote above the message, WhatsApp style.'**
+  String get replyClassicSub;
+
+  /// Settings sub-page. Reply style description.
+  ///
+  /// In en, this message translates to:
+  /// **'A ghost of the original floats above, joined by a curve.'**
+  String get replyPhantomSub;
+
+  /// Settings sub-page. Reply style description.
+  ///
+  /// In en, this message translates to:
+  /// **'A small tilted card clipped to the corner.'**
+  String get replyStickySub;
+
+  /// Settings sub-page. Reply style description.
+  ///
+  /// In en, this message translates to:
+  /// **'A mini bubble with a comic-book tail.'**
+  String get replyComicSub;
+
+  /// Settings sub-page. Motion option: follow the device's reduce-motion setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Match device'**
+  String get motionMatchDevice;
+
+  /// Settings sub-page. Description of Match device while the device asks for reduced motion.
+  ///
+  /// In en, this message translates to:
+  /// **'Your device is asking for reduced motion right now.'**
+  String get motionMatchDeviceCalmSub;
+
+  /// Settings sub-page. Description of Match device while the device allows animation.
+  ///
+  /// In en, this message translates to:
+  /// **'Your device allows animation right now.'**
+  String get motionMatchDeviceFullSub;
+
+  /// Settings sub-page. Motion option description.
+  ///
+  /// In en, this message translates to:
+  /// **'Every spring, drift and flourish.'**
+  String get motionFullSub;
+
+  /// Settings sub-page. Motion option description.
+  ///
+  /// In en, this message translates to:
+  /// **'Decoration holds still. Everything else works the same.'**
+  String get motionCalmSub;
+
+  /// Settings sub-page. Footer on the navigation page.
+  ///
+  /// In en, this message translates to:
+  /// **'How you move between Chats, Feed, Discover and Settings.'**
+  String get navigationPageFooter;
+
+  /// Settings sub-page. Navigation option description.
+  ///
+  /// In en, this message translates to:
+  /// **'Always visible, one tap to anywhere.'**
+  String get navTabBarSub;
+
+  /// Settings sub-page. Navigation option description.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold and drag from the corner. A gesture you grow into.'**
+  String get navOrbSub;
+
+  /// Settings sub-page. Language option that follows the device.
+  ///
+  /// In en, this message translates to:
+  /// **'Device language'**
+  String get languageSystemLabel;
+
+  /// Settings sub-page. Footer on the language page.
+  ///
+  /// In en, this message translates to:
+  /// **'Menus and app messages. Chats stay in whatever language people write in.'**
+  String get languagePageFooter;
+
+  /// Settings sub-page. Footer on the speaker colours page.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell who\'s talking at a glance in group chats.'**
+  String get speakerPageFooter;
+
+  /// Settings sub-page. Speaker colours option description.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone writes in the same ink.'**
+  String get speakerOffSub;
+
+  /// Settings sub-page. Speaker colours option description.
+  ///
+  /// In en, this message translates to:
+  /// **'Each person keeps a colour on their name and face.'**
+  String get speakerNamesSub;
+
+  /// Settings sub-page. Speaker colours option description.
+  ///
+  /// In en, this message translates to:
+  /// **'Their colour carries into their messages too.'**
+  String get speakerBubblesSub;
+
+  /// Settings sub-page. Footer under Match device on the theme page.
+  ///
+  /// In en, this message translates to:
+  /// **'Light themes are used in light mode, dark ones in dark mode.'**
+  String get themePageAutoFooter;
+
+  /// Settings sub-page. Row: the theme used in light mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Light mode'**
+  String get themePageLightMode;
+
+  /// Settings sub-page. Row: the theme used in dark mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark mode'**
+  String get themePageDarkMode;
+
+  /// Settings sub-page. Section header: the calm, native Basic palettes.
+  ///
+  /// In en, this message translates to:
+  /// **'Essentials'**
+  String get themePageEssentials;
+
+  /// Settings sub-page. Footer under Essentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Calm and native, in five colours.'**
+  String get themePageEssentialsFooter;
+
+  /// Settings sub-page. Section header: the expressive themes.
+  ///
+  /// In en, this message translates to:
+  /// **'Characters'**
+  String get themePageCharacters;
+
+  /// Settings sub-page. Footer under Characters.
+  ///
+  /// In en, this message translates to:
+  /// **'The same layout, with a personality of its own. Touch and hold any theme to preview it.'**
+  String get themePageCharactersFooter;
+
+  /// Settings sub-page. Small badge on the theme used in light mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get themePageLightBadge;
+
+  /// Settings sub-page. Small badge on the theme used in dark mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get themePageDarkBadge;
+
+  /// Settings sub-page. Full-screen preview button when this theme is already in use.
+  ///
+  /// In en, this message translates to:
+  /// **'In use'**
+  String get themePageInUse;
+
+  /// Settings sub-page. Full-screen preview button: use this theme in light mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Use in light mode'**
+  String get themePageUseLight;
+
+  /// Settings sub-page. Full-screen preview button: use this theme in dark mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Use in dark mode'**
+  String get themePageUseDark;
+
+  /// Settings sub-page. Full-screen preview button. {name} is the theme's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Use {name}'**
+  String themePageUse(String name);
+
+  /// Switch title on your profile: blocks screenshots / screen recording of the app.
+  ///
+  /// In en, this message translates to:
+  /// **'Screen capture protection'**
+  String get acctCaptureTitle;
+
+  /// Subtitle under the capture-protection switch while on, on iPhone/iPad.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording and mirroring show a privacy shield.'**
+  String get acctCaptureOnIos;
+
+  /// Subtitle under the capture-protection switch while on, on Android.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshots and recordings come out black.'**
+  String get acctCaptureOnAndroid;
+
+  /// Subtitle under the capture-protection switch while off.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshots and recordings work normally.'**
+  String get acctCaptureOff;
+
+  /// Footer under the capture-protection switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Rooms with disappearing messages always turn this on.'**
+  String get acctCaptureFooter;
+
+  /// Short disabled tile on someone's profile while a friend request waits for a guardian's approval. Max ~10 characters.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get acctActionPending;
+
+  /// Short label on the swipe-right action of a chat-list row that pins the chat. One word if the language allows.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin'**
+  String get chatSwipePin;
+
+  /// Short label on the swipe-right action that unpins a pinned chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin'**
+  String get chatSwipeUnpin;
+
+  /// Short label on a swipe-left action that opens the mute options for a chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute'**
+  String get chatSwipeMute;
+
+  /// Short label on a swipe-left action that unmutes a muted chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Unmute'**
+  String get chatSwipeUnmute;
+
+  /// Short label on the swipe-left action that archives a chat; a full swipe triggers it.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive'**
+  String get chatSwipeArchive;
+
+  /// Line under 'Match device' in the appearance picker. Sentence case.
+  ///
+  /// In en, this message translates to:
+  /// **'Light by day, dark by night, with your phone'**
+  String get appearanceMatchDeviceSubtitle;
+
+  /// Line under 'One theme' in the appearance picker. Sentence case.
+  ///
+  /// In en, this message translates to:
+  /// **'The same look all day'**
+  String get appearanceOneThemeSubtitle;
+
+  /// Label over a room's name on its info page.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get riName;
+
+  /// Label over a room's description on its info page.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get riDescription;
+
+  /// Section header over the public/private choice on a room's info page.
+  ///
+  /// In en, this message translates to:
+  /// **'Who can find it'**
+  String get riVisibility;
+
+  /// Visibility option: anyone can find and join the room.
+  ///
+  /// In en, this message translates to:
+  /// **'Public'**
+  String get riPublic;
+
+  /// Subtitle of the Public option.
+  ///
+  /// In en, this message translates to:
+  /// **'Anyone can find it in Discover'**
+  String get riPublicSub;
+
+  /// Visibility option: invite only.
+  ///
+  /// In en, this message translates to:
+  /// **'Private'**
+  String get riPrivate;
+
+  /// Subtitle of the Private option.
+  ///
+  /// In en, this message translates to:
+  /// **'Only people you invite can join'**
+  String get riPrivateSub;
+
+  /// Section header over the disappearing-message timer choices.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages disappear after'**
+  String get riMessageLife;
+
+  /// Label over the room password control.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get riPassword;
+
+  /// Button that removes a room's password.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove password'**
+  String get riRemovePassword;
+
+  /// Button that saves a new room password.
+  ///
+  /// In en, this message translates to:
+  /// **'Set password'**
+  String get riSetPassword;
+
+  /// Section header over Media/Files/Voice/Links/Saved rows on a room's info page.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared content'**
+  String get riSharedContent;
+
+  /// Section header over a room's member list.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 member} other{{count} members}}'**
+  String riMembers(int count);
+
+  /// Section header over people invited to a room who haven't answered.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 invited} other{{count} invited}}'**
+  String riInvited(int count);
+
+  /// Small action beside a pending invite that cancels it.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdraw'**
+  String get riWithdraw;
+
+  /// Section header over the mute row on a room's info page.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get riNotifications;
+
+  /// Section header over the translate-this-room row.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation'**
+  String get riTranslation;
+
+  /// Section header over the per-member name colour row.
+  ///
+  /// In en, this message translates to:
+  /// **'Name colours'**
+  String get riNameColours;
+
+  /// Header over changes you suggested to a group that admins haven't answered.
+  ///
+  /// In en, this message translates to:
+  /// **'You suggested'**
+  String get riYouSuggested;
+
+  /// Small action beside a suggestion that withdraws it.
+  ///
+  /// In en, this message translates to:
+  /// **'Take back'**
+  String get riTakeBack;
+
+  /// Destructive row at the bottom of a room's info page.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave room'**
+  String get riLeaveRoom;
+
+  /// Leave-room row while leaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Leaving…'**
+  String get riLeaving;
+
+  /// Destructive row that deletes a room (owner only).
+  ///
+  /// In en, this message translates to:
+  /// **'Delete room'**
+  String get riDeleteRoom;
+
+  /// Delete-room row while deleting.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleting…'**
+  String get riDeleting;
+
+  /// Destructive row on a DM's info page that deletes the conversation for both people.
+  ///
+  /// In en, this message translates to:
+  /// **'End conversation'**
+  String get riEndConversation;
+
+  /// End-conversation row while ending.
+  ///
+  /// In en, this message translates to:
+  /// **'Ending…'**
+  String get riEnding;
+
+  /// Short tile label on a DM's info page: voice call. Max ~10 characters.
+  ///
+  /// In en, this message translates to:
+  /// **'Call'**
+  String get riActionCall;
+
+  /// Short tile label: video call. Max ~10 characters.
+  ///
+  /// In en, this message translates to:
+  /// **'Video'**
+  String get riActionVideo;
+
+  /// Short tile label: open the mute options. Max ~10 characters.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute'**
+  String get riActionMute;
+
+  /// Short tile label on a muted room: open the mute options. Max ~10 characters.
+  ///
+  /// In en, this message translates to:
+  /// **'Unmute'**
+  String get riActionUnmute;
+
+  /// Short tile label: open the room's shared photos and videos. Max ~10 characters.
+  ///
+  /// In en, this message translates to:
+  /// **'Media'**
+  String get riActionMedia;
+
+  /// Short tile label on a group: invite friends. Max ~10 characters.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get riActionAdd;
+
+  /// Status line under the other person's name in a DM header while they type. Their name is already right above it, so just the verb with an ellipsis, like Telegram's 'typing…'.
+  ///
+  /// In en, this message translates to:
+  /// **'typing…'**
+  String get roomHeaderStatusTyping;
+
+  /// One line under the large Glass title in Settings > Glass, sentence case.
+  ///
+  /// In en, this message translates to:
+  /// **'How much of what\'s behind comes through.'**
+  String get glassScreenLead;
+
+  /// Small centred pill above the first message of today in a conversation, like Telegram's/iMessage's day separators. Sentence case.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get transcriptDayToday;
+
+  /// Profile row and page title: everywhere you're signed in.
+  ///
+  /// In en, this message translates to:
+  /// **'Devices'**
+  String get acctRowDevices;
+
+  /// Tag beside the device you're using now in the devices list.
+  ///
+  /// In en, this message translates to:
+  /// **'This device'**
+  String get acctThisDevice;
+
+  /// Button beside a device that signs it out.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get acctRemove;
+
+  /// Confirm sheet title before removing one device.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this device?'**
+  String get acctRemoveDeviceTitle;
+
+  /// Confirm sheet title before removing every other device.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove all other devices?'**
+  String get acctRemoveAllTitle;
+
+  /// Confirm button that removes every other device.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove all'**
+  String get acctRemoveAll;
+
+  /// Last-seen line for a device in use right now.
+  ///
+  /// In en, this message translates to:
+  /// **'Active now'**
+  String get acctActiveNow;
+
+  /// Placeholder while a list loads.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading…'**
+  String get acctLoading;
+
+  /// Error when the devices list can't load.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your devices.'**
+  String get acctDevicesLoadFailed;
+
+  /// Line under a device push notifications can't reach.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications aren\'t reaching this one'**
+  String get acctNoNotifications;
+
+  /// Empty state on the blocked-users page.
+  ///
+  /// In en, this message translates to:
+  /// **'You haven\'t blocked anyone.'**
+  String get acctBlockedEmpty;
+
+  /// Button beside a blocked person that unblocks them.
+  ///
+  /// In en, this message translates to:
+  /// **'Unblock'**
+  String get acctUnblock;
 }
 
 class _AppLocalizationsDelegate

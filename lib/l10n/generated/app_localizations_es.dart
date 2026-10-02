@@ -98,7 +98,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get roomScreenJumpFailedSnack => 'no se pudo ir a ese mensaje';
 
   @override
-  String get roomScreenUnreadDivider => 'MENSAJES NO LEÍDOS';
+  String get roomScreenUnreadDivider => 'Mensajes no leídos';
 
   @override
   String get roomScreenViewOnceAlreadyViewed => 'ya abriste esta foto.';
@@ -9253,4 +9253,857 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get glassScreenNativeOffBody =>
       'MonkeyHub dibuja su propio cristal en toda la app, ajustado con los controles de abajo.';
+
+  @override
+  String get glassScreenHeading => 'Cristal';
+
+  @override
+  String get glassStyleHeader => 'Estilo';
+
+  @override
+  String get glassStyleLiquidTitle => 'Liquid Glass';
+
+  @override
+  String get glassStyleLiquidBody =>
+      'El cristal de Apple, dibujado por iOS. Los botones de la app lo acompañan.';
+
+  @override
+  String get glassStyleFrostedTitle => 'Esmerilado';
+
+  @override
+  String get glassStyleFrostedBody =>
+      'El cristal propio de MonkeyHub. Ajusta cada control a tu gusto.';
+
+  @override
+  String get glassStyleRecommended => 'Recomendado';
+
+  @override
+  String get glassStyleLiquidFooter =>
+      'No hay nada que ajustar: iOS define el desenfoque, el tono y la luz. Elige Esmerilado para darle forma tú.';
+
+  @override
+  String get acctSectionPrivacy => 'Privacidad';
+
+  @override
+  String get acctSectionAccount => 'Cuenta';
+
+  @override
+  String get acctSectionFamily => 'Familia';
+
+  @override
+  String get acctSectionThisPhone => 'Este teléfono';
+
+  @override
+  String get acctRowVisibility => 'Visibilidad del perfil';
+
+  @override
+  String get acctRowBlocked => 'Usuarios bloqueados';
+
+  @override
+  String get acctRowApprovals => 'Aprobaciones';
+
+  @override
+  String get acctNothingWaiting => 'Nada pendiente';
+
+  @override
+  String get acctRowLinked => 'Cuentas vinculadas';
+
+  @override
+  String get acctRowScanToSignIn => 'Escanear para iniciar sesión';
+
+  @override
+  String get acctRowSetUpRecovery => 'Configurar frase de recuperación';
+
+  @override
+  String get acctRowChangeRecovery => 'Cambiar frase de recuperación';
+
+  @override
+  String get acctSignOut => 'Cerrar sesión';
+
+  @override
+  String get acctDeleteAccount => 'Eliminar cuenta';
+
+  @override
+  String get acctConfirmDelete => 'Toca de nuevo para eliminar';
+
+  @override
+  String get acctHandPhoneBack => 'Devolver este teléfono';
+
+  @override
+  String get acctMyGrownUps => 'Mis adultos';
+
+  @override
+  String get acctActionMessage => 'Mensaje';
+
+  @override
+  String get acctActionAddFriend => 'Añadir';
+
+  @override
+  String get acctActionRequested => 'Solicitado';
+
+  @override
+  String get acctActionAccept => 'Aceptar';
+
+  @override
+  String get acctActionNotAccepting => 'Cerrado';
+
+  @override
+  String get acctActionUnfriend => 'Quitar';
+
+  @override
+  String get acctActionBlock => 'Bloquear';
+
+  @override
+  String get acctActionReport => 'Denunciar';
+
+  @override
+  String get acctStatusFriends => 'Sois amigos';
+
+  @override
+  String get acctStatusRequestSent => 'Solicitud enviada';
+
+  @override
+  String get acctStatusWantsToConnect => 'Quiere ser tu amigo';
+
+  @override
+  String get acctStatusNotConnected => 'Sin conexión';
+
+  @override
+  String get acctPresenceOnline => 'en línea';
+
+  @override
+  String get acctPresenceAway => 'ausente';
+
+  @override
+  String get acctPresenceOffline => 'desconectado';
+
+  @override
+  String get acctProfilePhoto => 'Foto de perfil';
+
+  @override
+  String get acctSaveToPhotos => 'Guardar en Fotos';
+
+  @override
+  String get acctTakeSelfie => 'Hacer un selfie';
+
+  @override
+  String get acctChooseFromLibrary => 'Elegir de la fototeca';
+
+  @override
+  String get acctCancel => 'Cancelar';
+
+  @override
+  String get acctSave => 'Guardar';
+
+  @override
+  String get acctChange => 'Cambiar';
+
+  @override
+  String get acctNotNow => 'Ahora no';
+
+  @override
+  String get acctAddEmail => 'Añadir correo';
+
+  @override
+  String get acctEditNameTitle => 'Editar nombre';
+
+  @override
+  String get acctAddNameTitle => 'Añade tu nombre';
+
+  @override
+  String get acctEditEmailTitle => 'Editar correo';
+
+  @override
+  String get acctChangeUsernameTitle => '¿Cambiar nombre de usuario?';
+
+  @override
+  String get onboardingLookTitle => 'Hazlo tuyo';
+
+  @override
+  String get onboardingLookBody =>
+      'Elige un estilo. Puedes cambiarlo cuando quieras en Ajustes.';
+
+  @override
+  String get onboardingEssentials => 'Esenciales';
+
+  @override
+  String get onboardingEssentialsSub => 'Sobrios y nativos';
+
+  @override
+  String get onboardingCharacters => 'Con carácter';
+
+  @override
+  String get onboardingCharactersSub => 'La misma app, más personalidad';
+
+  @override
+  String get onboardingLightMode => 'Modo claro';
+
+  @override
+  String get onboardingDarkMode => 'Modo oscuro';
+
+  @override
+  String get onboardingNow => 'Ahora';
+
+  @override
+  String get onboardingContinue => 'Continuar';
+
+  @override
+  String get onboardingIconTitle => 'Tu icono de la app';
+
+  @override
+  String get onboardingIconBody =>
+      'Conserva tu icono, deja que siga tu tema o elige cualquier otro.';
+
+  @override
+  String get onboardingIconIosNote =>
+      'iOS muestra un aviso breve cada vez que cambia el icono.';
+
+  @override
+  String get onboardingGetStarted => 'Empezar';
+
+  @override
+  String get appIconMatchTheme => 'Según el tema';
+
+  @override
+  String get appIconCurrent => 'Actual';
+
+  @override
+  String get appIconSectionCollection => 'Colección MonkeyHub';
+
+  @override
+  String get appIconSectionThemes => 'Iconos de temas';
+
+  @override
+  String get appIconScreenTitle => 'Icono de la app';
+
+  @override
+  String get appIconMatchFooter =>
+      'Según el tema cambia el icono junto con tu tema oscuro, así no cambia una y otra vez durante el día.';
+
+  @override
+  String get loginTitleReturning => 'Hola de nuevo';
+
+  @override
+  String get loginTitleFirst => 'Te damos la bienvenida a MonkeyHub';
+
+  @override
+  String get loginTitleSignUp => 'Crea tu cuenta';
+
+  @override
+  String get loginTitleReset => 'Restablece tu contraseña';
+
+  @override
+  String get loginSubtitleSignIn =>
+      'Inicia sesión para seguir donde lo dejaste.';
+
+  @override
+  String get loginSubtitleFirst =>
+      'Inicia sesión o crea una cuenta en segundos.';
+
+  @override
+  String get loginSubtitleSignUp =>
+      'Solo necesitas un nombre de usuario y una contraseña.';
+
+  @override
+  String get loginSubtitleReset =>
+      'Introduce tu frase de recuperación de 12 palabras y elige una contraseña nueva.';
+
+  @override
+  String get loginCtaSignIn => 'Iniciar sesión';
+
+  @override
+  String get loginCtaSignUp => 'Crear cuenta';
+
+  @override
+  String get loginCtaReset => 'Restablecer contraseña';
+
+  @override
+  String get loginNoAccountPrompt => '¿Eres nuevo? ';
+
+  @override
+  String get loginCreateAccountLink => 'Crea una cuenta';
+
+  @override
+  String get loginHaveAccountPrompt => '¿Ya tienes cuenta? ';
+
+  @override
+  String get loginSignInLink => 'Inicia sesión';
+
+  @override
+  String get loginForgotPassword => '¿Olvidaste la contraseña?';
+
+  @override
+  String get loginChildAccount => 'Configurar una cuenta infantil';
+
+  @override
+  String get loginBackToSignIn => 'Volver a iniciar sesión';
+
+  @override
+  String get loginWithPhone => 'Inicia sesión con tu teléfono';
+
+  @override
+  String get loginUsernameField => 'Nombre de usuario';
+
+  @override
+  String get loginPasswordField => 'Contraseña';
+
+  @override
+  String get loginConfirmPasswordField => 'Confirmar contraseña';
+
+  @override
+  String get loginNameField => 'Nombre (opcional)';
+
+  @override
+  String get loginRecoveryPhraseField =>
+      'Tu frase de recuperación de 12 palabras';
+
+  @override
+  String get loginNewPasswordField => 'Contraseña nueva';
+
+  @override
+  String get roomHeaderStatusOnline => 'en línea';
+
+  @override
+  String roomHeaderStatusMembers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count miembros',
+      one: '$count miembro',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsHubTitle => 'Ajustes';
+
+  @override
+  String get settingsHubAccountHintAdult =>
+      'Perfil, familia, cuentas vinculadas y privacidad';
+
+  @override
+  String get settingsHubAccountHintChild => 'Perfil, privacidad y tus adultos';
+
+  @override
+  String get settingsHubSectionGeneral => 'General';
+
+  @override
+  String get settingsHubSectionNotifications => 'Notificaciones';
+
+  @override
+  String get settingsHubSectionCalls => 'Llamadas';
+
+  @override
+  String get settingsHubSectionAppearance => 'Apariencia';
+
+  @override
+  String get settingsHubSectionCompanions => 'Compañeros';
+
+  @override
+  String get settingsHubSectionChats => 'Chats';
+
+  @override
+  String get settingsHubSectionHelp => 'Ayuda y aspectos legales';
+
+  @override
+  String get settingsHubSectionAdvanced => 'Avanzado';
+
+  @override
+  String get settingsHubLanguage => 'Idioma';
+
+  @override
+  String get settingsHubCheckForUpdates => 'Buscar actualizaciones';
+
+  @override
+  String get settingsHubUpdateAvailable => 'Actualización disponible';
+
+  @override
+  String get settingsHubShowLinkUrls => 'Mostrar direcciones de enlaces';
+
+  @override
+  String get settingsHubShowLinkUrlsSubtitle =>
+      'Muestra la dirección junto a cada vista previa';
+
+  @override
+  String get settingsHubPush => 'Notificaciones push';
+
+  @override
+  String get settingsHubPushSubtitle =>
+      'Mensajes nuevos, llamadas y solicitudes';
+
+  @override
+  String get settingsHubGameReminders => 'Recordatorio de juego diario';
+
+  @override
+  String get settingsHubGameRemindersSubtitle =>
+      'Un aviso a la hora de comer si no has jugado';
+
+  @override
+  String get settingsHubFriendActivity => 'Actividad de amigos';
+
+  @override
+  String get settingsHubFriendActivitySubtitle =>
+      'Momentos, puntos y resultados de tus amigos';
+
+  @override
+  String get settingsHubMenuBar => 'Icono en la barra de menús';
+
+  @override
+  String get settingsHubMenuBarSubtitle =>
+      'Muestra los no leídos en la barra de menús';
+
+  @override
+  String get settingsHubCallStats => 'Mostrar estadísticas de llamada';
+
+  @override
+  String get settingsHubCallStatsSubtitle =>
+      'Resolución, tasa de bits y ping durante la llamada';
+
+  @override
+  String get settingsHubTheme => 'Tema';
+
+  @override
+  String get settingsHubAppIcon => 'Icono de la app';
+
+  @override
+  String get settingsHubGlass => 'Cristal';
+
+  @override
+  String get settingsHubNavigation => 'Navegación';
+
+  @override
+  String get settingsHubMotion => 'Movimiento';
+
+  @override
+  String get settingsHubChatList => 'Lista de chats';
+
+  @override
+  String get settingsHubChatStyle => 'Estilo del chat';
+
+  @override
+  String get settingsHubBubbleStyle => 'Estilo de burbujas';
+
+  @override
+  String get settingsHubSpeakerColors => 'Colores por persona';
+
+  @override
+  String get settingsHubReplyStyle => 'Estilo de respuesta';
+
+  @override
+  String get settingsHubPrivacyPolicy => 'Política de privacidad';
+
+  @override
+  String get settingsHubTerms => 'Términos del servicio';
+
+  @override
+  String get settingsHubLicence => 'Licencia';
+
+  @override
+  String get settingsHubServer => 'Servidor';
+
+  @override
+  String get settingsHubLayoutRows => 'Filas';
+
+  @override
+  String get settingsHubLayoutCards => 'Tarjetas';
+
+  @override
+  String get settingsHubLayoutGrid => 'Cuadrícula';
+
+  @override
+  String get settingsHubNavTabBar => 'Barra de pestañas';
+
+  @override
+  String settingsHubThemeAuto(String name) {
+    return 'Automático · $name';
+  }
+
+  @override
+  String get chatListPageRowsSub =>
+      'Una cara, un nombre y el último mensaje, como en Mensajes.';
+
+  @override
+  String get chatListPageCardsSub =>
+      'Cada sala en su propia tarjeta, con todos los detalles.';
+
+  @override
+  String get chatListPageGridSub =>
+      'Dos columnas de mosaicos. Más salas de un vistazo.';
+
+  @override
+  String get chatListPageLayoutHeader => 'Diseño';
+
+  @override
+  String get chatListPageFiltersHeader => 'Filtros';
+
+  @override
+  String get chatListPageChips => 'Chips';
+
+  @override
+  String get chatListPageChipsSub => 'Una fila de filtros, siempre a un toque.';
+
+  @override
+  String get chatListPageButton => 'Botón';
+
+  @override
+  String get chatListPageButtonSub =>
+      'Un botón que abre los filtros cuando quieras.';
+
+  @override
+  String get chatListPageEmptyHeader => 'Salas vacías';
+
+  @override
+  String get chatListPagePlain => 'Simple';
+
+  @override
+  String get chatListPagePlainSub => 'Una sala sin mensajes se queda limpia.';
+
+  @override
+  String get chatListPageInitial => 'Inicial';
+
+  @override
+  String get chatListPageInitialSub =>
+      'Una letra grande y tenue llena el rincón vacío.';
+
+  @override
+  String get chatListPageEmptyFooter => 'Se aplica al diseño en cuadrícula.';
+
+  @override
+  String get chatStylePageFooter =>
+      'Cómo se dibujan la cabecera y el campo de mensaje.';
+
+  @override
+  String get chatStyleClassicSub => 'Cabecera sólida y campo de mensaje plano.';
+
+  @override
+  String get chatStyleCompactSub =>
+      'Controles esmerilados flotan sobre la conversación.';
+
+  @override
+  String get bubbleTailedSub =>
+      'Una cola en el último mensaje de cada tanda, como en Mensajes.';
+
+  @override
+  String get bubbleSoftSub => 'Sin cola. La tanda se une por sus esquinas.';
+
+  @override
+  String get bubblePillSub =>
+      'Cápsulas totalmente redondeadas en cada mensaje.';
+
+  @override
+  String get bubbleSlabSub => 'Hombros cuadrados: nítidos y decididos.';
+
+  @override
+  String get replyStylePageFooter =>
+      'Cómo muestra una respuesta el mensaje al que responde.';
+
+  @override
+  String get replyClassicSub =>
+      'Una cita coloreada sobre el mensaje, al estilo WhatsApp.';
+
+  @override
+  String get replyPhantomSub =>
+      'Un fantasma del original flota encima, unido por una curva.';
+
+  @override
+  String get replyStickySub =>
+      'Una tarjeta pequeña e inclinada sujeta a la esquina.';
+
+  @override
+  String get replyComicSub => 'Una minibúrbuja con cola de cómic.';
+
+  @override
+  String get motionMatchDevice => 'Igual que el dispositivo';
+
+  @override
+  String get motionMatchDeviceCalmSub =>
+      'Tu dispositivo pide reducir el movimiento ahora.';
+
+  @override
+  String get motionMatchDeviceFullSub =>
+      'Tu dispositivo permite animaciones ahora.';
+
+  @override
+  String get motionFullSub => 'Cada rebote, deriva y floritura.';
+
+  @override
+  String get motionCalmSub =>
+      'La decoración se queda quieta. Todo lo demás igual.';
+
+  @override
+  String get navigationPageFooter =>
+      'Cómo te mueves entre Chats, Feed, Descubrir y Ajustes.';
+
+  @override
+  String get navTabBarSub => 'Siempre visible, a un toque de todo.';
+
+  @override
+  String get navOrbSub =>
+      'Mantén y arrastra desde la esquina. Un gesto que se disfruta.';
+
+  @override
+  String get languageSystemLabel => 'Idioma del dispositivo';
+
+  @override
+  String get languagePageFooter =>
+      'Menús y mensajes de la app. Los chats siguen en el idioma en que se escriban.';
+
+  @override
+  String get speakerPageFooter =>
+      'Sabe quién habla de un vistazo en los grupos.';
+
+  @override
+  String get speakerOffSub => 'Todos escriben con la misma tinta.';
+
+  @override
+  String get speakerNamesSub =>
+      'Cada persona tiene un color en su nombre y su foto.';
+
+  @override
+  String get speakerBubblesSub => 'Su color también llega a sus mensajes.';
+
+  @override
+  String get themePageAutoFooter =>
+      'Los temas claros se usan en modo claro y los oscuros en modo oscuro.';
+
+  @override
+  String get themePageLightMode => 'Modo claro';
+
+  @override
+  String get themePageDarkMode => 'Modo oscuro';
+
+  @override
+  String get themePageEssentials => 'Esenciales';
+
+  @override
+  String get themePageEssentialsFooter =>
+      'Tranquilos y nativos, en cinco colores.';
+
+  @override
+  String get themePageCharacters => 'Con carácter';
+
+  @override
+  String get themePageCharactersFooter =>
+      'El mismo diseño, con personalidad propia. Mantén pulsado un tema para verlo.';
+
+  @override
+  String get themePageLightBadge => 'Claro';
+
+  @override
+  String get themePageDarkBadge => 'Oscuro';
+
+  @override
+  String get themePageInUse => 'En uso';
+
+  @override
+  String get themePageUseLight => 'Usar en modo claro';
+
+  @override
+  String get themePageUseDark => 'Usar en modo oscuro';
+
+  @override
+  String themePageUse(String name) {
+    return 'Usar $name';
+  }
+
+  @override
+  String get acctCaptureTitle => 'Protección de captura de pantalla';
+
+  @override
+  String get acctCaptureOnIos =>
+      'Al grabar o duplicar se muestra un escudo de privacidad.';
+
+  @override
+  String get acctCaptureOnAndroid =>
+      'Las capturas y grabaciones salen en negro.';
+
+  @override
+  String get acctCaptureOff =>
+      'Las capturas y grabaciones funcionan con normalidad.';
+
+  @override
+  String get acctCaptureFooter =>
+      'Las salas con mensajes temporales siempre lo activan.';
+
+  @override
+  String get acctActionPending => 'Pendiente';
+
+  @override
+  String get chatSwipePin => 'Fijar';
+
+  @override
+  String get chatSwipeUnpin => 'Desfijar';
+
+  @override
+  String get chatSwipeMute => 'Silenciar';
+
+  @override
+  String get chatSwipeUnmute => 'Activar';
+
+  @override
+  String get chatSwipeArchive => 'Archivar';
+
+  @override
+  String get appearanceMatchDeviceSubtitle =>
+      'Claro de día y oscuro de noche, como tu teléfono';
+
+  @override
+  String get appearanceOneThemeSubtitle => 'El mismo estilo todo el día';
+
+  @override
+  String get riName => 'Nombre';
+
+  @override
+  String get riDescription => 'Descripción';
+
+  @override
+  String get riVisibility => 'Quién puede encontrarla';
+
+  @override
+  String get riPublic => 'Pública';
+
+  @override
+  String get riPublicSub => 'Cualquiera puede encontrarla en Descubrir';
+
+  @override
+  String get riPrivate => 'Privada';
+
+  @override
+  String get riPrivateSub => 'Solo pueden unirse las personas que invites';
+
+  @override
+  String get riMessageLife => 'Los mensajes desaparecen tras';
+
+  @override
+  String get riPassword => 'Contraseña';
+
+  @override
+  String get riRemovePassword => 'Quitar contraseña';
+
+  @override
+  String get riSetPassword => 'Establecer contraseña';
+
+  @override
+  String get riSharedContent => 'Contenido compartido';
+
+  @override
+  String riMembers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count miembros',
+      one: '1 miembro',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String riInvited(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count invitados',
+      one: '1 invitado',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get riWithdraw => 'Retirar';
+
+  @override
+  String get riNotifications => 'Notificaciones';
+
+  @override
+  String get riTranslation => 'Traducción';
+
+  @override
+  String get riNameColours => 'Colores de nombres';
+
+  @override
+  String get riYouSuggested => 'Has sugerido';
+
+  @override
+  String get riTakeBack => 'Retirar';
+
+  @override
+  String get riLeaveRoom => 'Salir de la sala';
+
+  @override
+  String get riLeaving => 'Saliendo…';
+
+  @override
+  String get riDeleteRoom => 'Eliminar sala';
+
+  @override
+  String get riDeleting => 'Eliminando…';
+
+  @override
+  String get riEndConversation => 'Terminar conversación';
+
+  @override
+  String get riEnding => 'Terminando…';
+
+  @override
+  String get riActionCall => 'Llamar';
+
+  @override
+  String get riActionVideo => 'Vídeo';
+
+  @override
+  String get riActionMute => 'Silenciar';
+
+  @override
+  String get riActionUnmute => 'Activar';
+
+  @override
+  String get riActionMedia => 'Multimedia';
+
+  @override
+  String get riActionAdd => 'Añadir';
+
+  @override
+  String get roomHeaderStatusTyping => 'escribiendo…';
+
+  @override
+  String get glassScreenLead => 'Cuánto se ve de lo que hay detrás.';
+
+  @override
+  String get transcriptDayToday => 'Hoy';
+
+  @override
+  String get acctRowDevices => 'Dispositivos';
+
+  @override
+  String get acctThisDevice => 'Este dispositivo';
+
+  @override
+  String get acctRemove => 'Quitar';
+
+  @override
+  String get acctRemoveDeviceTitle => '¿Quitar este dispositivo?';
+
+  @override
+  String get acctRemoveAllTitle => '¿Quitar todos los demás dispositivos?';
+
+  @override
+  String get acctRemoveAll => 'Quitar todos';
+
+  @override
+  String get acctActiveNow => 'Activo ahora';
+
+  @override
+  String get acctLoading => 'Cargando…';
+
+  @override
+  String get acctDevicesLoadFailed => 'No se pudieron cargar tus dispositivos.';
+
+  @override
+  String get acctNoNotifications => 'Las notificaciones no llegan a este';
+
+  @override
+  String get acctBlockedEmpty => 'No has bloqueado a nadie.';
+
+  @override
+  String get acctUnblock => 'Desbloquear';
 }

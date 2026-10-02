@@ -18,6 +18,7 @@ import 'package:monkeyhub/models/room_mute.dart';
 import 'package:monkeyhub/screens/navigation/pill_bottom_nav.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/chat_list_row.dart';
+import 'package:monkeyhub/widgets/chat_row_swipe.dart';
 import 'package:monkeyhub/widgets/liquid_glass.dart';
 import 'package:monkeyhub/widgets/room_card.dart';
 import 'package:monkeyhub/widgets/room_filter_bar.dart';
@@ -363,12 +364,36 @@ class _FakeHomeV2 extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             for (var i = 0; i < ordered.length; i++)
-                              ChatListRow(
-                                room: ordered[i].room,
-                                dmUser: ordered[i].dmUser,
-                                typists: ordered[i].typists,
-                                showDivider: i < ordered.length - 1,
-                                onTap: () {},
+                              ChatRowSwipe(
+                                leading: [
+                                  SwipeAction(
+                                    label: 'Pin',
+                                    icon: CupertinoIcons.pin_fill,
+                                    color: const Color(0xFFFF9500),
+                                    onTap: () {},
+                                  ),
+                                ],
+                                trailing: [
+                                  SwipeAction(
+                                    label: 'Mute',
+                                    icon: CupertinoIcons.bell_slash_fill,
+                                    color: const Color(0xFF5856D6),
+                                    onTap: () {},
+                                  ),
+                                  SwipeAction(
+                                    label: 'Archive',
+                                    icon: CupertinoIcons.archivebox_fill,
+                                    color: const Color(0xFF8E8E93),
+                                    onTap: () {},
+                                  ),
+                                ],
+                                child: ChatListRow(
+                                  room: ordered[i].room,
+                                  dmUser: ordered[i].dmUser,
+                                  typists: ordered[i].typists,
+                                  showDivider: i < ordered.length - 1,
+                                  onTap: () {},
+                                ),
                               ),
                           ],
                         ),
@@ -406,6 +431,18 @@ void main() {
           tester,
           previewApp(theme, _FakeHomeV2(rows: _rooms())),
           'v2_home_${theme.id}.png',
+        );
+      });
+    }
+    if (_v2Themes.contains(theme.id)) {
+      testWidgets('swipe preview: ${theme.id}', (tester) async {
+        await snap(
+          tester,
+          previewApp(theme, _FakeHomeV2(rows: _rooms())),
+          'swipe_${theme.id}.png',
+          // One row: opening a second would (correctly) close the first,
+          // and the capture would catch it mid-close.
+          act: () => tester.drag(find.text('Ece'), const Offset(-150, 0)),
         );
       });
     }

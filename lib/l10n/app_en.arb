@@ -100,7 +100,7 @@
   "@roomScreenJumpFailedSnack": {
     "description": "SnackBar shown when the app cannot locate/scroll to a message the user tried to jump to (via reply tether, pin, or room-info result), e.g. it was deleted or is offline."
   },
-  "roomScreenUnreadDivider": "UNREAD MESSAGES",
+  "roomScreenUnreadDivider": "Unread messages",
   "@roomScreenUnreadDivider": {
     "description": "All-caps label on the divider marking the first unread message when the room screen opens onto a backlog — shown once, above the messages that are new since the reader's last visit."
   },
@@ -10507,5 +10507,1066 @@
   "glassScreenNativeOffBody": "MonkeyHub draws its own glass everywhere, tuned by the sliders below.",
   "@glassScreenNativeOffBody": {
     "description": "Explanation under the iOS Liquid Glass switch while it is off."
+  },
+  "glassScreenHeading": "Glass",
+  "@glassScreenHeading": {
+    "description": "Large title of Settings > Glass, iOS sentence case."
+  },
+  "glassStyleHeader": "Style",
+  "@glassStyleHeader": {
+    "description": "Section header above the choice between Apple's Liquid Glass and the app's own Frosted glass."
+  },
+  "glassStyleLiquidTitle": "Liquid Glass",
+  "@glassStyleLiquidTitle": {
+    "description": "Option: Apple's own iOS Liquid Glass. Keep Apple's product name untranslated where Apple does."
+  },
+  "glassStyleLiquidBody": "Apple's own glass, drawn by iOS. Buttons across the app match it.",
+  "@glassStyleLiquidBody": {
+    "description": "Subtitle under the Liquid Glass option."
+  },
+  "glassStyleFrostedTitle": "Frosted",
+  "@glassStyleFrostedTitle": {
+    "description": "Option: the app's own frosted glass, tunable with sliders."
+  },
+  "glassStyleFrostedBody": "MonkeyHub's own glass. Shape every dial yourself.",
+  "@glassStyleFrostedBody": {
+    "description": "Subtitle under the Frosted option."
+  },
+  "glassStyleRecommended": "Recommended",
+  "@glassStyleRecommended": {
+    "description": "Small tag beside the Liquid Glass option marking it as the recommended choice on iOS."
+  },
+  "glassStyleLiquidFooter": "Nothing to tune: iOS sets the blur, tint and light. Choose Frosted to shape the glass yourself.",
+  "@glassStyleLiquidFooter": {
+    "description": "Footer under the style choice while Liquid Glass is selected, explaining why there are no sliders."
+  },
+  "acctSectionPrivacy": "Privacy",
+  "@acctSectionPrivacy": {
+    "description": "Section header on your own profile above privacy rows."
+  },
+  "acctSectionAccount": "Account",
+  "@acctSectionAccount": {
+    "description": "Section header on your own profile above account rows (family, linked accounts, devices, sign out)."
+  },
+  "acctSectionFamily": "Family",
+  "@acctSectionFamily": {
+    "description": "Family: a profile section header and the row that opens family settings."
+  },
+  "acctSectionThisPhone": "This phone",
+  "@acctSectionThisPhone": {
+    "description": "Section header on a child's profile above 'Hand this phone back'."
+  },
+  "acctRowVisibility": "Profile visibility",
+  "@acctRowVisibility": {
+    "description": "Row on your profile opening who-can-see-what settings."
+  },
+  "acctRowBlocked": "Blocked users",
+  "@acctRowBlocked": {
+    "description": "Row on your profile opening the blocked-users list; also that page's title."
+  },
+  "acctRowApprovals": "Approvals",
+  "@acctRowApprovals": {
+    "description": "Row on a guardian's profile opening requests waiting for their approval."
+  },
+  "acctNothingWaiting": "None waiting",
+  "@acctNothingWaiting": {
+    "description": "Value beside Approvals when nothing is waiting."
+  },
+  "acctRowLinked": "Linked accounts",
+  "@acctRowLinked": {
+    "description": "Row on your profile opening Sign in with Apple / Google links."
+  },
+  "acctRowScanToSignIn": "Scan to sign in",
+  "@acctRowScanToSignIn": {
+    "description": "Row on your profile opening the camera to approve a desktop/web sign-in QR code."
+  },
+  "acctRowSetUpRecovery": "Set up recovery phrase",
+  "@acctRowSetUpRecovery": {
+    "description": "Row on your profile when no 12-word recovery phrase is set yet."
+  },
+  "acctRowChangeRecovery": "Change recovery phrase",
+  "@acctRowChangeRecovery": {
+    "description": "Row on your profile when a recovery phrase already exists."
+  },
+  "acctSignOut": "Sign out",
+  "@acctSignOut": {
+    "description": "Sign out button on your profile."
+  },
+  "acctDeleteAccount": "Delete account",
+  "@acctDeleteAccount": {
+    "description": "Destructive row on your profile that deletes the account (asks for a second tap)."
+  },
+  "acctConfirmDelete": "Tap again to delete",
+  "@acctConfirmDelete": {
+    "description": "The delete-account row's label after the first tap, for 4 seconds."
+  },
+  "acctHandPhoneBack": "Hand this phone back",
+  "@acctHandPhoneBack": {
+    "description": "Row on a child's profile that starts releasing the phone back to a grown-up."
+  },
+  "acctMyGrownUps": "My grown-ups",
+  "@acctMyGrownUps": {
+    "description": "Heading in a child's profile over the names of the guardians who look after the account."
+  },
+  "acctActionMessage": "Message",
+  "@acctActionMessage": {
+    "description": "Short tile label under an icon on someone's profile: open your DM with them. Max ~10 characters."
+  },
+  "acctActionAddFriend": "Add",
+  "@acctActionAddFriend": {
+    "description": "Short tile label: send a friend request. Max ~10 characters."
+  },
+  "acctActionRequested": "Requested",
+  "@acctActionRequested": {
+    "description": "Short tile label after you sent a friend request; tapping cancels it. Max ~10 characters."
+  },
+  "acctActionAccept": "Accept",
+  "@acctActionAccept": {
+    "description": "Short tile label: accept their friend request. Max ~10 characters."
+  },
+  "acctActionNotAccepting": "Closed",
+  "@acctActionNotAccepting": {
+    "description": "Short disabled tile label when the person isn't accepting friend requests. Max ~10 characters."
+  },
+  "acctActionUnfriend": "Unfriend",
+  "@acctActionUnfriend": {
+    "description": "Short tile label: remove this person as a friend. Max ~10 characters."
+  },
+  "acctActionBlock": "Block",
+  "@acctActionBlock": {
+    "description": "Short tile label: block this person. Max ~10 characters."
+  },
+  "acctActionReport": "Report",
+  "@acctActionReport": {
+    "description": "Short tile label: report this person. Max ~10 characters."
+  },
+  "acctStatusFriends": "Friends",
+  "@acctStatusFriends": {
+    "description": "Line under someone's name on their profile when you are friends."
+  },
+  "acctStatusRequestSent": "Request sent",
+  "@acctStatusRequestSent": {
+    "description": "Line under someone's name when your friend request is pending."
+  },
+  "acctStatusWantsToConnect": "Wants to be friends",
+  "@acctStatusWantsToConnect": {
+    "description": "Line under someone's name when they sent you a friend request."
+  },
+  "acctStatusNotConnected": "Not connected",
+  "@acctStatusNotConnected": {
+    "description": "Line under someone's name when you are not friends and no request is pending."
+  },
+  "acctPresenceOnline": "online",
+  "@acctPresenceOnline": {
+    "description": "Presence word next to a green dot under someone's name."
+  },
+  "acctPresenceAway": "away",
+  "@acctPresenceAway": {
+    "description": "Presence word next to an amber dot under someone's name."
+  },
+  "acctPresenceOffline": "offline",
+  "@acctPresenceOffline": {
+    "description": "Presence word next to a grey dot under someone's name."
+  },
+  "acctProfilePhoto": "Profile photo",
+  "@acctProfilePhoto": {
+    "description": "Title of the sheet for changing or saving your profile photo."
+  },
+  "acctSaveToPhotos": "Save to Photos",
+  "@acctSaveToPhotos": {
+    "description": "Profile-photo sheet option: save the current photo to the device's photo library."
+  },
+  "acctTakeSelfie": "Take a selfie",
+  "@acctTakeSelfie": {
+    "description": "Profile-photo sheet option: take a new photo with the front camera."
+  },
+  "acctChooseFromLibrary": "Choose from library",
+  "@acctChooseFromLibrary": {
+    "description": "Profile-photo sheet option: pick a photo from the library."
+  },
+  "acctCancel": "Cancel",
+  "@acctCancel": {
+    "description": "Cancel button in profile sheets and dialogs."
+  },
+  "acctSave": "Save",
+  "@acctSave": {
+    "description": "Save button in the profile edit sheet."
+  },
+  "acctChange": "Change",
+  "@acctChange": {
+    "description": "Confirm button in 'change your name/username/email?' dialogs."
+  },
+  "acctNotNow": "Not now",
+  "@acctNotNow": {
+    "description": "Dismiss button in 'change your name/username/email?' dialogs (the tap was accidental)."
+  },
+  "acctAddEmail": "Add email",
+  "@acctAddEmail": {
+    "description": "Placeholder line under your name when no email is saved, and the add-email dialog title."
+  },
+  "acctEditNameTitle": "Edit name",
+  "@acctEditNameTitle": {
+    "description": "Title of the dialog/sheet that edits your display name."
+  },
+  "acctAddNameTitle": "Add your name",
+  "@acctAddNameTitle": {
+    "description": "Title of the dialog/sheet that adds a display name when none is set."
+  },
+  "acctEditEmailTitle": "Edit email",
+  "@acctEditEmailTitle": {
+    "description": "Title of the dialog/sheet that edits your saved email."
+  },
+  "acctChangeUsernameTitle": "Change username?",
+  "@acctChangeUsernameTitle": {
+    "description": "Title of the dialog confirming you want to change your username."
+  },
+  "onboardingLookTitle": "Make it yours",
+  "@onboardingLookTitle": {
+    "description": "Large title of the first onboarding step, where the user picks a theme. Sentence case, no trailing period."
+  },
+  "onboardingLookBody": "Pick a look. You can change it any time in Settings.",
+  "@onboardingLookBody": {
+    "description": "One line under the onboarding theme title."
+  },
+  "onboardingEssentials": "Essentials",
+  "@onboardingEssentials": {
+    "description": "Heading over the calm, native-feeling themes (Midnight, Daylight, Graphite…) in the theme picker."
+  },
+  "onboardingEssentialsSub": "Calm and native",
+  "@onboardingEssentialsSub": {
+    "description": "Short description beside the Essentials heading."
+  },
+  "onboardingCharacters": "Characters",
+  "@onboardingCharacters": {
+    "description": "Heading over the expressive themes with personality (Risograph, Retro Wave…) in the theme picker."
+  },
+  "onboardingCharactersSub": "Same app, more personality",
+  "@onboardingCharactersSub": {
+    "description": "Short description beside the Characters heading."
+  },
+  "onboardingLightMode": "Light mode",
+  "@onboardingLightMode": {
+    "description": "Heading over the light-mode theme choices when the app follows the device. Sentence case."
+  },
+  "onboardingDarkMode": "Dark mode",
+  "@onboardingDarkMode": {
+    "description": "Heading over the dark-mode theme choices when the app follows the device. Sentence case."
+  },
+  "onboardingNow": "Now",
+  "@onboardingNow": {
+    "description": "Small tag beside Light mode / Dark mode marking the half the phone is in right now."
+  },
+  "onboardingContinue": "Continue",
+  "@onboardingContinue": {
+    "description": "Primary button that moves to the next onboarding step."
+  },
+  "onboardingIconTitle": "Your app icon",
+  "@onboardingIconTitle": {
+    "description": "Large title of the onboarding step where the user picks the app's home-screen icon."
+  },
+  "onboardingIconBody": "Keep the icon you have, let it follow your theme, or pick any mark.",
+  "@onboardingIconBody": {
+    "description": "Explanation under the app icon title. Themes can change the icon automatically; this lets the user keep it."
+  },
+  "onboardingIconIosNote": "iOS shows a short notice whenever the icon changes.",
+  "@onboardingIconIosNote": {
+    "description": "iOS-only footnote under the app icon grid: iOS shows a system alert whenever an app changes its icon."
+  },
+  "onboardingGetStarted": "Get started",
+  "@onboardingGetStarted": {
+    "description": "Primary button on the last onboarding step; finishes onboarding."
+  },
+  "appIconMatchTheme": "Match theme",
+  "@appIconMatchTheme": {
+    "description": "Label of the app-icon tile that makes the home-screen icon follow the chosen theme."
+  },
+  "appIconCurrent": "Current",
+  "@appIconCurrent": {
+    "description": "Small tag on the app-icon tile that is on the home screen right now."
+  },
+  "appIconSectionCollection": "MonkeyHub collection",
+  "@appIconSectionCollection": {
+    "description": "Heading over the MonkeyHub mascot icon variants in the app-icon picker."
+  },
+  "appIconSectionThemes": "Theme icons",
+  "@appIconSectionThemes": {
+    "description": "Heading over the per-theme icons in the app-icon picker."
+  },
+  "appIconScreenTitle": "App Icon",
+  "@appIconScreenTitle": {
+    "description": "Title of Settings > App icon. Title case like iOS Settings pages."
+  },
+  "appIconMatchFooter": "Match theme changes the icon along with your dark-mode theme, so it never flips back and forth during the day.",
+  "@appIconMatchFooter": {
+    "description": "Footnote explaining the Match theme icon option in Settings > App icon."
+  },
+  "loginTitleReturning": "Welcome back",
+  "@loginTitleReturning": {
+    "description": "Large title on the sign-in screen for a device that has signed in before."
+  },
+  "loginTitleFirst": "Welcome to MonkeyHub",
+  "@loginTitleFirst": {
+    "description": "Large title on the sign-in screen for a device that has never signed in."
+  },
+  "loginTitleSignUp": "Create your account",
+  "@loginTitleSignUp": {
+    "description": "Large title on the create-account form."
+  },
+  "loginTitleReset": "Reset your password",
+  "@loginTitleReset": {
+    "description": "Large title on the reset-password form."
+  },
+  "loginSubtitleSignIn": "Sign in to pick up where you left off.",
+  "@loginSubtitleSignIn": {
+    "description": "One line under the sign-in title."
+  },
+  "loginSubtitleFirst": "Sign in, or create an account in a few seconds.",
+  "@loginSubtitleFirst": {
+    "description": "One line under the first-run sign-in title."
+  },
+  "loginSubtitleSignUp": "A username and a password is all it takes.",
+  "@loginSubtitleSignUp": {
+    "description": "One line under the create-account title."
+  },
+  "loginSubtitleReset": "Enter your 12-word recovery phrase and choose a new password.",
+  "@loginSubtitleReset": {
+    "description": "One line under the reset-password title."
+  },
+  "loginCtaSignIn": "Sign in",
+  "@loginCtaSignIn": {
+    "description": "Primary sign-in button. Sentence case."
+  },
+  "loginCtaSignUp": "Create account",
+  "@loginCtaSignUp": {
+    "description": "Primary create-account button. Sentence case."
+  },
+  "loginCtaReset": "Reset password",
+  "@loginCtaReset": {
+    "description": "Primary reset-password button. Sentence case."
+  },
+  "loginNoAccountPrompt": "New here? ",
+  "@loginNoAccountPrompt": {
+    "description": "Muted lead-in before the create-account link at the foot of the sign-in screen. Ends with a space."
+  },
+  "loginCreateAccountLink": "Create an account",
+  "@loginCreateAccountLink": {
+    "description": "Link after 'New here?' that switches to the create-account form."
+  },
+  "loginHaveAccountPrompt": "Already have an account? ",
+  "@loginHaveAccountPrompt": {
+    "description": "Muted lead-in before the sign-in link at the foot of the create-account form. Ends with a space."
+  },
+  "loginSignInLink": "Sign in",
+  "@loginSignInLink": {
+    "description": "Link that switches to the sign-in form."
+  },
+  "loginForgotPassword": "Forgot password?",
+  "@loginForgotPassword": {
+    "description": "Link on the sign-in screen to the reset-password form."
+  },
+  "loginChildAccount": "Set up a child account",
+  "@loginChildAccount": {
+    "description": "Link on the sign-in screen to pair this phone as a child's device."
+  },
+  "loginBackToSignIn": "Back to sign in",
+  "@loginBackToSignIn": {
+    "description": "Link on the reset-password form back to sign-in."
+  },
+  "loginWithPhone": "Sign in with your phone",
+  "@loginWithPhone": {
+    "description": "Desktop/web link to sign in by scanning a QR code with a signed-in phone."
+  },
+  "loginUsernameField": "Username",
+  "@loginUsernameField": {
+    "description": "Placeholder of the username field on sign-in/sign-up/reset."
+  },
+  "loginPasswordField": "Password",
+  "@loginPasswordField": {
+    "description": "Placeholder of the password field."
+  },
+  "loginConfirmPasswordField": "Confirm password",
+  "@loginConfirmPasswordField": {
+    "description": "Placeholder of the confirm-password field on sign-up."
+  },
+  "loginNameField": "Name (optional)",
+  "@loginNameField": {
+    "description": "Placeholder of the optional display-name field on sign-up."
+  },
+  "loginRecoveryPhraseField": "Your 12-word recovery phrase",
+  "@loginRecoveryPhraseField": {
+    "description": "Placeholder of the recovery-phrase field on reset password."
+  },
+  "loginNewPasswordField": "New password",
+  "@loginNewPasswordField": {
+    "description": "Placeholder of the new-password field on reset password."
+  },
+  "roomHeaderStatusOnline": "online",
+  "@roomHeaderStatusOnline": {
+    "description": "Second line under the other person's name in a DM's header while they are online, like the status under a name in WhatsApp/Telegram. Lowercase."
+  },
+  "roomHeaderStatusMembers": "{count, plural, one{{count} member} other{{count} members}}",
+  "@roomHeaderStatusMembers": {
+    "description": "Second line under a group's name in the conversation header: how many people are in it. Lowercase, like Telegram's 'N members'.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsHubTitle": "Settings",
+  "@settingsHubTitle": {
+    "description": "Settings hub (iOS-style grouped list). Large title of the Settings tab."
+  },
+  "settingsHubAccountHintAdult": "Profile, family, linked accounts and privacy",
+  "@settingsHubAccountHintAdult": {
+    "description": "Settings hub (iOS-style grouped list). Line under the user's name on the profile card: what's behind it."
+  },
+  "settingsHubAccountHintChild": "Profile, privacy and your grown-ups",
+  "@settingsHubAccountHintChild": {
+    "description": "Settings hub (iOS-style grouped list). Line under a child account's name on the profile card."
+  },
+  "settingsHubSectionGeneral": "General",
+  "@settingsHubSectionGeneral": {
+    "description": "Settings hub (iOS-style grouped list). Section header."
+  },
+  "settingsHubSectionNotifications": "Notifications",
+  "@settingsHubSectionNotifications": {
+    "description": "Settings hub (iOS-style grouped list). Section header."
+  },
+  "settingsHubSectionCalls": "Calls",
+  "@settingsHubSectionCalls": {
+    "description": "Settings hub (iOS-style grouped list). Section header."
+  },
+  "settingsHubSectionAppearance": "Appearance",
+  "@settingsHubSectionAppearance": {
+    "description": "Settings hub (iOS-style grouped list). Section header."
+  },
+  "settingsHubSectionCompanions": "Companions",
+  "@settingsHubSectionCompanions": {
+    "description": "Settings hub (iOS-style grouped list). Section header for the on-device AI companions."
+  },
+  "settingsHubSectionChats": "Chats",
+  "@settingsHubSectionChats": {
+    "description": "Settings hub (iOS-style grouped list). Section header for how conversations look."
+  },
+  "settingsHubSectionHelp": "Help & legal",
+  "@settingsHubSectionHelp": {
+    "description": "Settings hub (iOS-style grouped list). Section header for report a problem and the legal links."
+  },
+  "settingsHubSectionAdvanced": "Advanced",
+  "@settingsHubSectionAdvanced": {
+    "description": "Settings hub (iOS-style grouped list). Section header."
+  },
+  "settingsHubLanguage": "Language",
+  "@settingsHubLanguage": {
+    "description": "Settings hub (iOS-style grouped list). Row title."
+  },
+  "settingsHubCheckForUpdates": "Check for updates",
+  "@settingsHubCheckForUpdates": {
+    "description": "Settings hub (iOS-style grouped list). Row title; tapping checks for a newer build."
+  },
+  "settingsHubUpdateAvailable": "Update available",
+  "@settingsHubUpdateAvailable": {
+    "description": "Settings hub (iOS-style grouped list). Value beside Check for updates when a newer build exists."
+  },
+  "settingsHubShowLinkUrls": "Show link addresses",
+  "@settingsHubShowLinkUrls": {
+    "description": "Settings hub (iOS-style grouped list). Switch title."
+  },
+  "settingsHubShowLinkUrlsSubtitle": "Print the address next to each link preview",
+  "@settingsHubShowLinkUrlsSubtitle": {
+    "description": "Settings hub (iOS-style grouped list). Switch subtitle."
+  },
+  "settingsHubPush": "Push notifications",
+  "@settingsHubPush": {
+    "description": "Settings hub (iOS-style grouped list). Switch title."
+  },
+  "settingsHubPushSubtitle": "New messages, calls and requests",
+  "@settingsHubPushSubtitle": {
+    "description": "Settings hub (iOS-style grouped list). Switch subtitle."
+  },
+  "settingsHubGameReminders": "Daily game reminder",
+  "@settingsHubGameReminders": {
+    "description": "Settings hub (iOS-style grouped list). Switch title."
+  },
+  "settingsHubGameRemindersSubtitle": "One nudge at lunchtime if you haven't played",
+  "@settingsHubGameRemindersSubtitle": {
+    "description": "Settings hub (iOS-style grouped list). Switch subtitle."
+  },
+  "settingsHubFriendActivity": "Friend activity",
+  "@settingsHubFriendActivity": {
+    "description": "Settings hub (iOS-style grouped list). Switch title."
+  },
+  "settingsHubFriendActivitySubtitle": "Highlights, points and game results from friends",
+  "@settingsHubFriendActivitySubtitle": {
+    "description": "Settings hub (iOS-style grouped list). Switch subtitle."
+  },
+  "settingsHubMenuBar": "Menu bar icon",
+  "@settingsHubMenuBar": {
+    "description": "Settings hub (iOS-style grouped list). macOS switch title."
+  },
+  "settingsHubMenuBarSubtitle": "Shows your unread count in the menu bar",
+  "@settingsHubMenuBarSubtitle": {
+    "description": "Settings hub (iOS-style grouped list). macOS switch subtitle."
+  },
+  "settingsHubCallStats": "Show call stats",
+  "@settingsHubCallStats": {
+    "description": "Settings hub (iOS-style grouped list). Switch title."
+  },
+  "settingsHubCallStatsSubtitle": "Resolution, bitrate and ping during calls",
+  "@settingsHubCallStatsSubtitle": {
+    "description": "Settings hub (iOS-style grouped list). Switch subtitle."
+  },
+  "settingsHubTheme": "Theme",
+  "@settingsHubTheme": {
+    "description": "Settings hub (iOS-style grouped list). Row title."
+  },
+  "settingsHubAppIcon": "App icon",
+  "@settingsHubAppIcon": {
+    "description": "Settings hub (iOS-style grouped list). Row title."
+  },
+  "settingsHubGlass": "Glass",
+  "@settingsHubGlass": {
+    "description": "Settings hub (iOS-style grouped list). Row title for the glass effect settings."
+  },
+  "settingsHubNavigation": "Navigation",
+  "@settingsHubNavigation": {
+    "description": "Settings hub (iOS-style grouped list). Row title."
+  },
+  "settingsHubMotion": "Motion",
+  "@settingsHubMotion": {
+    "description": "Settings hub (iOS-style grouped list). Row title."
+  },
+  "settingsHubChatList": "Chat list",
+  "@settingsHubChatList": {
+    "description": "Settings hub (iOS-style grouped list). Row title."
+  },
+  "settingsHubChatStyle": "Chat style",
+  "@settingsHubChatStyle": {
+    "description": "Settings hub (iOS-style grouped list). Row title."
+  },
+  "settingsHubBubbleStyle": "Bubble style",
+  "@settingsHubBubbleStyle": {
+    "description": "Settings hub (iOS-style grouped list). Row title."
+  },
+  "settingsHubSpeakerColors": "Speaker colours",
+  "@settingsHubSpeakerColors": {
+    "description": "Settings hub (iOS-style grouped list). Row title."
+  },
+  "settingsHubReplyStyle": "Reply style",
+  "@settingsHubReplyStyle": {
+    "description": "Settings hub (iOS-style grouped list). Row title."
+  },
+  "settingsHubPrivacyPolicy": "Privacy policy",
+  "@settingsHubPrivacyPolicy": {
+    "description": "Settings hub (iOS-style grouped list). Row title."
+  },
+  "settingsHubTerms": "Terms of service",
+  "@settingsHubTerms": {
+    "description": "Settings hub (iOS-style grouped list). Row title."
+  },
+  "settingsHubLicence": "Licence",
+  "@settingsHubLicence": {
+    "description": "Settings hub (iOS-style grouped list). Row title for the end-user licence."
+  },
+  "settingsHubServer": "Server",
+  "@settingsHubServer": {
+    "description": "Settings hub (iOS-style grouped list). Row title."
+  },
+  "settingsHubLayoutRows": "Rows",
+  "@settingsHubLayoutRows": {
+    "description": "Settings hub (iOS-style grouped list). Chat list layout name."
+  },
+  "settingsHubLayoutCards": "Cards",
+  "@settingsHubLayoutCards": {
+    "description": "Settings hub (iOS-style grouped list). Chat list layout name."
+  },
+  "settingsHubLayoutGrid": "Grid",
+  "@settingsHubLayoutGrid": {
+    "description": "Settings hub (iOS-style grouped list). Chat list layout name."
+  },
+  "settingsHubNavTabBar": "Tab bar",
+  "@settingsHubNavTabBar": {
+    "description": "Settings hub (iOS-style grouped list). Navigation style name: the bottom tab bar."
+  },
+  "settingsHubThemeAuto": "Auto · {name}",
+  "@settingsHubThemeAuto": {
+    "description": "Settings hub (iOS-style grouped list). Theme row value while the theme follows the device. {name} is the theme showing now.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatListPageRowsSub": "A face, a name and the latest message, like Messages.",
+  "@chatListPageRowsSub": {
+    "description": "Settings sub-page. Description under the Rows layout."
+  },
+  "chatListPageCardsSub": "Every room in its own card, every detail spelled out.",
+  "@chatListPageCardsSub": {
+    "description": "Settings sub-page. Description under the Cards layout."
+  },
+  "chatListPageGridSub": "Two columns of tiles. More rooms at a glance.",
+  "@chatListPageGridSub": {
+    "description": "Settings sub-page. Description under the Grid layout."
+  },
+  "chatListPageLayoutHeader": "Layout",
+  "@chatListPageLayoutHeader": {
+    "description": "Settings sub-page. Section header."
+  },
+  "chatListPageFiltersHeader": "Filters",
+  "@chatListPageFiltersHeader": {
+    "description": "Settings sub-page. Section header for how filters are shown."
+  },
+  "chatListPageChips": "Chips",
+  "@chatListPageChips": {
+    "description": "Settings sub-page. Filter style option."
+  },
+  "chatListPageChipsSub": "A row of filters, always one tap away.",
+  "@chatListPageChipsSub": {
+    "description": "Settings sub-page. Filter style description."
+  },
+  "chatListPageButton": "Button",
+  "@chatListPageButton": {
+    "description": "Settings sub-page. Filter style option."
+  },
+  "chatListPageButtonSub": "One button that opens the filters when you ask.",
+  "@chatListPageButtonSub": {
+    "description": "Settings sub-page. Filter style description."
+  },
+  "chatListPageEmptyHeader": "Empty rooms",
+  "@chatListPageEmptyHeader": {
+    "description": "Settings sub-page. Section header: how a room with no messages looks."
+  },
+  "chatListPagePlain": "Plain",
+  "@chatListPagePlain": {
+    "description": "Settings sub-page. Empty-room option."
+  },
+  "chatListPagePlainSub": "A room with nothing said yet stays bare.",
+  "@chatListPagePlainSub": {
+    "description": "Settings sub-page. Empty-room option description."
+  },
+  "chatListPageInitial": "Initial",
+  "@chatListPageInitial": {
+    "description": "Settings sub-page. Empty-room option."
+  },
+  "chatListPageInitialSub": "A large faded letter fills the empty corner.",
+  "@chatListPageInitialSub": {
+    "description": "Settings sub-page. Empty-room option description."
+  },
+  "chatListPageEmptyFooter": "Applies to the grid layout.",
+  "@chatListPageEmptyFooter": {
+    "description": "Settings sub-page. Footer under the empty-rooms choice."
+  },
+  "chatStylePageFooter": "How a conversation's header and message field are drawn.",
+  "@chatStylePageFooter": {
+    "description": "Settings sub-page. Footer on the chat style page."
+  },
+  "chatStyleClassicSub": "A solid header and a flat message field.",
+  "@chatStyleClassicSub": {
+    "description": "Settings sub-page. Chat style option description."
+  },
+  "chatStyleCompactSub": "Frosted controls float over the conversation.",
+  "@chatStyleCompactSub": {
+    "description": "Settings sub-page. Chat style option description."
+  },
+  "bubbleTailedSub": "A tail on the last message of each run, like Messages.",
+  "@bubbleTailedSub": {
+    "description": "Settings sub-page. Bubble style description."
+  },
+  "bubbleSoftSub": "No tail. A run holds together by its corners.",
+  "@bubbleSoftSub": {
+    "description": "Settings sub-page. Bubble style description."
+  },
+  "bubblePillSub": "Fully rounded capsules on every message.",
+  "@bubblePillSub": {
+    "description": "Settings sub-page. Bubble style description."
+  },
+  "bubbleSlabSub": "Square shoulders: sharp and deliberate.",
+  "@bubbleSlabSub": {
+    "description": "Settings sub-page. Bubble style description."
+  },
+  "replyStylePageFooter": "How a reply shows the message it answers.",
+  "@replyStylePageFooter": {
+    "description": "Settings sub-page. Footer on the reply style page."
+  },
+  "replyClassicSub": "A tinted quote above the message, WhatsApp style.",
+  "@replyClassicSub": {
+    "description": "Settings sub-page. Reply style description."
+  },
+  "replyPhantomSub": "A ghost of the original floats above, joined by a curve.",
+  "@replyPhantomSub": {
+    "description": "Settings sub-page. Reply style description."
+  },
+  "replyStickySub": "A small tilted card clipped to the corner.",
+  "@replyStickySub": {
+    "description": "Settings sub-page. Reply style description."
+  },
+  "replyComicSub": "A mini bubble with a comic-book tail.",
+  "@replyComicSub": {
+    "description": "Settings sub-page. Reply style description."
+  },
+  "motionMatchDevice": "Match device",
+  "@motionMatchDevice": {
+    "description": "Settings sub-page. Motion option: follow the device's reduce-motion setting."
+  },
+  "motionMatchDeviceCalmSub": "Your device is asking for reduced motion right now.",
+  "@motionMatchDeviceCalmSub": {
+    "description": "Settings sub-page. Description of Match device while the device asks for reduced motion."
+  },
+  "motionMatchDeviceFullSub": "Your device allows animation right now.",
+  "@motionMatchDeviceFullSub": {
+    "description": "Settings sub-page. Description of Match device while the device allows animation."
+  },
+  "motionFullSub": "Every spring, drift and flourish.",
+  "@motionFullSub": {
+    "description": "Settings sub-page. Motion option description."
+  },
+  "motionCalmSub": "Decoration holds still. Everything else works the same.",
+  "@motionCalmSub": {
+    "description": "Settings sub-page. Motion option description."
+  },
+  "navigationPageFooter": "How you move between Chats, Feed, Discover and Settings.",
+  "@navigationPageFooter": {
+    "description": "Settings sub-page. Footer on the navigation page."
+  },
+  "navTabBarSub": "Always visible, one tap to anywhere.",
+  "@navTabBarSub": {
+    "description": "Settings sub-page. Navigation option description."
+  },
+  "navOrbSub": "Hold and drag from the corner. A gesture you grow into.",
+  "@navOrbSub": {
+    "description": "Settings sub-page. Navigation option description."
+  },
+  "languageSystemLabel": "Device language",
+  "@languageSystemLabel": {
+    "description": "Settings sub-page. Language option that follows the device."
+  },
+  "languagePageFooter": "Menus and app messages. Chats stay in whatever language people write in.",
+  "@languagePageFooter": {
+    "description": "Settings sub-page. Footer on the language page."
+  },
+  "speakerPageFooter": "Tell who's talking at a glance in group chats.",
+  "@speakerPageFooter": {
+    "description": "Settings sub-page. Footer on the speaker colours page."
+  },
+  "speakerOffSub": "Everyone writes in the same ink.",
+  "@speakerOffSub": {
+    "description": "Settings sub-page. Speaker colours option description."
+  },
+  "speakerNamesSub": "Each person keeps a colour on their name and face.",
+  "@speakerNamesSub": {
+    "description": "Settings sub-page. Speaker colours option description."
+  },
+  "speakerBubblesSub": "Their colour carries into their messages too.",
+  "@speakerBubblesSub": {
+    "description": "Settings sub-page. Speaker colours option description."
+  },
+  "themePageAutoFooter": "Light themes are used in light mode, dark ones in dark mode.",
+  "@themePageAutoFooter": {
+    "description": "Settings sub-page. Footer under Match device on the theme page."
+  },
+  "themePageLightMode": "Light mode",
+  "@themePageLightMode": {
+    "description": "Settings sub-page. Row: the theme used in light mode."
+  },
+  "themePageDarkMode": "Dark mode",
+  "@themePageDarkMode": {
+    "description": "Settings sub-page. Row: the theme used in dark mode."
+  },
+  "themePageEssentials": "Essentials",
+  "@themePageEssentials": {
+    "description": "Settings sub-page. Section header: the calm, native Basic palettes."
+  },
+  "themePageEssentialsFooter": "Calm and native, in five colours.",
+  "@themePageEssentialsFooter": {
+    "description": "Settings sub-page. Footer under Essentials."
+  },
+  "themePageCharacters": "Characters",
+  "@themePageCharacters": {
+    "description": "Settings sub-page. Section header: the expressive themes."
+  },
+  "themePageCharactersFooter": "The same layout, with a personality of its own. Touch and hold any theme to preview it.",
+  "@themePageCharactersFooter": {
+    "description": "Settings sub-page. Footer under Characters."
+  },
+  "themePageLightBadge": "Light",
+  "@themePageLightBadge": {
+    "description": "Settings sub-page. Small badge on the theme used in light mode."
+  },
+  "themePageDarkBadge": "Dark",
+  "@themePageDarkBadge": {
+    "description": "Settings sub-page. Small badge on the theme used in dark mode."
+  },
+  "themePageInUse": "In use",
+  "@themePageInUse": {
+    "description": "Settings sub-page. Full-screen preview button when this theme is already in use."
+  },
+  "themePageUseLight": "Use in light mode",
+  "@themePageUseLight": {
+    "description": "Settings sub-page. Full-screen preview button: use this theme in light mode."
+  },
+  "themePageUseDark": "Use in dark mode",
+  "@themePageUseDark": {
+    "description": "Settings sub-page. Full-screen preview button: use this theme in dark mode."
+  },
+  "themePageUse": "Use {name}",
+  "@themePageUse": {
+    "description": "Settings sub-page. Full-screen preview button. {name} is the theme's name.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "acctCaptureTitle": "Screen capture protection",
+  "@acctCaptureTitle": {
+    "description": "Switch title on your profile: blocks screenshots / screen recording of the app."
+  },
+  "acctCaptureOnIos": "Recording and mirroring show a privacy shield.",
+  "@acctCaptureOnIos": {
+    "description": "Subtitle under the capture-protection switch while on, on iPhone/iPad."
+  },
+  "acctCaptureOnAndroid": "Screenshots and recordings come out black.",
+  "@acctCaptureOnAndroid": {
+    "description": "Subtitle under the capture-protection switch while on, on Android."
+  },
+  "acctCaptureOff": "Screenshots and recordings work normally.",
+  "@acctCaptureOff": {
+    "description": "Subtitle under the capture-protection switch while off."
+  },
+  "acctCaptureFooter": "Rooms with disappearing messages always turn this on.",
+  "@acctCaptureFooter": {
+    "description": "Footer under the capture-protection switch."
+  },
+  "acctActionPending": "Pending",
+  "@acctActionPending": {
+    "description": "Short disabled tile on someone's profile while a friend request waits for a guardian's approval. Max ~10 characters."
+  },
+  "chatSwipePin": "Pin",
+  "@chatSwipePin": {
+    "description": "Short label on the swipe-right action of a chat-list row that pins the chat. One word if the language allows."
+  },
+  "chatSwipeUnpin": "Unpin",
+  "@chatSwipeUnpin": {
+    "description": "Short label on the swipe-right action that unpins a pinned chat."
+  },
+  "chatSwipeMute": "Mute",
+  "@chatSwipeMute": {
+    "description": "Short label on a swipe-left action that opens the mute options for a chat."
+  },
+  "chatSwipeUnmute": "Unmute",
+  "@chatSwipeUnmute": {
+    "description": "Short label on a swipe-left action that unmutes a muted chat."
+  },
+  "chatSwipeArchive": "Archive",
+  "@chatSwipeArchive": {
+    "description": "Short label on the swipe-left action that archives a chat; a full swipe triggers it."
+  },
+  "appearanceMatchDeviceSubtitle": "Light by day, dark by night, with your phone",
+  "@appearanceMatchDeviceSubtitle": {
+    "description": "Line under 'Match device' in the appearance picker. Sentence case."
+  },
+  "appearanceOneThemeSubtitle": "The same look all day",
+  "@appearanceOneThemeSubtitle": {
+    "description": "Line under 'One theme' in the appearance picker. Sentence case."
+  },
+  "riName": "Name",
+  "@riName": {
+    "description": "Label over a room's name on its info page."
+  },
+  "riDescription": "Description",
+  "@riDescription": {
+    "description": "Label over a room's description on its info page."
+  },
+  "riVisibility": "Who can find it",
+  "@riVisibility": {
+    "description": "Section header over the public/private choice on a room's info page."
+  },
+  "riPublic": "Public",
+  "@riPublic": {
+    "description": "Visibility option: anyone can find and join the room."
+  },
+  "riPublicSub": "Anyone can find it in Discover",
+  "@riPublicSub": {
+    "description": "Subtitle of the Public option."
+  },
+  "riPrivate": "Private",
+  "@riPrivate": {
+    "description": "Visibility option: invite only."
+  },
+  "riPrivateSub": "Only people you invite can join",
+  "@riPrivateSub": {
+    "description": "Subtitle of the Private option."
+  },
+  "riMessageLife": "Messages disappear after",
+  "@riMessageLife": {
+    "description": "Section header over the disappearing-message timer choices."
+  },
+  "riPassword": "Password",
+  "@riPassword": {
+    "description": "Label over the room password control."
+  },
+  "riRemovePassword": "Remove password",
+  "@riRemovePassword": {
+    "description": "Button that removes a room's password."
+  },
+  "riSetPassword": "Set password",
+  "@riSetPassword": {
+    "description": "Button that saves a new room password."
+  },
+  "riSharedContent": "Shared content",
+  "@riSharedContent": {
+    "description": "Section header over Media/Files/Voice/Links/Saved rows on a room's info page."
+  },
+  "riMembers": "{count, plural, one{1 member} other{{count} members}}",
+  "@riMembers": {
+    "description": "Section header over a room's member list.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "riInvited": "{count, plural, one{1 invited} other{{count} invited}}",
+  "@riInvited": {
+    "description": "Section header over people invited to a room who haven't answered.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "riWithdraw": "Withdraw",
+  "@riWithdraw": {
+    "description": "Small action beside a pending invite that cancels it."
+  },
+  "riNotifications": "Notifications",
+  "@riNotifications": {
+    "description": "Section header over the mute row on a room's info page."
+  },
+  "riTranslation": "Translation",
+  "@riTranslation": {
+    "description": "Section header over the translate-this-room row."
+  },
+  "riNameColours": "Name colours",
+  "@riNameColours": {
+    "description": "Section header over the per-member name colour row."
+  },
+  "riYouSuggested": "You suggested",
+  "@riYouSuggested": {
+    "description": "Header over changes you suggested to a group that admins haven't answered."
+  },
+  "riTakeBack": "Take back",
+  "@riTakeBack": {
+    "description": "Small action beside a suggestion that withdraws it."
+  },
+  "riLeaveRoom": "Leave room",
+  "@riLeaveRoom": {
+    "description": "Destructive row at the bottom of a room's info page."
+  },
+  "riLeaving": "Leaving…",
+  "@riLeaving": {
+    "description": "Leave-room row while leaving."
+  },
+  "riDeleteRoom": "Delete room",
+  "@riDeleteRoom": {
+    "description": "Destructive row that deletes a room (owner only)."
+  },
+  "riDeleting": "Deleting…",
+  "@riDeleting": {
+    "description": "Delete-room row while deleting."
+  },
+  "riEndConversation": "End conversation",
+  "@riEndConversation": {
+    "description": "Destructive row on a DM's info page that deletes the conversation for both people."
+  },
+  "riEnding": "Ending…",
+  "@riEnding": {
+    "description": "End-conversation row while ending."
+  },
+  "riActionCall": "Call",
+  "@riActionCall": {
+    "description": "Short tile label on a DM's info page: voice call. Max ~10 characters."
+  },
+  "riActionVideo": "Video",
+  "@riActionVideo": {
+    "description": "Short tile label: video call. Max ~10 characters."
+  },
+  "riActionMute": "Mute",
+  "@riActionMute": {
+    "description": "Short tile label: open the mute options. Max ~10 characters."
+  },
+  "riActionUnmute": "Unmute",
+  "@riActionUnmute": {
+    "description": "Short tile label on a muted room: open the mute options. Max ~10 characters."
+  },
+  "riActionMedia": "Media",
+  "@riActionMedia": {
+    "description": "Short tile label: open the room's shared photos and videos. Max ~10 characters."
+  },
+  "riActionAdd": "Add",
+  "@riActionAdd": {
+    "description": "Short tile label on a group: invite friends. Max ~10 characters."
+  },
+  "roomHeaderStatusTyping": "typing…",
+  "@roomHeaderStatusTyping": {
+    "description": "Status line under the other person's name in a DM header while they type. Their name is already right above it, so just the verb with an ellipsis, like Telegram's 'typing…'."
+  },
+  "glassScreenLead": "How much of what's behind comes through.",
+  "@glassScreenLead": {
+    "description": "One line under the large Glass title in Settings > Glass, sentence case."
+  },
+  "transcriptDayToday": "Today",
+  "@transcriptDayToday": {
+    "description": "Small centred pill above the first message of today in a conversation, like Telegram's/iMessage's day separators. Sentence case."
+  },
+  "acctRowDevices": "Devices",
+  "@acctRowDevices": {
+    "description": "Profile row and page title: everywhere you're signed in."
+  },
+  "acctThisDevice": "This device",
+  "@acctThisDevice": {
+    "description": "Tag beside the device you're using now in the devices list."
+  },
+  "acctRemove": "Remove",
+  "@acctRemove": {
+    "description": "Button beside a device that signs it out."
+  },
+  "acctRemoveDeviceTitle": "Remove this device?",
+  "@acctRemoveDeviceTitle": {
+    "description": "Confirm sheet title before removing one device."
+  },
+  "acctRemoveAllTitle": "Remove all other devices?",
+  "@acctRemoveAllTitle": {
+    "description": "Confirm sheet title before removing every other device."
+  },
+  "acctRemoveAll": "Remove all",
+  "@acctRemoveAll": {
+    "description": "Confirm button that removes every other device."
+  },
+  "acctActiveNow": "Active now",
+  "@acctActiveNow": {
+    "description": "Last-seen line for a device in use right now."
+  },
+  "acctLoading": "Loading…",
+  "@acctLoading": {
+    "description": "Placeholder while a list loads."
+  },
+  "acctDevicesLoadFailed": "Couldn't load your devices.",
+  "@acctDevicesLoadFailed": {
+    "description": "Error when the devices list can't load."
+  },
+  "acctNoNotifications": "Notifications aren't reaching this one",
+  "@acctNoNotifications": {
+    "description": "Line under a device push notifications can't reach."
+  },
+  "acctBlockedEmpty": "You haven't blocked anyone.",
+  "@acctBlockedEmpty": {
+    "description": "Empty state on the blocked-users page."
+  },
+  "acctUnblock": "Unblock",
+  "@acctUnblock": {
+    "description": "Button beside a blocked person that unblocks them."
   }
 }

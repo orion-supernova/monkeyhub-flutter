@@ -34,6 +34,7 @@ import '../widgets/adaptive_sheet.dart';
 import '../widgets/archived_chats_sheet.dart';
 import '../widgets/chat_list_row.dart';
 import '../widgets/chat_row_action_menu.dart';
+import '../widgets/chat_row_swipe.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/mute_room_sheet.dart';
 import '../widgets/pull_reveal_panel.dart';
@@ -43,6 +44,7 @@ import '../widgets/room_filter_drawer.dart';
 import '../widgets/room_grid_tile.dart';
 import '../widgets/user_avatar.dart';
 import 'navigation/destinations.dart';
+import 'navigation/native_tab_bar.dart' show NativeChrome;
 import 'navigation/open_room.dart';
 import 'navigation/tab_reselect.dart';
 import '../widgets/app_toast.dart';
@@ -800,7 +802,9 @@ class _Header extends StatelessWidget {
 /// toolbar button — the elevated-FAB look this header exists to get away
 /// from. Dark themes keep exactly what the user has tuned.
 GlassConfig? _buttonGlass(AppTheme theme) {
-  if (!theme.isLight) return null;
+  // Under iOS Liquid Glass the button wears the matched recipe instead, whose
+  // shadow is already a soft float.
+  if (!theme.isLight || NativeChrome.active) return null;
   final app = SettingsStore.instance.glass.app;
   return app
       .set(kShadowY, 0)
@@ -1176,14 +1180,18 @@ class _RoomsPanelState extends State<_RoomsPanel> {
                 onTap: () =>
                     openRoom(context, roomId: room.id, repo: repo, api: api),
               )
-            : ChatListRow(
-                room: room,
-                api: api,
-                dmUser: repo.otherUserFor(room),
-                typists: repo.typingIn(room.id),
-                showDivider: showDivider,
-                onTap: () =>
-                    openRoom(context, roomId: room.id, repo: repo, api: api),
+            : ChatRowSwipe(
+                leading: _leadingSwipes(room),
+                trailing: _trailingSwipes(room),
+                child: ChatListRow(
+                  room: room,
+                  api: api,
+                  dmUser: repo.otherUserFor(room),
+                  typists: repo.typingIn(room.id),
+                  showDivider: showDivider,
+                  onTap: () =>
+                      openRoom(context, roomId: room.id, repo: repo, api: api),
+                ),
               ),
       ),
     );
@@ -1202,6 +1210,50 @@ class _RoomsPanelState extends State<_RoomsPanel> {
       ),
       child: content,
     );
+  }
+
+  /// Swipe right: pin or unpin — the Telegram/Mail leading action.
+  List<SwipeAction> _leadingSwipes(ChatRoom room) {
+    final l10n = AppLocalizations.of(context);
+    final repo = widget.repo;
+    return [
+      SwipeAction(
+        label: room.isPinned ? l10n.chatSwipeUnpin : l10n.chatSwipePin,
+        icon: room.isPinned
+            ? CupertinoIcons.pin_slash_fill
+            : CupertinoIcons.pin_fill,
+        color: const Color(0xFFFF9500),
+        onTap: () => room.isPinned
+            ? repo.unpinRoom(room.id)
+            : repo.pinRoom(room.id),
+      ),
+    ];
+  }
+
+  /// Swipe left: mute (when the room allows it) and archive, archive on the
+  /// outside so a full swipe files the chat away, as Mail does.
+  List<SwipeAction> _trailingSwipes(ChatRoom room) {
+    final l10n = AppLocalizations.of(context);
+    final repo = widget.repo;
+    return [
+      if (repo.capabilitiesFor(room).canMute)
+        SwipeAction(
+          label: room.isMuted ? l10n.chatSwipeUnmute : l10n.chatSwipeMute,
+          icon: room.isMuted
+              ? CupertinoIcons.bell_fill
+              : CupertinoIcons.bell_slash_fill,
+          color: const Color(0xFF5856D6),
+          onTap: () => room.isMuted
+              ? repo.unmuteRoom(room.id)
+              : showMuteRoomSheet(context, repo: repo, room: room),
+        ),
+      SwipeAction(
+        label: l10n.chatSwipeArchive,
+        icon: CupertinoIcons.archivebox_fill,
+        color: const Color(0xFF8E8E93),
+        onTap: () => repo.archiveRoom(room.id),
+      ),
+    ];
   }
 
   Widget _gridTile(

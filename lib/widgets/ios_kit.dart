@@ -425,6 +425,7 @@ class GroupedRow extends StatefulWidget {
     this.chevron,
     this.destructive = false,
     this.badge = 0,
+    this.titleTrailing,
   });
 
   /// A switch row. The whole row toggles, not just the switch.
@@ -486,6 +487,10 @@ class GroupedRow extends StatefulWidget {
   /// Count pill before the chevron. Zero hides it.
   final int badge;
 
+  /// A small tag set right after the title — "Recommended", "New" — where it
+  /// annotates the option rather than crowding the row's trailing edge.
+  final Widget? titleTrailing;
+
   @override
   State<GroupedRow> createState() => _GroupedRowState();
 }
@@ -539,13 +544,23 @@ class _GroupedRowState extends State<GroupedRow> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    w.title,
-                    style: theme.body.copyWith(
-                      color: titleColor,
-                      fontSize: 17,
-                      height: 1.25,
-                    ),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          w.title,
+                          style: theme.body.copyWith(
+                            color: titleColor,
+                            fontSize: 17,
+                            height: 1.25,
+                          ),
+                        ),
+                      ),
+                      if (w.titleTrailing != null) ...[
+                        const SizedBox(width: 8),
+                        w.titleTrailing!,
+                      ],
+                    ],
                   ),
                   if (w.subtitle != null) ...[
                     const SizedBox(height: 2),

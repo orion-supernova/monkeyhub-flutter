@@ -7,6 +7,8 @@ import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../theme/motion.dart';
+import 'odometer_number.dart';
 import 'remote_image.dart';
 import 'room_identity.dart';
 import 'typing_indicator.dart';
@@ -313,13 +315,31 @@ class _ChatListRowState extends State<ChatListRow> {
             ),
             const SizedBox(width: 4),
           ],
-          _Pip(
-            color: quiet ? theme.inkMuted.withValues(alpha: 0.45) : pip,
-            child: Text(
-              label,
-              style: _pipStyle(theme).copyWith(
-                color: quiet ? theme.background : theme.accentInk,
-              ),
+          // A new message lands with a pop and the digits roll — Telegram's
+          // counter. Keyed on the count, so only a change replays it.
+          TweenAnimationBuilder<double>(
+            key: ValueKey(count),
+            tween: Tween(begin: 1.22, end: 1),
+            duration: MotionScope.of(context)
+                .d(const Duration(milliseconds: 520)),
+            curve: Curves.elasticOut,
+            builder: (context, s, child) =>
+                Transform.scale(scale: s, child: child),
+            child: _Pip(
+              color: quiet ? theme.inkMuted.withValues(alpha: 0.45) : pip,
+              child: count > 99
+                  ? Text(
+                      label,
+                      style: _pipStyle(theme).copyWith(
+                        color: quiet ? theme.background : theme.accentInk,
+                      ),
+                    )
+                  : OdometerNumber(
+                      value: count,
+                      style: _pipStyle(theme).copyWith(
+                        color: quiet ? theme.background : theme.accentInk,
+                      ),
+                    ),
             ),
           ),
         ],

@@ -8825,4 +8825,809 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get glassScreenNativeOffBody =>
       'MonkeyHub가 모든 곳에 자체 글래스를 그려요. 아래 슬라이더로 조정할 수 있어요.';
+
+  @override
+  String get glassScreenHeading => '글래스';
+
+  @override
+  String get glassStyleHeader => '스타일';
+
+  @override
+  String get glassStyleLiquidTitle => 'Liquid Glass';
+
+  @override
+  String get glassStyleLiquidBody =>
+      'iOS가 직접 그리는 Apple의 글래스. 앱 전체의 버튼도 이에 맞춰져요.';
+
+  @override
+  String get glassStyleFrostedTitle => '프로스티드';
+
+  @override
+  String get glassStyleFrostedBody => 'MonkeyHub만의 글래스. 모든 값을 직접 조정하세요.';
+
+  @override
+  String get glassStyleRecommended => '추천';
+
+  @override
+  String get glassStyleLiquidFooter =>
+      '조정할 것이 없어요. 흐림, 색조, 빛은 iOS가 정해요. 직접 다듬으려면 프로스티드를 선택하세요.';
+
+  @override
+  String get acctSectionPrivacy => '개인정보 보호';
+
+  @override
+  String get acctSectionAccount => '계정';
+
+  @override
+  String get acctSectionFamily => '가족';
+
+  @override
+  String get acctSectionThisPhone => '이 휴대폰';
+
+  @override
+  String get acctRowVisibility => '프로필 공개 범위';
+
+  @override
+  String get acctRowBlocked => '차단한 사용자';
+
+  @override
+  String get acctRowApprovals => '승인';
+
+  @override
+  String get acctNothingWaiting => '대기 중 없음';
+
+  @override
+  String get acctRowLinked => '연결된 계정';
+
+  @override
+  String get acctRowScanToSignIn => '스캔하여 로그인';
+
+  @override
+  String get acctRowSetUpRecovery => '복구 문구 설정';
+
+  @override
+  String get acctRowChangeRecovery => '복구 문구 변경';
+
+  @override
+  String get acctSignOut => '로그아웃';
+
+  @override
+  String get acctDeleteAccount => '계정 삭제';
+
+  @override
+  String get acctConfirmDelete => '삭제하려면 다시 탭하세요';
+
+  @override
+  String get acctHandPhoneBack => '이 휴대폰 돌려주기';
+
+  @override
+  String get acctMyGrownUps => '나의 보호자';
+
+  @override
+  String get acctActionMessage => '메시지';
+
+  @override
+  String get acctActionAddFriend => '추가';
+
+  @override
+  String get acctActionRequested => '요청됨';
+
+  @override
+  String get acctActionAccept => '수락';
+
+  @override
+  String get acctActionNotAccepting => '받지 않음';
+
+  @override
+  String get acctActionUnfriend => '친구 끊기';
+
+  @override
+  String get acctActionBlock => '차단';
+
+  @override
+  String get acctActionReport => '신고';
+
+  @override
+  String get acctStatusFriends => '친구';
+
+  @override
+  String get acctStatusRequestSent => '요청 보냄';
+
+  @override
+  String get acctStatusWantsToConnect => '친구 요청을 보냈어요';
+
+  @override
+  String get acctStatusNotConnected => '연결 안 됨';
+
+  @override
+  String get acctPresenceOnline => '온라인';
+
+  @override
+  String get acctPresenceAway => '자리 비움';
+
+  @override
+  String get acctPresenceOffline => '오프라인';
+
+  @override
+  String get acctProfilePhoto => '프로필 사진';
+
+  @override
+  String get acctSaveToPhotos => '사진에 저장';
+
+  @override
+  String get acctTakeSelfie => '셀카 찍기';
+
+  @override
+  String get acctChooseFromLibrary => '보관함에서 선택';
+
+  @override
+  String get acctCancel => '취소';
+
+  @override
+  String get acctSave => '저장';
+
+  @override
+  String get acctChange => '변경';
+
+  @override
+  String get acctNotNow => '나중에';
+
+  @override
+  String get acctAddEmail => '이메일 추가';
+
+  @override
+  String get acctEditNameTitle => '이름 편집';
+
+  @override
+  String get acctAddNameTitle => '이름 추가';
+
+  @override
+  String get acctEditEmailTitle => '이메일 편집';
+
+  @override
+  String get acctChangeUsernameTitle => '사용자 이름을 변경할까요?';
+
+  @override
+  String get onboardingLookTitle => '나만의 스타일로';
+
+  @override
+  String get onboardingLookBody => '스타일을 골라 보세요. 설정에서 언제든 바꿀 수 있어요.';
+
+  @override
+  String get onboardingEssentials => '기본';
+
+  @override
+  String get onboardingEssentialsSub => '차분하고 기본에 충실한';
+
+  @override
+  String get onboardingCharacters => '개성파';
+
+  @override
+  String get onboardingCharactersSub => '같은 앱, 더 뚜렷한 개성';
+
+  @override
+  String get onboardingLightMode => '라이트 모드';
+
+  @override
+  String get onboardingDarkMode => '다크 모드';
+
+  @override
+  String get onboardingNow => '현재';
+
+  @override
+  String get onboardingContinue => '계속';
+
+  @override
+  String get onboardingIconTitle => '앱 아이콘';
+
+  @override
+  String get onboardingIconBody => '지금 아이콘을 그대로 두거나, 테마에 맞추거나, 원하는 아이콘을 골라요.';
+
+  @override
+  String get onboardingIconIosNote => '아이콘이 바뀔 때마다 iOS에서 짧은 알림이 표시돼요.';
+
+  @override
+  String get onboardingGetStarted => '시작하기';
+
+  @override
+  String get appIconMatchTheme => '테마에 맞춤';
+
+  @override
+  String get appIconCurrent => '현재';
+
+  @override
+  String get appIconSectionCollection => 'MonkeyHub 컬렉션';
+
+  @override
+  String get appIconSectionThemes => '테마 아이콘';
+
+  @override
+  String get appIconScreenTitle => '앱 아이콘';
+
+  @override
+  String get appIconMatchFooter =>
+      '\'테마에 맞춤\'은 다크 모드 테마에 맞춰 아이콘을 바꿔서, 하루 중에 계속 바뀌지 않아요.';
+
+  @override
+  String get loginTitleReturning => '다시 오신 걸 환영해요';
+
+  @override
+  String get loginTitleFirst => 'MonkeyHub에 오신 걸 환영해요';
+
+  @override
+  String get loginTitleSignUp => '계정 만들기';
+
+  @override
+  String get loginTitleReset => '비밀번호 재설정';
+
+  @override
+  String get loginSubtitleSignIn => '로그인하고 이어서 대화하세요.';
+
+  @override
+  String get loginSubtitleFirst => '로그인하거나 몇 초 만에 계정을 만드세요.';
+
+  @override
+  String get loginSubtitleSignUp => '사용자 이름과 비밀번호만 있으면 돼요.';
+
+  @override
+  String get loginSubtitleReset => '12단어 복구 문구를 입력하고 새 비밀번호를 정하세요.';
+
+  @override
+  String get loginCtaSignIn => '로그인';
+
+  @override
+  String get loginCtaSignUp => '계정 만들기';
+
+  @override
+  String get loginCtaReset => '비밀번호 재설정';
+
+  @override
+  String get loginNoAccountPrompt => '처음이세요? ';
+
+  @override
+  String get loginCreateAccountLink => '계정 만들기';
+
+  @override
+  String get loginHaveAccountPrompt => '이미 계정이 있나요? ';
+
+  @override
+  String get loginSignInLink => '로그인';
+
+  @override
+  String get loginForgotPassword => '비밀번호를 잊으셨나요?';
+
+  @override
+  String get loginChildAccount => '자녀 계정 설정';
+
+  @override
+  String get loginBackToSignIn => '로그인으로 돌아가기';
+
+  @override
+  String get loginWithPhone => '휴대폰으로 로그인';
+
+  @override
+  String get loginUsernameField => '사용자 이름';
+
+  @override
+  String get loginPasswordField => '비밀번호';
+
+  @override
+  String get loginConfirmPasswordField => '비밀번호 확인';
+
+  @override
+  String get loginNameField => '이름 (선택)';
+
+  @override
+  String get loginRecoveryPhraseField => '12단어 복구 문구';
+
+  @override
+  String get loginNewPasswordField => '새 비밀번호';
+
+  @override
+  String get roomHeaderStatusOnline => '온라인';
+
+  @override
+  String roomHeaderStatusMembers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '멤버 $count명',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsHubTitle => '설정';
+
+  @override
+  String get settingsHubAccountHintAdult => '프로필, 가족, 연결된 계정 및 개인정보';
+
+  @override
+  String get settingsHubAccountHintChild => '프로필, 개인정보 및 보호자';
+
+  @override
+  String get settingsHubSectionGeneral => '일반';
+
+  @override
+  String get settingsHubSectionNotifications => '알림';
+
+  @override
+  String get settingsHubSectionCalls => '통화';
+
+  @override
+  String get settingsHubSectionAppearance => '화면 모드';
+
+  @override
+  String get settingsHubSectionCompanions => '컴패니언';
+
+  @override
+  String get settingsHubSectionChats => '채팅';
+
+  @override
+  String get settingsHubSectionHelp => '도움말 및 법적 고지';
+
+  @override
+  String get settingsHubSectionAdvanced => '고급';
+
+  @override
+  String get settingsHubLanguage => '언어';
+
+  @override
+  String get settingsHubCheckForUpdates => '업데이트 확인';
+
+  @override
+  String get settingsHubUpdateAvailable => '업데이트 있음';
+
+  @override
+  String get settingsHubShowLinkUrls => '링크 주소 표시';
+
+  @override
+  String get settingsHubShowLinkUrlsSubtitle => '링크 미리보기 옆에 주소 표시';
+
+  @override
+  String get settingsHubPush => '푸시 알림';
+
+  @override
+  String get settingsHubPushSubtitle => '새 메시지, 통화 및 요청';
+
+  @override
+  String get settingsHubGameReminders => '매일 게임 알림';
+
+  @override
+  String get settingsHubGameRemindersSubtitle => '아직 안 했다면 점심에 한 번 알려줘요';
+
+  @override
+  String get settingsHubFriendActivity => '친구 활동';
+
+  @override
+  String get settingsHubFriendActivitySubtitle => '친구의 하이라이트, 포인트, 게임 결과';
+
+  @override
+  String get settingsHubMenuBar => '메뉴 막대 아이콘';
+
+  @override
+  String get settingsHubMenuBarSubtitle => '메뉴 막대에 읽지 않은 수 표시';
+
+  @override
+  String get settingsHubCallStats => '통화 통계 표시';
+
+  @override
+  String get settingsHubCallStatsSubtitle => '통화 중 해상도, 비트레이트, 핑';
+
+  @override
+  String get settingsHubTheme => '테마';
+
+  @override
+  String get settingsHubAppIcon => '앱 아이콘';
+
+  @override
+  String get settingsHubGlass => '글래스';
+
+  @override
+  String get settingsHubNavigation => '내비게이션';
+
+  @override
+  String get settingsHubMotion => '동작';
+
+  @override
+  String get settingsHubChatList => '채팅 목록';
+
+  @override
+  String get settingsHubChatStyle => '채팅 스타일';
+
+  @override
+  String get settingsHubBubbleStyle => '말풍선 스타일';
+
+  @override
+  String get settingsHubSpeakerColors => '말하는 사람 색상';
+
+  @override
+  String get settingsHubReplyStyle => '답장 스타일';
+
+  @override
+  String get settingsHubPrivacyPolicy => '개인정보 처리방침';
+
+  @override
+  String get settingsHubTerms => '서비스 약관';
+
+  @override
+  String get settingsHubLicence => '라이선스';
+
+  @override
+  String get settingsHubServer => '서버';
+
+  @override
+  String get settingsHubLayoutRows => '목록';
+
+  @override
+  String get settingsHubLayoutCards => '카드';
+
+  @override
+  String get settingsHubLayoutGrid => '그리드';
+
+  @override
+  String get settingsHubNavTabBar => '탭 바';
+
+  @override
+  String settingsHubThemeAuto(String name) {
+    return '자동 · $name';
+  }
+
+  @override
+  String get chatListPageRowsSub => '얼굴, 이름, 최근 메시지. 메시지 앱처럼.';
+
+  @override
+  String get chatListPageCardsSub => '방마다 카드 한 장, 모든 정보를 표시해요.';
+
+  @override
+  String get chatListPageGridSub => '타일 두 열. 한눈에 더 많은 방을.';
+
+  @override
+  String get chatListPageLayoutHeader => '레이아웃';
+
+  @override
+  String get chatListPageFiltersHeader => '필터';
+
+  @override
+  String get chatListPageChips => '칩';
+
+  @override
+  String get chatListPageChipsSub => '필터 한 줄, 언제나 한 번의 탭으로.';
+
+  @override
+  String get chatListPageButton => '버튼';
+
+  @override
+  String get chatListPageButtonSub => '필요할 때 필터를 여는 버튼 하나.';
+
+  @override
+  String get chatListPageEmptyHeader => '빈 방';
+
+  @override
+  String get chatListPagePlain => '단순';
+
+  @override
+  String get chatListPagePlainSub => '아직 대화가 없는 방은 비워 둬요.';
+
+  @override
+  String get chatListPageInitial => '첫 글자';
+
+  @override
+  String get chatListPageInitialSub => '크고 흐린 글자가 빈 모서리를 채워요.';
+
+  @override
+  String get chatListPageEmptyFooter => '그리드 레이아웃에 적용돼요.';
+
+  @override
+  String get chatStylePageFooter => '대화 헤더와 입력란이 그려지는 방식.';
+
+  @override
+  String get chatStyleClassicSub => '단단한 헤더와 평평한 입력란.';
+
+  @override
+  String get chatStyleCompactSub => '반투명 컨트롤이 대화 위에 떠 있어요.';
+
+  @override
+  String get bubbleTailedSub => '연속 메시지의 마지막에 꼬리. 메시지 앱처럼.';
+
+  @override
+  String get bubbleSoftSub => '꼬리 없음. 모서리로 묶여요.';
+
+  @override
+  String get bubblePillSub => '모든 메시지가 둥근 캡슐로.';
+
+  @override
+  String get bubbleSlabSub => '각진 어깨: 날카롭고 단호하게.';
+
+  @override
+  String get replyStylePageFooter => '답장이 원래 메시지를 보여주는 방식.';
+
+  @override
+  String get replyClassicSub => '메시지 위의 색 있는 인용. WhatsApp 스타일.';
+
+  @override
+  String get replyPhantomSub => '원래 메시지의 잔상이 위에 떠 곡선으로 이어져요.';
+
+  @override
+  String get replyStickySub => '모서리에 꽂힌 작고 기울어진 카드.';
+
+  @override
+  String get replyComicSub => '만화풍 꼬리가 달린 작은 말풍선.';
+
+  @override
+  String get motionMatchDevice => '기기 설정 따름';
+
+  @override
+  String get motionMatchDeviceCalmSub => '지금 기기에서 동작 줄이기가 켜져 있어요.';
+
+  @override
+  String get motionMatchDeviceFullSub => '지금 기기에서 애니메이션을 허용해요.';
+
+  @override
+  String get motionFullSub => '모든 탄성, 흐름, 장식까지.';
+
+  @override
+  String get motionCalmSub => '장식은 멈추고 나머지는 그대로예요.';
+
+  @override
+  String get navigationPageFooter => '채팅, 피드, 탐색, 설정 사이를 이동하는 방식.';
+
+  @override
+  String get navTabBarSub => '항상 보이고, 어디든 한 번에.';
+
+  @override
+  String get navOrbSub => '모서리에서 길게 눌러 끌어요. 익숙해질수록 좋은 제스처.';
+
+  @override
+  String get languageSystemLabel => '기기 언어';
+
+  @override
+  String get languagePageFooter => '메뉴와 앱 메시지. 채팅은 사람들이 쓴 언어 그대로예요.';
+
+  @override
+  String get speakerPageFooter => '그룹 채팅에서 누가 말하는지 한눈에.';
+
+  @override
+  String get speakerOffSub => '모두 같은 잉크로 써요.';
+
+  @override
+  String get speakerNamesSub => '이름과 얼굴에 각자 색이 생겨요.';
+
+  @override
+  String get speakerBubblesSub => '그 색이 메시지에도 이어져요.';
+
+  @override
+  String get themePageAutoFooter => '밝은 테마는 라이트 모드에서, 어두운 테마는 다크 모드에서 쓰여요.';
+
+  @override
+  String get themePageLightMode => '라이트 모드';
+
+  @override
+  String get themePageDarkMode => '다크 모드';
+
+  @override
+  String get themePageEssentials => '기본';
+
+  @override
+  String get themePageEssentialsFooter => '차분하고 네이티브하게, 다섯 가지 색으로.';
+
+  @override
+  String get themePageCharacters => '캐릭터';
+
+  @override
+  String get themePageCharactersFooter => '같은 레이아웃에 저마다의 개성. 길게 눌러 미리 보세요.';
+
+  @override
+  String get themePageLightBadge => '라이트';
+
+  @override
+  String get themePageDarkBadge => '다크';
+
+  @override
+  String get themePageInUse => '사용 중';
+
+  @override
+  String get themePageUseLight => '라이트 모드에 사용';
+
+  @override
+  String get themePageUseDark => '다크 모드에 사용';
+
+  @override
+  String themePageUse(String name) {
+    return '$name 사용';
+  }
+
+  @override
+  String get acctCaptureTitle => '화면 캡처 보호';
+
+  @override
+  String get acctCaptureOnIos => '녹화나 미러링 시 개인정보 보호 화면이 표시돼요.';
+
+  @override
+  String get acctCaptureOnAndroid => '스크린샷과 녹화가 검게 나와요.';
+
+  @override
+  String get acctCaptureOff => '스크린샷과 녹화가 평소처럼 작동해요.';
+
+  @override
+  String get acctCaptureFooter => '사라지는 메시지 방에서는 항상 켜져요.';
+
+  @override
+  String get acctActionPending => '대기 중';
+
+  @override
+  String get chatSwipePin => '고정';
+
+  @override
+  String get chatSwipeUnpin => '고정 해제';
+
+  @override
+  String get chatSwipeMute => '알림 끄기';
+
+  @override
+  String get chatSwipeUnmute => '알림 켜기';
+
+  @override
+  String get chatSwipeArchive => '보관';
+
+  @override
+  String get appearanceMatchDeviceSubtitle => '휴대폰에 맞춰 낮엔 라이트, 밤엔 다크';
+
+  @override
+  String get appearanceOneThemeSubtitle => '하루 종일 같은 스타일';
+
+  @override
+  String get riName => '이름';
+
+  @override
+  String get riDescription => '설명';
+
+  @override
+  String get riVisibility => '찾을 수 있는 사람';
+
+  @override
+  String get riPublic => '공개';
+
+  @override
+  String get riPublicSub => '누구나 둘러보기에서 찾을 수 있어요';
+
+  @override
+  String get riPrivate => '비공개';
+
+  @override
+  String get riPrivateSub => '초대한 사람만 참여할 수 있어요';
+
+  @override
+  String get riMessageLife => '메시지가 사라지는 시간';
+
+  @override
+  String get riPassword => '비밀번호';
+
+  @override
+  String get riRemovePassword => '비밀번호 제거';
+
+  @override
+  String get riSetPassword => '비밀번호 설정';
+
+  @override
+  String get riSharedContent => '공유된 콘텐츠';
+
+  @override
+  String riMembers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '멤버 $count명',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String riInvited(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '초대됨 $count명',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get riWithdraw => '취소';
+
+  @override
+  String get riNotifications => '알림';
+
+  @override
+  String get riTranslation => '번역';
+
+  @override
+  String get riNameColours => '이름 색상';
+
+  @override
+  String get riYouSuggested => '내가 제안한 항목';
+
+  @override
+  String get riTakeBack => '철회';
+
+  @override
+  String get riLeaveRoom => '방 나가기';
+
+  @override
+  String get riLeaving => '나가는 중…';
+
+  @override
+  String get riDeleteRoom => '방 삭제';
+
+  @override
+  String get riDeleting => '삭제 중…';
+
+  @override
+  String get riEndConversation => '대화 끝내기';
+
+  @override
+  String get riEnding => '끝내는 중…';
+
+  @override
+  String get riActionCall => '통화';
+
+  @override
+  String get riActionVideo => '영상';
+
+  @override
+  String get riActionMute => '무음';
+
+  @override
+  String get riActionUnmute => '무음 해제';
+
+  @override
+  String get riActionMedia => '미디어';
+
+  @override
+  String get riActionAdd => '추가';
+
+  @override
+  String get roomHeaderStatusTyping => '입력 중…';
+
+  @override
+  String get glassScreenLead => '뒤에 있는 것이 얼마나 비쳐 보일지.';
+
+  @override
+  String get transcriptDayToday => '오늘';
+
+  @override
+  String get acctRowDevices => '기기';
+
+  @override
+  String get acctThisDevice => '이 기기';
+
+  @override
+  String get acctRemove => '제거';
+
+  @override
+  String get acctRemoveDeviceTitle => '이 기기를 제거할까요?';
+
+  @override
+  String get acctRemoveAllTitle => '다른 모든 기기를 제거할까요?';
+
+  @override
+  String get acctRemoveAll => '모두 제거';
+
+  @override
+  String get acctActiveNow => '지금 활동 중';
+
+  @override
+  String get acctLoading => '불러오는 중…';
+
+  @override
+  String get acctDevicesLoadFailed => '기기를 불러오지 못했어요.';
+
+  @override
+  String get acctNoNotifications => '이 기기에는 알림이 오지 않아요';
+
+  @override
+  String get acctBlockedEmpty => '차단한 사람이 없어요.';
+
+  @override
+  String get acctUnblock => '차단 해제';
 }

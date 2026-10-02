@@ -8801,4 +8801,808 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get glassScreenNativeOffBody =>
       'MonkeyHubが独自のガラスをすべての場所で描画します。下のスライダーで調整できます。';
+
+  @override
+  String get glassScreenHeading => 'ガラス';
+
+  @override
+  String get glassStyleHeader => 'スタイル';
+
+  @override
+  String get glassStyleLiquidTitle => 'Liquid Glass';
+
+  @override
+  String get glassStyleLiquidBody => 'iOSが描くApple純正のガラス。アプリ内のボタンもそれに合わせます。';
+
+  @override
+  String get glassStyleFrostedTitle => 'すりガラス';
+
+  @override
+  String get glassStyleFrostedBody => 'MonkeyHub独自のガラス。すべてを自分で調整できます。';
+
+  @override
+  String get glassStyleRecommended => 'おすすめ';
+
+  @override
+  String get glassStyleLiquidFooter =>
+      '調整は不要です。ぼかし・色味・光はiOSが決めます。自分で調整するには「すりガラス」を選んでください。';
+
+  @override
+  String get acctSectionPrivacy => 'プライバシー';
+
+  @override
+  String get acctSectionAccount => 'アカウント';
+
+  @override
+  String get acctSectionFamily => 'ファミリー';
+
+  @override
+  String get acctSectionThisPhone => 'このスマートフォン';
+
+  @override
+  String get acctRowVisibility => 'プロフィールの公開範囲';
+
+  @override
+  String get acctRowBlocked => 'ブロック中のユーザー';
+
+  @override
+  String get acctRowApprovals => '承認';
+
+  @override
+  String get acctNothingWaiting => '保留中なし';
+
+  @override
+  String get acctRowLinked => 'リンク済みアカウント';
+
+  @override
+  String get acctRowScanToSignIn => 'スキャンしてサインイン';
+
+  @override
+  String get acctRowSetUpRecovery => '復元フレーズを設定';
+
+  @override
+  String get acctRowChangeRecovery => '復元フレーズを変更';
+
+  @override
+  String get acctSignOut => 'サインアウト';
+
+  @override
+  String get acctDeleteAccount => 'アカウントを削除';
+
+  @override
+  String get acctConfirmDelete => 'もう一度タップして削除';
+
+  @override
+  String get acctHandPhoneBack => 'このスマートフォンを返す';
+
+  @override
+  String get acctMyGrownUps => '見守ってくれる大人';
+
+  @override
+  String get acctActionMessage => 'メッセージ';
+
+  @override
+  String get acctActionAddFriend => '追加';
+
+  @override
+  String get acctActionRequested => '申請済み';
+
+  @override
+  String get acctActionAccept => '承認';
+
+  @override
+  String get acctActionNotAccepting => '受付停止';
+
+  @override
+  String get acctActionUnfriend => '友達解除';
+
+  @override
+  String get acctActionBlock => 'ブロック';
+
+  @override
+  String get acctActionReport => '報告';
+
+  @override
+  String get acctStatusFriends => '友達です';
+
+  @override
+  String get acctStatusRequestSent => 'リクエスト送信済み';
+
+  @override
+  String get acctStatusWantsToConnect => '友達になりたがっています';
+
+  @override
+  String get acctStatusNotConnected => 'つながっていません';
+
+  @override
+  String get acctPresenceOnline => 'オンライン';
+
+  @override
+  String get acctPresenceAway => '離席中';
+
+  @override
+  String get acctPresenceOffline => 'オフライン';
+
+  @override
+  String get acctProfilePhoto => 'プロフィール写真';
+
+  @override
+  String get acctSaveToPhotos => '写真に保存';
+
+  @override
+  String get acctTakeSelfie => 'セルフィーを撮る';
+
+  @override
+  String get acctChooseFromLibrary => 'ライブラリから選択';
+
+  @override
+  String get acctCancel => 'キャンセル';
+
+  @override
+  String get acctSave => '保存';
+
+  @override
+  String get acctChange => '変更';
+
+  @override
+  String get acctNotNow => '今はしない';
+
+  @override
+  String get acctAddEmail => 'メールを追加';
+
+  @override
+  String get acctEditNameTitle => '名前を編集';
+
+  @override
+  String get acctAddNameTitle => '名前を追加';
+
+  @override
+  String get acctEditEmailTitle => 'メールを編集';
+
+  @override
+  String get acctChangeUsernameTitle => 'ユーザー名を変更しますか？';
+
+  @override
+  String get onboardingLookTitle => '自分らしく';
+
+  @override
+  String get onboardingLookBody => '見た目を選びましょう。設定からいつでも変更できます。';
+
+  @override
+  String get onboardingEssentials => 'ベーシック';
+
+  @override
+  String get onboardingEssentialsSub => '落ち着いた純正スタイル';
+
+  @override
+  String get onboardingCharacters => '個性派';
+
+  @override
+  String get onboardingCharactersSub => '同じアプリに、もっと個性を';
+
+  @override
+  String get onboardingLightMode => 'ライトモード';
+
+  @override
+  String get onboardingDarkMode => 'ダークモード';
+
+  @override
+  String get onboardingNow => '現在';
+
+  @override
+  String get onboardingContinue => '続ける';
+
+  @override
+  String get onboardingIconTitle => 'アプリアイコン';
+
+  @override
+  String get onboardingIconBody => '今のアイコンのまま、テーマに合わせる、好きなものを選ぶ、から選べます。';
+
+  @override
+  String get onboardingIconIosNote => 'アイコンを変更するたびに、iOSが短い通知を表示します。';
+
+  @override
+  String get onboardingGetStarted => 'はじめる';
+
+  @override
+  String get appIconMatchTheme => 'テーマに合わせる';
+
+  @override
+  String get appIconCurrent => '現在';
+
+  @override
+  String get appIconSectionCollection => 'MonkeyHub コレクション';
+
+  @override
+  String get appIconSectionThemes => 'テーマのアイコン';
+
+  @override
+  String get appIconScreenTitle => 'アプリアイコン';
+
+  @override
+  String get appIconMatchFooter =>
+      '「テーマに合わせる」はダークモードのテーマに合わせてアイコンを変えるので、日中に何度も切り替わりません。';
+
+  @override
+  String get loginTitleReturning => 'おかえりなさい';
+
+  @override
+  String get loginTitleFirst => 'MonkeyHubへようこそ';
+
+  @override
+  String get loginTitleSignUp => 'アカウントを作成';
+
+  @override
+  String get loginTitleReset => 'パスワードをリセット';
+
+  @override
+  String get loginSubtitleSignIn => 'サインインして、続きから始めましょう。';
+
+  @override
+  String get loginSubtitleFirst => 'サインイン、または数秒でアカウントを作成できます。';
+
+  @override
+  String get loginSubtitleSignUp => '必要なのはユーザー名とパスワードだけです。';
+
+  @override
+  String get loginSubtitleReset => '12語のリカバリーフレーズを入力し、新しいパスワードを設定してください。';
+
+  @override
+  String get loginCtaSignIn => 'サインイン';
+
+  @override
+  String get loginCtaSignUp => 'アカウントを作成';
+
+  @override
+  String get loginCtaReset => 'パスワードをリセット';
+
+  @override
+  String get loginNoAccountPrompt => 'はじめての方は ';
+
+  @override
+  String get loginCreateAccountLink => 'アカウントを作成';
+
+  @override
+  String get loginHaveAccountPrompt => 'アカウントをお持ちの方は ';
+
+  @override
+  String get loginSignInLink => 'サインイン';
+
+  @override
+  String get loginForgotPassword => 'パスワードをお忘れですか？';
+
+  @override
+  String get loginChildAccount => '子ども用アカウントを設定';
+
+  @override
+  String get loginBackToSignIn => 'サインインに戻る';
+
+  @override
+  String get loginWithPhone => 'スマートフォンでサインイン';
+
+  @override
+  String get loginUsernameField => 'ユーザー名';
+
+  @override
+  String get loginPasswordField => 'パスワード';
+
+  @override
+  String get loginConfirmPasswordField => 'パスワード（確認）';
+
+  @override
+  String get loginNameField => '名前（任意）';
+
+  @override
+  String get loginRecoveryPhraseField => '12語のリカバリーフレーズ';
+
+  @override
+  String get loginNewPasswordField => '新しいパスワード';
+
+  @override
+  String get roomHeaderStatusOnline => 'オンライン';
+
+  @override
+  String roomHeaderStatusMembers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'メンバー$count人',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsHubTitle => '設定';
+
+  @override
+  String get settingsHubAccountHintAdult => 'プロフィール、ファミリー、リンク済みアカウント、プライバシー';
+
+  @override
+  String get settingsHubAccountHintChild => 'プロフィール、プライバシー、保護者';
+
+  @override
+  String get settingsHubSectionGeneral => '一般';
+
+  @override
+  String get settingsHubSectionNotifications => '通知';
+
+  @override
+  String get settingsHubSectionCalls => '通話';
+
+  @override
+  String get settingsHubSectionAppearance => '外観';
+
+  @override
+  String get settingsHubSectionCompanions => 'コンパニオン';
+
+  @override
+  String get settingsHubSectionChats => 'チャット';
+
+  @override
+  String get settingsHubSectionHelp => 'ヘルプと法的情報';
+
+  @override
+  String get settingsHubSectionAdvanced => '詳細';
+
+  @override
+  String get settingsHubLanguage => '言語';
+
+  @override
+  String get settingsHubCheckForUpdates => 'アップデートを確認';
+
+  @override
+  String get settingsHubUpdateAvailable => 'アップデートあり';
+
+  @override
+  String get settingsHubShowLinkUrls => 'リンクのアドレスを表示';
+
+  @override
+  String get settingsHubShowLinkUrlsSubtitle => 'リンクプレビューの横にアドレスを表示';
+
+  @override
+  String get settingsHubPush => 'プッシュ通知';
+
+  @override
+  String get settingsHubPushSubtitle => '新着メッセージ、通話、リクエスト';
+
+  @override
+  String get settingsHubGameReminders => '毎日のゲームリマインダー';
+
+  @override
+  String get settingsHubGameRemindersSubtitle => 'まだ遊んでいなければお昼に1回お知らせ';
+
+  @override
+  String get settingsHubFriendActivity => '友達のアクティビティ';
+
+  @override
+  String get settingsHubFriendActivitySubtitle => '友達のハイライト、ポイント、ゲーム結果';
+
+  @override
+  String get settingsHubMenuBar => 'メニューバーアイコン';
+
+  @override
+  String get settingsHubMenuBarSubtitle => '未読数をメニューバーに表示';
+
+  @override
+  String get settingsHubCallStats => '通話の統計を表示';
+
+  @override
+  String get settingsHubCallStatsSubtitle => '通話中の解像度、ビットレート、Ping';
+
+  @override
+  String get settingsHubTheme => 'テーマ';
+
+  @override
+  String get settingsHubAppIcon => 'アプリアイコン';
+
+  @override
+  String get settingsHubGlass => 'ガラス';
+
+  @override
+  String get settingsHubNavigation => 'ナビゲーション';
+
+  @override
+  String get settingsHubMotion => '動き';
+
+  @override
+  String get settingsHubChatList => 'チャットリスト';
+
+  @override
+  String get settingsHubChatStyle => 'チャットのスタイル';
+
+  @override
+  String get settingsHubBubbleStyle => '吹き出しのスタイル';
+
+  @override
+  String get settingsHubSpeakerColors => '話者の色';
+
+  @override
+  String get settingsHubReplyStyle => '返信のスタイル';
+
+  @override
+  String get settingsHubPrivacyPolicy => 'プライバシーポリシー';
+
+  @override
+  String get settingsHubTerms => '利用規約';
+
+  @override
+  String get settingsHubLicence => 'ライセンス';
+
+  @override
+  String get settingsHubServer => 'サーバー';
+
+  @override
+  String get settingsHubLayoutRows => 'リスト';
+
+  @override
+  String get settingsHubLayoutCards => 'カード';
+
+  @override
+  String get settingsHubLayoutGrid => 'グリッド';
+
+  @override
+  String get settingsHubNavTabBar => 'タブバー';
+
+  @override
+  String settingsHubThemeAuto(String name) {
+    return '自動 · $name';
+  }
+
+  @override
+  String get chatListPageRowsSub => '顔、名前、最新メッセージ。メッセージアプリのように。';
+
+  @override
+  String get chatListPageCardsSub => 'ルームごとにカード表示。詳細もすべて表示。';
+
+  @override
+  String get chatListPageGridSub => '2列のタイル。ひと目で多くのルームを。';
+
+  @override
+  String get chatListPageLayoutHeader => 'レイアウト';
+
+  @override
+  String get chatListPageFiltersHeader => 'フィルタ';
+
+  @override
+  String get chatListPageChips => 'チップ';
+
+  @override
+  String get chatListPageChipsSub => 'フィルタが一列に並び、いつでもワンタップ。';
+
+  @override
+  String get chatListPageButton => 'ボタン';
+
+  @override
+  String get chatListPageButtonSub => '必要なときだけフィルタを開くボタン。';
+
+  @override
+  String get chatListPageEmptyHeader => '空のルーム';
+
+  @override
+  String get chatListPagePlain => 'シンプル';
+
+  @override
+  String get chatListPagePlainSub => 'まだ会話のないルームは何も表示しません。';
+
+  @override
+  String get chatListPageInitial => '頭文字';
+
+  @override
+  String get chatListPageInitialSub => '大きく淡い文字が空いた角を埋めます。';
+
+  @override
+  String get chatListPageEmptyFooter => 'グリッドレイアウトに適用されます。';
+
+  @override
+  String get chatStylePageFooter => '会話のヘッダーと入力欄の表示方法。';
+
+  @override
+  String get chatStyleClassicSub => 'しっかりしたヘッダーとフラットな入力欄。';
+
+  @override
+  String get chatStyleCompactSub => 'すりガラスのボタンが会話の上に浮かびます。';
+
+  @override
+  String get bubbleTailedSub => '連続の最後のメッセージにしっぽ。メッセージアプリのように。';
+
+  @override
+  String get bubbleSoftSub => 'しっぽなし。角の形で連続をまとめます。';
+
+  @override
+  String get bubblePillSub => 'すべてのメッセージが丸いカプセルに。';
+
+  @override
+  String get bubbleSlabSub => '角ばった肩：シャープで意図的。';
+
+  @override
+  String get replyStylePageFooter => '返信が元のメッセージをどう表示するか。';
+
+  @override
+  String get replyClassicSub => 'メッセージの上に色付きの引用。WhatsApp風。';
+
+  @override
+  String get replyPhantomSub => '元メッセージの影が上に浮かび、曲線でつながります。';
+
+  @override
+  String get replyStickySub => '角に留めた小さな傾いたカード。';
+
+  @override
+  String get replyComicSub => 'マンガ風のしっぽ付きミニ吹き出し。';
+
+  @override
+  String get motionMatchDevice => 'デバイスに合わせる';
+
+  @override
+  String get motionMatchDeviceCalmSub => '今、デバイスは視差効果を減らす設定です。';
+
+  @override
+  String get motionMatchDeviceFullSub => '今、デバイスはアニメーションを許可しています。';
+
+  @override
+  String get motionFullSub => 'すべてのバネ、漂い、演出を。';
+
+  @override
+  String get motionCalmSub => '装飾は静止。それ以外は同じように動作します。';
+
+  @override
+  String get navigationPageFooter => 'チャット、フィード、見つける、設定の切り替え方法。';
+
+  @override
+  String get navTabBarSub => '常に表示。どこへでもワンタップ。';
+
+  @override
+  String get navOrbSub => '角から長押ししてドラッグ。慣れるほど心地よい操作。';
+
+  @override
+  String get languageSystemLabel => 'デバイスの言語';
+
+  @override
+  String get languagePageFooter => 'メニューとアプリのメッセージ。チャットは書かれた言語のままです。';
+
+  @override
+  String get speakerPageFooter => 'グループチャットで誰が話しているかひと目で。';
+
+  @override
+  String get speakerOffSub => 'みんな同じ色で表示されます。';
+
+  @override
+  String get speakerNamesSub => '名前と顔にそれぞれの色が付きます。';
+
+  @override
+  String get speakerBubblesSub => 'その色はメッセージにも反映されます。';
+
+  @override
+  String get themePageAutoFooter => 'ライトテーマはライトモード、ダークテーマはダークモードで使われます。';
+
+  @override
+  String get themePageLightMode => 'ライトモード';
+
+  @override
+  String get themePageDarkMode => 'ダークモード';
+
+  @override
+  String get themePageEssentials => 'ベーシック';
+
+  @override
+  String get themePageEssentialsFooter => '落ち着いたネイティブな見た目を5色で。';
+
+  @override
+  String get themePageCharacters => 'キャラクター';
+
+  @override
+  String get themePageCharactersFooter => 'レイアウトはそのまま、個性をプラス。長押しでプレビュー。';
+
+  @override
+  String get themePageLightBadge => 'ライト';
+
+  @override
+  String get themePageDarkBadge => 'ダーク';
+
+  @override
+  String get themePageInUse => '使用中';
+
+  @override
+  String get themePageUseLight => 'ライトモードで使う';
+
+  @override
+  String get themePageUseDark => 'ダークモードで使う';
+
+  @override
+  String themePageUse(String name) {
+    return '$nameを使う';
+  }
+
+  @override
+  String get acctCaptureTitle => '画面キャプチャ保護';
+
+  @override
+  String get acctCaptureOnIos => '録画やミラーリング時はプライバシー画面が表示されます。';
+
+  @override
+  String get acctCaptureOnAndroid => 'スクリーンショットや録画は黒く表示されます。';
+
+  @override
+  String get acctCaptureOff => 'スクリーンショットや録画は通常どおり使えます。';
+
+  @override
+  String get acctCaptureFooter => '消えるメッセージのルームでは常にオンになります。';
+
+  @override
+  String get acctActionPending => '保留中';
+
+  @override
+  String get chatSwipePin => 'ピン';
+
+  @override
+  String get chatSwipeUnpin => 'ピン解除';
+
+  @override
+  String get chatSwipeMute => '通知オフ';
+
+  @override
+  String get chatSwipeUnmute => '通知オン';
+
+  @override
+  String get chatSwipeArchive => 'アーカイブ';
+
+  @override
+  String get appearanceMatchDeviceSubtitle => 'スマホに合わせて、昼はライト、夜はダーク';
+
+  @override
+  String get appearanceOneThemeSubtitle => '一日中同じ見た目';
+
+  @override
+  String get riName => '名前';
+
+  @override
+  String get riDescription => '説明';
+
+  @override
+  String get riVisibility => '見つけられる人';
+
+  @override
+  String get riPublic => '公開';
+
+  @override
+  String get riPublicSub => '誰でも「見つける」で見つけられます';
+
+  @override
+  String get riPrivate => '非公開';
+
+  @override
+  String get riPrivateSub => '招待した人だけが参加できます';
+
+  @override
+  String get riMessageLife => 'メッセージが消えるまで';
+
+  @override
+  String get riPassword => 'パスワード';
+
+  @override
+  String get riRemovePassword => 'パスワードを削除';
+
+  @override
+  String get riSetPassword => 'パスワードを設定';
+
+  @override
+  String get riSharedContent => '共有コンテンツ';
+
+  @override
+  String riMembers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'メンバー $count人',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String riInvited(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '招待中 $count人',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get riWithdraw => '取り消す';
+
+  @override
+  String get riNotifications => '通知';
+
+  @override
+  String get riTranslation => '翻訳';
+
+  @override
+  String get riNameColours => '名前の色';
+
+  @override
+  String get riYouSuggested => 'あなたの提案';
+
+  @override
+  String get riTakeBack => '取り下げる';
+
+  @override
+  String get riLeaveRoom => 'ルームを退出';
+
+  @override
+  String get riLeaving => '退出中…';
+
+  @override
+  String get riDeleteRoom => 'ルームを削除';
+
+  @override
+  String get riDeleting => '削除中…';
+
+  @override
+  String get riEndConversation => '会話を終了';
+
+  @override
+  String get riEnding => '終了中…';
+
+  @override
+  String get riActionCall => '通話';
+
+  @override
+  String get riActionVideo => 'ビデオ';
+
+  @override
+  String get riActionMute => '消音';
+
+  @override
+  String get riActionUnmute => '消音解除';
+
+  @override
+  String get riActionMedia => 'メディア';
+
+  @override
+  String get riActionAdd => '追加';
+
+  @override
+  String get roomHeaderStatusTyping => '入力中…';
+
+  @override
+  String get glassScreenLead => '背景をどれだけ透かすか。';
+
+  @override
+  String get transcriptDayToday => '今日';
+
+  @override
+  String get acctRowDevices => 'デバイス';
+
+  @override
+  String get acctThisDevice => 'このデバイス';
+
+  @override
+  String get acctRemove => '削除';
+
+  @override
+  String get acctRemoveDeviceTitle => 'このデバイスを削除しますか？';
+
+  @override
+  String get acctRemoveAllTitle => '他のすべてのデバイスを削除しますか？';
+
+  @override
+  String get acctRemoveAll => 'すべて削除';
+
+  @override
+  String get acctActiveNow => 'アクティブ';
+
+  @override
+  String get acctLoading => '読み込み中…';
+
+  @override
+  String get acctDevicesLoadFailed => 'デバイスを読み込めませんでした。';
+
+  @override
+  String get acctNoNotifications => 'このデバイスには通知が届いていません';
+
+  @override
+  String get acctBlockedEmpty => 'ブロック中のユーザーはいません。';
+
+  @override
+  String get acctUnblock => 'ブロック解除';
 }

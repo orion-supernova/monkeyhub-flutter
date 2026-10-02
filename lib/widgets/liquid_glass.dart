@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../data/glass_config.dart';
 import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
+import '../screens/navigation/native_tab_bar.dart' show NativeChrome;
 import '../theme/theme_scope.dart';
 
 enum LiquidGlassShape { circle, capsule, rounded }
@@ -101,6 +102,9 @@ class _LiquidGlassState extends State<LiquidGlass> {
   Widget build(BuildContext context) {
     final config = widget.config;
     if (config != null) return _build(context, config);
+    // While iOS draws the tab bar, every app-drawn surface wears the matched
+    // recipe instead of the user's tuning, so the two read as one material.
+    if (NativeChrome.active) return _build(context, kNativeMatchGlass);
     // Only surfaces following the app-wide tuning subscribe. The bottom bar is
     // handed its config by a parent that already rebuilds on settings changes,
     // so making it listen too would just double the rebuilds.
@@ -121,9 +125,12 @@ class _LiquidGlassState extends State<LiquidGlass> {
     final overlayMid = 0.05 * frost;
 
     final clipShape = _border();
+    // Apple's glass has a white specular edge; the app's own frosted glass
+    // keeps its accent rim.
+    final rimTint = identical(cfg, kNativeMatchGlass) ? Colors.white : theme.accent;
     final framedShape = _border(
       side: BorderSide(
-        color: theme.accent.withValues(alpha: cfg.of(kRimOpacity)),
+        color: rimTint.withValues(alpha: cfg.of(kRimOpacity)),
         width: cfg.of(kRimWidth),
       ),
     );

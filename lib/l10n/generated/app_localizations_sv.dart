@@ -98,7 +98,7 @@ class AppLocalizationsSv extends AppLocalizations {
       'kunde inte hoppa till det meddelandet';
 
   @override
-  String get roomScreenUnreadDivider => 'OLÄSTA MEDDELANDEN';
+  String get roomScreenUnreadDivider => 'Olästa meddelanden';
 
   @override
   String get roomScreenViewOnceAlreadyViewed =>
@@ -9189,4 +9189,850 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get glassScreenNativeOffBody =>
       'MonkeyHub ritar sitt eget glas överallt, justerat med reglagen nedan.';
+
+  @override
+  String get glassScreenHeading => 'Glas';
+
+  @override
+  String get glassStyleHeader => 'Stil';
+
+  @override
+  String get glassStyleLiquidTitle => 'Liquid Glass';
+
+  @override
+  String get glassStyleLiquidBody =>
+      'Apples eget glas, ritat av iOS. Knapparna i appen matchar det.';
+
+  @override
+  String get glassStyleFrostedTitle => 'Frostat';
+
+  @override
+  String get glassStyleFrostedBody =>
+      'MonkeyHubs eget glas. Forma varje reglage själv.';
+
+  @override
+  String get glassStyleRecommended => 'Rekommenderas';
+
+  @override
+  String get glassStyleLiquidFooter =>
+      'Inget att justera: iOS styr oskärpa, ton och ljus. Välj Frostat för att forma glaset själv.';
+
+  @override
+  String get acctSectionPrivacy => 'Integritet';
+
+  @override
+  String get acctSectionAccount => 'Konto';
+
+  @override
+  String get acctSectionFamily => 'Familj';
+
+  @override
+  String get acctSectionThisPhone => 'Den här telefonen';
+
+  @override
+  String get acctRowVisibility => 'Profilens synlighet';
+
+  @override
+  String get acctRowBlocked => 'Blockerade användare';
+
+  @override
+  String get acctRowApprovals => 'Godkännanden';
+
+  @override
+  String get acctNothingWaiting => 'Inget väntar';
+
+  @override
+  String get acctRowLinked => 'Länkade konton';
+
+  @override
+  String get acctRowScanToSignIn => 'Skanna för att logga in';
+
+  @override
+  String get acctRowSetUpRecovery => 'Skapa återställningsfras';
+
+  @override
+  String get acctRowChangeRecovery => 'Byt återställningsfras';
+
+  @override
+  String get acctSignOut => 'Logga ut';
+
+  @override
+  String get acctDeleteAccount => 'Radera konto';
+
+  @override
+  String get acctConfirmDelete => 'Tryck igen för att radera';
+
+  @override
+  String get acctHandPhoneBack => 'Lämna tillbaka telefonen';
+
+  @override
+  String get acctMyGrownUps => 'Mina vuxna';
+
+  @override
+  String get acctActionMessage => 'Meddela';
+
+  @override
+  String get acctActionAddFriend => 'Lägg till';
+
+  @override
+  String get acctActionRequested => 'Skickad';
+
+  @override
+  String get acctActionAccept => 'Godkänn';
+
+  @override
+  String get acctActionNotAccepting => 'Stängt';
+
+  @override
+  String get acctActionUnfriend => 'Ta bort';
+
+  @override
+  String get acctActionBlock => 'Blockera';
+
+  @override
+  String get acctActionReport => 'Anmäl';
+
+  @override
+  String get acctStatusFriends => 'Ni är vänner';
+
+  @override
+  String get acctStatusRequestSent => 'Förfrågan skickad';
+
+  @override
+  String get acctStatusWantsToConnect => 'Vill bli vänner';
+
+  @override
+  String get acctStatusNotConnected => 'Inte kopplade';
+
+  @override
+  String get acctPresenceOnline => 'online';
+
+  @override
+  String get acctPresenceAway => 'borta';
+
+  @override
+  String get acctPresenceOffline => 'offline';
+
+  @override
+  String get acctProfilePhoto => 'Profilbild';
+
+  @override
+  String get acctSaveToPhotos => 'Spara i Bilder';
+
+  @override
+  String get acctTakeSelfie => 'Ta en selfie';
+
+  @override
+  String get acctChooseFromLibrary => 'Välj från biblioteket';
+
+  @override
+  String get acctCancel => 'Avbryt';
+
+  @override
+  String get acctSave => 'Spara';
+
+  @override
+  String get acctChange => 'Ändra';
+
+  @override
+  String get acctNotNow => 'Inte nu';
+
+  @override
+  String get acctAddEmail => 'Lägg till e-post';
+
+  @override
+  String get acctEditNameTitle => 'Redigera namn';
+
+  @override
+  String get acctAddNameTitle => 'Lägg till ditt namn';
+
+  @override
+  String get acctEditEmailTitle => 'Redigera e-post';
+
+  @override
+  String get acctChangeUsernameTitle => 'Byta användarnamn?';
+
+  @override
+  String get onboardingLookTitle => 'Gör den till din';
+
+  @override
+  String get onboardingLookBody =>
+      'Välj ett utseende. Du kan ändra det när som helst i Inställningar.';
+
+  @override
+  String get onboardingEssentials => 'Grundteman';
+
+  @override
+  String get onboardingEssentialsSub => 'Lugna och inbyggda';
+
+  @override
+  String get onboardingCharacters => 'Med karaktär';
+
+  @override
+  String get onboardingCharactersSub => 'Samma app, mer personlighet';
+
+  @override
+  String get onboardingLightMode => 'Ljust läge';
+
+  @override
+  String get onboardingDarkMode => 'Mörkt läge';
+
+  @override
+  String get onboardingNow => 'Nu';
+
+  @override
+  String get onboardingContinue => 'Fortsätt';
+
+  @override
+  String get onboardingIconTitle => 'Din appikon';
+
+  @override
+  String get onboardingIconBody =>
+      'Behåll din ikon, låt den följa ditt tema eller välj vilken som helst.';
+
+  @override
+  String get onboardingIconIosNote =>
+      'iOS visar ett kort meddelande varje gång ikonen ändras.';
+
+  @override
+  String get onboardingGetStarted => 'Kom igång';
+
+  @override
+  String get appIconMatchTheme => 'Följ temat';
+
+  @override
+  String get appIconCurrent => 'Nuvarande';
+
+  @override
+  String get appIconSectionCollection => 'MonkeyHub-samlingen';
+
+  @override
+  String get appIconSectionThemes => 'Temaikoner';
+
+  @override
+  String get appIconScreenTitle => 'Appikon';
+
+  @override
+  String get appIconMatchFooter =>
+      'Följ temat byter ikon tillsammans med ditt mörka tema, så att den inte växlar fram och tillbaka under dagen.';
+
+  @override
+  String get loginTitleReturning => 'Välkommen tillbaka';
+
+  @override
+  String get loginTitleFirst => 'Välkommen till MonkeyHub';
+
+  @override
+  String get loginTitleSignUp => 'Skapa ditt konto';
+
+  @override
+  String get loginTitleReset => 'Återställ ditt lösenord';
+
+  @override
+  String get loginSubtitleSignIn => 'Logga in och fortsätt där du slutade.';
+
+  @override
+  String get loginSubtitleFirst =>
+      'Logga in, eller skapa ett konto på några sekunder.';
+
+  @override
+  String get loginSubtitleSignUp =>
+      'Ett användarnamn och ett lösenord är allt som behövs.';
+
+  @override
+  String get loginSubtitleReset =>
+      'Ange din återställningsfras på 12 ord och välj ett nytt lösenord.';
+
+  @override
+  String get loginCtaSignIn => 'Logga in';
+
+  @override
+  String get loginCtaSignUp => 'Skapa konto';
+
+  @override
+  String get loginCtaReset => 'Återställ lösenord';
+
+  @override
+  String get loginNoAccountPrompt => 'Ny här? ';
+
+  @override
+  String get loginCreateAccountLink => 'Skapa ett konto';
+
+  @override
+  String get loginHaveAccountPrompt => 'Har du redan ett konto? ';
+
+  @override
+  String get loginSignInLink => 'Logga in';
+
+  @override
+  String get loginForgotPassword => 'Glömt lösenordet?';
+
+  @override
+  String get loginChildAccount => 'Konfigurera ett barnkonto';
+
+  @override
+  String get loginBackToSignIn => 'Tillbaka till inloggning';
+
+  @override
+  String get loginWithPhone => 'Logga in med telefonen';
+
+  @override
+  String get loginUsernameField => 'Användarnamn';
+
+  @override
+  String get loginPasswordField => 'Lösenord';
+
+  @override
+  String get loginConfirmPasswordField => 'Bekräfta lösenord';
+
+  @override
+  String get loginNameField => 'Namn (valfritt)';
+
+  @override
+  String get loginRecoveryPhraseField => 'Din återställningsfras på 12 ord';
+
+  @override
+  String get loginNewPasswordField => 'Nytt lösenord';
+
+  @override
+  String get roomHeaderStatusOnline => 'online';
+
+  @override
+  String roomHeaderStatusMembers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count medlemmar',
+      one: '$count medlem',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsHubTitle => 'Inställningar';
+
+  @override
+  String get settingsHubAccountHintAdult =>
+      'Profil, familj, länkade konton och integritet';
+
+  @override
+  String get settingsHubAccountHintChild => 'Profil, integritet och dina vuxna';
+
+  @override
+  String get settingsHubSectionGeneral => 'Allmänt';
+
+  @override
+  String get settingsHubSectionNotifications => 'Notiser';
+
+  @override
+  String get settingsHubSectionCalls => 'Samtal';
+
+  @override
+  String get settingsHubSectionAppearance => 'Utseende';
+
+  @override
+  String get settingsHubSectionCompanions => 'Följeslagare';
+
+  @override
+  String get settingsHubSectionChats => 'Chattar';
+
+  @override
+  String get settingsHubSectionHelp => 'Hjälp och juridik';
+
+  @override
+  String get settingsHubSectionAdvanced => 'Avancerat';
+
+  @override
+  String get settingsHubLanguage => 'Språk';
+
+  @override
+  String get settingsHubCheckForUpdates => 'Sök efter uppdateringar';
+
+  @override
+  String get settingsHubUpdateAvailable => 'Uppdatering finns';
+
+  @override
+  String get settingsHubShowLinkUrls => 'Visa länkadresser';
+
+  @override
+  String get settingsHubShowLinkUrlsSubtitle =>
+      'Visar adressen bredvid varje förhandsvisning';
+
+  @override
+  String get settingsHubPush => 'Pushnotiser';
+
+  @override
+  String get settingsHubPushSubtitle =>
+      'Nya meddelanden, samtal och förfrågningar';
+
+  @override
+  String get settingsHubGameReminders => 'Daglig spelpåminnelse';
+
+  @override
+  String get settingsHubGameRemindersSubtitle =>
+      'En påminnelse vid lunch om du inte har spelat';
+
+  @override
+  String get settingsHubFriendActivity => 'Vänaktivitet';
+
+  @override
+  String get settingsHubFriendActivitySubtitle =>
+      'Höjdpunkter, poäng och spelresultat från vänner';
+
+  @override
+  String get settingsHubMenuBar => 'Menyradssymbol';
+
+  @override
+  String get settingsHubMenuBarSubtitle => 'Visar olästa i menyraden';
+
+  @override
+  String get settingsHubCallStats => 'Visa samtalsstatistik';
+
+  @override
+  String get settingsHubCallStatsSubtitle =>
+      'Upplösning, bithastighet och ping under samtal';
+
+  @override
+  String get settingsHubTheme => 'Tema';
+
+  @override
+  String get settingsHubAppIcon => 'Appsymbol';
+
+  @override
+  String get settingsHubGlass => 'Glas';
+
+  @override
+  String get settingsHubNavigation => 'Navigering';
+
+  @override
+  String get settingsHubMotion => 'Rörelse';
+
+  @override
+  String get settingsHubChatList => 'Chattlista';
+
+  @override
+  String get settingsHubChatStyle => 'Chattstil';
+
+  @override
+  String get settingsHubBubbleStyle => 'Bubbelstil';
+
+  @override
+  String get settingsHubSpeakerColors => 'Talarfärger';
+
+  @override
+  String get settingsHubReplyStyle => 'Svarsstil';
+
+  @override
+  String get settingsHubPrivacyPolicy => 'Integritetspolicy';
+
+  @override
+  String get settingsHubTerms => 'Användarvillkor';
+
+  @override
+  String get settingsHubLicence => 'Licens';
+
+  @override
+  String get settingsHubServer => 'Server';
+
+  @override
+  String get settingsHubLayoutRows => 'Rader';
+
+  @override
+  String get settingsHubLayoutCards => 'Kort';
+
+  @override
+  String get settingsHubLayoutGrid => 'Rutnät';
+
+  @override
+  String get settingsHubNavTabBar => 'Flikfält';
+
+  @override
+  String settingsHubThemeAuto(String name) {
+    return 'Auto · $name';
+  }
+
+  @override
+  String get chatListPageRowsSub =>
+      'Ett ansikte, ett namn och senaste meddelandet, som i Meddelanden.';
+
+  @override
+  String get chatListPageCardsSub =>
+      'Varje rum på ett eget kort, varje detalj utskriven.';
+
+  @override
+  String get chatListPageGridSub =>
+      'Två kolumner med rutor. Fler rum på en gång.';
+
+  @override
+  String get chatListPageLayoutHeader => 'Layout';
+
+  @override
+  String get chatListPageFiltersHeader => 'Filter';
+
+  @override
+  String get chatListPageChips => 'Chips';
+
+  @override
+  String get chatListPageChipsSub => 'En rad filter, alltid ett tryck bort.';
+
+  @override
+  String get chatListPageButton => 'Knapp';
+
+  @override
+  String get chatListPageButtonSub =>
+      'En knapp som öppnar filtren när du vill.';
+
+  @override
+  String get chatListPageEmptyHeader => 'Tomma rum';
+
+  @override
+  String get chatListPagePlain => 'Enkel';
+
+  @override
+  String get chatListPagePlainSub =>
+      'Ett rum där inget sagts ännu förblir tomt.';
+
+  @override
+  String get chatListPageInitial => 'Initial';
+
+  @override
+  String get chatListPageInitialSub =>
+      'En stor blek bokstav fyller det tomma hörnet.';
+
+  @override
+  String get chatListPageEmptyFooter => 'Gäller rutnätslayouten.';
+
+  @override
+  String get chatStylePageFooter =>
+      'Hur konversationens rubrik och meddelandefält ritas.';
+
+  @override
+  String get chatStyleClassicSub =>
+      'En fast rubrik och ett platt meddelandefält.';
+
+  @override
+  String get chatStyleCompactSub =>
+      'Frostade kontroller svävar över konversationen.';
+
+  @override
+  String get bubbleTailedSub =>
+      'En svans på sista meddelandet i varje följd, som i Meddelanden.';
+
+  @override
+  String get bubbleSoftSub => 'Ingen svans. Följden hålls ihop av hörnen.';
+
+  @override
+  String get bubblePillSub => 'Helt rundade kapslar för varje meddelande.';
+
+  @override
+  String get bubbleSlabSub => 'Fyrkantiga axlar: skarpa och avsiktliga.';
+
+  @override
+  String get replyStylePageFooter =>
+      'Hur ett svar visar meddelandet det besvarar.';
+
+  @override
+  String get replyClassicSub =>
+      'Ett tonat citat ovanför meddelandet, som i WhatsApp.';
+
+  @override
+  String get replyPhantomSub =>
+      'Ett spöke av originalet svävar ovanför, förbundet med en kurva.';
+
+  @override
+  String get replyStickySub => 'Ett litet lutande kort fäst i hörnet.';
+
+  @override
+  String get replyComicSub => 'En minibubbla med serietidningssvans.';
+
+  @override
+  String get motionMatchDevice => 'Som enheten';
+
+  @override
+  String get motionMatchDeviceCalmSub =>
+      'Din enhet ber om minskad rörelse just nu.';
+
+  @override
+  String get motionMatchDeviceFullSub =>
+      'Din enhet tillåter animering just nu.';
+
+  @override
+  String get motionFullSub => 'Varje fjädring, glidning och krusidull.';
+
+  @override
+  String get motionCalmSub =>
+      'Dekorationer står still. Allt annat fungerar som vanligt.';
+
+  @override
+  String get navigationPageFooter =>
+      'Hur du rör dig mellan Chattar, Flöde, Upptäck och Inställningar.';
+
+  @override
+  String get navTabBarSub => 'Alltid synlig, ett tryck till var som helst.';
+
+  @override
+  String get navOrbSub => 'Håll och dra från hörnet. En gest man växer in i.';
+
+  @override
+  String get languageSystemLabel => 'Enhetens språk';
+
+  @override
+  String get languagePageFooter =>
+      'Menyer och appmeddelanden. Chattar förblir på det språk folk skriver.';
+
+  @override
+  String get speakerPageFooter => 'Se direkt vem som pratar i gruppchattar.';
+
+  @override
+  String get speakerOffSub => 'Alla skriver med samma bläck.';
+
+  @override
+  String get speakerNamesSub => 'Varje person får en färg på namn och ansikte.';
+
+  @override
+  String get speakerBubblesSub => 'Färgen följer med in i meddelandena också.';
+
+  @override
+  String get themePageAutoFooter =>
+      'Ljusa teman används i ljust läge, mörka i mörkt läge.';
+
+  @override
+  String get themePageLightMode => 'Ljust läge';
+
+  @override
+  String get themePageDarkMode => 'Mörkt läge';
+
+  @override
+  String get themePageEssentials => 'Grundteman';
+
+  @override
+  String get themePageEssentialsFooter => 'Lugna och inbyggda, i fem färger.';
+
+  @override
+  String get themePageCharacters => 'Karaktärer';
+
+  @override
+  String get themePageCharactersFooter =>
+      'Samma layout, med en egen personlighet. Håll på ett tema för att förhandsvisa.';
+
+  @override
+  String get themePageLightBadge => 'Ljust';
+
+  @override
+  String get themePageDarkBadge => 'Mörkt';
+
+  @override
+  String get themePageInUse => 'Används';
+
+  @override
+  String get themePageUseLight => 'Använd i ljust läge';
+
+  @override
+  String get themePageUseDark => 'Använd i mörkt läge';
+
+  @override
+  String themePageUse(String name) {
+    return 'Använd $name';
+  }
+
+  @override
+  String get acctCaptureTitle => 'Skydd mot skärminspelning';
+
+  @override
+  String get acctCaptureOnIos =>
+      'Inspelning och skärmdelning visar ett integritetsskydd.';
+
+  @override
+  String get acctCaptureOnAndroid =>
+      'Skärmbilder och inspelningar blir svarta.';
+
+  @override
+  String get acctCaptureOff =>
+      'Skärmbilder och inspelningar fungerar som vanligt.';
+
+  @override
+  String get acctCaptureFooter =>
+      'Rum med försvinnande meddelanden slår alltid på detta.';
+
+  @override
+  String get acctActionPending => 'Väntar';
+
+  @override
+  String get chatSwipePin => 'Fäst';
+
+  @override
+  String get chatSwipeUnpin => 'Lossa';
+
+  @override
+  String get chatSwipeMute => 'Tysta';
+
+  @override
+  String get chatSwipeUnmute => 'Slå på';
+
+  @override
+  String get chatSwipeArchive => 'Arkivera';
+
+  @override
+  String get appearanceMatchDeviceSubtitle =>
+      'Ljust på dagen, mörkt på kvällen, som din telefon';
+
+  @override
+  String get appearanceOneThemeSubtitle => 'Samma utseende hela dagen';
+
+  @override
+  String get riName => 'Namn';
+
+  @override
+  String get riDescription => 'Beskrivning';
+
+  @override
+  String get riVisibility => 'Vem kan hitta det';
+
+  @override
+  String get riPublic => 'Offentligt';
+
+  @override
+  String get riPublicSub => 'Alla kan hitta det i Upptäck';
+
+  @override
+  String get riPrivate => 'Privat';
+
+  @override
+  String get riPrivateSub => 'Bara de du bjuder in kan gå med';
+
+  @override
+  String get riMessageLife => 'Meddelanden försvinner efter';
+
+  @override
+  String get riPassword => 'Lösenord';
+
+  @override
+  String get riRemovePassword => 'Ta bort lösenord';
+
+  @override
+  String get riSetPassword => 'Ange lösenord';
+
+  @override
+  String get riSharedContent => 'Delat innehåll';
+
+  @override
+  String riMembers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count medlemmar',
+      one: '1 medlem',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String riInvited(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count inbjudna',
+      one: '1 inbjuden',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get riWithdraw => 'Dra tillbaka';
+
+  @override
+  String get riNotifications => 'Aviseringar';
+
+  @override
+  String get riTranslation => 'Översättning';
+
+  @override
+  String get riNameColours => 'Namnfärger';
+
+  @override
+  String get riYouSuggested => 'Du föreslog';
+
+  @override
+  String get riTakeBack => 'Ta tillbaka';
+
+  @override
+  String get riLeaveRoom => 'Lämna rummet';
+
+  @override
+  String get riLeaving => 'Lämnar…';
+
+  @override
+  String get riDeleteRoom => 'Radera rummet';
+
+  @override
+  String get riDeleting => 'Raderar…';
+
+  @override
+  String get riEndConversation => 'Avsluta konversationen';
+
+  @override
+  String get riEnding => 'Avslutar…';
+
+  @override
+  String get riActionCall => 'Ring';
+
+  @override
+  String get riActionVideo => 'Video';
+
+  @override
+  String get riActionMute => 'Tysta';
+
+  @override
+  String get riActionUnmute => 'Slå på ljud';
+
+  @override
+  String get riActionMedia => 'Media';
+
+  @override
+  String get riActionAdd => 'Lägg till';
+
+  @override
+  String get roomHeaderStatusTyping => 'skriver…';
+
+  @override
+  String get glassScreenLead => 'Hur mycket av det bakom som syns igenom.';
+
+  @override
+  String get transcriptDayToday => 'Idag';
+
+  @override
+  String get acctRowDevices => 'Enheter';
+
+  @override
+  String get acctThisDevice => 'Den här enheten';
+
+  @override
+  String get acctRemove => 'Ta bort';
+
+  @override
+  String get acctRemoveDeviceTitle => 'Ta bort den här enheten?';
+
+  @override
+  String get acctRemoveAllTitle => 'Ta bort alla andra enheter?';
+
+  @override
+  String get acctRemoveAll => 'Ta bort alla';
+
+  @override
+  String get acctActiveNow => 'Aktiv nu';
+
+  @override
+  String get acctLoading => 'Laddar…';
+
+  @override
+  String get acctDevicesLoadFailed => 'Kunde inte läsa in dina enheter.';
+
+  @override
+  String get acctNoNotifications => 'Aviseringar når inte den här';
+
+  @override
+  String get acctBlockedEmpty => 'Du har inte blockerat någon.';
+
+  @override
+  String get acctUnblock => 'Avblockera';
 }

@@ -9169,4 +9169,846 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get glassScreenNativeOffBody =>
       'MonkeyHub हर जगह अपना ग्लास खुद बनाता है, जिसे नीचे के स्लाइडर ट्यून करते हैं।';
+
+  @override
+  String get glassScreenHeading => 'ग्लास';
+
+  @override
+  String get glassStyleHeader => 'स्टाइल';
+
+  @override
+  String get glassStyleLiquidTitle => 'Liquid Glass';
+
+  @override
+  String get glassStyleLiquidBody =>
+      'Apple का अपना ग्लास, जिसे iOS बनाता है। ऐप के बटन भी उसी से मेल खाते हैं।';
+
+  @override
+  String get glassStyleFrostedTitle => 'फ़्रॉस्टेड';
+
+  @override
+  String get glassStyleFrostedBody =>
+      'MonkeyHub का अपना ग्लास। हर सेटिंग खुद तय करें।';
+
+  @override
+  String get glassStyleRecommended => 'सुझाया गया';
+
+  @override
+  String get glassStyleLiquidFooter =>
+      'कुछ ट्यून करने की ज़रूरत नहीं: ब्लर, रंगत और रोशनी iOS तय करता है। ग्लास खुद बनाने के लिए फ़्रॉस्टेड चुनें।';
+
+  @override
+  String get acctSectionPrivacy => 'गोपनीयता';
+
+  @override
+  String get acctSectionAccount => 'खाता';
+
+  @override
+  String get acctSectionFamily => 'परिवार';
+
+  @override
+  String get acctSectionThisPhone => 'यह फ़ोन';
+
+  @override
+  String get acctRowVisibility => 'प्रोफ़ाइल दृश्यता';
+
+  @override
+  String get acctRowBlocked => 'ब्लॉक किए गए उपयोगकर्ता';
+
+  @override
+  String get acctRowApprovals => 'स्वीकृतियाँ';
+
+  @override
+  String get acctNothingWaiting => 'कुछ बाकी नहीं';
+
+  @override
+  String get acctRowLinked => 'लिंक किए गए खाते';
+
+  @override
+  String get acctRowScanToSignIn => 'साइन इन के लिए स्कैन करें';
+
+  @override
+  String get acctRowSetUpRecovery => 'रिकवरी वाक्यांश सेट करें';
+
+  @override
+  String get acctRowChangeRecovery => 'रिकवरी वाक्यांश बदलें';
+
+  @override
+  String get acctSignOut => 'साइन आउट';
+
+  @override
+  String get acctDeleteAccount => 'खाता हटाएँ';
+
+  @override
+  String get acctConfirmDelete => 'हटाने के लिए फिर से टैप करें';
+
+  @override
+  String get acctHandPhoneBack => 'यह फ़ोन वापस सौंपें';
+
+  @override
+  String get acctMyGrownUps => 'मेरे बड़े';
+
+  @override
+  String get acctActionMessage => 'संदेश';
+
+  @override
+  String get acctActionAddFriend => 'जोड़ें';
+
+  @override
+  String get acctActionRequested => 'भेजा गया';
+
+  @override
+  String get acctActionAccept => 'स्वीकारें';
+
+  @override
+  String get acctActionNotAccepting => 'बंद';
+
+  @override
+  String get acctActionUnfriend => 'हटाएँ';
+
+  @override
+  String get acctActionBlock => 'ब्लॉक';
+
+  @override
+  String get acctActionReport => 'रिपोर्ट';
+
+  @override
+  String get acctStatusFriends => 'आप मित्र हैं';
+
+  @override
+  String get acctStatusRequestSent => 'अनुरोध भेजा गया';
+
+  @override
+  String get acctStatusWantsToConnect => 'आपसे मित्रता करना चाहते हैं';
+
+  @override
+  String get acctStatusNotConnected => 'आप जुड़े नहीं हैं';
+
+  @override
+  String get acctPresenceOnline => 'ऑनलाइन';
+
+  @override
+  String get acctPresenceAway => 'दूर';
+
+  @override
+  String get acctPresenceOffline => 'ऑफ़लाइन';
+
+  @override
+  String get acctProfilePhoto => 'प्रोफ़ाइल फ़ोटो';
+
+  @override
+  String get acctSaveToPhotos => 'फ़ोटो में सहेजें';
+
+  @override
+  String get acctTakeSelfie => 'सेल्फ़ी लें';
+
+  @override
+  String get acctChooseFromLibrary => 'लाइब्रेरी से चुनें';
+
+  @override
+  String get acctCancel => 'रद्द करें';
+
+  @override
+  String get acctSave => 'सहेजें';
+
+  @override
+  String get acctChange => 'बदलें';
+
+  @override
+  String get acctNotNow => 'अभी नहीं';
+
+  @override
+  String get acctAddEmail => 'ईमेल जोड़ें';
+
+  @override
+  String get acctEditNameTitle => 'नाम बदलें';
+
+  @override
+  String get acctAddNameTitle => 'अपना नाम जोड़ें';
+
+  @override
+  String get acctEditEmailTitle => 'ईमेल बदलें';
+
+  @override
+  String get acctChangeUsernameTitle => 'यूज़रनेम बदलें?';
+
+  @override
+  String get onboardingLookTitle => 'इसे अपना बनाएं';
+
+  @override
+  String get onboardingLookBody =>
+      'एक लुक चुनें। आप इसे कभी भी सेटिंग्स में बदल सकते हैं।';
+
+  @override
+  String get onboardingEssentials => 'ज़रूरी';
+
+  @override
+  String get onboardingEssentialsSub => 'शांत और नेटिव';
+
+  @override
+  String get onboardingCharacters => 'किरदार वाले';
+
+  @override
+  String get onboardingCharactersSub => 'वही ऐप, ज़्यादा अंदाज़';
+
+  @override
+  String get onboardingLightMode => 'लाइट मोड';
+
+  @override
+  String get onboardingDarkMode => 'डार्क मोड';
+
+  @override
+  String get onboardingNow => 'अभी';
+
+  @override
+  String get onboardingContinue => 'जारी रखें';
+
+  @override
+  String get onboardingIconTitle => 'आपका ऐप आइकन';
+
+  @override
+  String get onboardingIconBody =>
+      'अपना मौजूदा आइकन रखें, उसे अपनी थीम के साथ बदलने दें, या कोई भी चुनें।';
+
+  @override
+  String get onboardingIconIosNote =>
+      'आइकन बदलने पर iOS हर बार एक छोटा नोटिस दिखाता है।';
+
+  @override
+  String get onboardingGetStarted => 'शुरू करें';
+
+  @override
+  String get appIconMatchTheme => 'थीम के साथ';
+
+  @override
+  String get appIconCurrent => 'मौजूदा';
+
+  @override
+  String get appIconSectionCollection => 'MonkeyHub कलेक्शन';
+
+  @override
+  String get appIconSectionThemes => 'थीम आइकन';
+
+  @override
+  String get appIconScreenTitle => 'ऐप आइकन';
+
+  @override
+  String get appIconMatchFooter =>
+      '\'थीम के साथ\' आइकन को आपकी डार्क मोड थीम के साथ बदलता है, ताकि दिन भर वह बार-बार न बदले।';
+
+  @override
+  String get loginTitleReturning => 'फिर से स्वागत है';
+
+  @override
+  String get loginTitleFirst => 'MonkeyHub में स्वागत है';
+
+  @override
+  String get loginTitleSignUp => 'अपना खाता बनाएं';
+
+  @override
+  String get loginTitleReset => 'अपना पासवर्ड रीसेट करें';
+
+  @override
+  String get loginSubtitleSignIn =>
+      'जहां छोड़ा था वहीं से जारी रखने के लिए साइन इन करें।';
+
+  @override
+  String get loginSubtitleFirst =>
+      'साइन इन करें, या कुछ ही सेकंड में खाता बनाएं।';
+
+  @override
+  String get loginSubtitleSignUp => 'बस एक यूज़रनेम और पासवर्ड चाहिए।';
+
+  @override
+  String get loginSubtitleReset =>
+      'अपना 12 शब्दों वाला रिकवरी फ़्रेज़ डालें और नया पासवर्ड चुनें।';
+
+  @override
+  String get loginCtaSignIn => 'साइन इन करें';
+
+  @override
+  String get loginCtaSignUp => 'खाता बनाएं';
+
+  @override
+  String get loginCtaReset => 'पासवर्ड रीसेट करें';
+
+  @override
+  String get loginNoAccountPrompt => 'नए हैं? ';
+
+  @override
+  String get loginCreateAccountLink => 'खाता बनाएं';
+
+  @override
+  String get loginHaveAccountPrompt => 'पहले से खाता है? ';
+
+  @override
+  String get loginSignInLink => 'साइन इन करें';
+
+  @override
+  String get loginForgotPassword => 'पासवर्ड भूल गए?';
+
+  @override
+  String get loginChildAccount => 'बच्चे का खाता सेट करें';
+
+  @override
+  String get loginBackToSignIn => 'साइन इन पर वापस जाएं';
+
+  @override
+  String get loginWithPhone => 'अपने फ़ोन से साइन इन करें';
+
+  @override
+  String get loginUsernameField => 'यूज़रनेम';
+
+  @override
+  String get loginPasswordField => 'पासवर्ड';
+
+  @override
+  String get loginConfirmPasswordField => 'पासवर्ड की पुष्टि करें';
+
+  @override
+  String get loginNameField => 'नाम (वैकल्पिक)';
+
+  @override
+  String get loginRecoveryPhraseField => 'आपका 12 शब्दों वाला रिकवरी फ़्रेज़';
+
+  @override
+  String get loginNewPasswordField => 'नया पासवर्ड';
+
+  @override
+  String get roomHeaderStatusOnline => 'ऑनलाइन';
+
+  @override
+  String roomHeaderStatusMembers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count सदस्य',
+      one: '$count सदस्य',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsHubTitle => 'सेटिंग्स';
+
+  @override
+  String get settingsHubAccountHintAdult =>
+      'प्रोफ़ाइल, परिवार, जुड़े खाते और गोपनीयता';
+
+  @override
+  String get settingsHubAccountHintChild =>
+      'प्रोफ़ाइल, गोपनीयता और तुम्हारे बड़े';
+
+  @override
+  String get settingsHubSectionGeneral => 'सामान्य';
+
+  @override
+  String get settingsHubSectionNotifications => 'सूचनाएँ';
+
+  @override
+  String get settingsHubSectionCalls => 'कॉल';
+
+  @override
+  String get settingsHubSectionAppearance => 'रूप';
+
+  @override
+  String get settingsHubSectionCompanions => 'साथी';
+
+  @override
+  String get settingsHubSectionChats => 'चैट';
+
+  @override
+  String get settingsHubSectionHelp => 'सहायता और कानूनी';
+
+  @override
+  String get settingsHubSectionAdvanced => 'उन्नत';
+
+  @override
+  String get settingsHubLanguage => 'भाषा';
+
+  @override
+  String get settingsHubCheckForUpdates => 'अपडेट जाँचें';
+
+  @override
+  String get settingsHubUpdateAvailable => 'अपडेट उपलब्ध';
+
+  @override
+  String get settingsHubShowLinkUrls => 'लिंक के पते दिखाएँ';
+
+  @override
+  String get settingsHubShowLinkUrlsSubtitle =>
+      'हर लिंक प्रीव्यू के साथ पता दिखाएँ';
+
+  @override
+  String get settingsHubPush => 'पुश सूचनाएँ';
+
+  @override
+  String get settingsHubPushSubtitle => 'नए संदेश, कॉल और अनुरोध';
+
+  @override
+  String get settingsHubGameReminders => 'रोज़ाना गेम रिमाइंडर';
+
+  @override
+  String get settingsHubGameRemindersSubtitle =>
+      'अगर नहीं खेला तो दोपहर में एक याद';
+
+  @override
+  String get settingsHubFriendActivity => 'दोस्तों की गतिविधि';
+
+  @override
+  String get settingsHubFriendActivitySubtitle =>
+      'दोस्तों की खास बातें, पॉइंट और गेम नतीजे';
+
+  @override
+  String get settingsHubMenuBar => 'मेन्यू बार आइकन';
+
+  @override
+  String get settingsHubMenuBarSubtitle =>
+      'मेन्यू बार में अपठित संख्या दिखाता है';
+
+  @override
+  String get settingsHubCallStats => 'कॉल आँकड़े दिखाएँ';
+
+  @override
+  String get settingsHubCallStatsSubtitle =>
+      'कॉल के दौरान रेज़ोल्यूशन, बिटरेट और पिंग';
+
+  @override
+  String get settingsHubTheme => 'थीम';
+
+  @override
+  String get settingsHubAppIcon => 'ऐप आइकन';
+
+  @override
+  String get settingsHubGlass => 'ग्लास';
+
+  @override
+  String get settingsHubNavigation => 'नेविगेशन';
+
+  @override
+  String get settingsHubMotion => 'मोशन';
+
+  @override
+  String get settingsHubChatList => 'चैट सूची';
+
+  @override
+  String get settingsHubChatStyle => 'चैट स्टाइल';
+
+  @override
+  String get settingsHubBubbleStyle => 'बबल स्टाइल';
+
+  @override
+  String get settingsHubSpeakerColors => 'बोलने वालों के रंग';
+
+  @override
+  String get settingsHubReplyStyle => 'जवाब स्टाइल';
+
+  @override
+  String get settingsHubPrivacyPolicy => 'गोपनीयता नीति';
+
+  @override
+  String get settingsHubTerms => 'सेवा की शर्तें';
+
+  @override
+  String get settingsHubLicence => 'लाइसेंस';
+
+  @override
+  String get settingsHubServer => 'सर्वर';
+
+  @override
+  String get settingsHubLayoutRows => 'पंक्तियाँ';
+
+  @override
+  String get settingsHubLayoutCards => 'कार्ड';
+
+  @override
+  String get settingsHubLayoutGrid => 'ग्रिड';
+
+  @override
+  String get settingsHubNavTabBar => 'टैब बार';
+
+  @override
+  String settingsHubThemeAuto(String name) {
+    return 'ऑटो · $name';
+  }
+
+  @override
+  String get chatListPageRowsSub =>
+      'एक चेहरा, एक नाम और आख़िरी संदेश, Messages की तरह।';
+
+  @override
+  String get chatListPageCardsSub =>
+      'हर रूम अपने कार्ड में, हर जानकारी साफ़ लिखी हुई।';
+
+  @override
+  String get chatListPageGridSub =>
+      'टाइल्स के दो कॉलम। एक नज़र में ज़्यादा रूम।';
+
+  @override
+  String get chatListPageLayoutHeader => 'लेआउट';
+
+  @override
+  String get chatListPageFiltersHeader => 'फ़िल्टर';
+
+  @override
+  String get chatListPageChips => 'चिप्स';
+
+  @override
+  String get chatListPageChipsSub => 'फ़िल्टर की एक पंक्ति, हमेशा एक टैप दूर।';
+
+  @override
+  String get chatListPageButton => 'बटन';
+
+  @override
+  String get chatListPageButtonSub => 'एक बटन जो ज़रूरत पर फ़िल्टर खोलता है।';
+
+  @override
+  String get chatListPageEmptyHeader => 'खाली रूम';
+
+  @override
+  String get chatListPagePlain => 'सादा';
+
+  @override
+  String get chatListPagePlainSub =>
+      'जिस रूम में अभी कुछ नहीं कहा गया, वह सादा रहता है।';
+
+  @override
+  String get chatListPageInitial => 'पहला अक्षर';
+
+  @override
+  String get chatListPageInitialSub => 'एक बड़ा हल्का अक्षर खाली कोना भरता है।';
+
+  @override
+  String get chatListPageEmptyFooter => 'ग्रिड लेआउट पर लागू होता है।';
+
+  @override
+  String get chatStylePageFooter =>
+      'बातचीत का हेडर और संदेश फ़ील्ड कैसे दिखते हैं।';
+
+  @override
+  String get chatStyleClassicSub => 'ठोस हेडर और सपाट संदेश फ़ील्ड।';
+
+  @override
+  String get chatStyleCompactSub => 'धुंधले कंट्रोल बातचीत के ऊपर तैरते हैं।';
+
+  @override
+  String get bubbleTailedSub =>
+      'हर सिलसिले के आख़िरी संदेश पर पूँछ, Messages की तरह।';
+
+  @override
+  String get bubbleSoftSub =>
+      'कोई पूँछ नहीं। सिलसिला अपने कोनों से जुड़ा रहता है।';
+
+  @override
+  String get bubblePillSub => 'हर संदेश पर पूरी तरह गोल कैप्सूल।';
+
+  @override
+  String get bubbleSlabSub => 'चौकोर किनारे: तीखे और सोचे-समझे।';
+
+  @override
+  String get replyStylePageFooter =>
+      'जवाब उस संदेश को कैसे दिखाता है जिसका वह जवाब है।';
+
+  @override
+  String get replyClassicSub => 'संदेश के ऊपर रंगीन उद्धरण, WhatsApp की तरह।';
+
+  @override
+  String get replyPhantomSub =>
+      'मूल संदेश की परछाईं ऊपर तैरती है, एक वक्र से जुड़ी।';
+
+  @override
+  String get replyStickySub => 'कोने पर लगा एक छोटा, तिरछा कार्ड।';
+
+  @override
+  String get replyComicSub => 'कॉमिक जैसी पूँछ वाला छोटा बबल।';
+
+  @override
+  String get motionMatchDevice => 'डिवाइस के अनुसार';
+
+  @override
+  String get motionMatchDeviceCalmSub => 'आपका डिवाइस अभी कम मोशन चाहता है।';
+
+  @override
+  String get motionMatchDeviceFullSub =>
+      'आपका डिवाइस अभी एनिमेशन की अनुमति देता है।';
+
+  @override
+  String get motionFullSub => 'हर स्प्रिंग, बहाव और सजावट।';
+
+  @override
+  String get motionCalmSub => 'सजावट स्थिर रहती है। बाकी सब वैसा ही चलता है।';
+
+  @override
+  String get navigationPageFooter =>
+      'चैट, फ़ीड, खोज और सेटिंग्स के बीच कैसे जाएँ।';
+
+  @override
+  String get navTabBarSub => 'हमेशा दिखता है, कहीं भी एक टैप में।';
+
+  @override
+  String get navOrbSub =>
+      'कोने से दबाकर खींचें। एक इशारा जिसकी आदत पड़ जाती है।';
+
+  @override
+  String get languageSystemLabel => 'डिवाइस की भाषा';
+
+  @override
+  String get languagePageFooter =>
+      'मेन्यू और ऐप के संदेश। चैट उसी भाषा में रहती हैं जिसमें लोग लिखते हैं।';
+
+  @override
+  String get speakerPageFooter =>
+      'ग्रुप चैट में एक नज़र में जानें कौन बोल रहा है।';
+
+  @override
+  String get speakerOffSub => 'सब एक ही स्याही में लिखते हैं।';
+
+  @override
+  String get speakerNamesSub => 'हर व्यक्ति का नाम और चेहरा अपने रंग में।';
+
+  @override
+  String get speakerBubblesSub => 'उनका रंग उनके संदेशों में भी आता है।';
+
+  @override
+  String get themePageAutoFooter =>
+      'हल्की थीम लाइट मोड में, गहरी थीम डार्क मोड में इस्तेमाल होती हैं।';
+
+  @override
+  String get themePageLightMode => 'लाइट मोड';
+
+  @override
+  String get themePageDarkMode => 'डार्क मोड';
+
+  @override
+  String get themePageEssentials => 'ज़रूरी';
+
+  @override
+  String get themePageEssentialsFooter => 'शांत और नेटिव, पाँच रंगों में।';
+
+  @override
+  String get themePageCharacters => 'किरदार';
+
+  @override
+  String get themePageCharactersFooter =>
+      'वही लेआउट, अपनी अलग पहचान के साथ। देखने के लिए किसी थीम को दबाकर रखें।';
+
+  @override
+  String get themePageLightBadge => 'लाइट';
+
+  @override
+  String get themePageDarkBadge => 'डार्क';
+
+  @override
+  String get themePageInUse => 'इस्तेमाल में';
+
+  @override
+  String get themePageUseLight => 'लाइट मोड में इस्तेमाल करें';
+
+  @override
+  String get themePageUseDark => 'डार्क मोड में इस्तेमाल करें';
+
+  @override
+  String themePageUse(String name) {
+    return '$name इस्तेमाल करें';
+  }
+
+  @override
+  String get acctCaptureTitle => 'स्क्रीन कैप्चर सुरक्षा';
+
+  @override
+  String get acctCaptureOnIos =>
+      'रिकॉर्डिंग और मिररिंग में प्राइवेसी शील्ड दिखती है।';
+
+  @override
+  String get acctCaptureOnAndroid => 'स्क्रीनशॉट और रिकॉर्डिंग काले दिखते हैं।';
+
+  @override
+  String get acctCaptureOff =>
+      'स्क्रीनशॉट और रिकॉर्डिंग सामान्य रूप से काम करते हैं।';
+
+  @override
+  String get acctCaptureFooter =>
+      'गायब होने वाले संदेशों वाले रूम में यह हमेशा चालू रहता है।';
+
+  @override
+  String get acctActionPending => 'लंबित';
+
+  @override
+  String get chatSwipePin => 'पिन';
+
+  @override
+  String get chatSwipeUnpin => 'अनपिन';
+
+  @override
+  String get chatSwipeMute => 'म्यूट';
+
+  @override
+  String get chatSwipeUnmute => 'अनम्यूट';
+
+  @override
+  String get chatSwipeArchive => 'आर्काइव';
+
+  @override
+  String get appearanceMatchDeviceSubtitle =>
+      'फ़ोन के साथ: दिन में लाइट, रात में डार्क';
+
+  @override
+  String get appearanceOneThemeSubtitle => 'पूरे दिन एक ही लुक';
+
+  @override
+  String get riName => 'नाम';
+
+  @override
+  String get riDescription => 'विवरण';
+
+  @override
+  String get riVisibility => 'कौन इसे ढूँढ सकता है';
+
+  @override
+  String get riPublic => 'सार्वजनिक';
+
+  @override
+  String get riPublicSub => 'कोई भी इसे डिस्कवर में ढूँढ सकता है';
+
+  @override
+  String get riPrivate => 'निजी';
+
+  @override
+  String get riPrivateSub => 'केवल आपके आमंत्रित लोग जुड़ सकते हैं';
+
+  @override
+  String get riMessageLife => 'संदेश इसके बाद गायब हो जाते हैं';
+
+  @override
+  String get riPassword => 'पासवर्ड';
+
+  @override
+  String get riRemovePassword => 'पासवर्ड हटाएँ';
+
+  @override
+  String get riSetPassword => 'पासवर्ड सेट करें';
+
+  @override
+  String get riSharedContent => 'साझा सामग्री';
+
+  @override
+  String riMembers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count सदस्य',
+      one: '1 सदस्य',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String riInvited(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count आमंत्रित',
+      one: '1 आमंत्रित',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get riWithdraw => 'वापस लें';
+
+  @override
+  String get riNotifications => 'सूचनाएँ';
+
+  @override
+  String get riTranslation => 'अनुवाद';
+
+  @override
+  String get riNameColours => 'नाम के रंग';
+
+  @override
+  String get riYouSuggested => 'आपके सुझाव';
+
+  @override
+  String get riTakeBack => 'वापस लें';
+
+  @override
+  String get riLeaveRoom => 'रूम छोड़ें';
+
+  @override
+  String get riLeaving => 'छोड़ रहे हैं…';
+
+  @override
+  String get riDeleteRoom => 'रूम हटाएँ';
+
+  @override
+  String get riDeleting => 'हटा रहे हैं…';
+
+  @override
+  String get riEndConversation => 'बातचीत समाप्त करें';
+
+  @override
+  String get riEnding => 'समाप्त कर रहे हैं…';
+
+  @override
+  String get riActionCall => 'कॉल';
+
+  @override
+  String get riActionVideo => 'वीडियो';
+
+  @override
+  String get riActionMute => 'म्यूट';
+
+  @override
+  String get riActionUnmute => 'अनम्यूट';
+
+  @override
+  String get riActionMedia => 'मीडिया';
+
+  @override
+  String get riActionAdd => 'जोड़ें';
+
+  @override
+  String get roomHeaderStatusTyping => 'टाइप कर रहे हैं…';
+
+  @override
+  String get glassScreenLead => 'पीछे का कितना हिस्सा दिखे।';
+
+  @override
+  String get transcriptDayToday => 'आज';
+
+  @override
+  String get acctRowDevices => 'डिवाइस';
+
+  @override
+  String get acctThisDevice => 'यह डिवाइस';
+
+  @override
+  String get acctRemove => 'हटाएँ';
+
+  @override
+  String get acctRemoveDeviceTitle => 'यह डिवाइस हटाएँ?';
+
+  @override
+  String get acctRemoveAllTitle => 'बाकी सभी डिवाइस हटाएँ?';
+
+  @override
+  String get acctRemoveAll => 'सभी हटाएँ';
+
+  @override
+  String get acctActiveNow => 'अभी सक्रिय';
+
+  @override
+  String get acctLoading => 'लोड हो रहा है…';
+
+  @override
+  String get acctDevicesLoadFailed => 'आपके डिवाइस लोड नहीं हो सके।';
+
+  @override
+  String get acctNoNotifications => 'सूचनाएँ इस तक नहीं पहुँच रहीं';
+
+  @override
+  String get acctBlockedEmpty => 'आपने किसी को ब्लॉक नहीं किया है।';
+
+  @override
+  String get acctUnblock => 'अनब्लॉक';
 }
