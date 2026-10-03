@@ -11957,5 +11957,9 @@
   "approvalGateAskIos": "Ask",
   "@approvalGateAskIos": {
     "description": "Primary button on the sheet a child sees when something needs a parent's approval; sends the request. Sentence case, one short verb."
+  },
+  "friendRequestDraftIntroOutgoingSentence": "Send a few lines. They can approve or decline.",
+  "@friendRequestDraftIntroOutgoingSentence": {
+    "description": "Intro card on a new outgoing friend request, sentence case (replaces the lower-case friendRequestDraftScreenIntroOutgoing in the iOS-style screen)."
   }
 }

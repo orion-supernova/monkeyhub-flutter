@@ -61,7 +61,7 @@ void main() {
     await tester.pumpWidget(sheet([pin('m1', 'deploy at 4pm'), pin('m2', 'b')]));
     await tester.pump();
 
-    expect(find.text('PINNED · 2'), findsOneWidget);
+    expect(find.text('Pinned · 2'), findsOneWidget);
     expect(find.text('alice'), findsNWidgets(2));
   });
 
@@ -74,7 +74,7 @@ void main() {
     await tester.pumpWidget(sheet(const []));
     await tester.pump();
 
-    expect(find.text('PINNED'), findsOneWidget);
+    expect(find.text('Pinned'), findsOneWidget);
     expect(find.text('nothing pinned anymore'), findsOneWidget);
   });
 }

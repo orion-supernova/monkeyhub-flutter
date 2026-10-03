@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
@@ -6,10 +7,12 @@ import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
-import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/discover_rows.dart';
+import '../widgets/ios_kit.dart';
+import '../widgets/search_field.dart' show searchFieldDecoration;
+import '../widgets/sheet_kit.dart' show sentenceCaseOf;
 import 'navigation/open_room.dart';
 
 /// Chrome for the full-list screens Discover's "see all" rows open.
@@ -35,56 +38,19 @@ class _ListScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          // See home_screen: the bottom inset leaves a dead strip of
-          // background under the scroller, which reads as a solid bar. The
-          // list clears the home indicator with its own padding instead.
-          SafeArea(
-            bottom: false,
-            child: AdaptivePageBody(
-              child: ListView(
-                padding: EdgeInsets.fromLTRB(
-                  20,
-                  14,
-                  20,
-                  edgeToEdgeBottom(context, 40),
-                ),
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        onPressed: () => Navigator.of(context).maybePop(),
-                        icon: Icon(
-                          Icons.arrow_back,
-                          color: theme.inkSoft,
-                          size: 18,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(title, style: theme.displayMedium),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Container(width: 18, height: 1, color: theme.accent),
-                      const SizedBox(width: 8),
-                      Text(caption, style: theme.caption),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  ...children,
-                ],
-              ),
-            ),
+    // The shared iOS page: glass back button, a large title that hands off to
+    // the bar as the list scrolls, the count as the line under it.
+    return IosPage(
+      title: sentenceCaseOf(context, title),
+      subtitle: sentenceCaseOf(context, caption),
+      children: [
+        AdaptivePageBody(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: children,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -156,11 +122,11 @@ class _PeopleListScreenState extends State<PeopleListScreen> {
       children: [
         if (total > 0) ...[
           Container(
-            decoration: theme.inputDecoration(),
+            decoration: searchFieldDecoration(theme),
             padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Row(
               children: [
-                Icon(Icons.search, color: theme.inkMuted, size: 18),
+                Icon(CupertinoIcons.search, color: theme.inkMuted, size: 17),
                 const SizedBox(width: 10),
                 Expanded(
                   child: TextField(
@@ -171,8 +137,8 @@ class _PeopleListScreenState extends State<PeopleListScreen> {
                     decoration: InputDecoration(
                       isDense: true,
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                      hintText: l10n.discoverListsFilterHint,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 11),
+                      hintText: sentenceCaseOf(context, l10n.discoverListsFilterHint),
                       hintStyle: theme.body.copyWith(color: theme.inkMuted),
                     ),
                   ),
@@ -280,11 +246,11 @@ class _RoomsListScreenState extends State<RoomsListScreen> {
       children: [
         if (total > 0) ...[
           Container(
-            decoration: theme.inputDecoration(),
+            decoration: searchFieldDecoration(theme),
             padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Row(
               children: [
-                Icon(Icons.search, color: theme.inkMuted, size: 18),
+                Icon(CupertinoIcons.search, color: theme.inkMuted, size: 17),
                 const SizedBox(width: 10),
                 Expanded(
                   child: TextField(
@@ -295,8 +261,11 @@ class _RoomsListScreenState extends State<RoomsListScreen> {
                     decoration: InputDecoration(
                       isDense: true,
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                      hintText: l10n.discoverListsFilterRoomsHint,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 11),
+                      hintText: sentenceCaseOf(
+                        context,
+                        l10n.discoverListsFilterRoomsHint,
+                      ),
                       hintStyle: theme.body.copyWith(color: theme.inkMuted),
                     ),
                   ),

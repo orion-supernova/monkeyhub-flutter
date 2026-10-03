@@ -10401,4 +10401,8 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get approvalGateAskIos => 'Preguntar';
+
+  @override
+  String get friendRequestDraftIntroOutgoingSentence =>
+      'Envía unas líneas. Podrá aceptarla o rechazarla.';
 }

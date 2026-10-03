@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -19,6 +20,8 @@ import 'destructive_sheet.dart';
 import 'message_stamp.dart' show formatClockTime;
 import 'number_stepper.dart';
 import 'sheet_buttons.dart';
+import 'sheet_kit.dart';
+import 'ios_kit.dart';
 
 /// The admin's invite-link sheet: the room's one live link, the limits on it,
 /// and the two switches that decide what it does.
@@ -303,9 +306,17 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(l10n.roomInviteSheetTitle, style: theme.displaySmall),
+            Text(
+              sentenceCaseOf(context, l10n.roomInviteSheetTitle),
+              textAlign: TextAlign.center,
+              style: theme.bodyEmph.copyWith(fontSize: 20, color: theme.ink),
+            ),
             const SizedBox(height: 6),
-            Text(l10n.roomInviteSheetBlurb, style: theme.bodySoft),
+            Text(
+              sentenceCaseOf(context, l10n.roomInviteSheetBlurb),
+              textAlign: TextAlign.center,
+              style: theme.bodySoft.copyWith(color: theme.inkMuted),
+            ),
             const SizedBox(height: 20),
             if (_loading)
               Padding(
@@ -411,7 +422,7 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
                 link == null
                     ? l10n.roomInviteLimitsApplyToNew
                     : l10n.roomInviteLimitsApplyOnRegenerate,
-                style: theme.monoTiny,
+                style: _meta(theme),
               ),
               const SizedBox(height: 20),
               _SectionLabel(l10n.roomInvitePermissionsLabel),
@@ -530,7 +541,7 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
           l10n.roomInviteExpiresOn(
             '${_shortDate(until)} ${formatClockTime(until)}',
           ),
-          style: theme.monoTiny.copyWith(color: theme.inkMuted),
+          style: _meta(theme).copyWith(color: theme.inkMuted),
         ),
       ],
     );
@@ -557,12 +568,12 @@ class _NoLinkYet extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
           decoration: BoxDecoration(
-            color: theme.surfaceSunken,
-            borderRadius: BorderRadius.circular(theme.radiusMd),
+            color: sheetGroupFill(theme),
+            borderRadius: BorderRadius.circular(groupedRadius(theme)),
           ),
           child: Text(
-            l10n.roomInviteNoLinkYet,
-            style: theme.bodySoft,
+            sentenceCaseOf(context, l10n.roomInviteNoLinkYet),
+            style: theme.bodySoft.copyWith(color: theme.inkMuted),
             textAlign: TextAlign.center,
           ),
         ),
@@ -595,15 +606,18 @@ class _LinkCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final dead = !link.isUsable;
 
+    // A grouped block on the sheet, no outline — a dead link says so with a
+    // faint red wash instead of a red border.
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.surfaceSunken,
-        borderRadius: BorderRadius.circular(theme.radiusMd),
-        border: Border.all(
-          color: dead ? theme.danger.withValues(alpha: 0.5) : theme.divider,
-          width: 1.2,
-        ),
+        color: dead
+            ? Color.alphaBlend(
+                theme.danger.withValues(alpha: 0.08),
+                sheetGroupFill(theme),
+              )
+            : sheetGroupFill(theme),
+        borderRadius: BorderRadius.circular(groupedRadius(theme)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -625,7 +639,7 @@ class _LinkCard extends StatelessWidget {
                   // dark surface is a QR most scanners refuse — the contrast
                   // polarity is part of the format, not styling.
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(theme.radiusSm),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: QrImageView(
                   data: url,
@@ -651,15 +665,17 @@ class _LinkCard extends StatelessWidget {
           Text(
             link.formattedCode,
             style: theme.monoLarge.copyWith(
+              fontSize: 26,
               color: dead ? theme.inkMuted : theme.ink,
               letterSpacing: 3,
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 10),
           Text(
             url,
-            style: theme.monoTiny.copyWith(
+            style: _meta(theme).copyWith(
               color: dead ? theme.inkMuted : theme.inkSoft,
             ),
             textAlign: TextAlign.center,
@@ -670,13 +686,13 @@ class _LinkCard extends StatelessWidget {
           if (dead)
             Text(
               _deadReason(l10n, link.problem),
-              style: theme.monoTiny.copyWith(color: theme.danger),
+              style: _meta(theme).copyWith(color: theme.danger),
               textAlign: TextAlign.center,
             )
           else
             Text(
               _statusLine(l10n, link),
-              style: theme.monoTiny,
+              style: _meta(theme),
               textAlign: TextAlign.center,
             ),
           const SizedBox(height: 14),
@@ -684,7 +700,7 @@ class _LinkCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _MiniButton(
-                  icon: Icons.link,
+                  icon: CupertinoIcons.link,
                   label: l10n.roomInviteCopyLink,
                   onTap: dead ? null : onCopyLink,
                 ),
@@ -692,7 +708,7 @@ class _LinkCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: _MiniButton(
-                  icon: Icons.tag,
+                  icon: CupertinoIcons.number,
                   label: l10n.roomInviteCopyCode,
                   onTap: dead ? null : onCopyCode,
                 ),
@@ -700,7 +716,7 @@ class _LinkCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: _MiniButton(
-                  icon: Icons.ios_share,
+                  icon: CupertinoIcons.square_arrow_up,
                   label: l10n.roomInviteShare,
                   onTap: dead ? null : onShare,
                 ),
@@ -745,32 +761,33 @@ class _MiniButton extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final enabled = onTap != null;
     final tint = enabled ? theme.ink : theme.inkMuted;
-    return FocusableTap(
+    // The iOS action tile: a soft filled square, glyph over a short label,
+    // springing under the finger. SpringPress is the whole control — its own
+    // focus stop and tap — so nothing here wraps it in a second one.
+    return SpringPress(
       onTap: onTap,
-      enabled: enabled,
       semanticLabel: label,
-      radius: theme.radiusSm,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            border: Border.all(color: theme.divider, width: 1.2),
-            borderRadius: BorderRadius.circular(theme.radiusSm),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, size: 18, color: tint),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: theme.monoTiny.copyWith(color: tint),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 11),
+        decoration: BoxDecoration(
+          color: theme.ink.withValues(alpha: enabled ? 0.08 : 0.04),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 20, color: enabled ? theme.accent : tint),
+            const SizedBox(height: 4),
+            Text(
+              sentenceCaseOf(context, label),
+              style: theme.bodySoft.copyWith(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: tint,
               ),
-            ],
-          ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
       ),
     );
@@ -788,9 +805,13 @@ class _SectionLabel extends StatelessWidget {
     // Turkish "i" becomes "I" rather than "İ" — the same reason
     // `incoming_call_screen.dart` spells its labels out in caps in the ARB.
     // Every string that reaches here is already in its locale's final casing.
-    return Text(
-      text,
-      style: theme.label.copyWith(color: theme.inkMuted, letterSpacing: 2),
+    // The grouped-list section header: sentence case, footnote size.
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Text(
+        sentenceCaseOf(context, text),
+        style: theme.bodySoft.copyWith(fontSize: 13, color: theme.inkMuted),
+      ),
     );
   }
 }
@@ -827,8 +848,11 @@ class _ChoiceRow<T> extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: theme.bodySoft),
-        const SizedBox(height: 6),
+        Text(
+          sentenceCaseOf(context, label),
+          style: theme.body.copyWith(fontSize: 15, color: theme.ink),
+        ),
+        const SizedBox(height: 8),
         // Wrapped, not scrolled sideways: on a phone the last chips of a
         // scrolling row sat past the edge, and the last one is Custom — the
         // option least likely to be found by swiping for it.
@@ -844,7 +868,7 @@ class _ChoiceRow<T> extends StatelessWidget {
               ),
             _Chip(
               label: customLabel,
-              icon: Icons.tune_rounded,
+              icon: CupertinoIcons.slider_horizontal_3,
               active: customActive,
               onTap: onCustom,
             ),
@@ -881,14 +905,14 @@ class _Chip extends StatelessWidget {
         onTap: onTap,
         child: AnimatedContainer(
           duration: theme.motionFast,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          // Filled capsules, the same language as the chat list's filter
+          // chips: tinted accent when chosen, a quiet fill otherwise.
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: active ? theme.accent : Colors.transparent,
-            border: Border.all(
-              color: active ? theme.accent : theme.divider,
-              width: 1.2,
-            ),
-            borderRadius: BorderRadius.circular(theme.radiusSm),
+            color: active
+                ? theme.accent.withValues(alpha: 0.18)
+                : theme.ink.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(999),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -896,15 +920,18 @@ class _Chip extends StatelessWidget {
               if (icon != null) ...[
                 Icon(
                   icon,
-                  size: 12,
-                  color: active ? theme.accentInk : theme.inkSoft,
+                  size: 14,
+                  color: active ? theme.accent : theme.inkSoft,
                 ),
                 const SizedBox(width: 5),
               ],
               Text(
                 label,
-                style: theme.monoTiny.copyWith(
-                  color: active ? theme.accentInk : theme.inkSoft,
+                style: theme.bodySoft.copyWith(
+                  fontSize: 15,
+                  fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                  color: active ? theme.accent : theme.inkSoft,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
             ],
@@ -977,9 +1004,12 @@ class _SwitchRow extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(label, style: theme.body),
+                    Text(
+                      label,
+                      style: theme.body.copyWith(fontSize: 17, color: theme.ink),
+                    ),
                     const SizedBox(height: 2),
-                    Text(sub, style: theme.monoTiny),
+                    Text(sub, style: _meta(theme)),
                   ],
                 ),
               ),
@@ -987,7 +1017,8 @@ class _SwitchRow extends StatelessWidget {
               Switch.adaptive(
                 value: value,
                 onChanged: _flip,
-                activeThumbColor: theme.accent,
+                activeTrackColor: theme.success,
+                activeThumbColor: Colors.white,
               ),
             ],
           ),
@@ -996,3 +1027,11 @@ class _SwitchRow extends StatelessWidget {
     );
   }
 }
+
+/// Small meta text — statuses, limits, the link itself — in the theme's body
+/// face at footnote size, never the tracked monospace.
+TextStyle _meta(AppTheme theme) => theme.bodySoft.copyWith(
+      fontSize: 13,
+      color: theme.inkMuted,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );

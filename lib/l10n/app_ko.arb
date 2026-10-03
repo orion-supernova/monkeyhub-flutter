@@ -2889,5 +2889,6 @@
   "socialSignInLinkIos": "로그인하고 {provider} 연동하기",
   "serverTitleIos": "서버",
   "serverOnboardingTitleIos": "서버 선택",
-  "approvalGateAskIos": "요청하기"
+  "approvalGateAskIos": "요청하기",
+  "friendRequestDraftIntroOutgoingSentence": "몇 마디 보내보세요. 상대방이 수락하거나 거절할 수 있어요."
 }

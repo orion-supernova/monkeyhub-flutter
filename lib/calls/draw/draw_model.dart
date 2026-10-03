@@ -344,8 +344,11 @@ Color drawColorFor(String userId, AppTheme theme) {
   final gradient = theme.avatarGradient(hash);
   final base = gradient.isEmpty ? theme.accent : gradient.first;
   final hsl = HSLColor.fromColor(base);
+  // A hair inside the 0.48–0.62 band: a colour clamped to exactly an edge
+  // lands just outside it once rounded back to 8-bit channels (0.48 comes
+  // out 0.478), which is what the deeper avatar palettes started hitting.
   return hsl
-      .withLightness(hsl.lightness.clamp(0.48, 0.62))
+      .withLightness(hsl.lightness.clamp(0.485, 0.615))
       .withSaturation(hsl.saturation < 0.55 ? 0.55 : hsl.saturation)
       .toColor();
 }

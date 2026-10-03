@@ -17496,6 +17496,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ask'**
   String get approvalGateAskIos;
+
+  /// Intro card on a new outgoing friend request, sentence case (replaces the lower-case friendRequestDraftScreenIntroOutgoing in the iOS-style screen).
+  ///
+  /// In en, this message translates to:
+  /// **'Send a few lines. They can approve or decline.'**
+  String get friendRequestDraftIntroOutgoingSentence;
 }
 
 class _AppLocalizationsDelegate

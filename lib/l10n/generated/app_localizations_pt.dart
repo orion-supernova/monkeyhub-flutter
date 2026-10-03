@@ -10406,6 +10406,10 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get approvalGateAskIos => 'Pedir';
+
+  @override
+  String get friendRequestDraftIntroOutgoingSentence =>
+      'Manda umas linhas. Podem aceitar ou recusar.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -20808,4 +20812,8 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get approvalGateAskIos => 'Pedir';
+
+  @override
+  String get friendRequestDraftIntroOutgoingSentence =>
+      'Manda algumas linhas. A pessoa pode aceitar ou recusar.';
 }

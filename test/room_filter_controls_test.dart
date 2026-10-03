@@ -329,8 +329,8 @@ void main() {
       // "private matches nearly everything" self-evident rather than a trap.
       expect(find.text('DMs'), findsOneWidget);
       expect(find.text('2'), findsWidgets); // private == 2
-      expect(find.text('CLEAR'), findsOneWidget);
-      expect(find.text('DONE'), findsOneWidget);
+      expect(find.text('Clear'), findsOneWidget);
+      expect(find.text('Done'), findsOneWidget);
     });
 
     testWidgets('collapsed, it occupies no vertical space', (tester) async {
@@ -362,7 +362,7 @@ void main() {
           ),
         ),
       );
-      await tester.tap(find.text('CLEAR'));
+      await tester.tap(find.text('Clear'));
       await tester.pump();
       expect(next, RoomFilter.empty);
     });
@@ -385,10 +385,10 @@ void main() {
 
       // Because the filter persists, a cold start can land here. It has to read
       // as "filtered", never as "the app lost my conversations".
-      expect(find.text('nothing matches unread'), findsOneWidget);
-      expect(find.text('show all 17 chats'), findsOneWidget);
+      expect(find.text('Nothing matches unread'), findsOneWidget);
+      expect(find.text('Show all 17 chats'), findsOneWidget);
 
-      await tester.tap(find.text('show all 17 chats'));
+      await tester.tap(find.text('Show all 17 chats'));
       await tester.pump();
       expect(cleared, isTrue);
     });
@@ -403,7 +403,7 @@ void main() {
           ),
         ),
       );
-      expect(find.text('show all 1 chat'), findsOneWidget);
+      expect(find.text('Show all 1 chat'), findsOneWidget);
     });
   });
 
@@ -419,7 +419,7 @@ void main() {
         ),
       );
       expect(find.text('DMs + unread · 0'), findsOneWidget);
-      expect(find.text('clear'), findsOneWidget);
+      expect(find.text('Clear'), findsOneWidget);
     });
   });
 }

@@ -6,10 +6,11 @@ import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/enums.dart';
 import '../theme/app_theme.dart';
-import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/labeled_field.dart';
+import '../widgets/sheet_kit.dart';
+import '../widgets/ios_kit.dart' show groupedRadius;
 
 /// Everything the compose sheet collected, ready for `interactions:create`.
 ///
@@ -346,11 +347,24 @@ class _InteractionComposeSheetState extends State<InteractionComposeSheet> {
         padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
         child: SafeArea(
           top: false,
+          bottom: false,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            padding: EdgeInsets.zero,
+            // Attached to the bottom edge like every iOS 26 sheet, not a
+            // floating card with a margin round it.
             child: Container(
-              decoration: theme.sheetDecoration(),
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+              decoration: BoxDecoration(
+                color: sheetFill(theme),
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(sheetTopRadius(theme)),
+                ),
+              ),
+              padding: EdgeInsets.fromLTRB(
+                16,
+                0,
+                16,
+                16 + MediaQuery.paddingOf(context).bottom,
+              ),
               child: DefaultTextStyle(
                 style: theme.body.copyWith(color: theme.ink),
                 child: SingleChildScrollView(
@@ -358,20 +372,9 @@ class _InteractionComposeSheetState extends State<InteractionComposeSheet> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      if (context.isCompact)
-                        Center(
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 18),
-                            width: 40,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: theme.inkMuted.withValues(alpha: 0.35),
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                        ),
+                      const SheetHandle(),
                       _title(theme, l10n),
-                      const SizedBox(height: 22),
+                      const SizedBox(height: 18),
                       LabeledField(
                         label: _promptLabel(l10n),
                         controller: _prompt,
@@ -391,13 +394,10 @@ class _InteractionComposeSheetState extends State<InteractionComposeSheet> {
                       if (_error != null) ...[
                         const SizedBox(height: 14),
                         Container(
-                          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                          padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
                           decoration: BoxDecoration(
-                            color: theme.surfaceSunken,
-                            border: Border(
-                              left: BorderSide(color: theme.danger, width: 2),
-                            ),
-                            borderRadius: BorderRadius.circular(theme.radiusMd),
+                            color: theme.danger.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
                             _error!,
@@ -433,53 +433,36 @@ class _InteractionComposeSheetState extends State<InteractionComposeSheet> {
           l10n.interactionComposePollTagline,
         ),
     };
-    return Row(
+    // The sheet bar: glass close on the left, the title centred, the tagline
+    // as a quiet line under it — the shape every other sheet now has.
+    return Column(
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        SizedBox(
+          height: 52,
+          child: Stack(
+            alignment: Alignment.center,
             children: [
-              Text(title, style: theme.displayLarge),
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  Container(
-                    width: 18,
-                    height: 2,
-                    decoration: BoxDecoration(
-                      color: theme.accent,
-                      borderRadius: BorderRadius.circular(1),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Flexible(
-                    child: Text(
-                      tagline,
-                      style: theme.caption.copyWith(
-                        color: theme.accent,
-                        letterSpacing: 2.0,
-                      ),
-                    ),
-                  ),
-                ],
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 54),
+                child: Text(
+                  sentenceCaseOf(context, title),
+                  style: theme.bodyEmph.copyWith(color: theme.ink),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: SheetCloseButton(),
               ),
             ],
           ),
         ),
-        GestureDetector(
-          onTap: () => Navigator.of(context).maybePop(),
-          behavior: HitTestBehavior.opaque,
-          child: Container(
-            width: 34,
-            height: 34,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: theme.surfaceSunken,
-              shape: BoxShape.circle,
-              border: Border.all(color: theme.divider),
-            ),
-            child: Icon(CupertinoIcons.xmark, color: theme.inkSoft, size: 14),
-          ),
+        Text(
+          sentenceCaseOf(context, tagline),
+          textAlign: TextAlign.center,
+          style: theme.bodySoft.copyWith(color: theme.inkMuted),
         ),
       ],
     );
@@ -577,27 +560,25 @@ class _InteractionComposeSheetState extends State<InteractionComposeSheet> {
                       _lineFocus[i + 1].requestFocus();
                     }
                   },
+                  // The same soft filled field as every other input, with
+                  // no outline at rest or in focus — the cursor says focus.
                   decoration: InputDecoration(
                     isDense: true,
                     filled: true,
-                    fillColor: theme.surfaceSunken,
-                    hintText: _isPoll
-                        ? l10n.interactionComposeOptionHint(i + 1)
-                        : l10n.interactionComposeItemHint(i + 1),
+                    fillColor: fieldDecoration(theme).color,
+                    hintText: sentenceCaseOf(
+                      context,
+                      _isPoll
+                          ? l10n.interactionComposeOptionHint(i + 1)
+                          : l10n.interactionComposeItemHint(i + 1),
+                    ),
                     hintStyle: theme.body.copyWith(color: theme.inkMuted),
                     contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(theme.radiusMd),
-                      borderSide: BorderSide(color: theme.divider),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(theme.radiusMd),
-                      borderSide: BorderSide(color: theme.divider),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(theme.radiusMd),
-                      borderSide: BorderSide(color: theme.accent, width: 1.4),
+                      borderRadius: fieldDecoration(theme).borderRadius!
+                          as BorderRadius,
+                      borderSide: BorderSide.none,
                     ),
                   ),
                 ),
@@ -650,13 +631,23 @@ class _InteractionComposeSheetState extends State<InteractionComposeSheet> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(CupertinoIcons.add, size: 14, color: theme.accent),
-                    const SizedBox(width: 8),
+                    Icon(
+                      CupertinoIcons.plus_circle_fill,
+                      size: 20,
+                      color: theme.success,
+                    ),
+                    const SizedBox(width: 10),
                     Text(
-                      _isPoll
-                          ? l10n.interactionComposeAddOption
-                          : l10n.interactionComposeAddItem,
-                      style: theme.label.copyWith(color: theme.accent),
+                      sentenceCaseOf(
+                        context,
+                        _isPoll
+                            ? l10n.interactionComposeAddOption
+                            : l10n.interactionComposeAddItem,
+                      ),
+                      style: theme.body.copyWith(
+                        fontSize: 17,
+                        color: theme.accent,
+                      ),
                     ),
                   ],
                 ),
@@ -724,12 +715,8 @@ class _InteractionComposeSheetState extends State<InteractionComposeSheet> {
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
-          decoration: BoxDecoration(
-            color: theme.surfaceSunken,
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-            border: Border.all(color: theme.divider),
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          decoration: fieldDecoration(theme),
           child: Row(
             children: [
               Icon(icon, size: 15, color: theme.inkSoft),
@@ -854,14 +841,12 @@ class _InteractionComposeSheetState extends State<InteractionComposeSheet> {
           behavior: HitTestBehavior.opaque,
           onTap: toggle,
           child: Container(
-            padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+            padding: const EdgeInsets.fromLTRB(16, 11, 12, 11),
+            // A grouped row on the sheet; the switch says on or off, so no
+            // accent outline has to.
             decoration: BoxDecoration(
-              color: theme.surfaceSunken,
-              borderRadius: BorderRadius.circular(theme.radiusMd),
-              border: Border.all(
-                color: value && enabled ? theme.accent : theme.divider,
-                width: value && enabled ? 1.4 : 1,
-              ),
+              color: sheetGroupFill(theme),
+              borderRadius: BorderRadius.circular(groupedRadius(theme)),
             ),
             child: Row(
               children: [
@@ -870,11 +855,17 @@ class _InteractionComposeSheetState extends State<InteractionComposeSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        title,
-                        style: theme.displaySmall
-                            .copyWith(color: ink, fontSize: 16),
+                        sentenceCaseOf(context, title),
+                        style: theme.body.copyWith(color: ink, fontSize: 17),
                       ),
-                      Text(sub, style: theme.monoTiny),
+                      const SizedBox(height: 2),
+                      Text(
+                        sentenceCaseOf(context, sub),
+                        style: theme.bodySoft.copyWith(
+                          fontSize: 13,
+                          color: theme.inkMuted,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -883,7 +874,7 @@ class _InteractionComposeSheetState extends State<InteractionComposeSheet> {
                 CupertinoSwitch(
                   value: value,
                   onChanged: enabled ? (v) => onChanged(v) : null,
-                  activeTrackColor: theme.accent,
+                  activeTrackColor: theme.success,
                 ),
               ],
             ),
@@ -899,46 +890,6 @@ class _InteractionComposeSheetState extends State<InteractionComposeSheet> {
       MessageType.event => l10n.interactionComposeSendEvent,
       _ => l10n.interactionComposeSendPoll,
     };
-    return FocusableTap(
-      onTap: _submit,
-      semanticLabel: label,
-      radius: theme.radiusLg,
-      child: GestureDetector(
-        onTap: _submit,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: theme.accent,
-            borderRadius: BorderRadius.circular(theme.radiusLg),
-            boxShadow: [
-              BoxShadow(
-                color: theme.accent.withValues(alpha: 0.3),
-                blurRadius: 18,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                label,
-                style: theme.label.copyWith(
-                  color: theme.accentInk,
-                  letterSpacing: 2.4,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Icon(
-                CupertinoIcons.arrow_up_right,
-                size: 14,
-                color: theme.accentInk,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    return SheetActionButton(label: label, onTap: _submit);
   }
 }

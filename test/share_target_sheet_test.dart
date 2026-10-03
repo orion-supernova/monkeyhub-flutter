@@ -97,7 +97,7 @@ void main() {
     ]);
     await open(tester, repo: repo);
 
-    expect(find.text('SHARE TO'), findsOneWidget);
+    expect(find.text('Share to'), findsOneWidget);
     final rows = tester
         .widgetList<Text>(find.byType(Text))
         .map((t) => t.data)
@@ -132,7 +132,7 @@ void main() {
     );
     await open(tester, repo: repo);
 
-    expect(find.text('SUGGESTED'), findsOneWidget);
+    expect(find.text('Suggested'), findsOneWidget);
     expect(find.text('Ada'), findsOneWidget);
   });
 
@@ -147,7 +147,7 @@ void main() {
     await open(tester, repo: repo);
 
     expect(find.text('Ada'), findsOneWidget);
-    expect(find.text('SUGGESTED'), findsNothing);
+    expect(find.text('Suggested'), findsNothing);
   });
 
   testWidgets('tapping a friend asks for a DM rather than a room',

@@ -4,6 +4,8 @@ import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'liquid_glass.dart';
+import 'sheet_kit.dart' show sentenceCaseOf;
 
 /// One icon-over-label button in a bulk action bar.
 ///
@@ -44,9 +46,15 @@ class BulkActionButton extends StatelessWidget {
         children: [
           Icon(icon, size: 19, color: ink),
           const SizedBox(height: 5),
-          Text(
-            label,
-            style: theme.monoTiny.copyWith(color: ink, letterSpacing: 0.8),
+          Builder(
+            builder: (context) => Text(
+              sentenceCaseOf(context, label),
+              style: theme.bodySoft.copyWith(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: ink,
+              ),
+            ),
           ),
         ],
       ),
@@ -104,9 +112,12 @@ class TranscriptSelectionBar extends StatelessWidget {
     final bottomSafe = MediaQuery.paddingOf(context).bottom;
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 8, 16, 8 + bottomSafe),
-      child: Container(
-        decoration: theme.sheetDecoration(),
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+      // A floating glass capsule — the iOS 26 toolbar — in place of the
+      // composer, which is glass too, so swapping one for the other never
+      // changes the material at the bottom of the screen.
+      child: LiquidGlass(
+        shape: LiquidGlassShape.capsule,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Row(
           children: [
             BulkActionButton(
@@ -118,12 +129,16 @@ class TranscriptSelectionBar extends StatelessWidget {
             Expanded(
               child: Center(
                 child: Text(
-                  count == 0
-                      ? l10n.bulkActionBarSelectMessagesLabel
-                      : l10n.bulkActionBarSelectedCountLabel(count),
-                  style: theme.monoTiny.copyWith(
+                  sentenceCaseOf(
+                    context,
+                    count == 0
+                        ? l10n.bulkActionBarSelectMessagesLabel
+                        : l10n.bulkActionBarSelectedCountLabel(count),
+                  ),
+                  style: theme.bodyEmph.copyWith(
+                    fontSize: 15,
                     color: count == 0 ? theme.inkMuted : theme.ink,
-                    letterSpacing: 1.6,
+                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
               ),

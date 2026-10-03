@@ -10303,4 +10303,8 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get approvalGateAskIos => 'पूछें';
+
+  @override
+  String get friendRequestDraftIntroOutgoingSentence =>
+      'कुछ लाइनें भेजो। वो स्वीकार या अस्वीकार कर सकते हैं।';
 }

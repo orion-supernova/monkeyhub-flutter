@@ -2889,5 +2889,6 @@
   "socialSignInLinkIos": "登录并关联 {provider}",
   "serverTitleIos": "服务器",
   "serverOnboardingTitleIos": "选择服务器",
-  "approvalGateAskIos": "询问"
+  "approvalGateAskIos": "询问",
+  "friendRequestDraftIntroOutgoingSentence": "写几句话吧,对方可以同意或拒绝。"
 }

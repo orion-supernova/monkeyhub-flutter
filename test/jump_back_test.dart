@@ -246,10 +246,10 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(host(1));
-      expect(find.text('BACK'), findsOneWidget);
+      expect(find.text('Back'), findsOneWidget);
 
       await tester.pumpWidget(host(3));
-      expect(find.text('BACK · 3'), findsOneWidget);
+      expect(find.text('Back · 3'), findsOneWidget);
     });
 
     testWidgets('never names a mechanism the reader may not have used', (

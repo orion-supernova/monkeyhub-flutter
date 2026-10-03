@@ -9788,4 +9788,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get approvalGateAskIos => '询问';
+
+  @override
+  String get friendRequestDraftIntroOutgoingSentence => '写几句话吧,对方可以同意或拒绝。';
 }

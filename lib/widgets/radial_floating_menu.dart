@@ -368,15 +368,12 @@ class _Orb extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.accent,
           shape: BoxShape.circle,
-          border: Border.all(
-            color: theme.ink.withValues(alpha: 0.18),
-            width: 0.5,
-          ),
+          // A centred glow, not a dropped one: offset, it sat the orb on a
+          // coloured lip — the Material FAB look the rest of the app left.
           boxShadow: [
             BoxShadow(
-              color: theme.accent.withValues(alpha: expanded ? 0.30 : 0.22),
-              blurRadius: expanded ? 16 : 12,
-              offset: Offset(0, expanded ? 6 : 4),
+              color: theme.accent.withValues(alpha: expanded ? 0.32 : 0.24),
+              blurRadius: expanded ? 22 : 16,
             ),
           ],
         ),

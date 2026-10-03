@@ -156,7 +156,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final before = DateTime.now();
-    await tester.tap(find.text(en.scheduleSheetConfirmButton));
+    await tester.tap(_label(en.scheduleSheetConfirmButton));
     await tester.pumpAndSettle();
 
     expect(got, isA<ScheduleAt>());
@@ -181,7 +181,7 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text(en.destructiveSheetCancelButtonLabel));
+    await tester.tap(_label(en.destructiveSheetCancelButtonLabel));
     await tester.pumpAndSettle();
 
     expect(completed, isTrue);
@@ -236,7 +236,7 @@ void main() {
     }
     await tester.tap(find.text(en.scheduleSheetCustomChip));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(en.scheduleSheetConfirmButton));
+    await tester.tap(_label(en.scheduleSheetConfirmButton));
     await tester.pumpAndSettle();
     return got;
   }
@@ -271,8 +271,8 @@ void main() {
       mode: ScheduleSheetMode.reschedule,
       initial: DateTime.now().add(const Duration(days: 2)),
     );
-    expect(find.text(en.scheduleSheetSaveButton), findsWidgets);
-    expect(find.text(en.scheduleSheetConfirmButton), findsNothing);
+    expect(_label(en.scheduleSheetSaveButton), findsWidgets);
+    expect(_label(en.scheduleSheetConfirmButton), findsNothing);
   });
 
   testWidgets('an out-of-range start is pulled into the window, not refused', (
@@ -305,7 +305,7 @@ void main() {
     // No contradiction on screen, and the button is live.
     expect(find.text(en.scheduleErrorOutOfRange), findsNothing);
 
-    await tester.tap(find.text(en.scheduleSheetSaveButton).last);
+    await tester.tap(_label(en.scheduleSheetSaveButton).last);
     await tester.pumpAndSettle();
 
     expect(got, isA<ScheduleAt>());
@@ -364,3 +364,10 @@ void main() {
     expect(find.text(en.scheduleSheetQueuedRow(0)), findsNothing);
   });
 }
+
+/// Finds a button by its string, whatever case the sheet sets it in: the
+/// shared sheet buttons show their labels in sentence case, while the
+/// strings themselves are stored in capitals.
+Finder _label(String s) => find.byWidgetPredicate(
+      (w) => w is Text && w.data?.toLowerCase() == s.toLowerCase(),
+    );

@@ -9913,4 +9913,8 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get approvalGateAskIos => '요청하기';
+
+  @override
+  String get friendRequestDraftIntroOutgoingSentence =>
+      '몇 마디 보내보세요. 상대방이 수락하거나 거절할 수 있어요.';
 }

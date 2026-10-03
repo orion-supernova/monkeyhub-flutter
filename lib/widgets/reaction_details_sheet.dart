@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -10,7 +11,8 @@ import '../models/message_reaction.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
-import 'destructive_sheet.dart' show SheetGrabber;
+import '../theme/motion.dart';
+import 'sheet_kit.dart';
 import 'message_stamp.dart' show formatClockTime;
 import 'user_avatar.dart';
 
@@ -178,18 +180,24 @@ class _ReactionDetailsSheetState extends State<ReactionDetailsSheet> {
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     return Container(
-      decoration: theme.sheetDecoration(),
+      decoration: BoxDecoration(
+        color: sheetFill(theme),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(sheetTopRadius(theme)),
+        ),
+      ),
       padding: EdgeInsets.fromLTRB(
-          16, 14, 16, 18 + MediaQuery.paddingOf(context).bottom),
+          16, 4, 16, 18 + MediaQuery.paddingOf(context).bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SheetGrabber(),
+          const SheetHandle(),
+          const SizedBox(height: 8),
           Text(
-            l10n.reactionDetailsSheetTitle,
+            sentenceCaseOf(context, l10n.reactionDetailsSheetTitle),
             textAlign: TextAlign.center,
-            style: theme.label.copyWith(letterSpacing: 2.4),
+            style: theme.bodyEmph.copyWith(color: theme.ink),
           ),
           if (reactions.isEmpty)
             _EmptyState(text: l10n.reactionDetailsSheetEmptyState)
@@ -198,7 +206,7 @@ class _ReactionDetailsSheetState extends State<ReactionDetailsSheet> {
             Text(
               l10n.reactionDetailsSheetPeopleCount(people),
               textAlign: TextAlign.center,
-              style: theme.monoTiny,
+              style: theme.bodySoft.copyWith(color: theme.inkMuted),
             ),
             const SizedBox(height: 16),
             // One emoji needs no filter — every row would be in every bucket.
@@ -346,7 +354,7 @@ class _EmptyState extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(0, 26, 0, 14),
       child: Column(
         children: [
-          Icon(Icons.mood_bad_outlined, size: 26, color: theme.inkMuted),
+          Icon(CupertinoIcons.smiley, size: 28, color: theme.inkMuted),
           const SizedBox(height: 12),
           Text(text, textAlign: TextAlign.center, style: theme.bodySoft),
         ],
@@ -373,11 +381,7 @@ class _SoloSummary extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(
-            color: theme.accent.withValues(alpha: 0.14),
-            border: Border.all(
-              color: theme.accent.withValues(alpha: 0.45),
-              width: 0.8,
-            ),
+            color: theme.accent.withValues(alpha: 0.16),
             borderRadius: BorderRadius.circular(999),
           ),
           child: Row(
@@ -387,7 +391,7 @@ class _SoloSummary extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 '${group.rows.length}',
-                style: theme.monoTiny.copyWith(color: theme.accent),
+                style: _count(theme).copyWith(color: theme.accent),
               ),
             ],
           ),
@@ -433,35 +437,48 @@ class _FilterPill extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          key: pillKey,
-          duration: theme.motionFast,
-          curve: theme.motionCurve,
-          // Taller than the chip it echoes: this one is a control on a sheet,
-          // not a label under a bubble, so it gets a comfortable touch target.
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: selected
-                ? theme.accent.withValues(alpha: 0.18)
-                : theme.surfaceRaised,
-            border: Border.all(
+        // The pill that becomes the filter gives a little bounce — keyed on
+        // [selected], so only the change replays it.
+        child: TweenAnimationBuilder<double>(
+          key: ValueKey(selected),
+          tween: Tween(begin: selected ? 1.12 : 1, end: 1),
+          duration: MotionScope.of(context)
+              .d(const Duration(milliseconds: 460)),
+          curve: Curves.elasticOut,
+          builder: (context, s, child) =>
+              Transform.scale(scale: s, child: child),
+          child: AnimatedContainer(
+            key: pillKey,
+            duration: theme.motionFast,
+            curve: theme.motionCurve,
+            // Taller than the chip it echoes: a control on a sheet, not a
+            // label under a bubble, so a comfortable touch target. Filled,
+            // never outlined — the iOS 26 filter capsule.
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
               color: selected
-                  ? theme.accent.withValues(alpha: 0.6)
-                  : theme.divider,
-              width: 0.8,
+                  ? theme.accent.withValues(alpha: 0.18)
+                  : theme.ink.withValues(alpha: 0.07),
+              borderRadius: BorderRadius.circular(999),
             ),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (emoji != null)
-                _Emoji(emoji!, size: 15)
-              else
-                Text(label!, style: theme.monoTiny.copyWith(color: ink)),
-              const SizedBox(width: 6),
-              Text('$count', style: theme.monoTiny.copyWith(color: ink)),
-            ],
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (emoji != null)
+                  _Emoji(emoji!, size: 16)
+                else
+                  Text(
+                    sentenceCaseOf(context, label!),
+                    style: theme.bodySoft.copyWith(
+                      fontSize: 15,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                      color: ink,
+                    ),
+                  ),
+                const SizedBox(width: 6),
+                Text('$count', style: _count(theme).copyWith(color: ink)),
+              ],
+            ),
           ),
         ),
       ),
@@ -529,7 +546,7 @@ class _ReactorRowState extends State<_ReactorRow> {
                   Flexible(
                     child: Text(
                       widget.user.displayName,
-                      style: theme.body,
+                      style: theme.body.copyWith(fontSize: 17, color: theme.ink),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -538,12 +555,22 @@ class _ReactorRowState extends State<_ReactorRow> {
                     const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 3),
-                      decoration: theme.chipDecoration(filled: true),
+                          horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: theme.accent.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
                       child: Text(
-                        AppLocalizations.of(context)
-                            .reactionDetailsSheetYouBadge,
-                        style: theme.monoTiny.copyWith(color: theme.accentInk),
+                        sentenceCaseOf(
+                          context,
+                          AppLocalizations.of(context)
+                              .reactionDetailsSheetYouBadge,
+                        ),
+                        style: theme.caption.copyWith(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: theme.accent,
+                        ),
                       ),
                     ),
                   ],
@@ -552,7 +579,10 @@ class _ReactorRowState extends State<_ReactorRow> {
               const SizedBox(height: 2),
               Text(
                 '@${widget.user.username}',
-                style: theme.monoTiny,
+                style: theme.bodySoft.copyWith(
+                  fontSize: 13,
+                  color: theme.inkMuted,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -560,14 +590,21 @@ class _ReactorRowState extends State<_ReactorRow> {
           ),
         ),
         const SizedBox(width: 10),
-        Text(widget.time, style: theme.monoTiny),
+        Text(
+          widget.time,
+          style: _count(theme).copyWith(color: theme.inkMuted),
+        ),
         // Nothing to open on your own row, so nothing points at one. The gap
         // is held either way so the times stay in a column.
         SizedBox(
           width: 18,
           child: open == null
               ? null
-              : Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
+              : Icon(
+                  CupertinoIcons.chevron_forward,
+                  size: 14,
+                  color: theme.inkMuted.withValues(alpha: 0.7),
+                ),
         ),
       ],
     );
@@ -679,3 +716,11 @@ class _BadgedAvatar extends StatelessWidget {
     );
   }
 }
+
+/// Counts and clock times: the body face at caption size with tabular
+/// figures, so a column of them lines up.
+TextStyle _count(AppTheme theme) => theme.bodySoft.copyWith(
+      fontSize: 13,
+      fontWeight: FontWeight.w500,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );

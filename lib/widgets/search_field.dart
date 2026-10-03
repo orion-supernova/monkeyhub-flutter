@@ -8,6 +8,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'route_landing.dart';
+import 'sheet_kit.dart' show sentenceCaseOf;
 
 /// Horizontal inset of the pill's contents. Public because
 /// [SearchFieldHero]'s shuttle has to land the magnifier on exactly the pixel
@@ -157,7 +158,9 @@ class _SearchFieldState extends State<SearchField> with RouteLanding {
                 decoration: InputDecoration(
                   isCollapsed: true,
                   border: InputBorder.none,
-                  hintText: widget.hintText,
+                  // Sentence case whatever the caller passes: most hints in
+                  // the ARBs were written lower-case for the old chrome.
+                  hintText: sentenceCaseOf(context, widget.hintText),
                   hintStyle: theme.body.copyWith(color: theme.inkMuted),
                   contentPadding: const EdgeInsets.symmetric(vertical: 11),
                 ),

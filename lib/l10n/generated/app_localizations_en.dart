@@ -10295,4 +10295,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get approvalGateAskIos => 'Ask';
+
+  @override
+  String get friendRequestDraftIntroOutgoingSentence =>
+      'Send a few lines. They can approve or decline.';
 }

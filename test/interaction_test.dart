@@ -747,7 +747,7 @@ void main() {
 
       // The frame the crash happened in: the request is out, nothing is back.
       expect(tester.takeException(), isNull);
-      expect(find.text('WHO VOTED'), findsOneWidget);
+      expect(find.text('Who voted'), findsOneWidget);
       expect(find.text('2 votes'), findsOneWidget);
     });
   });

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme/theme_scope.dart';
+import 'labeled_field.dart' show fieldDecoration;
 
 /// The six-digit entry box used wherever a guardian-issued code is typed in:
 /// pairing a child's device, and handing one back.
@@ -24,7 +25,17 @@ class CodeField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return TextField(
+    // The iOS one-time-code field: a soft filled slab like every other field
+    // (see [fieldDecoration]), no outline, big tabular digits spaced out so
+    // each one reads as its own box.
+    final digits = theme.monoLarge.copyWith(
+      fontSize: 30,
+      letterSpacing: 12,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+    return DecoratedBox(
+      decoration: fieldDecoration(theme),
+      child: TextField(
       controller: controller,
       enabled: enabled,
       keyboardType: TextInputType.number,
@@ -32,27 +43,15 @@ class CodeField extends StatelessWidget {
       maxLength: 6,
       autocorrect: false,
       enableSuggestions: false,
+      autofillHints: const [AutofillHints.oneTimeCode],
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      style: theme.monoLarge.copyWith(letterSpacing: 10),
+      cursorColor: theme.accent,
+      style: digits.copyWith(color: theme.ink),
       decoration: InputDecoration(
         counterText: '',
         hintText: '000000',
-        hintStyle: theme.monoLarge
-            .copyWith(letterSpacing: 10, color: theme.inkMuted),
-        filled: true,
-        fillColor: theme.surfaceSunken,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(theme.radiusMd),
-          borderSide: BorderSide(color: theme.divider),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(theme.radiusMd),
-          borderSide: BorderSide(color: theme.divider),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(theme.radiusMd),
-          borderSide: BorderSide(color: theme.accent),
-        ),
+        hintStyle: digits.copyWith(color: theme.inkMuted.withValues(alpha: 0.5)),
+        border: InputBorder.none,
         contentPadding: const EdgeInsets.symmetric(vertical: 18),
       ),
       // Six digits is the whole code, so submit the moment it's complete
@@ -60,6 +59,7 @@ class CodeField extends StatelessWidget {
       onChanged: (v) {
         if (v.length == 6) onCompleted(v);
       },
+      ),
     );
   }
 }

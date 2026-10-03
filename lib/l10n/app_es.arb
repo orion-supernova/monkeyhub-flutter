@@ -2889,5 +2889,6 @@
   "socialSignInLinkIos": "Iniciar sesión y vincular {provider}",
   "serverTitleIos": "Servidor",
   "serverOnboardingTitleIos": "Elige un servidor",
-  "approvalGateAskIos": "Preguntar"
+  "approvalGateAskIos": "Preguntar",
+  "friendRequestDraftIntroOutgoingSentence": "Envía unas líneas. Podrá aceptarla o rechazarla."
 }

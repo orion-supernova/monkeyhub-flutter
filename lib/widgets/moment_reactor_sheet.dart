@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
-import 'destructive_sheet.dart' show SheetGrabber;
+import '../theme/motion.dart';
+import 'sheet_kit.dart';
 
 /// Long-press a moment's reaction pill and this names the people behind it.
 ///
@@ -32,49 +33,63 @@ class _MomentReactorSheet extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
 
-    return Container(
-      decoration: theme.sheetDecoration(),
-      padding: EdgeInsets.fromLTRB(
-        22,
-        14,
-        22,
-        22 + MediaQuery.paddingOf(context).bottom,
-      ),
+    final motion = MotionScope.of(context);
+    return SheetFrame(
+      title: sentenceCaseOf(context, l10n.reactionDetailsSheetTitle),
+      leading: const SheetCloseButton(),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SheetGrabber(),
-          Text(
-            l10n.reactionDetailsSheetTitle,
-            textAlign: TextAlign.center,
-            style: theme.label.copyWith(letterSpacing: 2.4),
+          // The reaction itself lands with a pop — the one playful beat in a
+          // sheet that is otherwise a plain list.
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: motion.calm ? 1 : 0.4, end: 1),
+            duration: motion.d(const Duration(milliseconds: 600)),
+            curve: Curves.elasticOut,
+            builder: (context, v, child) =>
+                Transform.scale(scale: v, child: child),
+            child: Text(
+              emoji,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 44),
+            ),
           ),
-          const SizedBox(height: 10),
-          Text(emoji, textAlign: TextAlign.center, style: const TextStyle(fontSize: 30)),
           const SizedBox(height: 4),
           Text(
             l10n.reactionDetailsSheetPeopleCount(names.length),
             textAlign: TextAlign.center,
-            style: theme.monoTiny,
+            style: theme.bodySoft.copyWith(color: theme.inkMuted),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           Flexible(
             child: ConstrainedBox(
               constraints: BoxConstraints(
                 maxHeight: MediaQuery.sizeOf(context).height * 0.45,
               ),
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: names.length,
-                itemBuilder: (context, i) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    names[i],
-                    style: theme.body,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+              child: SingleChildScrollView(
+                child: SheetGroup(
+                  children: [
+                    for (var i = 0; i < names.length; i++)
+                      SheetRise(
+                        index: i.clamp(0, 8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 13,
+                          ),
+                          child: Text(
+                            names[i],
+                            style: theme.body.copyWith(
+                              fontSize: 17,
+                              color: theme.ink,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),

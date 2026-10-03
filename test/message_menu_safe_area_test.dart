@@ -215,7 +215,7 @@ void main() {
     final sheet = tester.getRect(find.byType(ReactionPickerSheet));
     expect(sheet.top, greaterThanOrEqualTo(bandTop - 0.5),
         reason: 'the picker sheet is drawn under the Dynamic Island');
-    expect(tester.getRect(find.text('REACT')).top,
+    expect(tester.getRect(find.text('React')).top,
         greaterThanOrEqualTo(bandTop - 0.5));
 
     final grid = tester.getRect(find.byType(EmojiPicker));

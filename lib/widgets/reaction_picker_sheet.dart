@@ -10,9 +10,11 @@ import '../data/emoji_search_index.dart';
 import '../data/emoji_set_full.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
-import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
+import '../theme/motion.dart';
 import 'adaptive_sheet.dart';
+import 'search_field.dart' show searchFieldDecoration;
+import 'sheet_kit.dart';
 
 /// Height of the resting search bar under the grid, before safe-area padding.
 const double _searchBarHeight = 44;
@@ -125,30 +127,29 @@ class ReactionPickerSheet extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
       child: Container(
-        decoration: theme.sheetDecoration(),
-        padding: const EdgeInsets.only(top: 14),
+        // The iOS 26 sheet card every other sheet wears (sheet_kit.dart).
+        decoration: BoxDecoration(
+          color: sheetFill(theme),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(sheetTopRadius(theme)),
+          ),
+        ),
+        padding: const EdgeInsets.only(top: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Meaningless once dismiss-by-drag isn't a thing — the desktop
             // popover closes via barrier tap / Esc, not a drag gesture.
-            if (context.isCompact)
-              Center(
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 14),
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: theme.inkMuted.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
+            const SheetHandle(),
+            const SizedBox(height: 6),
             Text(
-              AppLocalizations.of(context).reactionBubblePickerTitle,
+              sentenceCaseOf(
+                context,
+                AppLocalizations.of(context).reactionBubblePickerTitle,
+              ),
               textAlign: TextAlign.center,
-              style: theme.label.copyWith(letterSpacing: 2.4),
+              style: theme.bodyEmph.copyWith(color: theme.ink),
             ),
             const SizedBox(height: 10),
             SizedBox(
@@ -187,9 +188,12 @@ class ReactionPickerSheet extends StatelessWidget {
                     recentsLimit: 28,
                     noRecents: Center(
                       child: Text(
-                        AppLocalizations.of(context)
-                            .reactionBubbleNoRecentsPlaceholder,
-                        style: theme.monoTiny,
+                        sentenceCaseOf(
+                          context,
+                          AppLocalizations.of(context)
+                              .reactionBubbleNoRecentsPlaceholder,
+                        ),
+                        style: theme.bodySoft.copyWith(color: theme.inkMuted),
                       ),
                     ),
                     buttonMode: ButtonMode.CUPERTINO,
@@ -252,7 +256,10 @@ class EmojiSearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final hint = AppLocalizations.of(context).reactionBubbleSearchHint;
+    final hint = sentenceCaseOf(
+      context,
+      AppLocalizations.of(context).reactionBubbleSearchHint,
+    );
     return Padding(
       padding: EdgeInsets.fromLTRB(10, 4, 10, 4 + bottomSafe),
       child: FocusableTap(
@@ -265,7 +272,7 @@ class EmojiSearchBar extends StatelessWidget {
           onTap: onTap,
           child: Container(
             height: 36,
-            decoration: theme.inputDecoration(),
+            decoration: searchFieldDecoration(theme),
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
@@ -390,10 +397,14 @@ class EmojiSearchViewState extends SearchViewState<EmojiSearchView> {
                 child: results.isEmpty
                     ? Center(
                         child: Text(
-                          _query.isEmpty
-                              ? loc.reactionBubbleNoRecentsPlaceholder
-                              : loc.reactionBubbleSearchEmptyPlaceholder,
-                          style: theme.monoTiny,
+                          sentenceCaseOf(
+                            context,
+                            _query.isEmpty
+                                ? loc.reactionBubbleNoRecentsPlaceholder
+                                : loc.reactionBubbleSearchEmptyPlaceholder,
+                          ),
+                          style: theme.bodySoft
+                              .copyWith(color: theme.inkMuted),
                         ),
                       )
                     : GridView.builder(
@@ -407,10 +418,18 @@ class EmojiSearchViewState extends SearchViewState<EmojiSearchView> {
                               widget.config.emojiViewConfig.horizontalSpacing,
                         ),
                         itemCount: results.length,
-                        itemBuilder: (context, index) => buildEmoji(
-                          results[index],
-                          emojiSize,
-                          emojiBoxSize,
+                        // Each match pops in on a spring, staggered across the
+                        // first rows — Telegram's search grid. Keyed on the
+                        // emoji, so one that survives a keystroke stays put
+                        // instead of popping again.
+                        itemBuilder: (context, index) => _PopIn(
+                          key: ValueKey(results[index].emoji),
+                          index: index,
+                          child: buildEmoji(
+                            results[index],
+                            emojiSize,
+                            emojiBoxSize,
+                          ),
                         ),
                       ),
               ),
@@ -440,7 +459,7 @@ class EmojiSearchViewState extends SearchViewState<EmojiSearchView> {
                   ),
                   Expanded(
                     child: Container(
-                      decoration: theme.inputDecoration(),
+                      decoration: searchFieldDecoration(theme),
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       child: Row(
                         children: [
@@ -500,4 +519,28 @@ Future<String?> showReactionPicker(BuildContext context) {
     useSafeArea: true,
     builder: (_) => const ReactionPickerSheet(),
   );
+}
+
+/// A grid cell that arrives with an overshooting scale, a few frames after
+/// the one before it. Collapses to nothing under reduced motion.
+class _PopIn extends StatelessWidget {
+  const _PopIn({super.key, required this.index, required this.child});
+  final int index;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final motion = MotionScope.of(context);
+    if (motion.calm) return child;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: 380 + index.clamp(0, 16) * 22),
+      curve: Curves.easeOutBack,
+      builder: (context, t, child) => Opacity(
+        opacity: t.clamp(0.0, 1.0),
+        child: Transform.scale(scale: 0.4 + 0.6 * t, child: child),
+      ),
+      child: child,
+    );
+  }
 }

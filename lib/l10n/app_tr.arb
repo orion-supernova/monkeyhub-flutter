@@ -2889,5 +2889,6 @@
   "socialSignInLinkIos": "Giriş yap ve {provider} bağla",
   "serverTitleIos": "Sunucu",
   "serverOnboardingTitleIos": "Bir sunucu seç",
-  "approvalGateAskIos": "Sor"
+  "approvalGateAskIos": "Sor",
+  "friendRequestDraftIntroOutgoingSentence": "Birkaç satır yaz. Onaylayabilir ya da reddedebilir."
 }

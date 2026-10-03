@@ -5,8 +5,12 @@ import 'package:flutter/services.dart';
 import '../data/room_filter.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../theme/motion.dart';
+import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'count_badge.dart';
+import 'sheet_kit.dart' show sentenceCaseOf;
+import 'ios_kit.dart' show groupedFill, groupedRadius;
 
 /// The header affordance for [FilterStyle.drawer].
 ///
@@ -57,13 +61,11 @@ class RoomFilterButton extends StatelessWidget {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
+                // Filled, never outlined — the toolbar circle beside the
+                // compose button.
                 color: active
-                    ? theme.accent.withValues(alpha: 0.16)
-                    : Colors.transparent,
-                border: Border.all(
-                  color: active ? theme.accent : theme.divider,
-                  width: active ? 1 : 0.5,
-                ),
+                    ? theme.accent.withValues(alpha: 0.18)
+                    : theme.ink.withValues(alpha: 0.07),
               ),
               child: AnimatedRotation(
                 turns: expanded ? 0.5 : 0,
@@ -123,17 +125,20 @@ class ActiveFilterCue extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: theme.accent,
+                color: theme.accent.withValues(alpha: 0.16),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                l10n.roomFilterDrawerActiveSummary(
-                  matchCount,
-                  filter.summary(l10n),
+                sentenceCaseOf(
+                  context,
+                  l10n.roomFilterDrawerActiveSummary(
+                    matchCount,
+                    filter.summary(l10n),
+                  ),
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: theme.label.copyWith(color: theme.accentInk),
+                style: _small(theme).copyWith(color: theme.accent),
               ),
             ),
           ),
@@ -149,11 +154,15 @@ class ActiveFilterCue extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(CupertinoIcons.xmark, size: 11, color: theme.inkMuted),
+                  Icon(
+                    CupertinoIcons.xmark_circle_fill,
+                    size: 15,
+                    color: theme.inkMuted,
+                  ),
                   const SizedBox(width: 5),
                   Text(
-                    l10n.roomFilterDrawerClearLabel,
-                    style: theme.label.copyWith(color: theme.inkMuted),
+                    sentenceCaseOf(context, l10n.roomFilterDrawerClearLabel),
+                    style: _small(theme).copyWith(color: theme.inkMuted),
                   ),
                 ],
               ),
@@ -210,11 +219,10 @@ class RoomFilterPanel extends StatelessWidget {
           ? Padding(
               padding: const EdgeInsets.only(top: 12),
               child: Container(
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+                padding: const EdgeInsets.fromLTRB(16, 12, 14, 12),
                 decoration: BoxDecoration(
-                  color: theme.surfaceSunken,
-                  borderRadius: BorderRadius.circular(theme.radiusLg),
-                  border: Border.all(color: theme.divider, width: 0.5),
+                  color: groupedFill(theme),
+                  borderRadius: BorderRadius.circular(groupedRadius(theme)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -223,8 +231,11 @@ class RoomFilterPanel extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 6, top: 2),
                         child: Text(
-                          _dimensionLabel(l10n, dimension),
-                          style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                          sentenceCaseOf(
+                            context,
+                            _dimensionLabel(l10n, dimension),
+                          ),
+                          style: _small(theme).copyWith(color: theme.inkMuted),
                         ),
                       ),
                       for (final facet in RoomFacet.values.where(
@@ -325,13 +336,15 @@ class _FacetRow extends StatelessWidget {
                         ? theme.ink
                         : (empty ? theme.inkMuted : theme.inkSoft),
                   ),
-                  child: Text(facet.label(l10n)),
+                  child: Text(sentenceCaseOf(context, facet.label(l10n))),
                 ),
               ),
               Text(
                 '$count',
-                style: theme.mono.copyWith(
-                  color: empty ? theme.inkMuted : theme.inkSoft,
+                style: _small(theme).copyWith(
+                  color: empty
+                      ? theme.inkMuted.withValues(alpha: 0.6)
+                      : theme.inkMuted,
                 ),
               ),
             ],
@@ -346,26 +359,37 @@ class _Tick extends StatelessWidget {
   const _Tick({required this.selected});
   final bool selected;
 
+  /// The iOS multi-select circle: an empty ring, or a filled disc whose
+  /// checkmark springs in.
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     return AnimatedContainer(
       duration: theme.motionFast,
       curve: Curves.easeOutCubic,
-      width: 18,
-      height: 18,
+      width: 22,
+      height: 22,
       alignment: Alignment.center,
       decoration: BoxDecoration(
+        shape: BoxShape.circle,
         color: selected ? theme.accent : Colors.transparent,
-        borderRadius: BorderRadius.circular(theme.radiusSm),
-        border: Border.all(
-          color: selected ? theme.accent : theme.divider,
-          width: selected ? 1 : 1.2,
+        border: selected
+            ? null
+            : Border.all(
+                color: theme.inkMuted.withValues(alpha: 0.55),
+                width: 1.5,
+              ),
+      ),
+      child: AnimatedScale(
+        scale: selected ? 1 : 0,
+        duration: MotionScope.of(context).d(const Duration(milliseconds: 380)),
+        curve: selected ? Curves.elasticOut : Curves.easeIn,
+        child: Icon(
+          CupertinoIcons.checkmark_alt,
+          size: 15,
+          color: theme.accentInk,
         ),
       ),
-      child: selected
-          ? Icon(CupertinoIcons.check_mark, size: 12, color: theme.accentInk)
-          : null,
     );
   }
 }
@@ -392,21 +416,20 @@ class _PanelAction extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
+        // Capsules: the commit filled, the secondary a soft tint.
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: filled ? theme.accent : Colors.transparent,
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-            border: Border.all(
-              color: filled
-                  ? theme.accent
-                  : (disabled ? theme.divider : theme.inkMuted),
-              width: 1,
-            ),
+            color: filled
+                ? theme.bubbleFill(isMine: true)
+                : theme.ink.withValues(alpha: disabled ? 0.04 : 0.08),
+            borderRadius: BorderRadius.circular(999),
           ),
           child: Text(
-            label,
-            style: theme.label.copyWith(
+            sentenceCaseOf(context, label),
+            style: theme.body.copyWith(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
               color: filled
                   ? theme.accentInk
                   : (disabled ? theme.inkMuted : theme.ink),
@@ -445,8 +468,11 @@ class FilteredEmptyState extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            l10n.roomFilterDrawerEmptyStateTitle(filter.summary(l10n)),
-            style: theme.bodySoft,
+            sentenceCaseOf(
+              context,
+              l10n.roomFilterDrawerEmptyStateTitle(filter.summary(l10n)),
+            ),
+            style: theme.bodySoft.copyWith(color: theme.inkMuted),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 14),
@@ -462,10 +488,17 @@ class FilteredEmptyState extends StatelessWidget {
                   horizontal: 16,
                   vertical: 10,
                 ),
-                decoration: theme.chipDecoration(),
+                decoration: BoxDecoration(
+                  color: theme.accent.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(999),
+                ),
                 child: Text(
-                  l10n.roomFilterDrawerShowAllLabel(total),
-                  style: theme.label.copyWith(color: theme.accent),
+                  sentenceCaseOf(context, l10n.roomFilterDrawerShowAllLabel(total)),
+                  style: theme.body.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: theme.accent,
+                  ),
                 ),
               ),
             ),
@@ -475,3 +508,10 @@ class FilteredEmptyState extends StatelessWidget {
     );
   }
 }
+
+/// Footnote-size text in the theme's body face, tabular figures for counts.
+TextStyle _small(AppTheme theme) => theme.bodySoft.copyWith(
+      fontSize: 13,
+      fontWeight: FontWeight.w500,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );

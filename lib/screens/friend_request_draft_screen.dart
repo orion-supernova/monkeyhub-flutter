@@ -22,6 +22,9 @@ import '../widgets/app_toast.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/visibility_badge.dart';
 import 'room_screen.dart';
+import '../widgets/sheet_kit.dart';
+import '../widgets/labeled_field.dart' show fieldDecoration;
+import '../widgets/ios_kit.dart';
 
 /// The draft chat that runs BEFORE a friend request is approved.
 ///
@@ -455,33 +458,44 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 12, 20, 14),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: theme.divider, width: 1)),
-      ),
+    final l10n = AppLocalizations.of(context);
+    // The chat header's shape: glass back, face, name over a status line.
+    // No rule under it — the content below is the separation.
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
       child: Row(
         children: [
-          IconButton(
-            onPressed: () => Navigator.of(context).maybePop(),
-            icon: Icon(Icons.arrow_back, color: theme.inkSoft, size: 18),
-          ),
-          const SizedBox(width: 4),
-          UserAvatar(user: user, size: 36, api: api),
+          const GlassBackButton(),
           const SizedBox(width: 12),
+          UserAvatar(user: user, size: 38, api: api),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(user.displayName, style: theme.displaySmall),
+                Text(
+                  user.displayName,
+                  style: theme.bodyEmph.copyWith(color: theme.ink),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 Row(children: [
-                  Text(
-                      isIncoming
-                          ? AppLocalizations.of(context).friendRequestDraftScreenIncomingRequestLabel
-                          : AppLocalizations.of(context).friendRequestDraftScreenNewRequestLabel,
-                      style: theme.monoTiny.copyWith(color: theme.accent)),
+                  Flexible(
+                    child: Text(
+                      sentenceCaseOf(
+                        context,
+                        isIncoming
+                            ? l10n.friendRequestDraftScreenIncomingRequestLabel
+                            : l10n.friendRequestDraftScreenNewRequestLabel,
+                      ),
+                      style: _small(theme).copyWith(color: theme.accent),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                   const SizedBox(width: 6),
-                  if (roomType == RoomType.secret) EphemeralBadge(ttl: ttl, dense: true),
+                  if (roomType == RoomType.secret)
+                    EphemeralBadge(ttl: ttl, dense: true),
                 ]),
               ],
             ),
@@ -500,23 +514,33 @@ class _Intro extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final loc = AppLocalizations.of(context);
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: theme.roomCardDecoration(ephemeral: false, active: false),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(
-          isIncoming
-              ? loc.friendRequestDraftScreenIntroIncoming(otherUser.displayName)
-              : loc.friendRequestDraftScreenIntroOutgoing,
-          style: theme.bodyEmph,
+    return SheetRise(
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: groupedFill(theme),
+          borderRadius: BorderRadius.circular(groupedRadius(theme)),
         ),
-        const SizedBox(height: 8),
-        Text(
-          loc.friendRequestDraftScreenIntroFooter,
-          style: theme.bodySoft,
-        ),
-      ]),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(
+            sentenceCaseOf(
+              context,
+              isIncoming
+                  ? loc.friendRequestDraftScreenIntroIncoming(
+                      otherUser.displayName,
+                    )
+                  : loc.friendRequestDraftIntroOutgoingSentence,
+            ),
+            style: theme.bodyEmph.copyWith(color: theme.ink),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            sentenceCaseOf(context, loc.friendRequestDraftScreenIntroFooter),
+            style: theme.bodySoft.copyWith(color: theme.inkMuted),
+          ),
+        ]),
+      ),
     );
   }
 }
@@ -547,65 +571,124 @@ class _ComposeConfig extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: theme.divider, width: 1)),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(loc.friendRequestDraftScreenRoomTypeLabel, style: theme.label),
+          Text(
+            sentenceCaseOf(context, loc.friendRequestDraftScreenRoomTypeLabel),
+            style: _small(theme).copyWith(color: theme.inkMuted),
+          ),
           const SizedBox(height: 8),
-          Row(children: [
+          Wrap(spacing: 8, runSpacing: 8, children: [
             for (final t in RoomType.values)
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: GestureDetector(
-                  onTap: () => onRoomType(t),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: theme.chipDecoration(filled: roomType == t),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      if (t == RoomType.secret) ...[
-                        theme.hourglassIcon(size: 10.0, color: roomType == t ? theme.accentInk : theme.accent),
-                        const SizedBox(width: 6),
-                      ],
-                      Text(
-                        t == RoomType.secret
-                            ? loc.friendRequestDraftScreenRoomTypeEphemeral
-                            : loc.friendRequestDraftScreenRoomTypeStandard,
-                        style: theme.label.copyWith(
-                            color: roomType == t ? theme.accentInk : theme.inkSoft),
-                      ),
-                    ]),
-                  ),
+              _Capsule(
+                selected: roomType == t,
+                onTap: () => onRoomType(t),
+                leading: t == RoomType.secret
+                    ? theme.hourglassIcon(
+                        size: 12,
+                        color: roomType == t ? theme.accent : theme.inkSoft,
+                      )
+                    : null,
+                label: sentenceCaseOf(
+                  context,
+                  t == RoomType.secret
+                      ? loc.friendRequestDraftScreenRoomTypeEphemeral
+                      : loc.friendRequestDraftScreenRoomTypeStandard,
                 ),
               ),
           ]),
-          if (roomType == RoomType.secret) ...[
-            const SizedBox(height: 14),
-            Row(children: [
-              Text(loc.friendRequestDraftScreenLifetimeLabel, style: theme.label),
-              const SizedBox(width: 10),
-              Text(_fmt(context, ttl), style: theme.monoLarge.copyWith(color: theme.accent)),
-            ]),
-            const SizedBox(height: 8),
-            Wrap(spacing: 8, children: [
-              for (final t in ttls)
-                GestureDetector(
-                  onTap: () => onTtl(t),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                    decoration: theme.chipDecoration(filled: ttl == t),
-                    child: Text(_fmt(context, t),
-                        style: theme.label.copyWith(
-                            color: ttl == t ? theme.accentInk : theme.inkSoft)),
+          // Grows in under the type when disappearing messages are on, rather
+          // than the screen jumping by its height.
+          AnimatedSize(
+            duration: theme.motionFast,
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: roomType != RoomType.secret
+                ? const SizedBox(width: double.infinity)
+                : Padding(
+                    padding: const EdgeInsets.only(top: 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(children: [
+                          Text(
+                            sentenceCaseOf(
+                              context,
+                              loc.friendRequestDraftScreenLifetimeLabel,
+                            ),
+                            style: _small(theme).copyWith(color: theme.inkMuted),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _fmt(context, ttl),
+                            style: _small(theme).copyWith(
+                              color: theme.accent,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ]),
+                        const SizedBox(height: 8),
+                        Wrap(spacing: 8, runSpacing: 8, children: [
+                          for (final t in ttls)
+                            _Capsule(
+                              selected: ttl == t,
+                              onTap: () => onTtl(t),
+                              label: _fmt(context, t),
+                            ),
+                        ]),
+                      ],
+                    ),
                   ),
-                ),
-            ]),
-          ],
+          ),
         ],
+      ),
+    );
+  }
+}
+
+/// A pick-one capsule: tinted accent when chosen, a quiet fill otherwise —
+/// the app's filter-chip language. Bounces when it becomes the choice.
+class _Capsule extends StatelessWidget {
+  const _Capsule({
+    required this.selected,
+    required this.onTap,
+    required this.label,
+    this.leading,
+  });
+  final bool selected;
+  final VoidCallback onTap;
+  final String label;
+  final Widget? leading;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return SpringPress(
+      onTap: onTap,
+      semanticLabel: label,
+      child: AnimatedContainer(
+        duration: theme.motionFast,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? theme.accent.withValues(alpha: 0.18)
+              : theme.ink.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (leading != null) ...[leading!, const SizedBox(width: 6)],
+          Text(
+            label,
+            style: theme.bodySoft.copyWith(
+              fontSize: 15,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+              color: selected ? theme.accent : theme.inkSoft,
+            ),
+          ),
+        ]),
       ),
     );
   }
@@ -636,17 +719,20 @@ class _Composer extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final loc = AppLocalizations.of(context);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: theme.divider, width: 1)),
-      ),
+    // The chat composer's shape: a capsule field and a round send in the
+    // outgoing-bubble colour.
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
             child: Container(
-              decoration: theme.inputDecoration(),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              decoration: BoxDecoration(
+                color: fieldDecoration(theme).color,
+                borderRadius: BorderRadius.circular(22),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
               // No `onSubmitted`: a multi-line TextField never fires it.
               // See lib/keyboard/submit_on_enter.dart.
               child: SubmitOnEnter(
@@ -655,43 +741,59 @@ class _Composer extends StatelessWidget {
                 child: TextField(
                   controller: controller,
                   focusNode: focusNode,
-                  style: theme.body.copyWith(color: theme.ink),
+                  style: theme.body.copyWith(color: theme.ink, fontSize: 17),
                   cursorColor: theme.accent,
                   minLines: 1,
                   maxLines: 4,
                   decoration: InputDecoration(
                     isCollapsed: true,
                     border: InputBorder.none,
-                    hintText: requestMode
-                        ? (ephemeral
-                            ? loc.friendRequestDraftScreenHintWhisperOptional
-                            : loc.friendRequestDraftScreenHintFirstMessageOptional)
-                        : (ephemeral
-                            ? loc.friendRequestDraftScreenHintWhisperFades
-                            : loc.friendRequestDraftScreenHintStartWith),
-                    hintStyle: theme.body.copyWith(color: theme.inkMuted),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    hintText: sentenceCaseOf(
+                      context,
+                      requestMode
+                          ? (ephemeral
+                              ? loc.friendRequestDraftScreenHintWhisperOptional
+                              : loc.friendRequestDraftScreenHintFirstMessageOptional)
+                          : (ephemeral
+                              ? loc.friendRequestDraftScreenHintWhisperFades
+                              : loc.friendRequestDraftScreenHintStartWith),
+                    ),
+                    hintStyle: theme.body.copyWith(
+                      color: theme.inkMuted,
+                      fontSize: 17,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 11),
                   ),
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 10),
-          GestureDetector(
+          const SizedBox(width: 8),
+          SpringPress(
             onTap: busy ? null : onSend,
             child: Container(
-              width: 46,
-              height: 46,
+              width: 40,
+              height: 40,
+              margin: const EdgeInsets.only(bottom: 2),
               decoration: BoxDecoration(
-                color: busy ? theme.accentSoft : theme.accent,
+                color: busy
+                    ? theme.ink.withValues(alpha: 0.10)
+                    : theme.bubbleFill(isMine: true),
                 shape: BoxShape.circle,
               ),
               child: busy
                   ? Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: CircularProgressIndicator(strokeWidth: 2, color: theme.accentInk),
+                      padding: const EdgeInsets.all(11),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: theme.inkMuted,
+                      ),
                     )
-                  : Icon(Icons.north_east, color: theme.accentInk, size: 18),
+                  : Icon(
+                      CupertinoIcons.arrow_up,
+                      color: theme.accentInk,
+                      size: 20,
+                    ),
             ),
           ),
         ],
@@ -706,40 +808,23 @@ class _ApproveBar extends StatelessWidget {
   final VoidCallback onReject;
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final loc = AppLocalizations.of(context);
-    return Container(
+    return Padding(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
       child: Row(
         children: [
           Expanded(
-            child: GestureDetector(
+            child: SheetActionButton(
+              label: loc.friendRequestDraftScreenApproveButton,
               onTap: onApprove,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: theme.accent,
-                  borderRadius: BorderRadius.circular(theme.radiusMd),
-                ),
-                child: Text(loc.friendRequestDraftScreenApproveButton,
-                    style: theme.label.copyWith(color: theme.accentInk)),
-              ),
             ),
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: GestureDetector(
+            child: SheetActionButton(
+              label: loc.friendRequestDraftScreenDeclineButton,
+              tonal: true,
               onTap: onReject,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  border: Border.all(color: theme.divider),
-                  borderRadius: BorderRadius.circular(theme.radiusMd),
-                ),
-                child: Text(loc.friendRequestDraftScreenDeclineButton, style: theme.label),
-              ),
             ),
           ),
         ],
@@ -754,13 +839,23 @@ class _CancelBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final label = sentenceCaseOf(
+      context,
+      AppLocalizations.of(context).friendRequestDraftScreenCancelRequestButton,
+    );
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
       alignment: Alignment.center,
-      child: GestureDetector(
+      child: SpringPress(
         onTap: onCancel,
-        child: Text(AppLocalizations.of(context).friendRequestDraftScreenCancelRequestButton,
-            style: theme.label.copyWith(color: theme.danger)),
+        semanticLabel: label,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Text(
+            label,
+            style: theme.body.copyWith(fontSize: 17, color: theme.danger),
+          ),
+        ),
       ),
     );
   }
@@ -777,52 +872,39 @@ class _SendRequestBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final label = FamilyService.maybeInstance?.isChild == true
+        ? AppLocalizations.of(context).friendRequestDraftScreenAskGrownUpButton
+        : AppLocalizations.of(context).friendRequestDraftScreenSendRequestButton;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
-      child: GestureDetector(
-        onTap: busy ? null : onSend,
-        child: AnimatedContainer(
-          duration: theme.motionFast,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: busy ? theme.accentSoft : theme.accent,
-            borderRadius: BorderRadius.circular(theme.radiusLg),
-            boxShadow: busy
-                ? null
-                : [
-                    BoxShadow(
-                      color: theme.accent.withValues(alpha: 0.28),
-                      blurRadius: 16,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-          ),
-          child: busy
-              ? SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: theme.accentInk),
-                )
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(CupertinoIcons.paperplane_fill, size: 14, color: theme.accentInk),
-                    const SizedBox(width: 10),
-                    Text(
-                      FamilyService.maybeInstance?.isChild == true
-                          ? AppLocalizations.of(context).friendRequestDraftScreenAskGrownUpButton
-                          : AppLocalizations.of(context).friendRequestDraftScreenSendRequestButton,
-                      style: theme.label.copyWith(
-                        color: theme.accentInk,
-                        letterSpacing: 2.4,
-                      ),
-                    ),
-                  ],
+      child: busy
+          // The button's own slab, holding a spinner while the request goes.
+          ? Container(
+              height: 52,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: theme.ink.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(
+                  (theme.radiusXl * 0.8).clamp(6.0, 16.0),
                 ),
-        ),
-      ),
+              ),
+              child: SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: theme.inkMuted,
+                ),
+              ),
+            )
+          : SheetActionButton(label: label, onTap: onSend),
     );
   }
 }
+
+/// Footnote-size text in the theme's body face.
+TextStyle _small(AppTheme theme) => theme.bodySoft.copyWith(
+      fontSize: 13,
+      fontWeight: FontWeight.w500,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );

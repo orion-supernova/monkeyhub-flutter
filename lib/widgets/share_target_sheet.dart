@@ -15,7 +15,8 @@ import '../share/shared_payload.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
-import 'destructive_sheet.dart' show SheetGrabber;
+import 'search_field.dart' show searchFieldDecoration;
+import 'sheet_kit.dart';
 import 'pending_placeholder.dart';
 import 'skeleton_rows.dart';
 import 'user_avatar.dart';
@@ -179,17 +180,24 @@ class _ShareTargetSheetState extends State<_ShareTargetSheet> {
       child: DefaultTextStyle(
         style: theme.body.copyWith(color: theme.ink),
         child: Container(
-          decoration: theme.sheetDecoration(),
+          decoration: BoxDecoration(
+            color: sheetFill(theme),
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(sheetTopRadius(theme)),
+            ),
+          ),
           padding: EdgeInsets.fromLTRB(
-              22, 14, 22, 22 + MediaQuery.paddingOf(context).bottom),
+              22, 4, 22, 22 + MediaQuery.paddingOf(context).bottom),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SheetGrabber(),
+              const SheetHandle(),
+              const SizedBox(height: 8),
               Text(
-                loc.shareSheetTitle,
-                style: theme.label.copyWith(letterSpacing: 2.4),
+                sentenceCaseOf(context, loc.shareSheetTitle),
+                textAlign: TextAlign.center,
+                style: theme.bodyEmph.copyWith(color: theme.ink),
               ),
               const SizedBox(height: 12),
               _SharePreview(payload: widget.payload, theme: theme),
@@ -246,11 +254,11 @@ class _ShareTargetSheetState extends State<_ShareTargetSheet> {
                               padding:
                                   const EdgeInsets.fromLTRB(10, 14, 10, 6),
                               child: Text(
-                                loc.shareSheetSuggestedHeading,
-                                style: theme.label.copyWith(
-                                  letterSpacing: 2.0,
-                                  color: theme.inkMuted,
+                                sentenceCaseOf(
+                                  context,
+                                  loc.shareSheetSuggestedHeading,
                                 ),
+                                style: _meta(theme),
                               ),
                             ),
                             for (final f in suggested)
@@ -393,9 +401,8 @@ class _RoomAvatar extends StatelessWidget {
       height: 32,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: theme.surfaceRaised,
+        color: theme.ink.withValues(alpha: 0.08),
         shape: BoxShape.circle,
-        border: Border.all(color: theme.divider, width: 0.8),
       ),
       child: Icon(
         room.isEphemeral ? CupertinoIcons.timer : CupertinoIcons.person_2,
@@ -454,12 +461,12 @@ class _TargetRow extends StatelessWidget {
                   padding: const EdgeInsets.only(left: 8),
                   child: Text(
                     trailing!,
-                    style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                    style: _meta(theme).copyWith(color: theme.inkMuted),
                   ),
                 ),
               const SizedBox(width: 6),
-              Icon(CupertinoIcons.chevron_right,
-                  size: 14, color: theme.inkMuted),
+              Icon(CupertinoIcons.chevron_forward,
+                  size: 14, color: theme.inkMuted.withValues(alpha: 0.7)),
             ],
           ),
         ),
@@ -483,7 +490,7 @@ class _SearchField extends StatelessWidget {
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
     return Container(
-      decoration: theme.inputDecoration(),
+      decoration: searchFieldDecoration(theme),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [
@@ -499,7 +506,10 @@ class _SearchField extends StatelessWidget {
                 isDense: true,
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                hintText: loc.approvalsScreenForwardSearchHint,
+                hintText: sentenceCaseOf(
+                  context,
+                  loc.approvalsScreenForwardSearchHint,
+                ),
                 hintStyle: theme.bodySoft.copyWith(color: theme.inkMuted),
               ),
             ),
@@ -509,3 +519,11 @@ class _SearchField extends StatelessWidget {
     );
   }
 }
+
+/// Small meta text — counts, times, choice names — in the theme's body face
+/// at footnote size with tabular figures, never the tracked monospace.
+TextStyle _meta(AppTheme theme) => theme.bodySoft.copyWith(
+      fontSize: 13,
+      color: theme.inkMuted,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );

@@ -52,11 +52,11 @@ void main() {
         canDelete: true,
       )));
 
-      expect(find.text('3 SELECTED'), findsOneWidget);
+      expect(find.text('3 selected'), findsOneWidget);
 
-      await tester.tap(find.text('FORWARD'));
-      await tester.tap(find.text('DELETE'));
-      await tester.tap(find.text('CANCEL'));
+      await tester.tap(find.text('Forward'));
+      await tester.tap(find.text('Delete'));
+      await tester.tap(find.text('Cancel'));
       await tester.pump();
 
       expect(forwards, 1);
@@ -77,11 +77,11 @@ void main() {
         canDelete: false,
       )));
 
-      expect(find.text('FORWARD'), findsOneWidget);
-      expect(find.text('DELETE'), findsOneWidget);
+      expect(find.text('Forward'), findsOneWidget);
+      expect(find.text('Delete'), findsOneWidget);
 
-      await tester.tap(find.text('FORWARD'), warnIfMissed: false);
-      await tester.tap(find.text('DELETE'), warnIfMissed: false);
+      await tester.tap(find.text('Forward'), warnIfMissed: false);
+      await tester.tap(find.text('Delete'), warnIfMissed: false);
       await tester.pump();
 
       expect(forwards, 0);
@@ -103,8 +103,8 @@ void main() {
         canDelete: true,
       )));
 
-      expect(find.text('SELECT MESSAGES'), findsOneWidget);
-      await tester.tap(find.text('FORWARD'), warnIfMissed: false);
+      expect(find.text('Select messages'), findsOneWidget);
+      await tester.tap(find.text('Forward'), warnIfMissed: false);
       await tester.pump();
       expect(forwards, 0);
     });

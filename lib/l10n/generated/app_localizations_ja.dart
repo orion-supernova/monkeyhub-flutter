@@ -9888,4 +9888,8 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get approvalGateAskIos => 'お願いする';
+
+  @override
+  String get friendRequestDraftIntroOutgoingSentence =>
+      '簡単なメッセージを送りましょう。相手は承認か拒否かを選べます。';
 }

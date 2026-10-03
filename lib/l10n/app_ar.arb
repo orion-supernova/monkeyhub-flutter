@@ -2889,5 +2889,6 @@
   "socialSignInLinkIos": "تسجيل الدخول وربط {provider}",
   "serverTitleIos": "الخادم",
   "serverOnboardingTitleIos": "اختر خادمًا",
-  "approvalGateAskIos": "اطلب"
+  "approvalGateAskIos": "اطلب",
+  "friendRequestDraftIntroOutgoingSentence": "أرسل بضعة أسطر. يمكنهم القبول أو الرفض."
 }

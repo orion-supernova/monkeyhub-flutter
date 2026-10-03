@@ -2889,5 +2889,6 @@
   "socialSignInLinkIos": "サインインして{provider}と連携",
   "serverTitleIos": "サーバー",
   "serverOnboardingTitleIos": "サーバーを選択",
-  "approvalGateAskIos": "お願いする"
+  "approvalGateAskIos": "お願いする",
+  "friendRequestDraftIntroOutgoingSentence": "簡単なメッセージを送りましょう。相手は承認か拒否かを選べます。"
 }

@@ -12,7 +12,7 @@ import '../models/room_pin.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
-import 'destructive_sheet.dart' show SheetGrabber;
+import 'sheet_kit.dart';
 import 'message_stamp.dart' show formatClockTime;
 import 'remote_image.dart';
 
@@ -85,20 +85,29 @@ class PinnedListSheet extends StatelessWidget {
     final maxH = MediaQuery.sizeOf(context).height * 0.6;
 
     return Container(
-      decoration: theme.sheetDecoration(),
+      decoration: BoxDecoration(
+        color: sheetFill(theme),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(sheetTopRadius(theme)),
+        ),
+      ),
       padding: EdgeInsets.fromLTRB(
-          22, 14, 22, 22 + MediaQuery.paddingOf(context).bottom),
+          22, 4, 22, 22 + MediaQuery.paddingOf(context).bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SheetGrabber(),
+          const SheetHandle(),
+          const SizedBox(height: 8),
           Text(
-            pins.isEmpty
-                ? l10n.activeCallPillPinnedHeader
-                : l10n.activeCallPillPinnedHeaderCount(pins.length),
+            sentenceCaseOf(
+              context,
+              pins.isEmpty
+                  ? l10n.activeCallPillPinnedHeader
+                  : l10n.activeCallPillPinnedHeaderCount(pins.length),
+            ),
             textAlign: TextAlign.center,
-            style: theme.label.copyWith(letterSpacing: 2.4),
+            style: theme.bodyEmph.copyWith(color: theme.ink),
           ),
           const SizedBox(height: 14),
           if (pins.isEmpty)
@@ -202,7 +211,7 @@ class _PinRow extends StatelessWidget {
                             const SizedBox(width: 6),
                             Text(
                               formatClockTime(m.createdAt),
-                              style: theme.monoTiny.copyWith(
+                              style: _meta(theme).copyWith(
                                 color: theme.inkMuted,
                               ),
                             ),
@@ -275,3 +284,11 @@ class _Tappable extends StatelessWidget {
     );
   }
 }
+
+/// Small meta text — counts, times, choice names — in the theme's body face
+/// at footnote size with tabular figures, never the tracked monospace.
+TextStyle _meta(AppTheme theme) => theme.bodySoft.copyWith(
+      fontSize: 13,
+      color: theme.inkMuted,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );

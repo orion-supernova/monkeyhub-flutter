@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -7,6 +8,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../services/link_preview_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'sheet_kit.dart' show sentenceCaseOf;
 
 /// Premium OG-card preview for a single URL.
 ///
@@ -443,13 +445,9 @@ class _BareLayout extends StatelessWidget {
             decoration: BoxDecoration(
               color: theme.accent.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: theme.accent.withValues(alpha: 0.4),
-                width: 0.8,
-              ),
             ),
             alignment: Alignment.center,
-            child: Icon(Icons.link_rounded, size: 14, color: theme.accent),
+            child: Icon(CupertinoIcons.link, size: 14, color: theme.accent),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -458,10 +456,14 @@ class _BareLayout extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  AppLocalizations.of(context).linkPreviewCardLinkLabel,
-                  style: theme.monoTiny.copyWith(
+                  sentenceCaseOf(
+                    context,
+                    AppLocalizations.of(context).linkPreviewCardLinkLabel,
+                  ),
+                  style: theme.bodySoft.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                     color: tone.inkMuted,
-                    letterSpacing: 2.4,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -503,7 +505,9 @@ class _InfoBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final title = preview.title?.trim();
     final desc = preview.description?.trim();
-    final siteTag = (preview.siteName ?? domain).toUpperCase();
+    // As the site writes itself, not shouted: an uppercased tag was the old
+    // letter-spaced chrome, and Dart's toUpperCase mangles Turkish İ/ı.
+    final siteTag = preview.siteName ?? domain;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -524,9 +528,10 @@ class _InfoBlock extends StatelessWidget {
             Flexible(
               child: Text(
                 siteTag,
-                style: theme.monoTiny.copyWith(
+                style: theme.bodySoft.copyWith(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
                   color: tone.inkMuted,
-                  letterSpacing: 2.0,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -566,9 +571,9 @@ class _InfoBlock extends StatelessWidget {
             Flexible(
               child: Text(
                 domain,
-                style: theme.monoTiny.copyWith(
+                style: theme.bodySoft.copyWith(
+                  fontSize: 12,
                   color: tone.inkSoft,
-                  letterSpacing: 0.4,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -772,7 +777,9 @@ class _CardTones {
   factory _CardTones.of(AppTheme theme, bool isMine, bool insideBubble) {
     return _CardTones(
       surface: insideBubble ? theme.surfaceSunken : theme.surface,
-      border: theme.divider,
+      // No outline: the iMessage link card is a filled panel, and a hairline
+      // around it inside a bubble drew a box inside a box.
+      border: const Color(0x00000000),
       ink: theme.ink,
       inkSoft: theme.inkSoft,
       inkMuted: theme.inkMuted,

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
+import 'ios_kit.dart';
 import 'labeled_field.dart';
+import 'sheet_kit.dart';
 
 /// Prompts the user to pick a report reason. Resolves to the reason string
 /// (or null on dismiss). The "other" path lets the user type a free-form
@@ -95,147 +96,72 @@ class _ReportSheetState extends State<_ReportSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Container(
-        decoration: theme.sheetDecoration(),
-        padding: const EdgeInsets.fromLTRB(22, 14, 22, 22),
+    final l10n = AppLocalizations.of(context);
+    String sc(String x) => sentenceCaseOf(context, x);
+    return SheetFrame(
+      title: sc(l10n.reportSheetTitle),
+      leading: const SheetCloseButton(),
+      child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: theme.inkMuted.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(2),
-                ),
+            SheetRise(
+              child: Text(
+                sc(l10n.reportSheetSubtitle),
+                textAlign: TextAlign.center,
+                style: theme.displaySmall.copyWith(color: theme.ink),
               ),
-            ),
-            Text(
-              AppLocalizations.of(context).reportSheetTitle,
-              style: theme.label.copyWith(
-                color: theme.danger,
-                letterSpacing: 2,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              AppLocalizations.of(context).reportSheetSubtitle,
-              style: theme.displayMedium,
             ),
             const SizedBox(height: 4),
-            Text(
-              AppLocalizations.of(context).reportSheetPrivacyNote,
-              style: theme.bodySoft,
+            SheetRise(
+              index: 1,
+              child: Text(
+                sc(l10n.reportSheetPrivacyNote),
+                textAlign: TextAlign.center,
+                style: theme.bodySoft.copyWith(color: theme.inkMuted),
+              ),
             ),
-            const SizedBox(height: 14),
-            for (final r in _reasons)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: GestureDetector(
-                  onTap: () => setState(() => _selected = r.$1),
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: _selected == r.$1
-                          ? theme.surfaceRaised
-                          : theme.surface,
-                      border: Border.all(
-                        color: _selected == r.$1 ? theme.danger : theme.divider,
-                        width: _selected == r.$1 ? 1.6 : 1,
-                      ),
-                      borderRadius: BorderRadius.circular(theme.radiusMd),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 14,
-                          height: 14,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: _selected == r.$1
-                                  ? theme.danger
-                                  : theme.inkMuted,
-                              width: 1.4,
-                            ),
-                          ),
-                          alignment: Alignment.center,
-                          child: _selected == r.$1
-                              ? Container(
-                                  width: 7,
-                                  height: 7,
-                                  decoration: BoxDecoration(
-                                    color: theme.danger,
-                                    shape: BoxShape.circle,
-                                  ),
-                                )
-                              : null,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _reasonLabel(context, r.$1),
-                                style: theme.label,
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                _reasonDescription(context, r.$1),
-                                style: theme.monoTiny,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            if (_selected == 'OTHER') ...[
-              const SizedBox(height: 4),
-              ThemedInput(
-                controller: _note,
-                hint: AppLocalizations.of(context).reportSheetOtherNoteHint,
-                minLines: 2,
-                maxLines: 5,
-              ),
-            ],
             const SizedBox(height: 18),
-            FocusableTap(
-              onTap: _selected == null ? null : _submitReport,
-              enabled: _selected != null,
-              semanticLabel: AppLocalizations.of(
-                context,
-              ).reportSheetSubmitSemanticLabel,
-              radius: theme.radiusMd,
-              child: GestureDetector(
-                onTap: _selected == null ? null : _submitReport,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: _selected == null
-                        ? theme.surfaceSunken
-                        : theme.danger,
-                    borderRadius: BorderRadius.circular(theme.radiusMd),
-                  ),
-                  child: Text(
-                    AppLocalizations.of(context).reportSheetSubmitButton,
-                    style: theme.label.copyWith(
-                      color: _selected == null ? theme.inkMuted : Colors.white,
-                      letterSpacing: 2.4,
+            SheetRise(
+              index: 2,
+              child: SheetGroup(
+                children: [
+                  for (final r in _reasons)
+                    GroupedRow.choice(
+                      title: sc(_reasonLabel(context, r.$1)),
+                      subtitle: sc(_reasonDescription(context, r.$1)),
+                      selected: _selected == r.$1,
+                      onTap: () => setState(() => _selected = r.$1),
                     ),
-                  ),
-                ),
+                ],
+              ),
+            ),
+            // The free-text note grows in under the list when it is needed,
+            // instead of the sheet jumping by its height.
+            AnimatedSize(
+              duration: theme.motionFast,
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.topCenter,
+              child: _selected == 'OTHER'
+                  ? Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: ThemedInput(
+                        controller: _note,
+                        hint: sc(l10n.reportSheetOtherNoteHint),
+                        minLines: 2,
+                        maxLines: 5,
+                      ),
+                    )
+                  : const SizedBox(width: double.infinity),
+            ),
+            const SizedBox(height: 18),
+            Semantics(
+              label: l10n.reportSheetSubmitSemanticLabel,
+              child: SheetActionButton(
+                label: l10n.reportSheetSubmitButton,
+                destructive: true,
+                onTap: _selected == null ? null : _submitReport,
               ),
             ),
           ],

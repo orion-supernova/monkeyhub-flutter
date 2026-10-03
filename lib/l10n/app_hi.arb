@@ -2889,5 +2889,6 @@
   "socialSignInLinkIos": "साइन इन करें और {provider} लिंक करें",
   "serverTitleIos": "सर्वर",
   "serverOnboardingTitleIos": "एक सर्वर चुनें",
-  "approvalGateAskIos": "पूछें"
+  "approvalGateAskIos": "पूछें",
+  "friendRequestDraftIntroOutgoingSentence": "कुछ लाइनें भेजो। वो स्वीकार या अस्वीकार कर सकते हैं।"
 }

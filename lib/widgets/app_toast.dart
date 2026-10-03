@@ -478,6 +478,7 @@ class _Pill extends StatelessWidget {
     final theme = spec.theme;
     final accent = spec.accent;
     final label = spec.actionLabel;
+    final light = theme.background.computeLuminance() > 0.5;
 
     return Semantics(
       // So a screen reader speaks the message when it appears rather than only
@@ -493,18 +494,34 @@ class _Pill extends StatelessWidget {
           // Two shadows rather than one: a tight dark contact shadow so the
           // pill sits ON the screen, and a wide soft one so it reads as
           // floating well above it. A single blur can do one or the other.
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.28),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.22),
-              blurRadius: 28,
-              offset: const Offset(0, 10),
-            ),
-          ],
+          //
+          // On a light page both are lifted and softened: there the tight
+          // dark contact shadow read as a hard lip under the banner (worst on
+          // Risograph's paper), where on a dark page it is what separates it.
+          boxShadow: light
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 3,
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.14),
+                    blurRadius: 30,
+                    offset: const Offset(0, 8),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.28),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.22),
+                    blurRadius: 28,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
         ),
         // Solid, not frosted. The pill slides and fades in, and a
         // BackdropFilter inside a moving, fading layer re-blurs the screen

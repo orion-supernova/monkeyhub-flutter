@@ -177,7 +177,7 @@ void main() {
     test('summary reads as the cue the chat screen shows', () {
       expect(
         RoomFilter({RoomFacet.dms, RoomFacet.unread}).summary(_l10n),
-        'dms + unread',
+        'DMs + unread',
       );
       expect(RoomFilter.empty.summary(_l10n), '');
     });

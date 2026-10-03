@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 
 import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
+import 'sheet_kit.dart' show sentenceCaseOf;
 
 /// Mounts [child] only while it is visible or animating.
 ///
@@ -151,24 +152,29 @@ class GlassPill extends StatelessWidget {
             filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              // Tinted glass with a hairline of light on the rim, not a grey
+              // outline; the shadow inside a clip never painted anyway.
               decoration: BoxDecoration(
                 color: theme.accentSoft,
-                border: Border.all(color: theme.divider, width: 1),
+                border: Border.all(
+                  color: const Color(0xFFFFFFFF).withValues(alpha: 0.12),
+                  width: 0.5,
+                ),
                 borderRadius: BorderRadius.circular(999),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF000000).withValues(alpha: 0.16),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(icon, size: 11, color: theme.accent),
+                  Icon(icon, size: 13, color: theme.accent),
                   const SizedBox(width: 6),
-                  Text(label, style: theme.monoTiny.copyWith(letterSpacing: 1.8)),
+                  Text(
+                    sentenceCaseOf(context, label),
+                    style: theme.bodySoft.copyWith(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: theme.accent,
+                    ),
+                  ),
                 ],
               ),
             ),

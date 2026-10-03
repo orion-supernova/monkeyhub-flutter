@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'password_field.dart';
+import 'sheet_kit.dart';
 
 /// Asks for the account password. Returns null if the user backed out.
 ///
@@ -64,55 +64,33 @@ class _PasswordPromptSheetState extends State<_PasswordPromptSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Padding(
-      // Lifts the sheet clear of the keyboard, which otherwise covers the very
-      // field it was opened to fill.
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        decoration: theme.sheetDecoration(),
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(widget.title, style: theme.label),
-            if (widget.subtitle != null) ...[
-              const SizedBox(height: 8),
-              Text(widget.subtitle!, style: theme.bodySoft),
-            ],
-            const SizedBox(height: 16),
-            PasswordField(
-              controller: _password,
-              hint: AppLocalizations.of(context).reactionBubblePasswordHint,
-              autofocus: true,
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _submit(),
+    // SheetFrame adds the keyboard inset to its own bottom padding, so the
+    // field it was opened to fill is never under the keyboard.
+    return SheetFrame(
+      title: sentenceCaseOf(context, widget.title),
+      leading: const SheetCloseButton(),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (widget.subtitle != null) ...[
+            Text(
+              widget.subtitle!,
+              textAlign: TextAlign.center,
+              style: theme.bodySoft.copyWith(color: theme.inkMuted),
             ),
-            const SizedBox(height: 16),
-            FocusableTap(
-              onTap: _submit,
-              semanticLabel: widget.actionLabel,
-              radius: theme.radiusMd,
-              // Never InkWell anywhere in this app.
-              child: GestureDetector(
-                onTap: _submit,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: theme.accent,
-                    borderRadius: BorderRadius.circular(theme.radiusMd),
-                  ),
-                  child: Text(
-                    widget.actionLabel,
-                    style: theme.label
-                        .copyWith(color: theme.accentInk, letterSpacing: 2),
-                  ),
-                ),
-              ),
-            ),
+            const SizedBox(height: 18),
           ],
-        ),
+          PasswordField(
+            controller: _password,
+            hint: AppLocalizations.of(context).reactionBubblePasswordHint,
+            autofocus: true,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _submit(),
+          ),
+          const SizedBox(height: 18),
+          SheetActionButton(label: widget.actionLabel, onTap: _submit),
+        ],
       ),
     );
   }

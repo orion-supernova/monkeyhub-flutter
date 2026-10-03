@@ -2889,5 +2889,6 @@
   "socialSignInLinkIos": "Logga in och koppla {provider}",
   "serverTitleIos": "Server",
   "serverOnboardingTitleIos": "Välj en server",
-  "approvalGateAskIos": "Fråga"
+  "approvalGateAskIos": "Fråga",
+  "friendRequestDraftIntroOutgoingSentence": "Skriv några rader. De kan godkänna eller avvisa."
 }

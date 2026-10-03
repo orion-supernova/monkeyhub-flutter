@@ -2889,5 +2889,6 @@
   "socialSignInLinkIos": "Se connecter et lier {provider}",
   "serverTitleIos": "Serveur",
   "serverOnboardingTitleIos": "Choisissez un serveur",
-  "approvalGateAskIos": "Demander"
+  "approvalGateAskIos": "Demander",
+  "friendRequestDraftIntroOutgoingSentence": "Envoie quelques lignes. Cette personne peut accepter ou refuser."
 }

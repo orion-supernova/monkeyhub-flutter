@@ -205,7 +205,7 @@ void main() {
       await t.pump();
       expect(find.text('3 days'), findsOneWidget);
 
-      await t.tap(find.text('CREATE LINK'));
+      await t.tap(find.text('Create link'));
       await t.pumpAndSettle();
       expect(repo.sentExpiry, const Duration(days: 3));
       expect(repo.sentMaxUses, isNull);
@@ -230,7 +230,7 @@ void main() {
       await t.pumpAndSettle();
       expect(find.text('3 days'), findsOneWidget);
 
-      await t.tap(find.text('CREATE LINK'));
+      await t.tap(find.text('Create link'));
       await t.pumpAndSettle();
       expect(repo.sentExpiry, const Duration(days: 3));
       await settleToast(t);
@@ -251,7 +251,7 @@ void main() {
       await t.pump();
       expect(find.text('12 uses'), findsOneWidget);
 
-      await t.tap(find.text('CREATE LINK'));
+      await t.tap(find.text('Create link'));
       await t.pumpAndSettle();
       expect(repo.sentMaxUses, 12);
       expect(repo.rotations, 1);
@@ -263,7 +263,7 @@ void main() {
       await t.tap(find.text('25'));
       await t.pumpAndSettle();
       expect(find.text('12 uses'), findsNothing);
-      await t.tap(find.text('CREATE LINK'));
+      await t.tap(find.text('Create link'));
       await t.pumpAndSettle();
       expect(repo.rotations, 2);
       expect(repo.sentMaxUses, 25);

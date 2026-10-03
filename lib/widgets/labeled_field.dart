@@ -33,7 +33,7 @@ class FieldLabel extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 7),
       child: Text(
         sentenceCaseOf(context, text),
-        style: theme.caption.copyWith(fontSize: 13, color: theme.inkMuted),
+        style: theme.bodySoft.copyWith(fontSize: 13, color: theme.inkMuted),
       ),
     );
   }

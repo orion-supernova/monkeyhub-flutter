@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
@@ -12,7 +11,7 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'interaction_bubble.dart' show interactionChoiceLabel;
-import 'destructive_sheet.dart' show SheetGrabber;
+import 'sheet_kit.dart';
 import 'message_stamp.dart' show formatClockTime;
 import 'user_avatar.dart';
 
@@ -165,18 +164,24 @@ class _InteractionRespondentsSheetState
     ]..sort((a, b) => b.at.compareTo(a.at));
 
     return Container(
-      decoration: theme.sheetDecoration(),
+      decoration: BoxDecoration(
+        color: sheetFill(theme),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(sheetTopRadius(theme)),
+        ),
+      ),
       padding: EdgeInsets.fromLTRB(
-          16, 14, 16, 18 + MediaQuery.paddingOf(context).bottom),
+          16, 4, 16, 18 + MediaQuery.paddingOf(context).bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SheetGrabber(),
+          const SheetHandle(),
+          const SizedBox(height: 8),
           Text(
-            _title(l10n, it.kind),
+            sentenceCaseOf(context, _title(l10n, it.kind)),
             textAlign: TextAlign.center,
-            style: theme.label.copyWith(letterSpacing: 2.4),
+            style: theme.bodyEmph.copyWith(color: theme.ink),
           ),
           const SizedBox(height: 5),
           Text(
@@ -184,7 +189,7 @@ class _InteractionRespondentsSheetState
                 ? l10n.interactionRsvpCount(it.respondentCount)
                 : l10n.interactionVoteCount(it.respondentCount),
             textAlign: TextAlign.center,
-            style: theme.monoTiny,
+            style: _meta(theme),
           ),
           const SizedBox(height: 16),
           if (_failed)
@@ -353,7 +358,7 @@ class _FilterPill extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 '$count',
-                style: theme.monoTiny.copyWith(
+                style: _meta(theme).copyWith(
                   color: selected ? theme.accentInk : theme.inkMuted,
                   fontWeight: FontWeight.w700,
                 ),
@@ -422,13 +427,13 @@ class _RespondentRow extends StatelessWidget {
                         choiceLabel!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                        style: _meta(theme).copyWith(color: theme.inkMuted),
                       ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              Text(time, style: theme.monoTiny.copyWith(color: theme.inkMuted)),
+              Text(time, style: _meta(theme).copyWith(color: theme.inkMuted)),
             ],
           ),
         ),
@@ -436,3 +441,11 @@ class _RespondentRow extends StatelessWidget {
     );
   }
 }
+
+/// Small meta text — counts, times, choice names — in the theme's body face
+/// at footnote size with tabular figures, never the tracked monospace.
+TextStyle _meta(AppTheme theme) => theme.bodySoft.copyWith(
+      fontSize: 13,
+      color: theme.inkMuted,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );

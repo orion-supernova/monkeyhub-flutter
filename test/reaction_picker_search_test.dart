@@ -43,10 +43,10 @@ void main() {
 
     // The resting bar under the grid. No TextField yet — tapping it is what
     // swaps the whole picker for the search view.
-    expect(find.text('search emoji'), findsOneWidget);
+    expect(find.text('Search emoji'), findsOneWidget);
     expect(find.byType(TextField), findsNothing);
 
-    await tester.tap(find.text('search emoji'));
+    await tester.tap(find.text('Search emoji'));
     await tester.pumpAndSettle();
 
     expect(find.byType(TextField), findsOneWidget);
@@ -74,7 +74,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('emoji ara'));
+    await tester.tap(find.text('Emoji ara'));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), 'kalp');
@@ -107,7 +107,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('buscar emoji'));
+    await tester.tap(find.text('Buscar emoji'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'fuego');
     await tester.pumpAndSettle();
@@ -163,7 +163,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('search emoji'));
+    await tester.tap(find.text('Search emoji'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'phoenix');
     await tester.pumpAndSettle();
