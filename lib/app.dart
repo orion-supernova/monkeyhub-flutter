@@ -1973,6 +1973,35 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
               textTheme: TextTheme(bodyMedium: theme.body),
               splashFactory: NoSplash.splashFactory,
               highlightColor: Colors.transparent,
+              // Material controls that remain in the tree are dressed as
+              // their iOS counterparts here, once, so no screen can miss it:
+              // a thin rounded slider with a white thumb and no halo, thin
+              // round-capped progress rings, an accent cursor.
+              sliderTheme: SliderThemeData(
+                trackHeight: 4,
+                activeTrackColor: theme.accent,
+                inactiveTrackColor: theme.ink.withValues(alpha: 0.14),
+                thumbColor: Colors.white,
+                overlayShape: SliderComponentShape.noOverlay,
+                thumbShape: const RoundSliderThumbShape(
+                  enabledThumbRadius: 13,
+                  elevation: 3,
+                  pressedElevation: 4,
+                ),
+                trackShape: const RoundedRectSliderTrackShape(),
+                showValueIndicator: ShowValueIndicator.never,
+              ),
+              progressIndicatorTheme: ProgressIndicatorThemeData(
+                color: theme.accent,
+                circularTrackColor: Colors.transparent,
+                strokeCap: StrokeCap.round,
+                strokeWidth: 2.5,
+              ),
+              textSelectionTheme: TextSelectionThemeData(
+                cursorColor: theme.accent,
+                selectionColor: theme.accent.withValues(alpha: 0.28),
+                selectionHandleColor: theme.accent,
+              ),
               colorScheme:
                   (isLight
                           ? const ColorScheme.light()
