@@ -18,7 +18,23 @@ String launcherIconNameForThemeId(String themeId) {
       return 'mh_daylight';
     case 'basic_forest':
       return 'mh_forest';
+    // Themes without an alternate icon of their own yet borrow the nearest
+    // existing one (see [kBorrowedIconThemeIds]).
+    case 'paper':
+      return 'vault_ivory';
+    case 'dot':
+      return 'basic_graphite';
+    case 'bloom':
+      return 'basic_rose';
     default:
       return themeId;
   }
 }
+
+/// Themes whose launcher icon is borrowed from another theme because no iOS
+/// alternate icon has been generated and registered for them yet.
+///
+/// The icon generator skips these (rendering them would overwrite the owner's
+/// PNGs), and the icon picker does not offer them as a separate choice — the
+/// tile would show this theme's mark and apply someone else's.
+const kBorrowedIconThemeIds = {'paper', 'dot', 'bloom'};

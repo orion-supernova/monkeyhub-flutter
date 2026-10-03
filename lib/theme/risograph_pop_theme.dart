@@ -9,7 +9,7 @@ class RisographPopTheme implements AppTheme {
   @override
   String get name => 'Risograph Pop';
   @override
-  String get tagline => 'a screen-printed zine';
+  String get tagline => 'A screen-printed zine.';
   @override
   ThemeMood get mood => ThemeMood.riso;
 

@@ -61,7 +61,7 @@ void main() {
     // Derived from each palette's background, not declared — the declaration
     // that existed (ThemeMood) called Daylight dark, and put white status-bar
     // glyphs on its white background.
-    test('the four light palettes, and only those', () {
+    test('the six light palettes, and only those', () {
       final light = {
         for (final t in ThemeController.all)
           if (t.isLight) t.id,
@@ -71,6 +71,8 @@ void main() {
         'basic_rose',
         'vault_ivory',
         'risograph_pop',
+        'paper',
+        'bloom',
       });
     });
 

@@ -390,7 +390,7 @@ extension FormattingSurface on AppTheme {
   /// whose sizing is load-bearing.
   Color codeBackground({required bool isMine}) {
     final bubble = bubbleFill(isMine: isMine);
-    return _nudgeAlong(bubble, _codePole(bubble),
+    return _nudgeAlong(bubble, _codePole(bubble, _codeInk(isMine)),
         target: 1.55, maxAlpha: 0.34);
   }
 
@@ -408,14 +408,29 @@ extension FormattingSurface on AppTheme {
   /// materials rather than one chip.
   Color codeBorder({required bool isMine}) {
     final bubble = bubbleFill(isMine: isMine);
-    return _nudgeAlong(bubble, _codePole(bubble),
+    return _nudgeAlong(bubble, _codePole(bubble, _codeInk(isMine)),
         target: 2.60, maxAlpha: 0.62);
   }
 
+  /// The ink a code run is set in: the bubble's own text colour.
+  Color _codeInk(bool isMine) => isMine ? accentInk : ink;
+
   /// The one direction a code chip's fill and border both travel, fixed by
-  /// the fill's (cheaper, easier) target so the pair can never split.
-  Color _codePole(Color bubble) =>
-      _cheaperPole(bubble, target: 1.55, maxAlpha: 0.34);
+  /// the fill's target so the pair can never split.
+  ///
+  /// Away from the code's own ink whenever that direction can reach the
+  /// target: a chip that moves toward its text colour eats the text's
+  /// contrast, which is what made the chip unreadable on every outgoing
+  /// bubble whose white text sat at about 5:1 — Daylight, Rose, Ivory,
+  /// Risograph. Only when that side has no room (a near-black bubble cannot
+  /// get 1.55:1 darker) does the cheaper pole decide, as before.
+  Color _codePole(Color bubble, Color codeInk) {
+    final away = codeInk.computeLuminance() > bubble.computeLuminance()
+        ? _black
+        : _white;
+    if (_alphaFor(bubble, away, 1.55, 0.34) != null) return away;
+    return _cheaperPole(bubble, target: 1.55, maxAlpha: 0.34);
+  }
 
   /// The monospace face for inline code, over whatever [base] the bubble was
   /// already using.

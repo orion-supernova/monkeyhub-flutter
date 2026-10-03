@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'app_theme.dart';
 import 'basic_theme.dart';
 import 'bio_organic_theme.dart';
+import 'character_themes.dart';
 import 'cyberpunk_theme.dart';
 import 'deep_ocean_theme.dart';
 import 'neon_night_theme.dart';
@@ -19,7 +20,7 @@ class ThemeController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 5 Basic variants + 2 Vault variants + 6 singles = 13 total.
+  /// 5 Basic variants + 2 Vault variants + 9 singles = 16 total.
   /// Order matches the on-screen layout in `ThemeScreen` so the preview
   /// carousel iterates in the same order the user sees in the list.
   ///
@@ -38,7 +39,10 @@ class ThemeController extends ChangeNotifier {
         // VAULT family
         VaultNoirTheme.noir(),
         VaultNoirTheme.ivory(),
-        // OTHERS (singles)
+        // CHARACTERS (singles)
+        PaperTheme(),
+        DotTheme(),
+        BloomTheme(),
         RisographPopTheme(),
         BioOrganicTheme(),
         CyberpunkTheme(),

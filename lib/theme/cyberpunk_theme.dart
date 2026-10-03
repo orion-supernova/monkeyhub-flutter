@@ -10,7 +10,7 @@ class CyberpunkTheme implements AppTheme {
   @override
   String get name => 'Cyberpunk';
   @override
-  String get tagline => 'neon bleeding through';
+  String get tagline => 'Neon bleeding through.';
   @override
   ThemeMood get mood => ThemeMood.vault;
 

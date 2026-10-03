@@ -365,7 +365,7 @@ class _VaultPalette {
 const _noir = _VaultPalette(
   id: 'vault_noir',
   name: 'Vault Noir',
-  tagline: 'a private dossier',
+  tagline: 'A private dossier.',
   background: Color(0xFF0A0A0B),
   surface: Color(0xFF131318),
   surfaceRaised: Color(0xFF1C1C22),
@@ -393,7 +393,7 @@ const _noir = _VaultPalette(
 const _ivory = _VaultPalette(
   id: 'vault_ivory',
   name: 'Vault Ivory',
-  tagline: 'an open dossier',
+  tagline: 'An open dossier.',
   background: Color(0xFFF7F1E6),
   surface: Color(0xFFFFFAEF),
   surfaceRaised: Color(0xFFFFFFFF),

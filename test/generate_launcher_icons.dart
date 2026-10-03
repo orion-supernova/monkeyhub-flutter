@@ -64,6 +64,9 @@ void main() {
 
       // 1) Theme-derived alt icons.
       for (final theme in ThemeController.all) {
+        // A borrowed icon belongs to another theme; rendering this one under
+        // its name would overwrite the owner's art.
+        if (kBorrowedIconThemeIds.contains(theme.id)) continue;
         // The PNG filename uses the PLATFORM alt-icon name, which differs from
         // the theme id for a few themes (see launcher_icon_names.dart).
         final iconName = launcherIconNameForThemeId(theme.id);

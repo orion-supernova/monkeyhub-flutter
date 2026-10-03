@@ -11,6 +11,7 @@ import '../theme/theme_scope.dart';
 import 'app_brand_mark.dart' show canonicalLogoId;
 import 'brand_icon_canvas.dart';
 import 'monkey_collection.dart';
+import '../services/launcher_icon_names.dart' show kBorrowedIconThemeIds;
 
 /// The choice that means "let the icon follow the theme" ([LogoMode.auto]).
 /// Every other choice is a concrete icon id: [canonicalLogoId], a monkey
@@ -115,7 +116,10 @@ class AppIconPicker extends StatelessWidget {
     ];
     final themes = [
       for (final t in ThemeController.all)
-        spec(t.id, t.name, (s) => BrandIconCanvas(theme: t, size: s)),
+        // A theme still borrowing another's launcher icon has no icon of its
+        // own to offer.
+        if (!kBorrowedIconThemeIds.contains(t.id))
+          spec(t.id, t.name, (s) => BrandIconCanvas(theme: t, size: s)),
     ];
 
     Widget grid(List<_IconSpec> specs) => _IconGrid(

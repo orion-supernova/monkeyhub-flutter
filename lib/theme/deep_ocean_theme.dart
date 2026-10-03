@@ -11,7 +11,7 @@ class DeepOceanTheme implements AppTheme {
   @override
   String get name => 'Deep Ocean';
   @override
-  String get tagline => 'calm under pressure';
+  String get tagline => 'Calm under pressure.';
   @override
   ThemeMood get mood => ThemeMood.aurora;
 

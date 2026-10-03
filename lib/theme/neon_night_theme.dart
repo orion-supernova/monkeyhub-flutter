@@ -10,7 +10,7 @@ class NeonNightTheme implements AppTheme {
   @override
   String get name => 'Neon Night';
   @override
-  String get tagline => '4 a.m. arcade';
+  String get tagline => '4 a.m. arcade.';
   @override
   ThemeMood get mood => ThemeMood.vault;
 

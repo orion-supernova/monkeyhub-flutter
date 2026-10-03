@@ -9,12 +9,12 @@ class BioOrganicTheme implements AppTheme {
   @override
   String get name => 'Bio-Organic';
   @override
-  String get tagline => 'deep-sea calm';
+  String get tagline => 'Bioluminescent, after dark.';
   @override
   ThemeMood get mood => ThemeMood.aurora;
 
   @override
-  List<Color> get swatch => const [Color(0xFF050714), Color(0xFF22D3EE), Color(0xFFD946EF)];
+  List<Color> get swatch => const [Color(0xFF050714), Color(0xFFE879F9), Color(0xFF22D3EE)];
 
   @override
   Color get background => const Color(0xFF050714);
@@ -39,17 +39,21 @@ class BioOrganicTheme implements AppTheme {
   Color get inkMuted => const Color(0xFFA6B0CC);
 
   @override
-  Color get accent => const Color(0xFF22D3EE);
+  // Magenta, not cyan: cyan is Deep Ocean's and Retro Wave's, and the two
+  // sea themes had become one. This is the jellyfish glow, not the water.
+  Color get accent => const Color(0xFFE879F9);
   @override
-  Color get accentInk => const Color(0xFF052028);
+  Color get accentInk => const Color(0xFF1A0420);
   @override
-  Color get accentSoft => const Color(0xFF22D3EE).withValues(alpha: 0.18);
+  Color get accentSoft => const Color(0xFFE879F9).withValues(alpha: 0.18);
   @override
   Color get danger => const Color(0xFFFB7185);
   @override
   Color get success => const Color(0xFF34D399);
 
-  Color get magenta => const Color(0xFFD946EF);
+  /// The secondary glow (once the accent; the names stayed put so the
+  /// painters keep reading naturally).
+  Color get magenta => const Color(0xFF22D3EE);
 
   // Instrument Serif's natural tracking is already tight — heavy negative
   // letterSpacing crushes characters into each other. Hero gets a touch of
@@ -219,7 +223,9 @@ class BioOrganicTheme implements AppTheme {
   @override
   BoxDecoration messageBubbleDecoration({required bool isMine, required bool ephemeral}) {
     return BoxDecoration(
-      color: isMine ? accent.withValues(alpha: 0.88) : surfaceRaised,
+      // Opaque: at 88% the black page darkened the glow to ~6:1 with its
+      // text, too little headroom for an inline-code chip inside it.
+      color: isMine ? accent : surfaceRaised,
       borderRadius: BorderRadius.only(
         topLeft: Radius.circular(radiusLg),
         topRight: Radius.circular(radiusLg),
@@ -313,12 +319,12 @@ class BioOrganicTheme implements AppTheme {
     // the same families, deep enough to hold white at 3:1 on a monogram's
     // lit top edge.
     final palette = [
-      const Color(0xFF0B8199),
       const Color(0xFFB033C4),
-      const Color(0xFF2A73CC),
-      const Color(0xFF128A62),
       const Color(0xFF7552E0),
       const Color(0xFFC93A83),
+      const Color(0xFF8E3FB8),
+      const Color(0xFF0B8199),
+      const Color(0xFF5B4BD6),
     ];
     final rand = math.Random(seed);
     final a = palette[rand.nextInt(palette.length)];
@@ -347,14 +353,14 @@ class _AuroraStatic extends StatelessWidget {
           _AuroraBlob(
             center: Alignment(-0.7, -0.8),
             radius: 0.95,
-            color: Color(0xFF22D3EE), // cyan
-            peakAlpha: 0.38,
+            color: Color(0xFFD946EF), // magenta
+            peakAlpha: 0.34,
           ),
           _AuroraBlob(
             center: Alignment(0.85, 0.75),
             radius: 1.05,
-            color: Color(0xFFD946EF), // magenta
-            peakAlpha: 0.32,
+            color: Color(0xFF22D3EE), // cyan
+            peakAlpha: 0.20,
           ),
           _AuroraBlob(
             center: Alignment(-0.3, 0.6),

@@ -10,7 +10,7 @@ class RetroWaveTheme implements AppTheme {
   @override
   String get name => 'Retro Wave';
   @override
-  String get tagline => 'sunset on the grid';
+  String get tagline => 'Sunset on the grid.';
   @override
   ThemeMood get mood => ThemeMood.vault;
 
