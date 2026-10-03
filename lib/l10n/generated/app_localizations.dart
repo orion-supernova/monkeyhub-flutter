@@ -17490,6 +17490,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pick a server'**
   String get serverOnboardingTitleIos;
+
+  /// Primary button on the sheet a child sees when something needs a parent's approval; sends the request. Sentence case, one short verb.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask'**
+  String get approvalGateAskIos;
 }
 
 class _AppLocalizationsDelegate

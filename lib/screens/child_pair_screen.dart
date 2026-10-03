@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -9,6 +10,9 @@ import '../l10n/generated/app_localizations.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/code_field.dart';
+import '../widgets/ios_kit.dart' show groupedRadius;
+import '../widgets/prominent_button.dart';
+import '../widgets/sheet_kit.dart' show sentenceCaseOf;
 
 /// Pulls the six digits out of whatever the scanner saw. Accepts both the
 /// `monkeyhub://pair?c=NNNNNN` URI the parent app renders and a bare code, so
@@ -147,31 +151,18 @@ class _ChildPairScreenState extends State<ChildPairScreen> {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: ContentWidth.auth),
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(28, 36, 28, 24),
+                    padding: const EdgeInsets.fromLTRB(20, 36, 20, 24),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        RichText(
-                          text: TextSpan(
-                            style: theme.displayHero,
-                            children: [
-                              TextSpan(
-                                text:
-                                    '${AppLocalizations.of(context).childPairScreenGreetingLine1}\n',
-                                style: theme.displayHero
-                                    .copyWith(color: theme.inkMuted),
-                              ),
-                              TextSpan(
-                                text: AppLocalizations.of(context)
-                                    .childPairScreenGreetingLine2,
-                              ),
-                            ],
-                          ),
+                        Text(
+                          AppLocalizations.of(context).childPairTitleIos,
+                          style: theme.displayLarge.copyWith(letterSpacing: 0.37),
                         ),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 8),
                         Text(
                           AppLocalizations.of(context).childPairScreenIntro,
-                          style: theme.bodySoft,
+                          style: theme.bodySoft.copyWith(fontSize: 17),
                         ),
                         const SizedBox(height: 28),
                         if (_scanning)
@@ -191,7 +182,10 @@ class _ChildPairScreenState extends State<ChildPairScreen> {
                               child: Text(
                                 AppLocalizations.of(context)
                                     .childPairScreenOrDivider,
-                                style: theme.monoTiny,
+                                style: theme.bodySoft.copyWith(
+                                  fontSize: 13,
+                                  color: theme.inkMuted,
+                                ),
                               ),
                             ),
                             Expanded(child: Container(height: 1, color: theme.divider)),
@@ -209,10 +203,9 @@ class _ChildPairScreenState extends State<ChildPairScreen> {
                             padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
                             decoration: BoxDecoration(
                               color: theme.danger.withValues(alpha: 0.12),
-                              border: Border(
-                                left: BorderSide(color: theme.danger, width: 2),
+                              borderRadius: BorderRadius.circular(
+                                groupedRadius(theme) * 0.6,
                               ),
-                              borderRadius: BorderRadius.circular(theme.radiusMd),
                             ),
                             child: Text(
                               _error!,
@@ -221,36 +214,16 @@ class _ChildPairScreenState extends State<ChildPairScreen> {
                           ),
                         ],
                         const SizedBox(height: 22),
-                        GestureDetector(
+                        ProminentButton(
+                          label: sentenceCaseOf(
+                            context,
+                            AppLocalizations.of(context)
+                                .childPairScreenSubmitButtonLabel,
+                          ),
+                          busy: _busy,
                           onTap: _busy
                               ? null
                               : () => _submit(_manual.text.trim()),
-                          child: AnimatedContainer(
-                            duration: theme.motionFast,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: _busy ? theme.accentSoft : theme.accent,
-                              borderRadius: BorderRadius.circular(theme.radiusMd),
-                            ),
-                            child: _busy
-                                ? SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: theme.accentInk,
-                                    ),
-                                  )
-                                : Text(
-                                    AppLocalizations.of(context)
-                                        .childPairScreenSubmitButtonLabel,
-                                    style: theme.label.copyWith(
-                                      color: theme.accentInk,
-                                      letterSpacing: 2.4,
-                                    ),
-                                  ),
-                          ),
                         ),
                         if (widget.onCancel != null) ...[
                           const SizedBox(height: 16),
@@ -258,10 +231,11 @@ class _ChildPairScreenState extends State<ChildPairScreen> {
                             child: GestureDetector(
                               onTap: widget.onCancel,
                               child: Text(
-                                AppLocalizations.of(context)
-                                    .childPairScreenBackToSignIn,
-                                style: theme.monoTiny
-                                    .copyWith(color: theme.inkMuted),
+                                AppLocalizations.of(context).childPairBackIos,
+                                style: theme.body.copyWith(
+                                  fontSize: 15,
+                                  color: theme.accent,
+                                ),
                               ),
                             ),
                           ),
@@ -289,20 +263,24 @@ class _ScanButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
+      // A big tinted tile, the way the iOS camera-scan affordances look.
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 26),
         decoration: BoxDecoration(
-          color: theme.surfaceSunken,
-          border: Border.all(color: theme.divider),
-          borderRadius: BorderRadius.circular(theme.radiusLg),
+          color: theme.accent.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(groupedRadius(theme)),
         ),
         child: Column(
           children: [
-            Icon(Icons.qr_code_scanner, size: 30, color: theme.accent),
-            const SizedBox(height: 12),
+            Icon(CupertinoIcons.qrcode_viewfinder, size: 34, color: theme.accent),
+            const SizedBox(height: 10),
             Text(
+              sentenceCaseOf(
+                context,
                 AppLocalizations.of(context).childPairScreenScanButtonLabel,
-                style: theme.label.copyWith(letterSpacing: 2.4)),
+              ),
+              style: theme.bodyEmph.copyWith(color: theme.accent),
+            ),
           ],
         ),
       ),
@@ -327,7 +305,7 @@ class _ScannerPanel extends StatelessWidget {
     return Column(
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(theme.radiusLg),
+          borderRadius: BorderRadius.circular(groupedRadius(theme)),
           child: SizedBox(
             height: 260,
             child: MobileScanner(
@@ -353,8 +331,12 @@ class _ScannerPanel extends StatelessWidget {
         GestureDetector(
           onTap: onCancel,
           child: Text(
+            sentenceCaseOf(
+              context,
               AppLocalizations.of(context).childPairScreenStopScanning,
-              style: theme.monoTiny.copyWith(color: theme.inkMuted)),
+            ),
+            style: theme.body.copyWith(fontSize: 15, color: theme.accent),
+          ),
         ),
       ],
     );

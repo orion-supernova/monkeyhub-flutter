@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../auth/auth_errors.dart';
@@ -13,6 +14,9 @@ import '../theme/theme_scope.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/password_field.dart';
 import '../widgets/username_status_label.dart';
+import '../widgets/ios_kit.dart' show GlassIconButton, groupedRadius;
+import '../widgets/prominent_button.dart';
+import '../widgets/sheet_kit.dart' show SheetActionButton, sentenceCaseOf;
 
 /// Where a first-time Apple/Google sign-in lands, with two ways out.
 ///
@@ -189,20 +193,15 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 8, 12, 0),
-                      child: FocusableTap(
-                        onTap: _busy ? null : () => Navigator.of(context).pop(),
-                        enabled: !_busy,
-                        semanticLabel:
-                            AppLocalizations.of(context).audioMessageCancelSemanticLabel,
-                        radius: theme.radiusSm,
-                        child: GestureDetector(
-                          onTap: _busy ? null : () => Navigator.of(context).pop(),
-                          child: Padding(
-                            padding: const EdgeInsets.all(10),
-                            child: Icon(Icons.close,
-                                size: 20, color: theme.inkMuted),
-                          ),
+                      padding: const EdgeInsets.fromLTRB(0, 6, 16, 0),
+                      child: IgnorePointer(
+                        ignoring: _busy,
+                        child: GlassIconButton(
+                          icon: CupertinoIcons.xmark,
+                          iconSize: 17,
+                          semanticLabel: AppLocalizations.of(context)
+                              .audioMessageCancelSemanticLabel,
+                          onTap: () => Navigator.of(context).pop(),
                         ),
                       ),
                     ),
@@ -213,32 +212,18 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
                         constraints:
                             const BoxConstraints(maxWidth: ContentWidth.auth),
                         child: SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(28, 8, 28, 24),
+                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Text.rich(
-                                TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: creating
-                                          ? AppLocalizations.of(context)
-                                              .audioMessageHeroCreateLine1
-                                          : AppLocalizations.of(context)
-                                              .audioMessageHeroLinkLine1,
-                                      style: theme.displayHero
-                                          .copyWith(color: theme.inkMuted),
-                                    ),
-                                    TextSpan(
-                                      text: creating
-                                          ? AppLocalizations.of(context)
-                                              .audioMessageHeroCreateLine2
-                                          : AppLocalizations.of(context)
-                                              .audioMessageHeroLinkLine2,
-                                      style: theme.displayHero,
-                                    ),
-                                  ],
-                                ),
+                              Text(
+                                creating
+                                    ? AppLocalizations.of(context)
+                                        .socialHeroCreateIos
+                                    : AppLocalizations.of(context)
+                                        .socialHeroLinkIos,
+                                style: theme.displayLarge
+                                    .copyWith(letterSpacing: 0.37),
                               ),
                               const SizedBox(height: 12),
                               Text(
@@ -247,7 +232,7 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
                                         .audioMessageCreateSubtitle
                                     : AppLocalizations.of(context)
                                         .audioMessageLinkSubtitle(_provider),
-                                style: theme.bodySoft,
+                                style: theme.bodySoft.copyWith(fontSize: 17),
                               ),
                               const SizedBox(height: 28),
                               ThemedInput(
@@ -289,8 +274,9 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
                                       horizontal: 14, vertical: 10),
                                   decoration: BoxDecoration(
                                     color: theme.danger.withValues(alpha: 0.12),
-                                    borderRadius:
-                                        BorderRadius.circular(theme.radiusSm),
+                                    borderRadius: BorderRadius.circular(
+                                      groupedRadius(theme) * 0.6,
+                                    ),
                                   ),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -319,8 +305,7 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
                                     ? AppLocalizations.of(context)
                                         .audioMessageCreateAccountButton
                                     : AppLocalizations.of(context)
-                                        .audioMessageSignInLinkButton(_provider)
-                                        .toUpperCase(),
+                                        .socialSignInLinkIos(_provider),
                                 onTap: _submit,
                               ),
                               const SizedBox(height: 12),
@@ -352,6 +337,7 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
   }
 }
 
+/// The primary action: the app's filled capsule.
 class _Cta extends StatelessWidget {
   const _Cta({required this.busy, required this.label, required this.onTap});
   final bool busy;
@@ -359,43 +345,11 @@ class _Cta extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: busy ? null : onTap,
-      enabled: !busy,
-      semanticLabel: label,
-      radius: theme.radiusMd,
-      child: GestureDetector(
+  Widget build(BuildContext context) => ProminentButton(
+        label: sentenceCaseOf(context, label),
+        busy: busy,
         onTap: busy ? null : onTap,
-        child: AnimatedContainer(
-          duration: theme.motionFast,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: busy ? theme.accentSoft : theme.accent,
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-          ),
-          child: busy
-              ? SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: theme.accentInk,
-                  ),
-                )
-              : Text(
-                  label,
-                  style: theme.label.copyWith(
-                    color: theme.accentInk,
-                    letterSpacing: 2,
-                  ),
-                ),
-        ),
-      ),
-    );
-  }
+      );
 }
 
 /// The OTHER mode, as a button rather than a footnote.
@@ -427,48 +381,11 @@ class _SecondaryCta extends StatelessWidget {
   /// back to a screen that has moved on.
   final VoidCallback? onTap;
 
+  // TINTED, not filled: impossible to miss, and still never mistaken for the
+  // primary action — only one of the pair is ever solid.
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final enabled = onTap != null;
-    return Opacity(
-      opacity: enabled ? 1 : 0.5,
-      child: FocusableTap(
-        onTap: onTap,
-        enabled: enabled,
-        semanticLabel: label,
-        radius: theme.radiusMd,
-        // Never InkWell anywhere in this app — no ink, no ripple.
-        child: GestureDetector(
-          onTap: onTap,
-          child: AnimatedContainer(
-            duration: theme.motionFast,
-            // One short of [_Cta]'s 16, so the 1px border lands both buttons
-            // on the same outer height.
-            padding: const EdgeInsets.symmetric(vertical: 15),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(theme.radiusMd),
-              border: Border.all(color: theme.accent, width: 1),
-            ),
-            // [_Cta]'s tracking is 2, which suits the short SHOUTED label it
-            // always carries. This one is a sentence-case question and long
-            // enough that the same value pulls it apart; no `toUpperCase()`
-            // either, because Turkish is a shipped locale and dotted-i does
-            // not survive Dart's default casing.
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              style: theme.label.copyWith(
-                color: theme.accent,
-                letterSpacing: 0.6,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      SheetActionButton(label: label, onTap: onTap, tonal: true);
 }
 
 class _TextLink extends StatelessWidget {

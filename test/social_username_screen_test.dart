@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -84,7 +85,7 @@ void main() {
     expect(find.byType(SocialUsernameScreen), findsOneWidget);
 
     // The trap was the absence of exactly this.
-    final close = find.byIcon(Icons.close);
+    final close = find.byIcon(CupertinoIcons.xmark);
     expect(close, findsOneWidget,
         reason: 'no close control means a failed attempt strands the user');
 
@@ -98,14 +99,14 @@ void main() {
     await pushScreen(tester);
 
     // Creating is the default, so the password field is not up yet.
-    expect(find.text('CREATE ACCOUNT'), findsOneWidget);
+    expect(find.text('Create account'), findsOneWidget);
 
     await tester.tap(find.text('Already have an account?'));
     await tester.pumpAndSettle();
 
     // Now it asks for the credential that proves the existing account.
-    expect(find.text('CREATE ACCOUNT'), findsNothing);
-    expect(find.textContaining('SIGN IN & LINK'), findsOneWidget);
+    expect(find.text('Create account'), findsNothing);
+    expect(find.textContaining('Sign in & link'), findsOneWidget);
   });
 
   testWidgets('it can switch back, so neither mode is a trap either',
@@ -117,7 +118,7 @@ void main() {
     await tester.tap(find.text('New here? Create an account'));
     await tester.pumpAndSettle();
 
-    expect(find.text('CREATE ACCOUNT'), findsOneWidget);
+    expect(find.text('Create account'), findsOneWidget);
   });
 
   testWidgets('success dismisses the route instead of covering the app',
@@ -133,7 +134,7 @@ void main() {
     expect(find.byType(SocialUsernameScreen), findsOneWidget);
 
     await tester.enterText(find.byType(TextField).first, 'murat');
-    await tester.tap(find.text('CREATE ACCOUNT'));
+    await tester.tap(find.text('Create account'));
     await tester.pumpAndSettle();
 
     expect(find.byType(SocialUsernameScreen), findsNothing,

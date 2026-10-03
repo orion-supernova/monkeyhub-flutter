@@ -2888,5 +2888,6 @@
   "socialHeroLinkIos": "مرحبًا بعودتك",
   "socialSignInLinkIos": "تسجيل الدخول وربط {provider}",
   "serverTitleIos": "الخادم",
-  "serverOnboardingTitleIos": "اختر خادمًا"
+  "serverOnboardingTitleIos": "اختر خادمًا",
+  "approvalGateAskIos": "اطلب"
 }

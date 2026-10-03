@@ -1,3 +1,5 @@
+import 'package:flutter/cupertino.dart'
+    show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -11,7 +13,9 @@ import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/code_field.dart';
-import '../widgets/ios_kit.dart' show GlassBackButton;
+import '../widgets/ios_kit.dart';
+import '../widgets/prominent_button.dart';
+import '../widgets/sheet_kit.dart' show SheetActionButton, sentenceCaseOf;
 
 enum _Stage { entry, confirm, done }
 
@@ -321,20 +325,15 @@ class _EntryBody extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        RichText(
-          text: TextSpan(
-            style: theme.displayHero,
-            children: [
-              TextSpan(
-                text: l10n.deviceLoginScanScreenHeroMuted,
-                style: theme.displayHero.copyWith(color: theme.inkMuted),
-              ),
-              TextSpan(text: l10n.deviceLoginScanScreenHeroInk),
-            ],
-          ),
+        Text(
+          l10n.deviceLoginScanTitleIos,
+          style: theme.displayLarge.copyWith(letterSpacing: 0.37),
         ),
-        const SizedBox(height: 18),
-        Text(l10n.deviceLoginScanScreenIntro, style: theme.bodySoft),
+        const SizedBox(height: 8),
+        Text(
+          l10n.deviceLoginScanScreenIntro,
+          style: theme.bodySoft.copyWith(fontSize: 17),
+        ),
         const SizedBox(height: 28),
         if (scanning && scanner != null)
           _ScannerPanel(controller: scanner!, onDetect: onDetect, onCancel: onStopScanning)
@@ -345,17 +344,23 @@ class _EntryBody extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 26),
               decoration: BoxDecoration(
-                color: theme.surfaceSunken,
-                border: Border.all(color: theme.divider),
-                borderRadius: BorderRadius.circular(theme.radiusLg),
+                color: theme.accent.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(groupedRadius(theme)),
               ),
               child: Column(
                 children: [
-                  Icon(Icons.qr_code_scanner, size: 30, color: theme.accent),
-                  const SizedBox(height: 12),
+                  Icon(
+                    CupertinoIcons.qrcode_viewfinder,
+                    size: 34,
+                    color: theme.accent,
+                  ),
+                  const SizedBox(height: 10),
                   Text(
-                    l10n.deviceLoginScanScreenScanButtonLabel,
-                    style: theme.label.copyWith(letterSpacing: 2.4),
+                    sentenceCaseOf(
+                      context,
+                      l10n.deviceLoginScanScreenScanButtonLabel,
+                    ),
+                    style: theme.bodyEmph.copyWith(color: theme.accent),
                   ),
                 ],
               ),
@@ -367,7 +372,13 @@ class _EntryBody extends StatelessWidget {
             Expanded(child: Container(height: 1, color: theme.divider)),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(l10n.childPairScreenOrDivider, style: theme.monoTiny),
+              child: Text(
+                l10n.childPairScreenOrDivider,
+                style: theme.bodySoft.copyWith(
+                  fontSize: 13,
+                  color: theme.inkMuted,
+                ),
+              ),
             ),
             Expanded(child: Container(height: 1, color: theme.divider)),
           ],
@@ -376,7 +387,7 @@ class _EntryBody extends StatelessWidget {
         CodeField(controller: manual, onCompleted: onManualComplete, enabled: !busy),
         if (busy) ...[
           const SizedBox(height: 20),
-          Center(child: CircularProgressIndicator(strokeWidth: 2, color: theme.accent)),
+          const Center(child: CupertinoActivityIndicator()),
         ],
         if (error != null) ...[
           const SizedBox(height: 16),
@@ -400,7 +411,7 @@ class _ScannerPanel extends StatelessWidget {
     return Column(
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(theme.radiusLg),
+          borderRadius: BorderRadius.circular(groupedRadius(theme)),
           child: SizedBox(
             height: 260,
             child: MobileScanner(
@@ -425,8 +436,11 @@ class _ScannerPanel extends StatelessWidget {
         GestureDetector(
           onTap: onCancel,
           child: Text(
-            AppLocalizations.of(context).childPairScreenStopScanning,
-            style: theme.monoTiny.copyWith(color: theme.inkMuted),
+            sentenceCaseOf(
+              context,
+              AppLocalizations.of(context).childPairScreenStopScanning,
+            ),
+            style: theme.body.copyWith(fontSize: 15, color: theme.accent),
           ),
         ),
       ],
@@ -462,73 +476,46 @@ class _ConfirmBody extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 12),
-        Text(l10n.deviceLoginScanScreenConfirmTitle, style: theme.displayHero),
-        const SizedBox(height: 18),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: theme.surface,
-            border: Border.all(color: theme.accent.withValues(alpha: 0.4)),
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.devices_other, size: 20, color: theme.accent),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  deviceInfo,
-                  style: theme.displaySmall,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 14),
         Text(
-          l10n.deviceLoginScanScreenConfirmBody(deviceInfo),
-          style: theme.bodySoft,
+          l10n.deviceLoginConfirmTitleIos,
+          style: theme.displayLarge.copyWith(letterSpacing: 0.37),
         ),
-        const SizedBox(height: 28),
-        GestureDetector(
-          onTap: busy ? null : onApprove,
-          behavior: HitTestBehavior.opaque,
-          child: AnimatedContainer(
-            duration: theme.motionFast,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: busy ? theme.accentSoft : theme.accent,
-              borderRadius: BorderRadius.circular(theme.radiusMd),
+        const SizedBox(height: 18),
+        // The device exactly as it described itself — the one thing the
+        // person has to read, so it gets a grouped row of its own.
+        GroupedSection(
+          margin: EdgeInsets.zero,
+          children: [
+            GroupedRow(
+              icon: CupertinoIcons.desktopcomputer,
+              tone: TileTone.blue,
+              title: deviceInfo,
             ),
-            child: busy
-                ? SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: theme.accentInk),
-                  )
-                : Text(
-                    l10n.deviceLoginScanScreenApproveButton,
-                    style: theme.label.copyWith(color: theme.accentInk, letterSpacing: 2.4),
-                  ),
-          ),
+          ],
         ),
         const SizedBox(height: 12),
-        GestureDetector(
-          onTap: busy ? null : onDeny,
-          behavior: HitTestBehavior.opaque,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              border: Border.all(color: theme.divider),
-              borderRadius: BorderRadius.circular(theme.radiusMd),
-            ),
-            child: Text(
-              l10n.deviceLoginScanScreenDenyButton,
-              style: theme.label.copyWith(color: theme.inkSoft, letterSpacing: 2.4),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            l10n.deviceLoginScanScreenConfirmBody(deviceInfo),
+            style: theme.bodySoft.copyWith(
+              fontSize: 13,
+              height: 1.35,
+              color: theme.inkMuted,
             ),
           ),
+        ),
+        const SizedBox(height: 28),
+        ProminentButton(
+          label: sentenceCaseOf(context, l10n.deviceLoginScanScreenApproveButton),
+          busy: busy,
+          onTap: busy ? null : onApprove,
+        ),
+        const SizedBox(height: 10),
+        SheetActionButton(
+          label: l10n.deviceLoginScanScreenDenyButton,
+          tonal: true,
+          onTap: busy ? null : onDeny,
         ),
         if (error != null) ...[
           const SizedBox(height: 16),
@@ -553,16 +540,18 @@ class _DoneBody extends StatelessWidget {
       children: [
         const SizedBox(height: 40),
         Icon(
-          approved ? Icons.check_circle_outline : Icons.cancel_outlined,
-          size: 40,
-          color: approved ? theme.accent : theme.inkMuted,
+          approved
+              ? CupertinoIcons.checkmark_seal_fill
+              : CupertinoIcons.xmark_circle_fill,
+          size: 56,
+          color: approved ? theme.success : theme.inkMuted,
         ),
         const SizedBox(height: 16),
         Text(
           approved
               ? l10n.deviceLoginScanScreenSuccess
               : l10n.deviceLoginScanScreenDeniedConfirmation,
-          style: theme.displaySmall,
+          style: theme.bodyEmph.copyWith(fontSize: 20, color: theme.ink),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 24),
@@ -570,8 +559,8 @@ class _DoneBody extends StatelessWidget {
           child: GestureDetector(
             onTap: onScanAnother,
             child: Text(
-              l10n.deviceLoginScanScreenScanButtonLabel,
-              style: theme.monoTiny.copyWith(color: theme.inkMuted),
+              sentenceCaseOf(context, l10n.deviceLoginScanScreenScanButtonLabel),
+              style: theme.body.copyWith(fontSize: 15, color: theme.accent),
             ),
           ),
         ),
@@ -591,8 +580,7 @@ class _ErrorBanner extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
       decoration: BoxDecoration(
         color: theme.danger.withValues(alpha: 0.12),
-        border: Border(left: BorderSide(color: theme.danger, width: 2)),
-        borderRadius: BorderRadius.circular(theme.radiusMd),
+        borderRadius: BorderRadius.circular(groupedRadius(theme) * 0.6),
       ),
       child: Text(message, style: theme.body.copyWith(color: theme.danger)),
     );

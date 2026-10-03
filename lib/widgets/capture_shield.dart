@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -5,6 +6,8 @@ import 'package:flutter/material.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../privacy/capture_protection.dart';
 import '../theme/theme_scope.dart';
+import 'ios_kit.dart' show groupedRadius;
+import 'sheet_kit.dart' show sentenceCaseOf;
 
 /// Renders a full-screen blur shield when screen capture is detected AND
 /// the user has enabled protection. iOS only — Android handles capture
@@ -38,20 +41,24 @@ class CaptureShield extends StatelessWidget {
                     padding: const EdgeInsets.all(32),
                     child: Container(
                       padding: const EdgeInsets.fromLTRB(22, 22, 22, 20),
+                      // An iOS alert platter: raised fill, generous corners,
+                      // no outline.
                       decoration: BoxDecoration(
                         color: theme.surfaceRaised,
-                        borderRadius: BorderRadius.circular(theme.radiusLg),
-                        border: Border.all(color: theme.divider),
+                        borderRadius: BorderRadius.circular(groupedRadius(theme)),
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.visibility_off_outlined,
+                          Icon(CupertinoIcons.eye_slash_fill,
                               size: 32, color: theme.accent),
                           const SizedBox(height: 12),
                           Text(
-                            AppLocalizations.of(context).countBadgeProtectedLabel,
-                            style: theme.label.copyWith(letterSpacing: 2.4),
+                            sentenceCaseOf(
+                              context,
+                              AppLocalizations.of(context).countBadgeProtectedLabel,
+                            ),
+                            style: theme.bodyEmph.copyWith(color: theme.ink),
                           ),
                           const SizedBox(height: 6),
                           Text(
@@ -62,7 +69,10 @@ class CaptureShield extends StatelessWidget {
                           const SizedBox(height: 2),
                           Text(
                             AppLocalizations.of(context).countBadgeCaptureShieldReassurance,
-                            style: theme.monoTiny,
+                            style: theme.bodySoft.copyWith(
+                              fontSize: 13,
+                              color: theme.inkMuted,
+                            ),
                             textAlign: TextAlign.center,
                           ),
                         ],

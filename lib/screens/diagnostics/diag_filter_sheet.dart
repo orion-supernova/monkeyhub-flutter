@@ -106,7 +106,7 @@ class _DiagFilterSheetState extends State<DiagFilterSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('FILTER', style: theme.label),
+            Text('Filter', style: theme.bodyEmph.copyWith(fontSize: 20, color: theme.ink)),
             const SizedBox(height: 12),
             TextField(
               controller: _search,
@@ -119,7 +119,7 @@ class _DiagFilterSheetState extends State<DiagFilterSheet> {
               onChanged: (v) => setState(() => _f = _f.copyWith(query: v)),
             ),
             const SizedBox(height: 14),
-            Text('CATEGORY', style: theme.monoTiny),
+            Text('Category', style: theme.bodySoft.copyWith(fontSize: 13, color: theme.inkMuted)),
             const SizedBox(height: 6),
             Wrap(
               spacing: 6,
@@ -140,7 +140,7 @@ class _DiagFilterSheetState extends State<DiagFilterSheet> {
             const SizedBox(height: 14),
             // The same switch as a long press on a chip in the row above the
             // timeline — here so it can be found without knowing the gesture.
-            Text('HIDDEN FROM ALL', style: theme.monoTiny),
+            Text('Hidden from All', style: theme.bodySoft.copyWith(fontSize: 13, color: theme.inkMuted)),
             const SizedBox(height: 6),
             Wrap(
               spacing: 6,
@@ -159,7 +159,7 @@ class _DiagFilterSheetState extends State<DiagFilterSheet> {
               ],
             ),
             const SizedBox(height: 14),
-            Text('MINIMUM SEVERITY', style: theme.monoTiny),
+            Text('Minimum severity', style: theme.bodySoft.copyWith(fontSize: 13, color: theme.inkMuted)),
             const SizedBox(height: 6),
             Wrap(
               spacing: 6,
@@ -227,10 +227,12 @@ class _Chip extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          // Filled capsules, the chat list's filter chips — no outline.
           decoration: BoxDecoration(
-            color: on ? theme.accent.withValues(alpha: 0.18) : theme.surface,
-            borderRadius: BorderRadius.circular(theme.radiusSm),
-            border: Border.all(color: on ? theme.accent : theme.divider),
+            color: on
+                ? theme.accent.withValues(alpha: 0.18)
+                : theme.ink.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(999),
           ),
           child: Text(
             label,

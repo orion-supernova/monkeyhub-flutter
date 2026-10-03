@@ -648,12 +648,10 @@ class _CatChip extends StatelessWidget {
             duration: const Duration(milliseconds: 120),
             padding: const EdgeInsets.fromLTRB(8, 5, 10, 5),
             decoration: BoxDecoration(
-              color: on ? colour.withValues(alpha: 0.16) : theme.surfaceRaised,
+              color: on
+                  ? colour.withValues(alpha: 0.18)
+                  : theme.ink.withValues(alpha: 0.07),
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: on ? colour : theme.divider,
-                width: on ? 1.2 : 1,
-              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -736,7 +734,10 @@ class _Header extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('DIAGNOSTICS', style: theme.label),
+              Text(
+                'Diagnostics',
+                style: theme.bodyEmph.copyWith(color: theme.ink),
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(

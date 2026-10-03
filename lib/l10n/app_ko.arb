@@ -2888,5 +2888,6 @@
   "socialHeroLinkIos": "다시 오신 걸 환영해요",
   "socialSignInLinkIos": "로그인하고 {provider} 연동하기",
   "serverTitleIos": "서버",
-  "serverOnboardingTitleIos": "서버 선택"
+  "serverOnboardingTitleIos": "서버 선택",
+  "approvalGateAskIos": "요청하기"
 }

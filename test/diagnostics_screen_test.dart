@@ -8,6 +8,7 @@ import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/screens/diagnostics_screen.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+import 'package:monkeyhub/widgets/sheet_kit.dart' show sentenceCase;
 
 /// The viewer's category row, as somebody reading a flooded log uses it.
 ///
@@ -126,6 +127,8 @@ void main() {
     await t.pump();
     expect(find.text('1/11'), findsOneWidget);
 
+    // The toast springs down from the top; let it land before tapping it.
+    await t.pump(const Duration(milliseconds: 600));
     await t.tap(find.text('Undo'));
     await t.pump();
     expect(find.text('4/11'), findsOneWidget);
@@ -155,7 +158,8 @@ void main() {
     await t.tap(find.byIcon(Icons.delete_outline));
     await t.pumpAndSettle();
     final l10n = AppLocalizations.of(t.element(find.text('Delete')));
-    await t.tap(find.text(l10n.destructiveSheetCancelButtonLabel));
+    // The iOS action sheet sets its labels in sentence case.
+    await t.tap(find.text(sentenceCase(l10n.destructiveSheetCancelButtonLabel)));
     await t.pumpAndSettle();
 
     expect(buf.length, 11);

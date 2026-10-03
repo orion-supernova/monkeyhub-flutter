@@ -2888,5 +2888,6 @@
   "socialHeroLinkIos": "Välkommen tillbaka",
   "socialSignInLinkIos": "Logga in och koppla {provider}",
   "serverTitleIos": "Server",
-  "serverOnboardingTitleIos": "Välj en server"
+  "serverOnboardingTitleIos": "Välj en server",
+  "approvalGateAskIos": "Fråga"
 }

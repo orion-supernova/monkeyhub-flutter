@@ -2888,5 +2888,6 @@
   "socialHeroLinkIos": "फिर से स्वागत है",
   "socialSignInLinkIos": "साइन इन करें और {provider} लिंक करें",
   "serverTitleIos": "सर्वर",
-  "serverOnboardingTitleIos": "एक सर्वर चुनें"
+  "serverOnboardingTitleIos": "एक सर्वर चुनें",
+  "approvalGateAskIos": "पूछें"
 }

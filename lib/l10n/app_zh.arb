@@ -2888,5 +2888,6 @@
   "socialHeroLinkIos": "欢迎回来",
   "socialSignInLinkIos": "登录并关联 {provider}",
   "serverTitleIos": "服务器",
-  "serverOnboardingTitleIos": "选择服务器"
+  "serverOnboardingTitleIos": "选择服务器",
+  "approvalGateAskIos": "询问"
 }

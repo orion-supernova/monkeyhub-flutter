@@ -10322,4 +10322,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get serverOnboardingTitleIos => 'Välj en server';
+
+  @override
+  String get approvalGateAskIos => 'Fråga';
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,7 +8,8 @@ import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/models/chat_message.dart';
 import 'package:monkeyhub/models/chat_user.dart';
 import 'package:monkeyhub/screens/message_receipts_screen.dart';
-import 'package:monkeyhub/screens/room_items.dart' show humanDay;
+import 'package:monkeyhub/screens/room_items.dart' show transcriptDay;
+import 'package:monkeyhub/widgets/sheet_kit.dart' show sentenceCase;
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -122,10 +124,10 @@ void main() {
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
 
     // One section per state, in ladder order, and nothing for the viewer.
-    expect(find.text(l10n.messageReceiptsSectionRead), findsOneWidget);
-    expect(find.text(l10n.messageReceiptsSectionDelivered), findsOneWidget);
-    expect(find.text(l10n.messageReceiptsSectionSent), findsOneWidget);
-    expect(find.text(l10n.messageReceiptsSectionHidden), findsOneWidget);
+    expect(find.text(sentenceCase(l10n.messageReceiptsSectionRead)), findsOneWidget);
+    expect(find.text(sentenceCase(l10n.messageReceiptsSectionDelivered)), findsOneWidget);
+    expect(find.text(sentenceCase(l10n.messageReceiptsSectionSent)), findsOneWidget);
+    expect(find.text(sentenceCase(l10n.messageReceiptsSectionHidden)), findsOneWidget);
 
     expect(find.text('Ada'), findsOneWidget);
     expect(find.text('Lin'), findsOneWidget);
@@ -143,8 +145,8 @@ void main() {
     expect(find.text('14:21'), findsNWidgets(2));
 
     // Undated rows say why they are undated instead of showing a blank.
-    expect(find.text(l10n.messageReceiptsStateWaiting), findsOneWidget);
-    expect(find.text(l10n.messageReceiptsStateHidden), findsOneWidget);
+    expect(find.text(sentenceCase(l10n.messageReceiptsStateWaiting)), findsOneWidget);
+    expect(find.text(sentenceCase(l10n.messageReceiptsStateHidden)), findsOneWidget);
   });
 
   testWidgets('a cursor exactly on the message counts as read', (tester) async {
@@ -159,8 +161,8 @@ void main() {
     await tester.pumpAndSettle();
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    expect(find.text(l10n.messageReceiptsSectionRead), findsOneWidget);
-    expect(find.text(l10n.messageReceiptsSectionDelivered), findsNothing);
+    expect(find.text(sentenceCase(l10n.messageReceiptsSectionRead)), findsOneWidget);
+    expect(find.text(sentenceCase(l10n.messageReceiptsSectionDelivered)), findsNothing);
   });
 
   // The report: "sent and read are different things, I want to see all of it".
@@ -199,7 +201,7 @@ void main() {
         findsOneWidget);
     // And the card says when it was sent, in so many words.
     expect(
-      find.textContaining('${l10n.messageReceiptsSentLabel} · '),
+      find.textContaining('${sentenceCase(l10n.messageReceiptsSentLabel)} · '),
       findsOneWidget,
     );
   });
@@ -215,7 +217,8 @@ void main() {
     // The delivery landed the same day as the send, so it is just a clock;
     // the read did not, so it carries its day.
     final nextDay = DateTime(sentAt.year, sentAt.month, sentAt.day + 1);
-    expect(find.text(humanDay(nextDay)), findsOneWidget);
+    final ctx = tester.element(find.byType(MessageReceiptsScreen));
+    expect(find.text(transcriptDay(ctx, nextDay)), findsOneWidget);
     expect(find.text('14:21'), findsOneWidget);
   });
 
@@ -233,8 +236,8 @@ void main() {
     await tester.pump();
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    expect(find.text(l10n.messageReceiptsSectionHidden), findsNothing);
+    expect(find.byType(CupertinoActivityIndicator), findsOneWidget);
+    expect(find.text(sentenceCase(l10n.messageReceiptsSectionHidden)), findsNothing);
     expect(find.text('Ada'), findsNothing);
   });
 

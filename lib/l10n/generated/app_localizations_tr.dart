@@ -10256,4 +10256,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get serverOnboardingTitleIos => 'Bir sunucu seç';
+
+  @override
+  String get approvalGateAskIos => 'Sor';
 }

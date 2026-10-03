@@ -9910,4 +9910,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get serverOnboardingTitleIos => '서버 선택';
+
+  @override
+  String get approvalGateAskIos => '요청하기';
 }

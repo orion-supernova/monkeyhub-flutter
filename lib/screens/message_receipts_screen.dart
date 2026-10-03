@@ -1,3 +1,5 @@
+import 'package:flutter/cupertino.dart'
+    show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
@@ -15,7 +17,9 @@ import '../widgets/adaptive_page_body.dart';
 import '../widgets/message_stamp.dart' show formatClockTime;
 import '../widgets/remote_image.dart';
 import '../widgets/user_avatar.dart';
-import 'room_items.dart' show humanDay;
+import 'room_items.dart' show transcriptDay;
+import '../widgets/ios_kit.dart' show GlassBackButton;
+import '../widgets/sheet_kit.dart' show sentenceCaseOf;
 
 /// Everything that has happened to one of your messages, person by person —
 /// the screen behind a left pull on your own bubble.
@@ -269,18 +273,15 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 8, 20, 8),
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
       child: Row(
         children: [
-          IconButton(
-            onPressed: () => Navigator.of(context).maybePop(),
-            icon: Icon(Icons.arrow_back, color: theme.inkSoft, size: 18),
-          ),
-          const SizedBox(width: 4),
+          const GlassBackButton(),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
-              title,
-              style: theme.label.copyWith(letterSpacing: 3),
+              sentenceCaseOf(context, title),
+              style: theme.bodyEmph.copyWith(color: theme.ink),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -327,14 +328,7 @@ class _Preamble extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(0, 26, 0, 8),
             child: Center(
-              child: SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                  color: theme.accent,
-                  strokeWidth: 2,
-                ),
-              ),
+              child: const CupertinoActivityIndicator(),
             ),
           )
         else if (total > 0) ...[
@@ -342,12 +336,12 @@ class _Preamble extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             l10n.messageReceiptsSummary(read, total),
-            style: theme.monoTiny,
+            style: theme.bodySoft.copyWith(fontSize: 15, color: theme.ink),
           ),
           const SizedBox(height: 2),
           Text(
             l10n.messageReceiptsDeliveredSummary(delivered, total),
-            style: theme.monoTiny.copyWith(color: theme.inkMuted),
+            style: theme.bodySoft.copyWith(fontSize: 13, color: theme.inkMuted),
           ),
           const SizedBox(height: 18),
         ] else ...[
@@ -445,11 +439,13 @@ class _MessageCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    '${AppLocalizations.of(context).messageReceiptsSentLabel} · '
-                    '${humanDay(_dayOf(message.createdAt))} · '
+                    '${sentenceCaseOf(context, AppLocalizations.of(context).messageReceiptsSentLabel)} · '
+                    '${transcriptDay(context, message.createdAt)} · '
                     '${formatClockTime(message.createdAt)}',
-                    style: theme.monoTiny.copyWith(
+                    style: theme.bodySoft.copyWith(
+                      fontSize: 12,
                       color: ink.withValues(alpha: 0.7),
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
                 ],
@@ -564,14 +560,17 @@ class _ReceiptRowState extends State<_ReceiptRow> {
             children: [
               Text(
                 user.displayName,
-                style: theme.body,
+                style: theme.body.copyWith(fontSize: 17, color: theme.ink),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 2),
               Text(
                 '@${user.username}',
-                style: theme.monoTiny,
+                style: theme.bodySoft.copyWith(
+                  fontSize: 13,
+                  color: theme.inkMuted,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -582,7 +581,11 @@ class _ReceiptRowState extends State<_ReceiptRow> {
         _Stamps(entry: entry, sentAt: widget.sentAt),
         SizedBox(
           width: 18,
-          child: Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
+          child: Icon(
+            CupertinoIcons.chevron_forward,
+            size: 14,
+            color: theme.inkMuted.withValues(alpha: 0.7),
+          ),
         ),
       ],
     );
@@ -590,7 +593,7 @@ class _ReceiptRowState extends State<_ReceiptRow> {
     final tappable = FocusableTap(
       onTap: _open,
       radius: theme.radiusMd,
-      semanticLabel: _semanticsFor(l10n, entry),
+      semanticLabel: _semanticsFor(context, l10n, entry),
       child: GestureDetector(
         onTap: _open,
         onTapDown: (_) => setState(() => _pressed = true),
@@ -623,9 +626,12 @@ class _ReceiptRowState extends State<_ReceiptRow> {
           Padding(
             padding: EdgeInsets.fromLTRB(8, widget.index == 0 ? 0 : 18, 8, 8),
             child: Text(
-              _sectionLabel(l10n, entry.state),
-              style: theme.label.copyWith(
-                letterSpacing: 2.4,
+              sentenceCaseOf(context, _sectionLabel(l10n, entry.state)),
+              style: theme.bodySoft.copyWith(
+                fontSize: 13,
+                fontWeight: entry.state == _ReceiptState.read
+                    ? FontWeight.w600
+                    : FontWeight.w400,
                 color: entry.state == _ReceiptState.read
                     ? theme.accent
                     : theme.inkMuted,
@@ -647,26 +653,31 @@ class _ReceiptRowState extends State<_ReceiptRow> {
 
   /// The whole row as one sentence, because the visual hierarchy that makes
   /// the day and the clock readable apart is worth nothing read aloud.
-  static String _semanticsFor(AppLocalizations l10n, _Entry entry) {
+  static String _semanticsFor(
+    BuildContext context,
+    AppLocalizations l10n,
+    _Entry entry,
+  ) {
+    String humanDay(DateTime at) => transcriptDay(context, at);
     final name = entry.user.displayName;
     final read = entry.readAt;
     final delivered = entry.deliveredAt;
     if (read != null && delivered != null) {
       return l10n.messageReceiptsSemanticDeliveredThenRead(
         name,
-        humanDay(_dayOf(delivered)),
+        humanDay(delivered),
         formatClockTime(delivered),
-        humanDay(_dayOf(read)),
+        humanDay(read),
         formatClockTime(read),
       );
     }
     if (read != null) {
       return l10n.messageReceiptsSemanticRead(
-          name, humanDay(_dayOf(read)), formatClockTime(read));
+          name, humanDay(read), formatClockTime(read));
     }
     if (delivered != null) {
       return l10n.messageReceiptsSemanticDelivered(
-          name, humanDay(_dayOf(delivered)), formatClockTime(delivered));
+          name, humanDay(delivered), formatClockTime(delivered));
     }
     return entry.state == _ReceiptState.hidden
         ? l10n.messageReceiptsSemanticHidden(name)
@@ -695,10 +706,13 @@ class _Stamps extends StatelessWidget {
 
     if (read == null && delivered == null) {
       return Text(
-        entry.state == _ReceiptState.hidden
-            ? l10n.messageReceiptsStateHidden
-            : l10n.messageReceiptsStateWaiting,
-        style: theme.monoTiny.copyWith(color: theme.inkMuted),
+        sentenceCaseOf(
+          context,
+          entry.state == _ReceiptState.hidden
+              ? l10n.messageReceiptsStateHidden
+              : l10n.messageReceiptsStateWaiting,
+        ),
+        style: theme.bodySoft.copyWith(fontSize: 13, color: theme.inkMuted),
       );
     }
 
@@ -755,10 +769,9 @@ class _StampLine extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final day = _dayOf(at);
     final showDay = day != _dayOf(sentAt);
-    final tiny = theme.monoTiny.copyWith(
+    final tiny = theme.bodySoft.copyWith(
       color: theme.inkMuted,
-      fontSize: 9,
-      letterSpacing: 1.4,
+      fontSize: 12,
     );
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -769,17 +782,20 @@ class _StampLine extends StatelessWidget {
           color: strong ? theme.accent : theme.inkMuted,
         ),
         const SizedBox(width: 5),
+        // Lower case on purpose: an inline note beside the clock ("read
+        // 14:35"), not a heading — the section above already says "Read".
         Text(label, style: tiny),
         const SizedBox(width: 6),
         if (showDay) ...[
-          Text(humanDay(day), style: tiny),
+          Text(transcriptDay(context, at), style: tiny),
           const SizedBox(width: 4),
         ],
         Text(
           formatClockTime(at),
-          style: theme.mono.copyWith(
+          style: theme.body.copyWith(
             fontSize: strong ? 15 : 13,
             height: 1.1,
+            fontFeatures: const [FontFeature.tabularFigures()],
             color: strong ? theme.ink : theme.inkSoft,
             fontWeight: strong ? FontWeight.w600 : FontWeight.w400,
           ),

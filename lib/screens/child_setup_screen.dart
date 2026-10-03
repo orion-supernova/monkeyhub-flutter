@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
@@ -9,7 +10,9 @@ import '../widgets/adaptive_page_body.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/username_status_label.dart';
 import 'pairing_code_screen.dart';
-import '../widgets/ios_kit.dart' show GlassBackButton;
+import '../widgets/ios_kit.dart';
+import '../widgets/prominent_button.dart';
+import '../widgets/sheet_kit.dart' show sentenceCaseOf;
 
 /// Creates a child account, then goes straight to pairing.
 ///
@@ -125,7 +128,7 @@ class _ChildSetupScreenState extends State<ChildSetupScreen> {
                       const GlassBackButton(),
                       const SizedBox(width: 12),
                       Text(
-                        l10n.childSetupScreenTitle,
+                        sentenceCaseOf(context, l10n.childSetupScreenTitle),
                         style: theme.bodyEmph.copyWith(color: theme.ink),
                       ),
                     ],
@@ -133,11 +136,14 @@ class _ChildSetupScreenState extends State<ChildSetupScreen> {
                 ),
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(28, 8, 28, 32),
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(l10n.childSetupScreenHeading, style: theme.displayHero),
+                        Text(
+                          l10n.childSetupHeadingIos,
+                          style: theme.displayLarge.copyWith(letterSpacing: 0.37),
+                        ),
                         const SizedBox(height: 24),
                         LabeledField(
                           label: l10n.childSetupScreenNameLabel,
@@ -155,28 +161,18 @@ class _ChildSetupScreenState extends State<ChildSetupScreen> {
                         ),
                         UsernameStatusLabel(controller: _availability),
                         const SizedBox(height: 24),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: theme.surfaceSunken,
-                            border: Border.all(color: theme.divider),
-                            borderRadius:
-                                BorderRadius.circular(theme.radiusMd),
+                        GroupedSection(
+                          header: sentenceCaseOf(
+                            context,
+                            l10n.childSetupScreenWhatTheyGetTitle,
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(l10n.childSetupScreenWhatTheyGetTitle,
-                                  style: theme.label.copyWith(
-                                      letterSpacing: 2.4,
-                                      color: theme.accent)),
-                              const SizedBox(height: 12),
-                              _Bullet(l10n.childSetupScreenBulletTalkImmediately),
-                              _Bullet(l10n.childSetupScreenBulletNeedsApproval),
-                              _Bullet(l10n.childSetupScreenBulletPublicRoomsOff),
-                              _Bullet(l10n.childSetupScreenBulletCantSignOut),
-                            ],
-                          ),
+                          margin: EdgeInsets.zero,
+                          children: [
+                            _Bullet(l10n.childSetupScreenBulletTalkImmediately),
+                            _Bullet(l10n.childSetupScreenBulletNeedsApproval),
+                            _Bullet(l10n.childSetupScreenBulletPublicRoomsOff),
+                            _Bullet(l10n.childSetupScreenBulletCantSignOut),
+                          ],
                         ),
                         if (_error != null) ...[
                           const SizedBox(height: 18),
@@ -184,12 +180,9 @@ class _ChildSetupScreenState extends State<ChildSetupScreen> {
                             padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
                             decoration: BoxDecoration(
                               color: theme.danger.withValues(alpha: 0.12),
-                              border: Border(
-                                left:
-                                    BorderSide(color: theme.danger, width: 2),
+                              borderRadius: BorderRadius.circular(
+                                groupedRadius(theme) * 0.6,
                               ),
-                              borderRadius:
-                                  BorderRadius.circular(theme.radiusMd),
                             ),
                             child: Text(_error!,
                                 style:
@@ -197,34 +190,13 @@ class _ChildSetupScreenState extends State<ChildSetupScreen> {
                           ),
                         ],
                         const SizedBox(height: 24),
-                        GestureDetector(
-                          onTap: _busy ? null : _create,
-                          child: AnimatedContainer(
-                            duration: theme.motionFast,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: _busy ? theme.accentSoft : theme.accent,
-                              borderRadius:
-                                  BorderRadius.circular(theme.radiusMd),
-                            ),
-                            child: _busy
-                                ? SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: theme.accentInk,
-                                    ),
-                                  )
-                                : Text(
-                                    l10n.childSetupScreenCreateButton,
-                                    style: theme.label.copyWith(
-                                      color: theme.accentInk,
-                                      letterSpacing: 2.4,
-                                    ),
-                                  ),
+                        ProminentButton(
+                          label: sentenceCaseOf(
+                            context,
+                            l10n.childSetupScreenCreateButton,
                           ),
+                          busy: _busy,
+                          onTap: _busy ? null : _create,
                         ),
                       ],
                     ),
@@ -240,6 +212,7 @@ class _ChildSetupScreenState extends State<ChildSetupScreen> {
   }
 }
 
+/// One thing the child's account comes with, as a grouped row with a check.
 class _Bullet extends StatelessWidget {
   const _Bullet(this.text);
   final String text;
@@ -248,22 +221,24 @@ class _Bullet extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(top: 6, right: 10),
-            child: Container(
-              width: 4,
-              height: 4,
-              decoration: BoxDecoration(
-                color: theme.accent,
-                shape: BoxShape.circle,
-              ),
+            padding: const EdgeInsets.only(top: 1, right: 12),
+            child: Icon(
+              CupertinoIcons.checkmark_circle_fill,
+              size: 18,
+              color: theme.success,
             ),
           ),
-          Expanded(child: Text(text, style: theme.bodySoft)),
+          Expanded(
+            child: Text(
+              text,
+              style: theme.body.copyWith(fontSize: 15, color: theme.ink),
+            ),
+          ),
         ],
       ),
     );

@@ -10,7 +10,8 @@ import '../models/chat_user.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
-import '../widgets/ios_kit.dart' show GlassBackButton;
+import '../widgets/ios_kit.dart';
+import '../widgets/sheet_kit.dart' show SheetActionButton, sentenceCaseOf;
 
 /// URI the QR encodes. The child app also accepts the bare six digits, so a
 /// parent reading them down the phone works just as well as a scan.
@@ -143,7 +144,7 @@ class _PairingCodeScreenState extends State<PairingCodeScreen> {
                   child: AdaptivePageBody(
                     maxWidth: ContentWidth.auth,
                     child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(28, 8, 28, 32),
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -159,7 +160,7 @@ class _PairingCodeScreenState extends State<PairingCodeScreen> {
                                   ).destructiveSheetPairingPairInstructions(
                                     widget.child.displayName,
                                   ),
-                            style: theme.bodySoft,
+                            style: theme.bodySoft.copyWith(fontSize: 17),
                           ),
                           const SizedBox(height: 28),
                           if (code == null)
@@ -196,7 +197,11 @@ class _PairingCodeScreenState extends State<PairingCodeScreen> {
                                       ).destructiveSheetPairingExpiresIn(
                                         _fmt(_remaining),
                                       ),
-                                style: theme.monoTiny.copyWith(
+                                style: theme.bodySoft.copyWith(
+                                  fontSize: 15,
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures(),
+                                  ],
                                   color: _expired
                                       ? theme.danger
                                       : theme.inkMuted,
@@ -212,42 +217,23 @@ class _PairingCodeScreenState extends State<PairingCodeScreen> {
                             ),
                           ],
                           const SizedBox(height: 26),
-                          GestureDetector(
+                          // Filled once the code has run out — it is then the
+                          // only useful thing on the screen — and tinted while
+                          // a live code is still showing.
+                          SheetActionButton(
+                            label: AppLocalizations.of(
+                              context,
+                            ).destructiveSheetPairingNewCodeButton,
+                            tonal: !_expired,
                             onTap: _busy ? null : _mint,
-                            behavior: HitTestBehavior.opaque,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 15),
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: _expired
-                                    ? theme.accent
-                                    : Colors.transparent,
-                                border: _expired
-                                    ? null
-                                    : Border.all(color: theme.divider),
-                                borderRadius: BorderRadius.circular(
-                                  theme.radiusMd,
-                                ),
-                              ),
-                              child: Text(
-                                AppLocalizations.of(
-                                  context,
-                                ).destructiveSheetPairingNewCodeButton,
-                                style: theme.label.copyWith(
-                                  letterSpacing: 2.4,
-                                  color: _expired
-                                      ? theme.accentInk
-                                      : theme.inkSoft,
-                                ),
-                              ),
-                            ),
                           ),
                           const SizedBox(height: 20),
                           Text(
                             AppLocalizations.of(
                               context,
                             ).destructiveSheetPairingOneUseNote,
-                            style: theme.monoTiny.copyWith(
+                            style: theme.bodySoft.copyWith(
+                              fontSize: 13,
                               color: theme.inkMuted,
                             ),
                             textAlign: TextAlign.center,
@@ -290,7 +276,7 @@ class _QrPanel extends StatelessWidget {
             // The QR needs real contrast to scan reliably, so this panel is
             // deliberately always light — it does not follow the theme.
             color: Colors.white,
-            borderRadius: BorderRadius.circular(theme.radiusLg),
+            borderRadius: BorderRadius.circular(groupedRadius(theme)),
           ),
           child: QrImageView(
             data: data,
@@ -333,11 +319,18 @@ class _CodeDigits extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 12),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: theme.surfaceSunken,
-                border: Border.all(color: theme.divider),
-                borderRadius: BorderRadius.circular(theme.radiusMd),
+                color: groupedFill(theme),
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Text(d, style: theme.monoLarge),
+              child: Text(
+                d,
+                style: theme.displaySmall.copyWith(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w600,
+                  color: theme.ink,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
             ),
         ],
       ),
@@ -361,7 +354,7 @@ class _Header extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              '$title $name',
+              '${sentenceCaseOf(context, title)} $name',
               style: theme.bodyEmph.copyWith(color: theme.ink),
               overflow: TextOverflow.ellipsis,
             ),

@@ -10456,4 +10456,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get serverOnboardingTitleIos => 'اختر خادمًا';
+
+  @override
+  String get approvalGateAskIos => 'اطلب';
 }

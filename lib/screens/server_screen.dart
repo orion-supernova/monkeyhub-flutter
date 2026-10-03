@@ -1,3 +1,5 @@
+import 'package:flutter/cupertino.dart'
+    show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard;
 
@@ -17,6 +19,10 @@ import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/server_role_sheet.dart';
+import '../widgets/ios_kit.dart'
+    show GlassBackButton, groupedFill, groupedRadius;
+import '../widgets/prominent_button.dart';
+import '../widgets/sheet_kit.dart' show SheetActionButton, sentenceCaseOf;
 
 /// Where this install connects: the deployment it shipped with, or one the user
 /// runs themselves.
@@ -247,50 +253,38 @@ class _ServerScreenState extends State<ServerScreen> {
               child: AdaptivePageBody(
                 child: ListView(
                   padding: EdgeInsets.fromLTRB(
-                    20,
-                    14,
-                    20,
+                    16,
+                    6,
+                    16,
                     edgeToEdgeBottom(context, 48),
                   ),
                   children: [
                     if (!widget.onboarding)
-                      Row(
-                        children: [
-                          IconButton(
-                            onPressed: switching
-                                ? null
-                                : () => Navigator.of(context).maybePop(),
-                            icon: Icon(
-                              Icons.arrow_back,
-                              color: theme.inkSoft,
-                              size: 18,
-                            ),
-                          ),
-                        ],
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: IgnorePointer(
+                          ignoring: switching,
+                          child: const GlassBackButton(),
+                        ),
                       )
                     else
                       const SizedBox(height: 8),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 14),
                     Text(
                       widget.onboarding
-                          ? l10n.serverOnboardingTitle
-                          : l10n.serverScreenTitle,
-                      style: theme.displayMedium,
+                          ? l10n.serverOnboardingTitleIos
+                          : l10n.serverTitleIos,
+                      style: theme.displayLarge.copyWith(letterSpacing: 0.37),
                     ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Container(width: 18, height: 1, color: theme.accent),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            widget.onboarding
-                                ? l10n.serverOnboardingSubtitle
-                                : l10n.serverScreenSubtitle,
-                            style: theme.caption,
-                          ),
-                        ),
-                      ],
+                    const SizedBox(height: 4),
+                    Text(
+                      sentenceCaseOf(
+                        context,
+                        widget.onboarding
+                            ? l10n.serverOnboardingSubtitle
+                            : l10n.serverScreenSubtitle,
+                      ),
+                      style: theme.bodySoft,
                     ),
                     const SizedBox(height: 24),
 
@@ -425,8 +419,12 @@ class _ServerScreenState extends State<ServerScreen> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
               child: Text(
-                l10n.serverAddressPaste,
-                style: theme.monoTiny.copyWith(color: theme.accent),
+                sentenceCaseOf(context, l10n.serverAddressPaste),
+                style: theme.body.copyWith(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: theme.accent,
+                ),
               ),
             ),
           ),
@@ -601,13 +599,8 @@ class _ActiveServerCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.surface,
-        border: Border.all(
-          color: store.announcesRole
-              ? theme.accent.withValues(alpha: 0.45)
-              : theme.divider,
-        ),
-        borderRadius: BorderRadius.circular(theme.radiusLg),
+        color: groupedFill(theme),
+        borderRadius: BorderRadius.circular(groupedRadius(theme)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -621,21 +614,31 @@ class _ActiveServerCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                online
-                    ? l10n.serverStatusConnected
-                    : l10n.serverStatusDisconnected,
-                style: theme.monoTiny.copyWith(color: tone, letterSpacing: 1.4),
+                sentenceCaseOf(
+                  context,
+                  online
+                      ? l10n.serverStatusConnected
+                      : l10n.serverStatusDisconnected,
+                ),
+                style: theme.bodySoft.copyWith(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: tone,
+                ),
               ),
               const Spacer(),
               Text(
-                switch (store.role) {
-                  ServerRole.selfHosted => l10n.serverBadgeSelfHosted,
-                  ServerRole.homeserver => l10n.serverValueHomeserver,
-                  ServerRole.primary => l10n.serverBadgeDefault,
-                },
-                style: theme.monoTiny.copyWith(
+                sentenceCaseOf(
+                  context,
+                  switch (store.role) {
+                    ServerRole.selfHosted => l10n.serverBadgeSelfHosted,
+                    ServerRole.homeserver => l10n.serverValueHomeserver,
+                    ServerRole.primary => l10n.serverBadgeDefault,
+                  },
+                ),
+                style: theme.bodySoft.copyWith(
+                  fontSize: 13,
                   color: store.announcesRole ? theme.accent : theme.inkMuted,
-                  letterSpacing: 1.4,
                 ),
               ),
             ],
@@ -649,7 +652,7 @@ class _ActiveServerCard extends StatelessWidget {
               ServerRole.homeserver => l10n.serverValueHomeserver,
               ServerRole.primary => l10n.serverValueDefault,
             },
-            style: theme.displaySmall,
+            style: theme.bodyEmph.copyWith(fontSize: 20, color: theme.ink),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -671,7 +674,7 @@ class _ActiveServerCard extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.info_outline, size: 14, color: theme.accent),
+                    Icon(CupertinoIcons.info_circle, size: 15, color: theme.accent),
                     const SizedBox(width: 7),
                     Text(
                       l10n.serverRoleExplainAction,
@@ -721,13 +724,11 @@ class _ChoiceCard extends StatelessWidget {
         child: AnimatedContainer(
           duration: theme.motionFast,
           padding: const EdgeInsets.all(16),
+          // A grouped option: the surface fill, and a checkmark that springs
+          // in for the chosen one — never a glowing border.
           decoration: BoxDecoration(
-            color: theme.surface,
-            borderRadius: BorderRadius.circular(theme.radiusLg),
-            border: Border.all(
-              color: selected ? theme.accent : theme.divider,
-              width: selected ? 1.6 : 1,
-            ),
+            color: groupedFill(theme),
+            borderRadius: BorderRadius.circular(groupedRadius(theme)),
           ),
           child: Row(
             children: [
@@ -735,22 +736,43 @@ class _ChoiceCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(label, style: theme.label),
-                    const SizedBox(height: 6),
+                    Text(
+                      sentenceCaseOf(context, label),
+                      style: theme.body.copyWith(fontSize: 17, color: theme.ink),
+                    ),
+                    const SizedBox(height: 2),
                     Text(
                       host.isEmpty ? sub : host,
-                      style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                      style: theme.bodySoft.copyWith(
+                        fontSize: 13,
+                        color: theme.inkMuted,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-              if (inUse)
+              if (inUse) ...[
                 Text(
-                  inUseLabel,
-                  style: theme.monoTiny.copyWith(color: theme.accent),
+                  sentenceCaseOf(context, inUseLabel),
+                  style: theme.bodySoft.copyWith(
+                    fontSize: 13,
+                    color: theme.inkMuted,
+                  ),
                 ),
+                const SizedBox(width: 8),
+              ],
+              AnimatedScale(
+                scale: selected ? 1 : 0,
+                duration: const Duration(milliseconds: 380),
+                curve: selected ? Curves.elasticOut : Curves.easeIn,
+                child: Icon(
+                  CupertinoIcons.checkmark_alt,
+                  size: 20,
+                  color: theme.accent,
+                ),
+              ),
             ],
           ),
         ),
@@ -790,13 +812,8 @@ class _ProbeReport extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: theme.surfaceSunken,
-        border: Border.all(
-          color: result.ok
-              ? theme.success.withValues(alpha: 0.5)
-              : theme.divider,
-        ),
-        borderRadius: BorderRadius.circular(theme.radiusMd),
+        color: groupedFill(theme),
+        borderRadius: BorderRadius.circular(groupedRadius(theme)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -817,7 +834,7 @@ class _ProbeReport extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               result.detail!,
-              style: theme.monoTiny.copyWith(color: theme.inkMuted),
+              style: theme.bodySoft.copyWith(fontSize: 13, color: theme.inkMuted),
             ),
           ],
           const SizedBox(height: 10),
@@ -829,13 +846,21 @@ class _ProbeReport extends StatelessWidget {
               if (reachable)
                 Text(
                   '${result.roundTrip.inMilliseconds} ms',
-                  style: theme.monoTiny.copyWith(color: theme.inkSoft),
+                  style: theme.bodySoft.copyWith(
+                    fontSize: 13,
+                    color: theme.inkSoft,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
               if (result.backendVersion != null) ...[
                 const SizedBox(width: 12),
                 Text(
                   'convex ${result.backendVersion}',
-                  style: theme.monoTiny.copyWith(color: theme.inkSoft),
+                  style: theme.bodySoft.copyWith(
+                    fontSize: 13,
+                    color: theme.inkSoft,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
               ],
             ],
@@ -857,15 +882,18 @@ class _Rung extends StatelessWidget {
     return Row(
       children: [
         Icon(
-          ok ? Icons.check_circle_outline : Icons.remove_circle_outline,
-          size: 13,
+          ok
+              ? CupertinoIcons.checkmark_circle_fill
+              : CupertinoIcons.minus_circle,
+          size: 16,
           color: ok ? theme.success : theme.inkMuted,
         ),
         const SizedBox(width: 8),
         Text(
           label,
-          style: theme.monoTiny.copyWith(
-            color: ok ? theme.inkSoft : theme.inkMuted,
+          style: theme.bodySoft.copyWith(
+            fontSize: 15,
+            color: ok ? theme.ink : theme.inkMuted,
           ),
         ),
       ],
@@ -889,40 +917,25 @@ class _TestButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final live = enabled && !busy;
-    return FocusableTap(
-      onTap: live ? onTap : null,
-      enabled: live,
-      radius: theme.radiusMd,
-      semanticLabel: label,
-      child: GestureDetector(
-        onTap: live ? onTap : null,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: Colors.transparent,
-            border: Border.all(color: live ? theme.accent : theme.divider),
-            borderRadius: BorderRadius.circular(theme.radiusMd),
+    if (busy) {
+      return Container(
+        constraints: const BoxConstraints(minHeight: 52),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: theme.ink.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(
+            (theme.radiusXl * 0.8).clamp(6.0, 16.0),
           ),
-          child: busy
-              ? SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: theme.accent,
-                  ),
-                )
-              : Text(
-                  label,
-                  style: theme.label.copyWith(
-                    color: live ? theme.accent : theme.inkMuted,
-                    letterSpacing: 2.2,
-                  ),
-                ),
         ),
-      ),
+        child: const CupertinoActivityIndicator(),
+      );
+    }
+    // The secondary action: tinted, so the filled save below stays the one
+    // obvious primary.
+    return SheetActionButton(
+      label: label,
+      tonal: true,
+      onTap: live ? onTap : null,
     );
   }
 }
@@ -933,45 +946,8 @@ class _PrimaryButton extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final live = onTap != null;
-    return FocusableTap(
-      onTap: onTap,
-      enabled: live,
-      radius: theme.radiusMd,
-      semanticLabel: label,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: theme.motionFast,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: live ? theme.accent : theme.accentSoft,
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-            boxShadow: live
-                ? [
-                    BoxShadow(
-                      color: theme.accent.withValues(alpha: 0.35),
-                      blurRadius: 18,
-                      offset: const Offset(0, 5),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Text(
-            label,
-            style: theme.label.copyWith(
-              color: theme.accentInk,
-              letterSpacing: 2.4,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      ProminentButton(label: sentenceCaseOf(context, label), onTap: onTap);
 }
 
 /// A boxed sentence with an icon — used for the http warning, the switch
@@ -995,23 +971,23 @@ class _Notice extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: tone.withValues(alpha: 0.08),
-        border: Border(left: BorderSide(color: tone, width: 2)),
-        borderRadius: BorderRadius.circular(theme.radiusMd),
+        color: tone.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(groupedRadius(theme)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 13, color: tone),
+              Icon(icon, size: 16, color: tone),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  title,
-                  style: theme.monoTiny.copyWith(
+                  sentenceCaseOf(context, title),
+                  style: theme.bodySoft.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
                     color: tone,
-                    letterSpacing: 1.4,
                   ),
                 ),
               ),
@@ -1052,15 +1028,19 @@ class _AdvancedDisclosure extends StatelessWidget {
             behavior: HitTestBehavior.opaque,
             child: Row(
               children: [
-                Icon(
-                  open ? Icons.expand_less : Icons.expand_more,
-                  size: 14,
-                  color: theme.inkMuted,
-                ),
-                const SizedBox(width: 6),
                 Text(
-                  label,
-                  style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                  sentenceCaseOf(context, label),
+                  style: theme.body.copyWith(fontSize: 15, color: theme.accent),
+                ),
+                const SizedBox(width: 4),
+                AnimatedRotation(
+                  turns: open ? 0.25 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(
+                    CupertinoIcons.chevron_forward,
+                    size: 13,
+                    color: theme.accent,
+                  ),
                 ),
               ],
             ),
@@ -1089,9 +1069,8 @@ class _RecentRow extends StatelessWidget {
     final theme = ThemeScope.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: theme.surface,
-        border: Border.all(color: theme.divider),
-        borderRadius: BorderRadius.circular(theme.radiusMd),
+        color: groupedFill(theme),
+        borderRadius: BorderRadius.circular(groupedRadius(theme)),
       ),
       child: Row(
         children: [
@@ -1108,7 +1087,7 @@ class _RecentRow extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(14, 14, 8, 14),
                   child: Text(
                     endpoint.host,
-                    style: theme.mono.copyWith(color: theme.inkSoft),
+                    style: theme.body.copyWith(fontSize: 17, color: theme.ink),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1126,7 +1105,11 @@ class _RecentRow extends StatelessWidget {
               behavior: HitTestBehavior.opaque,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(8, 14, 14, 14),
-                child: Icon(Icons.close, size: 14, color: theme.inkMuted),
+                child: Icon(
+                  CupertinoIcons.xmark_circle_fill,
+                  size: 20,
+                  color: theme.inkMuted.withValues(alpha: 0.6),
+                ),
               ),
             ),
           ),
@@ -1143,24 +1126,13 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Row(
-      children: [
-        Container(
-          width: 3,
-          height: 14,
-          decoration: BoxDecoration(
-            color: theme.accent,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          label,
-          style: theme.label.copyWith(letterSpacing: 2.8, color: theme.accent),
-        ),
-        const SizedBox(width: 12),
-        Expanded(child: Container(height: 1, color: theme.divider)),
-      ],
+    // The iOS grouped-section header: small, muted, sentence case.
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Text(
+        sentenceCaseOf(context, label),
+        style: theme.bodySoft.copyWith(fontSize: 13, color: theme.inkMuted),
+      ),
     );
   }
 }

@@ -9785,4 +9785,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get serverOnboardingTitleIos => '选择服务器';
+
+  @override
+  String get approvalGateAskIos => '询问';
 }

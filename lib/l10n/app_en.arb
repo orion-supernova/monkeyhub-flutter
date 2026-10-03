@@ -11953,5 +11953,9 @@
   "serverOnboardingTitleIos": "Pick a server",
   "@serverOnboardingTitleIos": {
     "description": "Large title on first launch when the build ships without a server, asking the user to choose one."
+  },
+  "approvalGateAskIos": "Ask",
+  "@approvalGateAskIos": {
+    "description": "Primary button on the sheet a child sees when something needs a parent's approval; sends the request. Sentence case, one short verb."
   }
 }

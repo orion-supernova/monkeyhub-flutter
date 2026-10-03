@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'dart:async';
 import 'dart:math';
 
@@ -11,6 +12,8 @@ import '../backend/convex_client.dart' show Subscription;
 import '../l10n/generated/app_localizations.dart';
 import '../push/device_identity.dart';
 import '../theme/theme_scope.dart';
+import 'ios_kit.dart' show groupedFill, groupedRadius;
+import 'sheet_kit.dart' show SheetActionButton, sentenceCaseOf;
 
 enum _Phase { minting, waiting, exchanging, denied, error }
 
@@ -191,20 +194,15 @@ class _DeviceLoginPanelState extends State<DeviceLoginPanel> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        RichText(
-          text: TextSpan(
-            style: theme.displayHero,
-            children: [
-              TextSpan(
-                text: l10n.deviceLoginScreenHeroMuted,
-                style: theme.displayHero.copyWith(color: theme.inkMuted),
-              ),
-              TextSpan(text: l10n.deviceLoginScreenHeroInk),
-            ],
-          ),
+        Text(
+          l10n.deviceLoginScanTitleIos,
+          style: theme.displayLarge.copyWith(letterSpacing: 0.37),
         ),
-        const SizedBox(height: 18),
-        Text(l10n.deviceLoginScreenIntro, style: theme.bodySoft),
+        const SizedBox(height: 8),
+        Text(
+          l10n.deviceLoginScreenIntro,
+          style: theme.bodySoft.copyWith(fontSize: 17),
+        ),
         const SizedBox(height: 28),
         _DeviceLoginBody(
           phase: _phase,
@@ -216,7 +214,9 @@ class _DeviceLoginPanelState extends State<DeviceLoginPanel> {
         Center(
           child: Text(
             _statusLine(l10n, expired: expired),
-            style: theme.monoTiny.copyWith(
+            style: theme.bodySoft.copyWith(
+              fontSize: 15,
+              fontFeatures: const [FontFeature.tabularFigures()],
               color: (_phase == _Phase.denied || _phase == _Phase.error || expired)
                   ? theme.danger
                   : theme.inkMuted,
@@ -229,32 +229,16 @@ class _DeviceLoginPanelState extends State<DeviceLoginPanel> {
             padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
             decoration: BoxDecoration(
               color: theme.danger.withValues(alpha: 0.12),
-              border: Border(left: BorderSide(color: theme.danger, width: 2)),
-              borderRadius: BorderRadius.circular(theme.radiusMd),
+              borderRadius: BorderRadius.circular(groupedRadius(theme) * 0.6),
             ),
             child: Text(_error!, style: theme.body.copyWith(color: theme.danger)),
           ),
         ],
         if (expired || _phase == _Phase.denied || _phase == _Phase.error) ...[
           const SizedBox(height: 20),
-          GestureDetector(
+          SheetActionButton(
+            label: AppLocalizations.of(context).destructiveSheetPairingNewCodeButton,
             onTap: _mint,
-            behavior: HitTestBehavior.opaque,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 15),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: theme.accent,
-                borderRadius: BorderRadius.circular(theme.radiusMd),
-              ),
-              child: Text(
-                AppLocalizations.of(context).destructiveSheetPairingNewCodeButton,
-                style: theme.label.copyWith(
-                  letterSpacing: 2.4,
-                  color: theme.accentInk,
-                ),
-              ),
-            ),
           ),
         ],
         if (widget.onCancel != null) ...[
@@ -263,8 +247,8 @@ class _DeviceLoginPanelState extends State<DeviceLoginPanel> {
             child: GestureDetector(
               onTap: widget.onCancel,
               child: Text(
-                l10n.loginScreenUsePasswordInstead,
-                style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                sentenceCaseOf(context, l10n.loginScreenUsePasswordInstead),
+                style: theme.body.copyWith(fontSize: 15, color: theme.accent),
               ),
             ),
           ),
@@ -312,7 +296,7 @@ class _DeviceLoginBody extends StatelessWidget {
     if (code == null || requestId == null) {
       return const SizedBox(
         height: 220,
-        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        child: Center(child: CupertinoActivityIndicator()),
       );
     }
     return Column(
@@ -326,7 +310,10 @@ class _DeviceLoginBody extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Text(
                 AppLocalizations.of(context).childPairScreenOrDivider,
-                style: theme.monoTiny,
+                style: theme.bodySoft.copyWith(
+                  fontSize: 13,
+                  color: theme.inkMuted,
+                ),
               ),
             ),
             Expanded(child: Container(height: 1, color: theme.divider)),
@@ -357,7 +344,7 @@ class _QrPanel extends StatelessWidget {
             // Needs real contrast to scan reliably — deliberately always
             // light, same as `PairingCodeScreen`'s QR panel.
             color: Colors.white,
-            borderRadius: BorderRadius.circular(theme.radiusLg),
+            borderRadius: BorderRadius.circular(groupedRadius(theme)),
           ),
           child: QrImageView(
             data: data,
@@ -397,11 +384,18 @@ class _CodeDigits extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 10),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: theme.surfaceSunken,
-                border: Border.all(color: theme.divider),
-                borderRadius: BorderRadius.circular(theme.radiusMd),
+                color: groupedFill(theme),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Text(d, style: theme.monoLarge),
+              child: Text(
+                d,
+                style: theme.displaySmall.copyWith(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  color: theme.ink,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
             ),
         ],
       ),

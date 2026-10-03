@@ -10300,4 +10300,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get serverOnboardingTitleIos => 'एक सर्वर चुनें';
+
+  @override
+  String get approvalGateAskIos => 'पूछें';
 }

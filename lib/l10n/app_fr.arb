@@ -2888,5 +2888,6 @@
   "socialHeroLinkIos": "Bon retour",
   "socialSignInLinkIos": "Se connecter et lier {provider}",
   "serverTitleIos": "Serveur",
-  "serverOnboardingTitleIos": "Choisissez un serveur"
+  "serverOnboardingTitleIos": "Choisissez un serveur",
+  "approvalGateAskIos": "Demander"
 }

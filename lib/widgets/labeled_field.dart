@@ -108,7 +108,7 @@ class ThemedInput extends StatelessWidget {
       decoration: InputDecoration(
         isCollapsed: true,
         border: InputBorder.none,
-        hintText: sentenceCaseOf(context, hint),
+        hintText: _hintText(context, hint),
         hintStyle: theme.body.copyWith(color: theme.inkMuted, fontSize: 17),
         contentPadding: const EdgeInsets.symmetric(vertical: 14),
       ),
@@ -187,4 +187,15 @@ class LabeledField extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Hints are sentence-cased like every other label — except an example value
+/// (a URL, an @handle, an address), which is shown exactly as it would be
+/// typed: "Https://chat.example.com" is not an example of anything.
+String _hintText(BuildContext context, String hint) {
+  final literal = hint.contains('://') ||
+      hint.startsWith('@') ||
+      hint.contains('@') ||
+      RegExp(r'^[a-z0-9_.-]+\.[a-z]{2,}', caseSensitive: false).hasMatch(hint);
+  return literal ? hint : sentenceCaseOf(context, hint);
 }

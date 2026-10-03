@@ -10403,6 +10403,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get serverOnboardingTitleIos => 'Escolha um servidor';
+
+  @override
+  String get approvalGateAskIos => 'Pedir';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -20802,4 +20805,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get serverOnboardingTitleIos => 'Escolha um servidor';
+
+  @override
+  String get approvalGateAskIos => 'Pedir';
 }

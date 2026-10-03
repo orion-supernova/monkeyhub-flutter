@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/photo_chrome.dart';
+import '../widgets/ios_kit.dart';
 
 /// In-app preview for a plain-text attachment — the one exception to
 /// `FileMessage`'s "no in-app viewer" rule (see the doc comment there). A
@@ -120,41 +122,49 @@ class _TextFileViewerScreenState extends State<TextFileViewerScreen> {
             bottom: false,
             child: AdaptivePageBody(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 4, 12, 0),
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        IconButton(
-                          onPressed: () => Navigator.of(context).maybePop(),
-                          icon: Icon(
-                            Icons.arrow_back,
-                            color: theme.inkSoft,
-                            size: 18,
+                    // The iOS viewer bar: glass back, the file's name centred,
+                    // a glass download button.
+                    SizedBox(
+                      height: 52,
+                      child: Row(
+                        children: [
+                          const GlassBackButton(),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              widget.fileName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: theme.bodyEmph.copyWith(color: theme.ink),
+                            ),
                           ),
-                        ),
-                        Expanded(
-                          child: Text(
-                            widget.fileName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.bodyEmph,
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: _saving ? null : _download,
-                          tooltip: l10n.textFileViewerDownloadTooltip,
-                          icon: _saving
-                              ? PhotoSpinner(size: 16, color: theme.inkSoft)
-                              : Icon(
-                                  Icons.file_download_outlined,
-                                  color: theme.inkSoft,
-                                  size: 18,
+                          const SizedBox(width: 12),
+                          _saving
+                              ? SizedBox(
+                                  width: 40,
+                                  height: 40,
+                                  child: Center(
+                                    child: PhotoSpinner(
+                                      size: 16,
+                                      color: theme.inkSoft,
+                                    ),
+                                  ),
+                                )
+                              : GlassIconButton(
+                                  icon: CupertinoIcons.arrow_down_to_line,
+                                  semanticLabel:
+                                      l10n.textFileViewerDownloadTooltip,
+                                  onTap: _download,
                                 ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
+                    const SizedBox(height: 8),
                     Expanded(
                       child: FutureBuilder<({String text, bool truncated})>(
                         future: _load,
@@ -194,14 +204,15 @@ class _TextFileViewerScreenState extends State<TextFileViewerScreen> {
                                     vertical: 8,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: theme.surfaceSunken,
+                                    color: groupedFill(theme),
                                     borderRadius: BorderRadius.circular(
-                                      theme.radiusSm,
+                                      groupedRadius(theme) * 0.6,
                                     ),
                                   ),
                                   child: Text(
                                     l10n.textFileViewerTruncatedNotice,
-                                    style: theme.caption.copyWith(
+                                    style: theme.bodySoft.copyWith(
+                                      fontSize: 13,
                                       color: theme.inkMuted,
                                     ),
                                   ),

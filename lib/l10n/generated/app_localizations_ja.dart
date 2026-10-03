@@ -9885,4 +9885,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get serverOnboardingTitleIos => 'サーバーを選択';
+
+  @override
+  String get approvalGateAskIos => 'お願いする';
 }

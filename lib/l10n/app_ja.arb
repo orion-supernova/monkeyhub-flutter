@@ -2888,5 +2888,6 @@
   "socialHeroLinkIos": "おかえりなさい",
   "socialSignInLinkIos": "サインインして{provider}と連携",
   "serverTitleIos": "サーバー",
-  "serverOnboardingTitleIos": "サーバーを選択"
+  "serverOnboardingTitleIos": "サーバーを選択",
+  "approvalGateAskIos": "お願いする"
 }

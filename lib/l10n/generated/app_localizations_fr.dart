@@ -10452,4 +10452,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get serverOnboardingTitleIos => 'Choisissez un serveur';
+
+  @override
+  String get approvalGateAskIos => 'Demander';
 }

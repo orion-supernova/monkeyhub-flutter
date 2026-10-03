@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'dart:async';
 
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
@@ -91,6 +92,9 @@ import 'widgets/connection_banner.dart';
 import 'widgets/self_host_badge.dart';
 import 'widgets/share_target_sheet.dart';
 import 'widgets/shake_to_report.dart';
+import 'widgets/ios_kit.dart' show groupedFill, groupedRadius;
+import 'widgets/prominent_button.dart';
+import 'widgets/sheet_kit.dart' show SheetActionButton, sentenceCaseOf;
 
 /// The presence status a lifecycle state implies, or null for "says nothing —
 /// don't write".
@@ -2336,9 +2340,15 @@ class _Splash extends StatelessWidget {
               children: [
                 const AppBrandMark(size: 56),
                 const SizedBox(height: 18),
+                // The brand's own spelling, set like an iOS launch title — the
+                // stored string is the old tracked-capitals wordmark.
                 Text(
-                  AppLocalizations.of(context).splashBrand,
-                  style: theme.label.copyWith(letterSpacing: 4),
+                  'MonkeyHub',
+                  style: theme.bodyEmph.copyWith(
+                    fontSize: 20,
+                    color: theme.ink,
+                    letterSpacing: -0.2,
+                  ),
                 ),
               ],
             ),
@@ -2384,27 +2394,32 @@ class _BootError extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        AppLocalizations.of(context).bootErrorTitle,
-                        style: theme.label.copyWith(
-                          color: theme.danger,
-                          letterSpacing: 2.4,
-                        ),
+                      Icon(
+                        CupertinoIcons.wifi_exclamationmark,
+                        size: 40,
+                        color: theme.danger,
                       ),
                       const SizedBox(height: 14),
                       Text(
+                        sentenceCaseOf(
+                          context,
+                          AppLocalizations.of(context).bootErrorTitle,
+                        ),
+                        style: theme.displayLarge.copyWith(letterSpacing: 0.37),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
                         AppLocalizations.of(context).bootErrorBody,
-                        style: theme.displayLarge,
+                        style: theme.bodySoft.copyWith(fontSize: 17),
                       ),
                       const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: theme.surfaceSunken,
-                          border: Border(
-                            left: BorderSide(color: theme.danger, width: 2),
+                          color: groupedFill(theme),
+                          borderRadius: BorderRadius.circular(
+                            groupedRadius(theme),
                           ),
-                          borderRadius: BorderRadius.circular(theme.radiusMd),
                         ),
                         child: Text(
                           error.toString(),
@@ -2412,64 +2427,23 @@ class _BootError extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          GestureDetector(
-                            onTap: onRetry,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 14,
-                                horizontal: 22,
-                              ),
-                              decoration: BoxDecoration(
-                                color: theme.accent,
-                                borderRadius: BorderRadius.circular(
-                                  theme.radiusMd,
-                                ),
-                              ),
-                              child: Text(
-                                AppLocalizations.of(context).bootErrorRetry,
-                                style: theme.label.copyWith(
-                                  color: theme.accentInk,
-                                  letterSpacing: 2.4,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          // Quieter than RETRY on purpose: a transient outage is
-                          // the likelier cause, and this button signs the user
-                          // out. It has to be here, but it should not be the
-                          // first thing a hand reaches for.
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: onChangeServer,
-                              behavior: HitTestBehavior.opaque,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                  horizontal: 16,
-                                ),
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: theme.divider),
-                                  borderRadius: BorderRadius.circular(
-                                    theme.radiusMd,
-                                  ),
-                                ),
-                                child: Text(
-                                  AppLocalizations.of(context).serverChangeCta,
-                                  style: theme.label.copyWith(
-                                    color: theme.inkSoft,
-                                    letterSpacing: 2.4,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                      // RETRY filled; changing server tinted beneath it.
+                      // Quieter on purpose: a transient outage is the likelier
+                      // cause, and that button signs the user out. It has to
+                      // be here, but it should not be the first thing a hand
+                      // reaches for.
+                      ProminentButton(
+                        label: sentenceCaseOf(
+                          context,
+                          AppLocalizations.of(context).bootErrorRetry,
+                        ),
+                        onTap: onRetry,
+                      ),
+                      const SizedBox(height: 10),
+                      SheetActionButton(
+                        label: AppLocalizations.of(context).serverChangeCta,
+                        tonal: true,
+                        onTap: onChangeServer,
                       ),
                       const SizedBox(height: 14),
                       // The one fact that turns "can't reach server" from a
@@ -2477,7 +2451,10 @@ class _BootError extends StatelessWidget {
                       // appears when the app cannot get past this screen.
                       Text(
                         ServerStore.instance.host,
-                        style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                        style: theme.bodySoft.copyWith(
+                          fontSize: 13,
+                          color: theme.inkMuted,
+                        ),
                       ),
                     ],
                   ),

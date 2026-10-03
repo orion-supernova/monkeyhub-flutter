@@ -10398,4 +10398,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get serverOnboardingTitleIos => 'Elige un servidor';
+
+  @override
+  String get approvalGateAskIos => 'Preguntar';
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -6,7 +7,6 @@ import '../family/family_service.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../models/family.dart';
-import '../keyboard/focusable_tap.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
@@ -19,6 +19,9 @@ import '../widgets/labeled_field.dart';
 import '../widgets/password_field.dart';
 import '../widgets/remove_contact_sheet.dart';
 import '../widgets/user_avatar.dart';
+import '../widgets/ios_kit.dart'
+    show GlassBackButton, groupedFill, groupedRadius;
+import '../widgets/sheet_kit.dart' show SheetActionButton, sentenceCaseOf;
 
 /// Per-child controls, plus the list of what they've already been granted.
 ///
@@ -576,23 +579,15 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
               child: Column(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
                     child: Row(
                       children: [
-                        GestureDetector(
-                          onTap: () => Navigator.of(context).pop(),
-                          behavior: HitTestBehavior.opaque,
-                          child: Icon(
-                            Icons.arrow_back,
-                            size: 20,
-                            color: theme.inkSoft,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
+                        const GlassBackButton(),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            widget.child.user.displayName.toUpperCase(),
-                            style: theme.label.copyWith(letterSpacing: 2.8),
+                            widget.child.user.displayName,
+                            style: theme.bodyEmph.copyWith(color: theme.ink),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -602,9 +597,9 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
                   Expanded(
                     child: ListView(
                       padding: EdgeInsets.fromLTRB(
-                        20,
+                        16,
                         4,
-                        20,
+                        16,
                         edgeToEdgeBottom(context, 40),
                       ),
                       children: [
@@ -751,7 +746,7 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
                         const SizedBox(height: 24),
                         Text(
                           l10n.childPolicyScreenGrantsFooterNote,
-                          style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                          style: theme.bodySoft.copyWith(fontSize: 13, color: theme.inkMuted),
                         ),
 
                         const SizedBox(height: 30),
@@ -863,24 +858,34 @@ class _AddByUsernameButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
+      // A tinted capsule — the iOS secondary action — not an outlined box.
       child: Container(
         margin: const EdgeInsets.only(top: 4),
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 13),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          border: Border.all(color: theme.divider),
-          borderRadius: BorderRadius.circular(theme.radiusMd),
+          color: theme.accent.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(999),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon ?? Icons.person_add_alt, size: 14, color: theme.accent),
+            Icon(
+              icon ?? CupertinoIcons.person_badge_plus,
+              size: 17,
+              color: theme.accent,
+            ),
             const SizedBox(width: 8),
-            Text(
-              resolvedLabel,
-              style: theme.label.copyWith(
-                letterSpacing: 2.4,
-                color: theme.accent,
+            Flexible(
+              child: Text(
+                sentenceCaseOf(context, resolvedLabel),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.body.copyWith(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: theme.accent,
+                ),
               ),
             ),
           ],
@@ -913,19 +918,26 @@ class _DangerAction extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: filled ? theme.danger.withValues(alpha: 0.10) : theme.surface,
-          border: Border.all(
-            color: theme.danger.withValues(alpha: filled ? 0.55 : 0.30),
-            width: 1.2,
-          ),
-          borderRadius: BorderRadius.circular(theme.radiusMd),
+          color: filled
+              ? theme.danger.withValues(alpha: 0.12)
+              : groupedFill(theme),
+          borderRadius: BorderRadius.circular(groupedRadius(theme)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: theme.label.copyWith(color: theme.danger)),
-            const SizedBox(height: 4),
-            Text(detail, style: theme.monoTiny),
+            Text(
+              sentenceCaseOf(context, label),
+              style: theme.body.copyWith(fontSize: 17, color: theme.danger),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              detail,
+              style: theme.bodySoft.copyWith(
+                fontSize: 13,
+                color: theme.inkMuted,
+              ),
+            ),
           ],
         ),
       ),
@@ -979,21 +991,21 @@ class _AddContactSheetState extends State<_AddContactSheet> {
             child: Container(
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+              // An iOS sheet platter: surface, generous corners, no outline.
               decoration: BoxDecoration(
                 color: theme.surface,
-                border: Border.all(color: theme.divider),
-                borderRadius: BorderRadius.circular(theme.radiusLg),
+                borderRadius: BorderRadius.circular(groupedRadius(theme) + 8),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    l10n.childPolicyScreenAllowSomeoneHeading,
-                    style: theme.label.copyWith(
-                      letterSpacing: 2.4,
-                      color: theme.accent,
+                    sentenceCaseOf(
+                      context,
+                      l10n.childPolicyScreenAllowSomeoneHeading,
                     ),
+                    style: theme.bodyEmph.copyWith(fontSize: 20, color: theme.ink),
                   ),
                   const SizedBox(height: 14),
                   Text(
@@ -1016,9 +1028,8 @@ class _AddContactSheetState extends State<_AddContactSheet> {
                     child: Container(
                       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                       decoration: BoxDecoration(
-                        color: theme.surfaceSunken,
-                        border: Border.all(color: theme.divider),
-                        borderRadius: BorderRadius.circular(theme.radiusMd),
+                        color: groupedFill(theme),
+                        borderRadius: BorderRadius.circular(groupedRadius(theme)),
                       ),
                       child: Row(
                         children: [
@@ -1027,8 +1038,14 @@ class _AddContactSheetState extends State<_AddContactSheet> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  l10n.childPolicyScreenSendRequestNowLabel,
-                                  style: theme.label,
+                                  sentenceCaseOf(
+                                    context,
+                                    l10n.childPolicyScreenSendRequestNowLabel,
+                                  ),
+                                  style: theme.body.copyWith(
+                                    fontSize: 17,
+                                    color: theme.ink,
+                                  ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
@@ -1047,44 +1064,23 @@ class _AddContactSheetState extends State<_AddContactSheet> {
                               HapticFeedback.lightImpact();
                               setState(() => _sendNow = v);
                             },
-                            activeThumbColor: theme.accent,
+                            activeTrackColor: theme.success,
+                            activeThumbColor: Colors.white,
                           ),
                         ],
                       ),
                     ),
                   ),
                   const SizedBox(height: 20),
-                  GestureDetector(
+                  SheetActionButton(
+                    label: l10n.childPolicyScreenAllowCta,
                     onTap: _submit,
-                    behavior: HitTestBehavior.opaque,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: theme.accent,
-                        borderRadius: BorderRadius.circular(theme.radiusMd),
-                      ),
-                      child: Text(
-                        l10n.childPolicyScreenAllowCta,
-                        style: theme.label.copyWith(
-                          color: theme.accentInk,
-                          letterSpacing: 2.4,
-                        ),
-                      ),
-                    ),
                   ),
                   const SizedBox(height: 10),
-                  GestureDetector(
+                  SheetActionButton(
+                    label: l10n.childPolicyScreenCancelLabel,
+                    tonal: true,
                     onTap: () => Navigator.of(context).pop(),
-                    behavior: HitTestBehavior.opaque,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      alignment: Alignment.center,
-                      child: Text(
-                        l10n.childPolicyScreenCancelLabel,
-                        style: theme.label.copyWith(color: theme.inkSoft),
-                      ),
-                    ),
                   ),
                 ],
               ),
@@ -1164,21 +1160,18 @@ class _PromptSheetState extends State<_PromptSheet> {
             child: Container(
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+              // An iOS sheet platter: surface, generous corners, no outline.
               decoration: BoxDecoration(
                 color: theme.surface,
-                border: Border.all(color: theme.divider),
-                borderRadius: BorderRadius.circular(theme.radiusLg),
+                borderRadius: BorderRadius.circular(groupedRadius(theme) + 8),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    widget.heading,
-                    style: theme.label.copyWith(
-                      letterSpacing: 2.4,
-                      color: theme.accent,
-                    ),
+                    sentenceCaseOf(context, widget.heading),
+                    style: theme.bodyEmph.copyWith(fontSize: 20, color: theme.ink),
                   ),
                   const SizedBox(height: 14),
                   Text(widget.blurb, style: theme.bodySoft),
@@ -1203,48 +1196,15 @@ class _PromptSheetState extends State<_PromptSheet> {
                       onSubmitted: (_) => _submit(),
                     ),
                   const SizedBox(height: 20),
-                  FocusableTap(
+                  SheetActionButton(
+                    label: widget.ctaLabel,
                     onTap: _valid ? _submit : null,
-                    enabled: _valid,
-                    semanticLabel: widget.ctaLabel,
-                    radius: theme.radiusMd,
-                    child: GestureDetector(
-                      onTap: _submit,
-                      behavior: HitTestBehavior.opaque,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: _valid ? theme.accent : theme.surfaceSunken,
-                          borderRadius: BorderRadius.circular(theme.radiusMd),
-                        ),
-                        child: Text(
-                          widget.ctaLabel,
-                          style: theme.label.copyWith(
-                            color: _valid ? theme.accentInk : theme.inkMuted,
-                            letterSpacing: 2.4,
-                          ),
-                        ),
-                      ),
-                    ),
                   ),
                   const SizedBox(height: 10),
-                  FocusableTap(
+                  SheetActionButton(
+                    label: l10n.childPolicyScreenCancelLabel,
+                    tonal: true,
                     onTap: () => Navigator.of(context).pop(),
-                    semanticLabel: l10n.childPolicyScreenCancelSemanticLabel,
-                    radius: theme.radiusMd,
-                    child: GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
-                      behavior: HitTestBehavior.opaque,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        alignment: Alignment.center,
-                        child: Text(
-                          l10n.childPolicyScreenCancelLabel,
-                          style: theme.label.copyWith(color: theme.inkSoft),
-                        ),
-                      ),
-                    ),
                   ),
                 ],
               ),
@@ -1263,24 +1223,13 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Row(
-      children: [
-        Container(
-          width: 3,
-          height: 14,
-          decoration: BoxDecoration(
-            color: theme.accent,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          label,
-          style: theme.label.copyWith(letterSpacing: 2.8, color: theme.accent),
-        ),
-        const SizedBox(width: 12),
-        Expanded(child: Container(height: 1, color: theme.divider)),
-      ],
+    // The iOS grouped-section header: small, muted, sentence case.
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Text(
+        sentenceCaseOf(context, label),
+        style: theme.bodySoft.copyWith(fontSize: 13, color: theme.inkMuted),
+      ),
     );
   }
 }
@@ -1302,25 +1251,40 @@ class _FixedNote extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: BoxDecoration(
-        color: theme.surface,
-        border: Border.all(color: theme.divider),
-        borderRadius: BorderRadius.circular(theme.radiusMd),
+        color: groupedFill(theme),
+        borderRadius: BorderRadius.circular(groupedRadius(theme)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text(label, style: theme.label),
+              Flexible(
+                child: Text(
+                  sentenceCaseOf(context, label),
+                  style: theme.body.copyWith(fontSize: 17, color: theme.ink),
+                ),
+              ),
               const SizedBox(width: 8),
+              Icon(CupertinoIcons.lock_fill, size: 13, color: theme.inkMuted),
+              const SizedBox(width: 3),
               Text(
-                AppLocalizations.of(context).childPolicyScreenLockedLabel,
-                style: theme.label.copyWith(color: theme.inkMuted),
+                sentenceCaseOf(
+                  context,
+                  AppLocalizations.of(context).childPolicyScreenLockedLabel,
+                ),
+                style: theme.bodySoft.copyWith(
+                  fontSize: 13,
+                  color: theme.inkMuted,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 2),
-          Text(body, style: theme.bodySoft),
+          Text(
+            body,
+            style: theme.bodySoft.copyWith(fontSize: 13, color: theme.inkMuted),
+          ),
         ],
       ),
     );
@@ -1357,9 +1321,8 @@ class _Toggle extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
         decoration: BoxDecoration(
-          color: theme.surface,
-          border: Border.all(color: theme.divider),
-          borderRadius: BorderRadius.circular(theme.radiusMd),
+          color: groupedFill(theme),
+          borderRadius: BorderRadius.circular(groupedRadius(theme)),
         ),
         child: Row(
           children: [
@@ -1367,9 +1330,18 @@ class _Toggle extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: theme.label),
+                  Text(
+                    sentenceCaseOf(context, label),
+                    style: theme.body.copyWith(fontSize: 17, color: theme.ink),
+                  ),
                   const SizedBox(height: 2),
-                  Text(on ? onDesc : offDesc, style: theme.bodySoft),
+                  Text(
+                    on ? onDesc : offDesc,
+                    style: theme.bodySoft.copyWith(
+                      fontSize: 13,
+                      color: theme.inkMuted,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1377,7 +1349,8 @@ class _Toggle extends StatelessWidget {
             Switch.adaptive(
               value: on,
               onChanged: _flip,
-              activeThumbColor: theme.accent,
+              activeTrackColor: theme.success,
+              activeThumbColor: Colors.white,
             ),
           ],
         ),
@@ -1415,11 +1388,10 @@ class _GrantRow extends StatelessWidget {
         AppLocalizations.of(context).childPolicyScreenTakeBackLabel;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
       decoration: BoxDecoration(
-        color: theme.surface,
-        border: Border.all(color: theme.divider),
-        borderRadius: BorderRadius.circular(theme.radiusMd),
+        color: groupedFill(theme),
+        borderRadius: BorderRadius.circular(groupedRadius(theme)),
       ),
       child: Row(
         children: [
@@ -1429,8 +1401,18 @@ class _GrantRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: theme.body, overflow: TextOverflow.ellipsis),
-                Text(subtitle, style: theme.monoTiny),
+                Text(
+                  title,
+                  style: theme.body.copyWith(fontSize: 17, color: theme.ink),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  subtitle,
+                  style: theme.bodySoft.copyWith(
+                    fontSize: 13,
+                    color: theme.inkMuted,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1440,9 +1422,24 @@ class _GrantRow extends StatelessWidget {
               behavior: HitTestBehavior.opaque,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                child: Text(
-                  resolvedRevokeLabel,
-                  style: theme.label.copyWith(color: theme.danger),
+                // The red pill iOS uses for an inline destructive action.
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.danger.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    sentenceCaseOf(context, resolvedRevokeLabel),
+                    style: theme.body.copyWith(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: theme.danger,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -1528,11 +1525,8 @@ class _PickerShell extends StatelessWidget {
             children: [
               const SheetGrabber(),
               Text(
-                heading,
-                style: theme.label.copyWith(
-                  letterSpacing: 2.4,
-                  color: theme.accent,
-                ),
+                sentenceCaseOf(context, heading),
+                style: theme.bodyEmph.copyWith(fontSize: 20, color: theme.ink),
               ),
               const SizedBox(height: 10),
               Text(blurb, style: theme.bodySoft),
@@ -1737,12 +1731,19 @@ class _RoomTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     l10n.childPolicyScreenRoomMemberCount(room.memberCount),
-                    style: theme.monoTiny,
+                    style: theme.bodySoft.copyWith(
+                      fontSize: 13,
+                      color: theme.inkMuted,
+                    ),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
+            Icon(
+              CupertinoIcons.chevron_forward,
+              size: 14,
+              color: theme.inkMuted.withValues(alpha: 0.7),
+            ),
           ],
         ),
       ),

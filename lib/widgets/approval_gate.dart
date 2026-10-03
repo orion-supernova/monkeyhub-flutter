@@ -1,8 +1,11 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
+import 'ios_kit.dart' show groupedRadius;
+import 'sheet_kit.dart' show SheetActionButton, sentenceCaseOf;
 
 // The guard error codes and `isChildGateError` live in models/family.dart so
 // non-UI layers can use them too; this file is only the sheet that renders
@@ -59,10 +62,10 @@ class _ApprovalGateSheet extends StatelessWidget {
           child: Container(
             margin: const EdgeInsets.all(16),
             padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+            // An iOS sheet platter: the surface, rounded, and no outline.
             decoration: BoxDecoration(
               color: theme.surface,
-              border: Border.all(color: theme.divider),
-              borderRadius: BorderRadius.circular(theme.radiusLg),
+              borderRadius: BorderRadius.circular(groupedRadius(theme) + 8),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -70,20 +73,30 @@ class _ApprovalGateSheet extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.shield_outlined, size: 18, color: theme.accent),
-                    const SizedBox(width: 10),
+                    Icon(
+                      CupertinoIcons.checkmark_shield_fill,
+                      size: 18,
+                      color: theme.accent,
+                    ),
+                    const SizedBox(width: 8),
                     Text(
-                      alreadyAsked
-                          ? AppLocalizations.of(context)
-                              .approvalGateAlreadyAskedLabel
-                          : AppLocalizations.of(context)
-                              .approvalGateAskGrownUpLabel,
-                      style: theme.label
-                          .copyWith(letterSpacing: 2.4, color: theme.accent),
+                      sentenceCaseOf(
+                        context,
+                        alreadyAsked
+                            ? AppLocalizations.of(context)
+                                .approvalGateAlreadyAskedLabel
+                            : AppLocalizations.of(context)
+                                .approvalGateAskGrownUpLabel,
+                      ),
+                      style: theme.bodySoft.copyWith(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: theme.accent,
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 Text(
                   alreadyAsked
                       ? AppLocalizations.of(context)
@@ -93,7 +106,11 @@ class _ApprovalGateSheet extends StatelessWidget {
                               .approvalGateNeedApprovalBody(what)
                           : AppLocalizations.of(context)
                               .approvalGateDisabledBody,
-                  style: theme.displaySmall,
+                  style: theme.bodyEmph.copyWith(
+                    fontSize: 20,
+                    height: 1.25,
+                    color: theme.ink,
+                  ),
                 ),
                 if (detail != null && detail!.isNotEmpty) ...[
                   const SizedBox(height: 8),
@@ -114,7 +131,7 @@ class _ApprovalGateSheet extends StatelessWidget {
                 const SizedBox(height: 22),
                 if (canAsk && !alreadyAsked)
                   _GateButton(
-                    label: AppLocalizations.of(context).approvalGateAskButton,
+                    label: AppLocalizations.of(context).approvalGateAskIos,
                     filled: true,
                     onTap: () => Navigator.of(context).pop(true),
                   ),
@@ -135,6 +152,8 @@ class _ApprovalGateSheet extends StatelessWidget {
   }
 }
 
+/// The sheet's two buttons: the ask as the filled primary, everything else
+/// as the tinted secondary — the iOS sheet pair.
 class _GateButton extends StatelessWidget {
   const _GateButton({
     required this.label,
@@ -146,29 +165,8 @@ class _GateButton extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 15),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: filled ? theme.accent : Colors.transparent,
-          border: filled ? null : Border.all(color: theme.divider),
-          borderRadius: BorderRadius.circular(theme.radiusMd),
-        ),
-        child: Text(
-          label,
-          style: theme.label.copyWith(
-            color: filled ? theme.accentInk : theme.inkSoft,
-            letterSpacing: 2.4,
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      SheetActionButton(label: label, onTap: onTap, tonal: !filled);
 }
 
 /// The inline "waiting for a grown-up" pill, for rows the child has already
@@ -190,14 +188,20 @@ class WaitingPill extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.accentSoft,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: theme.accent.withValues(alpha: 0.32), width: 0.5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.hourglass_empty, size: 11, color: theme.accent),
+          Icon(CupertinoIcons.hourglass, size: 12, color: theme.accent),
           const SizedBox(width: 5),
-          Text(resolvedLabel, style: theme.monoTiny.copyWith(color: theme.accent)),
+          Text(
+            sentenceCaseOf(context, resolvedLabel),
+            style: theme.bodySoft.copyWith(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: theme.accent,
+            ),
+          ),
         ],
       ),
     );

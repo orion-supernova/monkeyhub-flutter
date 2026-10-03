@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:image_picker/image_picker.dart';
@@ -9,10 +10,11 @@ import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../media/upload_service.dart';
 import '../push/device_identity.dart';
-import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/adaptive_page_body.dart';
 import '../widgets/app_toast.dart';
+import '../widgets/ios_kit.dart';
+import '../widgets/prominent_button.dart';
+import '../widgets/sheet_kit.dart' show sentenceCaseOf;
 
 /// Lets any user describe a problem and send it, with the identifiers that make
 /// it actionable already filled in.
@@ -146,280 +148,134 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          // See home_screen: the bottom inset leaves a dead strip of
-          // background under the scroller, which reads as a solid bar. The
-          // list clears the home indicator with its own padding instead.
-          SafeArea(
-            bottom: false,
-            child: AdaptivePageBody(
-              child: ListView(
-                padding: EdgeInsets.fromLTRB(
-                  16,
-                  16,
-                  16,
-                  edgeToEdgeBottom(context, 32),
+    return IosPage(
+      title: l10n.reportProblemRowLabel,
+      subtitle: l10n.reportProblemIntro,
+      children: [
+        GroupedSection(
+          header: sentenceCaseOf(context, l10n.reportProblemDescribeLabel),
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: TextField(
+                controller: _description,
+                style: theme.body.copyWith(fontSize: 17, color: theme.ink),
+                minLines: 4,
+                maxLines: 8,
+                maxLength: 2000,
+                decoration: InputDecoration(
+                  border: InputBorder.none,
+                  counterText: '',
+                  hintText: l10n.reportProblemDescribeHint,
+                  hintStyle: theme.bodySoft.copyWith(fontSize: 17),
                 ),
-                children: [
-                  Text(l10n.reportProblemRowLabel, style: theme.displaySmall),
-                  const SizedBox(height: 8),
-                  Text(l10n.reportProblemIntro, style: theme.bodySoft),
-
-                  const SizedBox(height: 24),
-                  _SectionLabel(l10n.reportProblemDescribeLabel),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.surface,
-                      border: Border.all(color: theme.divider),
-                      borderRadius: BorderRadius.circular(theme.radiusMd),
-                    ),
-                    child: TextField(
-                      controller: _description,
-                      style: theme.body,
-                      minLines: 4,
-                      maxLines: 8,
-                      maxLength: 2000,
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        counterText: '',
-                        hintText: l10n.reportProblemDescribeHint,
-                        hintStyle: theme.bodySoft,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-                  _SectionLabel(l10n.reportProblemScreenshotsLabel),
-                  const SizedBox(height: 8),
-                  if (_shots.isNotEmpty)
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (var i = 0; i < _shots.length; i++)
-                          _ShotChip(
-                            name: 'screenshot ${i + 1}',
-                            onRemove: () => setState(() => _shots.removeAt(i)),
-                          ),
-                      ],
-                    ),
-                  if (_shots.isNotEmpty) const SizedBox(height: 8),
-                  _Button(
-                    label: l10n.reportProblemAddScreenshot,
-                    icon: Icons.add_photo_alternate_outlined,
-                    onTap: _addScreenshot,
-                  ),
-
-                  const SizedBox(height: 24),
-                  _SectionLabel(l10n.reportProblemDetailsLabel),
-                  const SizedBox(height: 8),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: theme.surfaceSunken,
-                      border: Border.all(color: theme.divider),
-                      borderRadius: BorderRadius.circular(theme.radiusMd),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (final f in _facts)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SizedBox(
-                                  // Wide enough for "System locale", the longest
-                                  // label — a narrower column wraps it onto two
-                                  // lines and knocks the whole block out of
-                                  // alignment.
-                                  width: 104,
-                                  child: Text(
-                                    f.label,
-                                    style: theme.monoTiny.copyWith(
-                                      color: theme.inkMuted,
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  // Selectable so somebody reading their id
-                                  // over the phone can pick out one chunk of it
-                                  // rather than copying the whole block.
-                                  child: SelectableText(
-                                    f.value,
-                                    style: theme.monoTiny,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  _Button(
-                    label: l10n.reportProblemCopyDetails,
-                    icon: Icons.copy_all_outlined,
-                    onTap: _copyDetails,
-                  ),
-
-                  const SizedBox(height: 28),
-                  _SendButton(
-                    label: l10n.reportProblemSend,
-                    busy: _sending,
-                    onSend: _send,
-                  ),
-                ],
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Text(
-      text,
-      style: theme.label.copyWith(letterSpacing: 2.4, color: theme.accent),
-    );
-  }
-}
-
-class _ShotChip extends StatelessWidget {
-  const _ShotChip({required this.name, required this.onRemove});
-  final String name;
-  final VoidCallback onRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(10, 6, 6, 6),
-      decoration: BoxDecoration(
-        color: theme.surface,
-        border: Border.all(color: theme.divider),
-        borderRadius: BorderRadius.circular(theme.radiusSm),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(name, style: theme.monoTiny),
-          const SizedBox(width: 6),
-          FocusableTap(
-            onTap: onRemove,
-            shape: FocusRingShape.circle,
-            semanticLabel: 'remove $name',
-            child: GestureDetector(
-              onTap: onRemove,
-              behavior: HitTestBehavior.opaque,
-              child: Icon(Icons.close, size: 14, color: theme.inkMuted),
+          ],
+        ),
+        GroupedSection(
+          header: sentenceCaseOf(context, l10n.reportProblemScreenshotsLabel),
+          children: [
+            for (var i = 0; i < _shots.length; i++)
+              GroupedRow(
+                icon: CupertinoIcons.photo_fill,
+                tone: TileTone.blue,
+                title: 'Screenshot ${i + 1}',
+                trailing: _RemoveButton(
+                  label: 'Screenshot ${i + 1}',
+                  onTap: () => setState(() => _shots.removeAt(i)),
+                ),
+              ),
+            GroupedRow(
+              icon: CupertinoIcons.plus,
+              tone: TileTone.green,
+              title: l10n.reportProblemAddScreenshot,
+              chevron: false,
+              onTap: _addScreenshot,
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+        GroupedSection(
+          header: sentenceCaseOf(context, l10n.reportProblemDetailsLabel),
+          children: [
+            for (final f in _facts)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 11, 16, 11),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      // Wide enough for "System locale", the longest label —
+                      // a narrower column wraps it onto two lines and knocks
+                      // the whole block out of alignment.
+                      width: 120,
+                      child: Text(
+                        f.label,
+                        style: theme.body.copyWith(
+                          fontSize: 15,
+                          color: theme.inkMuted,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      // Selectable so somebody reading their id over the phone
+                      // can pick out one chunk of it rather than copying the
+                      // whole block.
+                      child: SelectableText(
+                        f.value,
+                        textAlign: TextAlign.end,
+                        style: theme.body.copyWith(
+                          fontSize: 15,
+                          color: theme.ink,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            GroupedRow(
+              icon: CupertinoIcons.doc_on_doc_fill,
+              tone: TileTone.gray,
+              title: l10n.reportProblemCopyDetails,
+              chevron: false,
+              onTap: _copyDetails,
+            ),
+          ],
+        ),
+        ProminentButton(
+          label: l10n.reportProblemSend,
+          busy: _sending,
+          onTap: _sending ? null : _send,
+        ),
+      ],
     );
   }
 }
 
-class _Button extends StatelessWidget {
-  const _Button({required this.label, required this.icon, required this.onTap});
+/// The minus a removable screenshot row ends in — iOS's red delete disc.
+class _RemoveButton extends StatelessWidget {
+  const _RemoveButton({required this.label, required this.onTap});
   final String label;
-  final IconData icon;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    // Bare GestureDetector plus FocusableTap — this app registers no ink.
     return FocusableTap(
       onTap: onTap,
-      radius: theme.radiusMd,
-      semanticLabel: label,
+      shape: FocusRingShape.circle,
+      semanticLabel: 'remove $label',
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: theme.surface,
-            border: Border.all(color: theme.divider),
-            borderRadius: BorderRadius.circular(theme.radiusMd),
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Icon(
+            CupertinoIcons.minus_circle_fill,
+            size: 22,
+            color: theme.danger,
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 16, color: theme.inkSoft),
-              const SizedBox(width: 8),
-              Text(label, style: theme.body),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The primary action, wider and filled — a different shape from [_Button] on
-/// purpose, so the one button that sends does not look like the two that don't.
-class _SendButton extends StatelessWidget {
-  const _SendButton({
-    required this.label,
-    required this.busy,
-    required this.onSend,
-  });
-  final String label;
-  final bool busy;
-  final Future<void> Function() onSend;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: busy ? null : onSend,
-      radius: theme.radiusMd,
-      semanticLabel: label,
-      child: GestureDetector(
-        onTap: busy ? null : onSend,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: theme.accent,
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-          ),
-          child: busy
-              ? SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: theme.accentInk,
-                  ),
-                )
-              : Text(
-                  label,
-                  style: theme.bodyEmph.copyWith(color: theme.accentInk),
-                ),
         ),
       ),
     );

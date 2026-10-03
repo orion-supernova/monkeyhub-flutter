@@ -2888,5 +2888,6 @@
   "socialHeroLinkIos": "Tekrar hoş geldin",
   "socialSignInLinkIos": "Giriş yap ve {provider} bağla",
   "serverTitleIos": "Sunucu",
-  "serverOnboardingTitleIos": "Bir sunucu seç"
+  "serverOnboardingTitleIos": "Bir sunucu seç",
+  "approvalGateAskIos": "Sor"
 }

@@ -2888,5 +2888,6 @@
   "socialHeroLinkIos": "Hola de nuevo",
   "socialSignInLinkIos": "Iniciar sesión y vincular {provider}",
   "serverTitleIos": "Servidor",
-  "serverOnboardingTitleIos": "Elige un servidor"
+  "serverOnboardingTitleIos": "Elige un servidor",
+  "approvalGateAskIos": "Preguntar"
 }
