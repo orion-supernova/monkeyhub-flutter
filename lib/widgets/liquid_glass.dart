@@ -117,7 +117,10 @@ class _LiquidGlassState extends State<LiquidGlass> {
 
   Widget _build(BuildContext context, GlassConfig cfg) {
     final theme = ThemeScope.of(context);
-    final isLight = MediaQuery.platformBrightnessOf(context) == Brightness.light;
+    // The theme's brightness, not the phone's: Midnight on a phone in light
+    // mode is a dark page, and wanted dark frost.
+    final isLight = theme.background.computeLuminance() > 0.5;
+    final matched = identical(cfg, kNativeMatchGlass);
 
     final frost = cfg.of(kFrost);
     final frostAlpha = (isLight ? 0.55 : 0.35) * frost;
@@ -145,12 +148,34 @@ class _LiquidGlassState extends State<LiquidGlass> {
         child: Stack(
           children: [
             Positioned.fill(
-              child: Container(color: theme.surface.withValues(alpha: frostAlpha)),
+              child: Container(
+                // Matched glass is a neutral, nearly clear tint rather than
+                // a wash of the theme's surface — iOS glass carries the
+                // colour of what is behind it, not of the app.
+                color: matched
+                    ? Colors.white.withValues(alpha: isLight ? 0.72 : 0.07)
+                    : theme.surface.withValues(alpha: frostAlpha),
+              ),
             ),
             Positioned.fill(
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  gradient: widget.tinted
+                  gradient: matched && !widget.tinted
+                      // Light pooling inside the top of the glass, in place
+                      // of the frosted look's diagonal sheen.
+                      ? LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.white.withValues(alpha: isLight ? 0.25 : 0.10),
+                            // Transparent WHITE: fading to Colors.transparent
+                            // (transparent black) passes through grey and
+                            // laid a dull band across the glass.
+                            Colors.white.withValues(alpha: 0),
+                          ],
+                          stops: const [0.0, 0.55],
+                        )
+                      : widget.tinted
                       ? LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -165,7 +190,8 @@ class _LiquidGlassState extends State<LiquidGlass> {
                           colors: [
                             Colors.white.withValues(alpha: overlayTop),
                             Colors.white.withValues(alpha: overlayMid),
-                            Colors.transparent,
+                            // Transparent white — see the matched glow above.
+                            Colors.white.withValues(alpha: 0),
                           ],
                           stops: const [0.0, 0.55, 1.0],
                         ),
@@ -196,7 +222,9 @@ class _LiquidGlassState extends State<LiquidGlass> {
     // glass — the elevated-FAB look. Centred and halved there, it floats the
     // surface instead; dark themes keep exactly what was tuned.
     final lightPage = theme.background.computeLuminance() > 0.5;
-    final framed = DecoratedBox(
+    final framed = matched
+        ? _matchedFrame(clipShape, isLight, blurred)
+        : DecoratedBox(
       decoration: ShapeDecoration(
         shape: framedShape,
         shadows: [
@@ -243,6 +271,29 @@ class _LiquidGlassState extends State<LiquidGlass> {
     );
   }
 
+  /// The edge and shadow of matched (iOS Liquid Glass) glass: a specular rim
+  /// brightest along the top, fading down the sides and catching a little
+  /// light again at the bottom — the lit edge that makes iOS 26 glass read as
+  /// a material over a flat page, where there is nothing behind it to bend.
+  Widget _matchedFrame(OutlinedBorder shape, bool isLight, Widget glass) {
+    return DecoratedBox(
+      decoration: ShapeDecoration(
+        shape: shape,
+        shadows: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isLight ? 0.08 : 0.24),
+            blurRadius: isLight ? 16 : 18,
+            offset: Offset(0, isLight ? 0 : 5),
+          ),
+        ],
+      ),
+      child: CustomPaint(
+        foregroundPainter: _SpecularRim(shape: shape, light: isLight),
+        child: glass,
+      ),
+    );
+  }
+
   FocusRingShape get _ringShape {
     switch (widget.shape) {
       case LiquidGlassShape.circle:
@@ -265,4 +316,42 @@ class _LiquidGlassState extends State<LiquidGlass> {
     });
     widget.onTap?.call();
   }
+}
+
+/// Strokes [shape]'s outline with a top-lit gradient — the specular rim of
+/// matched glass. Paint-only and cheap: one path, one shader, no layers.
+class _SpecularRim extends CustomPainter {
+  const _SpecularRim({required this.shape, required this.light});
+
+  final OutlinedBorder shape;
+  final bool light;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: light
+            ? [
+                Colors.white.withValues(alpha: 0.95),
+                Colors.white.withValues(alpha: 0.35),
+                Colors.white.withValues(alpha: 0.60),
+              ]
+            : [
+                Colors.white.withValues(alpha: 0.42),
+                Colors.white.withValues(alpha: 0.06),
+                Colors.white.withValues(alpha: 0.16),
+              ],
+        stops: const [0.0, 0.55, 1.0],
+      ).createShader(rect);
+    canvas.drawPath(shape.getOuterPath(rect.deflate(0.5)), paint);
+  }
+
+  @override
+  bool shouldRepaint(_SpecularRim old) =>
+      old.light != light || old.shape != shape;
 }

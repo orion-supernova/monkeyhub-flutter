@@ -1543,8 +1543,16 @@ class _GlassProfileTween extends Tween<GlassProfile> {
 class _GlassStyleChooser extends StatelessWidget {
   const _GlassStyleChooser();
 
+  // Listens for itself. It is built `const`, and a const widget is never
+  // rebuilt by its parent — so reading the store straight in build left the
+  // checkmark on the old choice after a tap, which read as "can't select".
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(
+        listenable: SettingsStore.instance,
+        builder: (context, _) => _build(context),
+      );
+
+  Widget _build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final store = SettingsStore.instance;

@@ -78,8 +78,16 @@ class AppIconPicker extends StatelessWidget {
   /// always find their way back to it. Null hides the tag.
   final String? current;
 
+  // Listens to the settings it reads: this widget is built `const`, and a
+  // const widget is never rebuilt by its parent, so a changed setting would
+  // otherwise leave it showing the old value.
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(
+        listenable: SettingsStore.instance,
+        builder: (context, _) => _buildListening(context),
+      );
+
+  Widget _buildListening(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final store = SettingsStore.instance;

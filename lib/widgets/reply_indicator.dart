@@ -111,8 +111,16 @@ class ReplyIndicator extends StatelessWidget {
   /// design even though the global setting is still pointing elsewhere.
   final ReplyStyle? styleOverride;
 
+  // Listens to the settings it reads: this widget is built `const`, and a
+  // const widget is never rebuilt by its parent, so a changed setting would
+  // otherwise leave it showing the old value.
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(
+        listenable: SettingsStore.instance,
+        builder: (context, _) => _buildListening(context),
+      );
+
+  Widget _buildListening(BuildContext context) {
     final style = styleOverride ?? SettingsStore.instance.replyStyle;
     final tone = _quoteTone(context, ThemeScope.of(context), preview);
     switch (style) {

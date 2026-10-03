@@ -21,6 +21,13 @@ final class NativeChrome: NSObject, UITabBarDelegate {
   private weak var hostController: UIViewController?
   private var bar: UITabBar?
 
+  /// The Dart widget instance that owns the bar. A theme change rebuilds the
+  /// shell, so the new instance configures the bar BEFORE the old one is
+  /// disposed — without an owner, the old dispose tore down the new bar and
+  /// the tab bar vanished. Calls from anyone but the current owner are
+  /// ignored.
+  private var owner: Int = -1
+
   /// Takes the controller, never its view. Reading `.view` here — during scene
   /// connection, before the window is visible and before FlutterSceneDelegate
   /// has registered the controller — forces FlutterViewController to load its
@@ -41,10 +48,17 @@ final class NativeChrome: NSObject, UITabBarDelegate {
 
   private func handle(_ call: FlutterMethodCall, _ result: FlutterResult) {
     let args = call.arguments as? [String: Any] ?? [:]
+    let from = args["owner"] as? Int ?? -1
+    if call.method != "isSupported" && call.method != "configure"
+        && from != owner {
+      result(nil)
+      return
+    }
     switch call.method {
     case "isSupported":
       if #available(iOS 26, *) { result(true) } else { result(false) }
     case "configure":
+      owner = from
       configure(args)
       result(nil)
     case "update":
@@ -60,6 +74,7 @@ final class NativeChrome: NSObject, UITabBarDelegate {
     case "dispose":
       bar?.removeFromSuperview()
       bar = nil
+      owner = -1
       result(nil)
     default:
       result(FlutterMethodNotImplemented)

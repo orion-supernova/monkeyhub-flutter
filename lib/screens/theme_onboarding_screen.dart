@@ -204,8 +204,16 @@ class _LookStep extends StatelessWidget {
   /// Calm, native-feeling palettes — the Basic family.
   static bool _isEssential(AppTheme t) => t.id.startsWith('basic');
 
+  // Listens to the settings it reads: this widget is built `const`, and a
+  // const widget is never rebuilt by its parent, so a changed setting would
+  // otherwise leave it showing the old value.
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(
+        listenable: SettingsStore.instance,
+        builder: (context, _) => _buildListening(context),
+      );
+
+  Widget _buildListening(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final store = SettingsStore.instance;
     final mode = store.appearanceMode;
@@ -362,8 +370,16 @@ class _IconStep extends StatelessWidget {
 class _BrandEntrance extends StatelessWidget {
   const _BrandEntrance();
 
+  // Listens to the settings it reads: this widget is built `const`, and a
+  // const widget is never rebuilt by its parent, so a changed setting would
+  // otherwise leave it showing the old value.
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(
+        listenable: SettingsStore.instance,
+        builder: (context, _) => _buildListening(context),
+      );
+
+  Widget _buildListening(BuildContext context) {
     final theme = ThemeScope.of(context);
     final motion = MotionScope.of(context);
     return Align(

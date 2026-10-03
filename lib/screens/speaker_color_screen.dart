@@ -92,8 +92,16 @@ class _Preview extends StatelessWidget {
   static const _cast = ['j57ada', 'j57jun', 'j57mira'];
   static const _names = ['ada', 'jun', 'mira'];
 
+  // Listens to the settings it reads: this widget is built `const`, and a
+  // const widget is never rebuilt by its parent, so a changed setting would
+  // otherwise leave it showing the old value.
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(
+        listenable: SettingsStore.instance,
+        builder: (context, _) => _buildListening(context),
+      );
+
+  Widget _buildListening(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final lines = [

@@ -99,6 +99,16 @@ class NativeTabBar extends StatefulWidget {
 }
 
 class _NativeTabBarState extends State<NativeTabBar> {
+  /// Which instance this is, sent with every call. The shell is rebuilt on a
+  /// theme change, and the new instance configures the bar before the old one
+  /// is disposed; the native side only listens to the latest owner, so the
+  /// old instance's dispose can no longer remove the new bar.
+  static int _nextOwner = 0;
+  final int _owner = _nextOwner++;
+
+  Future<void> _call(String method, [Map<String, Object> args = const {}]) =>
+      NativeChrome.channel.invokeMethod(method, {...args, 'owner': _owner});
+
   /// What was last sent, so a rebuild that changes nothing sends nothing —
   /// the shell rebuilds on every repository notification.
   Map<String, Object>? _lastUpdate;
@@ -134,7 +144,7 @@ class _NativeTabBarState extends State<NativeTabBar> {
   void dispose() {
     NativeChrome.holds.removeListener(_sync);
     NativeChrome.channel.setMethodCallHandler(null);
-    NativeChrome.channel.invokeMethod('dispose');
+    _call('dispose');
     super.dispose();
   }
 
@@ -146,7 +156,7 @@ class _NativeTabBarState extends State<NativeTabBar> {
       // change rebuilds the bar. Selection and badges follow in the update.
       _lastLocale = locale;
       _lastUpdate = null;
-      NativeChrome.channel.invokeMethod('configure', {
+      _call('configure', {
         'items': [
           for (final d in navDestinations(l10n))
             {
@@ -167,14 +177,14 @@ class _NativeTabBarState extends State<NativeTabBar> {
     };
     if (!_sameUpdate(update, _lastUpdate)) {
       _lastUpdate = update;
-      NativeChrome.channel.invokeMethod('update', update);
+      _call('update', update);
     }
 
     final visible = (ModalRoute.of(context)?.isCurrent ?? true) &&
         NativeChrome.holds.value == 0;
     if (visible != _lastVisible) {
       _lastVisible = visible;
-      NativeChrome.channel.invokeMethod('setVisible', {'visible': visible});
+      _call('setVisible', {'visible': visible});
     }
   }
 

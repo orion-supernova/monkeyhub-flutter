@@ -108,4 +108,30 @@ void main() {
     expect(visibility(), [true, false, true]);
     expect(NativeChrome.holds.value, 0);
   });
+
+  // The vanishing-tab-bar bug: a theme change rebuilds the shell under a new
+  // key, so the new bar configures BEFORE the old one is disposed. The old
+  // dispose must name the old owner, or the native side removes the new bar.
+  testWidgets('a rebuilt shell keeps its bar: dispose names the old owner',
+      (tester) async {
+    Widget bar(String key) => host(NativeTabBar(
+          key: ValueKey(key),
+          active: HomeSection.chat,
+          onSelect: (_) {},
+          badges: const {},
+        ));
+    await tester.pumpWidget(bar('midnight'));
+    calls.clear();
+    await tester.pumpWidget(bar('daylight'));
+
+    final methods = calls.map((c) => c.method).toList();
+    final configure = methods.indexOf('configure');
+    final dispose = methods.indexOf('dispose');
+    expect(configure, isNonNegative);
+    expect(dispose, greaterThan(configure),
+        reason: 'the new bar is configured before the old one goes');
+    final newOwner = (calls[configure].arguments as Map)['owner'];
+    final oldOwner = (calls[dispose].arguments as Map)['owner'];
+    expect(oldOwner, isNot(newOwner));
+  });
 }

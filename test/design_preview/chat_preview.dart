@@ -23,6 +23,8 @@ import 'package:monkeyhub/widgets/chat_composer.dart';
 import 'package:monkeyhub/widgets/message_bubble.dart';
 import 'package:monkeyhub/widgets/reply_indicator.dart';
 
+import 'package:monkeyhub/screens/navigation/native_tab_bar.dart';
+
 import 'preview_kit.dart';
 
 final _api = ChatApi(ConvexBackend.instance);
@@ -208,6 +210,10 @@ class _Transcript extends StatelessWidget {
 
 void main() {
   setUpAll(loadPreviewFonts);
+  // Render as an iOS 26 phone on the default Liquid Glass setting, which is
+  // what most people see: app-drawn glass wears the matched recipe.
+  setUp(() => NativeChrome.debugSupported = true);
+  tearDown(() => NativeChrome.debugSupported = false);
   for (final id in ['basic', 'basic_daylight', 'risograph_pop', 'vault_noir']) {
     testWidgets('chat preview: $id', (tester) async {
       await snap(
