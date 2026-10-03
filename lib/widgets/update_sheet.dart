@@ -11,7 +11,8 @@ import 'adaptive_sheet.dart';
 import 'destructive_sheet.dart' show ChoiceTile;
 import 'meta_text.dart';
 import 'sheet_kit.dart'
-    show SheetHandle, SheetRise, sentenceCaseOf, sheetFill, sheetTopRadius;
+    show SheetHandle, SheetRise, sheetFill, sheetTopRadius;
+import '../l10n/text_case.dart';
 
 /// "A newer version is out" — LATER and UPDATE.
 ///

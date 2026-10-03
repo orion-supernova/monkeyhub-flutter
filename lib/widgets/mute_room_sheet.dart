@@ -12,6 +12,7 @@ import 'adaptive_sheet.dart';
 import '../theme/theme_preference.dart';
 import 'sheet_kit.dart';
 import 'ios_kit.dart';
+import '../l10n/text_case.dart';
 
 /// The deadline of a mute, as a sentence in the viewer's language.
 ///

@@ -20,8 +20,9 @@ import 'friend_request_draft_screen.dart';
 import 'profile_screen.dart';
 import 'navigation/enter_public_room.dart';
 import 'navigation/open_room.dart';
-import '../widgets/sheet_kit.dart' show sentenceCaseOf;
+
 import '../widgets/ios_kit.dart' show SpringPress;
+import '../l10n/text_case.dart';
 
 /// Which half of search this screen is.
 ///

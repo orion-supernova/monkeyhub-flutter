@@ -16,7 +16,8 @@ import '../widgets/password_field.dart';
 import '../widgets/username_status_label.dart';
 import '../widgets/ios_kit.dart' show GlassIconButton, groupedRadius;
 import '../widgets/prominent_button.dart';
-import '../widgets/sheet_kit.dart' show SheetActionButton, sentenceCaseOf;
+import '../widgets/sheet_kit.dart' show SheetActionButton;
+import '../l10n/text_case.dart';
 
 /// Where a first-time Apple/Google sign-in lands, with two ways out.
 ///

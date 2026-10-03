@@ -12,6 +12,7 @@ import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'ios_kit.dart';
 import 'teardown_safe.dart';
+import '../l10n/text_case.dart';
 
 // The furniture every sheet in the app is built from, in the iOS 26 shape: a
 // generously rounded top, a grabber, an optional bar with a glass close button
@@ -265,42 +266,6 @@ class SheetActionButton extends StatelessWidget {
     );
   }
 }
-
-/// A label authored in capitals for the old letter-spaced buttons, read in
-/// sentence case. Leaves anything already mixed-case alone, and short
-/// all-caps words (OK, GIF, DM) as they are. Lower-case labels get their first
-/// letter raised.
-///
-/// Locale-aware for the one case that matters here: Dart's own case mapping
-/// is not, and turns Turkish "KAPALI" into "kapali" and "GİDEN" into "gi̇den"
-/// (a stray combining dot). Under Turkish and Azerbaijani the dotted and
-/// dotless I pairs are mapped by hand.
-String sentenceCase(String s, {String? languageCode}) {
-  if (s.isEmpty) return s;
-  final turkic = languageCode == 'tr' || languageCode == 'az';
-  String lower(String x) => turkic
-      ? x.replaceAll('I', 'ı').replaceAll('İ', 'i').toLowerCase()
-      : x.replaceAll('İ', 'i').toLowerCase();
-  String upper(String x) => turkic
-      ? x.replaceAll('i', 'İ').replaceAll('ı', 'I').toUpperCase()
-      : x.toUpperCase();
-
-  final first = s.characters.first;
-  final rest = s.characters.skip(1).toString();
-  if (s == upper(s)) {
-    final letters = s.replaceAll(RegExp(r'[^\p{L}]', unicode: true), '');
-    if (letters.length <= 3) return s;
-    return upper(first) + lower(rest);
-  }
-  // Mixed or lower case: raise the first letter only.
-  return upper(first) + rest;
-}
-
-/// [sentenceCase] in the reader's language.
-String sentenceCaseOf(BuildContext context, String s) => sentenceCase(
-      s,
-      languageCode: Localizations.maybeLocaleOf(context)?.languageCode,
-    );
 
 /// One button in an [showIosActionSheet].
 class IosSheetAction<T> {

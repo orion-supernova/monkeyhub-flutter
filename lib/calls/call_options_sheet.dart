@@ -11,6 +11,7 @@ import '../widgets/ios_kit.dart';
 import '../widgets/sheet_kit.dart';
 import 'call_models.dart';
 import 'call_service.dart';
+import '../l10n/text_case.dart';
 
 /// In-call counterpart to the Settings screen's Calls section — the same
 /// two settings ([SettingsStore.showNetworkStats],

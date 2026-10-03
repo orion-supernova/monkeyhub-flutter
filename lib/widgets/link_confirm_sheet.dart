@@ -7,6 +7,7 @@ import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'ios_kit.dart';
 import 'sheet_kit.dart';
+import '../l10n/text_case.dart';
 
 /// Asks before opening a link ENTITY — text like "check this" that carries a
 /// URL the visible words say nothing about.

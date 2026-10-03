@@ -16,6 +16,8 @@ import '../widgets/media_filmstrip.dart';
 import '../widgets/photo_backdrop.dart';
 import '../widgets/photo_chrome.dart';
 import 'camera_editor_screen.dart';
+import '../widgets/liquid_glass.dart';
+import '../widgets/glass_buttons.dart';
 
 /// The most photographs one send may carry.
 ///
@@ -431,7 +433,8 @@ class _TopRail extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return Row(
       children: [
-        PhotoGlassButton(
+        GlassIconButton(
+          tone: GlassTone.media,
           icon: CupertinoIcons.xmark,
           semanticLabel: l10n.photoTrayDiscardSemanticLabel,
           size: 38,
@@ -439,13 +442,15 @@ class _TopRail extends StatelessWidget {
           onTap: onDiscard,
         ),
         const Spacer(),
-        PhotoGlassSurface(
+        LiquidGlass(
+          tone: GlassTone.media,
+          shape: LiquidGlassShape.capsule,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             child: Text(
               l10n.photoTrayCountLabel(count),
               style: const TextStyle(
-                color: PhotoChrome.ink,
+                color: MediaGlass.ink,
                 fontSize: 12.5,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.1,
@@ -532,7 +537,8 @@ class _BottomRail extends StatelessWidget {
           padding: EdgeInsets.fromLTRB(12, 0, 12, bottom + 10),
           child: Row(
             children: [
-              PhotoGlassButton(
+              GlassIconButton(
+                tone: GlassTone.media,
                 icon: CupertinoIcons.crop_rotate,
                 semanticLabel: l10n.photoTrayEditSemanticLabel,
                 size: 38,
@@ -554,7 +560,8 @@ class _BottomRail extends StatelessWidget {
                 onTap: onToggleHd,
               ),
               const Spacer(),
-              PhotoGlassPill(
+              GlassPillButton(
+                tone: GlassTone.media,
                 label: busy
                     ? l10n.cameraEditorScreenSendingButton
                     : l10n.cameraEditorScreenSendButton,
@@ -580,13 +587,16 @@ class _AddMoreTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // `FocusableTap` is inside `PhotoGlassButton`; this is a plain square
+    // `FocusableTap` is inside `GlassIconButton`; this is a plain square
     // rather than one of those because it has to match the tiles beside it,
     // which are square. Never an InkWell — this app draws no ink anywhere.
-    return PhotoGlassSurface(
+    return LiquidGlass(
+      tone: GlassTone.media,
+      shape: LiquidGlassShape.rounded,
       radius: 9,
       shadow: false,
-      child: PhotoGlassButton(
+      child: GlassIconButton(
+        tone: GlassTone.media,
         icon: CupertinoIcons.plus,
         semanticLabel: AppLocalizations.of(context).photoTrayAddMoreSemanticLabel,
         size: MediaFilmstrip.tileSize,
@@ -594,7 +604,7 @@ class _AddMoreTile extends StatelessWidget {
         // Transparent: the glass surface behind it is already the fill, and a
         // second one over it would read as a raised button on a flat rail.
         tint: const Color(0x00000000),
-        iconColor: theme.accent,
+        color: theme.accent,
         onTap: onTap,
       ),
     );

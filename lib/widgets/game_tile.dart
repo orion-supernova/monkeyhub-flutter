@@ -15,7 +15,7 @@ import 'game_board_skeleton.dart';
 import 'game_info_sheet.dart';
 import 'ios_kit.dart';
 import 'puzzle_symbol.dart';
-import 'sheet_kit.dart' show sentenceCaseOf;
+import '../l10n/text_case.dart';
 
 /// One game on the hub: today's real board, its name, and how you did.
 ///
@@ -303,7 +303,6 @@ class _Status extends StatelessWidget {
     );
   }
 }
-
 
 /// A small tinted capsule: a state in its own colour, never shouting.
 class StatusChip extends StatelessWidget {

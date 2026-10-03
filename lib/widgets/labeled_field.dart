@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
-import 'sheet_kit.dart' show sentenceCaseOf;
+import '../l10n/text_case.dart';
 
 /// The small uppercase caption that sits above a form control.
 ///

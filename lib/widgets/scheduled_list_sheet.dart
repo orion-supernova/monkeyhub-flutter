@@ -18,7 +18,8 @@ import 'ios_kit.dart' show groupedRadius;
 import 'labeled_field.dart' show fieldDecoration;
 import 'meta_text.dart';
 import 'sheet_kit.dart'
-    show SheetHandle, sentenceCaseOf, sheetFill, sheetGroupFill, sheetTopRadius;
+    show SheetHandle, sheetFill, sheetGroupFill, sheetTopRadius;
+import '../l10n/text_case.dart';
 
 /// Turns one of the repository's schedule error codes into a sentence.
 ///

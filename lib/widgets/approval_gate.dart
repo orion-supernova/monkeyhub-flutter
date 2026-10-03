@@ -5,7 +5,8 @@ import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'ios_kit.dart' show groupedRadius, quietFill;
-import 'sheet_kit.dart' show SheetActionButton, sentenceCaseOf;
+import 'sheet_kit.dart' show SheetActionButton;
+import '../l10n/text_case.dart';
 
 // The guard error codes and `isChildGateError` live in models/family.dart so
 // non-UI layers can use them too; this file is only the sheet that renders

@@ -8,7 +8,7 @@ import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/interaction.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/chat_row_action_menu.dart';
-import 'package:monkeyhub/widgets/sheet_kit.dart' show sentenceCase;
+import 'package:monkeyhub/l10n/text_case.dart';
 
 /// The *beat* a chat-list row answers on, as opposed to what its menu then
 /// offers.

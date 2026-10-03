@@ -35,7 +35,7 @@ import 'expressions/expression_sheet.dart';
 import 'chat_pane.dart';
 import 'composer_capture.dart';
 import 'composer_reply_card.dart';
-import 'glass_close_button.dart';
+import 'glass_buttons.dart';
 import 'glass_pill.dart';
 import 'jump_back.dart';
 import 'mention_picker.dart';

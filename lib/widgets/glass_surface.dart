@@ -1,12 +1,10 @@
-import 'dart:ui';
+import 'package:flutter/widgets.dart';
 
-import 'package:flutter/material.dart';
+import 'liquid_glass.dart';
 
-import '../theme/theme_scope.dart';
-
-/// Frosted blurred surface tailored for menus. We don't reuse [LiquidGlass]
-/// here because that widget centers its child and is sized to its parent —
-/// menus need intrinsic sizing.
+/// The glass panel menus and banners sit on: [LiquidGlass], rounded, sized to
+/// its content. A named composition rather than its own recipe, so a menu is
+/// the same material as every glass button around it.
 class GlassSurface extends StatelessWidget {
   const GlassSurface({
     super.key,
@@ -14,45 +12,16 @@ class GlassSurface extends StatelessWidget {
     required this.padding,
     required this.child,
   });
+
   final double radius;
   final EdgeInsets padding;
   final Widget child;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final isLight = MediaQuery.platformBrightnessOf(context) == Brightness.light;
-    final frostAlpha = isLight ? 0.62 : 0.42;
-    final radii = BorderRadius.circular(radius);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: radii,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 22,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: radii,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-          child: Container(
-            decoration: BoxDecoration(
-              color: theme.surface.withValues(alpha: frostAlpha),
-              borderRadius: radii,
-              border: Border.all(
-                color: theme.accent.withValues(alpha: 0.22),
-                width: 1,
-              ),
-            ),
-            padding: padding,
-            child: child,
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => LiquidGlass(
+        shape: LiquidGlassShape.rounded,
+        radius: radius,
+        padding: padding,
+        child: child,
+      );
 }

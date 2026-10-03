@@ -13,6 +13,7 @@ import 'visibility_badge.dart';
 import 'sheet_kit.dart';
 import 'ios_kit.dart';
 import 'chat_list_row.dart' show monogramGradient;
+import '../l10n/text_case.dart';
 
 /// Confirmation gate shown before joining a public room — and the one place the
 /// room describes itself in full.

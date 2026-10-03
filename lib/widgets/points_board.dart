@@ -10,7 +10,7 @@ import 'ios_kit.dart' show quietFill;
 import 'moment_rail.dart';
 import 'odometer_number.dart';
 import 'meta_text.dart';
-import 'sheet_kit.dart' show sentenceCaseOf;
+import '../l10n/text_case.dart';
 
 /// The points board: what happened to everyone today, and who is winning.
 ///

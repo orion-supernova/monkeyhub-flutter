@@ -27,8 +27,9 @@ import 'user_avatar.dart';
 import 'visibility_badge.dart';
 import '../screens/navigation/native_tab_bar.dart' show NativeChrome;
 import 'ios_kit.dart' show quietFill;
-import 'sheet_kit.dart' show sentenceCaseOf;
+
 import 'teardown_safe.dart';
+import '../l10n/text_case.dart';
 
 enum ChatRowAction {
   pin,

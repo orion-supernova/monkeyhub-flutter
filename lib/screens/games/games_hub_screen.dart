@@ -16,12 +16,13 @@ import '../../widgets/adaptive_page_body.dart';
 import '../../widgets/game_records.dart';
 import '../../widgets/game_tile.dart';
 import '../../widgets/ios_kit.dart';
-import '../../widgets/sheet_kit.dart' show sentenceCaseOf;
+
 import '../feed/puzzle_screen.dart';
 import 'queens_screen.dart';
 import 'sudoku_screen.dart';
 import 'tango_screen.dart';
 import 'zip_screen.dart';
+import '../../l10n/text_case.dart';
 
 /// The games hub — today's five boards, and how you did on each.
 ///

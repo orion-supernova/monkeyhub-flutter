@@ -17,8 +17,9 @@ import '../../widgets/remote_image.dart';
 import '../../widgets/steady_hero.dart';
 import '../../widgets/ios_kit.dart';
 import '../../widgets/meta_text.dart';
-import '../../widgets/sheet_kit.dart' show sentenceCaseOf;
+
 import 'moment_viewer.dart';
+import '../../l10n/text_case.dart';
 
 /// Everything you have kept, by day.
 ///

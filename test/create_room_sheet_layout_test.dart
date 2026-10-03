@@ -7,7 +7,7 @@ import 'package:monkeyhub/screens/create_room_sheet.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/adaptive_sheet.dart';
-import 'package:monkeyhub/widgets/sheet_kit.dart' show sentenceCase;
+import 'package:monkeyhub/l10n/text_case.dart';
 
 /// What this pins: **the create-room sheet is a sheet, not a floating card.**
 ///

@@ -20,6 +20,7 @@ import 'sheet_kit.dart';
 import 'pending_placeholder.dart';
 import 'skeleton_rows.dart';
 import 'user_avatar.dart';
+import '../l10n/text_case.dart';
 
 /// What the user picked to receive a share.
 ///

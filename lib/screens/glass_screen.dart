@@ -21,6 +21,7 @@ import '../widgets/liquid_glass.dart';
 import '../widgets/value_slider.dart';
 import 'navigation/native_tab_bar.dart' show NativeChrome;
 import 'navigation/pill_bottom_nav.dart';
+import '../l10n/text_case.dart';
 
 /// Live tuning for every glass surface, plus named slots to keep looks in.
 ///
@@ -938,7 +939,7 @@ class _PreviewToggle extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                sentenceCaps(l10n.glassScreenPreviewBadge),
+                sentenceCapsOf(context, l10n.glassScreenPreviewBadge),
                 style: theme.caption.copyWith(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -1212,7 +1213,7 @@ class _KnobRow extends StatelessWidget {
           Row(
             children: [
               Text(
-                sentenceCaps(label),
+                sentenceCapsOf(context, label),
                 style: theme.body.copyWith(fontSize: 15, color: theme.ink),
               ),
               const SizedBox(width: 8),
@@ -1310,11 +1311,11 @@ class _PresetRow extends StatelessWidget {
                     ),
                     if (subtitle != null) ...[
                       const SizedBox(height: 2),
-                      Text(_capitalized(subtitle!), style: theme.bodySoft),
+                      Text(sentenceCaseOf(context, subtitle!), style: theme.bodySoft),
                     ] else if (preset.builtIn) ...[
                       const SizedBox(height: 2),
                       Text(
-                        _capitalized(l10n.glassScreenBuiltInLabel),
+                        sentenceCaseOf(context, l10n.glassScreenBuiltInLabel),
                         style: theme.bodySoft,
                       ),
                     ],
@@ -1432,7 +1433,7 @@ class _ActionRow extends StatelessWidget {
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
-                  sentenceCaps(label),
+                  sentenceCapsOf(context, label),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.body.copyWith(
@@ -1473,7 +1474,7 @@ class _Header extends StatelessWidget {
       children: [
         Expanded(
           child: Text(
-            sentenceCaps(label),
+            sentenceCapsOf(context, label),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             softWrap: false,
@@ -1490,27 +1491,6 @@ class _Header extends StatelessWidget {
       ],
     );
   }
-}
-
-/// [s] with its first letter raised — for the lower-case-styled strings this
-/// screen used to print verbatim.
-String _capitalized(String s) => s.isEmpty
-    ? s
-    : s.characters.first.toUpperCase() + s.characters.skip(1).toString();
-
-/// A label authored in capitals, read in sentence case: every all-caps word
-/// is lowered and the first letter raised, while a mixed-case word — a
-/// preset's own name, "iOS" — is left exactly as it was written.
-String sentenceCaps(String s) {
-  final words = s.split(' ').map((w) {
-    final letters = w.replaceAll(RegExp(r'[^A-Za-zÀ-ÿĞğİıŞş]'), '');
-    return letters.length > 1 && letters == letters.toUpperCase()
-        ? w.toLowerCase()
-        : w;
-  }).join(' ');
-  if (words.isEmpty) return words;
-  return words.characters.first.toUpperCase() +
-      words.characters.skip(1).toString();
 }
 
 /// Lets [TweenAnimationBuilder] drive a whole profile at once.

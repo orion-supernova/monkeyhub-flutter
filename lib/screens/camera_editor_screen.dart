@@ -17,6 +17,8 @@ import '../theme/theme_scope.dart';
 import '../widgets/photo_backdrop.dart';
 import '../widgets/photo_chrome.dart';
 import 'review_route.dart';
+import '../widgets/liquid_glass.dart';
+import '../widgets/glass_buttons.dart';
 
 /// Post-capture editor: draw on the photo, frame it, send it.
 ///
@@ -862,7 +864,8 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
     final l10n = AppLocalizations.of(context);
     return Row(
       children: [
-        PhotoGlassButton(
+        GlassIconButton(
+          tone: GlassTone.media,
           icon: CupertinoIcons.xmark,
           semanticLabel: cropping
               ? l10n.cameraEditorScreenCancelCropSemanticLabel
@@ -875,7 +878,8 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
         // Undo and redo earn their place only once there is history to move
         // through; a permanently greyed pair is just noise over a photograph.
         if (!cropping && _strokes.isNotEmpty) ...[
-          PhotoGlassButton(
+          GlassIconButton(
+            tone: GlassTone.media,
             icon: CupertinoIcons.arrow_uturn_left,
             semanticLabel: l10n.cameraEditorScreenUndoSemanticLabel,
             onTap: _saving ? null : _undo,
@@ -883,7 +887,8 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
           const SizedBox(width: 8),
         ],
         if (!cropping && _redo.isNotEmpty) ...[
-          PhotoGlassButton(
+          GlassIconButton(
+            tone: GlassTone.media,
             icon: CupertinoIcons.arrow_uturn_right,
             semanticLabel: l10n.cameraEditorScreenRedoSemanticLabel,
             onTap: _saving ? null : _redoStroke,
@@ -891,14 +896,16 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
           const SizedBox(width: 8),
         ],
         if (cropping && _crop != const Rect.fromLTWH(0, 0, 1, 1)) ...[
-          PhotoGlassButton(
+          GlassIconButton(
+            tone: GlassTone.media,
             icon: CupertinoIcons.arrow_2_circlepath,
             semanticLabel: l10n.cameraEditorScreenResetCropSemanticLabel,
             onTap: _saving ? null : _resetCrop,
           ),
           const SizedBox(width: 8),
         ],
-        PhotoGlassButton(
+        GlassIconButton(
+          tone: GlassTone.media,
           icon: CupertinoIcons.rotate_left,
           semanticLabel: l10n.cameraEditorScreenRotateSemanticLabel,
           onTap: ready ? _rotate90 : null,
@@ -907,7 +914,8 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
         // can do to the frame itself.
         if (!cropping) ...[
           const SizedBox(width: 8),
-          PhotoGlassButton(
+          GlassIconButton(
+            tone: GlassTone.media,
             icon: CupertinoIcons.crop,
             semanticLabel: l10n.cameraEditorScreenCropSemanticLabel,
             onTap: ready ? () => _selectTool(_Tool.crop) : null,
@@ -933,7 +941,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
               ? l10n.cameraEditorScreenHeicUnsupportedMessage
               : l10n.cameraEditorScreenImageLoadFailedMessage,
           style: const TextStyle(
-            color: PhotoChrome.inkDim,
+            color: MediaGlass.inkDim,
             fontSize: 14,
             decoration: TextDecoration.none,
           ),
@@ -1133,7 +1141,9 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        PhotoGlassSurface(
+        LiquidGlass(
+          tone: GlassTone.media,
+          shape: LiquidGlassShape.rounded,
           radius: 22,
           child: Padding(
             padding: const EdgeInsets.all(6),
@@ -1159,7 +1169,8 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
         Row(
           children: [
             const Spacer(),
-            PhotoGlassPill(
+            GlassPillButton(
+              tone: GlassTone.media,
               label: AppLocalizations.of(
                 context,
               ).cameraEditorScreenCropDoneButton,
@@ -1194,7 +1205,8 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
             // Small and icon-only: it is the way back, not one of three equal
             // choices, which is what the old full-width RETAKE button implied.
             if (widget.canRetake) ...[
-              PhotoGlassButton(
+              GlassIconButton(
+                tone: GlassTone.media,
                 icon: CupertinoIcons.arrow_counterclockwise,
                 semanticLabel: l10n.cameraEditorScreenRetakeSemanticLabel,
                 size: 38,
@@ -1206,7 +1218,8 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
               const SizedBox(width: 8),
             ],
             if (widget.allowDrawing) ...[
-              PhotoGlassButton(
+              GlassIconButton(
+                tone: GlassTone.media,
                 icon: CupertinoIcons.scribble,
                 semanticLabel: _penArmed
                     ? l10n.cameraEditorScreenPenPutAwaySemanticLabel
@@ -1214,7 +1227,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
                 size: 38,
                 iconSize: 18,
                 tint: _penArmed ? theme.accent : null,
-                iconColor: _penArmed ? theme.accentInk : null,
+                color: _penArmed ? theme.accentInk : null,
                 onTap: _saving ? null : _togglePen,
               ),
               const SizedBox(width: 8),
@@ -1237,7 +1250,8 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
               onTap: _saving ? null : _toggleHd,
             ),
             const Spacer(),
-            PhotoGlassPill(
+            GlassPillButton(
+              tone: GlassTone.media,
               label: _saving
                   ? (widget.busyLabel ??
                         l10n.cameraEditorScreenSendingButton)
@@ -1266,7 +1280,9 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
   Widget _hdNote(AppTheme theme) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: PhotoGlassSurface(
+      child: LiquidGlass(
+        tone: GlassTone.media,
+        shape: LiquidGlassShape.capsule,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
           child: Row(
@@ -1277,7 +1293,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
               Text(
                 AppLocalizations.of(context).cameraEditorScreenHdNote,
                 style: const TextStyle(
-                  color: PhotoChrome.inkDim,
+                  color: MediaGlass.inkDim,
                   fontSize: 11.5,
                   letterSpacing: 0.2,
                   decoration: TextDecoration.none,
@@ -1293,7 +1309,9 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
   Widget _viewOnceNote(AppTheme theme) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: PhotoGlassSurface(
+      child: LiquidGlass(
+        tone: GlassTone.media,
+        shape: LiquidGlassShape.capsule,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
           child: Row(
@@ -1304,7 +1322,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
               Text(
                 AppLocalizations.of(context).cameraEditorScreenViewOnceNote,
                 style: const TextStyle(
-                  color: PhotoChrome.inkDim,
+                  color: MediaGlass.inkDim,
                   fontSize: 11.5,
                   letterSpacing: 0.2,
                   decoration: TextDecoration.none,
@@ -1323,7 +1341,9 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
   Widget _penTray(AppTheme theme) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: PhotoGlassSurface(
+      child: LiquidGlass(
+        tone: GlassTone.media,
+        shape: LiquidGlassShape.rounded,
         radius: 22,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 11, 12, 13),
@@ -1350,7 +1370,8 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  PhotoGlassButton(
+                  GlassIconButton(
+                    tone: GlassTone.media,
                     // Not CupertinoIcons.clear — that is the same glyph as
                     // xmark, which is the discard button at the top of the
                     // screen. Two controls that throw away very different
@@ -1382,7 +1403,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
                           color: _color,
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: PhotoChrome.stroke,
+                            color: MediaGlass.stroke,
                             width: 0.8,
                           ),
                         ),
@@ -1628,13 +1649,13 @@ class _Chip extends StatelessWidget {
           curve: Curves.easeOut,
           padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
           decoration: BoxDecoration(
-            color: selected ? accent : PhotoChrome.fill,
+            color: selected ? accent : MediaGlass.fill,
             borderRadius: BorderRadius.circular(999),
           ),
           child: Text(
             label,
             style: TextStyle(
-              color: selected ? accentInk : PhotoChrome.ink,
+              color: selected ? accentInk : MediaGlass.ink,
               fontSize: 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 1,
@@ -1690,7 +1711,7 @@ class _Swatch extends StatelessWidget {
                 color: color,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: selected ? PhotoChrome.ink : PhotoChrome.stroke,
+                  color: selected ? MediaGlass.ink : MediaGlass.stroke,
                   width: selected ? 2.5 : 1,
                 ),
               ),
@@ -1756,7 +1777,7 @@ class _WidthSlider extends StatelessWidget {
                   child: Container(
                     height: _track,
                     decoration: BoxDecoration(
-                      color: PhotoChrome.fill,
+                      color: MediaGlass.fill,
                       borderRadius: BorderRadius.circular(_track),
                     ),
                   ),
@@ -1778,9 +1799,9 @@ class _WidthSlider extends StatelessWidget {
                     width: _thumb,
                     height: _thumb,
                     decoration: const BoxDecoration(
-                      color: PhotoChrome.ink,
+                      color: MediaGlass.ink,
                       shape: BoxShape.circle,
-                      boxShadow: [PhotoChrome.shadow],
+                      boxShadow: [MediaGlass.shadow],
                     ),
                   ),
                 ),

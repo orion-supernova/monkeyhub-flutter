@@ -20,10 +20,11 @@ import '../../widgets/adaptive_sheet.dart';
 import '../../widgets/moment_rail.dart';
 import '../../widgets/ios_kit.dart';
 import '../../widgets/meta_text.dart';
-import '../../widgets/sheet_kit.dart' show sentenceCaseOf;
+
 import '../camera_editor_screen.dart';
 import '../camera_screen.dart';
 import 'points_explainer.dart';
+import '../../l10n/text_case.dart';
 
 /// Logs a point: what happened, and which kind of thing it was.
 ///

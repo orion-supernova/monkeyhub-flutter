@@ -16,6 +16,8 @@ import '../theme/theme_scope.dart';
 import '../widgets/photo_chrome.dart';
 import 'room_items.dart' show formatClockDuration;
 import '../widgets/teardown_safe.dart';
+import '../widgets/liquid_glass.dart';
+import '../widgets/glass_buttons.dart';
 
 /// In-app camera. Shutter → the photo, immediately.
 ///
@@ -1139,7 +1141,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
           message,
           textAlign: TextAlign.center,
           style: const TextStyle(
-            color: PhotoChrome.inkDim,
+            color: MediaGlass.inkDim,
             fontSize: 14,
             height: 1.5,
             decoration: TextDecoration.none,
@@ -1160,7 +1162,8 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
           top: 8,
           child: Row(
             children: [
-              PhotoGlassButton(
+              GlassIconButton(
+                tone: GlassTone.media,
                 icon: CupertinoIcons.xmark,
                 semanticLabel: AppLocalizations.of(
                   context,
@@ -1182,7 +1185,8 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
               // Apple's Night Mode — no plugin exposes that — so it is labelled
               // for what it does rather than for what it resembles.
               if (_ready && _boostAvailable && !_recording) ...[
-                PhotoGlassButton(
+                GlassIconButton(
+                  tone: GlassTone.media,
                   icon: _boost ? CupertinoIcons.moon_fill : CupertinoIcons.moon,
                   semanticLabel: _boost
                       ? AppLocalizations.of(
@@ -1195,7 +1199,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
                   tint: _boost
                       ? const Color(0xFF7FA8FF).withValues(alpha: 0.85)
                       : null,
-                  iconColor: _boost ? Colors.black : null,
+                  color: _boost ? Colors.black : null,
                 ),
                 const SizedBox(width: 8),
               ],
@@ -1203,7 +1207,8 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
               // has a screen pointed straight at the subject, which is what
               // fires instead — see [_usesScreenFlash].
               if (_ready && _lensControls && _flashAvailable && !_recording)
-                PhotoGlassButton(
+                GlassIconButton(
+                  tone: GlassTone.media,
                   icon: switch (_flash) {
                     FlashMode.auto => CupertinoIcons.bolt_badge_a_fill,
                     FlashMode.off => CupertinoIcons.bolt_slash_fill,
@@ -1216,7 +1221,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
                   tint: _flash == FlashMode.off
                       ? null
                       : const Color(0xFFFFC531).withValues(alpha: 0.85),
-                  iconColor: _flash == FlashMode.off ? null : Colors.black,
+                  color: _flash == FlashMode.off ? null : Colors.black,
                 ),
             ],
           ),
@@ -1270,7 +1275,8 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
                             ? null
                             : Align(
                                 alignment: Alignment.centerLeft,
-                                child: PhotoGlassButton(
+                                child: GlassIconButton(
+                                  tone: GlassTone.media,
                                   icon: CupertinoIcons.photo_on_rectangle,
                                   semanticLabel: AppLocalizations.of(
                                     context,
@@ -1302,7 +1308,8 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
                             ? null
                             : Align(
                                 alignment: Alignment.centerRight,
-                                child: PhotoGlassButton(
+                                child: GlassIconButton(
+                                  tone: GlassTone.media,
                                   icon: CupertinoIcons.camera_rotate,
                                   semanticLabel: AppLocalizations.of(
                                     context,
@@ -1328,13 +1335,15 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOut,
       child: IgnorePointer(
-        child: PhotoGlassSurface(
+        child: LiquidGlass(
+          tone: GlassTone.media,
+          shape: LiquidGlassShape.capsule,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             child: Text(
               '${_zoom.toStringAsFixed(1)}×',
               style: const TextStyle(
-                color: PhotoChrome.ink,
+                color: MediaGlass.ink,
                 fontSize: 12.5,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.3,
@@ -1414,7 +1423,7 @@ class _ShutterButtonState extends State<_ShutterButton>
                   height: 72,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: PhotoChrome.ink, width: 3.5),
+                    border: Border.all(color: MediaGlass.ink, width: 3.5),
                   ),
                 ),
                 AnimatedContainer(
@@ -1436,7 +1445,7 @@ class _ShutterButtonState extends State<_ShutterButton>
                     borderRadius: BorderRadius.circular(
                       widget.recording ? 7 : 29,
                     ),
-                    color: (widget.video ? _recordRed : PhotoChrome.ink)
+                    color: (widget.video ? _recordRed : MediaGlass.ink)
                         .withValues(alpha: widget.busy ? 0.4 : 1),
                   ),
                 ),
@@ -1519,7 +1528,9 @@ class _ModeSwitch extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return PhotoGlassSurface(
+    return LiquidGlass(
+      tone: GlassTone.media,
+      shape: LiquidGlassShape.capsule,
       child: Padding(
         padding: const EdgeInsets.all(3),
         child: Row(
@@ -1550,14 +1561,14 @@ class _ModeSwitch extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(
             color: selected
-                ? PhotoChrome.ink.withValues(alpha: 0.16)
+                ? MediaGlass.ink.withValues(alpha: 0.16)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(14),
           ),
           child: Text(
             label,
             style: TextStyle(
-              color: selected ? PhotoChrome.ink : PhotoChrome.inkDim,
+              color: selected ? MediaGlass.ink : MediaGlass.inkDim,
               fontSize: 11.5,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.6,
@@ -1591,7 +1602,9 @@ class _RecordingBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final counting = remaining <= warnAt;
     final seconds = remaining.inSeconds < 0 ? 0 : remaining.inSeconds;
-    return PhotoGlassSurface(
+    return LiquidGlass(
+      tone: GlassTone.media,
+      shape: LiquidGlassShape.capsule,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         child: Row(
@@ -1613,7 +1626,7 @@ class _RecordingBadge extends StatelessWidget {
                     ).composerCaptureTimeLeft(seconds)
                   : formatClockDuration(elapsed),
               style: TextStyle(
-                color: counting ? _recordRed : PhotoChrome.ink,
+                color: counting ? _recordRed : MediaGlass.ink,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.4,

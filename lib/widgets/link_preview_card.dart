@@ -10,8 +10,9 @@ import '../services/link_preview_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'ios_kit.dart' show quietFill;
-import 'sheet_kit.dart' show sentenceCaseOf;
+
 import 'teardown_safe.dart';
+import '../l10n/text_case.dart';
 
 /// Premium OG-card preview for a single URL.
 ///

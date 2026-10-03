@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
-import 'sheet_kit.dart' show sentenceCaseOf;
 import 'package:flutter/services.dart';
 
 import '../data/records_store.dart';
@@ -16,6 +15,7 @@ import 'sheet_surface.dart';
 import 'skeleton_rows.dart';
 import 'ios_kit.dart';
 import 'meta_text.dart';
+import '../l10n/text_case.dart';
 
 /// All-time records — the surfaces that show them.
 ///

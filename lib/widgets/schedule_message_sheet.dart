@@ -11,6 +11,7 @@ import 'adaptive_sheet.dart';
 import 'ios_kit.dart';
 import 'schedule_time_picker.dart';
 import 'sheet_kit.dart';
+import '../l10n/text_case.dart';
 
 /// When a scheduled message will go out, as a sentence in the reader's
 /// language.

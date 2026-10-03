@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
 import 'sheet_kit.dart';
+import '../l10n/text_case.dart';
 
 /// The call-to-action pair every sheet in this family ends with.
 ///

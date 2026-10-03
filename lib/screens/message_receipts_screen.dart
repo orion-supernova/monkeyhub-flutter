@@ -19,8 +19,9 @@ import '../widgets/remote_image.dart';
 import '../widgets/user_avatar.dart';
 import 'room_items.dart' show transcriptDay;
 import '../widgets/ios_kit.dart' show GlassBackButton;
-import '../widgets/sheet_kit.dart' show sentenceCaseOf;
+
 import '../widgets/teardown_safe.dart';
+import '../l10n/text_case.dart';
 
 /// Everything that has happened to one of your messages, person by person —
 /// the screen behind a left pull on your own bubble.

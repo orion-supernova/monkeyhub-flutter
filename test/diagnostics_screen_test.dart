@@ -8,7 +8,7 @@ import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/screens/diagnostics_screen.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
-import 'package:monkeyhub/widgets/sheet_kit.dart' show sentenceCase;
+import 'package:monkeyhub/l10n/text_case.dart';
 
 /// The viewer's category row, as somebody reading a flooded log uses it.
 ///

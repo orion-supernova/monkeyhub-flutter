@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 
 import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
-import 'photo_chrome.dart';
+import 'liquid_glass.dart';
 
 /// The rail of thumbnails that sits under a full-bleed picture.
 ///
@@ -21,7 +21,7 @@ import 'photo_chrome.dart';
 /// rail reflow sideways under the reader's thumb. Selection is a ring and a
 /// brightness instead — the same signal, spent on paint rather than layout.
 ///
-/// Deliberately NOT built on [PhotoGlassSurface] like the rest of the photo
+/// Deliberately NOT built on media [LiquidGlass] like the rest of the photo
 /// chrome. A glass pane is a `BackdropFilter`, this rail slides and fades with
 /// the chrome, and animating a backdrop filter is the one thing this app has
 /// agreed never to do. A flat gradient scrim buys the same legibility over an
@@ -334,7 +334,7 @@ class _RemoveBadge extends StatelessWidget {
           child: const Icon(
             CupertinoIcons.xmark,
             size: 11,
-            color: PhotoChrome.ink,
+            color: MediaGlass.ink,
           ),
         ),
       ),

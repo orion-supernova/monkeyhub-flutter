@@ -8,9 +8,10 @@ import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/user_avatar.dart';
 import 'call_models.dart';
-import 'widgets/call_chrome.dart' show PressSpring, callStatusStyle;
+import 'widgets/call_chrome.dart' show callStatusStyle;
 import 'call_screen.dart';
 import 'call_service.dart';
+import '../widgets/spring_press.dart';
 
 /// Full-screen UI shown when an incoming call arrives. Tap accept → spins up
 /// media + answer, replaces self with [CallScreen]. Tap reject → tears down.
@@ -271,7 +272,8 @@ class _RingButton extends StatelessWidget {
           shape: FocusRingShape.circle,
           child: GestureDetector(
             onTap: enabled ? onTap : null,
-            child: PressSpring(
+            child: SpringPress.passive(
+              scale: 0.9,
               child: Container(
                 width: 76,
                 height: 76,

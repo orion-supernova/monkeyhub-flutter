@@ -16,7 +16,7 @@ import 'game_info_sheet.dart';
 import 'puzzle_symbol.dart';
 import 'ios_kit.dart';
 import 'meta_text.dart';
-import 'sheet_kit.dart' show sentenceCaseOf;
+import '../l10n/text_case.dart';
 
 /// Today's five games, compact enough to live on the Feed board — the code
 /// puzzle first, then the four dailies. The puzzle used to get its own

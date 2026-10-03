@@ -6,9 +6,8 @@ import '../l10n/generated/app_localizations.dart';
 import '../privacy/capture_protection.dart';
 import '../widgets/capture_shield.dart';
 import '../widgets/photo_backdrop.dart';
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
-import '../widgets/photo_chrome.dart';
-import '../widgets/sheet_kit.dart' show sentenceCaseOf;
+import '../l10n/text_case.dart';
+import '../widgets/viewer_chrome.dart';
 
 /// Fullscreen viewer for a view-once photo.
 ///
@@ -95,7 +94,6 @@ class _ViewOnceViewerState extends State<ViewOnceViewer>
 
   @override
   Widget build(BuildContext context) {
-    final topInset = MediaQuery.paddingOf(context).top;
     // Material + DefaultTextStyle so nothing here can fall back to Flutter's
     // debug text rendering.
     return Material(
@@ -151,20 +149,13 @@ class _ViewOnceViewerState extends State<ViewOnceViewer>
                 ),
               ),
               Positioned(
-                top: topInset + 10,
-                left: 16,
-                child: const _ViewOnceBadge(),
-              ),
-              Positioned(
-                top: topInset + 8,
-                right: 8,
-                child: PhotoGlassButton(
-                         // The Photos close: a glass circle, never a rippling IconButton.
-                         icon: CupertinoIcons.xmark,
-                         semanticLabel:
-                             MaterialLocalizations.of(context).closeButtonTooltip,
-                         onTap: _close,
-                       ),
+                top: 0,
+                left: 0,
+                right: 0,
+                child: ViewerTopBar(
+                  onClose: _close,
+                  center: const _ViewOnceBadge(),
+                ),
               ),
               // Deliberately no save, share, or download control.
               const CaptureShield(),

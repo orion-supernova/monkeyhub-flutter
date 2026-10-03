@@ -9,8 +9,9 @@ import '../theme/motion.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'count_badge.dart';
-import 'sheet_kit.dart' show sentenceCaseOf;
+
 import 'ios_kit.dart' show groupedFill, groupedRadius, quietFill;
+import '../l10n/text_case.dart';
 
 /// The header affordance for [FilterStyle.drawer].
 ///

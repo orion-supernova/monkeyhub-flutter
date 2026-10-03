@@ -17,7 +17,7 @@ import 'adaptive_sheet.dart';
 import 'destructive_sheet.dart' show SheetGrabber;
 import 'puzzle_symbol.dart';
 import 'meta_text.dart';
-import 'sheet_kit.dart' show sentenceCaseOf;
+import '../l10n/text_case.dart';
 
 /// What a daily game is, in the plainest words the rules allow.
 ///

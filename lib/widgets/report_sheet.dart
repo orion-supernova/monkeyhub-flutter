@@ -6,6 +6,7 @@ import 'adaptive_sheet.dart';
 import 'ios_kit.dart';
 import 'labeled_field.dart';
 import 'sheet_kit.dart';
+import '../l10n/text_case.dart';
 
 /// Prompts the user to pick a report reason. Resolves to the reason string
 /// (or null on dismiss). The "other" path lets the user type a free-form

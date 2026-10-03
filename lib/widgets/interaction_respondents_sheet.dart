@@ -14,6 +14,7 @@ import 'interaction_bubble.dart' show interactionChoiceLabel;
 import 'sheet_kit.dart';
 import 'message_stamp.dart' show formatClockTime;
 import 'user_avatar.dart';
+import '../l10n/text_case.dart';
 
 /// Names everybody who answered a poll, a checklist or an event, grouped by
 /// what they picked.

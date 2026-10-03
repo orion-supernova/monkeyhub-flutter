@@ -15,7 +15,7 @@ import 'expression_media.dart';
 import 'klipy_attribution.dart';
 import '../meta_text.dart';
 import '../search_field.dart' show searchFieldDecoration;
-import '../sheet_kit.dart' show sentenceCaseOf;
+import '../../l10n/text_case.dart';
 
 String _bare(String s) => s.replaceAll('️', '').trim();
 

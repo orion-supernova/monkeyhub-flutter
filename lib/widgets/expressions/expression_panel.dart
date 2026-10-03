@@ -27,6 +27,7 @@ import 'klipy_attribution.dart';
 import 'sticker_pack_store.dart';
 import 'sticker_search.dart';
 import '../teardown_safe.dart';
+import '../spring_press.dart';
 
 /// The composer's expression panel — emoji, GIFs and stickers — shown in place
 /// of the keyboard.
@@ -1161,11 +1162,9 @@ class _PressableTileState extends State<_PressableTile>
         child: AnimatedScale(
           scale: _down ? 0.9 : 1,
           duration: MotionScope.of(context).d(
-            _down
-                ? const Duration(milliseconds: 90)
-                : const Duration(milliseconds: 420),
+            _down ? PressSpec.down : PressSpec.release,
           ),
-          curve: _down ? Curves.easeOut : Curves.elasticOut,
+          curve: _down ? PressSpec.downCurve : PressSpec.releaseCurve,
           child: widget.child,
         ),
       ),

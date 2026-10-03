@@ -9,6 +9,7 @@ import '../theme/motion.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import 'teardown_safe.dart';
+import 'spring_press.dart';
 
 /// The pieces the first-launch picker and the theme screen are both built
 /// from, so the two can never describe the same choice two different ways.
@@ -252,7 +253,7 @@ class _SpringyState extends State<_Springy>
               ? const Duration(milliseconds: 90)
               : const Duration(milliseconds: 460),
         ),
-        curve: _down ? Curves.easeOut : Curves.elasticOut,
+        curve: _down ? PressSpec.downCurve : PressSpec.releaseCurve,
         child: widget.child,
       ),
     );

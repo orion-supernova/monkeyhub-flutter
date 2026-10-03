@@ -53,6 +53,7 @@ import 'image_crop_screen.dart';
 import 'navigation/open_room.dart';
 import 'profile_screen.dart';
 import 'room_content_screen.dart';
+import '../l10n/text_case.dart';
 
 class RoomInfoScreen extends StatefulWidget {
   const RoomInfoScreen({

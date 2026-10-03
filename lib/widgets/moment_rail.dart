@@ -10,9 +10,10 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'remote_image.dart';
 import 'steady_hero.dart';
-import 'sheet_kit.dart' show sentenceCaseOf;
+
 import 'ios_kit.dart' show SpringPress, groupedFill;
 import 'chat_list_row.dart' show monogramGradient;
+import '../l10n/text_case.dart';
 
 /// Hero tag for a moment's picture, shared by every surface that renders one.
 ///

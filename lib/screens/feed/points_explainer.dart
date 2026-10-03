@@ -7,10 +7,10 @@ import '../../theme/layout.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/adaptive_page_body.dart';
-import '../../widgets/glass_close_button.dart';
 import '../../widgets/ios_kit.dart';
 import '../../widgets/moment_rail.dart';
 import '../../widgets/sheet_kit.dart';
+import '../../l10n/text_case.dart';
 
 /// Explains what the points board actually is.
 ///

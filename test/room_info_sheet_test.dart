@@ -10,7 +10,7 @@ import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/layout.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/join_room_sheet.dart';
-import 'package:monkeyhub/widgets/sheet_kit.dart' show sentenceCase;
+import 'package:monkeyhub/l10n/text_case.dart';
 
 /// The sheet a public room row opens for a stranger is the one place that room
 /// gets to describe itself in full. The rows are lists and cap what they show —

@@ -12,8 +12,9 @@ import '../widgets/adaptive_page_body.dart';
 import '../widgets/discover_rows.dart';
 import '../widgets/ios_kit.dart';
 import '../widgets/search_field.dart' show searchFieldDecoration;
-import '../widgets/sheet_kit.dart' show sentenceCaseOf;
+
 import 'navigation/open_room.dart';
+import '../l10n/text_case.dart';
 
 /// Chrome for the full-list screens Discover's "see all" rows open.
 ///

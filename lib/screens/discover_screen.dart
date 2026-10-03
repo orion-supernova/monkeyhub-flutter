@@ -25,8 +25,9 @@ import 'navigation/open_room.dart';
 import 'navigation/tab_reselect.dart';
 import 'search_screen.dart';
 import '../theme/theme_preference.dart';
-import '../widgets/sheet_kit.dart' show sentenceCaseOf;
+
 import '../widgets/ios_kit.dart';
+import '../l10n/text_case.dart';
 
 /// How many friends and rooms Discover shows before handing off to a
 /// full-list screen.

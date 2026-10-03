@@ -13,6 +13,7 @@ import 'brand_icon_canvas.dart';
 import 'monkey_collection.dart';
 import '../services/launcher_icon_names.dart' show kBorrowedIconThemeIds;
 import 'teardown_safe.dart';
+import 'spring_press.dart';
 
 /// The choice that means "let the icon follow the theme" ([LogoMode.auto]).
 /// Every other choice is a concrete icon id: [canonicalLogoId], a monkey
@@ -406,7 +407,7 @@ class _AppIconTileState extends State<AppIconTile>
                     ? const Duration(milliseconds: 90)
                     : const Duration(milliseconds: 460),
               ),
-              curve: _down ? Curves.easeOut : Curves.elasticOut,
+              curve: _down ? PressSpec.downCurve : PressSpec.releaseCurve,
               child: tile,
             ),
           ),

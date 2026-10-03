@@ -23,6 +23,7 @@ import 'number_stepper.dart';
 import 'sheet_buttons.dart';
 import 'sheet_kit.dart';
 import 'ios_kit.dart';
+import '../l10n/text_case.dart';
 
 /// The admin's invite-link sheet: the room's one live link, the limits on it,
 /// and the two switches that decide what it does.

@@ -6,7 +6,7 @@ import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/screens/feed/point_composer.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
-import 'package:monkeyhub/widgets/sheet_kit.dart' show sentenceCase;
+import 'package:monkeyhub/l10n/text_case.dart';
 
 /// What this pins: you can actually reach ADD POINT.
 ///

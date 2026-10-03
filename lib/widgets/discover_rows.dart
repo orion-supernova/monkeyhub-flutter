@@ -10,10 +10,11 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'chat_list_row.dart' show monogramGradient;
 import 'ios_kit.dart' show groupedFill, groupedRadius;
-import 'sheet_kit.dart' show sentenceCaseOf;
+
 import 'approval_gate.dart';
 import 'remote_image.dart';
 import 'user_avatar.dart';
+import '../l10n/text_case.dart';
 
 /// Someone you already know. Tapping opens (or starts) the DM.
 ///

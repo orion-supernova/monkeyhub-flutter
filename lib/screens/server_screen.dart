@@ -22,7 +22,8 @@ import '../widgets/server_role_sheet.dart';
 import '../widgets/ios_kit.dart'
     show GlassBackButton, groupedFill, groupedRadius;
 import '../widgets/prominent_button.dart';
-import '../widgets/sheet_kit.dart' show SheetActionButton, sentenceCaseOf;
+import '../widgets/sheet_kit.dart' show SheetActionButton;
+import '../l10n/text_case.dart';
 
 /// Where this install connects: the deployment it shipped with, or one the user
 /// runs themselves.

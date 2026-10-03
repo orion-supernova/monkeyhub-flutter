@@ -1,15 +1,17 @@
 import 'package:flutter/cupertino.dart'
     show CupertinoIcons, CupertinoSliverRefreshControl;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../keyboard/focusable_tap.dart';
 import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
-import 'liquid_glass.dart';
+import 'glass_buttons.dart';
 import 'teardown_safe.dart';
+
+export 'glass_buttons.dart';
+export 'spring_press.dart';
 
 // The app's shared iOS vocabulary: a page with a large title, inset grouped
 // sections, and the rows that live in them. Every secondary screen builds from
@@ -20,122 +22,6 @@ import 'teardown_safe.dart';
 // from its surfaces and inks, type from its ramp. On a Basic palette that IS
 // the iOS look; on a character theme it is that theme's take on the same
 // structure, so personality never costs the layout.
-
-/// The springy press every tappable in the kit shares: a quick dip to 0.96 and
-/// an overshooting return, the Telegram feel. Collapses to nothing under
-/// reduced motion.
-class SpringPress extends StatefulWidget {
-  const SpringPress({
-    super.key,
-    required this.child,
-    required this.onTap,
-    this.scale = 0.96,
-    this.haptic = true,
-    this.semanticLabel,
-  });
-
-  final Widget child;
-  final VoidCallback? onTap;
-  final double scale;
-
-  /// A light selection tick on tap — what UIKit controls do.
-  final bool haptic;
-  final String? semanticLabel;
-
-  @override
-  State<SpringPress> createState() => _SpringPressState();
-}
-
-class _SpringPressState extends State<SpringPress>
-    with TeardownSafe<SpringPress> {
-  bool _down = false;
-
-  void _set(bool v) {
-    if (_down != v) setState(() => _down = v);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final motion = MotionScope.of(context);
-    final enabled = widget.onTap != null;
-    return FocusableTap(
-      onTap: widget.onTap,
-      semanticLabel: widget.semanticLabel,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: enabled ? (_) => _set(true) : null,
-        onTapUp: enabled ? (_) => _set(false) : null,
-        onTapCancel: enabled ? () => _set(false) : null,
-        onTap: enabled
-            ? () {
-                if (widget.haptic) HapticFeedback.selectionClick();
-                widget.onTap!();
-              }
-            : null,
-        child: AnimatedScale(
-          scale: _down ? widget.scale : 1,
-          duration: motion.d(
-            _down
-                ? const Duration(milliseconds: 90)
-                : const Duration(milliseconds: 420),
-          ),
-          curve: _down ? Curves.easeOut : Curves.elasticOut,
-          child: widget.child,
-        ),
-      ),
-    );
-  }
-}
-
-/// A circular glass button for a bar: back, close, compose, more.
-class GlassIconButton extends StatelessWidget {
-  const GlassIconButton({
-    super.key,
-    required this.icon,
-    required this.onTap,
-    this.semanticLabel,
-    this.size = 40,
-    this.iconSize = 19,
-    this.color,
-  });
-
-  final IconData icon;
-  final VoidCallback onTap;
-  final String? semanticLabel;
-  final double size;
-  final double iconSize;
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Semantics(
-      button: true,
-      label: semanticLabel,
-      child: LiquidGlass(
-        size: Size(size, size),
-        onTap: onTap,
-        child: Icon(icon, size: iconSize, color: color ?? theme.ink),
-      ),
-    );
-  }
-}
-
-/// The back control every pushed page wears: a glass circle with a chevron,
-/// iOS 26's toolbar treatment.
-class GlassBackButton extends StatelessWidget {
-  const GlassBackButton({super.key, this.onTap});
-
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) => GlassIconButton(
-        icon: CupertinoIcons.chevron_back,
-        iconSize: 20,
-        semanticLabel: MaterialLocalizations.of(context).backButtonTooltip,
-        onTap: onTap ?? () => Navigator.of(context).maybePop(),
-      );
-}
 
 /// A pushed page in the iOS shape: a bar with a glass back button and actions,
 /// a large title that scrolls away under it while a small one fades in, and

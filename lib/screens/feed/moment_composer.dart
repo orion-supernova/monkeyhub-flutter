@@ -26,6 +26,7 @@ import '../../widgets/meta_text.dart';
 import '../../widgets/sheet_kit.dart';
 import '../camera_editor_screen.dart';
 import '../camera_screen.dart';
+import '../../l10n/text_case.dart';
 
 /// Composes a HIGHLIGHT: a picture or a video, and a few words about it.
 ///

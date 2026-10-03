@@ -13,6 +13,7 @@ import 'mute_room_sheet.dart';
 import '../screens/navigation/open_room.dart';
 import 'sheet_kit.dart';
 import 'chat_list_row.dart';
+import '../l10n/text_case.dart';
 
 /// Every room the viewer has archived. Reached by pulling down at the top of
 /// the chat list and tapping the "Archived Chats (N)" folder row — see

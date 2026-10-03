@@ -16,6 +16,9 @@ import '../widgets/remote_image.dart';
 import '../widgets/route_landing.dart';
 import '../widgets/steady_hero.dart';
 import 'fullscreen_video_viewer.dart';
+import '../widgets/glass_buttons.dart';
+import '../widgets/liquid_glass.dart';
+import '../widgets/viewer_chrome.dart';
 
 /// Fullscreen media, swipeable across a set — the MEDIA tab's grid, or every
 /// picture in one conversation.
@@ -778,6 +781,8 @@ class _PlayDisc extends StatelessWidget {
   }
 }
 
+/// The pager's top bar: the shared viewer chrome, with who sent it and where
+/// in the album this is.
 class _TopBar extends StatelessWidget {
   const _TopBar({
     required this.message,
@@ -793,95 +798,23 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final pad = MediaQuery.paddingOf(context);
-
-    return Stack(
-      children: [
-        // Same reason the rail has one: white on white is not a colour scheme,
-        // and the top of a photograph is as likely to be sky as anything else.
-        MediaScrim(height: pad.top + 62, fromTop: true),
-        Padding(
-          padding: EdgeInsets.fromLTRB(8, pad.top + 6, 8, 10),
-          child: Row(
-            children: [
-              _GlassButton(
-                icon: CupertinoIcons.xmark,
-                semanticLabel:
-                    AppLocalizations.of(context).photoChromeCloseSemanticLabel,
-                onTap: onClose,
-              ),
-              const Spacer(),
-              Column(
-                children: [
-                  Text(
-                    message.senderName.isEmpty
-                        ? AppLocalizations.of(context).photoChromeMediaYouLabel
-                        : message.senderName,
-                    style: theme.bodyEmph.copyWith(color: Colors.white),
-                  ),
-                  Text(
-                    position,
-                    style: theme.caption.copyWith(
-                      fontSize: 13,
-                      color: Colors.white70,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                ],
-              ),
-              const Spacer(),
-              if (onShowInChat != null)
-                _GlassButton(
-                  icon: CupertinoIcons.chat_bubble,
-                  semanticLabel: AppLocalizations.of(context)
-                      .photoChromeShowInChatSemanticLabel,
-                  onTap: onShowInChat!,
-                )
-              else
-                const SizedBox(width: 38),
-            ],
+    final l10n = AppLocalizations.of(context);
+    return ViewerTopBar(
+      onClose: onClose,
+      closeLabel: l10n.photoChromeCloseSemanticLabel,
+      title: message.senderName.isEmpty
+          ? l10n.photoChromeMediaYouLabel
+          : message.senderName,
+      subtitle: position,
+      actions: [
+        if (onShowInChat != null)
+          GlassIconButton(
+            tone: GlassTone.media,
+            icon: CupertinoIcons.chat_bubble,
+            semanticLabel: l10n.photoChromeShowInChatSemanticLabel,
+            onTap: onShowInChat,
           ),
-        ),
       ],
-    );
-  }
-}
-
-class _GlassButton extends StatelessWidget {
-  const _GlassButton({
-    required this.icon,
-    required this.semanticLabel,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String semanticLabel;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    // `FocusableTap` registers no gesture recognizer of its own, so the bare
-    // `GestureDetector` inside is what actually receives the pointer. Both
-    // carry the handler. Never an InkWell — this app draws no ink anywhere.
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: semanticLabel,
-      shape: FocusRingShape.circle,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          width: 38,
-          height: 38,
-          alignment: Alignment.center,
-          decoration: const BoxDecoration(
-            color: Color(0x33FFFFFF),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, size: 17, color: Colors.white),
-        ),
-      ),
     );
   }
 }

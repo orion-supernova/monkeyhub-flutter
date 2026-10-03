@@ -15,7 +15,8 @@ import '../widgets/adaptive_page_body.dart';
 import '../widgets/code_field.dart';
 import '../widgets/ios_kit.dart';
 import '../widgets/prominent_button.dart';
-import '../widgets/sheet_kit.dart' show SheetActionButton, sentenceCaseOf;
+import '../widgets/sheet_kit.dart' show SheetActionButton;
+import '../l10n/text_case.dart';
 
 enum _Stage { entry, confirm, done }
 

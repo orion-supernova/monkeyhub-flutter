@@ -7,7 +7,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../privacy/capture_protection.dart';
 import '../theme/theme_scope.dart';
 import 'ios_kit.dart' show groupedRadius;
-import 'sheet_kit.dart' show sentenceCaseOf;
+import '../l10n/text_case.dart';
 
 /// Renders a full-screen blur shield when screen capture is detected AND
 /// the user has enabled protection. iOS only — Android handles capture

@@ -40,7 +40,7 @@ import 'games/tango_screen.dart';
 import 'games/zip_screen.dart';
 import 'navigation/destinations.dart';
 import 'navigation/tab_reselect.dart';
-import '../widgets/sheet_kit.dart' show sentenceCaseOf;
+import '../l10n/text_case.dart';
 
 /// TODAY — the friends-activity board.
 ///

@@ -14,18 +14,19 @@ import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/app_toast.dart';
 import '../../widgets/destructive_sheet.dart';
-import '../../widgets/glass_close_button.dart';
+import '../../widgets/glass_buttons.dart';
 import '../../widgets/moment_rail.dart';
 import '../../widgets/moment_reactor_sheet.dart';
 import '../../widgets/photo_backdrop.dart';
-import '../../widgets/photo_chrome.dart';
 import '../../widgets/photo_dismiss_area.dart';
 import '../../widgets/remote_image.dart';
 import '../../widgets/route_landing.dart';
-import '../../widgets/sheet_kit.dart' show sentenceCaseOf;
+
 import '../../widgets/steady_hero.dart';
 import '../fullscreen_video_viewer.dart';
 import '../../widgets/ios_kit.dart' show quietFill;
+import '../../l10n/text_case.dart';
+import '../../widgets/liquid_glass.dart';
 
 /// Reactions offered on a moment.
 ///
@@ -450,7 +451,7 @@ class _MomentStageState extends State<_MomentStage> with RouteLanding {
 
     return Material(
       type: MaterialType.transparency,
-      // Every `PhotoGlassSurface` under here calls `BackdropFilter.grouped`,
+      // Every media `LiquidGlass` under here calls `BackdropFilter.grouped`,
       // which shares ONE full-screen rasterization with its siblings — but only
       // when a group is actually in scope. Without this the two top-bar buttons
       // and the whole reaction rail each cost their own blur pass over a
@@ -458,7 +459,7 @@ class _MomentStageState extends State<_MomentStage> with RouteLanding {
       // feel while the picture is still flying in.
       child: BackdropGroup(
         child: DefaultTextStyle(
-          style: theme.body.copyWith(color: PhotoChrome.ink),
+          style: theme.body.copyWith(color: MediaGlass.ink),
           child: Stack(
             children: [
               // Painted inside the route rather than left to the barrier, so it
@@ -744,7 +745,8 @@ class _StagePageState extends State<_StagePage> {
               if (playable)
                 // The disc is the same action with a smaller target and a focus
                 // ring on it — the whole poster is tappable above.
-                PhotoGlassButton(
+                GlassIconButton(
+                  tone: GlassTone.media,
                   icon: CupertinoIcons.play_fill,
                   semanticLabel: AppLocalizations.of(
                     context,
@@ -932,7 +934,8 @@ class _StageTopBar extends StatelessWidget {
           padding: EdgeInsets.fromLTRB(10, pad.top + (count > 1 ? 16 : 8), 10, 12),
           child: Row(
             children: [
-              PhotoGlassButton(
+              GlassIconButton(
+                tone: GlassTone.media,
                 icon: CupertinoIcons.xmark,
                 semanticLabel: l10n.photoChromeCloseSemanticLabel,
                 onTap: onClose,
@@ -955,7 +958,7 @@ class _StageTopBar extends StatelessWidget {
                                 ? l10n.momentRailYouLabel
                                 : moment.authorName,
                             style: theme.bodyEmph.copyWith(
-                              color: PhotoChrome.ink,
+                              color: MediaGlass.ink,
                               // Over an arbitrary photograph a shadow is what
                               // keeps a name legible where the scrim above has
                               // already thinned out.
@@ -973,7 +976,7 @@ class _StageTopBar extends StatelessWidget {
                             ].join('  ·  '),
                             style: theme.bodySoft.copyWith(
                               fontSize: 13,
-                              color: PhotoChrome.inkDim,
+                              color: MediaGlass.inkDim,
                               fontFeatures: const [
                                 FontFeature.tabularFigures(),
                               ],
@@ -991,7 +994,8 @@ class _StageTopBar extends StatelessWidget {
               ),
               if (onToggleFill != null) ...[
                 const SizedBox(width: 8),
-                PhotoGlassButton(
+                GlassIconButton(
+                  tone: GlassTone.media,
                   // The glyph names what the tap DOES, not the current state:
                   // a filled picture offers to shrink back to the whole frame.
                   icon: filled
@@ -1005,7 +1009,8 @@ class _StageTopBar extends StatelessWidget {
               ],
               if (onDelete != null) ...[
                 const SizedBox(width: 8),
-                PhotoGlassButton(
+                GlassIconButton(
+                  tone: GlassTone.media,
                   icon: CupertinoIcons.trash,
                   semanticLabel: l10n.momentViewerDelete,
                   onTap: onDelete,
@@ -1059,7 +1064,7 @@ class _AuthorDot extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: Colors.black.withValues(alpha: 0.35),
-        border: Border.all(color: PhotoChrome.stroke, width: 1),
+        border: Border.all(color: MediaGlass.stroke, width: 1),
       ),
       clipBehavior: Clip.antiAlias,
       alignment: Alignment.center,
@@ -1067,7 +1072,7 @@ class _AuthorDot extends StatelessWidget {
           ? Text(
               initial,
               style: theme.bodyEmph.copyWith(
-                color: PhotoChrome.ink,
+                color: MediaGlass.ink,
                 fontSize: 13,
               ),
             )
@@ -1135,7 +1140,7 @@ class _StageFooter extends StatelessWidget {
               Text(
                 caption,
                 style: theme.body.copyWith(
-                  color: PhotoChrome.ink,
+                  color: MediaGlass.ink,
                   shadows: const [
                     Shadow(color: Color(0x99000000), blurRadius: 8),
                   ],
@@ -1216,7 +1221,7 @@ class _GlassReactionRail extends StatelessWidget {
           const SizedBox(width: 10),
           Text(
             '$total',
-            style: theme.bodySoft.copyWith(fontSize: 13, fontWeight: FontWeight.w600, fontFeatures: const [FontFeature.tabularFigures()], color: PhotoChrome.inkDim),
+            style: theme.bodySoft.copyWith(fontSize: 13, fontWeight: FontWeight.w600, fontFeatures: const [FontFeature.tabularFigures()], color: MediaGlass.inkDim),
           ),
         ],
       ],
@@ -1267,7 +1272,9 @@ class _GlassReactionPill extends StatelessWidget {
                 (instance) => instance.onLongPress = onLongPress,
               ),
         },
-        child: PhotoGlassSurface(
+        child: LiquidGlass(
+          tone: GlassTone.media,
+          shape: LiquidGlassShape.capsule,
           // Solid accent when it is yours, so a reaction you added is legible
           // as *yours* over any photograph — glass-on-glass is not.
           tint: active ? accent : null,
@@ -1291,7 +1298,7 @@ class _GlassReactionPill extends StatelessWidget {
                     style: TextStyle(
                       // accentInk on an accent fill, never white — NeonNight's
                       // accent is pure yellow and Graphite's is near-white.
-                      color: active ? accentInk : PhotoChrome.ink,
+                      color: active ? accentInk : MediaGlass.ink,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                       height: 1.1,

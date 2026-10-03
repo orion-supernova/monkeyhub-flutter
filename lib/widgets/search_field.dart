@@ -8,7 +8,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'route_landing.dart';
-import 'sheet_kit.dart' show sentenceCaseOf;
+import '../l10n/text_case.dart';
 
 /// Horizontal inset of the pill's contents. Public because
 /// [SearchFieldHero]'s shuttle has to land the magnifier on exactly the pixel

@@ -12,7 +12,8 @@ import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/ios_kit.dart';
-import '../widgets/sheet_kit.dart' show SheetActionButton, sentenceCaseOf;
+import '../widgets/sheet_kit.dart' show SheetActionButton;
+import '../l10n/text_case.dart';
 
 /// URI the QR encodes. The child app also accepts the bare six digits, so a
 /// parent reading them down the phone works just as well as a scan.

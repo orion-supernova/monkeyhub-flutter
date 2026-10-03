@@ -5,6 +5,7 @@ import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import '../theme/motion.dart';
 import 'sheet_kit.dart';
+import '../l10n/text_case.dart';
 
 /// Long-press a moment's reaction pill and this names the people behind it.
 ///

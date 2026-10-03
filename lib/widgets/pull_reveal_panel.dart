@@ -5,8 +5,9 @@ import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'search_field.dart';
-import 'sheet_kit.dart' show sentenceCaseOf;
+
 import 'teardown_safe.dart';
+import '../l10n/text_case.dart';
 
 /// Lives as the first child of the chat list's [ListView]. Hidden by default;
 /// pulling down at the top of the list (overscroll) reveals it — see

@@ -1,11 +1,9 @@
-import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 
-import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
-import 'ios_kit.dart' show quietFill;
-import 'sheet_kit.dart' show sentenceCaseOf;
+import '../l10n/text_case.dart';
+import 'liquid_glass.dart';
 
 /// Mounts [child] only while it is visible or animating.
 ///
@@ -139,48 +137,25 @@ class GlassPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return FocusableTap(
+    return LiquidGlass(
+      shape: LiquidGlassShape.capsule,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       onTap: onTap,
       semanticLabel: semanticLabel,
-      shape: FocusRingShape.capsule,
-      // Bare GestureDetector, never InkWell — this app renders no ink anywhere.
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(999),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-              // Tinted glass with a hairline of light on the rim, not a grey
-              // outline; the shadow inside a clip never painted anyway.
-              decoration: BoxDecoration(
-                color: quietFill(theme),
-                border: Border.all(
-                  color: const Color(0xFFFFFFFF).withValues(alpha: 0.12),
-                  width: 0.5,
-                ),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, size: 13, color: theme.accent),
-                  const SizedBox(width: 6),
-                  Text(
-                    sentenceCaseOf(context, label),
-                    style: theme.bodySoft.copyWith(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: theme.accent,
-                    ),
-                  ),
-                ],
-              ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: theme.accent),
+          const SizedBox(width: 6),
+          Text(
+            sentenceCaseOf(context, label),
+            style: theme.bodySoft.copyWith(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: theme.accent,
             ),
           ),
-        ),
+        ],
       ),
     );
   }

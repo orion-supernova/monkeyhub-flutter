@@ -16,6 +16,7 @@ import '../../theme/app_theme.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/user_avatar.dart';
 import '../call_stats_monitor.dart';
+import '../../widgets/spring_press.dart';
 
 /// The chrome both call screens are built from.
 ///
@@ -1051,7 +1052,8 @@ class CallControlButton extends StatelessWidget {
               // child GestureDetector is what makes this tappable.
               child: GestureDetector(
                 onTap: _tap,
-                child: PressSpring(
+                child: SpringPress.passive(
+                  scale: 0.9,
                   // Size pinned outside, colour animated inside: an
                   // AnimatedContainer given the size too would tween it
                   // whenever the slot changed, and the tray's own height
@@ -1113,43 +1115,6 @@ class CallControlButton extends StatelessWidget {
   );
 }
 
-/// The dip-and-overshoot a control gives under the finger.
-///
-/// A pointer [Listener], not a gesture: it only watches the press, so the
-/// [GestureDetector] above keeps winning the tap exactly as before.
-class PressSpring extends StatefulWidget {
-  const PressSpring({super.key, required this.child});
-  final Widget child;
-
-  @override
-  State<PressSpring> createState() => _PressSpringState();
-}
-
-class _PressSpringState extends State<PressSpring> {
-  bool _down = false;
-
-  void _set(bool v) {
-    if (_down != v) setState(() => _down = v);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final calm = MediaQuery.disableAnimationsOf(context);
-    return Listener(
-      onPointerDown: (_) => _set(true),
-      onPointerUp: (_) => _set(false),
-      onPointerCancel: (_) => _set(false),
-      child: AnimatedScale(
-        scale: _down ? 0.9 : 1,
-        duration: calm
-            ? Duration.zero
-            : Duration(milliseconds: _down ? 90 : 460),
-        curve: _down ? Curves.easeOut : Curves.elasticOut,
-        child: widget.child,
-      ),
-    );
-  }
-}
 
 /// Small centered pill shown over the call view during a transient state —
 /// device-switch renegotiation, ICE-restart recovery, or a degraded

@@ -7,6 +7,7 @@ import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'ios_kit.dart' show GroupedRow, TileTone;
 import 'sheet_kit.dart';
+import '../l10n/text_case.dart';
 
 /// What the user picked in the location sheet.
 ///

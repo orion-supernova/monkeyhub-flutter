@@ -12,7 +12,7 @@ import '../theme/theme_scope.dart';
 import '../widgets/code_field.dart';
 import '../widgets/ios_kit.dart' show groupedRadius, quietFill;
 import '../widgets/prominent_button.dart';
-import '../widgets/sheet_kit.dart' show sentenceCaseOf;
+import '../l10n/text_case.dart';
 
 /// Pulls the six digits out of whatever the scanner saw. Accepts both the
 /// `monkeyhub://pair?c=NNNNNN` URI the parent app renders and a bare code, so

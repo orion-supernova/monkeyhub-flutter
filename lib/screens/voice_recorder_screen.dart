@@ -13,8 +13,9 @@ import '../widgets/adaptive_page_body.dart';
 import '../widgets/app_toast.dart';
 import 'room_items.dart' show formatClockDuration;
 import '../widgets/ios_kit.dart' show GlassIconButton, SpringPress, quietFill;
-import '../widgets/sheet_kit.dart' show sentenceCaseOf;
+
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import '../l10n/text_case.dart';
 
 /// The MIME for what [VoiceRecorderScreen] produces: AAC-LC in an ISO-BMFF
 /// (MP4) container.

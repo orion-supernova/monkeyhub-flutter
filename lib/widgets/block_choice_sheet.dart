@@ -10,6 +10,7 @@ import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'destructive_sheet.dart';
 import 'sheet_kit.dart';
+import '../l10n/text_case.dart';
 
 enum BlockChoice { cancel, blockOnly, blockAndDelete }
 

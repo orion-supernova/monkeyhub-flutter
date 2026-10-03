@@ -10,6 +10,7 @@ import '../widgets/adaptive_sheet.dart';
 import '../widgets/ios_kit.dart';
 import '../widgets/sheet_kit.dart';
 import 'screen_share.dart';
+import '../l10n/text_case.dart';
 
 /// The desktop question a phone never asks: which screen?
 ///

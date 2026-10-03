@@ -13,7 +13,8 @@ import '../l10n/generated/app_localizations.dart';
 import '../push/device_identity.dart';
 import '../theme/theme_scope.dart';
 import 'ios_kit.dart' show groupedFill, groupedRadius;
-import 'sheet_kit.dart' show SheetActionButton, sentenceCaseOf;
+import 'sheet_kit.dart' show SheetActionButton;
+import '../l10n/text_case.dart';
 
 enum _Phase { minting, waiting, exchanging, denied, error }
 

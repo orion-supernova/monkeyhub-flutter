@@ -10,8 +10,7 @@ import '../widgets/photo_dismiss_area.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/route_landing.dart';
 import '../widgets/steady_hero.dart';
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
-import '../widgets/photo_chrome.dart';
+import '../widgets/viewer_chrome.dart';
 
 /// Fullscreen viewer for a single image stored in Convex.
 ///
@@ -209,18 +208,15 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
                 ),
               ),
               Positioned(
-                top: MediaQuery.paddingOf(context).top + 8,
-                right: 8,
+                top: 0,
+                left: 0,
+                right: 0,
                 child: Opacity(
                   // The chrome gets out of the way as the picture leaves.
                   opacity: (1 - t * 2).clamp(0.0, 1.0),
-                  child: PhotoGlassButton(
-                           // The Photos close: a glass circle, never a rippling IconButton.
-                           icon: CupertinoIcons.xmark,
-                           semanticLabel:
-                               MaterialLocalizations.of(context).closeButtonTooltip,
-                           onTap: () => Navigator.of(context).maybePop(),
-                         ),
+                  child: ViewerTopBar(
+                    onClose: () => Navigator.of(context).maybePop(),
+                  ),
                 ),
               ),
             ],

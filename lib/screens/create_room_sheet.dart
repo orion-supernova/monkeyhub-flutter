@@ -15,6 +15,7 @@ import '../widgets/password_field.dart';
 import 'room_screen.dart';
 import '../widgets/sheet_kit.dart';
 import '../widgets/ios_kit.dart';
+import '../l10n/text_case.dart';
 
 class CreateRoomSheet extends StatefulWidget {
   const CreateRoomSheet({super.key, required this.repo, required this.api});

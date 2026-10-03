@@ -4,23 +4,61 @@ import 'package:flutter/material.dart';
 
 import '../data/glass_config.dart';
 import '../data/settings_store.dart';
-import '../keyboard/focusable_tap.dart';
+import '../keyboard/focusable_tap.dart' show FocusRingShape;
 import '../screens/navigation/native_tab_bar.dart' show NativeChrome;
 import '../theme/theme_scope.dart';
-import 'teardown_safe.dart';
+import 'spring_press.dart';
 
 enum LiquidGlassShape { circle, capsule, rounded }
 
-/// Frosted-glass surface — clones the visual recipe from MonkeyHub v02's
-/// `LiquidGlassModifier` (frosted blur + translucent fill + diagonal white
-/// sheen + accent stroke + soft drop shadow).
+/// What a piece of glass sits over, which decides how it is lit.
+///
+/// * [app] — the app's own pages. Follows the glass engine: iOS Liquid Glass
+///   wears the matched recipe, Frosted wears the user's tuning.
+/// * [media] — photographs, video and the camera. The backdrop is arbitrary,
+///   so a theme-tinted glass can vanish over a bright sky; this glass is a
+///   fixed neutral dark with white ink on every theme, and the theme speaks
+///   only through a [LiquidGlass.tint] on a control that is on.
+enum GlassTone { app, media }
+
+/// The palette of [GlassTone.media] glass — and of anything that sits on it
+/// (ink for icons and labels). One set of values for the camera, the editor,
+/// every viewer and the photo tray.
+abstract final class MediaGlass {
+  /// Translucent white over the blur. Reads as glass on any photo.
+  static const fill = Color(0x2BFFFFFF);
+  static const fillPressed = Color(0x3DFFFFFF);
+
+  /// Hairline that separates the glass from whatever is behind it. Without it
+  /// a button over a light photo has no edge at all.
+  static const stroke = Color(0x33FFFFFF);
+
+  static const ink = Color(0xFFFFFFFF);
+  static const inkDim = Color(0x8AFFFFFF);
+  static const inkDisabled = Color(0x4DFFFFFF);
+
+  /// Every media surface blurs by the same amount, so a row of them reads as
+  /// one pane of glass rather than a row of unrelated buttons.
+  static const blurSigma = 20.0;
+
+  /// Centred, not dropped: an offset shadow reads as a grey lip under the
+  /// glass. Centred, it still separates white glass from a bright photo.
+  static const shadow = BoxShadow(
+    color: Color(0x40000000),
+    blurRadius: 14,
+  );
+}
+
+/// THE glass of the app. Every glass surface — buttons, pills, menus, bars,
+/// camera and viewer chrome — is this widget, so they read as one material.
 ///
 /// Performance note: the blur is rendered through `BackdropFilter.grouped`,
 /// which pairs with a `BackdropGroup` ancestor so all sibling glass surfaces
-/// share a single rasterization pass. With seven instances per screen (header
-/// pill + two header buttons + composer attach + camera + field + send) the
-/// cost drops from seven full-screen blurs per frame to one.
-class LiquidGlass extends StatefulWidget {
+/// share a single rasterization pass. The blur itself is never animated.
+///
+/// Interactive when [onTap] is given: it springs through [SpringPress] like
+/// every other control, and brightens while held.
+class LiquidGlass extends StatelessWidget {
   const LiquidGlass({
     super.key,
     required this.child,
@@ -29,7 +67,11 @@ class LiquidGlass extends StatefulWidget {
     this.padding = EdgeInsets.zero,
     this.size,
     this.tinted = false,
+    this.tint,
+    this.tone = GlassTone.app,
+    this.shadow = true,
     this.onTap,
+    this.semanticLabel,
     this.config,
   });
 
@@ -38,30 +80,96 @@ class LiquidGlass extends StatefulWidget {
   final double radius;
   final EdgeInsets padding;
   final Size? size;
+
+  /// A light accent wash over the frost (the app tone's "selected" glass).
   final bool tinted;
+
+  /// A solid fill instead of glass — for a control that is ON (the armed pen,
+  /// an active toggle, the primary Send pill).
+  final Color? tint;
+  final GlassTone tone;
+
+  /// Whether the surface casts its shadow. Off for glass nested in glass.
+  final bool shadow;
   final VoidCallback? onTap;
+  final String? semanticLabel;
 
   /// Dial positions for this surface. Null — every caller but the bottom bar —
   /// means "whatever the user has set for the app", read live from
-  /// [SettingsStore.glass].
+  /// [SettingsStore.glass]. Ignored by [GlassTone.media].
   ///
   /// One config rather than a parameter per dial: there are eight of them, they
   /// are always set together, and they have to round-trip through a saved slot
   /// as a unit anyway.
   final GlassConfig? config;
 
-  @override
-  State<LiquidGlass> createState() => _LiquidGlassState();
-}
+  FocusRingShape get _ringShape => switch (shape) {
+        LiquidGlassShape.circle => FocusRingShape.circle,
+        LiquidGlassShape.capsule => FocusRingShape.capsule,
+        LiquidGlassShape.rounded => FocusRingShape.rounded,
+      };
 
-class _LiquidGlassState extends State<LiquidGlass>
-    with TeardownSafe<LiquidGlass> {
-  bool _pressed = false;
+  OutlinedBorder _border({BorderSide side = BorderSide.none}) =>
+      switch (shape) {
+        LiquidGlassShape.circle => CircleBorder(side: side),
+        LiquidGlassShape.capsule => StadiumBorder(side: side),
+        LiquidGlassShape.rounded => RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(radius),
+            side: side,
+          ),
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    Widget surface(bool pressed) => _sized(_material(context, pressed));
+    if (onTap == null) return surface(false);
+    return SpringPress(
+      onTap: onTap,
+      haptic: false,
+      scale: 0.94,
+      semanticLabel: semanticLabel,
+      focusShape: _ringShape,
+      focusRadius: radius,
+      builder: (context, pressed) => surface(pressed),
+    );
+  }
+
+  Widget _sized(Widget glass) => size == null
+      ? glass
+      : SizedBox(width: size!.width, height: size!.height, child: glass);
+
+  /// The engine-aware material: which recipe the glass wears.
+  Widget _material(BuildContext context, bool pressed) {
+    if (tone == GlassTone.media) return _media(pressed);
+    final cfg = config;
+    if (cfg != null) return _app(context, cfg, pressed);
+    // While iOS draws the tab bar, every app-drawn surface wears the matched
+    // recipe instead of the user's tuning, so the two read as one material.
+    if (NativeChrome.active) return _app(context, kNativeMatchGlass, pressed);
+    // Only surfaces following the app-wide tuning subscribe. The bottom bar is
+    // handed its config by a parent that already rebuilds on settings changes,
+    // so making it listen too would just double the rebuilds.
+    return ListenableBuilder(
+      listenable: SettingsStore.instance,
+      builder: (context, _) =>
+          _app(context, SettingsStore.instance.glass.app, pressed),
+    );
+  }
+
+  /// The content laid over the glass. A Stack sizes to its non-positioned
+  /// children, so THIS decides how wide the glass is: centred only when
+  /// [size] pins the box (there is slack to centre within), otherwise the
+  /// glass shrink-wraps its content — a capsule around two words never
+  /// paints full width.
+  Widget _content() => Padding(
+        padding: padding,
+        child: size == null ? child : Center(child: child),
+      );
 
   /// Saturate first, then blur. The other order blurs the colour into its
   /// neighbours before boosting it, so the boost lands on an already-averaged
   /// backdrop and mostly amplifies the haze.
-  ImageFilter _backdrop(GlassConfig cfg) {
+  static ImageFilter _backdrop(GlassConfig cfg) {
     final sigma = cfg.of(kBlur);
     final blur = ImageFilter.blur(sigmaX: sigma, sigmaY: sigma);
     final saturation = cfg.of(kSaturation);
@@ -86,38 +194,42 @@ class _LiquidGlassState extends State<LiquidGlass>
     ]);
   }
 
-  OutlinedBorder _border({BorderSide side = BorderSide.none}) {
-    switch (widget.shape) {
-      case LiquidGlassShape.circle:
-        return CircleBorder(side: side);
-      case LiquidGlassShape.capsule:
-        return StadiumBorder(side: side);
-      case LiquidGlassShape.rounded:
-        return RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(widget.radius),
-          side: side,
-        );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final config = widget.config;
-    if (config != null) return _build(context, config);
-    // While iOS draws the tab bar, every app-drawn surface wears the matched
-    // recipe instead of the user's tuning, so the two read as one material.
-    if (NativeChrome.active) return _build(context, kNativeMatchGlass);
-    // Only surfaces following the app-wide tuning subscribe. The bottom bar is
-    // handed its config by a parent that already rebuilds on settings changes,
-    // so making it listen too would just double the rebuilds.
-    return AnimatedBuilder(
-      animation: SettingsStore.instance,
-      builder: (context, _) =>
-          _build(context, SettingsStore.instance.glass.app),
+  /// Glass over a photograph: fixed neutral dark, white hairline, the one
+  /// media blur. A [tint] makes it a solid, lit control.
+  Widget _media(bool pressed) {
+    final t = tint;
+    final fill = t ?? (pressed ? MediaGlass.fillPressed : MediaGlass.fill);
+    final stroke = t == null
+        ? MediaGlass.stroke
+        : Color.lerp(t, const Color(0xFFFFFFFF), 0.25)!;
+    final blurred = ClipPath(
+      clipper: ShapeBorderClipper(shape: _border()),
+      child: BackdropFilter.grouped(
+        filter: ImageFilter.blur(
+          sigmaX: MediaGlass.blurSigma,
+          sigmaY: MediaGlass.blurSigma,
+        ),
+        child: Stack(
+          children: [
+            Positioned.fill(child: ColoredBox(color: fill)),
+            _content(),
+          ],
+        ),
+      ),
+    );
+    // Stroke and shadow sit outside the clip so the shadow casts past the
+    // glass instead of being cut off at its own edge.
+    return DecoratedBox(
+      decoration: ShapeDecoration(
+        shape: _border(side: BorderSide(color: stroke, width: 0.8)),
+        shadows: shadow ? const [MediaGlass.shadow] : null,
+      ),
+      child: blurred,
     );
   }
 
-  Widget _build(BuildContext context, GlassConfig cfg) {
+  /// Glass on the app's own pages, in either engine's recipe.
+  Widget _app(BuildContext context, GlassConfig cfg, bool pressed) {
     final theme = ThemeScope.of(context);
     // The theme's brightness, not the phone's: Midnight on a phone in light
     // mode is a dark page, and wanted dark frost.
@@ -132,13 +244,58 @@ class _LiquidGlassState extends State<LiquidGlass>
     final clipShape = _border();
     // Apple's glass has a white specular edge; the app's own frosted glass
     // keeps its accent rim.
-    final rimTint = identical(cfg, kNativeMatchGlass) ? Colors.white : theme.accent;
+    final rimTint = matched ? Colors.white : theme.accent;
     final framedShape = _border(
       side: BorderSide(
         color: rimTint.withValues(alpha: cfg.of(kRimOpacity)),
         width: cfg.of(kRimWidth),
       ),
     );
+
+    final Color base = tint ??
+        (matched
+            // Matched glass is a neutral, nearly clear tint rather than a
+            // wash of the theme's surface — iOS glass carries the colour of
+            // what is behind it, not of the app.
+            ? Colors.white.withValues(alpha: isLight ? 0.72 : 0.07)
+            : theme.surface.withValues(alpha: frostAlpha));
+
+    final Gradient? overlay = tint != null
+        ? null
+        : matched && !tinted
+            // Light pooling inside the top of the glass, in place of the
+            // frosted look's diagonal sheen.
+            ? LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.white.withValues(alpha: isLight ? 0.25 : 0.10),
+                  // Transparent WHITE: fading to Colors.transparent
+                  // (transparent black) passes through grey and laid a dull
+                  // band across the glass.
+                  Colors.white.withValues(alpha: 0),
+                ],
+                stops: const [0.0, 0.55],
+              )
+            : tinted
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      theme.accent.withValues(alpha: 0.50),
+                      theme.accent.withValues(alpha: 0.18),
+                    ],
+                  )
+                : LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.white.withValues(alpha: overlayTop),
+                      Colors.white.withValues(alpha: overlayMid),
+                      Colors.white.withValues(alpha: 0),
+                    ],
+                    stops: const [0.0, 0.55, 1.0],
+                  );
 
     // BackdropFilter.grouped looks up the nearest BackdropGroup ancestor and
     // shares a single rasterization pass across all sibling grouped filters.
@@ -149,127 +306,49 @@ class _LiquidGlassState extends State<LiquidGlass>
         filter: _backdrop(cfg),
         child: Stack(
           children: [
-            Positioned.fill(
-              child: Container(
-                // Matched glass is a neutral, nearly clear tint rather than
-                // a wash of the theme's surface — iOS glass carries the
-                // colour of what is behind it, not of the app.
-                color: matched
-                    ? Colors.white.withValues(alpha: isLight ? 0.72 : 0.07)
-                    : theme.surface.withValues(alpha: frostAlpha),
-              ),
-            ),
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: matched && !widget.tinted
-                      // Light pooling inside the top of the glass, in place
-                      // of the frosted look's diagonal sheen.
-                      ? LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.white.withValues(alpha: isLight ? 0.25 : 0.10),
-                            // Transparent WHITE: fading to Colors.transparent
-                            // (transparent black) passes through grey and
-                            // laid a dull band across the glass.
-                            Colors.white.withValues(alpha: 0),
-                          ],
-                          stops: const [0.0, 0.55],
-                        )
-                      : widget.tinted
-                      ? LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            theme.accent.withValues(alpha: 0.50),
-                            theme.accent.withValues(alpha: 0.18),
-                          ],
-                        )
-                      : LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Colors.white.withValues(alpha: overlayTop),
-                            Colors.white.withValues(alpha: overlayMid),
-                            // Transparent white — see the matched glow above.
-                            Colors.white.withValues(alpha: 0),
-                          ],
-                          stops: const [0.0, 0.55, 1.0],
-                        ),
+            Positioned.fill(child: ColoredBox(color: base)),
+            if (overlay != null)
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(gradient: overlay),
                 ),
               ),
-            ),
-            // A Stack sizes to its non-positioned children, so THIS decides
-            // how wide the glass is. Centring unconditionally made that child
-            // an Align, which expands to fill whatever bounded width it is
-            // given — so a capsule around two words still painted full width,
-            // and every caller that wanted a pill had to defend itself with
-            // an IntrinsicWidth. Centre only when [size] pins the box, where
-            // there is real slack to centre the child within; otherwise let
-            // the glass shrink-wrap its content.
-            Padding(
-              padding: widget.padding,
-              child: widget.size == null
-                  ? widget.child
-                  : Center(child: widget.child),
-            ),
+            // Held: a little more light in the glass, the way iOS glass
+            // brightens under a finger.
+            if (pressed)
+              Positioned.fill(
+                child: ColoredBox(
+                  color: Colors.white.withValues(alpha: isLight ? 0.18 : 0.06),
+                ),
+              ),
+            _content(),
           ],
         ),
       ),
     );
 
+    if (matched) return _matchedFrame(clipShape, isLight, blurred);
+
     // Stroke + shadow live outside the clip so the shadow casts past the glass.
     // On a light page a dropped shadow reads as a hard grey lip under the
     // glass — the elevated-FAB look. Centred and halved there, it floats the
     // surface instead; dark themes keep exactly what was tuned.
-    final lightPage = theme.background.computeLuminance() > 0.5;
-    final framed = matched
-        ? _matchedFrame(clipShape, isLight, blurred)
-        : DecoratedBox(
+    return DecoratedBox(
       decoration: ShapeDecoration(
         shape: framedShape,
-        shadows: [
-          BoxShadow(
-            color: Colors.black.withValues(
-              alpha: cfg.of(kShadowOpacity) * (lightPage ? 0.5 : 1),
-            ),
-            blurRadius: cfg.of(kShadowBlur),
-            offset: Offset(0, lightPage ? 0 : cfg.of(kShadowY)),
-          ),
-        ],
+        shadows: shadow
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(
+                    alpha: cfg.of(kShadowOpacity) * (isLight ? 0.5 : 1),
+                  ),
+                  blurRadius: cfg.of(kShadowBlur),
+                  offset: Offset(0, isLight ? 0 : cfg.of(kShadowY)),
+                ),
+              ]
+            : null,
       ),
       child: blurred,
-    );
-
-    Widget sized = framed;
-    if (widget.size != null) {
-      sized = SizedBox(width: widget.size!.width, height: widget.size!.height, child: framed);
-    }
-
-    final scaled = AnimatedScale(
-      scale: _pressed ? 0.94 : 1.0,
-      duration: theme.motionMed,
-      curve: Curves.easeOutBack,
-      child: sized,
-    );
-
-    // The null check is exactly the right gate for keyboard focus too: the
-    // composer's glass *field* passes no onTap and must not become a focus
-    // stop, while the send/attach buttons pass one and should.
-    if (widget.onTap == null) return scaled;
-    return FocusableTap(
-      onTap: _activateFromKeyboard,
-      shape: _ringShape,
-      radius: widget.radius,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: (_) => setState(() => _pressed = true),
-        onTapCancel: () => setState(() => _pressed = false),
-        onTapUp: (_) => setState(() => _pressed = false),
-        onTap: widget.onTap,
-        child: scaled,
-      ),
     );
   }
 
@@ -281,42 +360,21 @@ class _LiquidGlassState extends State<LiquidGlass>
     return DecoratedBox(
       decoration: ShapeDecoration(
         shape: shape,
-        shadows: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isLight ? 0.08 : 0.24),
-            blurRadius: isLight ? 16 : 18,
-            offset: Offset(0, isLight ? 0 : 5),
-          ),
-        ],
+        shadows: shadow
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isLight ? 0.08 : 0.24),
+                  blurRadius: isLight ? 16 : 18,
+                  offset: Offset(0, isLight ? 0 : 5),
+                ),
+              ]
+            : null,
       ),
       child: CustomPaint(
         foregroundPainter: _SpecularRim(shape: shape, light: isLight),
         child: glass,
       ),
     );
-  }
-
-  FocusRingShape get _ringShape {
-    switch (widget.shape) {
-      case LiquidGlassShape.circle:
-        return FocusRingShape.circle;
-      case LiquidGlassShape.capsule:
-        return FocusRingShape.capsule;
-      case LiquidGlassShape.rounded:
-        return FocusRingShape.rounded;
-    }
-  }
-
-  /// Enter/Space activation. Pulses the same press state a tap would, so
-  /// keyboard use gets the identical scale feedback instead of firing
-  /// invisibly.
-  void _activateFromKeyboard() {
-    final theme = ThemeScope.of(context);
-    setState(() => _pressed = true);
-    Future<void>.delayed(theme.motionMed, () {
-      if (mounted) setState(() => _pressed = false);
-    });
-    widget.onTap?.call();
   }
 }
 

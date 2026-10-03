@@ -17,6 +17,7 @@ import '../../widgets/game_layout_shell.dart';
 import '../../widgets/game_records.dart';
 import '../../widgets/ios_kit.dart';
 import '../../widgets/sheet_kit.dart';
+import '../../l10n/text_case.dart';
 
 /// The chrome every daily game wears: the back arrow, the running clock, the
 /// pause cover, the tool row, the result card and today's times.

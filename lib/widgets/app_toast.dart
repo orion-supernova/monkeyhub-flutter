@@ -7,7 +7,7 @@ import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'ios_kit.dart' show quietFill;
-import 'sheet_kit.dart' show sentenceCaseOf;
+import '../l10n/text_case.dart';
 
 /// What a toast is *about*, which decides its glyph and its accent.
 ///

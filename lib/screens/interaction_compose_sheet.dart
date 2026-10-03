@@ -12,6 +12,7 @@ import '../widgets/adaptive_sheet.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/sheet_kit.dart';
 import '../widgets/ios_kit.dart' show groupedFill, groupedRadius;
+import '../l10n/text_case.dart';
 
 /// Everything the compose sheet collected, ready for `interactions:create`.
 ///

@@ -11,6 +11,7 @@ import 'adaptive_sheet.dart';
 import 'ios_kit.dart';
 import 'sheet_kit.dart';
 import 'user_avatar.dart';
+import '../l10n/text_case.dart';
 
 /// What the caller picked. The sheet decides what to OFFER; the screen that
 /// opened it decides what to DO, so the confirmations, the error copy and the

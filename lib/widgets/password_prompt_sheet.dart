@@ -5,6 +5,7 @@ import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'password_field.dart';
 import 'sheet_kit.dart';
+import '../l10n/text_case.dart';
 
 /// Asks for the account password. Returns null if the user backed out.
 ///

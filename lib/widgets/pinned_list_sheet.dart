@@ -15,6 +15,7 @@ import 'adaptive_sheet.dart';
 import 'sheet_kit.dart';
 import 'message_stamp.dart' show formatClockTime;
 import 'remote_image.dart';
+import '../l10n/text_case.dart';
 
 /// Every message pinned in this room, oldest first.
 ///

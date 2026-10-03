@@ -14,7 +14,7 @@ import '../theme/theme_scope.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/ios_kit.dart';
 import '../widgets/prominent_button.dart';
-import '../widgets/sheet_kit.dart' show sentenceCaseOf;
+import '../l10n/text_case.dart';
 
 /// Lets any user describe a problem and send it, with the identifiers that make
 /// it actionable already filled in.

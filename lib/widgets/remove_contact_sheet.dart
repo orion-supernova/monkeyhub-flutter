@@ -12,6 +12,7 @@ import 'adaptive_sheet.dart';
 import 'destructive_sheet.dart';
 import 'sheet_kit.dart';
 import 'ios_kit.dart' show groupedRadius;
+import '../l10n/text_case.dart';
 
 /// Confirms taking a person away from a child, spelling out what gets deleted.
 ///

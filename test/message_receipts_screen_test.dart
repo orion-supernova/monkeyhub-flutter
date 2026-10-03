@@ -9,10 +9,11 @@ import 'package:monkeyhub/models/chat_message.dart';
 import 'package:monkeyhub/models/chat_user.dart';
 import 'package:monkeyhub/screens/message_receipts_screen.dart';
 import 'package:monkeyhub/screens/room_items.dart' show transcriptDay;
-import 'package:monkeyhub/widgets/sheet_kit.dart' show sentenceCase;
+
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:monkeyhub/l10n/text_case.dart';
 
 /// What this pins is the one piece of judgement on the receipts screen: turning
 /// two ROOM-WIDE cursors into a per-person answer about ONE message.

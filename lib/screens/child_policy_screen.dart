@@ -21,8 +21,9 @@ import '../widgets/remove_contact_sheet.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/ios_kit.dart'
     show GlassBackButton, groupedFill, groupedRadius;
-import '../widgets/sheet_kit.dart' show SheetActionButton, sentenceCaseOf;
+import '../widgets/sheet_kit.dart' show SheetActionButton;
 import '../widgets/ios_kit.dart' show quietFill;
+import '../l10n/text_case.dart';
 
 /// Per-child controls, plus the list of what they've already been granted.
 ///

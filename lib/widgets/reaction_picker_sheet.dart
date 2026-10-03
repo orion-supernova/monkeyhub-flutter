@@ -15,6 +15,7 @@ import '../theme/motion.dart';
 import 'adaptive_sheet.dart';
 import 'search_field.dart' show searchFieldDecoration;
 import 'sheet_kit.dart';
+import '../l10n/text_case.dart';
 
 /// Height of the resting search bar under the grid, before safe-area padding.
 const double _searchBarHeight = 44;

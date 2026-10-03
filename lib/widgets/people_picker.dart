@@ -7,9 +7,10 @@ import '../backend/chat_api.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
 import 'search_field.dart';
-import 'sheet_kit.dart' show sentenceCaseOf;
+
 import 'user_avatar.dart';
 import 'teardown_safe.dart';
+import '../l10n/text_case.dart';
 
 /// A search bar over a list of people, with the list virtualised underneath.
 ///

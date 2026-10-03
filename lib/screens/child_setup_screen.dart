@@ -12,7 +12,7 @@ import '../widgets/username_status_label.dart';
 import 'pairing_code_screen.dart';
 import '../widgets/ios_kit.dart';
 import '../widgets/prominent_button.dart';
-import '../widgets/sheet_kit.dart' show sentenceCaseOf;
+import '../l10n/text_case.dart';
 
 /// Creates a child account, then goes straight to pairing.
 ///

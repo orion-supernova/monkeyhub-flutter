@@ -10,6 +10,7 @@ import '../theme/theme_scope.dart';
 import 'ios_kit.dart';
 import 'remote_image.dart';
 import 'sheet_kit.dart';
+import '../l10n/text_case.dart';
 
 /// Building blocks shared by the sheets that ask "are you sure?" before
 /// destroying something — blocking a user, and taking a contact away from a

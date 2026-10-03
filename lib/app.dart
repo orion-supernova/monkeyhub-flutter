@@ -94,7 +94,8 @@ import 'widgets/share_target_sheet.dart';
 import 'widgets/shake_to_report.dart';
 import 'widgets/ios_kit.dart' show groupedFill, groupedRadius;
 import 'widgets/prominent_button.dart';
-import 'widgets/sheet_kit.dart' show SheetActionButton, sentenceCaseOf;
+import 'widgets/sheet_kit.dart' show SheetActionButton;
+import 'l10n/text_case.dart';
 
 /// The presence status a lifecycle state implies, or null for "says nothing —
 /// don't write".

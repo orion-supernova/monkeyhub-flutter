@@ -7,7 +7,8 @@ import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'ios_kit.dart' show SpringPress, TileTone, tileColor;
 import 'sheet_kit.dart'
-    show SheetFrame, SheetRise, sentenceCaseOf, sheetGroupFill;
+    show SheetFrame, SheetRise, sheetGroupFill;
+import '../l10n/text_case.dart';
 
 class AttachmentMenuChoice {
   const AttachmentMenuChoice._(this.id);

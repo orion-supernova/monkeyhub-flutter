@@ -17,6 +17,7 @@ import 'sheet_kit.dart';
 import 'message_stamp.dart' show formatClockTime;
 import 'user_avatar.dart';
 import 'teardown_safe.dart';
+import '../l10n/text_case.dart';
 
 /// Long-press a reaction chip and this names the people behind it.
 ///

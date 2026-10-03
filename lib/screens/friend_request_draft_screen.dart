@@ -25,6 +25,7 @@ import 'room_screen.dart';
 import '../widgets/sheet_kit.dart';
 import '../widgets/labeled_field.dart' show fieldDecoration;
 import '../widgets/ios_kit.dart';
+import '../l10n/text_case.dart';
 
 /// The draft chat that runs BEFORE a friend request is approved.
 ///

@@ -6,6 +6,7 @@ import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'ios_kit.dart';
 import 'sheet_kit.dart';
+import '../l10n/text_case.dart';
 
 /// What the link sheet resolved to: a URL to apply, or an instruction to
 /// remove the existing link. A dismissed sheet returns null — change nothing.

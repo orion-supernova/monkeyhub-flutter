@@ -19,6 +19,7 @@ import '../widgets/sheet_kit.dart';
 import '../widgets/user_avatar.dart';
 import 'call_models.dart';
 import 'group_call_service.dart';
+import '../l10n/text_case.dart';
 
 /// Entry point for starting a group call from a room header: bottom sheet
 /// with voice/video choice and "call everyone" vs "choose people".

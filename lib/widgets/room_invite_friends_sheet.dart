@@ -16,6 +16,7 @@ import 'ios_kit.dart';
 import 'sheet_kit.dart';
 import 'search_field.dart';
 import 'user_avatar.dart';
+import '../l10n/text_case.dart';
 
 /// "Add a friend to this group" — the picker, and the invites it sends.
 ///

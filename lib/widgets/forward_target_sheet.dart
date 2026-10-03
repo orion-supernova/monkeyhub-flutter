@@ -13,7 +13,7 @@ import 'adaptive_sheet.dart';
 import 'destructive_sheet.dart' show SheetGrabber;
 import 'selection_check.dart';
 import 'user_avatar.dart';
-import 'sheet_kit.dart' show sentenceCaseOf;
+import '../l10n/text_case.dart';
 
 /// Most rooms one forward may target at once.
 ///

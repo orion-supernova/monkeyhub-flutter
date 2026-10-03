@@ -5,6 +5,7 @@ import '../data/room_filter.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
+import '../l10n/text_case.dart';
 
 /// The always-visible control for [FilterStyle.chips].
 ///
@@ -107,12 +108,6 @@ class _Separator extends StatelessWidget {
   );
 }
 
-/// The facet labels are authored lower-case for the old letter-spaced chips;
-/// the filled capsules read in sentence case.
-String _sentence(String s) => s.isEmpty
-    ? s
-    : s.characters.first.toUpperCase() + s.characters.skip(1).toString();
-
 class _Chip extends StatelessWidget {
   const _Chip({
     required this.label,
@@ -179,7 +174,7 @@ class _Chip extends StatelessWidget {
                         // every time a room was read or archived.
                         : (empty ? theme.inkMuted : theme.inkSoft),
                   ),
-                  child: Text(_sentence(label)),
+                  child: Text(sentenceCaseOf(context, label)),
                 ),
                 if (count != null && count! > 0) ...[
                   const SizedBox(width: 5),

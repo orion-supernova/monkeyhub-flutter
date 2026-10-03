@@ -20,7 +20,7 @@ import '../../widgets/game_records.dart';
 import '../../widgets/game_celebration.dart';
 import '../../widgets/ios_kit.dart';
 import '../../widgets/puzzle_symbol.dart';
-import '../../widgets/sheet_kit.dart' show sentenceCaseOf;
+import '../../l10n/text_case.dart';
 
 /// Today's puzzle, full screen.
 ///
