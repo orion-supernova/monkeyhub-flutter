@@ -17502,6 +17502,258 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Send a few lines. They can approve or decline.'**
   String get friendRequestDraftIntroOutgoingSentence;
+
+  /// Capsule button on a pending request row (join request or suggested change) that turns it down. Short, sentence case.
+  ///
+  /// In en, this message translates to:
+  /// **'Decline'**
+  String get requestDeclineIos;
+
+  /// Primary capsule on a join-request row that lets the person into the group. Short, sentence case.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow'**
+  String get joinRequestAllowIos;
+
+  /// Primary capsule on a suggested-change row (new group name, picture or description) that applies the suggestion. Short, sentence case.
+  ///
+  /// In en, this message translates to:
+  /// **'Use it'**
+  String get changeRequestUseIos;
+
+  /// Placeholder in the search field at the top of Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get settingsSearchHint;
+
+  /// Shown when a Settings search matches nothing. {query} is what was typed.
+  ///
+  /// In en, this message translates to:
+  /// **'No results for \"{query}\"'**
+  String settingsSearchNoResults(String query);
+
+  /// Breadcrumb root for settings that live in the account (profile) page, e.g. 'Account › Devices'.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get settingsSearchAccount;
+
+  /// Settings › Advanced row that opens the diagnostics log viewer.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostics'**
+  String get settingsHubDiagnostics;
+
+  /// Subtitle under the Diagnostics row.
+  ///
+  /// In en, this message translates to:
+  /// **'Logs for troubleshooting and bug reports'**
+  String get settingsHubDiagnosticsSubtitle;
+
+  /// Footer under Settings › Advanced explaining who the section is for.
+  ///
+  /// In en, this message translates to:
+  /// **'For troubleshooting and self-hosting. Nothing here is needed day to day.'**
+  String get settingsHubAdvancedFooter;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Language entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'language, translation, locale, region'**
+  String get settingsSearchKwLanguage;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Updates entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'update, version, new, upgrade'**
+  String get settingsSearchKwUpdates;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Links entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'links, url, address, preview'**
+  String get settingsSearchKwLinks;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Autoplay entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'gif, animation, autoplay, motion'**
+  String get settingsSearchKwAutoplay;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Stickers entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'stickers, emoji, suggestions'**
+  String get settingsSearchKwStickers;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Push entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'notifications, alerts, sound, badge'**
+  String get settingsSearchKwPush;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Games entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'games, reminder, daily, puzzle'**
+  String get settingsSearchKwGames;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Friends entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'friends, activity, points, highlights'**
+  String get settingsSearchKwFriends;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Video entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'video, call, quality, camera, data'**
+  String get settingsSearchKwVideo;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Stats entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'call stats, network, bitrate, ping, debug'**
+  String get settingsSearchKwStats;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Theme entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'theme, dark, light, colours, night, appearance'**
+  String get settingsSearchKwTheme;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Icon entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'app icon, logo, home screen'**
+  String get settingsSearchKwIcon;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Glass entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'glass, liquid glass, blur, frosted, transparency'**
+  String get settingsSearchKwGlass;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Navigation entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'tab bar, navigation, menu, bottom bar'**
+  String get settingsSearchKwNavigation;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Motion entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'motion, animation, reduce motion, effects'**
+  String get settingsSearchKwMotion;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Companions entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'ai, assistant, translate, model, companion'**
+  String get settingsSearchKwCompanions;
+
+  /// Comma-separated search keywords (synonyms people might type) for the ChatList entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'chat list, rows, cards, grid, filter, layout'**
+  String get settingsSearchKwChatList;
+
+  /// Comma-separated search keywords (synonyms people might type) for the ChatStyle entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'chat style, compact, classic, header'**
+  String get settingsSearchKwChatStyle;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Bubbles entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'bubbles, messages, tail, shape'**
+  String get settingsSearchKwBubbles;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Speakers entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'names, colours, groups, who\'s who'**
+  String get settingsSearchKwSpeakers;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Reply entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'reply, quote, thread'**
+  String get settingsSearchKwReply;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Report entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'bug, problem, feedback, support, help'**
+  String get settingsSearchKwReport;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Legal entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'privacy, terms, legal, licence, policy'**
+  String get settingsSearchKwLegal;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Server entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'server, self-host, url, backend, developer'**
+  String get settingsSearchKwServer;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Diagnostics entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'diagnostics, logs, debug, developer, crash'**
+  String get settingsSearchKwDiagnostics;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Privacy entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'privacy, visibility, who can see, last seen, read receipts'**
+  String get settingsSearchKwPrivacy;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Blocked entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'blocked, block, people'**
+  String get settingsSearchKwBlocked;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Devices entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'devices, sessions, sign out, phone, computer'**
+  String get settingsSearchKwDevices;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Linked entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'apple, google, sign in, linked'**
+  String get settingsSearchKwLinked;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Recovery entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'recovery phrase, password, backup, forgot'**
+  String get settingsSearchKwRecovery;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Capture entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'screenshot, screen recording, capture, privacy'**
+  String get settingsSearchKwCapture;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Family entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'family, child, parent, approvals, grown-ups'**
+  String get settingsSearchKwFamily;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Account entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'account, sign out, delete, email, username'**
+  String get settingsSearchKwAccount;
 }
 
 class _AppLocalizationsDelegate

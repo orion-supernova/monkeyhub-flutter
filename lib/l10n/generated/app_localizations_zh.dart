@@ -9791,4 +9791,132 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get friendRequestDraftIntroOutgoingSentence => '写几句话吧,对方可以同意或拒绝。';
+
+  @override
+  String get requestDeclineIos => '拒绝';
+
+  @override
+  String get joinRequestAllowIos => '允许';
+
+  @override
+  String get changeRequestUseIos => '采用';
+
+  @override
+  String get settingsSearchHint => '搜索';
+
+  @override
+  String settingsSearchNoResults(String query) {
+    return '没有“$query”的结果';
+  }
+
+  @override
+  String get settingsSearchAccount => '账户';
+
+  @override
+  String get settingsHubDiagnostics => '诊断';
+
+  @override
+  String get settingsHubDiagnosticsSubtitle => '用于排查问题和报告错误的日志';
+
+  @override
+  String get settingsHubAdvancedFooter => '用于排查问题和自建服务器，日常无需使用。';
+
+  @override
+  String get settingsSearchKwLanguage => '语言, 翻译, 地区';
+
+  @override
+  String get settingsSearchKwUpdates => '更新, 版本, 新';
+
+  @override
+  String get settingsSearchKwLinks => '链接, 网址, 地址, 预览';
+
+  @override
+  String get settingsSearchKwAutoplay => '动图, 动画, 自动播放';
+
+  @override
+  String get settingsSearchKwStickers => '贴纸, 表情, 建议';
+
+  @override
+  String get settingsSearchKwPush => '通知, 提醒, 声音';
+
+  @override
+  String get settingsSearchKwGames => '游戏, 提醒, 每日';
+
+  @override
+  String get settingsSearchKwFriends => '好友, 动态, 积分';
+
+  @override
+  String get settingsSearchKwVideo => '视频, 通话, 画质, 摄像头';
+
+  @override
+  String get settingsSearchKwStats => '统计, 网络, 延迟, 调试';
+
+  @override
+  String get settingsSearchKwTheme => '主题, 深色, 浅色, 颜色, 夜间';
+
+  @override
+  String get settingsSearchKwIcon => '应用图标, 标志, 主屏幕';
+
+  @override
+  String get settingsSearchKwGlass => '玻璃, 模糊, 磨砂, 透明';
+
+  @override
+  String get settingsSearchKwNavigation => '标签栏, 导航, 菜单';
+
+  @override
+  String get settingsSearchKwMotion => '动效, 动画, 减弱动态效果';
+
+  @override
+  String get settingsSearchKwCompanions => '人工智能, 助手, 翻译, 模型';
+
+  @override
+  String get settingsSearchKwChatList => '聊天列表, 行, 卡片, 网格';
+
+  @override
+  String get settingsSearchKwChatStyle => '聊天样式, 紧凑, 经典';
+
+  @override
+  String get settingsSearchKwBubbles => '气泡, 消息, 形状';
+
+  @override
+  String get settingsSearchKwSpeakers => '名字, 颜色, 群组';
+
+  @override
+  String get settingsSearchKwReply => '回复, 引用, 话题';
+
+  @override
+  String get settingsSearchKwReport => '错误, 问题, 反馈, 帮助';
+
+  @override
+  String get settingsSearchKwLegal => '隐私, 条款, 法律, 许可';
+
+  @override
+  String get settingsSearchKwServer => '服务器, 自建, 网址, 开发者';
+
+  @override
+  String get settingsSearchKwDiagnostics => '诊断, 日志, 调试, 开发者';
+
+  @override
+  String get settingsSearchKwPrivacy => '隐私, 可见性, 最后在线, 已读';
+
+  @override
+  String get settingsSearchKwBlocked => '已屏蔽, 屏蔽';
+
+  @override
+  String get settingsSearchKwDevices => '设备, 会话, 退出';
+
+  @override
+  String get settingsSearchKwLinked => '苹果, 谷歌, 登录';
+
+  @override
+  String get settingsSearchKwRecovery => '恢复短语, 密码, 备份';
+
+  @override
+  String get settingsSearchKwCapture => '截图, 录屏, 隐私';
+
+  @override
+  String get settingsSearchKwFamily => '家庭, 孩子, 家长, 审批';
+
+  @override
+  String get settingsSearchKwAccount => '账户, 退出, 删除, 邮箱';
 }

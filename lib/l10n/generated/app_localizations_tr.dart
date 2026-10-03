@@ -10263,4 +10263,143 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get friendRequestDraftIntroOutgoingSentence =>
       'Birkaç satır yaz. Onaylayabilir ya da reddedebilir.';
+
+  @override
+  String get requestDeclineIos => 'Reddet';
+
+  @override
+  String get joinRequestAllowIos => 'İzin ver';
+
+  @override
+  String get changeRequestUseIos => 'Kullan';
+
+  @override
+  String get settingsSearchHint => 'Ara';
+
+  @override
+  String settingsSearchNoResults(String query) {
+    return '\"$query\" için sonuç yok';
+  }
+
+  @override
+  String get settingsSearchAccount => 'Hesap';
+
+  @override
+  String get settingsHubDiagnostics => 'Tanılama';
+
+  @override
+  String get settingsHubDiagnosticsSubtitle =>
+      'Sorun giderme ve hata bildirimi için kayıtlar';
+
+  @override
+  String get settingsHubAdvancedFooter =>
+      'Sorun giderme ve kendi sunucunu barındırmak için. Günlük kullanımda gerekmez.';
+
+  @override
+  String get settingsSearchKwLanguage => 'dil, çeviri, bölge';
+
+  @override
+  String get settingsSearchKwUpdates => 'güncelleme, sürüm, yeni';
+
+  @override
+  String get settingsSearchKwLinks => 'bağlantı, url, adres, önizleme';
+
+  @override
+  String get settingsSearchKwAutoplay => 'gif, animasyon, otomatik oynat';
+
+  @override
+  String get settingsSearchKwStickers => 'çıkartma, emoji, öneri';
+
+  @override
+  String get settingsSearchKwPush => 'bildirim, uyarı, ses, rozet';
+
+  @override
+  String get settingsSearchKwGames => 'oyun, hatırlatıcı, günlük, bulmaca';
+
+  @override
+  String get settingsSearchKwFriends => 'arkadaş, etkinlik, puan';
+
+  @override
+  String get settingsSearchKwVideo => 'video, arama, kalite, kamera, veri';
+
+  @override
+  String get settingsSearchKwStats =>
+      'arama istatistikleri, ağ, ping, hata ayıklama';
+
+  @override
+  String get settingsSearchKwTheme => 'tema, koyu, açık, renk, gece, görünüm';
+
+  @override
+  String get settingsSearchKwIcon => 'uygulama simgesi, logo, ana ekran';
+
+  @override
+  String get settingsSearchKwGlass =>
+      'cam, liquid glass, bulanıklık, buzlu, şeffaflık';
+
+  @override
+  String get settingsSearchKwNavigation => 'sekme çubuğu, gezinme, menü';
+
+  @override
+  String get settingsSearchKwMotion => 'hareket, animasyon, hareketi azalt';
+
+  @override
+  String get settingsSearchKwCompanions => 'yapay zeka, asistan, çeviri, model';
+
+  @override
+  String get settingsSearchKwChatList =>
+      'sohbet listesi, satır, kart, ızgara, filtre';
+
+  @override
+  String get settingsSearchKwChatStyle => 'sohbet stili, kompakt, klasik';
+
+  @override
+  String get settingsSearchKwBubbles => 'baloncuk, mesaj, kuyruk, şekil';
+
+  @override
+  String get settingsSearchKwSpeakers => 'isim, renk, grup';
+
+  @override
+  String get settingsSearchKwReply => 'yanıt, alıntı, konu';
+
+  @override
+  String get settingsSearchKwReport => 'hata, sorun, geri bildirim, destek';
+
+  @override
+  String get settingsSearchKwLegal => 'gizlilik, koşullar, yasal, lisans';
+
+  @override
+  String get settingsSearchKwServer =>
+      'sunucu, kendi sunucun, url, geliştirici';
+
+  @override
+  String get settingsSearchKwDiagnostics =>
+      'tanılama, kayıt, hata ayıklama, geliştirici';
+
+  @override
+  String get settingsSearchKwPrivacy =>
+      'gizlilik, görünürlük, son görülme, okundu';
+
+  @override
+  String get settingsSearchKwBlocked => 'engellenen, engelle, kişi';
+
+  @override
+  String get settingsSearchKwDevices => 'cihaz, oturum, çıkış, telefon';
+
+  @override
+  String get settingsSearchKwLinked => 'apple, google, giriş, bağlı';
+
+  @override
+  String get settingsSearchKwRecovery =>
+      'kurtarma ifadesi, şifre, yedek, unuttum';
+
+  @override
+  String get settingsSearchKwCapture =>
+      'ekran görüntüsü, ekran kaydı, gizlilik';
+
+  @override
+  String get settingsSearchKwFamily => 'aile, çocuk, ebeveyn, onay';
+
+  @override
+  String get settingsSearchKwAccount =>
+      'hesap, çıkış, sil, e-posta, kullanıcı adı';
 }

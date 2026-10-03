@@ -10463,4 +10463,136 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get friendRequestDraftIntroOutgoingSentence =>
       'أرسل بضعة أسطر. يمكنهم القبول أو الرفض.';
+
+  @override
+  String get requestDeclineIos => 'رفض';
+
+  @override
+  String get joinRequestAllowIos => 'سماح';
+
+  @override
+  String get changeRequestUseIos => 'استخدمه';
+
+  @override
+  String get settingsSearchHint => 'بحث';
+
+  @override
+  String settingsSearchNoResults(String query) {
+    return 'لا نتائج لـ \"$query\"';
+  }
+
+  @override
+  String get settingsSearchAccount => 'الحساب';
+
+  @override
+  String get settingsHubDiagnostics => 'التشخيص';
+
+  @override
+  String get settingsHubDiagnosticsSubtitle =>
+      'سجلات لاستكشاف الأخطاء والإبلاغ عنها';
+
+  @override
+  String get settingsHubAdvancedFooter =>
+      'لاستكشاف الأخطاء والاستضافة الذاتية. لا شيء هنا ضروري يوميًا.';
+
+  @override
+  String get settingsSearchKwLanguage => 'لغة، ترجمة، منطقة';
+
+  @override
+  String get settingsSearchKwUpdates => 'تحديث، إصدار، جديد';
+
+  @override
+  String get settingsSearchKwLinks => 'روابط، عنوان، معاينة';
+
+  @override
+  String get settingsSearchKwAutoplay => 'صور متحركة، تشغيل تلقائي';
+
+  @override
+  String get settingsSearchKwStickers => 'ملصقات، إيموجي، اقتراحات';
+
+  @override
+  String get settingsSearchKwPush => 'إشعارات، تنبيهات، صوت';
+
+  @override
+  String get settingsSearchKwGames => 'ألعاب، تذكير، يومي';
+
+  @override
+  String get settingsSearchKwFriends => 'أصدقاء، نشاط، نقاط';
+
+  @override
+  String get settingsSearchKwVideo => 'فيديو، مكالمة، جودة، كاميرا';
+
+  @override
+  String get settingsSearchKwStats => 'إحصاءات، شبكة، اتصال، تصحيح';
+
+  @override
+  String get settingsSearchKwTheme => 'سمة، داكن، فاتح، ألوان، ليلي';
+
+  @override
+  String get settingsSearchKwIcon => 'أيقونة التطبيق، شعار، الشاشة الرئيسية';
+
+  @override
+  String get settingsSearchKwGlass => 'زجاج، تمويه، شفافية';
+
+  @override
+  String get settingsSearchKwNavigation => 'شريط التبويب، تنقل، قائمة';
+
+  @override
+  String get settingsSearchKwMotion => 'حركة، رسوم متحركة، تقليل الحركة';
+
+  @override
+  String get settingsSearchKwCompanions => 'ذكاء اصطناعي، مساعد، ترجمة';
+
+  @override
+  String get settingsSearchKwChatList => 'قائمة الدردشات، صفوف، بطاقات، شبكة';
+
+  @override
+  String get settingsSearchKwChatStyle => 'نمط الدردشة، مضغوط، كلاسيكي';
+
+  @override
+  String get settingsSearchKwBubbles => 'فقاعات، رسائل، شكل';
+
+  @override
+  String get settingsSearchKwSpeakers => 'أسماء، ألوان، مجموعات';
+
+  @override
+  String get settingsSearchKwReply => 'رد، اقتباس';
+
+  @override
+  String get settingsSearchKwReport => 'خطأ، مشكلة، ملاحظات، دعم';
+
+  @override
+  String get settingsSearchKwLegal => 'خصوصية، شروط، قانوني، ترخيص';
+
+  @override
+  String get settingsSearchKwServer => 'خادم، استضافة ذاتية، مطور';
+
+  @override
+  String get settingsSearchKwDiagnostics => 'تشخيص، سجلات، تصحيح، مطور';
+
+  @override
+  String get settingsSearchKwPrivacy =>
+      'خصوصية، ظهور، آخر ظهور، إيصالات القراءة';
+
+  @override
+  String get settingsSearchKwBlocked => 'محظور، حظر';
+
+  @override
+  String get settingsSearchKwDevices => 'أجهزة، جلسات، تسجيل الخروج';
+
+  @override
+  String get settingsSearchKwLinked => 'apple، google، تسجيل الدخول';
+
+  @override
+  String get settingsSearchKwRecovery =>
+      'عبارة الاسترداد، كلمة المرور، نسخ احتياطي';
+
+  @override
+  String get settingsSearchKwCapture => 'لقطة شاشة، تسجيل الشاشة، خصوصية';
+
+  @override
+  String get settingsSearchKwFamily => 'عائلة، طفل، والد، موافقات';
+
+  @override
+  String get settingsSearchKwAccount => 'حساب، تسجيل الخروج، حذف، بريد';
 }

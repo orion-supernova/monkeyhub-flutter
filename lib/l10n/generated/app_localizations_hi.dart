@@ -10307,4 +10307,135 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get friendRequestDraftIntroOutgoingSentence =>
       'कुछ लाइनें भेजो। वो स्वीकार या अस्वीकार कर सकते हैं।';
+
+  @override
+  String get requestDeclineIos => 'अस्वीकार';
+
+  @override
+  String get joinRequestAllowIos => 'अनुमति दें';
+
+  @override
+  String get changeRequestUseIos => 'लागू करें';
+
+  @override
+  String get settingsSearchHint => 'खोजें';
+
+  @override
+  String settingsSearchNoResults(String query) {
+    return '\"$query\" के लिए कोई नतीजा नहीं';
+  }
+
+  @override
+  String get settingsSearchAccount => 'खाता';
+
+  @override
+  String get settingsHubDiagnostics => 'डायग्नोस्टिक्स';
+
+  @override
+  String get settingsHubDiagnosticsSubtitle =>
+      'समस्या सुलझाने और बग रिपोर्ट के लिए लॉग';
+
+  @override
+  String get settingsHubAdvancedFooter =>
+      'समस्या सुलझाने और सेल्फ़-होस्टिंग के लिए। रोज़ इसकी ज़रूरत नहीं।';
+
+  @override
+  String get settingsSearchKwLanguage => 'भाषा, अनुवाद, क्षेत्र';
+
+  @override
+  String get settingsSearchKwUpdates => 'अपडेट, संस्करण, नया';
+
+  @override
+  String get settingsSearchKwLinks => 'लिंक, यूआरएल, पता, प्रीव्यू';
+
+  @override
+  String get settingsSearchKwAutoplay => 'जिफ़, एनिमेशन, ऑटोप्ले';
+
+  @override
+  String get settingsSearchKwStickers => 'स्टिकर, इमोजी, सुझाव';
+
+  @override
+  String get settingsSearchKwPush => 'सूचनाएं, अलर्ट, आवाज़';
+
+  @override
+  String get settingsSearchKwGames => 'गेम, रिमाइंडर, रोज़ाना';
+
+  @override
+  String get settingsSearchKwFriends => 'दोस्त, गतिविधि, पॉइंट';
+
+  @override
+  String get settingsSearchKwVideo => 'वीडियो, कॉल, क्वालिटी, कैमरा';
+
+  @override
+  String get settingsSearchKwStats => 'आंकड़े, नेटवर्क, पिंग, डीबग';
+
+  @override
+  String get settingsSearchKwTheme => 'थीम, डार्क, लाइट, रंग, रात';
+
+  @override
+  String get settingsSearchKwIcon => 'ऐप आइकन, लोगो, होम स्क्रीन';
+
+  @override
+  String get settingsSearchKwGlass => 'ग्लास, ब्लर, फ़्रॉस्टेड, पारदर्शिता';
+
+  @override
+  String get settingsSearchKwNavigation => 'टैब बार, नेविगेशन, मेनू';
+
+  @override
+  String get settingsSearchKwMotion => 'मोशन, एनिमेशन, कम मोशन';
+
+  @override
+  String get settingsSearchKwCompanions => 'एआई, असिस्टेंट, अनुवाद, मॉडल';
+
+  @override
+  String get settingsSearchKwChatList => 'चैट सूची, पंक्तियां, कार्ड, ग्रिड';
+
+  @override
+  String get settingsSearchKwChatStyle => 'चैट स्टाइल, कॉम्पैक्ट, क्लासिक';
+
+  @override
+  String get settingsSearchKwBubbles => 'बबल, मैसेज, आकार';
+
+  @override
+  String get settingsSearchKwSpeakers => 'नाम, रंग, ग्रुप';
+
+  @override
+  String get settingsSearchKwReply => 'जवाब, कोट, थ्रेड';
+
+  @override
+  String get settingsSearchKwReport => 'बग, समस्या, फ़ीडबैक, मदद';
+
+  @override
+  String get settingsSearchKwLegal => 'प्राइवेसी, शर्तें, कानूनी, लाइसेंस';
+
+  @override
+  String get settingsSearchKwServer => 'सर्वर, सेल्फ़-होस्ट, यूआरएल, डेवलपर';
+
+  @override
+  String get settingsSearchKwDiagnostics => 'डायग्नोस्टिक्स, लॉग, डीबग, डेवलपर';
+
+  @override
+  String get settingsSearchKwPrivacy => 'प्राइवेसी, विज़िबिलिटी, लास्ट सीन';
+
+  @override
+  String get settingsSearchKwBlocked => 'ब्लॉक, लोग';
+
+  @override
+  String get settingsSearchKwDevices => 'डिवाइस, सेशन, साइन आउट';
+
+  @override
+  String get settingsSearchKwLinked => 'एपल, गूगल, साइन इन';
+
+  @override
+  String get settingsSearchKwRecovery => 'रिकवरी फ़्रेज़, पासवर्ड, बैकअप';
+
+  @override
+  String get settingsSearchKwCapture =>
+      'स्क्रीनशॉट, स्क्रीन रिकॉर्डिंग, प्राइवेसी';
+
+  @override
+  String get settingsSearchKwFamily => 'परिवार, बच्चा, माता-पिता, मंज़ूरी';
+
+  @override
+  String get settingsSearchKwAccount => 'खाता, साइन आउट, डिलीट, ईमेल';
 }

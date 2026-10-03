@@ -10329,4 +10329,138 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get friendRequestDraftIntroOutgoingSentence =>
       'Skriv några rader. De kan godkänna eller avvisa.';
+
+  @override
+  String get requestDeclineIos => 'Avböj';
+
+  @override
+  String get joinRequestAllowIos => 'Tillåt';
+
+  @override
+  String get changeRequestUseIos => 'Använd';
+
+  @override
+  String get settingsSearchHint => 'Sök';
+
+  @override
+  String settingsSearchNoResults(String query) {
+    return 'Inga resultat för \"$query\"';
+  }
+
+  @override
+  String get settingsSearchAccount => 'Konto';
+
+  @override
+  String get settingsHubDiagnostics => 'Diagnostik';
+
+  @override
+  String get settingsHubDiagnosticsSubtitle =>
+      'Loggar för felsökning och felrapporter';
+
+  @override
+  String get settingsHubAdvancedFooter =>
+      'För felsökning och egen server. Inget här behövs i vardagen.';
+
+  @override
+  String get settingsSearchKwLanguage => 'språk, översättning, region';
+
+  @override
+  String get settingsSearchKwUpdates => 'uppdatering, version, ny';
+
+  @override
+  String get settingsSearchKwLinks => 'länkar, url, adress, förhandsvisning';
+
+  @override
+  String get settingsSearchKwAutoplay => 'gif, animation, autouppspelning';
+
+  @override
+  String get settingsSearchKwStickers => 'klistermärken, emoji, förslag';
+
+  @override
+  String get settingsSearchKwPush => 'notiser, aviseringar, ljud';
+
+  @override
+  String get settingsSearchKwGames => 'spel, påminnelse, daglig';
+
+  @override
+  String get settingsSearchKwFriends => 'vänner, aktivitet, poäng';
+
+  @override
+  String get settingsSearchKwVideo => 'video, samtal, kvalitet, kamera';
+
+  @override
+  String get settingsSearchKwStats => 'statistik, nätverk, ping, felsökning';
+
+  @override
+  String get settingsSearchKwTheme => 'tema, mörk, ljus, färger, natt';
+
+  @override
+  String get settingsSearchKwIcon => 'appikon, logga, hemskärm';
+
+  @override
+  String get settingsSearchKwGlass => 'glas, oskärpa, frostat, transparens';
+
+  @override
+  String get settingsSearchKwNavigation => 'flikfält, navigering, meny';
+
+  @override
+  String get settingsSearchKwMotion => 'rörelse, animation, minska rörelse';
+
+  @override
+  String get settingsSearchKwCompanions => 'ai, assistent, översätt, modell';
+
+  @override
+  String get settingsSearchKwChatList => 'chattlista, rader, kort, rutnät';
+
+  @override
+  String get settingsSearchKwChatStyle => 'chattstil, kompakt, klassisk';
+
+  @override
+  String get settingsSearchKwBubbles => 'bubblor, meddelanden, form';
+
+  @override
+  String get settingsSearchKwSpeakers => 'namn, färger, grupper';
+
+  @override
+  String get settingsSearchKwReply => 'svar, citat, tråd';
+
+  @override
+  String get settingsSearchKwReport => 'bugg, problem, feedback, hjälp';
+
+  @override
+  String get settingsSearchKwLegal => 'integritet, villkor, juridik, licens';
+
+  @override
+  String get settingsSearchKwServer => 'server, egen server, url, utvecklare';
+
+  @override
+  String get settingsSearchKwDiagnostics =>
+      'diagnostik, loggar, felsökning, utvecklare';
+
+  @override
+  String get settingsSearchKwPrivacy =>
+      'integritet, synlighet, senast sedd, läskvitton';
+
+  @override
+  String get settingsSearchKwBlocked => 'blockerade, blockera';
+
+  @override
+  String get settingsSearchKwDevices => 'enheter, sessioner, logga ut';
+
+  @override
+  String get settingsSearchKwLinked => 'apple, google, logga in';
+
+  @override
+  String get settingsSearchKwRecovery =>
+      'återställningsfras, lösenord, säkerhetskopia';
+
+  @override
+  String get settingsSearchKwCapture =>
+      'skärmdump, skärminspelning, integritet';
+
+  @override
+  String get settingsSearchKwFamily => 'familj, barn, förälder, godkännanden';
+
+  @override
+  String get settingsSearchKwAccount => 'konto, logga ut, radera, e-post';
 }

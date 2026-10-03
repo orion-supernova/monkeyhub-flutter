@@ -9892,4 +9892,132 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get friendRequestDraftIntroOutgoingSentence =>
       '簡単なメッセージを送りましょう。相手は承認か拒否かを選べます。';
+
+  @override
+  String get requestDeclineIos => '拒否';
+
+  @override
+  String get joinRequestAllowIos => '許可';
+
+  @override
+  String get changeRequestUseIos => '適用';
+
+  @override
+  String get settingsSearchHint => '検索';
+
+  @override
+  String settingsSearchNoResults(String query) {
+    return '「$query」の結果はありません';
+  }
+
+  @override
+  String get settingsSearchAccount => 'アカウント';
+
+  @override
+  String get settingsHubDiagnostics => '診断';
+
+  @override
+  String get settingsHubDiagnosticsSubtitle => 'トラブル対応と不具合報告のためのログ';
+
+  @override
+  String get settingsHubAdvancedFooter => 'トラブル対応とセルフホスト向けです。普段は使いません。';
+
+  @override
+  String get settingsSearchKwLanguage => '言語, 翻訳, 地域';
+
+  @override
+  String get settingsSearchKwUpdates => 'アップデート, バージョン, 新しい';
+
+  @override
+  String get settingsSearchKwLinks => 'リンク, URL, アドレス, プレビュー';
+
+  @override
+  String get settingsSearchKwAutoplay => 'GIF, アニメーション, 自動再生';
+
+  @override
+  String get settingsSearchKwStickers => 'ステッカー, 絵文字, 候補';
+
+  @override
+  String get settingsSearchKwPush => '通知, アラート, サウンド';
+
+  @override
+  String get settingsSearchKwGames => 'ゲーム, リマインダー, 毎日';
+
+  @override
+  String get settingsSearchKwFriends => '友達, アクティビティ, ポイント';
+
+  @override
+  String get settingsSearchKwVideo => 'ビデオ, 通話, 画質, カメラ';
+
+  @override
+  String get settingsSearchKwStats => '統計, ネットワーク, ping, デバッグ';
+
+  @override
+  String get settingsSearchKwTheme => 'テーマ, ダーク, ライト, 色, 夜';
+
+  @override
+  String get settingsSearchKwIcon => 'アイコン, ロゴ, ホーム画面';
+
+  @override
+  String get settingsSearchKwGlass => 'ガラス, ぼかし, すりガラス, 透明';
+
+  @override
+  String get settingsSearchKwNavigation => 'タブバー, ナビゲーション, メニュー';
+
+  @override
+  String get settingsSearchKwMotion => '動き, アニメーション, 視差効果を減らす';
+
+  @override
+  String get settingsSearchKwCompanions => 'AI, アシスタント, 翻訳, モデル';
+
+  @override
+  String get settingsSearchKwChatList => 'チャット一覧, 行, カード, グリッド';
+
+  @override
+  String get settingsSearchKwChatStyle => 'チャットスタイル, コンパクト, クラシック';
+
+  @override
+  String get settingsSearchKwBubbles => '吹き出し, メッセージ, 形';
+
+  @override
+  String get settingsSearchKwSpeakers => '名前, 色, グループ';
+
+  @override
+  String get settingsSearchKwReply => '返信, 引用, スレッド';
+
+  @override
+  String get settingsSearchKwReport => '不具合, 問題, フィードバック, サポート';
+
+  @override
+  String get settingsSearchKwLegal => 'プライバシー, 規約, 法的, ライセンス';
+
+  @override
+  String get settingsSearchKwServer => 'サーバー, セルフホスト, URL, 開発者';
+
+  @override
+  String get settingsSearchKwDiagnostics => '診断, ログ, デバッグ, 開発者';
+
+  @override
+  String get settingsSearchKwPrivacy => 'プライバシー, 公開範囲, 最終ログイン, 既読';
+
+  @override
+  String get settingsSearchKwBlocked => 'ブロック, 人';
+
+  @override
+  String get settingsSearchKwDevices => 'デバイス, セッション, サインアウト';
+
+  @override
+  String get settingsSearchKwLinked => 'Apple, Google, サインイン';
+
+  @override
+  String get settingsSearchKwRecovery => '復元フレーズ, パスワード, バックアップ';
+
+  @override
+  String get settingsSearchKwCapture => 'スクリーンショット, 画面収録, プライバシー';
+
+  @override
+  String get settingsSearchKwFamily => '家族, 子ども, 保護者, 承認';
+
+  @override
+  String get settingsSearchKwAccount => 'アカウント, サインアウト, 削除, メール';
 }

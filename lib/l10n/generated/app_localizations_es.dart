@@ -10405,4 +10405,145 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get friendRequestDraftIntroOutgoingSentence =>
       'Envía unas líneas. Podrá aceptarla o rechazarla.';
+
+  @override
+  String get requestDeclineIos => 'Rechazar';
+
+  @override
+  String get joinRequestAllowIos => 'Permitir';
+
+  @override
+  String get changeRequestUseIos => 'Usar';
+
+  @override
+  String get settingsSearchHint => 'Buscar';
+
+  @override
+  String settingsSearchNoResults(String query) {
+    return 'No hay resultados para \"$query\"';
+  }
+
+  @override
+  String get settingsSearchAccount => 'Cuenta';
+
+  @override
+  String get settingsHubDiagnostics => 'Diagnóstico';
+
+  @override
+  String get settingsHubDiagnosticsSubtitle =>
+      'Registros para resolver problemas e informar errores';
+
+  @override
+  String get settingsHubAdvancedFooter =>
+      'Para resolver problemas y alojar tu propio servidor. Nada de esto hace falta a diario.';
+
+  @override
+  String get settingsSearchKwLanguage => 'idioma, lengua, región';
+
+  @override
+  String get settingsSearchKwUpdates => 'actualizar, versión, nueva';
+
+  @override
+  String get settingsSearchKwLinks => 'enlaces, url, dirección, vista previa';
+
+  @override
+  String get settingsSearchKwAutoplay =>
+      'gif, animación, reproducción automática';
+
+  @override
+  String get settingsSearchKwStickers => 'stickers, emoji, sugerencias';
+
+  @override
+  String get settingsSearchKwPush => 'notificaciones, alertas, sonido';
+
+  @override
+  String get settingsSearchKwGames => 'juegos, recordatorio, diario';
+
+  @override
+  String get settingsSearchKwFriends => 'amigos, actividad, puntos';
+
+  @override
+  String get settingsSearchKwVideo => 'vídeo, llamada, calidad, cámara';
+
+  @override
+  String get settingsSearchKwStats => 'estadísticas, red, ping, depuración';
+
+  @override
+  String get settingsSearchKwTheme => 'tema, oscuro, claro, colores, noche';
+
+  @override
+  String get settingsSearchKwIcon => 'icono, logo, pantalla de inicio';
+
+  @override
+  String get settingsSearchKwGlass =>
+      'cristal, desenfoque, esmerilado, transparencia';
+
+  @override
+  String get settingsSearchKwNavigation =>
+      'barra de pestañas, navegación, menú';
+
+  @override
+  String get settingsSearchKwMotion =>
+      'movimiento, animación, reducir movimiento';
+
+  @override
+  String get settingsSearchKwCompanions => 'ia, asistente, traducir, modelo';
+
+  @override
+  String get settingsSearchKwChatList =>
+      'lista de chats, filas, tarjetas, cuadrícula';
+
+  @override
+  String get settingsSearchKwChatStyle => 'estilo, compacto, clásico';
+
+  @override
+  String get settingsSearchKwBubbles => 'burbujas, mensajes, forma';
+
+  @override
+  String get settingsSearchKwSpeakers => 'nombres, colores, grupos';
+
+  @override
+  String get settingsSearchKwReply => 'responder, cita, hilo';
+
+  @override
+  String get settingsSearchKwReport => 'error, problema, comentarios, ayuda';
+
+  @override
+  String get settingsSearchKwLegal => 'privacidad, términos, legal, licencia';
+
+  @override
+  String get settingsSearchKwServer =>
+      'servidor, autoalojado, url, desarrollador';
+
+  @override
+  String get settingsSearchKwDiagnostics =>
+      'diagnóstico, registros, depuración, desarrollador';
+
+  @override
+  String get settingsSearchKwPrivacy =>
+      'privacidad, visibilidad, última vez, leído';
+
+  @override
+  String get settingsSearchKwBlocked => 'bloqueados, bloquear';
+
+  @override
+  String get settingsSearchKwDevices => 'dispositivos, sesiones, cerrar sesión';
+
+  @override
+  String get settingsSearchKwLinked => 'apple, google, iniciar sesión';
+
+  @override
+  String get settingsSearchKwRecovery =>
+      'frase de recuperación, contraseña, copia';
+
+  @override
+  String get settingsSearchKwCapture =>
+      'captura de pantalla, grabación, privacidad';
+
+  @override
+  String get settingsSearchKwFamily => 'familia, hijo, padres, aprobaciones';
+
+  @override
+  String get settingsSearchKwAccount =>
+      'cuenta, cerrar sesión, eliminar, correo';
 }

@@ -10410,6 +10410,146 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get friendRequestDraftIntroOutgoingSentence =>
       'Manda umas linhas. Podem aceitar ou recusar.';
+
+  @override
+  String get requestDeclineIos => 'Recusar';
+
+  @override
+  String get joinRequestAllowIos => 'Permitir';
+
+  @override
+  String get changeRequestUseIos => 'Usar';
+
+  @override
+  String get settingsSearchHint => 'Pesquisar';
+
+  @override
+  String settingsSearchNoResults(String query) {
+    return 'Sem resultados para \"$query\"';
+  }
+
+  @override
+  String get settingsSearchAccount => 'Conta';
+
+  @override
+  String get settingsHubDiagnostics => 'Diagnóstico';
+
+  @override
+  String get settingsHubDiagnosticsSubtitle =>
+      'Registos para resolver problemas e reportar erros';
+
+  @override
+  String get settingsHubAdvancedFooter =>
+      'Para resolver problemas e alojar o seu próprio servidor. Nada aqui é necessário no dia a dia.';
+
+  @override
+  String get settingsSearchKwLanguage => 'idioma, língua, região';
+
+  @override
+  String get settingsSearchKwUpdates => 'atualização, versão, nova';
+
+  @override
+  String get settingsSearchKwLinks =>
+      'ligações, url, endereço, pré-visualização';
+
+  @override
+  String get settingsSearchKwAutoplay => 'gif, animação, reprodução automática';
+
+  @override
+  String get settingsSearchKwStickers => 'autocolantes, emoji, sugestões';
+
+  @override
+  String get settingsSearchKwPush => 'notificações, alertas, som';
+
+  @override
+  String get settingsSearchKwGames => 'jogos, lembrete, diário';
+
+  @override
+  String get settingsSearchKwFriends => 'amigos, atividade, pontos';
+
+  @override
+  String get settingsSearchKwVideo => 'vídeo, chamada, qualidade, câmara';
+
+  @override
+  String get settingsSearchKwStats => 'estatísticas, rede, ping, depuração';
+
+  @override
+  String get settingsSearchKwTheme => 'tema, escuro, claro, cores, noite';
+
+  @override
+  String get settingsSearchKwIcon => 'ícone, logótipo, ecrã principal';
+
+  @override
+  String get settingsSearchKwGlass => 'vidro, desfoque, fosco, transparência';
+
+  @override
+  String get settingsSearchKwNavigation =>
+      'barra de separadores, navegação, menu';
+
+  @override
+  String get settingsSearchKwMotion => 'movimento, animação, reduzir movimento';
+
+  @override
+  String get settingsSearchKwCompanions => 'ia, assistente, traduzir, modelo';
+
+  @override
+  String get settingsSearchKwChatList =>
+      'lista de conversas, linhas, cartões, grelha';
+
+  @override
+  String get settingsSearchKwChatStyle => 'estilo, compacto, clássico';
+
+  @override
+  String get settingsSearchKwBubbles => 'balões, mensagens, forma';
+
+  @override
+  String get settingsSearchKwSpeakers => 'nomes, cores, grupos';
+
+  @override
+  String get settingsSearchKwReply => 'responder, citação, conversa';
+
+  @override
+  String get settingsSearchKwReport => 'erro, problema, feedback, ajuda';
+
+  @override
+  String get settingsSearchKwLegal => 'privacidade, termos, legal, licença';
+
+  @override
+  String get settingsSearchKwServer =>
+      'servidor, alojamento próprio, url, programador';
+
+  @override
+  String get settingsSearchKwDiagnostics =>
+      'diagnóstico, registos, depuração, programador';
+
+  @override
+  String get settingsSearchKwPrivacy =>
+      'privacidade, visibilidade, visto por último';
+
+  @override
+  String get settingsSearchKwBlocked => 'bloqueados, bloquear';
+
+  @override
+  String get settingsSearchKwDevices =>
+      'dispositivos, sessões, terminar sessão';
+
+  @override
+  String get settingsSearchKwLinked => 'apple, google, iniciar sessão';
+
+  @override
+  String get settingsSearchKwRecovery =>
+      'frase de recuperação, palavra-passe, cópia';
+
+  @override
+  String get settingsSearchKwCapture =>
+      'captura de ecrã, gravação, privacidade';
+
+  @override
+  String get settingsSearchKwFamily => 'família, criança, pais, aprovações';
+
+  @override
+  String get settingsSearchKwAccount =>
+      'conta, terminar sessão, eliminar, e-mail';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -20816,4 +20956,139 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get friendRequestDraftIntroOutgoingSentence =>
       'Manda algumas linhas. A pessoa pode aceitar ou recusar.';
+
+  @override
+  String get requestDeclineIos => 'Recusar';
+
+  @override
+  String get joinRequestAllowIos => 'Permitir';
+
+  @override
+  String get changeRequestUseIos => 'Usar';
+
+  @override
+  String get settingsSearchHint => 'Buscar';
+
+  @override
+  String settingsSearchNoResults(String query) {
+    return 'Nenhum resultado para \"$query\"';
+  }
+
+  @override
+  String get settingsSearchAccount => 'Conta';
+
+  @override
+  String get settingsHubDiagnostics => 'Diagnóstico';
+
+  @override
+  String get settingsHubDiagnosticsSubtitle =>
+      'Registros para resolver problemas e relatar erros';
+
+  @override
+  String get settingsHubAdvancedFooter =>
+      'Para resolver problemas e hospedar seu próprio servidor. Nada aqui é necessário no dia a dia.';
+
+  @override
+  String get settingsSearchKwLanguage => 'idioma, língua, região';
+
+  @override
+  String get settingsSearchKwUpdates => 'atualização, versão, nova';
+
+  @override
+  String get settingsSearchKwLinks => 'links, url, endereço, prévia';
+
+  @override
+  String get settingsSearchKwAutoplay => 'gif, animação, reprodução automática';
+
+  @override
+  String get settingsSearchKwStickers => 'figurinhas, emoji, sugestões';
+
+  @override
+  String get settingsSearchKwPush => 'notificações, alertas, som';
+
+  @override
+  String get settingsSearchKwGames => 'jogos, lembrete, diário';
+
+  @override
+  String get settingsSearchKwFriends => 'amigos, atividade, pontos';
+
+  @override
+  String get settingsSearchKwVideo => 'vídeo, chamada, qualidade, câmera';
+
+  @override
+  String get settingsSearchKwStats => 'estatísticas, rede, ping, depuração';
+
+  @override
+  String get settingsSearchKwTheme => 'tema, escuro, claro, cores, noite';
+
+  @override
+  String get settingsSearchKwIcon => 'ícone, logo, tela inicial';
+
+  @override
+  String get settingsSearchKwGlass => 'vidro, desfoque, fosco, transparência';
+
+  @override
+  String get settingsSearchKwNavigation => 'barra de abas, navegação, menu';
+
+  @override
+  String get settingsSearchKwMotion => 'movimento, animação, reduzir movimento';
+
+  @override
+  String get settingsSearchKwCompanions => 'ia, assistente, traduzir, modelo';
+
+  @override
+  String get settingsSearchKwChatList =>
+      'lista de conversas, linhas, cartões, grade';
+
+  @override
+  String get settingsSearchKwChatStyle => 'estilo, compacto, clássico';
+
+  @override
+  String get settingsSearchKwBubbles => 'balões, mensagens, formato';
+
+  @override
+  String get settingsSearchKwSpeakers => 'nomes, cores, grupos';
+
+  @override
+  String get settingsSearchKwReply => 'responder, citação, conversa';
+
+  @override
+  String get settingsSearchKwReport => 'bug, problema, feedback, ajuda';
+
+  @override
+  String get settingsSearchKwLegal => 'privacidade, termos, legal, licença';
+
+  @override
+  String get settingsSearchKwServer =>
+      'servidor, auto-hospedado, url, desenvolvedor';
+
+  @override
+  String get settingsSearchKwDiagnostics =>
+      'diagnóstico, registros, depuração, desenvolvedor';
+
+  @override
+  String get settingsSearchKwPrivacy =>
+      'privacidade, visibilidade, visto por último';
+
+  @override
+  String get settingsSearchKwBlocked => 'bloqueados, bloquear';
+
+  @override
+  String get settingsSearchKwDevices => 'dispositivos, sessões, sair';
+
+  @override
+  String get settingsSearchKwLinked => 'apple, google, entrar';
+
+  @override
+  String get settingsSearchKwRecovery => 'frase de recuperação, senha, backup';
+
+  @override
+  String get settingsSearchKwCapture =>
+      'captura de tela, gravação, privacidade';
+
+  @override
+  String get settingsSearchKwFamily => 'família, criança, pais, aprovações';
+
+  @override
+  String get settingsSearchKwAccount => 'conta, sair, excluir, e-mail';
 }

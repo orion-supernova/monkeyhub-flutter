@@ -10299,4 +10299,151 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get friendRequestDraftIntroOutgoingSentence =>
       'Send a few lines. They can approve or decline.';
+
+  @override
+  String get requestDeclineIos => 'Decline';
+
+  @override
+  String get joinRequestAllowIos => 'Allow';
+
+  @override
+  String get changeRequestUseIos => 'Use it';
+
+  @override
+  String get settingsSearchHint => 'Search';
+
+  @override
+  String settingsSearchNoResults(String query) {
+    return 'No results for \"$query\"';
+  }
+
+  @override
+  String get settingsSearchAccount => 'Account';
+
+  @override
+  String get settingsHubDiagnostics => 'Diagnostics';
+
+  @override
+  String get settingsHubDiagnosticsSubtitle =>
+      'Logs for troubleshooting and bug reports';
+
+  @override
+  String get settingsHubAdvancedFooter =>
+      'For troubleshooting and self-hosting. Nothing here is needed day to day.';
+
+  @override
+  String get settingsSearchKwLanguage =>
+      'language, translation, locale, region';
+
+  @override
+  String get settingsSearchKwUpdates => 'update, version, new, upgrade';
+
+  @override
+  String get settingsSearchKwLinks => 'links, url, address, preview';
+
+  @override
+  String get settingsSearchKwAutoplay => 'gif, animation, autoplay, motion';
+
+  @override
+  String get settingsSearchKwStickers => 'stickers, emoji, suggestions';
+
+  @override
+  String get settingsSearchKwPush => 'notifications, alerts, sound, badge';
+
+  @override
+  String get settingsSearchKwGames => 'games, reminder, daily, puzzle';
+
+  @override
+  String get settingsSearchKwFriends => 'friends, activity, points, highlights';
+
+  @override
+  String get settingsSearchKwVideo => 'video, call, quality, camera, data';
+
+  @override
+  String get settingsSearchKwStats =>
+      'call stats, network, bitrate, ping, debug';
+
+  @override
+  String get settingsSearchKwTheme =>
+      'theme, dark, light, colours, night, appearance';
+
+  @override
+  String get settingsSearchKwIcon => 'app icon, logo, home screen';
+
+  @override
+  String get settingsSearchKwGlass =>
+      'glass, liquid glass, blur, frosted, transparency';
+
+  @override
+  String get settingsSearchKwNavigation =>
+      'tab bar, navigation, menu, bottom bar';
+
+  @override
+  String get settingsSearchKwMotion =>
+      'motion, animation, reduce motion, effects';
+
+  @override
+  String get settingsSearchKwCompanions =>
+      'ai, assistant, translate, model, companion';
+
+  @override
+  String get settingsSearchKwChatList =>
+      'chat list, rows, cards, grid, filter, layout';
+
+  @override
+  String get settingsSearchKwChatStyle =>
+      'chat style, compact, classic, header';
+
+  @override
+  String get settingsSearchKwBubbles => 'bubbles, messages, tail, shape';
+
+  @override
+  String get settingsSearchKwSpeakers => 'names, colours, groups, who\'s who';
+
+  @override
+  String get settingsSearchKwReply => 'reply, quote, thread';
+
+  @override
+  String get settingsSearchKwReport => 'bug, problem, feedback, support, help';
+
+  @override
+  String get settingsSearchKwLegal => 'privacy, terms, legal, licence, policy';
+
+  @override
+  String get settingsSearchKwServer =>
+      'server, self-host, url, backend, developer';
+
+  @override
+  String get settingsSearchKwDiagnostics =>
+      'diagnostics, logs, debug, developer, crash';
+
+  @override
+  String get settingsSearchKwPrivacy =>
+      'privacy, visibility, who can see, last seen, read receipts';
+
+  @override
+  String get settingsSearchKwBlocked => 'blocked, block, people';
+
+  @override
+  String get settingsSearchKwDevices =>
+      'devices, sessions, sign out, phone, computer';
+
+  @override
+  String get settingsSearchKwLinked => 'apple, google, sign in, linked';
+
+  @override
+  String get settingsSearchKwRecovery =>
+      'recovery phrase, password, backup, forgot';
+
+  @override
+  String get settingsSearchKwCapture =>
+      'screenshot, screen recording, capture, privacy';
+
+  @override
+  String get settingsSearchKwFamily =>
+      'family, child, parent, approvals, grown-ups';
+
+  @override
+  String get settingsSearchKwAccount =>
+      'account, sign out, delete, email, username';
 }

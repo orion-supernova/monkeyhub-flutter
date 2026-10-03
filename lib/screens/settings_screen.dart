@@ -37,6 +37,7 @@ import '../widgets/self_host_badge.dart' show shortHost;
 import '../widgets/recovery_banner.dart';
 import '../widgets/ios_kit.dart';
 import '../widgets/settings_pickers.dart';
+import '../widgets/settings_search.dart';
 import '../widgets/user_avatar.dart';
 import 'bubble_style_screen.dart';
 import 'chat_style_screen.dart';
@@ -57,6 +58,10 @@ import 'navigation/native_tab_bar.dart' show NativeChrome;
 import 'navigation/open_room.dart';
 import 'navigation/tab_reselect.dart';
 import 'profile_screen.dart';
+import 'profile_visibility_screen.dart';
+import 'linked_accounts_screen.dart';
+import 'devices_screen.dart';
+import 'blocked_users_screen.dart';
 import 'report_problem_screen.dart';
 import 'room_layout_screen.dart';
 import 'server_screen.dart';
@@ -88,6 +93,12 @@ class _SettingsScreenState extends State<SettingsScreen>
   // every tab switch, and the framework's own PageStorage restore is what
   // produced the settle-bounce on return. See [ScrollMemory].
   final _scroll = ScrollMemory.controller();
+
+  // ── Search ─────────────────────────────────────────────────────────────
+  final _searchCtrl = TextEditingController();
+  final _searchFocus = FocusNode();
+  String _query = '';
+  bool get _searching => _query.trim().isNotEmpty;
 
   @override
   HomeSection get reselectSection => HomeSection.settings;
@@ -152,6 +163,8 @@ class _SettingsScreenState extends State<SettingsScreen>
       MacAppChrome.instance.removeListener(_onSettings);
     }
     _scroll.dispose();
+    _searchCtrl.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -383,342 +396,813 @@ class _SettingsScreenState extends State<SettingsScreen>
         ? null
         : (_me ?? ChatUser(id: s.userId, username: s.username, name: s.name));
 
+    // Toggles are defined once and used both in their section and as live
+    // rows in search results, so the two can never disagree.
+    Widget linkUrlsToggle() => _StoreToggle(
+          icon: CupertinoIcons.link,
+          tone: TileTone.teal,
+          title: l10n.settingsHubShowLinkUrls,
+          subtitle: l10n.settingsHubShowLinkUrlsSubtitle,
+          value: () => store.showLinkUrls,
+          onChanged: store.setShowLinkUrls,
+        );
+    Widget autoplayToggle() => _StoreToggle(
+          icon: CupertinoIcons.play_rectangle_fill,
+          tone: TileTone.pink,
+          title: l10n.settingsAutoplayExpressionsLabel,
+          subtitle: store.autoplayExpressions
+              ? l10n.settingsAutoplayExpressionsOnBody
+              : l10n.settingsAutoplayExpressionsOffBody,
+          value: () => store.autoplayExpressions,
+          onChanged: store.setAutoplayExpressions,
+        );
+    Widget stickersToggle() => _StoreToggle(
+          icon: CupertinoIcons.smiley_fill,
+          tone: TileTone.orange,
+          title: l10n.settingsStickerSuggestionsLabel,
+          subtitle: l10n.settingsStickerSuggestionsBody,
+          value: () => store.stickerSuggestions,
+          onChanged: store.setStickerSuggestions,
+        );
+    Widget pushToggle() => _StoreToggle(
+          icon: CupertinoIcons.bell_fill,
+          tone: TileTone.red,
+          title: l10n.settingsHubPush,
+          subtitle: l10n.settingsHubPushSubtitle,
+          value: () => store.pushEnabled,
+          onChanged: (v) async {
+            await store.setPushEnabled(v);
+            if (v) {
+              await PushManager.instance.optIn();
+            } else {
+              await PushManager.instance.optOut();
+            }
+          },
+        );
+    Widget gameRemindersToggle() => _StoreToggle(
+          icon: CupertinoIcons.game_controller_solid,
+          tone: TileTone.purple,
+          title: l10n.settingsHubGameReminders,
+          subtitle: l10n.settingsHubGameRemindersSubtitle,
+          value: () => store.gameReminders,
+          onChanged: (v) async {
+            await store.setGameReminders(v);
+            await PushManager.instance.setGameReminders(v);
+          },
+        );
+    Widget friendActivityToggle() => _StoreToggle(
+          icon: CupertinoIcons.person_2_fill,
+          tone: TileTone.green,
+          title: l10n.settingsHubFriendActivity,
+          subtitle: l10n.settingsHubFriendActivitySubtitle,
+          value: () => store.friendActivity,
+          onChanged: (v) async {
+            await store.setFriendActivity(v);
+            await PushManager.instance.setFriendActivity(v);
+          },
+        );
+    Widget callStatsToggle() => _StoreToggle(
+          icon: CupertinoIcons.speedometer,
+          tone: TileTone.gray,
+          title: l10n.settingsHubCallStats,
+          subtitle: l10n.settingsHubCallStatsSubtitle,
+          value: () => store.showNetworkStats,
+          onChanged: store.setShowNetworkStats,
+        );
+    final isChild = widget.auth.isChild;
+
     // Sections run in descending order of how often anyone opens them, not in
     // the order they were built: the part people came for first, the part
     // they browse after it, the facts about the app last.
-    return SettingsPage(
-      title: l10n.settingsHubTitle,
-      controller: _scroll,
-      showBack: false,
-      bottomPadding: sectionBottomPadding(context),
-      children: [
-        if (me != null) ...[
-          // An account with no recovery phrase is one forgotten password away
-          // from being gone. Explicitly `== false`: null means "unknown" and
-          // must not be read as "none set"; children have no reset path.
-          if (_me?.hasRecoveryKey == false && !widget.auth.isChild) ...[
-            RecoveryPhraseBanner(onTap: () => _openProfile(_me!)),
-            const SizedBox(height: 16),
-          ],
-          GroupedSection(
-            children: [
-              _ProfileCard(
-                user: me,
-                api: widget.api,
-                hint: _accountHint,
-                // Approvals live inside the account screen, so the count
-                // rides the way in.
-                pending: widget.family.pendingCount,
-                selected: _isOpen('profile'),
-                onTap: () => _openProfile(me),
+    final entries = _searching
+        ? _searchEntries(
+            l10n: l10n,
+            me: me,
+            isChild: isChild,
+            toggles: {
+              'linkUrls': linkUrlsToggle,
+              'autoplay': autoplayToggle,
+              'stickers': stickersToggle,
+              'push': pushToggle,
+              if (store.pushEnabled) 'gameReminders': gameRemindersToggle,
+              if (store.pushEnabled) 'friendActivity': friendActivityToggle,
+              'callStats': callStatsToggle,
+            },
+          )
+        : const <SettingsSearchEntry>[];
+
+    // A drag on the page puts the keyboard away, as scrolling iOS Settings'
+    // results does.
+    return NotificationListener<ScrollUpdateNotification>(
+      onNotification: (n) {
+        if (n.dragDetails != null && _searchFocus.hasFocus) {
+          _searchFocus.unfocus();
+        }
+        return false;
+      },
+      child: SettingsPage(
+        title: l10n.settingsHubTitle,
+        controller: _scroll,
+        showBack: false,
+        bottomPadding: sectionBottomPadding(context),
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 18),
+            child: SettingsSearchField(
+              controller: _searchCtrl,
+              focusNode: _searchFocus,
+              onChanged: (v) => setState(() => _query = v),
+            ),
+          ),
+          if (_searching)
+            SettingsSearchResults(entries: entries, query: _query)
+          else ...[
+            if (me != null) ...[
+              // An account with no recovery phrase is one forgotten password away
+              // from being gone. Explicitly `== false`: null means "unknown" and
+              // must not be read as "none set"; children have no reset path.
+              if (_me?.hasRecoveryKey == false && !widget.auth.isChild) ...[
+                RecoveryPhraseBanner(onTap: () => _openProfile(_me!)),
+                const SizedBox(height: 16),
+              ],
+              GroupedSection(
+                children: [
+                  _ProfileCard(
+                    user: me,
+                    api: widget.api,
+                    hint: _accountHint,
+                    // Approvals live inside the account screen, so the count
+                    // rides the way in.
+                    pending: widget.family.pendingCount,
+                    selected: _isOpen('profile'),
+                    onTap: () => _openProfile(me),
+                  ),
+                ],
               ),
             ],
-          ),
+
+            GroupedSection(
+              header: l10n.settingsHubSectionGeneral,
+              children: [
+                _HubRow(
+                  icon: CupertinoIcons.globe,
+                  tone: TileTone.blue,
+                  title: l10n.settingsHubLanguage,
+                  value: _languageLabel,
+                  selected: _isOpen('language'),
+                  onTap: () => _open('language', (_) => const LanguageScreen()),
+                ),
+                const _CheckForUpdatesRow(),
+                linkUrlsToggle(),
+                autoplayToggle(),
+                stickersToggle(),
+              ],
+            ),
+
+            GroupedSection(
+              header: l10n.settingsHubSectionNotifications,
+              children: [
+                pushToggle(),
+                // Nested under push, and only while it is on: a reminder toggle
+                // offered to somebody who turned notifications off has nothing to
+                // control.
+                if (store.pushEnabled) ...[
+                  gameRemindersToggle(),
+                  friendActivityToggle(),
+                ],
+                // Android's two call-delivery settings and macOS's menu-bar item.
+                // Each renders as no rows at all when there is nothing to show.
+                ..._CallDeliveryRows.rows(context, _callDelivery),
+                if (_menuBarVisible != null)
+                  _HubToggle(
+                    icon: CupertinoIcons.device_laptop,
+                    tone: TileTone.gray,
+                    title: l10n.settingsHubMenuBar,
+                    subtitle: l10n.settingsHubMenuBarSubtitle,
+                    value: _menuBarVisible!,
+                    onChanged: MacAppChrome.instance.setVisible,
+                  ),
+              ],
+            ),
+
+            GroupedSection(
+              header: l10n.settingsHubSectionCalls,
+              children: [
+                _HubRow(
+                  icon: CupertinoIcons.videocam_fill,
+                  tone: TileTone.green,
+                  title: l10n.settingsScreenRowVideoQuality,
+                  value: _videoQualityLabel,
+                  selected: _isOpen('videoQuality'),
+                  onTap: () =>
+                      _open('videoQuality', (_) => const VideoQualityScreen()),
+                ),
+              ],
+            ),
+
+            GroupedSection(
+              header: l10n.settingsHubSectionAppearance,
+              children: [
+                _HubRow(
+                  icon: CupertinoIcons.paintbrush_fill,
+                  tone: TileTone.indigo,
+                  title: l10n.settingsHubTheme,
+                  // "Auto · Midnight" while it follows the device, so the row says
+                  // the theme will change by itself before it does.
+                  value: store.appearanceMode == AppearanceMode.system
+                      ? l10n.settingsHubThemeAuto(activeTheme.name)
+                      : activeTheme.name,
+                  selected: _isOpen('theme'),
+                  onTap: () => _open('theme', (_) => const ThemeScreen()),
+                ),
+                _HubRow(
+                  icon: CupertinoIcons.app_fill,
+                  tone: TileTone.blue,
+                  title: l10n.settingsHubAppIcon,
+                  value: _logoLabel,
+                  selected: _isOpen('logo'),
+                  onTap: () => _open('logo', (_) => const LogoScreen()),
+                ),
+                _HubRow(
+                  icon: CupertinoIcons.drop_fill,
+                  tone: TileTone.teal,
+                  title: l10n.settingsHubGlass,
+                  value: _glassLabel,
+                  selected: _isOpen('glass'),
+                  onTap: () => _open('glass', (_) => const GlassScreen()),
+                ),
+                _HubRow(
+                  icon: CupertinoIcons.square_grid_2x2_fill,
+                  tone: TileTone.orange,
+                  title: l10n.settingsHubNavigation,
+                  value: _navLabel,
+                  selected: _isOpen('navigation'),
+                  onTap: () =>
+                      _open('navigation', (_) => const NavigationScreen()),
+                ),
+                _HubRow(
+                  icon: CupertinoIcons.wand_stars,
+                  tone: TileTone.pink,
+                  title: l10n.settingsHubMotion,
+                  value: _motionLabel,
+                  selected: _isOpen('motion'),
+                  onTap: () => _open('motion', (_) => const MotionScreen()),
+                ),
+              ],
+            ),
+
+            // A companion is not a rendering preference: it is a resident that
+            // costs hundreds of megabytes and runs a model on the handset, so it
+            // gets its own section. One row per resident, so the value can say
+            // something specific — "Translating into Türkçe" beats "On".
+            GroupedSection(
+              header: l10n.settingsHubSectionCompanions,
+              margin: const EdgeInsets.only(bottom: 8),
+              children: [
+                _CompanionRow(
+                  companion: Companion.sebastian,
+                  selected: _isOpen('sebastian'),
+                  onTap: () => _open('sebastian', (_) => const SebastianScreen()),
+                ),
+                _CompanionRow(
+                  companion: Companion.marlowe,
+                  selected: _isOpen('marlowe'),
+                  onTap: () => _open('marlowe', (_) => const MarloweScreen()),
+                ),
+              ],
+            ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 28),
+              child: CompanionStorageLine(),
+            ),
+
+            GroupedSection(
+              header: l10n.settingsHubSectionChats,
+              children: [
+                _HubRow(
+                  icon: CupertinoIcons.list_bullet,
+                  tone: TileTone.blue,
+                  title: l10n.settingsHubChatList,
+                  value: _layoutLabel,
+                  selected: _isOpen('roomLayout'),
+                  onTap: () =>
+                      _open('roomLayout', (_) => const RoomLayoutScreen()),
+                ),
+                _HubRow(
+                  icon: CupertinoIcons.chat_bubble_2_fill,
+                  tone: TileTone.green,
+                  title: l10n.settingsHubChatStyle,
+                  value: _chatStyleLabel,
+                  selected: _isOpen('chatStyle'),
+                  onTap: () => _open('chatStyle', (_) => const ChatStyleScreen()),
+                ),
+                _HubRow(
+                  icon: CupertinoIcons.bubble_left_fill,
+                  tone: TileTone.teal,
+                  title: l10n.settingsHubBubbleStyle,
+                  value: _bubbleStyleLabel,
+                  selected: _isOpen('bubbleStyle'),
+                  onTap: () =>
+                      _open('bubbleStyle', (_) => const BubbleStyleScreen()),
+                ),
+                _HubRow(
+                  icon: CupertinoIcons.paintbrush,
+                  tone: TileTone.orange,
+                  title: l10n.settingsHubSpeakerColors,
+                  value: _speakerTintLabel,
+                  selected: _isOpen('speakerColors'),
+                  onTap: () =>
+                      _open('speakerColors', (_) => const SpeakerColorScreen()),
+                ),
+                _HubRow(
+                  icon: CupertinoIcons.reply,
+                  tone: TileTone.indigo,
+                  title: l10n.settingsHubReplyStyle,
+                  value: _replyStyleLabel,
+                  selected: _isOpen('replyStyle'),
+                  onTap: () => _open(
+                    'replyStyle',
+                    (_) => ReplyStyleScreen(api: widget.api),
+                  ),
+                ),
+              ],
+            ),
+
+            // The privacy policy stays unconditional: Guideline 5.1.1(i) and
+            // Google's User Data policy want one reachable for EVERY account,
+            // children included, and Settings is the one screen all of them open.
+            GroupedSection(
+              header: l10n.settingsHubSectionHelp,
+              children: [
+                _HubRow(
+                  icon: CupertinoIcons.ant_fill,
+                  tone: TileTone.red,
+                  title: l10n.reportProblemRowLabel,
+                  selected: _isOpen('report'),
+                  onTap: () => _open(
+                    'report',
+                    (_) => ReportProblemScreen(auth: widget.auth, api: widget.api),
+                  ),
+                ),
+                _HubRow(
+                  icon: CupertinoIcons.hand_raised_fill,
+                  tone: TileTone.blue,
+                  title: l10n.settingsHubPrivacyPolicy,
+                  onTap: () => LinkOpener.open(context, kPrivacyPolicyUrl),
+                ),
+                _HubRow(
+                  icon: CupertinoIcons.doc_text_fill,
+                  tone: TileTone.gray,
+                  title: l10n.settingsHubTerms,
+                  onTap: () => LinkOpener.open(context, kTermsOfServiceUrl),
+                ),
+                _HubRow(
+                  icon: CupertinoIcons.doc_fill,
+                  tone: TileTone.gray,
+                  title: l10n.settingsHubLicence,
+                  onTap: () => LinkOpener.open(context, kEulaUrl),
+                ),
+              ],
+            ),
+
+            // Last. Which server holds the account is not a preference — changing
+            // it signs this device out — so it sits below everything that is one.
+            // Hidden from children: a supervised device is pinned to a family on
+            // ONE deployment and cannot sign itself out to leave.
+            // Everything for the people who go looking: which server, what the
+            // call is doing underneath, the log. Out of everyone else's way at
+            // the bottom, and findable by search for all of them.
+            GroupedSection(
+              header: l10n.settingsHubSectionAdvanced,
+              footer: l10n.settingsHubAdvancedFooter,
+              children: [
+                if (!isChild) _ServerRow(selected: _isOpen('server')),
+                callStatsToggle(),
+                _HubRow(
+                  icon: CupertinoIcons.waveform_path_ecg,
+                  tone: TileTone.gray,
+                  title: l10n.settingsHubDiagnostics,
+                  subtitle: l10n.settingsHubDiagnosticsSubtitle,
+                  selected: _isOpen('diagnostics'),
+                  onTap: () =>
+                      _open('diagnostics', (_) => const DiagnosticsScreen()),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 4),
+            Center(child: _VersionStamp()),
+          ],
         ],
-
-        GroupedSection(
-          header: l10n.settingsHubSectionGeneral,
-          children: [
-            _HubRow(
-              icon: CupertinoIcons.globe,
-              tone: TileTone.blue,
-              title: l10n.settingsHubLanguage,
-              value: _languageLabel,
-              selected: _isOpen('language'),
-              onTap: () => _open('language', (_) => const LanguageScreen()),
-            ),
-            const _CheckForUpdatesRow(),
-            _StoreToggle(
-              icon: CupertinoIcons.link,
-              tone: TileTone.teal,
-              title: l10n.settingsHubShowLinkUrls,
-              subtitle: l10n.settingsHubShowLinkUrlsSubtitle,
-              value: () => store.showLinkUrls,
-              onChanged: store.setShowLinkUrls,
-            ),
-            _StoreToggle(
-              icon: CupertinoIcons.play_rectangle_fill,
-              tone: TileTone.pink,
-              title: l10n.settingsAutoplayExpressionsLabel,
-              subtitle: store.autoplayExpressions
-                  ? l10n.settingsAutoplayExpressionsOnBody
-                  : l10n.settingsAutoplayExpressionsOffBody,
-              value: () => store.autoplayExpressions,
-              onChanged: store.setAutoplayExpressions,
-            ),
-            _StoreToggle(
-              icon: CupertinoIcons.smiley_fill,
-              tone: TileTone.orange,
-              title: l10n.settingsStickerSuggestionsLabel,
-              subtitle: l10n.settingsStickerSuggestionsBody,
-              value: () => store.stickerSuggestions,
-              onChanged: store.setStickerSuggestions,
-            ),
-          ],
-        ),
-
-        GroupedSection(
-          header: l10n.settingsHubSectionNotifications,
-          children: [
-            _StoreToggle(
-              icon: CupertinoIcons.bell_fill,
-              tone: TileTone.red,
-              title: l10n.settingsHubPush,
-              subtitle: l10n.settingsHubPushSubtitle,
-              value: () => store.pushEnabled,
-              onChanged: (v) async {
-                await store.setPushEnabled(v);
-                if (v) {
-                  await PushManager.instance.optIn();
-                } else {
-                  await PushManager.instance.optOut();
-                }
-              },
-            ),
-            // Nested under push, and only while it is on: a reminder toggle
-            // offered to somebody who turned notifications off has nothing to
-            // control.
-            if (store.pushEnabled) ...[
-              _StoreToggle(
-                icon: CupertinoIcons.game_controller_solid,
-                tone: TileTone.purple,
-                title: l10n.settingsHubGameReminders,
-                subtitle: l10n.settingsHubGameRemindersSubtitle,
-                value: () => store.gameReminders,
-                onChanged: (v) async {
-                  await store.setGameReminders(v);
-                  await PushManager.instance.setGameReminders(v);
-                },
-              ),
-              _StoreToggle(
-                icon: CupertinoIcons.person_2_fill,
-                tone: TileTone.green,
-                title: l10n.settingsHubFriendActivity,
-                subtitle: l10n.settingsHubFriendActivitySubtitle,
-                value: () => store.friendActivity,
-                onChanged: (v) async {
-                  await store.setFriendActivity(v);
-                  await PushManager.instance.setFriendActivity(v);
-                },
-              ),
-            ],
-            // Android's two call-delivery settings and macOS's menu-bar item.
-            // Each renders as no rows at all when there is nothing to show.
-            ..._CallDeliveryRows.rows(context, _callDelivery),
-            if (_menuBarVisible != null)
-              _HubToggle(
-                icon: CupertinoIcons.device_laptop,
-                tone: TileTone.gray,
-                title: l10n.settingsHubMenuBar,
-                subtitle: l10n.settingsHubMenuBarSubtitle,
-                value: _menuBarVisible!,
-                onChanged: MacAppChrome.instance.setVisible,
-              ),
-          ],
-        ),
-
-        GroupedSection(
-          header: l10n.settingsHubSectionCalls,
-          children: [
-            _HubRow(
-              icon: CupertinoIcons.videocam_fill,
-              tone: TileTone.green,
-              title: l10n.settingsScreenRowVideoQuality,
-              value: _videoQualityLabel,
-              selected: _isOpen('videoQuality'),
-              onTap: () =>
-                  _open('videoQuality', (_) => const VideoQualityScreen()),
-            ),
-            _StoreToggle(
-              icon: CupertinoIcons.speedometer,
-              tone: TileTone.gray,
-              title: l10n.settingsHubCallStats,
-              subtitle: l10n.settingsHubCallStatsSubtitle,
-              value: () => store.showNetworkStats,
-              onChanged: store.setShowNetworkStats,
-            ),
-          ],
-        ),
-
-        GroupedSection(
-          header: l10n.settingsHubSectionAppearance,
-          children: [
-            _HubRow(
-              icon: CupertinoIcons.paintbrush_fill,
-              tone: TileTone.indigo,
-              title: l10n.settingsHubTheme,
-              // "Auto · Midnight" while it follows the device, so the row says
-              // the theme will change by itself before it does.
-              value: store.appearanceMode == AppearanceMode.system
-                  ? l10n.settingsHubThemeAuto(activeTheme.name)
-                  : activeTheme.name,
-              selected: _isOpen('theme'),
-              onTap: () => _open('theme', (_) => const ThemeScreen()),
-            ),
-            _HubRow(
-              icon: CupertinoIcons.app_fill,
-              tone: TileTone.blue,
-              title: l10n.settingsHubAppIcon,
-              value: _logoLabel,
-              selected: _isOpen('logo'),
-              onTap: () => _open('logo', (_) => const LogoScreen()),
-            ),
-            _HubRow(
-              icon: CupertinoIcons.drop_fill,
-              tone: TileTone.teal,
-              title: l10n.settingsHubGlass,
-              value: _glassLabel,
-              selected: _isOpen('glass'),
-              onTap: () => _open('glass', (_) => const GlassScreen()),
-            ),
-            _HubRow(
-              icon: CupertinoIcons.square_grid_2x2_fill,
-              tone: TileTone.orange,
-              title: l10n.settingsHubNavigation,
-              value: _navLabel,
-              selected: _isOpen('navigation'),
-              onTap: () =>
-                  _open('navigation', (_) => const NavigationScreen()),
-            ),
-            _HubRow(
-              icon: CupertinoIcons.wand_stars,
-              tone: TileTone.pink,
-              title: l10n.settingsHubMotion,
-              value: _motionLabel,
-              selected: _isOpen('motion'),
-              onTap: () => _open('motion', (_) => const MotionScreen()),
-            ),
-          ],
-        ),
-
-        // A companion is not a rendering preference: it is a resident that
-        // costs hundreds of megabytes and runs a model on the handset, so it
-        // gets its own section. One row per resident, so the value can say
-        // something specific — "Translating into Türkçe" beats "On".
-        GroupedSection(
-          header: l10n.settingsHubSectionCompanions,
-          margin: const EdgeInsets.only(bottom: 8),
-          children: [
-            _CompanionRow(
-              companion: Companion.sebastian,
-              selected: _isOpen('sebastian'),
-              onTap: () => _open('sebastian', (_) => const SebastianScreen()),
-            ),
-            _CompanionRow(
-              companion: Companion.marlowe,
-              selected: _isOpen('marlowe'),
-              onTap: () => _open('marlowe', (_) => const MarloweScreen()),
-            ),
-          ],
-        ),
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 0, 16, 28),
-          child: CompanionStorageLine(),
-        ),
-
-        GroupedSection(
-          header: l10n.settingsHubSectionChats,
-          children: [
-            _HubRow(
-              icon: CupertinoIcons.list_bullet,
-              tone: TileTone.blue,
-              title: l10n.settingsHubChatList,
-              value: _layoutLabel,
-              selected: _isOpen('roomLayout'),
-              onTap: () =>
-                  _open('roomLayout', (_) => const RoomLayoutScreen()),
-            ),
-            _HubRow(
-              icon: CupertinoIcons.chat_bubble_2_fill,
-              tone: TileTone.green,
-              title: l10n.settingsHubChatStyle,
-              value: _chatStyleLabel,
-              selected: _isOpen('chatStyle'),
-              onTap: () => _open('chatStyle', (_) => const ChatStyleScreen()),
-            ),
-            _HubRow(
-              icon: CupertinoIcons.bubble_left_fill,
-              tone: TileTone.teal,
-              title: l10n.settingsHubBubbleStyle,
-              value: _bubbleStyleLabel,
-              selected: _isOpen('bubbleStyle'),
-              onTap: () =>
-                  _open('bubbleStyle', (_) => const BubbleStyleScreen()),
-            ),
-            _HubRow(
-              icon: CupertinoIcons.paintbrush,
-              tone: TileTone.orange,
-              title: l10n.settingsHubSpeakerColors,
-              value: _speakerTintLabel,
-              selected: _isOpen('speakerColors'),
-              onTap: () =>
-                  _open('speakerColors', (_) => const SpeakerColorScreen()),
-            ),
-            _HubRow(
-              icon: CupertinoIcons.reply,
-              tone: TileTone.indigo,
-              title: l10n.settingsHubReplyStyle,
-              value: _replyStyleLabel,
-              selected: _isOpen('replyStyle'),
-              onTap: () => _open(
-                'replyStyle',
-                (_) => ReplyStyleScreen(api: widget.api),
-              ),
-            ),
-          ],
-        ),
-
-        // The privacy policy stays unconditional: Guideline 5.1.1(i) and
-        // Google's User Data policy want one reachable for EVERY account,
-        // children included, and Settings is the one screen all of them open.
-        GroupedSection(
-          header: l10n.settingsHubSectionHelp,
-          children: [
-            _HubRow(
-              icon: CupertinoIcons.ant_fill,
-              tone: TileTone.red,
-              title: l10n.reportProblemRowLabel,
-              selected: _isOpen('report'),
-              onTap: () => _open(
-                'report',
-                (_) => ReportProblemScreen(auth: widget.auth, api: widget.api),
-              ),
-            ),
-            _HubRow(
-              icon: CupertinoIcons.hand_raised_fill,
-              tone: TileTone.blue,
-              title: l10n.settingsHubPrivacyPolicy,
-              onTap: () => LinkOpener.open(context, kPrivacyPolicyUrl),
-            ),
-            _HubRow(
-              icon: CupertinoIcons.doc_text_fill,
-              tone: TileTone.gray,
-              title: l10n.settingsHubTerms,
-              onTap: () => LinkOpener.open(context, kTermsOfServiceUrl),
-            ),
-            _HubRow(
-              icon: CupertinoIcons.doc_fill,
-              tone: TileTone.gray,
-              title: l10n.settingsHubLicence,
-              onTap: () => LinkOpener.open(context, kEulaUrl),
-            ),
-          ],
-        ),
-
-        // Last. Which server holds the account is not a preference — changing
-        // it signs this device out — so it sits below everything that is one.
-        // Hidden from children: a supervised device is pinned to a family on
-        // ONE deployment and cannot sign itself out to leave.
-        if (!widget.auth.isChild)
-          GroupedSection(
-            header: l10n.settingsHubSectionAdvanced,
-            children: [_ServerRow(selected: _isOpen('server'))],
-          ),
-
-        const SizedBox(height: 4),
-        Center(child: _VersionStamp()),
-      ],
+      ),
     );
+  }
+
+  /// Everything Settings search can reach: the hub's own rows, and the
+  /// settings one page down that people go looking for by name (devices,
+  /// blocked users, profile visibility…). Built per search, from the same
+  /// strings and the same open calls the hub rows use, and gated the same way
+  /// — a child account finds nothing the hub would not have shown it.
+  List<SettingsSearchEntry> _searchEntries({
+    required AppLocalizations l10n,
+    required ChatUser? me,
+    required bool isChild,
+    required Map<String, Widget Function()> toggles,
+  }) {
+    final en = lookupAppLocalizations(const Locale('en'));
+    String crumb(String section, String title) => '$section › $title';
+
+    SettingsSearchEntry page(
+      String id, {
+      required String title,
+      required String enTitle,
+      required String section,
+      required IconData icon,
+      required TileTone tone,
+      required String kw,
+      required String enKw,
+      required VoidCallback onOpen,
+    }) =>
+        SettingsSearchEntry(
+          id: id,
+          title: title,
+          breadcrumb: crumb(section, title),
+          icon: icon,
+          tone: tone,
+          keywords: kw,
+          englishText: '$enTitle $enKw',
+          onOpen: onOpen,
+        );
+
+    SettingsSearchEntry live(
+      String id, {
+      required String title,
+      required String enTitle,
+      required String section,
+      required String kw,
+      required String enKw,
+      required Widget Function() row,
+    }) =>
+        SettingsSearchEntry(
+          id: id,
+          title: title,
+          breadcrumb: crumb(section, title),
+          icon: CupertinoIcons.circle,
+          tone: TileTone.gray,
+          keywords: kw,
+          englishText: '$enTitle $enKw',
+          liveRow: row,
+        );
+
+    final general = l10n.settingsHubSectionGeneral;
+    final notifications = l10n.settingsHubSectionNotifications;
+    final calls = l10n.settingsHubSectionCalls;
+    final appearance = l10n.settingsHubSectionAppearance;
+    final companions = l10n.settingsHubSectionCompanions;
+    final chats = l10n.settingsHubSectionChats;
+    final help = l10n.settingsHubSectionHelp;
+    final advanced = l10n.settingsHubSectionAdvanced;
+    final account = l10n.settingsSearchAccount;
+
+    void openProfile() {
+      if (me != null) _openProfile(me);
+    }
+
+    return [
+      // ── General
+      page('language',
+          title: l10n.settingsHubLanguage,
+          enTitle: en.settingsHubLanguage,
+          section: general,
+          icon: CupertinoIcons.globe,
+          tone: TileTone.blue,
+          kw: l10n.settingsSearchKwLanguage,
+          enKw: en.settingsSearchKwLanguage,
+          onOpen: () => _open('language', (_) => const LanguageScreen())),
+      live('updates',
+          title: l10n.settingsHubCheckForUpdates,
+          enTitle: en.settingsHubCheckForUpdates,
+          section: general,
+          kw: l10n.settingsSearchKwUpdates,
+          enKw: en.settingsSearchKwUpdates,
+          row: () => const _CheckForUpdatesRow()),
+      live('linkUrls',
+          title: l10n.settingsHubShowLinkUrls,
+          enTitle: en.settingsHubShowLinkUrls,
+          section: general,
+          kw: l10n.settingsSearchKwLinks,
+          enKw: en.settingsSearchKwLinks,
+          row: toggles['linkUrls']!),
+      live('autoplay',
+          title: l10n.settingsAutoplayExpressionsLabel,
+          enTitle: en.settingsAutoplayExpressionsLabel,
+          section: general,
+          kw: l10n.settingsSearchKwAutoplay,
+          enKw: en.settingsSearchKwAutoplay,
+          row: toggles['autoplay']!),
+      live('stickers',
+          title: l10n.settingsStickerSuggestionsLabel,
+          enTitle: en.settingsStickerSuggestionsLabel,
+          section: general,
+          kw: l10n.settingsSearchKwStickers,
+          enKw: en.settingsSearchKwStickers,
+          row: toggles['stickers']!),
+      // ── Notifications
+      live('push',
+          title: l10n.settingsHubPush,
+          enTitle: en.settingsHubPush,
+          section: notifications,
+          kw: l10n.settingsSearchKwPush,
+          enKw: en.settingsSearchKwPush,
+          row: toggles['push']!),
+      if (toggles['gameReminders'] != null)
+        live('gameReminders',
+            title: l10n.settingsHubGameReminders,
+            enTitle: en.settingsHubGameReminders,
+            section: notifications,
+            kw: l10n.settingsSearchKwGames,
+            enKw: en.settingsSearchKwGames,
+            row: toggles['gameReminders']!),
+      if (toggles['friendActivity'] != null)
+        live('friendActivity',
+            title: l10n.settingsHubFriendActivity,
+            enTitle: en.settingsHubFriendActivity,
+            section: notifications,
+            kw: l10n.settingsSearchKwFriends,
+            enKw: en.settingsSearchKwFriends,
+            row: toggles['friendActivity']!),
+      // ── Calls
+      page('videoQuality',
+          title: l10n.settingsScreenRowVideoQuality,
+          enTitle: en.settingsScreenRowVideoQuality,
+          section: calls,
+          icon: CupertinoIcons.videocam_fill,
+          tone: TileTone.green,
+          kw: l10n.settingsSearchKwVideo,
+          enKw: en.settingsSearchKwVideo,
+          onOpen: () =>
+              _open('videoQuality', (_) => const VideoQualityScreen())),
+      // ── Appearance
+      page('theme',
+          title: l10n.settingsHubTheme,
+          enTitle: en.settingsHubTheme,
+          section: appearance,
+          icon: CupertinoIcons.paintbrush_fill,
+          tone: TileTone.indigo,
+          kw: l10n.settingsSearchKwTheme,
+          enKw: en.settingsSearchKwTheme,
+          onOpen: () => _open('theme', (_) => const ThemeScreen())),
+      page('logo',
+          title: l10n.settingsHubAppIcon,
+          enTitle: en.settingsHubAppIcon,
+          section: appearance,
+          icon: CupertinoIcons.app_fill,
+          tone: TileTone.blue,
+          kw: l10n.settingsSearchKwIcon,
+          enKw: en.settingsSearchKwIcon,
+          onOpen: () => _open('logo', (_) => const LogoScreen())),
+      page('glass',
+          title: l10n.settingsHubGlass,
+          enTitle: en.settingsHubGlass,
+          section: appearance,
+          icon: CupertinoIcons.drop_fill,
+          tone: TileTone.teal,
+          kw: l10n.settingsSearchKwGlass,
+          enKw: en.settingsSearchKwGlass,
+          onOpen: () => _open('glass', (_) => const GlassScreen())),
+      page('navigation',
+          title: l10n.settingsHubNavigation,
+          enTitle: en.settingsHubNavigation,
+          section: appearance,
+          icon: CupertinoIcons.square_grid_2x2_fill,
+          tone: TileTone.orange,
+          kw: l10n.settingsSearchKwNavigation,
+          enKw: en.settingsSearchKwNavigation,
+          onOpen: () => _open('navigation', (_) => const NavigationScreen())),
+      page('motion',
+          title: l10n.settingsHubMotion,
+          enTitle: en.settingsHubMotion,
+          section: appearance,
+          icon: CupertinoIcons.wand_stars,
+          tone: TileTone.pink,
+          kw: l10n.settingsSearchKwMotion,
+          enKw: en.settingsSearchKwMotion,
+          onOpen: () => _open('motion', (_) => const MotionScreen())),
+      // ── Companions
+      page('sebastian',
+          title: Companion.sebastian.displayName,
+          enTitle: Companion.sebastian.displayName,
+          section: companions,
+          icon: CupertinoIcons.person_fill,
+          tone: TileTone.indigo,
+          kw: l10n.settingsSearchKwCompanions,
+          enKw: en.settingsSearchKwCompanions,
+          onOpen: () => _open('sebastian', (_) => const SebastianScreen())),
+      page('marlowe',
+          title: Companion.marlowe.displayName,
+          enTitle: Companion.marlowe.displayName,
+          section: companions,
+          icon: CupertinoIcons.person_fill,
+          tone: TileTone.teal,
+          kw: l10n.settingsSearchKwCompanions,
+          enKw: en.settingsSearchKwCompanions,
+          onOpen: () => _open('marlowe', (_) => const MarloweScreen())),
+      // ── Chats
+      page('roomLayout',
+          title: l10n.settingsHubChatList,
+          enTitle: en.settingsHubChatList,
+          section: chats,
+          icon: CupertinoIcons.list_bullet,
+          tone: TileTone.blue,
+          kw: l10n.settingsSearchKwChatList,
+          enKw: en.settingsSearchKwChatList,
+          onOpen: () => _open('roomLayout', (_) => const RoomLayoutScreen())),
+      page('chatStyle',
+          title: l10n.settingsHubChatStyle,
+          enTitle: en.settingsHubChatStyle,
+          section: chats,
+          icon: CupertinoIcons.chat_bubble_2_fill,
+          tone: TileTone.green,
+          kw: l10n.settingsSearchKwChatStyle,
+          enKw: en.settingsSearchKwChatStyle,
+          onOpen: () => _open('chatStyle', (_) => const ChatStyleScreen())),
+      page('bubbleStyle',
+          title: l10n.settingsHubBubbleStyle,
+          enTitle: en.settingsHubBubbleStyle,
+          section: chats,
+          icon: CupertinoIcons.bubble_left_fill,
+          tone: TileTone.teal,
+          kw: l10n.settingsSearchKwBubbles,
+          enKw: en.settingsSearchKwBubbles,
+          onOpen: () =>
+              _open('bubbleStyle', (_) => const BubbleStyleScreen())),
+      page('speakerColors',
+          title: l10n.settingsHubSpeakerColors,
+          enTitle: en.settingsHubSpeakerColors,
+          section: chats,
+          icon: CupertinoIcons.paintbrush,
+          tone: TileTone.orange,
+          kw: l10n.settingsSearchKwSpeakers,
+          enKw: en.settingsSearchKwSpeakers,
+          onOpen: () =>
+              _open('speakerColors', (_) => const SpeakerColorScreen())),
+      page('replyStyle',
+          title: l10n.settingsHubReplyStyle,
+          enTitle: en.settingsHubReplyStyle,
+          section: chats,
+          icon: CupertinoIcons.reply,
+          tone: TileTone.indigo,
+          kw: l10n.settingsSearchKwReply,
+          enKw: en.settingsSearchKwReply,
+          onOpen: () => _open(
+              'replyStyle', (_) => ReplyStyleScreen(api: widget.api))),
+      // ── Account (one page down, inside the profile)
+      if (me != null) ...[
+        page('profile',
+            title: account,
+            enTitle: en.settingsSearchAccount,
+            section: account,
+            icon: CupertinoIcons.person_crop_circle_fill,
+            tone: TileTone.gray,
+            kw: l10n.settingsSearchKwAccount,
+            enKw: en.settingsSearchKwAccount,
+            onOpen: openProfile),
+        page('visibility',
+            title: l10n.acctRowVisibility,
+            enTitle: en.acctRowVisibility,
+            section: account,
+            icon: CupertinoIcons.eye_fill,
+            tone: TileTone.blue,
+            kw: l10n.settingsSearchKwPrivacy,
+            enKw: en.settingsSearchKwPrivacy,
+            onOpen: () => _open(
+                'visibility',
+                (_) => ProfileVisibilityScreen(
+                      repo: widget.repo,
+                      api: widget.api,
+                      readOnly: isChild,
+                    ))),
+        page('blocked',
+            title: l10n.acctRowBlocked,
+            enTitle: en.acctRowBlocked,
+            section: account,
+            icon: CupertinoIcons.hand_raised_slash_fill,
+            tone: TileTone.red,
+            kw: l10n.settingsSearchKwBlocked,
+            enKw: en.settingsSearchKwBlocked,
+            onOpen: () => _open(
+                'blocked',
+                (_) =>
+                    BlockedUsersScreen(repo: widget.repo, api: widget.api))),
+        page('capture',
+            title: l10n.acctCaptureTitle,
+            enTitle: en.acctCaptureTitle,
+            section: account,
+            icon: CupertinoIcons.camera_viewfinder,
+            tone: TileTone.purple,
+            kw: l10n.settingsSearchKwCapture,
+            enKw: en.settingsSearchKwCapture,
+            onOpen: openProfile),
+        page('family',
+            title: l10n.acctSectionFamily,
+            enTitle: en.acctSectionFamily,
+            section: account,
+            icon: CupertinoIcons.person_3_fill,
+            tone: TileTone.green,
+            kw: l10n.settingsSearchKwFamily,
+            enKw: en.settingsSearchKwFamily,
+            onOpen: openProfile),
+        if (!isChild) ...[
+          page('devices',
+              title: l10n.acctRowDevices,
+              enTitle: en.acctRowDevices,
+              section: account,
+              icon: CupertinoIcons.device_phone_portrait,
+              tone: TileTone.gray,
+              kw: l10n.settingsSearchKwDevices,
+              enKw: en.settingsSearchKwDevices,
+              onOpen: () => _open(
+                  'devices',
+                  (_) => DevicesScreen(auth: widget.auth, api: widget.api))),
+          page('linked',
+              title: l10n.acctRowLinked,
+              enTitle: en.acctRowLinked,
+              section: account,
+              icon: CupertinoIcons.link_circle_fill,
+              tone: TileTone.indigo,
+              kw: l10n.settingsSearchKwLinked,
+              enKw: en.settingsSearchKwLinked,
+              onOpen: () => _open(
+                  'linked', (_) => LinkedAccountsScreen(auth: widget.auth))),
+          page('recovery',
+              title: l10n.acctRowChangeRecovery,
+              enTitle: en.acctRowChangeRecovery,
+              section: account,
+              icon: CupertinoIcons.lock_shield_fill,
+              tone: TileTone.orange,
+              kw: l10n.settingsSearchKwRecovery,
+              enKw: en.settingsSearchKwRecovery,
+              onOpen: openProfile),
+        ],
+      ],
+      // ── Help & legal
+      page('report',
+          title: l10n.reportProblemRowLabel,
+          enTitle: en.reportProblemRowLabel,
+          section: help,
+          icon: CupertinoIcons.ant_fill,
+          tone: TileTone.red,
+          kw: l10n.settingsSearchKwReport,
+          enKw: en.settingsSearchKwReport,
+          onOpen: () => _open(
+              'report',
+              (_) => ReportProblemScreen(auth: widget.auth, api: widget.api))),
+      page('privacyPolicy',
+          title: l10n.settingsHubPrivacyPolicy,
+          enTitle: en.settingsHubPrivacyPolicy,
+          section: help,
+          icon: CupertinoIcons.hand_raised_fill,
+          tone: TileTone.blue,
+          kw: l10n.settingsSearchKwLegal,
+          enKw: en.settingsSearchKwLegal,
+          onOpen: () => LinkOpener.open(context, kPrivacyPolicyUrl)),
+      page('terms',
+          title: l10n.settingsHubTerms,
+          enTitle: en.settingsHubTerms,
+          section: help,
+          icon: CupertinoIcons.doc_text_fill,
+          tone: TileTone.gray,
+          kw: l10n.settingsSearchKwLegal,
+          enKw: en.settingsSearchKwLegal,
+          onOpen: () => LinkOpener.open(context, kTermsOfServiceUrl)),
+      // ── Advanced
+      if (!isChild)
+        page('server',
+            title: l10n.settingsHubServer,
+            enTitle: en.settingsHubServer,
+            section: advanced,
+            icon: CupertinoIcons.cloud_fill,
+            tone: TileTone.gray,
+            kw: l10n.settingsSearchKwServer,
+            enKw: en.settingsSearchKwServer,
+            onOpen: () => _open('server', (_) => const ServerScreen())),
+      live('callStats',
+          title: l10n.settingsHubCallStats,
+          enTitle: en.settingsHubCallStats,
+          section: advanced,
+          kw: l10n.settingsSearchKwStats,
+          enKw: en.settingsSearchKwStats,
+          row: toggles['callStats']!),
+      page('diagnostics',
+          title: l10n.settingsHubDiagnostics,
+          enTitle: en.settingsHubDiagnostics,
+          section: advanced,
+          icon: CupertinoIcons.waveform_path_ecg,
+          tone: TileTone.gray,
+          kw: l10n.settingsSearchKwDiagnostics,
+          enKw: en.settingsSearchKwDiagnostics,
+          onOpen: () => _open('diagnostics', (_) => const DiagnosticsScreen())),
+    ];
   }
 
   // ── Platform rows whose state lives outside SettingsStore ──────────────
@@ -894,6 +1378,7 @@ class _HubRow extends GroupedRow {
     super.trailing,
     super.chevron,
     super.badge,
+    super.subtitle,
     this.selected = false,
     this.leading,
   });
@@ -927,6 +1412,7 @@ class _HubRowState extends State<GroupedRow> {
           title: w.title,
           icon: w.icon,
           tone: w.tone,
+          subtitle: w.subtitle,
           value: w.value,
           onTap: w.onTap,
           trailing: w.trailing,

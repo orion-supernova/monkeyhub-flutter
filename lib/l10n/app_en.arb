@@ -11961,5 +11961,178 @@
   "friendRequestDraftIntroOutgoingSentence": "Send a few lines. They can approve or decline.",
   "@friendRequestDraftIntroOutgoingSentence": {
     "description": "Intro card on a new outgoing friend request, sentence case (replaces the lower-case friendRequestDraftScreenIntroOutgoing in the iOS-style screen)."
+  },
+  "requestDeclineIos": "Decline",
+  "@requestDeclineIos": {
+    "description": "Capsule button on a pending request row (join request or suggested change) that turns it down. Short, sentence case."
+  },
+  "joinRequestAllowIos": "Allow",
+  "@joinRequestAllowIos": {
+    "description": "Primary capsule on a join-request row that lets the person into the group. Short, sentence case."
+  },
+  "changeRequestUseIos": "Use it",
+  "@changeRequestUseIos": {
+    "description": "Primary capsule on a suggested-change row (new group name, picture or description) that applies the suggestion. Short, sentence case."
+  },
+  "settingsSearchHint": "Search",
+  "@settingsSearchHint": {
+    "description": "Placeholder in the search field at the top of Settings."
+  },
+  "settingsSearchNoResults": "No results for \"{query}\"",
+  "@settingsSearchNoResults": {
+    "description": "Shown when a Settings search matches nothing. {query} is what was typed.",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsSearchAccount": "Account",
+  "@settingsSearchAccount": {
+    "description": "Breadcrumb root for settings that live in the account (profile) page, e.g. 'Account › Devices'."
+  },
+  "settingsHubDiagnostics": "Diagnostics",
+  "@settingsHubDiagnostics": {
+    "description": "Settings › Advanced row that opens the diagnostics log viewer."
+  },
+  "settingsHubDiagnosticsSubtitle": "Logs for troubleshooting and bug reports",
+  "@settingsHubDiagnosticsSubtitle": {
+    "description": "Subtitle under the Diagnostics row."
+  },
+  "settingsHubAdvancedFooter": "For troubleshooting and self-hosting. Nothing here is needed day to day.",
+  "@settingsHubAdvancedFooter": {
+    "description": "Footer under Settings › Advanced explaining who the section is for."
+  },
+  "settingsSearchKwLanguage": "language, translation, locale, region",
+  "@settingsSearchKwLanguage": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Language entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwUpdates": "update, version, new, upgrade",
+  "@settingsSearchKwUpdates": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Updates entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwLinks": "links, url, address, preview",
+  "@settingsSearchKwLinks": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Links entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwAutoplay": "gif, animation, autoplay, motion",
+  "@settingsSearchKwAutoplay": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Autoplay entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwStickers": "stickers, emoji, suggestions",
+  "@settingsSearchKwStickers": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Stickers entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwPush": "notifications, alerts, sound, badge",
+  "@settingsSearchKwPush": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Push entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwGames": "games, reminder, daily, puzzle",
+  "@settingsSearchKwGames": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Games entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwFriends": "friends, activity, points, highlights",
+  "@settingsSearchKwFriends": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Friends entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwVideo": "video, call, quality, camera, data",
+  "@settingsSearchKwVideo": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Video entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwStats": "call stats, network, bitrate, ping, debug",
+  "@settingsSearchKwStats": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Stats entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwTheme": "theme, dark, light, colours, night, appearance",
+  "@settingsSearchKwTheme": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Theme entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwIcon": "app icon, logo, home screen",
+  "@settingsSearchKwIcon": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Icon entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwGlass": "glass, liquid glass, blur, frosted, transparency",
+  "@settingsSearchKwGlass": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Glass entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwNavigation": "tab bar, navigation, menu, bottom bar",
+  "@settingsSearchKwNavigation": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Navigation entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwMotion": "motion, animation, reduce motion, effects",
+  "@settingsSearchKwMotion": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Motion entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwCompanions": "ai, assistant, translate, model, companion",
+  "@settingsSearchKwCompanions": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Companions entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwChatList": "chat list, rows, cards, grid, filter, layout",
+  "@settingsSearchKwChatList": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the ChatList entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwChatStyle": "chat style, compact, classic, header",
+  "@settingsSearchKwChatStyle": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the ChatStyle entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwBubbles": "bubbles, messages, tail, shape",
+  "@settingsSearchKwBubbles": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Bubbles entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwSpeakers": "names, colours, groups, who's who",
+  "@settingsSearchKwSpeakers": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Speakers entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwReply": "reply, quote, thread",
+  "@settingsSearchKwReply": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Reply entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwReport": "bug, problem, feedback, support, help",
+  "@settingsSearchKwReport": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Report entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwLegal": "privacy, terms, legal, licence, policy",
+  "@settingsSearchKwLegal": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Legal entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwServer": "server, self-host, url, backend, developer",
+  "@settingsSearchKwServer": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Server entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwDiagnostics": "diagnostics, logs, debug, developer, crash",
+  "@settingsSearchKwDiagnostics": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Diagnostics entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwPrivacy": "privacy, visibility, who can see, last seen, read receipts",
+  "@settingsSearchKwPrivacy": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Privacy entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwBlocked": "blocked, block, people",
+  "@settingsSearchKwBlocked": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Blocked entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwDevices": "devices, sessions, sign out, phone, computer",
+  "@settingsSearchKwDevices": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Devices entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwLinked": "apple, google, sign in, linked",
+  "@settingsSearchKwLinked": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Linked entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwRecovery": "recovery phrase, password, backup, forgot",
+  "@settingsSearchKwRecovery": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Recovery entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwCapture": "screenshot, screen recording, capture, privacy",
+  "@settingsSearchKwCapture": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Capture entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwFamily": "family, child, parent, approvals, grown-ups",
+  "@settingsSearchKwFamily": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Family entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwAccount": "account, sign out, delete, email, username",
+  "@settingsSearchKwAccount": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Account entry in Settings search. Not shown on screen; keep short."
   }
 }
