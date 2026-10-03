@@ -68,7 +68,7 @@ void main() {
     await tester.tap(find.byType(GameInfoButton));
     await tester.pumpAndSettle();
 
-    expect(find.text('THE RULES'), findsOneWidget);
+    expect(find.text('The rules'), findsOneWidget);
     expect(find.text('eight crowns: one in each row, one in each column.'),
         findsOneWidget);
     // The whole point of the separate target: the board must not have opened
@@ -91,11 +91,11 @@ void main() {
     await tester.pumpAndSettle();
 
     // The name, which is as far from the ⓘ in the corner as the tile gets.
-    await tester.tap(find.text('tango'));
+    await tester.tap(find.text('Tango'));
     await tester.pumpAndSettle();
 
     expect(opened, 1);
-    expect(find.text('THE RULES'), findsNothing);
+    expect(find.text('The rules'), findsNothing);
   });
 
   testWidgets('the Feed band carries one too', (tester) async {
@@ -151,13 +151,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Up in the card's padding, left of the disc — over the tile's own tap
-    // region, which used to win this one and open the board.
-    final tile = tester.getRect(find.byType(GameTile));
-    await tester.tapAt(Offset(tile.right - 30, tile.top + 6));
+    // Inside the button's box but clear of the disc — over the card's own
+    // tap region, which would otherwise win this one and open the board.
+    final box = tester.getRect(find.byType(GameInfoButton));
+    await tester.tapAt(Offset(box.left + 3, box.center.dy));
     await tester.pumpAndSettle();
 
-    expect(find.text('THE RULES'), findsOneWidget);
+    expect(find.text('The rules'), findsOneWidget);
     expect(opened, 0);
   });
 
@@ -210,7 +210,12 @@ void main() {
     ),
   );
 
-  testWidgets('the hub ⓘ hangs off the corner of its tile', (tester) async {
+  // The hub card is an Arcade-style card now: the ⓘ sits on its title line,
+  // inside the card, beside the game's name — not over the board's corner,
+  // where it covered a cell of today's puzzle.
+  testWidgets('the hub ⓘ sits on the title line, inside its card', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       host(
         GameTile(
@@ -226,13 +231,15 @@ void main() {
     final tile = tester.getRect(find.byType(GameTile));
     final glyph = tester.getRect(disc);
 
-    expect(glyph.right, greaterThan(tile.right));
-    expect(glyph.top, lessThan(tile.top));
-    // Over the edge, not off the tile: the Wrap's gutter is 12.
-    expect(glyph.right - tile.right, lessThan(12));
-    // Geometry alone would not notice the overhang being clipped away —
-    // getRect reports where a child lays out, not what survives to the screen.
-    expect(clipOf(tester, find.byType(GameInfoButton)), Clip.none);
+    // Wholly inside the card…
+    expect(glyph.left, greaterThanOrEqualTo(tile.left));
+    expect(glyph.right, lessThanOrEqualTo(tile.right));
+    expect(glyph.bottom, lessThanOrEqualTo(tile.bottom));
+    // …and below the board, which is square and as wide as the card.
+    expect(glyph.top, greaterThan(tile.top + tile.width * 0.8));
+    // Level with the game's name.
+    final name = tester.getRect(find.text('Queens'));
+    expect((glyph.center.dy - name.center.dy).abs(), lessThan(8));
   });
 
   testWidgets('the Feed band ⓘ hangs off its tile too', (tester) async {
@@ -306,7 +313,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byType(GameInfoButton));
     await tester.pumpAndSettle();
-    expect(find.text('THE RULES'), findsOneWidget);
+    expect(find.text('The rules'), findsOneWidget);
   }
 
   testWidgets('PLAY closes the sheet and opens the game', (tester) async {
@@ -321,10 +328,10 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('PLAY'));
+    await tester.tap(find.text('Play'));
     await tester.pumpAndSettle();
 
-    expect(find.text('THE RULES'), findsNothing);
+    expect(find.text('The rules'), findsNothing);
     expect(opened, 1);
   });
 
@@ -343,7 +350,7 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Close'));
     await tester.pumpAndSettle();
 
-    expect(find.text('THE RULES'), findsNothing);
+    expect(find.text('The rules'), findsNothing);
     expect(opened, 0);
   });
 
@@ -370,7 +377,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('THE RULES'), findsNothing);
+    expect(find.text('The rules'), findsNothing);
     expect(opened, 0);
   });
 
@@ -392,10 +399,10 @@ void main() {
       ),
     );
 
-    await tester.fling(find.text('THE RULES'), const Offset(0, 600), 1500);
+    await tester.fling(find.text('The rules'), const Offset(0, 600), 1500);
     await tester.pumpAndSettle();
 
-    expect(find.text('THE RULES'), findsNothing);
+    expect(find.text('The rules'), findsNothing);
     // iOS, whose default physics are the ones most eager to take a drag.
   }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
 
@@ -416,7 +423,7 @@ void main() {
         onTap: () {},
       ),
     );
-    expect(find.text('CONTINUE'), findsOneWidget);
+    expect(find.text('Continue'), findsOneWidget);
 
     await tester.tap(find.bySemanticsLabel('Close'));
     await tester.pumpAndSettle();
@@ -436,7 +443,7 @@ void main() {
         onTap: () {},
       ),
     );
-    expect(find.text('SEE YOUR RESULT'), findsOneWidget);
+    expect(find.text('See your result'), findsOneWidget);
   });
 
   testWidgets('the code puzzle offers the way in too', (tester) async {
@@ -450,7 +457,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('PLAY'));
+    await tester.tap(find.text('Play'));
     await tester.pumpAndSettle();
 
     expect(opened, 1);

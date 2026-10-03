@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -205,8 +206,8 @@ void main() {
       await t.pumpAndSettle();
 
       // One react button: Ada's. Your own record is for others to cheer.
-      expect(find.byIcon(Icons.add_reaction_outlined), findsOneWidget);
-      await t.tap(find.byIcon(Icons.add_reaction_outlined));
+      expect(find.byIcon(CupertinoIcons.smiley), findsOneWidget);
+      await t.tap(find.byIcon(CupertinoIcons.smiley));
       await t.pumpAndSettle();
       await t.tap(find.text('🔥'));
       await t.pumpAndSettle();

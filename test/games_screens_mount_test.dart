@@ -111,7 +111,7 @@ void main() {
 
     // The board is only inert until `start` lands; if it stayed that way the
     // screen would look fine and refuse every tap.
-    expect(find.text('queens'), findsWidgets);
+    expect(find.text('Queens'), findsWidgets);
     expect(find.text('0:00'), findsOneWidget);
     await settle(tester);
   });

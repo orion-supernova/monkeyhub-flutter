@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -207,17 +208,17 @@ class _TangoScreenState extends State<TangoScreen>
       ),
       tools: [
         GameTool(
-          icon: Icons.undo,
+          icon: CupertinoIcons.arrow_uturn_left,
           label: l10n.gameUndo,
           onTap: _undo.isEmpty ? null : _undoLast,
         ),
         GameTool(
-          icon: Icons.lightbulb_outline,
+          icon: CupertinoIcons.lightbulb,
           label: l10n.gameHint,
           onTap: _play.busy ? null : _hint,
         ),
         GameTool(
-          icon: Icons.flag_outlined,
+          icon: CupertinoIcons.flag,
           label: l10n.gameGiveUp,
           danger: true,
           onTap: _play.busy ? null : _giveUp,

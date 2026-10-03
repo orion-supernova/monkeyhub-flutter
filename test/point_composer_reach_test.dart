@@ -6,6 +6,7 @@ import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/screens/feed/point_composer.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+import 'package:monkeyhub/widgets/sheet_kit.dart' show sentenceCase;
 
 /// What this pins: you can actually reach ADD POINT.
 ///
@@ -68,11 +69,13 @@ void main() {
     expect(find.byType(SingleChildScrollView), findsWidgets);
 
     // Reachable — by scrolling if need be, which is exactly what was missing.
+    // The button prints its label in sentence case.
+    final add = sentenceCase(l10n.pointComposerAdd, languageCode: 'en');
     await tester.scrollUntilVisible(
-      find.text(l10n.pointComposerAdd),
+      find.text(add),
       120,
       scrollable: find.byType(Scrollable).last,
     );
-    expect(find.text(l10n.pointComposerAdd), findsOneWidget);
+    expect(find.text(add), findsOneWidget);
   });
 }

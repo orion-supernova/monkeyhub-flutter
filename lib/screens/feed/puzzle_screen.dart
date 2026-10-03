@@ -1,12 +1,15 @@
+import 'dart:math' as math;
+
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../backend/feed_api.dart';
 import '../../data/feed_store.dart';
-import '../../keyboard/focusable_tap.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/game_record.dart';
 import '../../models/puzzle.dart';
+import '../../theme/app_theme.dart';
 import '../../theme/layout.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
@@ -14,7 +17,10 @@ import '../../widgets/app_toast.dart';
 import '../games/game_scaffold.dart' show confirmTellFriends;
 import '../../widgets/game_layout_shell.dart';
 import '../../widgets/game_records.dart';
+import '../../widgets/game_celebration.dart';
+import '../../widgets/ios_kit.dart';
 import '../../widgets/puzzle_symbol.dart';
+import '../../widgets/sheet_kit.dart' show sentenceCaseOf;
 
 /// Today's puzzle, full screen.
 ///
@@ -181,26 +187,19 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     final done = attempt?.done ?? false;
 
     final header = <Widget>[
-      Row(
-        children: [
-          IconButton(
-            onPressed: () => Navigator.of(context).maybePop(),
-            icon: Icon(Icons.arrow_back, color: theme.inkSoft, size: 18),
-          ),
-        ],
+      if (Navigator.of(context).canPop())
+        const Align(alignment: Alignment.centerLeft, child: GlassBackButton()),
+      const SizedBox(height: 14),
+      Text(
+        sentenceCaseOf(context, l10n.gameCodeName),
+        style: theme.displayLarge.copyWith(letterSpacing: 0.37),
       ),
-      const SizedBox(height: 10),
-      Text(l10n.puzzleScreenTitle, style: theme.displayMedium),
-      const SizedBox(height: 10),
-      Row(
-        children: [
-          Container(width: 18, height: 1, color: theme.accent),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(l10n.puzzleScreenSubtitle, style: theme.caption),
-          ),
-        ],
+      const SizedBox(height: 4),
+      Text(
+        sentenceCaseOf(context, l10n.puzzleScreenSubtitle),
+        style: theme.bodySoft.copyWith(color: theme.inkMuted),
       ),
+      const SizedBox(height: 6),
     ];
 
     // On a compact/medium window the keypad sits below the grid, in the
@@ -359,30 +358,26 @@ class _Row extends StatelessWidget {
                       PuzzlePegSlot.present => theme.accent,
                       _ => null,
                     };
+                    // A symbol just typed lands with a little pop; a checked
+                    // row flips cell by cell. Lit cells take a solid tint of
+                    // their verdict instead of an outline and a glow.
+                    final pop = !revealed && i == symbols.length - 1
+                        ? 1 + 0.14 * math.sin(v * math.pi)
+                        : 1.0;
                     return Transform(
                       alignment: Alignment.center,
                       transform: Matrix4.identity()
                         ..setEntry(3, 2, 0.0012)
-                        ..rotateX(revealed ? (1 - v) * 1.4 : 0),
+                        ..rotateX(revealed ? (1 - v) * 1.4 : 0)
+                        ..scaleByDouble(pop, pop, 1, 1),
                       child: Container(
                         decoration: BoxDecoration(
                           color: lit != null
-                              ? lit.withValues(alpha: 0.22)
-                              : theme.surfaceSunken,
-                          borderRadius: BorderRadius.circular(theme.radiusMd),
-                          border: Border.all(
-                            color: lit ?? theme.divider,
-                            width: lit != null ? 1.6 : 1,
-                          ),
-                          boxShadow: lit == null
-                              ? null
-                              : [
-                                  BoxShadow(
-                                    color: lit.withValues(alpha: 0.45),
-                                    blurRadius: 10,
-                                    spreadRadius: 0.5,
-                                  ),
-                                ],
+                              ? lit.withValues(alpha: 0.30)
+                              : theme.ink.withValues(
+                                  alpha: i < symbols.length ? 0.10 : 0.05,
+                                ),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         alignment: Alignment.center,
                         child: child,
@@ -453,38 +448,19 @@ class _Keypad extends StatelessWidget {
                 onTap: busy || draft.isEmpty ? null : onPop,
                 semanticLabel: l10n.puzzleBackspace,
                 child: Icon(
-                  Icons.backspace_outlined,
-                  size: 16,
-                  color: theme.inkSoft,
+                  CupertinoIcons.delete_left,
+                  size: 20,
+                  color: theme.ink,
                 ),
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
               flex: 3,
-              child: FocusableTap(
-                onTap: full && !busy ? onSubmit : null,
-                semanticLabel: l10n.puzzleSubmit,
-                radius: theme.radiusMd,
-                child: GestureDetector(
-                  onTap: full && !busy ? onSubmit : null,
-                  behavior: HitTestBehavior.opaque,
-                  child: AnimatedContainer(
-                    duration: theme.motionFast,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    decoration: BoxDecoration(
-                      color: full ? theme.accent : theme.surfaceSunken,
-                      borderRadius: BorderRadius.circular(theme.radiusMd),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      l10n.puzzleSubmit,
-                      style: theme.label.copyWith(
-                        color: full ? theme.accentInk : theme.inkMuted,
-                      ),
-                    ),
-                  ),
-                ),
+              child: _SubmitButton(
+                enabled: full && !busy,
+                label: sentenceCaseOf(context, l10n.puzzleSubmit),
+                onTap: onSubmit,
               ),
             ),
           ],
@@ -540,37 +516,17 @@ class _SideKeypad extends StatelessWidget {
             onTap: busy || draft.isEmpty ? null : onPop,
             semanticLabel: l10n.puzzleBackspace,
             child: Icon(
-              Icons.backspace_outlined,
-              size: 18,
-              color: theme.inkSoft,
+              CupertinoIcons.delete_left,
+              size: 20,
+              color: theme.ink,
             ),
           ),
         ),
         const SizedBox(height: 16),
-        FocusableTap(
-          onTap: full && !busy ? onSubmit : null,
-          semanticLabel: l10n.puzzleSubmit,
-          radius: theme.radiusMd,
-          child: GestureDetector(
-            onTap: full && !busy ? onSubmit : null,
-            behavior: HitTestBehavior.opaque,
-            child: AnimatedContainer(
-              duration: theme.motionFast,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              decoration: BoxDecoration(
-                color: full ? theme.accent : theme.surfaceSunken,
-                borderRadius: BorderRadius.circular(theme.radiusMd),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                l10n.puzzleSubmit,
-                textAlign: TextAlign.center,
-                style: theme.label.copyWith(
-                  color: full ? theme.accentInk : theme.inkMuted,
-                ),
-              ),
-            ),
-          ),
+        _SubmitButton(
+          enabled: full && !busy,
+          label: sentenceCaseOf(context, l10n.puzzleSubmit),
+          onTap: onSubmit,
         ),
       ],
     );
@@ -591,24 +547,64 @@ class _Key extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: semanticLabel,
-      radius: theme.radiusMd,
-      child: GestureDetector(
+    // The iOS keyboard key: filled, borderless, dipping under the thumb.
+    return Opacity(
+      opacity: onTap == null ? 0.4 : 1,
+      child: SpringPress(
         onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Opacity(
-          opacity: onTap == null ? 0.4 : 1,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            decoration: BoxDecoration(
-              color: theme.surface,
-              borderRadius: BorderRadius.circular(theme.radiusMd),
-              border: Border.all(color: theme.divider),
-            ),
-            alignment: Alignment.center,
-            child: child,
+        semanticLabel: semanticLabel,
+        scale: 0.9,
+        haptic: false,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 52),
+          decoration: BoxDecoration(
+            color: theme.ink.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          alignment: Alignment.center,
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+/// The guess button: a capsule in the outgoing-bubble colour once the row is
+/// full, a quiet one until then.
+class _SubmitButton extends StatelessWidget {
+  const _SubmitButton({
+    required this.enabled,
+    required this.label,
+    required this.onTap,
+  });
+
+  final bool enabled;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return SpringPress(
+      onTap: enabled ? onTap : null,
+      semanticLabel: label,
+      child: AnimatedContainer(
+        duration: theme.motionFast,
+        height: 52,
+        decoration: BoxDecoration(
+          color: enabled
+              ? theme.bubbleFill(isMine: true)
+              : theme.ink.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: theme.body.copyWith(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: enabled ? theme.accentInk : theme.inkMuted,
           ),
         ),
       ),
@@ -635,73 +631,121 @@ class _Outcome extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: theme.roomCardDecoration(ephemeral: false, active: false),
+    final solved = attempt.solved;
+    final card = Container(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+      decoration: BoxDecoration(
+        color: groupedFill(theme),
+        borderRadius: BorderRadius.circular(groupedRadius(theme)),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            attempt.solved
-                ? l10n.puzzleSolvedTitle(attempt.guesses.length)
-                : l10n.puzzleFailedTitle,
-            style: theme.displaySmall,
+          Container(
+            width: 58,
+            height: 58,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: solved
+                  ? const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xFFFFD86B), Color(0xFFF5A623)],
+                    )
+                  : null,
+              color: solved ? null : theme.ink.withValues(alpha: 0.08),
+            ),
+            child: Icon(
+              solved ? CupertinoIcons.star_fill : CupertinoIcons.lock_fill,
+              size: 28,
+              color: solved ? Colors.white : theme.inkMuted,
+            ),
           ),
-          if (!attempt.solved && attempt.answer != null) ...[
+          const SizedBox(height: 14),
+          Text(
+            sentenceCaseOf(
+              context,
+              solved
+                  ? l10n.puzzleSolvedTitle(attempt.guesses.length)
+                  : l10n.puzzleFailedTitle,
+            ),
+            textAlign: TextAlign.center,
+            style: theme.displayMedium,
+          ),
+          if (!solved && attempt.answer != null) ...[
             const SizedBox(height: 12),
-            Text(l10n.puzzleAnswerWas, style: theme.monoTiny),
+            Text(
+              sentenceCaseOf(context, l10n.puzzleAnswerWas),
+              style: theme.bodySoft.copyWith(color: theme.inkMuted),
+            ),
             const SizedBox(height: 8),
             Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                for (final s in attempt.answer!)
+                for (final sym in attempt.answer!)
                   Padding(
-                    padding: const EdgeInsets.only(right: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: PuzzleSymbol(
-                      index: s,
-                      size: 20,
+                      index: sym,
+                      size: 24,
                       accent: theme.accent,
                     ),
                   ),
               ],
             ),
           ],
-          const SizedBox(height: 14),
-          // Wrapped, like the timed boards' result card: two actions and a
-          // long localized label are wider than a narrow phone in several of
-          // the twelve languages.
-          Wrap(
-            spacing: 18,
-            runSpacing: 10,
+          const SizedBox(height: 18),
+          Row(
             children: [
-              _OutcomeAction(
-                icon: Icons.copy_outlined,
-                label: l10n.puzzleShare,
-                onTap: onShare,
+              Expanded(
+                child: _OutcomeAction(
+                  icon: CupertinoIcons.doc_on_doc,
+                  label: sentenceCaseOf(context, l10n.puzzleShare),
+                  onTap: onShare,
+                ),
               ),
+              const SizedBox(width: 10),
               // Retired once used: the server allows one send per result, so
               // a button that stayed would only ever answer with an error.
-              if (!attempt.shared)
-                _OutcomeAction(
-                  icon: Icons.notifications_active_outlined,
-                  label: l10n.gameTellFriends,
-                  onTap: onTellFriends,
-                )
-              else
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.check, size: 14, color: theme.inkMuted),
-                    const SizedBox(width: 6),
-                    Text(
-                      l10n.gameToldFriends,
-                      style: theme.label.copyWith(color: theme.inkMuted),
-                    ),
-                  ],
-                ),
+              Expanded(
+                child: attempt.shared
+                    ? _OutcomeAction(
+                        icon: CupertinoIcons.checkmark_alt,
+                        label: sentenceCaseOf(context, l10n.gameToldFriends),
+                        onTap: null,
+                      )
+                    : _OutcomeAction(
+                        icon: CupertinoIcons.bell_fill,
+                        label: sentenceCaseOf(context, l10n.gameTellFriends),
+                        onTap: onTellFriends,
+                        prominent: true,
+                      ),
+              ),
             ],
           ),
         ],
       ),
+    );
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0.86, end: 1),
+          duration: MotionScope.of(context).d(const Duration(milliseconds: 620)),
+          curve: Curves.elasticOut,
+          builder: (context, sc, child) =>
+              Transform.scale(scale: sc, child: child),
+          child: card,
+        ),
+        if (solved)
+          const Positioned(
+            left: -40,
+            right: -40,
+            top: -260,
+            height: 520,
+            child: GameCelebration(origin: Alignment(0, 0.1)),
+          ),
+      ],
     );
   }
 }
@@ -712,29 +756,51 @@ class _OutcomeAction extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.prominent = false,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback? onTap;
+  final bool prominent;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final color = onTap == null ? theme.inkMuted : theme.accent;
-    return FocusableTap(
+    final on = onTap != null;
+    final fill = prominent && on
+        ? theme.bubbleFill(isMine: true)
+        : theme.ink.withValues(alpha: on ? 0.08 : 0.05);
+    final ink = prominent && on
+        ? theme.accentInk
+        : (on ? theme.ink : theme.inkMuted);
+    return SpringPress(
       onTap: onTap,
       semanticLabel: label,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
+      child: Container(
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: fill,
+          borderRadius: BorderRadius.circular(999),
+        ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 14, color: color),
-            const SizedBox(width: 6),
-            Text(label, style: theme.label.copyWith(color: color)),
+            Icon(icon, size: 16, color: ink),
+            const SizedBox(width: 7),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.body.copyWith(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: ink,
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -754,62 +820,119 @@ class _Scoreboard extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
 
+    final hairline = 1 / MediaQuery.devicePixelRatioOf(context);
+    final scores = state.scores;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(l10n.puzzleScoreboardLabel, style: theme.label),
-            const SizedBox(width: 8),
-            Expanded(child: Container(height: 1, color: theme.divider)),
-            const SizedBox(width: 6),
-            AllTimeLink(game: RecordGame.code, viewerId: viewerId),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (state.scores.isEmpty)
-          Text(
-            l10n.puzzleScoreboardEmpty,
-            style: theme.bodySoft.copyWith(color: theme.inkMuted),
-          )
-        else
-          for (var i = 0; i < state.scores.length; i++)
-            Padding(
-              key: ValueKey(state.scores[i].userId),
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 22,
-                    child: Text('${i + 1}', style: theme.monoTiny),
+        const SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.only(left: 16),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  sentenceCaseOf(context, l10n.puzzleScoreboardLabel),
+                  style: theme.bodySoft.copyWith(
+                    fontSize: 13,
+                    color: theme.inkMuted,
                   ),
-                  Expanded(
-                    child: Text(
-                      state.scores[i].userId == viewerId
-                          ? l10n.momentRailYouLabel
-                          : state.scores[i].name,
-                      style: state.scores[i].userId == viewerId
-                          ? theme.bodyEmph.copyWith(color: theme.accent)
-                          : theme.body,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Text(
-                    state.scores[i].solved
-                        ? '${state.scores[i].guessCount}/$kPuzzleMaxGuesses'
-                        : 'X/$kPuzzleMaxGuesses',
-                    style: theme.monoLarge.copyWith(
-                      fontSize: 14,
-                      color: state.scores[i].solved
-                          ? theme.ink
-                          : theme.inkMuted,
-                    ),
-                  ),
-                ],
+                ),
               ),
+              AllTimeLink(game: RecordGame.code, viewerId: viewerId),
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(groupedRadius(theme)),
+          child: ColoredBox(
+            color: groupedFill(theme),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (scores.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      sentenceCaseOf(context, l10n.puzzleScoreboardEmpty),
+                      style: theme.bodySoft.copyWith(color: theme.inkMuted),
+                    ),
+                  )
+                else
+                  for (var i = 0; i < scores.length; i++) ...[
+                    Container(
+                      key: ValueKey(scores[i].userId),
+                      color: scores[i].userId == viewerId
+                          ? theme.accent.withValues(alpha: 0.10)
+                          : null,
+                      padding: const EdgeInsets.fromLTRB(14, 10, 16, 10),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 28,
+                            height: 28,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: theme.ink.withValues(alpha: 0.07),
+                            ),
+                            child: Text(
+                              '${i + 1}',
+                              style: theme.body.copyWith(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: theme.inkMuted,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Text(
+                              scores[i].userId == viewerId
+                                  ? sentenceCaseOf(
+                                      context,
+                                      l10n.momentRailYouLabel,
+                                    )
+                                  : scores[i].name,
+                              style: scores[i].userId == viewerId
+                                  ? theme.bodyEmph.copyWith(color: theme.accent)
+                                  : theme.body.copyWith(color: theme.ink),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Text(
+                            scores[i].solved
+                                ? '${scores[i].guessCount}/$kPuzzleMaxGuesses'
+                                : 'X/$kPuzzleMaxGuesses',
+                            style: theme.body.copyWith(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: scores[i].solved
+                                  ? theme.ink
+                                  : theme.inkMuted,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (i < scores.length - 1)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 56),
+                        child: Container(
+                          height: hairline,
+                          color: theme.ink.withValues(alpha: 0.10),
+                        ),
+                      ),
+                  ],
+              ],
             ),
+          ),
+        ),
       ],
     );
   }

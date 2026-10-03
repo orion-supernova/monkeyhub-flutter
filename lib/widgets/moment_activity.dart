@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../keyboard/focusable_tap.dart';
@@ -6,6 +7,7 @@ import '../models/moment.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'moment_rail.dart';
+import 'meta_text.dart';
 
 /// The chronological tail of the board: everything that happened today, in
 /// order, one line each.
@@ -69,7 +71,7 @@ class MomentActivity extends StatelessWidget {
           // stops without saying so reads as "that was everything".
           Text(
             l10n.momentActivityMoreCount(moments.length - shown.length),
-            style: theme.monoTiny.copyWith(color: theme.inkMuted),
+            style: metaText(theme, color: theme.inkMuted),
           ),
         ],
       ],
@@ -155,7 +157,7 @@ class _ActivityRow extends StatelessWidget {
                     children: [
                       Icon(
                         tag == null
-                            ? Icons.photo_outlined
+                            ? CupertinoIcons.photo
                             : MomentTagChip.iconFor(tag),
                         size: 13,
                         color: tag == null ? theme.inkMuted : theme.accent,
@@ -190,7 +192,7 @@ class _ActivityRow extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 10),
-                Text(_ago(l10n, moment.createdAt), style: theme.monoTiny),
+                Text(_ago(l10n, moment.createdAt), style: metaText(theme)),
               ],
             ),
           ),

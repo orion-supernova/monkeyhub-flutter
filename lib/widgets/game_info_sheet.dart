@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../games/game_canvas.dart';
@@ -15,6 +16,8 @@ import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'destructive_sheet.dart' show SheetGrabber;
 import 'puzzle_symbol.dart';
+import 'meta_text.dart';
+import 'sheet_kit.dart' show sentenceCaseOf;
 
 /// What a daily game is, in the plainest words the rules allow.
 ///
@@ -177,13 +180,12 @@ class GameInfoButton extends StatelessWidget {
                   // region colours and across the tile's own outline, and a
                   // translucent disc would carry that border line through its
                   // middle.
-                  color: theme.background,
+                  color: theme.ink.withValues(alpha: 0.08),
                   shape: BoxShape.circle,
-                  border: Border.all(color: theme.divider),
                 ),
                 alignment: Alignment.center,
                 child: Icon(
-                  Icons.question_mark,
+                  CupertinoIcons.question,
                   size: size * 0.40,
                   color: theme.inkSoft,
                 ),
@@ -286,16 +288,19 @@ class _GameInfoSheet extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              l10n.gameInfoLabel,
-                              style: theme.label.copyWith(
-                                color: theme.accent,
-                                letterSpacing: 2,
-                              ),
+                              sentenceCaseOf(context, l10n.gameInfoLabel),
+                              style: metaText(theme, color: theme.accent),
                             ),
                             const SizedBox(height: 4),
-                            Text(copy.name, style: theme.displayMedium),
+                            Text(
+                              sentenceCaseOf(context, copy.name),
+                              style: theme.displayMedium,
+                            ),
                             const SizedBox(height: 6),
-                            Text(copy.goal, style: theme.bodySoft),
+                            Text(
+                              sentenceCaseOf(context, copy.goal),
+                              style: theme.bodySoft,
+                            ),
                           ],
                         ),
                       ),
@@ -303,8 +308,11 @@ class _GameInfoSheet extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    l10n.gameInfoRulesLabel,
-                    style: theme.label.copyWith(letterSpacing: 2),
+                    sentenceCaseOf(context, l10n.gameInfoRulesLabel),
+                    style: theme.bodySoft.copyWith(
+                      fontSize: 13,
+                      color: theme.inkMuted,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   for (final rule in copy.rules) ...[
@@ -313,22 +321,26 @@ class _GameInfoSheet extends StatelessWidget {
                   ],
                   const SizedBox(height: 10),
                   Text(
-                    l10n.gameInfoControlsLabel,
-                    style: theme.label.copyWith(letterSpacing: 2),
+                    sentenceCaseOf(context, l10n.gameInfoControlsLabel),
+                    style: theme.bodySoft.copyWith(
+                      fontSize: 13,
+                      color: theme.inkMuted,
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  Text(copy.controls, style: theme.bodySoft),
-                  const SizedBox(height: 16),
-                  Container(height: 1, color: theme.divider),
-                  const SizedBox(height: 14),
+                  Text(
+                    sentenceCaseOf(context, copy.controls),
+                    style: theme.bodySoft,
+                  ),
+                  const SizedBox(height: 22),
                   Text(
                     copy.scoring,
                     style: theme.bodySoft.copyWith(color: theme.inkMuted),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    l10n.gameInfoSameForEveryone,
-                    style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                    sentenceCaseOf(context, l10n.gameInfoSameForEveryone),
+                    style: metaText(theme, color: theme.inkMuted),
                   ),
                 ],
               ),
@@ -367,29 +379,35 @@ class _PlayButton extends StatelessWidget {
       onTap: onTap,
       autofocus: true,
       semanticLabel: label,
-      radius: theme.radiusMd,
+      radius: 999,
+      // A plain detector rather than SpringPress: this button is autofocused,
+      // and SpringPress brings a focus stop of its own — two stops for one
+      // button is a keyboard user pressing Tab for nothing.
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          height: 52,
           decoration: BoxDecoration(
-            color: theme.accent,
-            borderRadius: BorderRadius.circular(theme.radiusMd),
+            color: theme.bubbleFill(isMine: true),
+            borderRadius: BorderRadius.circular(999),
           ),
           alignment: Alignment.center,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.play_arrow_rounded, size: 18, color: theme.accentInk),
+              Icon(CupertinoIcons.play_fill, size: 18, color: theme.accentInk),
               const SizedBox(width: 6),
               Flexible(
                 child: Text(
-                  label,
+                  sentenceCaseOf(context, label),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.label.copyWith(color: theme.accentInk),
+                  style: labelText(theme).copyWith(
+                    fontSize: 17,
+                    color: theme.accentInk,
+                  ),
                 ),
               ),
             ],
@@ -434,7 +452,7 @@ class _CloseButton extends StatelessWidget {
                 border: Border.all(color: theme.divider),
               ),
               alignment: Alignment.center,
-              child: Icon(Icons.close_rounded, size: 17, color: theme.inkSoft),
+              child: Icon(CupertinoIcons.xmark, size: 17, color: theme.inkSoft),
             ),
           ),
         ),

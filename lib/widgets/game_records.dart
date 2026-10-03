@@ -1,4 +1,7 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
+
+import 'sheet_kit.dart' show sentenceCaseOf;
 import 'package:flutter/services.dart';
 
 import '../data/records_store.dart';
@@ -11,6 +14,8 @@ import 'adaptive_sheet.dart';
 import 'app_toast.dart';
 import 'sheet_surface.dart';
 import 'skeleton_rows.dart';
+import 'ios_kit.dart';
+import 'meta_text.dart';
 
 /// All-time records — the surfaces that show them.
 ///
@@ -57,13 +62,14 @@ class AllTimeLink extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.emoji_events_outlined, size: 13, color: theme.accent),
+              Icon(CupertinoIcons.rosette, size: 15, color: theme.accent),
               const SizedBox(width: 4),
               Text(
-                l10n.recordsLabel,
-                style: theme.label.copyWith(color: theme.accent),
+                sentenceCaseOf(context, l10n.recordsLabel),
+                style: theme.body.copyWith(fontSize: 15, color: theme.accent),
               ),
-              Icon(Icons.chevron_right, size: 14, color: theme.accent),
+              const SizedBox(width: 2),
+              Icon(CupertinoIcons.chevron_forward, size: 13, color: theme.accent),
             ],
           ),
         ),
@@ -101,24 +107,34 @@ class RecordsSection extends StatelessWidget {
           body = Padding(
             padding: const EdgeInsets.symmetric(vertical: 6),
             child: Text(
-              l10n.recordsEmpty,
+              sentenceCaseOf(context, l10n.recordsEmpty),
               style: theme.bodySoft.copyWith(color: theme.inkMuted),
             ),
           );
         } else {
-          body = Container(
-            decoration: theme.roomCardDecoration(ephemeral: false, active: false),
-            child: Column(
-              children: [
-                for (var i = 0; i < RecordGame.values.length; i++) ...[
-                  if (i > 0) Divider(height: 1, color: theme.divider),
-                  _SectionRow(
-                    game: RecordGame.values[i],
-                    board: board,
-                    viewerId: viewerId,
-                  ),
+          body = ClipRRect(
+            borderRadius: BorderRadius.circular(groupedRadius(theme)),
+            child: ColoredBox(
+              color: groupedFill(theme),
+              child: Column(
+                children: [
+                  for (var i = 0; i < RecordGame.values.length; i++) ...[
+                    if (i > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 16),
+                        child: Container(
+                          height: 1 / MediaQuery.devicePixelRatioOf(context),
+                          color: theme.ink.withValues(alpha: 0.10),
+                        ),
+                      ),
+                    _SectionRow(
+                      game: RecordGame.values[i],
+                      board: board,
+                      viewerId: viewerId,
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           );
         }
@@ -128,11 +144,14 @@ class RecordsSection extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Icon(Icons.emoji_events_outlined, size: 14, color: theme.accent),
+                Icon(CupertinoIcons.rosette, size: 18, color: theme.accent),
                 const SizedBox(width: 6),
-                Text(l10n.recordsLabel, style: theme.label),
-                const SizedBox(width: 8),
-                Expanded(child: Container(height: 1, color: theme.divider)),
+                Expanded(
+                  child: Text(
+                    sentenceCaseOf(context, l10n.recordsLabel),
+                    style: theme.displaySmall.copyWith(color: theme.ink),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 6),
@@ -201,13 +220,13 @@ class _SectionRow extends StatelessWidget {
                     if (holder == null)
                       Text(
                         l10n.recordsNoneYet,
-                        style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                        style: metaText(theme, color: theme.inkMuted),
                       )
                     else
                       Row(
                         children: [
                           Icon(
-                            Icons.emoji_events,
+                            CupertinoIcons.rosette,
                             size: 12,
                             color: theme.accent,
                           ),
@@ -251,13 +270,13 @@ class _SectionRow extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       l10n.recordsYourBest(game.formatBest(mine.best)),
-                      style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                      style: metaText(theme, color: theme.inkMuted),
                     ),
                   ],
                 ],
               ),
               const SizedBox(width: 4),
-              Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
+              Icon(CupertinoIcons.chevron_forward, size: 16, color: theme.inkMuted),
             ],
           ),
         ),
@@ -370,12 +389,12 @@ class _RecordsSheetState extends State<_RecordsSheet> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.emoji_events_outlined,
+                  Icon(CupertinoIcons.rosette,
                       size: 16, color: theme.accent),
                   const SizedBox(width: 6),
                   Text(
-                    l10n.recordsLabel,
-                    style: theme.label.copyWith(color: theme.accent),
+                    sentenceCaseOf(context, l10n.recordsLabel),
+                    style: labelText(theme).copyWith(color: theme.accent),
                   ),
                 ],
               ),
@@ -441,8 +460,8 @@ class _RecordRow extends StatelessWidget {
               SizedBox(
                 width: 28,
                 child: row.rank == 1
-                    ? Icon(Icons.emoji_events, size: 18, color: theme.accent)
-                    : Text('${row.rank}', style: theme.monoTiny),
+                    ? Icon(CupertinoIcons.rosette, size: 18, color: theme.accent)
+                    : Text('${row.rank}', style: metaText(theme)),
               ),
               Expanded(
                 child: Column(
@@ -461,7 +480,7 @@ class _RecordRow extends StatelessWidget {
                       details,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                      style: metaText(theme, color: theme.inkMuted),
                     ),
                   ],
                 ),
@@ -535,16 +554,13 @@ class _ReactionSummary extends StatelessWidget {
             ),
             decoration: BoxDecoration(
               color: r.emoji == row.mine
-                  ? theme.accentSoft
-                  : theme.surfaceSunken,
+                  ? theme.accent.withValues(alpha: 0.18)
+                  : theme.ink.withValues(alpha: 0.07),
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: r.emoji == row.mine ? theme.accent : theme.divider,
-              ),
             ),
             child: Text(
               '${r.emoji} ${r.count}',
-              style: theme.monoTiny.copyWith(
+              style: metaText(theme).copyWith(
                 fontSize: compact ? 10 : 11,
                 color: theme.inkSoft,
               ),
@@ -565,7 +581,7 @@ class _ReactionSummary extends StatelessWidget {
           ].join('  ·  '),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: theme.monoTiny.copyWith(color: theme.inkMuted),
+          style: metaText(theme, color: theme.inkMuted),
         ),
       ],
     );
@@ -609,16 +625,13 @@ class _ReactButton extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: active || mine != null
-                    ? theme.accentSoft
-                    : theme.surfaceRaised,
-                border: Border.all(
-                  color: active ? theme.accent : theme.divider,
-                ),
+                    ? theme.accent.withValues(alpha: 0.18)
+                    : theme.ink.withValues(alpha: 0.07),
               ),
               child: mine != null
                   ? Text(mine!, style: const TextStyle(fontSize: 16))
                   : Icon(
-                      Icons.add_reaction_outlined,
+                      CupertinoIcons.smiley,
                       size: 17,
                       color: theme.inkSoft,
                     ),
@@ -667,11 +680,9 @@ class _Palette extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: emoji == mine ? theme.accentSoft : theme.surfaceSunken,
-                  border: Border.all(
-                    color: emoji == mine ? theme.accent : theme.divider,
-                    width: emoji == mine ? 1.5 : 1,
-                  ),
+                  color: emoji == mine
+                      ? theme.accent.withValues(alpha: 0.18)
+                      : theme.ink.withValues(alpha: 0.07),
                 ),
                 child: Text(emoji, style: const TextStyle(fontSize: 20)),
               ),
@@ -725,8 +736,8 @@ class _TextAction extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(8),
             child: Text(
-              label,
-              style: theme.label.copyWith(color: theme.accent),
+              sentenceCaseOf(context, label),
+              style: labelText(theme).copyWith(color: theme.accent),
             ),
           ),
         ),

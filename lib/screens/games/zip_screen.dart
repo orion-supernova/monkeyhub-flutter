@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -221,17 +222,17 @@ class _ZipScreenState extends State<ZipScreen> with TickerProviderStateMixin {
       ),
       tools: [
         GameTool(
-          icon: Icons.undo,
+          icon: CupertinoIcons.arrow_uturn_left,
           label: l10n.gameUndo,
           onTap: _path.isEmpty ? null : _undoLast,
         ),
         GameTool(
-          icon: Icons.clear_all,
+          icon: CupertinoIcons.trash,
           label: l10n.gameClear,
           onTap: _path.isEmpty ? null : _clear,
         ),
         GameTool(
-          icon: Icons.flag_outlined,
+          icon: CupertinoIcons.flag,
           label: l10n.gameGiveUp,
           danger: true,
           onTap: _play.busy ? null : _giveUp,

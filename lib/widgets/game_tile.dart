@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../games/game_canvas.dart';
@@ -5,7 +6,6 @@ import '../games/queens_board_art.dart';
 import '../games/sudoku_board_art.dart';
 import '../games/tango_board_art.dart';
 import '../games/zip_board_art.dart';
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/daily_game.dart';
 import '../models/puzzle.dart';
@@ -13,7 +13,9 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'game_board_skeleton.dart';
 import 'game_info_sheet.dart';
+import 'ios_kit.dart';
 import 'puzzle_symbol.dart';
+import 'sheet_kit.dart' show sentenceCaseOf;
 
 /// One game on the hub: today's real board, its name, and how you did.
 ///
@@ -143,19 +145,23 @@ class CodePuzzleTile extends StatelessWidget {
           ],
         ),
       ),
-      status: Text(
-        mine == null || !mine.started
-            ? l10n.gameStatusUnplayed
-            : mine.done
-            ? (mine.solved
+      status: mine == null || !mine.started
+          ? StatusChip(
+              label: sentenceCaseOf(context, l10n.gameStatusUnplayed),
+              tone: theme.inkMuted,
+            )
+          : !mine.done
+          ? StatusChip(
+              label: sentenceCaseOf(context, l10n.gameStatusUnfinished),
+              tone: theme.accent,
+            )
+          : StatusChip(
+              label: mine.solved
                   ? '${mine.guesses.length}/$kPuzzleMaxGuesses'
-                  : 'X/$kPuzzleMaxGuesses')
-            : l10n.gameStatusUnfinished,
-        style: theme.monoLarge.copyWith(
-          fontSize: 14,
-          color: mine?.done == true ? theme.ink : theme.inkMuted,
-        ),
-      ),
+                  : 'X/$kPuzzleMaxGuesses',
+              tone: mine.solved ? theme.success : theme.inkMuted,
+              icon: mine.solved ? CupertinoIcons.checkmark_alt : null,
+            ),
     );
   }
 }
@@ -187,61 +193,58 @@ class _TileShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    // An Arcade card: a borderless rounded block that dips on a spring, the
+    // day's real board inset with its own rounded corners, the name and a
+    // status capsule under it. The ⓘ sits on the title line, inside the
+    // card, instead of hanging off its corner.
     return SizedBox(
       width: width,
-      child: FocusableTap(
+      child: SpringPress(
         onTap: onTap,
         semanticLabel: semanticLabel,
-        radius: theme.radiusLg,
-        child: GestureDetector(
-          onTap: onTap,
-          behavior: HitTestBehavior.opaque,
-          // The ⓘ hangs off the card, not off the preview inside it. Its tap
-          // box is far wider than the glyph, and a box that overhangs the
-          // Stack it lives in is not hit-tested at all — parented to the
-          // preview it would have lost every tap that landed on the padding.
-          child: Stack(
-            // The disc hangs over the card's corner, so the Stack must not
-            // trim what its children paint outside it.
-            clipBehavior: Clip.none,
+        scale: 0.95,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(10, 10, 6, 12),
+          decoration: BoxDecoration(
+            color: groupedFill(theme),
+            borderRadius: BorderRadius.circular(groupedRadius(theme) + 2),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.surface,
-                  borderRadius: BorderRadius.circular(theme.radiusLg),
-                  border: Border.all(color: theme.divider),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AspectRatio(aspectRatio: 1, child: preview),
-                    const SizedBox(height: 10),
-                    Text(
-                      title,
-                      style: theme.bodyEmph,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 3),
-                    status,
-                  ],
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(
+                    groupedRadius(theme) - 6,
+                  ),
+                  child: AspectRatio(aspectRatio: 1, child: preview),
                 ),
               ),
-              // Box pinned flush to the corner and pointing inward, glyph
-              // pushed the other way — the target keeps the whole corner of
-              // the card, and the disc still reads as sitting on its edge.
-              // The Wrap around these tiles leaves a 12pt gutter, so 6pt of
-              // overhang clears the neighbour.
-              Positioned(
-                top: 0,
-                right: 0,
-                child: GameInfoButton(
-                  onTap: onInfo,
-                  glyphAlignment: Alignment.topRight,
-                  glyphOffset: const Offset(6, -6),
-                ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 4),
+                      child: Text(
+                        sentenceCaseOf(context, title),
+                        style: theme.bodyEmph.copyWith(
+                          fontSize: 17,
+                          color: theme.ink,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                  GameInfoButton(onTap: onInfo, size: 30, tapSize: 36),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 4, top: 2),
+                child: status,
               ),
             ],
           ),
@@ -265,45 +268,87 @@ class _Status extends StatelessWidget {
     final row = result;
 
     if (row == null) {
-      return Text(
-        l10n.gameStatusUnplayed,
-        style: theme.monoTiny.copyWith(color: theme.inkMuted),
+      return StatusChip(
+        label: sentenceCaseOf(context, l10n.gameStatusUnplayed),
+        tone: theme.inkMuted,
       );
     }
     if (!row.finished) {
-      return Text(
-        l10n.gameStatusUnfinished,
-        style: theme.monoTiny.copyWith(color: theme.accent),
+      return StatusChip(
+        label: sentenceCaseOf(context, l10n.gameStatusUnfinished),
+        tone: theme.accent,
       );
     }
     if (!row.solved) {
-      return Text(
-        l10n.gameStatusGaveUp,
-        style: theme.monoTiny.copyWith(color: theme.inkMuted),
+      return StatusChip(
+        label: sentenceCaseOf(context, l10n.gameStatusGaveUp),
+        tone: theme.inkMuted,
       );
     }
-    return Row(
+    return Wrap(
+      spacing: 6,
+      runSpacing: 4,
       children: [
-        Text(
-          formatGameTime(row.durationMs),
-          style: theme.monoLarge.copyWith(fontSize: 14),
+        StatusChip(
+          label: formatGameTime(row.durationMs),
+          tone: theme.success,
+          icon: CupertinoIcons.checkmark_alt,
         ),
-        if (rank != null) ...[
-          const SizedBox(width: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-            decoration: BoxDecoration(
-              color: theme.accentSoft,
-              borderRadius: BorderRadius.circular(theme.radiusSm),
-            ),
-            child: Text(
-              l10n.gameRankBadge('$rank'),
-              style: theme.monoTiny.copyWith(color: theme.accent),
-            ),
+        if (rank != null)
+          StatusChip(
+            label: l10n.gameRankBadge('$rank'),
+            tone: theme.accent,
           ),
-        ],
       ],
     );
   }
 }
 
+
+/// A small tinted capsule: a state in its own colour, never shouting.
+class StatusChip extends StatelessWidget {
+  const StatusChip({
+    super.key,
+    required this.label,
+    required this.tone,
+    this.icon,
+  });
+
+  final String label;
+  final Color tone;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: tone.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 12, color: tone),
+            const SizedBox(width: 3),
+          ],
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.body.copyWith(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: tone,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

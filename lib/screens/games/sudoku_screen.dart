@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -6,7 +7,7 @@ import '../../games/game_canvas.dart';
 import '../../games/game_play_controller.dart';
 import '../../games/game_rules.dart';
 import '../../games/sudoku_board_art.dart';
-import '../../keyboard/focusable_tap.dart';
+import '../../widgets/ios_kit.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/daily_game.dart';
 import '../../theme/theme_scope.dart';
@@ -246,23 +247,23 @@ class _SudokuScreenState extends State<SudokuScreen>
       ),
       tools: [
         GameTool(
-          icon: Icons.undo,
+          icon: CupertinoIcons.arrow_uturn_left,
           label: l10n.gameUndo,
           onTap: _undo.isEmpty ? null : _undoLast,
         ),
         GameTool(
-          icon: Icons.edit_outlined,
+          icon: CupertinoIcons.pencil,
           label: l10n.gameNotes,
           selected: _noting,
           onTap: () => setState(() => _noting = !_noting),
         ),
         GameTool(
-          icon: Icons.lightbulb_outline,
+          icon: CupertinoIcons.lightbulb,
           label: l10n.gameHint,
           onTap: _play.busy ? null : _hint,
         ),
         GameTool(
-          icon: Icons.flag_outlined,
+          icon: CupertinoIcons.flag,
           label: l10n.gameGiveUp,
           danger: true,
           onTap: _play.busy ? null : _giveUp,
@@ -328,7 +329,12 @@ class _Keypad extends StatelessWidget {
                 onTap: () => onEnter(v),
                 child: Text(
                   '$v',
-                  style: theme.monoLarge.copyWith(fontSize: 18),
+                  style: theme.body.copyWith(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                    color: theme.ink,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
               ),
             ),
@@ -341,9 +347,9 @@ class _Keypad extends StatelessWidget {
             semanticLabel: l10n.gameErase,
             onTap: () => onEnter(sudokuEmpty),
             child: Icon(
-              Icons.backspace_outlined,
-              size: 15,
-              color: theme.inkSoft,
+              CupertinoIcons.delete_left,
+              size: 20,
+              color: theme.ink,
             ),
           ),
         ),
@@ -370,29 +376,27 @@ class _Key extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: enabled ? onTap : null,
-      semanticLabel: semanticLabel,
-      radius: theme.radiusMd,
-      child: GestureDetector(
+    // The iOS number-pad key: a filled, borderless tile that dips on a spring
+    // under the thumb.
+    return Opacity(
+      opacity: !enabled
+          ? 0.35
+          : spent
+          ? 0.45
+          : 1,
+      child: SpringPress(
         onTap: enabled ? onTap : null,
-        behavior: HitTestBehavior.opaque,
-        child: Opacity(
-          opacity: !enabled
-              ? 0.35
-              : spent
-              ? 0.45
-              : 1,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              color: theme.surface,
-              borderRadius: BorderRadius.circular(theme.radiusMd),
-              border: Border.all(color: theme.divider),
-            ),
-            alignment: Alignment.center,
-            child: child,
+        semanticLabel: semanticLabel,
+        scale: 0.9,
+        haptic: false,
+        child: Container(
+          height: 52,
+          decoration: BoxDecoration(
+            color: theme.ink.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(14),
           ),
+          alignment: Alignment.center,
+          child: child,
         ),
       ),
     );

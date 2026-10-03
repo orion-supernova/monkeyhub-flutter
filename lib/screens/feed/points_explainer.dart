@@ -1,6 +1,6 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
-import '../../keyboard/focusable_tap.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/moment.dart';
 import '../../theme/layout.dart';
@@ -8,7 +8,9 @@ import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/adaptive_page_body.dart';
 import '../../widgets/glass_close_button.dart';
+import '../../widgets/ios_kit.dart';
 import '../../widgets/moment_rail.dart';
+import '../../widgets/sheet_kit.dart';
 
 /// Explains what the points board actually is.
 ///
@@ -68,10 +70,10 @@ class PointsExplainerScreen extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            l10n.pointsExplainerTitle,
-                            style: theme.displaySmall,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                            sentenceCaseOf(context, l10n.pointsExplainerTitle),
+                            style: theme.displayLarge.copyWith(
+                              letterSpacing: 0.37,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -102,6 +104,17 @@ class PointsExplainerScreen extends StatelessWidget {
                             style: theme.body.copyWith(color: theme.inkSoft),
                           ),
                           const SizedBox(height: 22),
+                          // One grouped block, a coloured tile per kind —
+                          // the iOS Settings list, which is the shape a
+                          // reference card like this reads best in.
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(
+                              groupedRadius(theme),
+                            ),
+                            child: ColoredBox(
+                              color: groupedFill(theme),
+                              child: Column(
+                                children: [
                           for (var i = 0; i < MomentTag.values.length; i++)
                             TweenAnimationBuilder<double>(
                               key: ValueKey(MomentTag.values[i].wire),
@@ -120,44 +133,38 @@ class PointsExplainerScreen extends StatelessWidget {
                                       child: child,
                                     ),
                                   ),
-                              child: _TagExplainer(tag: MomentTag.values[i]),
-                            ),
-                          const SizedBox(height: 8),
-                          Container(height: 1, color: theme.divider),
-                          const SizedBox(height: 16),
-                          _Rule(text: l10n.pointsExplainerRuleHonour),
-                          const SizedBox(height: 10),
-                          _Rule(text: l10n.pointsExplainerRuleToday),
-                          const SizedBox(height: 10),
-                          _Rule(text: l10n.pointsExplainerRuleCap),
-                          const SizedBox(height: 20),
-                          FocusableTap(
-                            onTap: () => Navigator.of(context).maybePop(),
-                            semanticLabel: l10n.pointsExplainerGotIt,
-                            radius: theme.radiusMd,
-                            child: GestureDetector(
-                              onTap: () => Navigator.of(context).maybePop(),
-                              behavior: HitTestBehavior.opaque,
-                              child: Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: theme.accent,
-                                  borderRadius: BorderRadius.circular(
-                                    theme.radiusMd,
-                                  ),
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  l10n.pointsExplainerGotIt,
-                                  style: theme.label.copyWith(
-                                    color: theme.accentInk,
-                                  ),
-                                ),
+                              child: _TagExplainer(
+                                tag: MomentTag.values[i],
+                                tone: _tones[i % _tones.length],
+                                last: i == MomentTag.values.length - 1,
                               ),
                             ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          _Rule(
+                            icon: CupertinoIcons.hand_thumbsup_fill,
+                            text: l10n.pointsExplainerRuleHonour,
+                          ),
+                          const SizedBox(height: 12),
+                          _Rule(
+                            icon: CupertinoIcons.sunrise_fill,
+                            text: l10n.pointsExplainerRuleToday,
+                          ),
+                          const SizedBox(height: 12),
+                          _Rule(
+                            icon: CupertinoIcons.number_circle_fill,
+                            text: l10n.pointsExplainerRuleCap,
+                          ),
+                          const SizedBox(height: 28),
+                          SheetActionButton(
+                            label: sentenceCaseOf(
+                              context,
+                              l10n.pointsExplainerGotIt,
+                            ),
+                            onTap: () => Navigator.of(context).maybePop(),
                           ),
                         ],
                       ),
@@ -173,62 +180,100 @@ class PointsExplainerScreen extends StatelessWidget {
   }
 }
 
+/// One tile colour per kind, in [MomentTag.values] order: fate, jinx, luck,
+/// called it, NPC.
+const _tones = [
+  TileTone.purple,
+  TileTone.orange,
+  TileTone.green,
+  TileTone.blue,
+  TileTone.gray,
+];
+
 class _TagExplainer extends StatelessWidget {
-  const _TagExplainer({required this.tag});
+  const _TagExplainer({
+    required this.tag,
+    required this.tone,
+    required this.last,
+  });
 
   final MomentTag tag;
+  final TileTone tone;
+  final bool last;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: theme.accentSoft,
-              borderRadius: BorderRadius.circular(theme.radiusMd),
-            ),
-            alignment: Alignment.center,
-            child: Icon(
-              MomentTagChip.iconFor(tag),
-              size: 15,
-              color: theme.accent,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(MomentTagChip.labelFor(l10n, tag), style: theme.label),
-                const SizedBox(height: 3),
-                Text(MomentTagChip.hintFor(l10n, tag), style: theme.body),
-                const SizedBox(height: 3),
-                // The example is the part that makes it click. An abstract
-                // definition of "jinx" teaches nobody; "washed the car, it
-                // rained at four" teaches everybody.
-                Text(
-                  MomentTagChip.exampleFor(l10n, tag),
-                  style: theme.monoTiny.copyWith(color: theme.inkMuted),
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 16, 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: tileColor(theme, tone),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              ],
+                alignment: Alignment.center,
+                child: Icon(
+                  MomentTagChip.iconFor(tag),
+                  size: 17,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      sentenceCaseOf(context, MomentTagChip.labelFor(l10n, tag)),
+                      style: theme.bodyEmph.copyWith(color: theme.ink),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      sentenceCaseOf(context, MomentTagChip.hintFor(l10n, tag)),
+                      style: theme.body.copyWith(color: theme.inkSoft),
+                    ),
+                    const SizedBox(height: 4),
+                    // The example is the part that makes it click. An
+                    // abstract definition of "jinx" teaches nobody; "washed
+                    // the car, it rained at four" teaches everybody.
+                    Text(
+                      '“${MomentTagChip.exampleFor(l10n, tag)}”',
+                      style: theme.bodySoft.copyWith(
+                        fontSize: 14,
+                        color: theme.inkMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (!last)
+          Padding(
+            padding: const EdgeInsets.only(left: 58),
+            child: Container(
+              height: 1 / MediaQuery.devicePixelRatioOf(context),
+              color: theme.ink.withValues(alpha: 0.10),
             ),
           ),
-        ],
-      ),
+      ],
     );
   }
 }
 
 class _Rule extends StatelessWidget {
-  const _Rule({required this.text});
+  const _Rule({required this.icon, required this.text});
 
+  final IconData icon;
   final String text;
 
   @override
@@ -238,15 +283,8 @@ class _Rule extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 6, right: 10),
-          child: Container(
-            width: 5,
-            height: 5,
-            decoration: BoxDecoration(
-              color: theme.accent,
-              shape: BoxShape.circle,
-            ),
-          ),
+          padding: const EdgeInsets.only(top: 1, right: 12),
+          child: Icon(icon, size: 20, color: theme.accent),
         ),
         Expanded(
           child: Text(

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../../backend/chat_api.dart';
@@ -7,11 +8,15 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../models/moment.dart';
 import '../../theme/layout.dart';
 import '../../theme/motion.dart';
+import '../../theme/app_theme.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/adaptive_page_body.dart';
 import '../../widgets/moment_rail.dart';
 import '../../widgets/remote_image.dart';
 import '../../widgets/steady_hero.dart';
+import '../../widgets/ios_kit.dart';
+import '../../widgets/meta_text.dart';
+import '../../widgets/sheet_kit.dart' show sentenceCaseOf;
 import 'moment_viewer.dart';
 
 /// Everything you have kept, by day.
@@ -223,24 +228,23 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 8, 20, 0),
-                    child: Row(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        IconButton(
-                          onPressed: () => Navigator.of(context).maybePop(),
-                          icon: Icon(
-                            Icons.arrow_back,
-                            color: theme.inkSoft,
-                            size: 18,
-                          ),
-                        ),
-                        Expanded(
-                          child: Text(
+                        if (Navigator.of(context).canPop())
+                          const GlassBackButton(),
+                        const SizedBox(height: 12),
+                        Text(
+                          sentenceCaseOf(
+                            context,
                             widget.title ?? l10n.archiveScreenTitle,
-                            style: theme.displaySmall,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                           ),
+                          style: theme.displayLarge.copyWith(
+                            letterSpacing: 0.37,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -272,7 +276,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     }
     if (_errorCode != null && _dayKeys.isEmpty) {
       return _Empty(
-        icon: Icons.lock_outline,
+        icon: CupertinoIcons.lock_fill,
         title: switch (_errorCode) {
           'HISTORY_PRIVATE' => l10n.archiveScreenPrivateTitle,
           'NOT_A_FRIEND' => l10n.archiveScreenNotFriendTitle,
@@ -287,7 +291,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     }
     if (_dayKeys.isEmpty) {
       return _Empty(
-        icon: Icons.photo_camera_outlined,
+        icon: CupertinoIcons.camera_fill,
         title: widget.ofUserId == null
             ? l10n.archiveScreenEmptyTitle
             : l10n.archiveScreenEmptyFriendTitle,
@@ -319,8 +323,8 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
             padding: const EdgeInsets.symmetric(vertical: 24),
             child: Center(
               child: Text(
-                l10n.archiveScreenEnd,
-                style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                sentenceCaseOf(context, l10n.archiveScreenEnd),
+                style: metaText(theme),
               ),
             ),
           );
@@ -465,18 +469,24 @@ class _DayChip extends StatelessWidget {
           // Two more points than before, for the ".26" the stamp grew.
           width: 56,
           padding: const EdgeInsets.symmetric(vertical: 8),
+          // The Calendar app's day pill: a soft fill at rest, solid when
+          // it's the day you're on, no outline either way.
           decoration: BoxDecoration(
-            color: active ? theme.accent : theme.surfaceSunken,
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-            border: Border.all(color: active ? theme.accent : theme.divider),
+            color: active
+                ? theme.bubbleFill(isMine: true)
+                : theme.ink.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 dayNum,
-                style: theme.monoLarge.copyWith(
-                  fontSize: 17,
+                style: theme.body.copyWith(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                   // accentInk on an accent fill, never white.
                   color: active ? theme.accentInk : theme.ink,
                 ),
@@ -484,14 +494,16 @@ class _DayChip extends StatelessWidget {
               Text(
                 stamp,
                 maxLines: 1,
-                style: theme.monoTiny.copyWith(
+                style: metaText(
+                  theme,
                   color: active ? theme.accentInk : theme.inkMuted,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 '$count',
-                style: theme.monoTiny.copyWith(
+                style: metaText(
+                  theme,
                   color: active
                       ? theme.accentInk.withValues(alpha: 0.75)
                       : theme.inkMuted,
@@ -535,18 +547,16 @@ class _DaySection extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Flexible(
+              Expanded(
                 child: Text(
-                  label,
-                  style: theme.label,
+                  sentenceCaseOf(context, label),
+                  style: theme.displaySmall.copyWith(color: theme.ink),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 8),
-              Expanded(child: Container(height: 1, color: theme.divider)),
-              const SizedBox(width: 8),
-              Text('${moments.length}', style: theme.monoTiny),
+              Text('${moments.length}', style: metaText(theme)),
             ],
           ),
           const SizedBox(height: 12),
@@ -646,15 +656,17 @@ class _ArchiveTile extends StatelessWidget {
               else
                 Container(
                   decoration: BoxDecoration(
-                    color: theme.surfaceSunken,
-                    borderRadius: BorderRadius.circular(theme.radiusMd),
-                    border: Border.all(color: theme.divider),
+                    color: groupedFill(theme),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(10),
                   alignment: Alignment.topLeft,
                   child: Text(
                     moment.caption ?? '',
-                    style: theme.monoTiny,
+                    style: theme.bodySoft.copyWith(
+                      fontSize: 13,
+                      color: theme.inkSoft,
+                    ),
                     maxLines: 5,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -662,8 +674,8 @@ class _ArchiveTile extends StatelessWidget {
               if (moment.mediaKind == MomentMedia.video)
                 Center(
                   child: Icon(
-                    Icons.play_circle_outline,
-                    size: 22,
+                    CupertinoIcons.play_circle_fill,
+                    size: 26,
                     color: theme.ink.withValues(alpha: 0.85),
                   ),
                 ),
@@ -703,20 +715,24 @@ class _Empty extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 52,
-              height: 52,
+              width: 64,
+              height: 64,
               decoration: BoxDecoration(
-                color: theme.accentSoft,
-                borderRadius: BorderRadius.circular(theme.radiusLg),
+                color: theme.accent.withValues(alpha: 0.14),
+                shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
-              child: Icon(icon, size: 22, color: theme.accent),
+              child: Icon(icon, size: 28, color: theme.accent),
             ),
             const SizedBox(height: 16),
-            Text(title, style: theme.displaySmall, textAlign: TextAlign.center),
+            Text(
+              sentenceCaseOf(context, title),
+              style: theme.displaySmall,
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 8),
             Text(
-              body,
+              sentenceCaseOf(context, body),
               style: theme.bodySoft.copyWith(color: theme.inkMuted),
               textAlign: TextAlign.center,
             ),

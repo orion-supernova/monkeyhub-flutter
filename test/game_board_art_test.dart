@@ -280,8 +280,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('queens'), findsOneWidget);
-      expect(find.text('not played'), findsOneWidget);
+      expect(find.text('Queens'), findsOneWidget);
+      expect(find.text('Not played'), findsOneWidget);
       expect(find.text('0:00'), findsNothing);
     });
 
@@ -330,10 +330,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      for (final name in ['queens', 'tango', 'zip', 'mini sudoku']) {
+      for (final name in ['Queens', 'Tango', 'Zip', 'Mini sudoku']) {
         expect(find.text(name), findsOneWidget, reason: name);
       }
-      await tester.tap(find.text('zip'));
+      await tester.tap(find.text('Zip'));
       await tester.pump();
       expect(opened, DailyGame.zip);
     });

@@ -1,4 +1,5 @@
 import 'package:flutter/gestures.dart';
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -21,6 +22,7 @@ import '../../widgets/photo_chrome.dart';
 import '../../widgets/photo_dismiss_area.dart';
 import '../../widgets/remote_image.dart';
 import '../../widgets/route_landing.dart';
+import '../../widgets/sheet_kit.dart' show sentenceCaseOf;
 import '../../widgets/steady_hero.dart';
 import '../fullscreen_video_viewer.dart';
 
@@ -502,6 +504,8 @@ class _MomentStageState extends State<_MomentStage> with RouteLanding {
                 child: _StageTopBar(
                   moment: _current,
                   api: widget.api,
+                  index: _index,
+                  count: widget.moments.length,
                   position: many
                       ? AppLocalizations.of(context)
                             .photoChromeMediaPositionLabel(
@@ -740,7 +744,7 @@ class _StagePageState extends State<_StagePage> {
                 // The disc is the same action with a smaller target and a focus
                 // ring on it — the whole poster is tappable above.
                 PhotoGlassButton(
-                  icon: Icons.play_arrow_rounded,
+                  icon: CupertinoIcons.play_fill,
                   semanticLabel: AppLocalizations.of(
                     context,
                   ).bubbleStyleScreenMediaTileVideoSemanticLabel,
@@ -854,6 +858,8 @@ class _StageTopBar extends StatelessWidget {
   const _StageTopBar({
     required this.moment,
     required this.api,
+    required this.index,
+    required this.count,
     required this.position,
     required this.onClose,
     required this.onDelete,
@@ -863,6 +869,10 @@ class _StageTopBar extends StatelessWidget {
 
   final Moment moment;
   final ChatApi api;
+
+  /// Where this moment sits in the run, for the story segments.
+  final int index;
+  final int count;
 
   /// "3 / 8", or null for a run of one.
   final String? position;
@@ -908,12 +918,21 @@ class _StageTopBar extends StatelessWidget {
             ),
           ),
         ),
+        // Story segments: one per moment in the run, the ones already seen
+        // lit, the current one filling in as it arrives — the Instagram /
+        // Telegram stories bar, without the timer: a moment here is looked
+        // at, not played.
+        if (count > 1)
+          Padding(
+            padding: EdgeInsets.fromLTRB(12, pad.top + 4, 12, 0),
+            child: _StorySegments(index: index, count: count),
+          ),
         Padding(
-          padding: EdgeInsets.fromLTRB(10, pad.top + 8, 10, 12),
+          padding: EdgeInsets.fromLTRB(10, pad.top + (count > 1 ? 16 : 8), 10, 12),
           child: Row(
             children: [
               PhotoGlassButton(
-                icon: Icons.close,
+                icon: CupertinoIcons.xmark,
                 semanticLabel: l10n.photoChromeCloseSemanticLabel,
                 onTap: onClose,
                 size: 38,
@@ -951,8 +970,15 @@ class _StageTopBar extends StatelessWidget {
                               _ago(l10n, moment.createdAt),
                               ?position,
                             ].join('  ·  '),
-                            style: theme.monoTiny.copyWith(
+                            style: theme.bodySoft.copyWith(
+                              fontSize: 13,
                               color: PhotoChrome.inkDim,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                              shadows: const [
+                                Shadow(color: Color(0x99000000), blurRadius: 6),
+                              ],
                             ),
                             maxLines: 1,
                           ),
@@ -968,8 +994,8 @@ class _StageTopBar extends StatelessWidget {
                   // The glyph names what the tap DOES, not the current state:
                   // a filled picture offers to shrink back to the whole frame.
                   icon: filled
-                      ? Icons.fullscreen_exit_rounded
-                      : Icons.fullscreen_rounded,
+                      ? CupertinoIcons.arrow_down_right_arrow_up_left
+                      : CupertinoIcons.arrow_up_left_arrow_down_right,
                   semanticLabel: l10n.photoChromeFillToggleSemanticLabel,
                   onTap: onToggleFill,
                   size: 38,
@@ -979,7 +1005,7 @@ class _StageTopBar extends StatelessWidget {
               if (onDelete != null) ...[
                 const SizedBox(width: 8),
                 PhotoGlassButton(
-                  icon: Icons.delete_outline,
+                  icon: CupertinoIcons.trash,
                   semanticLabel: l10n.momentViewerDelete,
                   onTap: onDelete,
                   size: 38,
@@ -1039,9 +1065,9 @@ class _AuthorDot extends StatelessWidget {
       child: id == null
           ? Text(
               initial,
-              style: theme.monoTiny.copyWith(
+              style: theme.bodyEmph.copyWith(
                 color: PhotoChrome.ink,
-                fontSize: 12,
+                fontSize: 13,
               ),
             )
           : RemoteImage(
@@ -1189,7 +1215,7 @@ class _GlassReactionRail extends StatelessWidget {
           const SizedBox(width: 10),
           Text(
             '$total',
-            style: theme.monoTiny.copyWith(color: PhotoChrome.inkDim),
+            style: theme.bodySoft.copyWith(fontSize: 13, fontWeight: FontWeight.w600, fontFeatures: const [FontFeature.tabularFigures()], color: PhotoChrome.inkDim),
           ),
         ],
       ],
@@ -1606,7 +1632,10 @@ class _MomentCardViewerState extends State<_MomentCardViewer>
                     const SizedBox(height: 2),
                     Text(
                       _StageTopBar._ago(l10n, m.createdAt),
-                      style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                      style: theme.bodySoft.copyWith(
+                        fontSize: 13,
+                        color: theme.inkMuted,
+                      ),
                     ),
                   ],
                 ),
@@ -1653,11 +1682,14 @@ class _MomentCardViewerState extends State<_MomentCardViewer>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.delete_outline, size: 14, color: theme.danger),
+                    Icon(CupertinoIcons.trash, size: 15, color: theme.danger),
                     const SizedBox(width: 6),
                     Text(
-                      l10n.momentViewerDelete,
-                      style: theme.monoTiny.copyWith(color: theme.danger),
+                      sentenceCaseOf(context, l10n.momentViewerDelete),
+                      style: theme.body.copyWith(
+                        fontSize: 15,
+                        color: theme.danger,
+                      ),
                     ),
                   ],
                 ),
@@ -1718,7 +1750,7 @@ class _CardReactionRow extends StatelessWidget {
         ),
         if (total > 0) ...[
           const SizedBox(width: 8),
-          Text('$total', style: theme.monoTiny),
+          Text('$total', style: theme.bodySoft.copyWith(fontSize: 13, fontWeight: FontWeight.w600, fontFeatures: const [FontFeature.tabularFigures()])),
         ],
       ],
     );
@@ -1776,7 +1808,7 @@ class _CardReactionPill extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(emoji, style: theme.monoTiny.copyWith(fontSize: 14)),
+              Text(emoji, style: theme.body.copyWith(fontSize: 15)),
               if (count > 0) ...[
                 const SizedBox(width: 5),
                 // AnimatedSwitcher keyed on the value so the number rolls
@@ -1798,13 +1830,63 @@ class _CardReactionPill extends StatelessWidget {
                   child: Text(
                     '$count',
                     key: ValueKey(count),
-                    style: theme.monoTiny,
+                    style: theme.bodySoft.copyWith(fontSize: 13, fontWeight: FontWeight.w600, fontFeatures: const [FontFeature.tabularFigures()]),
                   ),
                 ),
               ],
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// The row of thin capsules across the top of a moment run.
+class _StorySegments extends StatelessWidget {
+  const _StorySegments({required this.index, required this.count});
+
+  final int index;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final motion = MotionScope.of(context);
+    return IgnorePointer(
+      child: Row(
+        children: [
+          for (var i = 0; i < count; i++) ...[
+            if (i > 0) const SizedBox(width: 4),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: SizedBox(
+                  height: 3,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      const ColoredBox(color: Color(0x4DFFFFFF)),
+                      // Seen fill; the current one sweeps in from the left.
+                      TweenAnimationBuilder<double>(
+                        key: ValueKey('seg_${i}_${i <= index}'),
+                        tween: Tween(begin: i == index ? 0 : 1, end: 1),
+                        duration: motion.d(const Duration(milliseconds: 360)),
+                        curve: Curves.easeOutCubic,
+                        builder: (context, v, _) => i <= index
+                            ? FractionallySizedBox(
+                                alignment: Alignment.centerLeft,
+                                widthFactor: v,
+                                child: const ColoredBox(color: Colors.white),
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

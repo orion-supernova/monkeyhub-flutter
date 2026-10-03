@@ -14,6 +14,9 @@ import '../theme/theme_scope.dart';
 import 'game_board_skeleton.dart';
 import 'game_info_sheet.dart';
 import 'puzzle_symbol.dart';
+import 'ios_kit.dart';
+import 'meta_text.dart';
+import 'sheet_kit.dart' show sentenceCaseOf;
 
 /// Today's five games, compact enough to live on the Feed board — the code
 /// puzzle first, then the four dailies. The puzzle used to get its own
@@ -157,25 +160,16 @@ class _StripCard extends StatelessWidget {
                   aspectRatio: 1,
                   child: Container(
                     padding: const EdgeInsets.all(8),
+                    // Borderless at rest; a solved board gets a success ring
+                    // so "how am I doing today" is a thing you see rather
+                    // than read — a ring, not a glow.
                     decoration: BoxDecoration(
-                      color: theme.surface,
-                      borderRadius: BorderRadius.circular(theme.radiusLg),
-                      // A solved board wears the accent, and a touch heavier
-                      // than a resting tile's hairline — four (five) identical
-                      // outlines would make "how am I doing today" a thing you
-                      // read rather than a thing you see.
-                      border: Border.all(
-                        color: accent ? theme.accent : theme.divider,
-                        width: accent ? 1.4 : 1,
+                      color: groupedFill(theme),
+                      borderRadius: BorderRadius.circular(
+                        groupedRadius(theme),
                       ),
-                      boxShadow: accent
-                          ? [
-                              BoxShadow(
-                                color: theme.accent.withValues(alpha: 0.22),
-                                blurRadius: 14,
-                                spreadRadius: -2,
-                              ),
-                            ]
+                      border: accent
+                          ? Border.all(color: theme.success, width: 2)
                           : null,
                     ),
                     child: preview,
@@ -206,7 +200,7 @@ class _StripCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              title,
+              sentenceCaseOf(context, title),
               style: theme.bodyEmph.copyWith(fontSize: 12),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -254,15 +248,15 @@ class _StripTile extends StatelessWidget {
       title: _name(l10n),
       status: Text(
         row == null
-            ? l10n.gameStatusUnplayed
+            ? sentenceCaseOf(context, l10n.gameStatusUnplayed)
             : !row.finished
-            ? l10n.gameStatusUnfinished
+            ? sentenceCaseOf(context, l10n.gameStatusUnfinished)
             : row.solved
             ? formatGameTime(row.durationMs)
-            : l10n.gameStatusGaveUp,
-        style: theme.monoTiny.copyWith(
+            : sentenceCaseOf(context, l10n.gameStatusGaveUp),
+        style: metaText(theme).copyWith(
           color: row != null && row.solved
-              ? theme.ink
+              ? theme.success
               : row != null && !row.finished
               ? theme.accent
               : theme.inkMuted,
@@ -341,15 +335,15 @@ class _PuzzleStripTile extends StatelessWidget {
       title: l10n.gameCodeName,
       status: Text(
         mine == null || !mine.started
-            ? l10n.gameStatusUnplayed
+            ? sentenceCaseOf(context, l10n.gameStatusUnplayed)
             : done
             ? (mine.solved
                   ? '${mine.guesses.length}/$kPuzzleMaxGuesses'
-                  : l10n.gameStatusGaveUp)
-            : l10n.gameStatusUnfinished,
-        style: theme.monoTiny.copyWith(
+                  : sentenceCaseOf(context, l10n.gameStatusGaveUp))
+            : sentenceCaseOf(context, l10n.gameStatusUnfinished),
+        style: metaText(theme).copyWith(
           color: mine != null && done
-              ? (mine.solved ? theme.ink : theme.inkMuted)
+              ? (mine.solved ? theme.success : theme.inkMuted)
               : mine != null && !done
               ? theme.accent
               : theme.inkMuted,
@@ -407,9 +401,8 @@ class _PuzzleStripTile extends StatelessWidget {
     width: size,
     height: size,
     decoration: BoxDecoration(
-      color: theme.surfaceSunken,
-      borderRadius: BorderRadius.circular(theme.radiusSm),
-      border: Border.all(color: theme.divider),
+      color: theme.ink.withValues(alpha: 0.07),
+      borderRadius: BorderRadius.circular(size * 0.28),
     ),
     alignment: Alignment.center,
     child: PuzzleSymbol(

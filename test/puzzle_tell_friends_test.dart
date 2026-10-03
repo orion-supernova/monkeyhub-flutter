@@ -80,15 +80,15 @@ void main() {
   testWidgets('a finished code can be told to friends, once', (t) async {
     final api = await open(t);
 
-    await t.tap(find.text('TELL FRIENDS'));
+    await t.tap(find.text('Tell friends'));
     await t.pumpAndSettle();
-    await t.tap(find.text('SEND IT'));
+    await t.tap(find.text('Send it'));
     await t.pumpAndSettle();
 
     expect(api.shared, hasLength(1));
     // Retired the moment the server said yes — not a board round trip later.
-    expect(find.text('TELL FRIENDS'), findsNothing);
-    expect(find.text('friends told'), findsOneWidget);
+    expect(find.text('Tell friends'), findsNothing);
+    expect(find.text('Friends told'), findsOneWidget);
 
     await t.pump(const Duration(seconds: 8));
     await t.pumpAndSettle();
@@ -98,13 +98,13 @@ void main() {
   testWidgets('NOT NOW sends nothing', (t) async {
     final api = await open(t);
 
-    await t.tap(find.text('TELL FRIENDS'));
+    await t.tap(find.text('Tell friends'));
     await t.pumpAndSettle();
-    await t.tap(find.text('NOT NOW'));
+    await t.tap(find.text('Not now'));
     await t.pumpAndSettle();
 
     expect(api.shared, isEmpty);
-    expect(find.text('TELL FRIENDS'), findsOneWidget);
+    expect(find.text('Tell friends'), findsOneWidget);
     await close(t);
   });
 }

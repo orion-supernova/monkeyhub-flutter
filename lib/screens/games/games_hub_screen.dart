@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -13,6 +14,8 @@ import '../../theme/theme_scope.dart';
 import '../../widgets/adaptive_page_body.dart';
 import '../../widgets/game_records.dart';
 import '../../widgets/game_tile.dart';
+import '../../widgets/ios_kit.dart';
+import '../../widgets/sheet_kit.dart' show sentenceCaseOf;
 import '../feed/puzzle_screen.dart';
 import 'queens_screen.dart';
 import 'sudoku_screen.dart';
@@ -127,43 +130,37 @@ class _GamesHubScreenState extends State<GamesHubScreen> {
                 },
                 child: ListView(
                   padding: EdgeInsets.fromLTRB(
-                    20,
-                    8,
-                    20,
+                    16,
+                    4,
+                    16,
                     edgeToEdgeBottom(context),
                   ),
                   children: [
-                    Row(
-                      children: [
-                        IconButton(
-                          onPressed: () => Navigator.of(context).maybePop(),
-                          icon: Icon(
-                            Icons.arrow_back,
-                            color: theme.inkSoft,
-                            size: 18,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(l10n.gamesScreenTitle, style: theme.displayMedium),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Container(width: 18, height: 1, color: theme.accent),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            l10n.gamesScreenSubtitle,
-                            style: theme.caption,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
+                    if (Navigator.of(context).canPop())
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: GlassBackButton(),
+                      ),
+                    const SizedBox(height: 14),
                     Text(
-                      l10n.gamesRemaining(left),
-                      style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                      l10n.gamesHubTitle,
+                      style: theme.displayLarge.copyWith(letterSpacing: 0.37),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n.gamesHubSubtitle,
+                      style: theme.bodySoft.copyWith(color: theme.inkMuted),
+                    ),
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: StatusChip(
+                        label: sentenceCaseOf(context, l10n.gamesRemaining(left)),
+                        tone: left == 0 ? theme.success : theme.accent,
+                        icon: left == 0
+                            ? CupertinoIcons.checkmark_seal_fill
+                            : CupertinoIcons.game_controller_solid,
+                      ),
                     ),
                     const SizedBox(height: 22),
                     if (store.error != null && !store.boards.ready)
@@ -240,10 +237,12 @@ class _GamesHubScreenState extends State<GamesHubScreen> {
                                     i,
                                     strideMs: 60,
                                   ),
-                                  curve: motion.c(theme.motionEntrance),
+                                  // Pops in on an overshoot, one after the
+                                  // other — the shelf being dealt out.
+                                  curve: motion.c(Curves.easeOutBack),
                                   builder: (context, v, child) =>
-                                      Transform.translate(
-                                        offset: Offset(0, (1 - v) * 12),
+                                      Transform.scale(
+                                        scale: 0.86 + 0.14 * v,
                                         child: Opacity(
                                           opacity: v.clamp(0.0, 1.0),
                                           child: child,
@@ -284,24 +283,21 @@ class _Trouble extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: theme.roomCardDecoration(ephemeral: false, active: false),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(l10n.gamesLoadFailed, style: theme.bodySoft),
-          const SizedBox(height: 12),
-          GestureDetector(
-            onTap: onRetry,
-            behavior: HitTestBehavior.opaque,
-            child: Text(
-              l10n.gamesRetry,
-              style: theme.label.copyWith(color: theme.accent),
-            ),
+    return GroupedSection(
+      margin: EdgeInsets.zero,
+      children: [
+        GroupedRow(
+          icon: CupertinoIcons.wifi_exclamationmark,
+          tone: TileTone.orange,
+          title: sentenceCaseOf(context, l10n.gamesLoadFailed),
+          chevron: false,
+          onTap: onRetry,
+          trailing: Text(
+            sentenceCaseOf(context, l10n.gamesRetry),
+            style: theme.body.copyWith(color: theme.accent),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

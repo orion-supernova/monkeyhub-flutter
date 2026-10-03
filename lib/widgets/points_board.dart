@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../keyboard/focusable_tap.dart';
@@ -7,6 +8,8 @@ import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'moment_rail.dart';
 import 'odometer_number.dart';
+import 'meta_text.dart';
+import 'sheet_kit.dart' show sentenceCaseOf;
 
 /// The points board: what happened to everyone today, and who is winning.
 ///
@@ -71,7 +74,7 @@ class PointsBoard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               l10n.momentActivityMoreCount(points.length - max),
-              style: theme.monoTiny.copyWith(color: theme.inkMuted),
+              style: metaText(theme, color: theme.inkMuted),
             ),
           ],
         ],
@@ -162,7 +165,7 @@ class _LeaderRow extends StatelessWidget {
     final theme = ThemeScope.of(context);
     return Row(
       children: [
-        SizedBox(width: 20, child: Text('$rank', style: theme.monoTiny)),
+        SizedBox(width: 20, child: Text('$rank', style: metaText(theme))),
         Expanded(
           child: Text(
             name,
@@ -282,7 +285,7 @@ class _PointLine extends StatelessWidget {
                     children: [
                       Text(
                         headline,
-                        style: theme.monoTiny,
+                        style: metaText(theme),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -304,7 +307,7 @@ class _PointLine extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(left: 8, top: 2),
                     child: Icon(
-                      Icons.image_outlined,
+                      CupertinoIcons.photo,
                       size: 13,
                       color: theme.inkMuted,
                     ),
@@ -344,11 +347,11 @@ class _AddPointButton extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.add, size: 15, color: theme.accent),
+              Icon(CupertinoIcons.add, size: 15, color: theme.accent),
               const SizedBox(width: 7),
               Text(
-                l10n.pointsBoardAdd,
-                style: theme.label.copyWith(color: theme.accent),
+                sentenceCaseOf(context, l10n.pointsBoardAdd),
+                style: labelText(theme).copyWith(color: theme.accent),
               ),
             ],
           ),

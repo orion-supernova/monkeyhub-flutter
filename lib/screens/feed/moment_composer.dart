@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:camera/camera.dart' show CameraLensDirection;
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -16,8 +17,12 @@ import '../../media/photo_picking.dart';
 import '../../media/upload_service.dart';
 import '../../media/video_poster.dart';
 import '../../models/moment.dart';
+import '../../theme/app_theme.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/adaptive_sheet.dart';
+import '../../widgets/ios_kit.dart';
+import '../../widgets/meta_text.dart';
+import '../../widgets/sheet_kit.dart';
 import '../camera_editor_screen.dart';
 import '../camera_screen.dart';
 
@@ -389,8 +394,18 @@ class _MomentComposerState extends State<_MomentComposer> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(l10n.momentComposerTitle, style: theme.displaySmall),
-              const SizedBox(height: 16),
+              const Center(child: SheetHandle()),
+              const SizedBox(height: 10),
+              Center(
+                child: Text(
+                  sentenceCaseOf(context, l10n.momentComposerTitle),
+                  style: theme.bodyEmph.copyWith(
+                    fontSize: 17,
+                    color: theme.ink,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
               _MediaSlot(
                 image: _image,
                 video: _video,
@@ -430,7 +445,8 @@ class _MomentComposerState extends State<_MomentComposer> {
                   if (remaining <= 40)
                     Text(
                       '$remaining',
-                      style: theme.monoTiny.copyWith(
+                      style: metaText(
+                        theme,
                         color: remaining < 0 ? theme.danger : theme.inkMuted,
                       ),
                     ),
@@ -505,7 +521,7 @@ class _MediaSlot extends StatelessWidget {
           Positioned.fill(
             child: Center(
               child: Icon(
-                Icons.play_circle_outline,
+                CupertinoIcons.play_circle_fill,
                 size: 34,
                 // On web and desktop there is no poster at all — video_thumbnail
                 // has no implementation there — so this glyph over a flat
@@ -518,7 +534,7 @@ class _MediaSlot extends StatelessWidget {
             right: 8,
             top: 8,
             child: _SlotChip(
-              icon: Icons.close,
+              icon: CupertinoIcons.xmark,
               label: l10n.momentComposerRemovePhoto,
               onTap: busy ? null : onClear,
             ),
@@ -552,14 +568,14 @@ class _MediaSlot extends StatelessWidget {
               children: [
                 if (onEdit != null) ...[
                   _SlotChip(
-                    icon: Icons.crop,
+                    icon: CupertinoIcons.crop,
                     label: l10n.momentComposerEditPhoto,
                     onTap: busy ? null : onEdit,
                   ),
                   const SizedBox(width: 6),
                 ],
                 _SlotChip(
-                  icon: Icons.close,
+                  icon: CupertinoIcons.xmark,
                   label: l10n.momentComposerRemovePhoto,
                   onTap: busy ? null : onClear,
                 ),
@@ -574,7 +590,7 @@ class _MediaSlot extends StatelessWidget {
       children: [
         Expanded(
           child: _SlotButton(
-            icon: Icons.photo_camera_outlined,
+            icon: CupertinoIcons.camera_fill,
             label: l10n.momentComposerCapture,
             onTap: busy ? null : onCapture,
           ),
@@ -582,7 +598,7 @@ class _MediaSlot extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: _SlotButton(
-            icon: Icons.photo_library_outlined,
+            icon: CupertinoIcons.photo_fill_on_rectangle_fill,
             label: l10n.momentComposerLibrary,
             onTap: busy ? null : onLibrary,
           ),
@@ -590,7 +606,7 @@ class _MediaSlot extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: _SlotButton(
-            icon: Icons.videocam_outlined,
+            icon: CupertinoIcons.videocam_fill,
             label: l10n.momentComposerVideo,
             onTap: busy ? null : onVideo,
           ),
@@ -614,7 +630,6 @@ class _SlotChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     return FocusableTap(
       onTap: onTap,
       semanticLabel: label,
@@ -622,14 +637,15 @@ class _SlotChip extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
+        // A dark translucent disc over the photo — the Photos edit control —
+        // so it reads on any picture, light or dark.
         child: Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: theme.surface,
+          padding: const EdgeInsets.all(7),
+          decoration: const BoxDecoration(
+            color: Color(0x8C000000),
             shape: BoxShape.circle,
-            border: Border.all(color: theme.divider),
           ),
-          child: Icon(icon, size: 14, color: theme.inkSoft),
+          child: Icon(icon, size: 15, color: Colors.white),
         ),
       ),
     );
@@ -650,29 +666,39 @@ class _SlotButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: label,
-      radius: theme.radiusMd,
-      child: GestureDetector(
+    // A soft tile with its glyph in an accent disc — the share-sheet action
+    // shape — dipping on a spring under the thumb.
+    return Opacity(
+      opacity: onTap == null ? 0.45 : 1,
+      child: SpringPress(
         onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Opacity(
-          opacity: onTap == null ? 0.45 : 1,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 18),
-            decoration: BoxDecoration(
-              color: theme.surfaceSunken,
-              borderRadius: BorderRadius.circular(theme.radiusMd),
-              border: Border.all(color: theme.divider),
-            ),
-            child: Column(
-              children: [
-                Icon(icon, size: 20, color: theme.accent),
-                const SizedBox(height: 8),
-                Text(label, style: theme.monoTiny, maxLines: 1),
-              ],
-            ),
+        semanticLabel: label,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
+          decoration: BoxDecoration(
+            color: theme.ink.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: theme.accent.withValues(alpha: 0.16),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 20, color: theme.accent),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                sentenceCaseOf(context, label),
+                style: metaText(theme, color: theme.ink),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         ),
       ),
@@ -695,38 +721,37 @@ class _PostButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    return FocusableTap(
+    return SpringPress(
       onTap: enabled ? onTap : null,
       semanticLabel: l10n.momentComposerPost,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        onTap: enabled ? onTap : null,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: theme.motionFast,
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 15),
-          decoration: BoxDecoration(
-            color: enabled ? theme.accent : theme.surfaceSunken,
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-          ),
-          alignment: Alignment.center,
-          child: busy
-              ? SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation(theme.accentInk),
-                  ),
-                )
-              : Text(
-                  l10n.momentComposerPost,
-                  style: theme.label.copyWith(
-                    color: enabled ? theme.accentInk : theme.inkMuted,
-                  ),
-                ),
+      child: AnimatedContainer(
+        duration: theme.motionFast,
+        width: double.infinity,
+        height: 52,
+        decoration: BoxDecoration(
+          color: enabled
+              ? theme.bubbleFill(isMine: true)
+              : theme.ink.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(999),
         ),
+        alignment: Alignment.center,
+        child: busy
+            ? SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation(theme.accentInk),
+                ),
+              )
+            : Text(
+                sentenceCaseOf(context, l10n.momentComposerPost),
+                style: theme.body.copyWith(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: enabled ? theme.accentInk : theme.inkMuted,
+                ),
+              ),
       ),
     );
   }
