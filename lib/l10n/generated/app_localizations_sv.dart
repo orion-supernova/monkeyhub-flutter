@@ -10280,4 +10280,46 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get rpKeep => 'Inte nu – behåll min nuvarande fras';
+
+  @override
+  String get childSetupHeadingIos => 'Vem är det?';
+
+  @override
+  String get childPairTitleIos => 'Hej!';
+
+  @override
+  String get childPairBackIos => 'Tillbaka till inloggning';
+
+  @override
+  String get gamesHubTitle => 'Spel';
+
+  @override
+  String get gamesHubSubtitle => 'Nya brädor varje dag, samma för alla.';
+
+  @override
+  String get gameTellFriendsMessage =>
+      'De får en avisering med resultatet. Det kan bara skickas en gång.';
+
+  @override
+  String get deviceLoginScanTitleIos => 'Skanna för att logga in';
+
+  @override
+  String get deviceLoginConfirmTitleIos => 'Logga in på den här enheten?';
+
+  @override
+  String get socialHeroCreateIos => 'Nästan klart';
+
+  @override
+  String get socialHeroLinkIos => 'Välkommen tillbaka';
+
+  @override
+  String socialSignInLinkIos(String provider) {
+    return 'Logga in och koppla $provider';
+  }
+
+  @override
+  String get serverTitleIos => 'Server';
+
+  @override
+  String get serverOnboardingTitleIos => 'Välj en server';
 }

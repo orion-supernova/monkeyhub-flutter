@@ -10360,6 +10360,49 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get rpKeep => 'Agora não — manter a minha frase atual';
+
+  @override
+  String get childSetupHeadingIos => 'Quem é?';
+
+  @override
+  String get childPairTitleIos => 'Olá!';
+
+  @override
+  String get childPairBackIos => 'Voltar ao início de sessão';
+
+  @override
+  String get gamesHubTitle => 'Jogos';
+
+  @override
+  String get gamesHubSubtitle =>
+      'Tabuleiros novos todos os dias, os mesmos para todos.';
+
+  @override
+  String get gameTellFriendsMessage =>
+      'Vão receber uma notificação com este resultado. Só pode ser enviado uma vez.';
+
+  @override
+  String get deviceLoginScanTitleIos => 'Leia o código para entrar';
+
+  @override
+  String get deviceLoginConfirmTitleIos => 'Iniciar sessão neste dispositivo?';
+
+  @override
+  String get socialHeroCreateIos => 'Quase lá';
+
+  @override
+  String get socialHeroLinkIos => 'Bem-vindo de volta';
+
+  @override
+  String socialSignInLinkIos(String provider) {
+    return 'Iniciar sessão e ligar $provider';
+  }
+
+  @override
+  String get serverTitleIos => 'Servidor';
+
+  @override
+  String get serverOnboardingTitleIos => 'Escolha um servidor';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -20716,4 +20759,47 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get rpKeep => 'Agora não — manter minha frase atual';
+
+  @override
+  String get childSetupHeadingIos => 'Quem é?';
+
+  @override
+  String get childPairTitleIos => 'Oi!';
+
+  @override
+  String get childPairBackIos => 'Voltar para entrar';
+
+  @override
+  String get gamesHubTitle => 'Jogos';
+
+  @override
+  String get gamesHubSubtitle =>
+      'Tabuleiros novos todo dia, os mesmos para todos.';
+
+  @override
+  String get gameTellFriendsMessage =>
+      'Eles vão receber uma notificação com este resultado. Só dá para enviar uma vez.';
+
+  @override
+  String get deviceLoginScanTitleIos => 'Escaneie para entrar';
+
+  @override
+  String get deviceLoginConfirmTitleIos => 'Entrar neste dispositivo?';
+
+  @override
+  String get socialHeroCreateIos => 'Quase lá';
+
+  @override
+  String get socialHeroLinkIos => 'Que bom te ver de volta';
+
+  @override
+  String socialSignInLinkIos(String provider) {
+    return 'Entrar e vincular $provider';
+  }
+
+  @override
+  String get serverTitleIos => 'Servidor';
+
+  @override
+  String get serverOnboardingTitleIos => 'Escolha um servidor';
 }

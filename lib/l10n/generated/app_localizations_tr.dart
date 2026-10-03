@@ -10214,4 +10214,46 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get rpKeep => 'Şimdi değil — mevcut ifademi koru';
+
+  @override
+  String get childSetupHeadingIos => 'Bu kim?';
+
+  @override
+  String get childPairTitleIos => 'Merhaba!';
+
+  @override
+  String get childPairBackIos => 'Girişe dön';
+
+  @override
+  String get gamesHubTitle => 'Oyunlar';
+
+  @override
+  String get gamesHubSubtitle => 'Her gün yeni tahtalar, herkes için aynı.';
+
+  @override
+  String get gameTellFriendsMessage =>
+      'Bu sonuçla bir bildirim alacaklar. Yalnızca bir kez gönderilebilir.';
+
+  @override
+  String get deviceLoginScanTitleIos => 'Giriş için tara';
+
+  @override
+  String get deviceLoginConfirmTitleIos => 'Bu cihazda giriş yapılsın mı?';
+
+  @override
+  String get socialHeroCreateIos => 'Az kaldı';
+
+  @override
+  String get socialHeroLinkIos => 'Tekrar hoş geldin';
+
+  @override
+  String socialSignInLinkIos(String provider) {
+    return 'Giriş yap ve $provider bağla';
+  }
+
+  @override
+  String get serverTitleIos => 'Sunucu';
+
+  @override
+  String get serverOnboardingTitleIos => 'Bir sunucu seç';
 }

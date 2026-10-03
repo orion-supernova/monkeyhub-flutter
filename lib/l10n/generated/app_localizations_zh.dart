@@ -9744,4 +9744,45 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get rpKeep => '暂不，保留当前短语';
+
+  @override
+  String get childSetupHeadingIos => '这是谁？';
+
+  @override
+  String get childPairTitleIos => '你好！';
+
+  @override
+  String get childPairBackIos => '返回登录';
+
+  @override
+  String get gamesHubTitle => '游戏';
+
+  @override
+  String get gamesHubSubtitle => '每天都有新棋盘，所有人都一样。';
+
+  @override
+  String get gameTellFriendsMessage => '他们会收到这条成绩的通知。只能发送一次。';
+
+  @override
+  String get deviceLoginScanTitleIos => '扫码登录';
+
+  @override
+  String get deviceLoginConfirmTitleIos => '要在此设备上登录吗？';
+
+  @override
+  String get socialHeroCreateIos => '马上就好';
+
+  @override
+  String get socialHeroLinkIos => '欢迎回来';
+
+  @override
+  String socialSignInLinkIos(String provider) {
+    return '登录并关联 $provider';
+  }
+
+  @override
+  String get serverTitleIos => '服务器';
+
+  @override
+  String get serverOnboardingTitleIos => '选择服务器';
 }

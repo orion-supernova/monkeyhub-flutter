@@ -9844,4 +9844,45 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get rpKeep => '今はしない（現在のフレーズを使う）';
+
+  @override
+  String get childSetupHeadingIos => 'どなたですか？';
+
+  @override
+  String get childPairTitleIos => 'こんにちは！';
+
+  @override
+  String get childPairBackIos => 'サインインに戻る';
+
+  @override
+  String get gamesHubTitle => 'ゲーム';
+
+  @override
+  String get gamesHubSubtitle => '毎日新しい盤面。みんな同じ問題です。';
+
+  @override
+  String get gameTellFriendsMessage => 'この結果が通知で届きます。送信できるのは1回だけです。';
+
+  @override
+  String get deviceLoginScanTitleIos => 'スキャンしてサインイン';
+
+  @override
+  String get deviceLoginConfirmTitleIos => 'このデバイスでサインインしますか？';
+
+  @override
+  String get socialHeroCreateIos => 'あと少し';
+
+  @override
+  String get socialHeroLinkIos => 'おかえりなさい';
+
+  @override
+  String socialSignInLinkIos(String provider) {
+    return 'サインインして$providerと連携';
+  }
+
+  @override
+  String get serverTitleIos => 'サーバー';
+
+  @override
+  String get serverOnboardingTitleIos => 'サーバーを選択';
 }

@@ -154,7 +154,7 @@ void main() {
     await tester.pumpWidget(host(photos, (r) => sent = r));
     await openTray(tester);
 
-    await tester.tap(find.text('SEND'));
+    await tester.tap(find.text('Send'));
     // The export reads each photo's header, which is a real image codec — work
     // the fake-async zone never advances on its own. `runAsync` and `pump` have
     // to be interleaved, and kept separate: a pump inside runAsync deadlocks.
@@ -184,7 +184,7 @@ void main() {
 
     await tester.tap(find.text('1'));
     await tester.pump();
-    await tester.tap(find.text('SEND'));
+    await tester.tap(find.text('Send'));
     for (var i = 0; i < 40 && sent == null; i++) {
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 20)),

@@ -12,6 +12,8 @@ import '../widgets/remote_image.dart';
 import '../widgets/route_landing.dart';
 import '../widgets/steady_hero.dart';
 import '../widgets/video_message.dart' show VideoPlayerSurface;
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import '../widgets/photo_chrome.dart';
 
 /// Fullscreen player for a single video stored in Convex — the route a tap on
 /// a chat video message opens, mirroring [FullscreenImageViewer] for photos.
@@ -306,10 +308,13 @@ class _FullscreenVideoViewerState extends State<FullscreenVideoViewer>
                 child: Opacity(
                   // The chrome gets out of the way as the video leaves.
                   opacity: (1 - t * 2).clamp(0.0, 1.0),
-                  child: IconButton(
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    icon: const Icon(Icons.close, color: Colors.white, size: 22),
-                  ),
+                  child: PhotoGlassButton(
+                           // The Photos close: a glass circle, never a rippling IconButton.
+                           icon: CupertinoIcons.xmark,
+                           semanticLabel:
+                               MaterialLocalizations.of(context).closeButtonTooltip,
+                           onTap: () => Navigator.of(context).maybePop(),
+                         ),
                 ),
               ),
             ],

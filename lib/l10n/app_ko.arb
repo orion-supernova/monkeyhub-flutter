@@ -2875,5 +2875,18 @@
   "rpCopy": "복사",
   "rpSaved": "저장했어요",
   "rpBack": "뒤로",
-  "rpKeep": "나중에 — 현재 문구 유지"
+  "rpKeep": "나중에 — 현재 문구 유지",
+  "childSetupHeadingIos": "누구인가요?",
+  "childPairTitleIos": "안녕!",
+  "childPairBackIos": "로그인으로 돌아가기",
+  "gamesHubTitle": "게임",
+  "gamesHubSubtitle": "매일 새 보드, 모두에게 똑같이.",
+  "gameTellFriendsMessage": "이 결과가 알림으로 전송돼요. 한 번만 보낼 수 있어요.",
+  "deviceLoginScanTitleIos": "스캔해서 로그인",
+  "deviceLoginConfirmTitleIos": "이 기기에서 로그인할까요?",
+  "socialHeroCreateIos": "거의 다 됐어요",
+  "socialHeroLinkIos": "다시 오신 걸 환영해요",
+  "socialSignInLinkIos": "로그인하고 {provider} 연동하기",
+  "serverTitleIos": "서버",
+  "serverOnboardingTitleIos": "서버 선택"
 }

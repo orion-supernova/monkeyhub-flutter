@@ -2875,5 +2875,18 @@
   "rpCopy": "Kopiera",
   "rpSaved": "Jag har sparat dem",
   "rpBack": "Tillbaka",
-  "rpKeep": "Inte nu – behåll min nuvarande fras"
+  "rpKeep": "Inte nu – behåll min nuvarande fras",
+  "childSetupHeadingIos": "Vem är det?",
+  "childPairTitleIos": "Hej!",
+  "childPairBackIos": "Tillbaka till inloggning",
+  "gamesHubTitle": "Spel",
+  "gamesHubSubtitle": "Nya brädor varje dag, samma för alla.",
+  "gameTellFriendsMessage": "De får en avisering med resultatet. Det kan bara skickas en gång.",
+  "deviceLoginScanTitleIos": "Skanna för att logga in",
+  "deviceLoginConfirmTitleIos": "Logga in på den här enheten?",
+  "socialHeroCreateIos": "Nästan klart",
+  "socialHeroLinkIos": "Välkommen tillbaka",
+  "socialSignInLinkIos": "Logga in och koppla {provider}",
+  "serverTitleIos": "Server",
+  "serverOnboardingTitleIos": "Välj en server"
 }

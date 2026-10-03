@@ -572,9 +572,7 @@ class _CallScreenState extends State<CallScreen> {
                   name: s.peerName,
                   status: _statusWidget(
                     s,
-                    theme.monoTiny.copyWith(
-                      color: Colors.white.withValues(alpha: 0.85),
-                    ),
+                    callStatusStyle(theme),
                   ),
                   peerMuted: s.peerState.audioMuted,
                   theme: theme,
@@ -627,7 +625,7 @@ class _CallScreenState extends State<CallScreen> {
                     ),
                   ),
                 ),
-              if (svc.localCamActive && (remoteVisible || stage))
+              if (svc.localCamActive && stage)
                 Positioned(
                   top: MediaQuery.of(context).padding.top + 16,
                   right: 16,
@@ -654,6 +652,37 @@ class _CallScreenState extends State<CallScreen> {
                             mirror: !_pipIsLocal || stage,
                             objectFit: RTCVideoViewObjectFit
                                 .RTCVideoViewObjectFitCover,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+              // Outside a shared screen the self-view floats: drag it to any
+              // corner, FaceTime-style. A tap still swaps the feeds.
+              if (svc.localCamActive && remoteVisible && !stage)
+                Positioned.fill(
+                  child: DraggablePip(
+                    top: MediaQuery.paddingOf(context).top + 16,
+                    bottom: trayInset + MediaQuery.paddingOf(context).bottom,
+                    child: FocusableTap(
+                      onTap: _swapPip,
+                      semanticLabel: AppLocalizations.of(
+                        context,
+                      ).callScreenSwapPreviewSemanticLabel,
+                      shape: FocusRingShape.rounded,
+                      radius: 18,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _swapPip,
+                        child: ColoredBox(
+                          color: Colors.black,
+                          child: RTCVideoView(
+                            _pipIsLocal ? _remoteRenderer : _localRenderer,
+                            mirror: !_pipIsLocal,
+                            objectFit:
+                                RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
                           ),
                         ),
                       ),
@@ -690,9 +719,7 @@ class _CallScreenState extends State<CallScreen> {
                           children: [
                             _statusWidget(
                               s,
-                              theme.monoTiny.copyWith(
-                                color: Colors.white.withValues(alpha: 0.85),
-                              ),
+                              callStatusStyle(theme),
                             ),
                             if (s.peerState.audioMuted) ...[
                               const SizedBox(width: 10),

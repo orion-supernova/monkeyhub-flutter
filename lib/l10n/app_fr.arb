@@ -2875,5 +2875,18 @@
   "rpCopy": "Copier",
   "rpSaved": "Je les ai enregistrés",
   "rpBack": "Retour",
-  "rpKeep": "Pas maintenant — garder ma phrase actuelle"
+  "rpKeep": "Pas maintenant — garder ma phrase actuelle",
+  "childSetupHeadingIos": "Qui est-ce ?",
+  "childPairTitleIos": "Coucou !",
+  "childPairBackIos": "Retour à la connexion",
+  "gamesHubTitle": "Jeux",
+  "gamesHubSubtitle": "De nouvelles grilles chaque jour, les mêmes pour tous.",
+  "gameTellFriendsMessage": "Ils recevront une notification avec ce résultat. L’envoi n’est possible qu’une fois.",
+  "deviceLoginScanTitleIos": "Scanner pour se connecter",
+  "deviceLoginConfirmTitleIos": "Se connecter sur cet appareil ?",
+  "socialHeroCreateIos": "Presque fini",
+  "socialHeroLinkIos": "Bon retour",
+  "socialSignInLinkIos": "Se connecter et lier {provider}",
+  "serverTitleIos": "Serveur",
+  "serverOnboardingTitleIos": "Choisissez un serveur"
 }

@@ -1416,20 +1416,24 @@ class _ShutterButtonState extends State<_ShutterButton> {
                   ),
                 ),
                 AnimatedContainer(
-                  duration: const Duration(milliseconds: 110),
-                  curve: Curves.easeOut,
+                  // Quick down, springy back up — and a real morph between
+                  // the disc and the stop square: one rounded rectangle whose
+                  // radius animates, where a BoxShape switch could only snap.
+                  duration: Duration(
+                    milliseconds: _pressed
+                        ? 90
+                        : (MediaQuery.disableAnimationsOf(context) ? 0 : 340),
+                  ),
+                  curve: _pressed ? Curves.easeOut : Curves.easeOutBack,
                   width: widget.recording ? 30 : (_pressed ? 50 : 58),
                   height: widget.recording ? 30 : (_pressed ? 50 : 58),
                   decoration: BoxDecoration(
                     // A circle everywhere except mid-recording, where the
                     // rounded square is the stop glyph every camera has used
                     // since phones had one.
-                    shape: widget.recording
-                        ? BoxShape.rectangle
-                        : BoxShape.circle,
-                    borderRadius: widget.recording
-                        ? BorderRadius.circular(6)
-                        : null,
+                    borderRadius: BorderRadius.circular(
+                      widget.recording ? 7 : 29,
+                    ),
                     color: (widget.video ? _recordRed : PhotoChrome.ink)
                         .withValues(alpha: widget.busy ? 0.4 : 1),
                   ),

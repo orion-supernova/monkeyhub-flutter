@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:async';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -12,6 +13,7 @@ import '../media/file_url_cache.dart';
 import '../screens/room_items.dart' show formatClockDuration;
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator, CupertinoIcons;
 
 /// How the bubble is currently rendering.
 ///
@@ -279,12 +281,14 @@ class _AudioMessageState extends State<AudioMessage> {
         mainAxisSize: MainAxisSize.min,
         children: [
           _disc(theme, ink,
-              onTap: _retry, child: Icon(Icons.refresh, color: onDisc, size: 18)),
+              onTap: _retry,
+              child: Icon(CupertinoIcons.arrow_clockwise, color: onDisc, size: 17)),
           const SizedBox(width: 10),
           SizedBox(
             width: 120,
             child: Text(AppLocalizations.of(context).audioMessageRetryHint,
-                style: theme.monoTiny.copyWith(color: ink.withValues(alpha: 0.8))),
+                style: theme.caption.copyWith(
+                    fontSize: 12, color: ink.withValues(alpha: 0.8))),
           ),
         ],
       );
@@ -331,18 +335,21 @@ class _AudioMessageState extends State<AudioMessage> {
                           }
                         },
                   child: !ready
-                      ? SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
+                      ? CupertinoActivityIndicator(radius: 7, color: onDisc)
+                      // Play morphs into pause with a quick scale, the
+                      // iMessage control.
+                      : AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 160),
+                          transitionBuilder: (child, a) =>
+                              ScaleTransition(scale: a, child: child),
+                          child: Icon(
+                            playing
+                                ? CupertinoIcons.pause_fill
+                                : CupertinoIcons.play_fill,
+                            key: ValueKey(playing),
                             color: onDisc,
+                            size: 17,
                           ),
-                        )
-                      : Icon(
-                          playing ? Icons.pause : Icons.play_arrow,
-                          color: onDisc,
-                          size: 18,
                         ),
                 ),
                 const SizedBox(width: 10),
@@ -352,20 +359,18 @@ class _AudioMessageState extends State<AudioMessage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
-                        height: 3,
-                        decoration: BoxDecoration(
-                          color: ink.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                        child: FractionallySizedBox(
-                          alignment: Alignment.centerLeft,
-                          widthFactor: progress,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: ink,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
+                      // iMessage's waveform: bars seeded by the recording, so
+                      // every note has its own shape and keeps it; played
+                      // bars take the full ink.
+                      SizedBox(
+                        height: 20,
+                        width: double.infinity,
+                        child: CustomPaint(
+                          painter: _WaveformPainter(
+                            seed: (widget.storageId ?? '').hashCode,
+                            progress: progress,
+                            played: ink,
+                            unplayed: ink.withValues(alpha: 0.32),
                           ),
                         ),
                       ),
@@ -376,8 +381,11 @@ class _AudioMessageState extends State<AudioMessage> {
                                 ' / ${formatClockDuration(total)}'
                             : AppLocalizations.of(context)
                                 .audioMessageLoadingLabel,
-                        style: theme.monoTiny
-                            .copyWith(color: ink.withValues(alpha: 0.8)),
+                        style: theme.caption.copyWith(
+                          fontSize: 12,
+                          color: ink.withValues(alpha: 0.8),
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
                       ),
                     ],
                   ),
@@ -389,4 +397,65 @@ class _AudioMessageState extends State<AudioMessage> {
       },
     );
   }
+}
+
+/// The bars of a voice note. Heights come from a seeded generator — a real
+/// amplitude envelope would need the audio decoded before it is played — so
+/// the shape is stable per recording and reads as speech: mostly mid-height
+/// with the occasional peak, tapering at both ends.
+class _WaveformPainter extends CustomPainter {
+  _WaveformPainter({
+    required this.seed,
+    required this.progress,
+    required this.played,
+    required this.unplayed,
+  });
+
+  final int seed;
+  final double progress;
+  final Color played;
+  final Color unplayed;
+
+  static const _bars = 30;
+  static final _cache = <int, List<double>>{};
+
+  List<double> _heights() => _cache.putIfAbsent(seed, () {
+        final r = math.Random(seed);
+        return [
+          for (var i = 0; i < _bars; i++)
+            () {
+              final edge = math.sin(math.pi * (i + 0.5) / _bars);
+              final base = 0.25 + r.nextDouble() * 0.55;
+              final peak = r.nextDouble() < 0.18 ? 0.25 : 0.0;
+              return ((base + peak) * (0.55 + 0.45 * edge)).clamp(0.15, 1.0);
+            }(),
+        ];
+      });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final h = _heights();
+    final step = size.width / _bars;
+    final barW = math.max(1.5, step * 0.55);
+    final paint = Paint()..strokeCap = StrokeCap.round;
+    for (var i = 0; i < _bars; i++) {
+      final x = step * i + step / 2;
+      final bh = math.max(barW, h[i] * size.height);
+      paint
+        ..color = (i + 0.5) / _bars <= progress ? played : unplayed
+        ..strokeWidth = barW;
+      canvas.drawLine(
+        Offset(x, size.height / 2 - bh / 2 + barW / 2),
+        Offset(x, size.height / 2 + bh / 2 - barW / 2),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_WaveformPainter old) =>
+      old.progress != progress ||
+      old.seed != seed ||
+      old.played != played ||
+      old.unplayed != unplayed;
 }

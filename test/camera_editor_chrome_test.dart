@@ -121,8 +121,8 @@ void main() {
     );
 
     expect(find.byIcon(CupertinoIcons.scribble), findsNothing);
-    expect(find.text('SEND'), findsNothing);
-    expect(find.text('USE PHOTO'), findsOneWidget);
+    expect(find.text('Send'), findsNothing);
+    expect(find.text('Use photo'), findsOneWidget);
 
     // Still a cropper, which is the entire reason the feed came here.
     expect(find.byIcon(CupertinoIcons.crop), findsOneWidget);
@@ -153,8 +153,8 @@ void main() {
 
     expect(find.byIcon(CupertinoIcons.crop), findsOneWidget);
     expect(find.text('CROP'), findsNothing);
-    expect(find.text('USE PHOTO'), findsNothing);
-    expect(find.text('SEND'), findsOneWidget);
+    expect(find.text('Use photo'), findsNothing);
+    expect(find.text('Send'), findsOneWidget);
   });
 
   testWidgets(

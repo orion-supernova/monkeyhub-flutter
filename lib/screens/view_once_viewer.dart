@@ -6,6 +6,9 @@ import '../l10n/generated/app_localizations.dart';
 import '../privacy/capture_protection.dart';
 import '../widgets/capture_shield.dart';
 import '../widgets/photo_backdrop.dart';
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import '../widgets/photo_chrome.dart';
+import '../widgets/sheet_kit.dart' show sentenceCaseOf;
 
 /// Fullscreen viewer for a view-once photo.
 ///
@@ -155,10 +158,13 @@ class _ViewOnceViewerState extends State<ViewOnceViewer>
               Positioned(
                 top: topInset + 8,
                 right: 8,
-                child: IconButton(
-                  onPressed: _close,
-                  icon: const Icon(Icons.close, color: Colors.white, size: 22),
-                ),
+                child: PhotoGlassButton(
+                         // The Photos close: a glass circle, never a rippling IconButton.
+                         icon: CupertinoIcons.xmark,
+                         semanticLabel:
+                             MaterialLocalizations.of(context).closeButtonTooltip,
+                         onTap: _close,
+                       ),
               ),
               // Deliberately no save, share, or download control.
               const CaptureShield(),
@@ -210,12 +216,14 @@ class _ViewOnceBadge extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            AppLocalizations.of(context).viewOnceViewerBadgeLabel,
+            sentenceCaseOf(
+              context,
+              AppLocalizations.of(context).viewOnceViewerBadgeLabel,
+            ),
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.9),
-              fontSize: 10.5,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.6,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
               decoration: TextDecoration.none,
             ),
           ),

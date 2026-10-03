@@ -822,7 +822,11 @@ class _TopBar extends StatelessWidget {
                   ),
                   Text(
                     position,
-                    style: theme.monoTiny.copyWith(color: Colors.white70),
+                    style: theme.caption.copyWith(
+                      fontSize: 13,
+                      color: Colors.white70,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
                   ),
                 ],
               ),

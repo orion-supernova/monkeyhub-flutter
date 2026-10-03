@@ -2,14 +2,17 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart' show SpringDescription, SpringSimulation;
 import 'package:flutter/services.dart';
 
 import '../../backend/chat_api.dart';
 import '../../keyboard/focusable_tap.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/chat_user.dart';
+import '../../theme/app_theme.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/user_avatar.dart';
 import '../call_stats_monitor.dart';
@@ -45,19 +48,31 @@ class GlassTray extends StatelessWidget {
     return Center(
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
+        // iOS 26's tray: corners as round as the controls inside them
+        // (concentric), so a one-row tray reads as a capsule and a two-row
+        // one as a rounded slab of the same family.
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(38),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
             child: Container(
               padding: padding,
               decoration: BoxDecoration(
                 // Dark glass, not light: the controls are white, and over a
                 // bright camera picture a white-tinted capsule left them
                 // unreadable. FaceTime's tray is dark for the same reason.
-                color: Colors.black.withValues(alpha: 0.45),
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                // The top-lit gradient is the glass's specular edge.
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.white.withValues(alpha: 0.10),
+                    Colors.black.withValues(alpha: 0.42),
+                  ],
+                  stops: const [0.0, 0.45],
+                ),
+                borderRadius: BorderRadius.circular(38),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
               ),
               child: child,
             ),
@@ -597,6 +612,170 @@ class ParticipantOrb extends StatelessWidget {
   }
 }
 
+/// The self-view tile of a 1:1 video call, FaceTime-style: drag it anywhere
+/// and on release it springs to the nearest corner, carrying the fling's
+/// velocity into the spring so a flick lands where it was thrown.
+///
+/// Fills its parent (lay it out with [Positioned.fill]) and places the tile
+/// inside, clear of [top] and [bottom] — the name block above and the tray
+/// below. A tap still reaches [child]'s own handler (the feed swap): pans
+/// and taps are separate gestures, and a tap moves nothing.
+class DraggablePip extends StatefulWidget {
+  const DraggablePip({
+    super.key,
+    required this.child,
+    required this.top,
+    required this.bottom,
+    this.size = const Size(100, 140),
+    this.margin = 16,
+  });
+
+  final Widget child;
+  final double top;
+  final double bottom;
+  final Size size;
+  final double margin;
+
+  @override
+  State<DraggablePip> createState() => _DraggablePipState();
+}
+
+class _DraggablePipState extends State<DraggablePip>
+    with SingleTickerProviderStateMixin {
+  /// Which corner the tile rests in: x and y each -1 or 1. Starts top-right,
+  /// where the tile has always been.
+  Offset _corner = const Offset(1, -1);
+
+  /// The tile's top-left while dragging or settling; null at rest.
+  Offset? _live;
+  Offset _from = Offset.zero;
+  Offset _to = Offset.zero;
+
+  late final AnimationController _settle = AnimationController.unbounded(
+    vsync: this,
+  )..addListener(() {
+      setState(() => _live = Offset.lerp(_from, _to, _settle.value));
+    });
+
+  @override
+  void dispose() {
+    _settle.dispose();
+    super.dispose();
+  }
+
+  Offset _cornerOrigin(Size area, Offset corner) {
+    final m = widget.margin;
+    final w = widget.size.width;
+    final h = widget.size.height;
+    final x = corner.dx < 0 ? m : area.width - w - m;
+    final y = corner.dy < 0 ? widget.top : area.height - h - widget.bottom;
+    return Offset(x, y);
+  }
+
+  void _onEnd(Size area, DragEndDetails d) {
+    final at = _live ?? _cornerOrigin(area, _corner);
+    final v = d.velocity.pixelsPerSecond;
+    // Project the fling a fifth of a second ahead and pick the corner it is
+    // heading for — a flick across the screen should cross the screen.
+    final projected = at + v * 0.2;
+    final centre = projected +
+        Offset(widget.size.width / 2, widget.size.height / 2);
+    final next = Offset(
+      centre.dx < area.width / 2 ? -1 : 1,
+      centre.dy < area.height / 2 ? -1 : 1,
+    );
+    _corner = next;
+    _from = at;
+    _to = _cornerOrigin(area, next);
+    final distance = (_to - _from).distance;
+    if (distance < 1 || MediaQuery.disableAnimationsOf(context)) {
+      setState(() => _live = null);
+      return;
+    }
+    // The spring runs 0→1 along the path; the fling's speed along that
+    // path becomes its starting velocity, in path-lengths per second.
+    final along = (_to - _from) / distance;
+    final speed = (v.dx * along.dx + v.dy * along.dy) / distance;
+    _settle
+        .animateWith(
+          SpringSimulation(
+            const SpringDescription(mass: 1, stiffness: 300, damping: 26),
+            0,
+            1,
+            speed,
+          ),
+        )
+        .then((_) {
+      if (mounted) setState(() => _live = null);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, box) {
+        final area = box.biggest;
+        final at = _live ?? _cornerOrigin(area, _corner);
+        return Stack(
+          children: [
+            Positioned(
+              left: at.dx,
+              top: at.dy,
+              width: widget.size.width,
+              height: widget.size.height,
+              child: GestureDetector(
+                onPanStart: (_) {
+                  _settle.stop();
+                  _live ??= _cornerOrigin(area, _corner);
+                },
+                onPanUpdate: (d) =>
+                    setState(() => _live = (_live ?? at) + d.delta),
+                onPanEnd: (d) => _onEnd(area, d),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.35),
+                        blurRadius: 18,
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: widget.child,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Small captions over a call — the group bar's title line and timer, a
+/// tile's name tag: the system face at 13, never the theme's mono slot.
+TextStyle callCaptionStyle(AppTheme theme) => theme.body.copyWith(
+      fontSize: 13,
+      height: 1.2,
+      letterSpacing: -0.1,
+      color: Colors.white70,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+
+/// The line under a caller's name — "Ringing…", the call timer. The body
+/// face at 17 in soft white, FaceTime's subtitle; tabular figures so the
+/// timer's digits do not jitter as they tick.
+TextStyle callStatusStyle(AppTheme theme) => theme.body.copyWith(
+      fontSize: 17,
+      height: 1.2,
+      letterSpacing: -0.2,
+      color: Colors.white.withValues(alpha: 0.72),
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+
 /// Fades (and optionally slides) an overlay region for the call screen's
 /// tap-to-hide-controls gesture. [IgnorePointer] while hidden so faded-out
 /// chrome can't be tapped through mid-animation or while fully hidden.
@@ -691,7 +870,16 @@ class AudioBackdropState extends State<AudioBackdrop>
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Avatar + concentric pulse rings.
-                PulseRings(
+                // Springs in once when the call screen opens.
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.82, end: 1),
+                  duration: MediaQuery.disableAnimationsOf(context)
+                      ? Duration.zero
+                      : const Duration(milliseconds: 700),
+                  curve: Curves.elasticOut,
+                  builder: (context, s, child) =>
+                      Transform.scale(scale: s, child: child),
+                  child: PulseRings(
                   accent: accent,
                   diameter: 132,
                   reach: 128,
@@ -700,15 +888,10 @@ class AudioBackdropState extends State<AudioBackdrop>
                     height: 132,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.28),
-                        width: 1,
-                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: accent.withValues(alpha: 0.45),
-                          blurRadius: 40,
-                          spreadRadius: 2,
+                          color: accent.withValues(alpha: 0.38),
+                          blurRadius: 48,
                         ),
                       ],
                     ),
@@ -717,17 +900,23 @@ class AudioBackdropState extends State<AudioBackdrop>
                     child: UserAvatar(
                       user: widget.user,
                       api: widget.api,
-                      size: 130,
+                      size: 132,
                       showStatus: false,
                     ),
                   ),
+                  ),
                 ),
                 const SizedBox(height: 28),
-                Text(
-                  widget.name,
-                  style: theme.displayMedium.copyWith(color: Colors.white),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                // FaceTime's name: big, centred, the one thing on screen
+                // that is not the person's face.
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(
+                    widget.name,
+                    style: theme.displayLarge.copyWith(color: Colors.white),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -818,17 +1007,17 @@ class CallControlButton extends StatelessWidget {
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Material(
-                color: Colors.white.withValues(alpha: 0.08),
-                shape: const CircleBorder(),
-                child: SizedBox(
-                  width: size,
-                  height: size,
-                  child: Icon(
-                    icon,
-                    color: Colors.white.withValues(alpha: 0.30),
-                    size: iconSize,
-                  ),
+              Container(
+                width: size,
+                height: size,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  color: Colors.white.withValues(alpha: 0.30),
+                  size: iconSize,
                 ),
               ),
               const SizedBox(height: 6),
@@ -838,9 +1027,8 @@ class CallControlButton extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 textScaler: labelScaler,
-                style: TextStyle(
+                style: _labelStyle.copyWith(
                   color: Colors.white.withValues(alpha: 0.30),
-                  fontSize: 11,
                 ),
               ),
             ],
@@ -863,27 +1051,39 @@ class CallControlButton extends StatelessWidget {
               // child GestureDetector is what makes this tappable.
               child: GestureDetector(
                 onTap: _tap,
-                child: Container(
-                  width: size,
-                  height: size,
-                  decoration: BoxDecoration(
-                    color: bg,
-                    shape: BoxShape.circle,
-                    // Only the standalone hero button (end call) needs to
-                    // read as "floating" above the video — the toolbar row's
-                    // buttons already sit inside their own glass tray.
-                    boxShadow: large
-                        ? [
-                            BoxShadow(
-                              color: bg.withValues(alpha: 0.45),
-                              blurRadius: 20,
-                              spreadRadius: 1,
-                              offset: const Offset(0, 8),
-                            ),
-                          ]
-                        : null,
+                child: PressSpring(
+                  // Size pinned outside, colour animated inside: an
+                  // AnimatedContainer given the size too would tween it
+                  // whenever the slot changed, and the tray's own height
+                  // estimate would stop matching what it draws.
+                  child: SizedBox(
+                    width: size,
+                    height: size,
+                    child: AnimatedContainer(
+                    // A toggle flipping on fills white over a beat rather
+                    // than snapping, the FaceTime mute button.
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOut,
+                    decoration: BoxDecoration(
+                      color: bg,
+                      shape: BoxShape.circle,
+                      // Only the standalone hero button (end call) needs to
+                      // read as floating above the video — the toolbar row's
+                      // buttons already sit inside their own glass tray. A
+                      // centred glow, not a dropped shadow: offset, it read
+                      // as a hard lip under the button.
+                      boxShadow: large
+                          ? [
+                              BoxShadow(
+                                color: bg.withValues(alpha: 0.40),
+                                blurRadius: 24,
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Icon(icon, color: fg, size: iconSize),
                   ),
-                  child: Icon(icon, color: fg, size: iconSize),
+                  ),
                 ),
               ),
             ),
@@ -894,11 +1094,59 @@ class CallControlButton extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
               textScaler: labelScaler,
-              style: const TextStyle(color: Colors.white70, fontSize: 11),
+              style: _labelStyle,
             ),
           ],
         );
       },
+    );
+  }
+
+  /// The caption under a control: the platform face (SF on iOS) at 11 —
+  /// no explicit family, whose line metrics would outgrow the slot the tray
+  /// measures for. Not larger and not
+  /// heavier — the tray's slots are sized for this line, and at 12pt medium
+  /// "Speaker" no longer fits a compact slot (call_tray_layout_test).
+  static const _labelStyle = TextStyle(
+    color: Color(0xD9FFFFFF),
+    fontSize: 11,
+  );
+}
+
+/// The dip-and-overshoot a control gives under the finger.
+///
+/// A pointer [Listener], not a gesture: it only watches the press, so the
+/// [GestureDetector] above keeps winning the tap exactly as before.
+class PressSpring extends StatefulWidget {
+  const PressSpring({super.key, required this.child});
+  final Widget child;
+
+  @override
+  State<PressSpring> createState() => _PressSpringState();
+}
+
+class _PressSpringState extends State<PressSpring> {
+  bool _down = false;
+
+  void _set(bool v) {
+    if (_down != v) setState(() => _down = v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final calm = MediaQuery.disableAnimationsOf(context);
+    return Listener(
+      onPointerDown: (_) => _set(true),
+      onPointerUp: (_) => _set(false),
+      onPointerCancel: (_) => _set(false),
+      child: AnimatedScale(
+        scale: _down ? 0.9 : 1,
+        duration: calm
+            ? Duration.zero
+            : Duration(milliseconds: _down ? 90 : 460),
+        curve: _down ? Curves.easeOut : Curves.elasticOut,
+        child: widget.child,
+      ),
     );
   }
 }
@@ -934,11 +1182,7 @@ class OverlayChip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (spinner) ...[
-              SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator(strokeWidth: 2, color: fg),
-              ),
+              CupertinoActivityIndicator(radius: 7, color: fg),
               const SizedBox(width: 10),
             ] else ...[
               Icon(Icons.network_check, size: 14, color: fg),
@@ -946,10 +1190,12 @@ class OverlayChip extends StatelessWidget {
             ],
             Text(
               label,
-              style: theme.monoTiny.copyWith(
+              style: theme.caption.copyWith(
+                fontFamily: 'CupertinoSystemText',
+                fontSize: 13,
                 color: fg,
                 fontWeight: FontWeight.w600,
-                letterSpacing: 0.4,
+                letterSpacing: -0.1,
               ),
             ),
           ],

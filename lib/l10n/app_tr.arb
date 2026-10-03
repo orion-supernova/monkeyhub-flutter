@@ -2875,5 +2875,18 @@
   "rpCopy": "Kopyala",
   "rpSaved": "Kaydettim",
   "rpBack": "Geri",
-  "rpKeep": "Şimdi değil — mevcut ifademi koru"
+  "rpKeep": "Şimdi değil — mevcut ifademi koru",
+  "childSetupHeadingIos": "Bu kim?",
+  "childPairTitleIos": "Merhaba!",
+  "childPairBackIos": "Girişe dön",
+  "gamesHubTitle": "Oyunlar",
+  "gamesHubSubtitle": "Her gün yeni tahtalar, herkes için aynı.",
+  "gameTellFriendsMessage": "Bu sonuçla bir bildirim alacaklar. Yalnızca bir kez gönderilebilir.",
+  "deviceLoginScanTitleIos": "Giriş için tara",
+  "deviceLoginConfirmTitleIos": "Bu cihazda giriş yapılsın mı?",
+  "socialHeroCreateIos": "Az kaldı",
+  "socialHeroLinkIos": "Tekrar hoş geldin",
+  "socialSignInLinkIos": "Giriş yap ve {provider} bağla",
+  "serverTitleIos": "Sunucu",
+  "serverOnboardingTitleIos": "Bir sunucu seç"
 }

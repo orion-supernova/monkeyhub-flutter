@@ -510,9 +510,7 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
                                         svc.hasAnyVideo
                                             ? l10n.groupCallScreenTitleVideo
                                             : l10n.groupCallScreenTitleVoice,
-                                        style: theme.monoTiny.copyWith(
-                                          color: Colors.white70,
-                                        ),
+                                        style: callCaptionStyle(theme),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -520,15 +518,12 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
                                     if (svc.joinedAt != null) ...[
                                       Text(
                                         '  ·  ',
-                                        style: theme.monoTiny.copyWith(
-                                          color: Colors.white38,
-                                        ),
+                                        style: callCaptionStyle(theme)
+                                            .copyWith(color: Colors.white38),
                                       ),
                                       ElapsedLabel(
                                         start: svc.joinedAt!,
-                                        style: theme.monoTiny.copyWith(
-                                          color: Colors.white70,
-                                        ),
+                                        style: callCaptionStyle(theme),
                                       ),
                                     ],
                                   ],
@@ -549,9 +544,7 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
                               l10n.groupCallScreenParticipantCount(
                                 peers.length + 1,
                               ),
-                              style: theme.monoTiny.copyWith(
-                                color: Colors.white70,
-                              ),
+                              style: callCaptionStyle(theme),
                             ),
                           ),
                         ],
@@ -1183,7 +1176,7 @@ class _CaptionPill extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: theme.monoTiny.copyWith(
+        style: callCaptionStyle(theme).copyWith(
           color: Colors.white,
           fontWeight: FontWeight.w600,
         ),

@@ -2875,5 +2875,18 @@
   "rpCopy": "कॉपी करें",
   "rpSaved": "मैंने सहेज लिए",
   "rpBack": "वापस",
-  "rpKeep": "अभी नहीं — मेरा मौजूदा वाक्यांश रखें"
+  "rpKeep": "अभी नहीं — मेरा मौजूदा वाक्यांश रखें",
+  "childSetupHeadingIos": "ये कौन हैं?",
+  "childPairTitleIos": "नमस्ते!",
+  "childPairBackIos": "साइन इन पर वापस जाएँ",
+  "gamesHubTitle": "गेम्स",
+  "gamesHubSubtitle": "हर दिन नए बोर्ड, सबके लिए एक जैसे।",
+  "gameTellFriendsMessage": "उन्हें इस नतीजे की सूचना मिलेगी। इसे सिर्फ़ एक बार भेजा जा सकता है।",
+  "deviceLoginScanTitleIos": "साइन इन के लिए स्कैन करें",
+  "deviceLoginConfirmTitleIos": "इस डिवाइस पर साइन इन करें?",
+  "socialHeroCreateIos": "बस थोड़ा और",
+  "socialHeroLinkIos": "फिर से स्वागत है",
+  "socialSignInLinkIos": "साइन इन करें और {provider} लिंक करें",
+  "serverTitleIos": "सर्वर",
+  "serverOnboardingTitleIos": "एक सर्वर चुनें"
 }

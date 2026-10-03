@@ -10258,4 +10258,46 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get rpKeep => 'अभी नहीं — मेरा मौजूदा वाक्यांश रखें';
+
+  @override
+  String get childSetupHeadingIos => 'ये कौन हैं?';
+
+  @override
+  String get childPairTitleIos => 'नमस्ते!';
+
+  @override
+  String get childPairBackIos => 'साइन इन पर वापस जाएँ';
+
+  @override
+  String get gamesHubTitle => 'गेम्स';
+
+  @override
+  String get gamesHubSubtitle => 'हर दिन नए बोर्ड, सबके लिए एक जैसे।';
+
+  @override
+  String get gameTellFriendsMessage =>
+      'उन्हें इस नतीजे की सूचना मिलेगी। इसे सिर्फ़ एक बार भेजा जा सकता है।';
+
+  @override
+  String get deviceLoginScanTitleIos => 'साइन इन के लिए स्कैन करें';
+
+  @override
+  String get deviceLoginConfirmTitleIos => 'इस डिवाइस पर साइन इन करें?';
+
+  @override
+  String get socialHeroCreateIos => 'बस थोड़ा और';
+
+  @override
+  String get socialHeroLinkIos => 'फिर से स्वागत है';
+
+  @override
+  String socialSignInLinkIos(String provider) {
+    return 'साइन इन करें और $provider लिंक करें';
+  }
+
+  @override
+  String get serverTitleIos => 'सर्वर';
+
+  @override
+  String get serverOnboardingTitleIos => 'एक सर्वर चुनें';
 }

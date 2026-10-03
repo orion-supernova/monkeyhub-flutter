@@ -17412,6 +17412,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not now — keep my current phrase'**
   String get rpKeep;
+
+  /// Large title on the Add a child screen, iOS sentence case.
+  ///
+  /// In en, this message translates to:
+  /// **'Who are they?'**
+  String get childSetupHeadingIos;
+
+  /// Large friendly title on the screen a child sees when pairing their phone with a parent's code.
+  ///
+  /// In en, this message translates to:
+  /// **'Hello!'**
+  String get childPairTitleIos;
+
+  /// Link at the bottom of the child pairing screen returning to sign in.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to sign in'**
+  String get childPairBackIos;
+
+  /// Large iOS title of the games hub screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Games'**
+  String get gamesHubTitle;
+
+  /// One line under the Games title: the daily boards are shared by everyone.
+  ///
+  /// In en, this message translates to:
+  /// **'New boards every day, the same for everyone.'**
+  String get gamesHubSubtitle;
+
+  /// Message in the confirmation sheet before sending a finished game result to friends as a notification.
+  ///
+  /// In en, this message translates to:
+  /// **'They\'ll get a notification with this result. It can only be sent once.'**
+  String get gameTellFriendsMessage;
+
+  /// Large title on the phone screen that scans a desktop/web sign-in QR code.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan to sign in'**
+  String get deviceLoginScanTitleIos;
+
+  /// Large title asking the user to confirm signing in another device that scanned/entered the code.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in on this device?'**
+  String get deviceLoginConfirmTitleIos;
+
+  /// Large title after signing in with Apple/Google for the first time, asking for a username to finish creating the account.
+  ///
+  /// In en, this message translates to:
+  /// **'Almost there'**
+  String get socialHeroCreateIos;
+
+  /// Large title when linking Apple/Google to an existing account by signing in with its password.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome back'**
+  String get socialHeroLinkIos;
+
+  /// Primary button that signs in to an existing account and links the Apple/Google sign-in to it. {provider} is Apple or Google.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in & link {provider}'**
+  String socialSignInLinkIos(String provider);
+
+  /// Large title of the Server settings page (which backend the account lives on).
+  ///
+  /// In en, this message translates to:
+  /// **'Server'**
+  String get serverTitleIos;
+
+  /// Large title on first launch when the build ships without a server, asking the user to choose one.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a server'**
+  String get serverOnboardingTitleIos;
 }
 
 class _AppLocalizationsDelegate

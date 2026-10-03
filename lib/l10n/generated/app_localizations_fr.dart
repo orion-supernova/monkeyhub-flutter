@@ -10409,4 +10409,47 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get rpKeep => 'Pas maintenant — garder ma phrase actuelle';
+
+  @override
+  String get childSetupHeadingIos => 'Qui est-ce ?';
+
+  @override
+  String get childPairTitleIos => 'Coucou !';
+
+  @override
+  String get childPairBackIos => 'Retour à la connexion';
+
+  @override
+  String get gamesHubTitle => 'Jeux';
+
+  @override
+  String get gamesHubSubtitle =>
+      'De nouvelles grilles chaque jour, les mêmes pour tous.';
+
+  @override
+  String get gameTellFriendsMessage =>
+      'Ils recevront une notification avec ce résultat. L’envoi n’est possible qu’une fois.';
+
+  @override
+  String get deviceLoginScanTitleIos => 'Scanner pour se connecter';
+
+  @override
+  String get deviceLoginConfirmTitleIos => 'Se connecter sur cet appareil ?';
+
+  @override
+  String get socialHeroCreateIos => 'Presque fini';
+
+  @override
+  String get socialHeroLinkIos => 'Bon retour';
+
+  @override
+  String socialSignInLinkIos(String provider) {
+    return 'Se connecter et lier $provider';
+  }
+
+  @override
+  String get serverTitleIos => 'Serveur';
+
+  @override
+  String get serverOnboardingTitleIos => 'Choisissez un serveur';
 }

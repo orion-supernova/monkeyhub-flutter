@@ -2875,5 +2875,18 @@
   "rpCopy": "复制",
   "rpSaved": "我已保存",
   "rpBack": "返回",
-  "rpKeep": "暂不，保留当前短语"
+  "rpKeep": "暂不，保留当前短语",
+  "childSetupHeadingIos": "这是谁？",
+  "childPairTitleIos": "你好！",
+  "childPairBackIos": "返回登录",
+  "gamesHubTitle": "游戏",
+  "gamesHubSubtitle": "每天都有新棋盘，所有人都一样。",
+  "gameTellFriendsMessage": "他们会收到这条成绩的通知。只能发送一次。",
+  "deviceLoginScanTitleIos": "扫码登录",
+  "deviceLoginConfirmTitleIos": "要在此设备上登录吗？",
+  "socialHeroCreateIos": "马上就好",
+  "socialHeroLinkIos": "欢迎回来",
+  "socialSignInLinkIos": "登录并关联 {provider}",
+  "serverTitleIos": "服务器",
+  "serverOnboardingTitleIos": "选择服务器"
 }

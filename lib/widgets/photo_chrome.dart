@@ -9,6 +9,7 @@ import 'package:flutter/material.dart' show CircularProgressIndicator;
 
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
+import 'sheet_kit.dart' show sentenceCaseOf;
 
 /// Chrome that floats over a photograph — the camera preview and the post-
 /// capture editor share it, so the two screens read as one surface.
@@ -287,12 +288,14 @@ class _PhotoGlassPillState extends State<PhotoGlassPill> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      widget.label,
+                      // Sentence case, iOS's Send / Done — the labels are
+                      // authored for the old tracked-capitals pill.
+                      sentenceCaseOf(context, widget.label),
                       style: TextStyle(
                         color: fg,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.3,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.2,
                         // Explicit, not inherited: this chrome floats over a
                         // photo and must never fall back to Flutter's debug
                         // text style, which paints yellow underlines.

@@ -2875,5 +2875,18 @@
   "rpCopy": "نسخ",
   "rpSaved": "حفظتها",
   "rpBack": "رجوع",
-  "rpKeep": "ليس الآن — احتفظ بعبارتي الحالية"
+  "rpKeep": "ليس الآن — احتفظ بعبارتي الحالية",
+  "childSetupHeadingIos": "من هو الطفل؟",
+  "childPairTitleIos": "مرحبًا!",
+  "childPairBackIos": "العودة إلى تسجيل الدخول",
+  "gamesHubTitle": "الألعاب",
+  "gamesHubSubtitle": "ألواح جديدة كل يوم، واحدة للجميع.",
+  "gameTellFriendsMessage": "سيصلهم إشعار بهذه النتيجة. يمكن إرساله مرة واحدة فقط.",
+  "deviceLoginScanTitleIos": "امسح لتسجيل الدخول",
+  "deviceLoginConfirmTitleIos": "تسجيل الدخول على هذا الجهاز؟",
+  "socialHeroCreateIos": "اقتربت",
+  "socialHeroLinkIos": "مرحبًا بعودتك",
+  "socialSignInLinkIos": "تسجيل الدخول وربط {provider}",
+  "serverTitleIos": "الخادم",
+  "serverOnboardingTitleIos": "اختر خادمًا"
 }

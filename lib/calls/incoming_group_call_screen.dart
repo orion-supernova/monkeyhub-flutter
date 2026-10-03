@@ -11,6 +11,7 @@ import '../theme/theme_scope.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/user_avatar.dart';
 import 'group_call_service.dart';
+import 'widgets/call_chrome.dart' show callStatusStyle;
 
 /// In-app ringer for a group-call invite. Shown by the app overlay while
 /// [GroupCallService.pendingInvite] is fresh; pops itself when the invite
@@ -178,7 +179,7 @@ class _IncomingGroupCallScreenState extends State<IncomingGroupCallScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 32),
                 child: Text(
                   roomName,
-                  style: theme.displayMedium.copyWith(color: Colors.white),
+                  style: theme.displayLarge.copyWith(color: Colors.white),
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -188,9 +189,7 @@ class _IncomingGroupCallScreenState extends State<IncomingGroupCallScreen>
               Text(
                 '${isVideo ? l10n.incomingGroupCallScreenStartedVideoCall(starter) : l10n.incomingGroupCallScreenStartedVoiceCall(starter)}'
                 '${joined > 1 ? ' · ${l10n.incomingGroupCallScreenAlreadyJoinedCount(joined)}' : ''}',
-                style: theme.monoTiny.copyWith(
-                  color: Colors.white.withValues(alpha: 0.85),
-                ),
+                style: callStatusStyle(theme),
                 textAlign: TextAlign.center,
               ),
               const Spacer(flex: 3),

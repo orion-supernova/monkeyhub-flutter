@@ -11896,5 +11896,62 @@
   "rpKeep": "Not now — keep my current phrase",
   "@rpKeep": {
     "description": "Text link leaving the flow without changing the existing phrase."
+  },
+  "childSetupHeadingIos": "Who are they?",
+  "@childSetupHeadingIos": {
+    "description": "Large title on the Add a child screen, iOS sentence case."
+  },
+  "childPairTitleIos": "Hello!",
+  "@childPairTitleIos": {
+    "description": "Large friendly title on the screen a child sees when pairing their phone with a parent's code."
+  },
+  "childPairBackIos": "Back to sign in",
+  "@childPairBackIos": {
+    "description": "Link at the bottom of the child pairing screen returning to sign in."
+  },
+  "gamesHubTitle": "Games",
+  "@gamesHubTitle": {
+    "description": "Large iOS title of the games hub screen."
+  },
+  "gamesHubSubtitle": "New boards every day, the same for everyone.",
+  "@gamesHubSubtitle": {
+    "description": "One line under the Games title: the daily boards are shared by everyone."
+  },
+  "gameTellFriendsMessage": "They'll get a notification with this result. It can only be sent once.",
+  "@gameTellFriendsMessage": {
+    "description": "Message in the confirmation sheet before sending a finished game result to friends as a notification."
+  },
+  "deviceLoginScanTitleIos": "Scan to sign in",
+  "@deviceLoginScanTitleIos": {
+    "description": "Large title on the phone screen that scans a desktop/web sign-in QR code."
+  },
+  "deviceLoginConfirmTitleIos": "Sign in on this device?",
+  "@deviceLoginConfirmTitleIos": {
+    "description": "Large title asking the user to confirm signing in another device that scanned/entered the code."
+  },
+  "socialHeroCreateIos": "Almost there",
+  "@socialHeroCreateIos": {
+    "description": "Large title after signing in with Apple/Google for the first time, asking for a username to finish creating the account."
+  },
+  "socialHeroLinkIos": "Welcome back",
+  "@socialHeroLinkIos": {
+    "description": "Large title when linking Apple/Google to an existing account by signing in with its password."
+  },
+  "socialSignInLinkIos": "Sign in & link {provider}",
+  "@socialSignInLinkIos": {
+    "description": "Primary button that signs in to an existing account and links the Apple/Google sign-in to it. {provider} is Apple or Google.",
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "serverTitleIos": "Server",
+  "@serverTitleIos": {
+    "description": "Large title of the Server settings page (which backend the account lives on)."
+  },
+  "serverOnboardingTitleIos": "Pick a server",
+  "@serverOnboardingTitleIos": {
+    "description": "Large title on first launch when the build ships without a server, asking the user to choose one."
   }
 }

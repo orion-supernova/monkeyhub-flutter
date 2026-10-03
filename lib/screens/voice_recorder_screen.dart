@@ -12,6 +12,9 @@ import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/app_toast.dart';
 import 'room_items.dart' show formatClockDuration;
+import '../widgets/ios_kit.dart' show GlassIconButton, SpringPress;
+import '../widgets/sheet_kit.dart' show sentenceCaseOf;
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 
 /// The MIME for what [VoiceRecorderScreen] produces: AAC-LC in an ISO-BMFF
 /// (MP4) container.
@@ -166,13 +169,16 @@ class _VoiceRecorderScreenState extends State<VoiceRecorderScreen> {
                   children: [
                     Row(
                       children: [
-                        IconButton(
-                          onPressed: _discardAndExit,
-                          icon: Icon(Icons.close, color: theme.inkSoft),
+                        GlassIconButton(
+                          icon: CupertinoIcons.xmark,
+                          semanticLabel: MaterialLocalizations.of(
+                            context,
+                          ).closeButtonTooltip,
+                          onTap: _discardAndExit,
                         ),
                         const Spacer(),
                         Text(
-                          _recording
+                          sentenceCaseOf(context, _recording
                               ? AppLocalizations.of(
                                   context,
                                 ).voiceRecorderScreenStatusRecording
@@ -182,10 +188,11 @@ class _VoiceRecorderScreenState extends State<VoiceRecorderScreen> {
                                       ).voiceRecorderScreenStatusReady
                                     : AppLocalizations.of(
                                         context,
-                                      ).voiceRecorderScreenStatusTapToStart),
-                          style: theme.label.copyWith(
-                            color: _recording ? theme.danger : theme.accent,
-                            letterSpacing: 2.4,
+                                      ).voiceRecorderScreenStatusTapToStart)),
+                          style: theme.bodySoft.copyWith(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: _recording ? theme.danger : theme.inkMuted,
                           ),
                         ),
                       ],
@@ -196,15 +203,38 @@ class _VoiceRecorderScreenState extends State<VoiceRecorderScreen> {
                     const SizedBox(height: 28),
                     Text(
                       formatClockDuration(_elapsed),
-                      style: theme.displayLarge.copyWith(fontSize: 44),
+                      // Voice Memos' clock: big, light, fixed-width digits so
+                      // it ticks without the number shuffling sideways.
+                      style: theme.displayLarge.copyWith(
+                        fontSize: 52,
+                        fontWeight: FontWeight.w300,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
                     ),
                     const Spacer(flex: 2),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (_recorded)
+                    if (!_recorded)
+                      // The Voice Memos button: a white ring around a red
+                      // disc that morphs into a stop square while recording.
+                      _RecordButton(
+                        recording: _recording,
+                        label: sentenceCaseOf(
+                          context,
+                          _recording
+                              ? AppLocalizations.of(context).voiceRecorderScreenStopButton
+                              : AppLocalizations.of(context).voiceRecorderScreenRecordButton,
+                        ),
+                        onTap: _recording ? _stop : _start,
+                      )
+                    else
+                      Row(
+                        children: [
                           Expanded(
-                            child: GestureDetector(
+                            child: _Capsule(
+                              label: sentenceCaseOf(
+                                context,
+                                AppLocalizations.of(context).voiceRecorderScreenReRecordButton,
+                              ),
+                              filled: false,
                               onTap: () {
                                 setState(() {
                                   _recorded = false;
@@ -212,70 +242,21 @@ class _VoiceRecorderScreenState extends State<VoiceRecorderScreen> {
                                   _path = null;
                                 });
                               },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: theme.divider),
-                                  borderRadius: BorderRadius.circular(
-                                    theme.radiusMd,
-                                  ),
-                                ),
-                                child: Text(
-                                  AppLocalizations.of(
-                                    context,
-                                  ).voiceRecorderScreenReRecordButton,
-                                  style: theme.label,
-                                ),
-                              ),
                             ),
                           ),
-                        if (_recorded) const SizedBox(width: 10),
-                        Expanded(
-                          flex: _recorded ? 1 : 2,
-                          child: GestureDetector(
-                            onTap: () {
-                              if (_recording) {
-                                _stop();
-                              } else if (_recorded) {
-                                _confirm();
-                              } else {
-                                _start();
-                              }
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: _recording ? theme.danger : theme.accent,
-                                borderRadius: BorderRadius.circular(
-                                  theme.radiusMd,
-                                ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _Capsule(
+                              label: sentenceCaseOf(
+                                context,
+                                AppLocalizations.of(context).voiceRecorderScreenSendButton,
                               ),
-                              child: Text(
-                                _recording
-                                    ? AppLocalizations.of(
-                                        context,
-                                      ).voiceRecorderScreenStopButton
-                                    : (_recorded
-                                          ? AppLocalizations.of(
-                                              context,
-                                            ).voiceRecorderScreenSendButton
-                                          : AppLocalizations.of(
-                                              context,
-                                            ).voiceRecorderScreenRecordButton),
-                                style: theme.label.copyWith(
-                                  color: theme.accentInk,
-                                  letterSpacing: 2.4,
-                                ),
-                              ),
+                              filled: true,
+                              onTap: _confirm,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
                   ],
                 ),
               ),
@@ -333,6 +314,104 @@ class _Meter extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Voice Memos' record control: white ring, red centre that morphs between
+/// a disc (record) and a rounded square (stop) on a spring.
+class _RecordButton extends StatelessWidget {
+  const _RecordButton({
+    required this.recording,
+    required this.label,
+    required this.onTap,
+  });
+
+  final bool recording;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final calm = MediaQuery.disableAnimationsOf(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SpringPress(
+          onTap: onTap,
+          semanticLabel: label,
+          child: Container(
+            width: 84,
+            height: 84,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: theme.ink.withValues(alpha: 0.9), width: 4),
+            ),
+            child: AnimatedContainer(
+              duration: calm
+                  ? Duration.zero
+                  : const Duration(milliseconds: 340),
+              curve: Curves.easeOutBack,
+              width: recording ? 32 : 66,
+              height: recording ? 32 : 66,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF3B30),
+                borderRadius: BorderRadius.circular(recording ? 8 : 33),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          label,
+          style: theme.bodySoft.copyWith(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: theme.inkSoft,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// A full-width capsule action: filled for the primary (Send), tinted for the
+/// secondary (Re-record).
+class _Capsule extends StatelessWidget {
+  const _Capsule({
+    required this.label,
+    required this.filled,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool filled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return SpringPress(
+      onTap: onTap,
+      semanticLabel: label,
+      child: Container(
+        height: 52,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: filled ? theme.accent : theme.accent.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          label,
+          style: theme.body.copyWith(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: filled ? theme.accentInk : theme.accent,
+          ),
+        ),
       ),
     );
   }

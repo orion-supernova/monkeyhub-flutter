@@ -2875,5 +2875,18 @@
   "rpCopy": "コピー",
   "rpSaved": "保存しました",
   "rpBack": "戻る",
-  "rpKeep": "今はしない（現在のフレーズを使う）"
+  "rpKeep": "今はしない（現在のフレーズを使う）",
+  "childSetupHeadingIos": "どなたですか？",
+  "childPairTitleIos": "こんにちは！",
+  "childPairBackIos": "サインインに戻る",
+  "gamesHubTitle": "ゲーム",
+  "gamesHubSubtitle": "毎日新しい盤面。みんな同じ問題です。",
+  "gameTellFriendsMessage": "この結果が通知で届きます。送信できるのは1回だけです。",
+  "deviceLoginScanTitleIos": "スキャンしてサインイン",
+  "deviceLoginConfirmTitleIos": "このデバイスでサインインしますか？",
+  "socialHeroCreateIos": "あと少し",
+  "socialHeroLinkIos": "おかえりなさい",
+  "socialSignInLinkIos": "サインインして{provider}と連携",
+  "serverTitleIos": "サーバー",
+  "serverOnboardingTitleIos": "サーバーを選択"
 }

@@ -10414,4 +10414,46 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get rpKeep => 'ليس الآن — احتفظ بعبارتي الحالية';
+
+  @override
+  String get childSetupHeadingIos => 'من هو الطفل؟';
+
+  @override
+  String get childPairTitleIos => 'مرحبًا!';
+
+  @override
+  String get childPairBackIos => 'العودة إلى تسجيل الدخول';
+
+  @override
+  String get gamesHubTitle => 'الألعاب';
+
+  @override
+  String get gamesHubSubtitle => 'ألواح جديدة كل يوم، واحدة للجميع.';
+
+  @override
+  String get gameTellFriendsMessage =>
+      'سيصلهم إشعار بهذه النتيجة. يمكن إرساله مرة واحدة فقط.';
+
+  @override
+  String get deviceLoginScanTitleIos => 'امسح لتسجيل الدخول';
+
+  @override
+  String get deviceLoginConfirmTitleIos => 'تسجيل الدخول على هذا الجهاز؟';
+
+  @override
+  String get socialHeroCreateIos => 'اقتربت';
+
+  @override
+  String get socialHeroLinkIos => 'مرحبًا بعودتك';
+
+  @override
+  String socialSignInLinkIos(String provider) {
+    return 'تسجيل الدخول وربط $provider';
+  }
+
+  @override
+  String get serverTitleIos => 'الخادم';
+
+  @override
+  String get serverOnboardingTitleIos => 'اختر خادمًا';
 }

@@ -8,6 +8,7 @@ import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/user_avatar.dart';
 import 'call_models.dart';
+import 'widgets/call_chrome.dart' show PressSpring, callStatusStyle;
 import 'call_screen.dart';
 import 'call_service.dart';
 
@@ -131,47 +132,41 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
           child: SafeArea(
             child: Column(
               children: [
-                const SizedBox(height: 48),
-                // Call-type pill — the voice/video distinction must be
-                // unmissable, not a faint caption.
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.18),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        s?.mediaKind == CallMediaKind.video
-                            ? Icons.videocam
-                            : Icons.call,
-                        size: 20,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        kindLabel,
-                        style: theme.label.copyWith(
-                          color: Colors.white,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ],
+                const SizedBox(height: 56),
+                // The Phone app's incoming screen: who, large, and what kind
+                // of call in a quiet line under it. The voice/video
+                // distinction stays unmissable through the glyph beside it
+                // and the accept button's own icon.
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(
+                    name,
+                    textAlign: TextAlign.center,
+                    style: theme.displayLarge.copyWith(color: Colors.white),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      s?.mediaKind == CallMediaKind.video
+                          ? Icons.videocam_rounded
+                          : Icons.call_rounded,
+                      size: 18,
+                      color: Colors.white.withValues(alpha: 0.72),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(kindLabel, style: callStatusStyle(theme)),
+                  ],
+                ),
+                const SizedBox(height: 56),
                 AnimatedBuilder(
                   animation: _pulse,
                   builder: (context, child) {
-                    final scale = 1.0 + _pulse.value * 0.06;
+                    final scale = 1.0 + _pulse.value * 0.05;
                     return Transform.scale(scale: scale, child: child);
                   },
                   child: Container(
@@ -179,15 +174,10 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                     height: 150,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.25),
-                        width: 1,
-                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: theme.accent.withValues(alpha: 0.45),
-                          blurRadius: 44,
-                          spreadRadius: 4,
+                          color: theme.accent.withValues(alpha: 0.38),
+                          blurRadius: 56,
                         ),
                       ],
                     ),
@@ -201,17 +191,10 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                         avatarStorageId: s?.peerAvatarStorageId,
                       ),
                       api: widget.api,
-                      size: 148,
+                      size: 150,
                       showStatus: false,
                     ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  name,
-                  style: theme.displayMedium.copyWith(color: Colors.white),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
                 const Spacer(),
                 Padding(
@@ -288,22 +271,30 @@ class _RingButton extends StatelessWidget {
           shape: FocusRingShape.circle,
           child: GestureDetector(
             onTap: enabled ? onTap : null,
-            child: Container(
-              width: 76,
-              height: 76,
-              decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
-              child: Icon(
-                icon,
-                color: Colors.white.withValues(alpha: enabled ? 1.0 : 0.6),
-                size: 32,
+            child: PressSpring(
+              child: Container(
+                width: 76,
+                height: 76,
+                decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
+                child: Icon(
+                  icon,
+                  color: Colors.white.withValues(alpha: enabled ? 1.0 : 0.6),
+                  size: 34,
+                ),
               ),
             ),
           ),
         ),
         const SizedBox(height: 8),
+        const SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(color: Colors.white70, fontSize: 11),
+          style: const TextStyle(
+            fontFamily: 'CupertinoSystemText',
+            color: Color(0xD9FFFFFF),
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );

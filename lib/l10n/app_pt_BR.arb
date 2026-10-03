@@ -2875,5 +2875,18 @@
   "rpCopy": "Copiar",
   "rpSaved": "Já salvei",
   "rpBack": "Voltar",
-  "rpKeep": "Agora não — manter minha frase atual"
+  "rpKeep": "Agora não — manter minha frase atual",
+  "childSetupHeadingIos": "Quem é?",
+  "childPairTitleIos": "Oi!",
+  "childPairBackIos": "Voltar para entrar",
+  "gamesHubTitle": "Jogos",
+  "gamesHubSubtitle": "Tabuleiros novos todo dia, os mesmos para todos.",
+  "gameTellFriendsMessage": "Eles vão receber uma notificação com este resultado. Só dá para enviar uma vez.",
+  "deviceLoginScanTitleIos": "Escaneie para entrar",
+  "deviceLoginConfirmTitleIos": "Entrar neste dispositivo?",
+  "socialHeroCreateIos": "Quase lá",
+  "socialHeroLinkIos": "Que bom te ver de volta",
+  "socialSignInLinkIos": "Entrar e vincular {provider}",
+  "serverTitleIos": "Servidor",
+  "serverOnboardingTitleIos": "Escolha um servidor"
 }

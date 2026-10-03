@@ -9869,4 +9869,45 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get rpKeep => '나중에 — 현재 문구 유지';
+
+  @override
+  String get childSetupHeadingIos => '누구인가요?';
+
+  @override
+  String get childPairTitleIos => '안녕!';
+
+  @override
+  String get childPairBackIos => '로그인으로 돌아가기';
+
+  @override
+  String get gamesHubTitle => '게임';
+
+  @override
+  String get gamesHubSubtitle => '매일 새 보드, 모두에게 똑같이.';
+
+  @override
+  String get gameTellFriendsMessage => '이 결과가 알림으로 전송돼요. 한 번만 보낼 수 있어요.';
+
+  @override
+  String get deviceLoginScanTitleIos => '스캔해서 로그인';
+
+  @override
+  String get deviceLoginConfirmTitleIos => '이 기기에서 로그인할까요?';
+
+  @override
+  String get socialHeroCreateIos => '거의 다 됐어요';
+
+  @override
+  String get socialHeroLinkIos => '다시 오신 걸 환영해요';
+
+  @override
+  String socialSignInLinkIos(String provider) {
+    return '로그인하고 $provider 연동하기';
+  }
+
+  @override
+  String get serverTitleIos => '서버';
+
+  @override
+  String get serverOnboardingTitleIos => '서버 선택';
 }
