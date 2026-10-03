@@ -139,6 +139,7 @@ import '../models/expression_item.dart';
 import '../widgets/expressions/expression_panel.dart';
 import '../widgets/expressions/sticker_maker.dart';
 import '../widgets/expressions/sticker_suggestions.dart';
+import '../widgets/ios_kit.dart' show quietFill;
 import 'room_content_actions.dart';
 import 'fullscreen_image_viewer.dart';
 import 'media_pager_screen.dart';
@@ -5343,7 +5344,7 @@ class _SelectableRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 3),
           decoration: BoxDecoration(
             color: selected
-                ? theme.accent.withValues(alpha: 0.10)
+                ? quietFill(theme)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(theme.radiusMd),
             border: Border.all(
@@ -5447,7 +5448,7 @@ class _Header extends StatelessWidget {
                   height: 36,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: theme.accentSoft,
+                    color: quietFill(theme),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -5791,9 +5792,9 @@ class _UnreadDivider extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
-        color: theme.accentSoft,
+        color: quietFill(theme),
         border: Border.symmetric(
-          horizontal: BorderSide(color: theme.accent.withValues(alpha: 0.35)),
+          horizontal: BorderSide(color: theme.divider),
         ),
       ),
       alignment: Alignment.center,
@@ -6018,9 +6019,9 @@ class _PrivateFeatureCard extends StatelessWidget {
           constraints: BoxConstraints(minHeight: isFullWidth ? 0 : 118),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: theme.accent.withValues(alpha: 0.05),
+            color: quietFill(theme),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: theme.accent.withValues(alpha: 0.18)),
+            border: Border.all(color: theme.divider),
           ),
           child: body,
         ),
@@ -6210,7 +6211,7 @@ class _LiquidHeader extends StatelessWidget {
             height: _avatarSize,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: ThemeScope.of(context).accentSoft,
+              color: quietFill(ThemeScope.of(context)),
               shape: BoxShape.circle,
             ),
             child: Icon(

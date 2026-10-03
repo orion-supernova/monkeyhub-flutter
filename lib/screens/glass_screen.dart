@@ -1,4 +1,10 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/cupertino.dart'
+    show
+        CupertinoAlertDialog,
+        CupertinoDialogAction,
+        CupertinoIcons,
+        CupertinoTextField,
+        showCupertinoDialog;
 import 'package:flutter/material.dart';
 
 import '../data/glass_config.dart';
@@ -10,6 +16,7 @@ import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/ios_kit.dart';
+import '../widgets/sheet_kit.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/value_slider.dart';
 import 'navigation/native_tab_bar.dart' show NativeChrome;
@@ -569,74 +576,53 @@ class _GlassScreenState extends State<GlassScreen> {
   }
 
   Future<void> _confirmDelete(GlassPreset p) async {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    final yes = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: theme.surface,
-        title: Text(
-          l10n.glassScreenDeleteConfirmTitle(p.name),
-          style: theme.body,
+    // The iOS action sheet: the question, what it means, the red answer and
+    // Cancel apart — like every other confirmation in the app.
+    final yes = await showIosActionSheet<bool>(
+      context,
+      title: sentenceCaseOf(context, l10n.glassScreenDeleteConfirmTitle(p.name)),
+      message: sentenceCaseOf(context, l10n.glassScreenDeleteConfirmBody),
+      actions: [
+        IosSheetAction(
+          label: sentenceCaseOf(context, l10n.glassScreenDeleteButton),
+          value: true,
+          destructive: true,
         ),
-        content: Text(l10n.glassScreenDeleteConfirmBody, style: theme.bodySoft),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(
-              l10n.glassScreenKeepButton,
-              style: TextStyle(color: theme.inkSoft),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(
-              l10n.glassScreenDeleteButton,
-              style: TextStyle(color: theme.accent),
-            ),
-          ),
-        ],
-      ),
+      ],
     );
     if (yes == true) _store.deleteGlassSlot(p.id);
   }
 
+  /// "Name this look", the iOS way: a centred alert with a text field and
+  /// Cancel / Save — what Photos and Notes ask a name with.
   Future<String?> _askName({required String title, String initial = ''}) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final controller = TextEditingController(text: initial);
-    return showDialog<String>(
+    return showCupertinoDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: theme.surface,
-        title: Text(title, style: theme.body),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLength: kMaxSlotNameLength,
-          style: theme.body,
-          cursorColor: theme.accent,
-          decoration: InputDecoration(
-            hintText: l10n.glassScreenNameHint,
-            hintStyle: theme.bodySoft,
-            counterText: '',
+      barrierDismissible: true,
+      builder: (ctx) => CupertinoAlertDialog(
+        title: Text(sentenceCaseOf(ctx, title)),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: CupertinoTextField(
+            controller: controller,
+            autofocus: true,
+            maxLength: kMaxSlotNameLength,
+            placeholder: sentenceCaseOf(ctx, l10n.glassScreenNameHint),
+            onSubmitted: (v) => Navigator.of(ctx).pop(v),
           ),
-          onSubmitted: (v) => Navigator.of(ctx).pop(v),
         ),
         actions: [
-          TextButton(
+          CupertinoDialogAction(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(
-              l10n.glassScreenCancelButton,
-              style: TextStyle(color: theme.inkSoft),
-            ),
+            child: Text(sentenceCaseOf(ctx, l10n.glassScreenCancelButton)),
           ),
-          TextButton(
+          CupertinoDialogAction(
+            isDefaultAction: true,
             onPressed: () => Navigator.of(ctx).pop(controller.text),
-            child: Text(
-              l10n.glassScreenSaveButton,
-              style: TextStyle(color: theme.accent),
-            ),
+            child: Text(sentenceCaseOf(ctx, l10n.glassScreenSaveButton)),
           ),
         ],
       ),
@@ -1572,7 +1558,7 @@ class _GlassStyleChooser extends StatelessWidget {
           titleTrailing: Container(
             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
             decoration: BoxDecoration(
-              color: theme.accent.withValues(alpha: 0.16),
+              color: quietFill(theme),
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text(

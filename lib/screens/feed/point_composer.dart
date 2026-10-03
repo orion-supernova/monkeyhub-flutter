@@ -1,5 +1,6 @@
 import 'package:camera/camera.dart' show CameraLensDirection;
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/cupertino.dart'
+    show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -723,7 +724,7 @@ class _WhatIsThis extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
-            color: theme.accent.withValues(alpha: 0.14),
+            color: quietFill(theme),
             borderRadius: BorderRadius.circular(999),
           ),
           child: Row(
@@ -776,9 +777,9 @@ class _AddButton extends StatelessWidget {
             ? SizedBox(
                 width: 18,
                 height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation(theme.accentInk),
+                child: CupertinoActivityIndicator(
+                  radius: 9,
+                  color: theme.accentInk,
                 ),
               )
             : Text(

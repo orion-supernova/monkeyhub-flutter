@@ -990,25 +990,34 @@ class _FrameNotifier extends ChangeNotifier {
 @visibleForTesting
 const Key navIndicatorKey = Key('pill-nav-indicator');
 
-/// The accent pill behind the active segment.
+/// The highlight behind the active segment: a neutral glass lozenge with a
+/// light edge, the active icon and label carrying the accent.
+///
+/// It used to be an accent wash, which on a dark page is a navy pill — the
+/// single most visible "dark blue" on the screen.
 class _Indicator extends StatelessWidget {
   const _Indicator({required this.grab});
 
-  /// 0 at rest, 1 fully held. Brightens the fill and lifts a soft accent glow
-  /// so the pill reads as *picked up* and not merely scaled — scale alone at
-  /// this size is nearly invisible on a moving background.
+  /// 0 at rest, 1 fully held. Brightens the fill and its edge so the pill
+  /// reads as *picked up* and not merely scaled — scale alone at this size is
+  /// nearly invisible on a moving background.
   final double grab;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final light = theme.background.computeLuminance() > 0.5;
     return DecoratedBox(
       key: navIndicatorKey,
       decoration: ShapeDecoration(
-        color: theme.accent.withValues(alpha: 0.16 + 0.10 * grab),
+        color: theme.ink.withValues(
+          alpha: (light ? 0.07 : 0.12) + 0.06 * grab,
+        ),
         shape: StadiumBorder(
           side: BorderSide(
-            color: theme.accent.withValues(alpha: 0.32 + 0.24 * grab),
+            color: (light ? Colors.black : Colors.white).withValues(
+              alpha: (light ? 0.06 : 0.14) + 0.12 * grab,
+            ),
             width: 0.5,
           ),
         ),
@@ -1016,9 +1025,8 @@ class _Indicator extends StatelessWidget {
             ? null
             : [
                 BoxShadow(
-                  color: theme.accent.withValues(alpha: 0.22 * grab),
+                  color: Colors.black.withValues(alpha: 0.18 * grab),
                   blurRadius: 14 * grab,
-                  spreadRadius: 1 * grab,
                 ),
               ],
       ),

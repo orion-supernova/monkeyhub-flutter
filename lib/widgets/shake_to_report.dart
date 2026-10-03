@@ -1,15 +1,17 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
 import '../diagnostics/shake_detector.dart';
 import '../l10n/generated/app_localizations.dart';
-import '../keyboard/focusable_tap.dart';
 import '../main.dart' show rootNavigatorKey;
 import '../screens/report_problem_screen.dart';
 import '../theme/theme_scope.dart';
+import 'adaptive_sheet.dart';
+import 'sheet_kit.dart' show SheetActionButton, SheetFrame, SheetRise;
 
 /// Mounts the shake listener and shows the confirm sheet.
 ///
@@ -60,9 +62,8 @@ class _ShakeToReportState extends State<ShakeToReport> {
     if (nav == null || ctx == null) return;
 
     _sheetOpen = true;
-    showModalBottomSheet<bool>(
-      context: ctx,
-      backgroundColor: ThemeScope.of(ctx).surfaceRaised,
+    showAdaptiveSheet<bool>(
+      ctx,
       builder: (_) => const _ShakeSheet(),
     ).then((open) {
       _sheetOpen = false;
@@ -87,78 +88,50 @@ class _ShakeSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = ThemeScope.of(context);
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(l10n.reportProblemShakeTitle, style: t.displaySmall),
-            const SizedBox(height: 6),
-            Text(l10n.reportProblemShakeBody, style: t.bodySoft),
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                Expanded(
-                  child: _SheetButton(
-                    label: l10n.reportProblemShakeDismiss,
-                    filled: false,
-                    onTap: () => Navigator.of(context).pop(false),
-                  ),
+    return SheetFrame(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 6),
+          Center(
+            child: SheetRise(
+              child: Container(
+                width: 56,
+                height: 56,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: t.ink.withValues(alpha: 0.08),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _SheetButton(
-                    label: l10n.reportProblemShakeOpen,
-                    filled: true,
-                    onTap: () => Navigator.of(context).pop(true),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SheetButton extends StatelessWidget {
-  const _SheetButton({
-    required this.label,
-    required this.filled,
-    required this.onTap,
-  });
-  final String label;
-  final bool filled;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      radius: theme.radiusMd,
-      semanticLabel: label,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: filled ? theme.accent : theme.surface,
-            border: Border.all(color: filled ? theme.accent : theme.divider),
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-          ),
-          child: Text(
-            label,
-            style: theme.body.copyWith(
-              color: filled ? theme.accentInk : theme.ink,
+                child: Icon(CupertinoIcons.ant_fill, size: 26, color: t.ink),
+              ),
             ),
           ),
-        ),
+          const SizedBox(height: 14),
+          Text(
+            l10n.reportProblemShakeTitle,
+            textAlign: TextAlign.center,
+            style: t.bodyEmph.copyWith(fontSize: 20, color: t.ink),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            l10n.reportProblemShakeBody,
+            textAlign: TextAlign.center,
+            style: t.bodySoft.copyWith(color: t.inkMuted),
+          ),
+          const SizedBox(height: 20),
+          SheetActionButton(
+            label: l10n.reportProblemShakeOpen,
+            onTap: () => Navigator.of(context).pop(true),
+          ),
+          const SizedBox(height: 8),
+          SheetActionButton(
+            label: l10n.reportProblemShakeDismiss,
+            tonal: true,
+            onTap: () => Navigator.of(context).pop(false),
+          ),
+        ],
       ),
     );
   }

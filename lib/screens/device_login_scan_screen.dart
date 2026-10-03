@@ -344,7 +344,7 @@ class _EntryBody extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 26),
               decoration: BoxDecoration(
-                color: theme.accent.withValues(alpha: 0.12),
+                color: quietFill(theme),
                 borderRadius: BorderRadius.circular(groupedRadius(theme)),
               ),
               child: Column(

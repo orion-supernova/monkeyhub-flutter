@@ -19,6 +19,7 @@ import '../theme/theme_scope.dart';
 import '../update/update_availability.dart';
 import '../widgets/count_badge.dart';
 import '../widgets/radial_floating_menu.dart';
+import '../widgets/ios_kit.dart' show quietFill;
 import 'discover_screen.dart';
 import 'feed_screen.dart';
 import 'home_screen.dart' as chat;
@@ -662,16 +663,14 @@ class _SideRail extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 6),
           decoration: ShapeDecoration(
             color: isActive
-                ? theme.accent.withValues(alpha: 0.16)
+                ? quietFill(theme)
                 : Colors.transparent,
             // Same shape as the bottom pill's indicator, so the two chromes
             // agree — the point of stacking the pill was to make compact and
             // expanded read as one design.
             shape: StadiumBorder(
               side: BorderSide(
-                color: isActive
-                    ? theme.accent.withValues(alpha: 0.32)
-                    : Colors.transparent,
+                color: Colors.transparent,
                 width: 0.5,
               ),
             ),

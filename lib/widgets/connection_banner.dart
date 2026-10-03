@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'package:flutter/material.dart';
 
 import '../backend/connection_health.dart';
@@ -97,8 +98,8 @@ class _Strip extends StatelessWidget {
             SizedBox(
               width: 12,
               height: 12,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
+              child: CupertinoActivityIndicator(
+                radius: 6,
                 color: stalled ? theme.danger : theme.accent,
               ),
             ),

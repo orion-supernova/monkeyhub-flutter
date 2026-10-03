@@ -1,10 +1,14 @@
+import 'package:flutter/cupertino.dart'
+    show CupertinoIcons, CupertinoSlidingSegmentedControl;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../data/settings_store.dart';
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/ios_kit.dart';
+import '../widgets/sheet_kit.dart';
 import 'call_models.dart';
 import 'call_service.dart';
 
@@ -39,155 +43,97 @@ class CallOptionsSheet extends StatelessWidget {
         // The decoration reaches the bottom edge; the home-indicator inset
         // is padding INSIDE it. A SafeArea outside the decorated box left a
         // transparent band under the sheet.
-        return DecoratedBox(
-          decoration: theme.sheetDecoration(),
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-              20,
-              16,
-              20,
-              20 + MediaQuery.paddingOf(context).bottom,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.callOptionsSheetTitle,
-                  style: theme.displaySmall,
-                ),
-                const SizedBox(height: 14),
-                _OptionRow(
-                  icon: Icons.speed_outlined,
-                  label: l10n.settingsScreenShowNetworkStatsLabel,
-                  sub: l10n.settingsScreenShowNetworkStatsBody,
-                  trailing: Switch.adaptive(
+        final quality = store.videoQualityTier;
+        return SheetFrame(
+          title: l10n.callOptionsSheetTitle,
+          leading: const SheetCloseButton(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SheetGroup(
+                children: [
+                  GroupedRow.toggle(
+                    icon: CupertinoIcons.speedometer,
+                    tone: TileTone.teal,
+                    title: l10n.settingsHubCallStats,
+                    subtitle: l10n.settingsHubCallStatsSubtitle,
                     value: store.showNetworkStats,
                     onChanged: (v) {
                       HapticFeedback.lightImpact();
                       store.setShowNetworkStats(v);
                     },
-                    activeThumbColor: theme.accent,
-                  ),
-                ),
-                if (showVideoQuality) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    l10n.settingsScreenRowVideoQuality,
-                    style: theme.label,
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _QualityChip(
-                        label: l10n.settingsScreenValueVideoQualityAuto,
-                        selected:
-                            store.videoQualityTier == VideoQualityTier.auto,
-                        onTap: () =>
-                            service.switchVideoQuality(VideoQualityTier.auto),
-                      ),
-                      _QualityChip(
-                        label: l10n.settingsScreenValueVideoQuality1080p,
-                        selected: store.videoQualityTier ==
-                            VideoQualityTier.hd1080,
-                        onTap: () => service
-                            .switchVideoQuality(VideoQualityTier.hd1080),
-                      ),
-                      _QualityChip(
-                        label: l10n.settingsScreenValueVideoQuality4k,
-                        selected:
-                            store.videoQualityTier == VideoQualityTier.uhd4k,
-                        onTap: () =>
-                            service.switchVideoQuality(VideoQualityTier.uhd4k),
-                      ),
-                    ],
                   ),
                 ],
+              ),
+              if (showVideoQuality) ...[
+                const SizedBox(height: 22),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 7),
+                  child: Text(
+                    sentenceCaseOf(context, l10n.settingsScreenRowVideoQuality),
+                    style: theme.bodySoft.copyWith(
+                      fontSize: 13,
+                      color: theme.inkMuted,
+                    ),
+                  ),
+                ),
+                // Three exclusive tiers: a segmented control, the iOS shape
+                // for one choice among a few, in place of three chips.
+                SizedBox(
+                  width: double.infinity,
+                  child: CupertinoSlidingSegmentedControl<VideoQualityTier>(
+                    groupValue: quality,
+                    backgroundColor: theme.ink.withValues(alpha: 0.08),
+                    thumbColor: theme.isLight
+                        ? Colors.white
+                        : Color.alphaBlend(
+                            theme.ink.withValues(alpha: 0.12),
+                            theme.surfaceRaised,
+                          ),
+                    onValueChanged: (t) {
+                      if (t == null || t == quality) return;
+                      HapticFeedback.selectionClick();
+                      service.switchVideoQuality(t);
+                    },
+                    children: {
+                      for (final (t, label) in [
+                        (
+                          VideoQualityTier.auto,
+                          l10n.settingsScreenValueVideoQualityAuto,
+                        ),
+                        (
+                          VideoQualityTier.hd1080,
+                          l10n.settingsScreenValueVideoQuality1080p,
+                        ),
+                        (
+                          VideoQualityTier.uhd4k,
+                          l10n.settingsScreenValueVideoQuality4k,
+                        ),
+                      ])
+                        t: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Text(
+                            sentenceCaseOf(context, label),
+                            maxLines: 1,
+                            style: theme.body.copyWith(
+                              fontSize: 14,
+                              fontWeight: quality == t
+                                  ? FontWeight.w600
+                                  : FontWeight.w500,
+                              color: quality == t ? theme.ink : theme.inkSoft,
+                            ),
+                          ),
+                        ),
+                    },
+                  ),
+                ),
               ],
-            ),
+              const SizedBox(height: 4),
+            ],
           ),
         );
       },
-    );
-  }
-}
-
-class _OptionRow extends StatelessWidget {
-  const _OptionRow({
-    required this.icon,
-    required this.label,
-    required this.sub,
-    required this.trailing,
-  });
-
-  final IconData icon;
-  final String label;
-  final String sub;
-  final Widget trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: theme.inkSoft),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: theme.label),
-              const SizedBox(height: 2),
-              Text(sub, style: theme.bodySoft),
-            ],
-          ),
-        ),
-        const SizedBox(width: 12),
-        trailing,
-      ],
-    );
-  }
-}
-
-class _QualityChip extends StatelessWidget {
-  const _QualityChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: label,
-      shape: FocusRingShape.capsule,
-      selected: selected,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color:
-                selected ? theme.accent : theme.ink.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Text(
-            label,
-            style: theme.monoTiny.copyWith(
-              color: selected ? theme.background : theme.ink,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

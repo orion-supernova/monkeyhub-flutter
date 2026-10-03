@@ -1,12 +1,21 @@
+import 'package:flutter/cupertino.dart'
+    show
+        CupertinoActivityIndicator,
+        CupertinoIcons,
+        CupertinoSlidingSegmentedControl;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
+import '../theme/motion.dart';
+import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/app_toast.dart';
+import '../widgets/ios_kit.dart';
+import '../widgets/sheet_kit.dart';
 import '../widgets/user_avatar.dart';
 import 'call_models.dart';
 import 'group_call_service.dart';
@@ -33,175 +42,109 @@ Future<void> showStartGroupCallSheet(
     builder: (sheetCtx) {
       return StatefulBuilder(
         builder: (sheetCtx, setSheetState) {
-          Widget kindChip(CallMediaKind k, IconData icon, String label) {
-            final selected = kind == k;
-            void select() => setSheetState(() => kind = k);
-            return FocusableTap(
-              onTap: select,
-              semanticLabel: label,
-              shape: FocusRingShape.capsule,
-              child: GestureDetector(
-                onTap: select,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: selected
-                        ? theme.accent
-                        : theme.ink.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        icon,
-                        size: 16,
-                        color: selected ? theme.background : theme.ink,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        label,
-                        style: theme.monoTiny.copyWith(
-                          color: selected ? theme.background : theme.ink,
-                          fontWeight: FontWeight.w700,
+          final l10n = AppLocalizations.of(sheetCtx);
+          return SheetFrame(
+            title: l10n.linkedAccountsScreenCallSheetTitle,
+            leading: const SheetCloseButton(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Voice or video as a native segmented control — one
+                // decision, two answers, the iOS shape for it.
+                SizedBox(
+                  width: double.infinity,
+                  child: CupertinoSlidingSegmentedControl<CallMediaKind>(
+                    groupValue: kind,
+                    backgroundColor: theme.ink.withValues(alpha: 0.08),
+                    thumbColor: theme.isLight
+                        ? Colors.white
+                        : Color.alphaBlend(
+                            theme.ink.withValues(alpha: 0.12),
+                            theme.surfaceRaised,
+                          ),
+                    onValueChanged: (k) {
+                      if (k == null) return;
+                      HapticFeedback.selectionClick();
+                      setSheetState(() => kind = k);
+                    },
+                    children: {
+                      for (final (k, icon, label) in [
+                        (
+                          CallMediaKind.audio,
+                          CupertinoIcons.phone_fill,
+                          l10n.linkedAccountsScreenCallSheetVoiceLabel,
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }
-
-          Widget action(
-            IconData icon,
-            String title,
-            String subtitle,
-            VoidCallback onTap,
-          ) {
-            return FocusableTap(
-              onTap: onTap,
-              semanticLabel: title,
-              radius: 14,
-              child: GestureDetector(
-                onTap: onTap,
-                child: Container(
-                  margin: const EdgeInsets.only(top: 10),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: theme.ink.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(icon, color: theme.accent, size: 22),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              title,
-                              style: theme.body.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              subtitle,
-                              style: theme.monoTiny.copyWith(
-                                color: theme.inkMuted,
-                              ),
-                            ),
-                          ],
+                        (
+                          CallMediaKind.video,
+                          CupertinoIcons.video_camera_solid,
+                          l10n.linkedAccountsScreenCallSheetVideoLabel,
                         ),
-                      ),
-                      Icon(
-                        Icons.chevron_right,
-                        color: theme.inkMuted,
-                        size: 18,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }
-
-          return SafeArea(
-            child: Container(
-              decoration: theme.sheetDecoration(),
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    AppLocalizations.of(
-                      sheetCtx,
-                    ).linkedAccountsScreenCallSheetTitle,
-                    style: theme.displaySmall,
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      kindChip(
-                        CallMediaKind.audio,
-                        Icons.call,
-                        AppLocalizations.of(
-                          sheetCtx,
-                        ).linkedAccountsScreenCallSheetVoiceLabel,
-                      ),
-                      const SizedBox(width: 8),
-                      kindChip(
-                        CallMediaKind.video,
-                        Icons.videocam,
-                        AppLocalizations.of(
-                          sheetCtx,
-                        ).linkedAccountsScreenCallSheetVideoLabel,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  action(
-                    Icons.groups,
-                    AppLocalizations.of(
-                      sheetCtx,
-                    ).linkedAccountsScreenCallSheetCallEveryoneTitle,
-                    AppLocalizations.of(
-                      sheetCtx,
-                    ).linkedAccountsScreenCallSheetCallEveryoneSubtitle,
-                    () {
-                      Navigator.of(sheetCtx).pop();
-                      _startCall(context, service, roomId, kind, null);
+                      ])
+                        k: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                icon,
+                                size: 16,
+                                color: kind == k ? theme.ink : theme.inkSoft,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                sentenceCaseOf(sheetCtx, label),
+                                style: theme.body.copyWith(
+                                  fontSize: 14,
+                                  fontWeight: kind == k
+                                      ? FontWeight.w600
+                                      : FontWeight.w500,
+                                  color: kind == k ? theme.ink : theme.inkSoft,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                     },
                   ),
-                  action(
-                    Icons.checklist,
-                    AppLocalizations.of(
-                      sheetCtx,
-                    ).linkedAccountsScreenCallSheetChoosePeopleTitle,
-                    AppLocalizations.of(
-                      sheetCtx,
-                    ).linkedAccountsScreenCallSheetChoosePeopleSubtitle,
-                    () async {
-                      Navigator.of(sheetCtx).pop();
-                      final picked = await _pickMembers(
-                        context,
-                        api: api,
-                        roomId: roomId,
-                        myUserId: myUserId,
-                      );
-                      if (picked == null || picked.isEmpty) return;
-                      if (!context.mounted) return;
-                      _startCall(context, service, roomId, kind, picked);
-                    },
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 16),
+                SheetGroup(
+                  children: [
+                    GroupedRow(
+                      icon: CupertinoIcons.person_3_fill,
+                      tone: TileTone.green,
+                      title: l10n.linkedAccountsScreenCallSheetCallEveryoneTitle,
+                      subtitle:
+                          l10n.linkedAccountsScreenCallSheetCallEveryoneSubtitle,
+                      onTap: () {
+                        Navigator.of(sheetCtx).pop();
+                        _startCall(context, service, roomId, kind, null);
+                      },
+                    ),
+                    GroupedRow(
+                      icon: CupertinoIcons.checkmark_circle_fill,
+                      tone: TileTone.blue,
+                      title: l10n.linkedAccountsScreenCallSheetChoosePeopleTitle,
+                      subtitle:
+                          l10n.linkedAccountsScreenCallSheetChoosePeopleSubtitle,
+                      onTap: () async {
+                        Navigator.of(sheetCtx).pop();
+                        final picked = await _pickMembers(
+                          context,
+                          api: api,
+                          roomId: roomId,
+                          myUserId: myUserId,
+                        );
+                        if (picked == null || picked.isEmpty) return;
+                        if (!context.mounted) return;
+                        _startCall(context, service, roomId, kind, picked);
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+              ],
             ),
           );
         },
@@ -264,147 +207,86 @@ Future<List<String>?> _pickMembers(
                 });
           }
           final list = members;
-          return SafeArea(
-            child: Container(
-              decoration: theme.sheetDecoration(),
+          final l10n = AppLocalizations.of(sheetCtx);
+          final start = selected.isEmpty
+              ? null
+              : () => Navigator.of(sheetCtx)
+                  .pop(selected.toList(growable: false));
+          return SheetFrame(
+            title: l10n.linkedAccountsScreenCallSheetInviteTitle,
+            leading: const SheetCloseButton(),
+            child: ConstrainedBox(
               constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(sheetCtx).size.height * 0.7,
               ),
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    AppLocalizations.of(
-                      sheetCtx,
-                    ).linkedAccountsScreenCallSheetInviteTitle,
-                    style: theme.displaySmall,
-                  ),
-                  const SizedBox(height: 10),
                   if (list == null)
                     const Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Center(child: CircularProgressIndicator()),
+                      padding: EdgeInsets.all(28),
+                      child: Center(child: CupertinoActivityIndicator()),
                     )
                   else if (list.isEmpty)
                     Padding(
                       padding: const EdgeInsets.all(24),
                       child: Text(
-                        AppLocalizations.of(
-                          sheetCtx,
-                        ).linkedAccountsScreenCallSheetNoOtherMembers,
+                        l10n.linkedAccountsScreenCallSheetNoOtherMembers,
                         style: theme.body.copyWith(color: theme.inkMuted),
+                        textAlign: TextAlign.center,
                       ),
                     )
                   else
+                    // Messages-style picker: one grouped block that scrolls
+                    // on its own, a check that springs in per person.
                     Flexible(
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: list.length,
-                        itemBuilder: (_, i) {
-                          final u = list[i];
-                          final isOn = selected.contains(u.id);
-                          void toggle() => setSheetState(() {
-                            if (isOn) {
-                              selected.remove(u.id);
-                            } else {
-                              selected.add(u.id);
-                            }
-                          });
-                          return FocusableTap(
-                            onTap: toggle,
-                            semanticLabel: u.displayName,
-                            radius: 12,
-                            child: GestureDetector(
-                              onTap: toggle,
-                              behavior: HitTestBehavior.opaque,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 8,
-                                ),
-                                child: Row(
-                                  children: [
-                                    UserAvatar(
-                                      user: u,
-                                      api: api,
-                                      size: 36,
-                                      showStatus: false,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        u.displayName,
-                                        style: theme.body,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    Icon(
-                                      isOn
-                                          ? Icons.check_circle
-                                          : Icons.radio_button_unchecked,
-                                      color: isOn
-                                          ? theme.accent
-                                          : theme.inkMuted,
-                                      size: 22,
-                                    ),
-                                  ],
-                                ),
+                      child: ClipRRect(
+                        borderRadius:
+                            BorderRadius.circular(groupedRadius(theme)),
+                        child: ColoredBox(
+                          color: sheetGroupFill(theme),
+                          child: ListView.separated(
+                            shrinkWrap: true,
+                            padding: EdgeInsets.zero,
+                            itemCount: list.length,
+                            separatorBuilder: (_, _) => Padding(
+                              padding: const EdgeInsets.only(left: 66),
+                              child: Container(
+                                height: 1 /
+                                    MediaQuery.devicePixelRatioOf(sheetCtx),
+                                color: theme.ink.withValues(alpha: 0.10),
                               ),
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                  const SizedBox(height: 12),
-                  Builder(
-                    builder: (_) {
-                      final start = selected.isEmpty
-                          ? null
-                          : () => Navigator.of(
-                              sheetCtx,
-                            ).pop(selected.toList(growable: false));
-                      return FocusableTap(
-                        onTap: start,
-                        semanticLabel: AppLocalizations.of(
-                          sheetCtx,
-                        ).linkedAccountsScreenCallSheetStartCallLabel,
-                        radius: 14,
-                        enabled: selected.isNotEmpty,
-                        child: GestureDetector(
-                          onTap: start,
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            decoration: BoxDecoration(
-                              color: selected.isEmpty
-                                  ? theme.ink.withValues(alpha: 0.08)
-                                  : theme.accent,
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Center(
-                              child: Text(
-                                selected.isEmpty
-                                    ? AppLocalizations.of(
-                                        sheetCtx,
-                                      ).linkedAccountsScreenCallSheetSelectPeople
-                                    : AppLocalizations.of(
-                                        sheetCtx,
-                                      ).linkedAccountsScreenCallSheetStartCallCount(
-                                        '${selected.length}',
-                                      ),
-                                style: theme.body.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: selected.isEmpty
-                                      ? theme.inkMuted
-                                      : theme.background,
-                                ),
-                              ),
-                            ),
+                            itemBuilder: (_, i) {
+                              final u = list[i];
+                              final isOn = selected.contains(u.id);
+                              void toggle() => setSheetState(() {
+                                if (isOn) {
+                                  selected.remove(u.id);
+                                } else {
+                                  selected.add(u.id);
+                                }
+                              });
+                              return _PickRow(
+                                user: u,
+                                api: api,
+                                on: isOn,
+                                onTap: toggle,
+                              );
+                            },
                           ),
                         ),
-                      );
-                    },
+                      ),
+                    ),
+                  const SizedBox(height: 14),
+                  SheetActionButton(
+                    label: selected.isEmpty
+                        ? l10n.linkedAccountsScreenCallSheetSelectPeople
+                        : l10n.linkedAccountsScreenCallSheetStartCallCount(
+                            '${selected.length}',
+                          ),
+                    onTap: start,
                   ),
                 ],
               ),
@@ -414,4 +296,71 @@ Future<List<String>?> _pickMembers(
       );
     },
   );
+}
+
+/// One person in the call picker: face, name, and a round check that springs
+/// in when chosen — the Messages "New Group" picker.
+class _PickRow extends StatelessWidget {
+  const _PickRow({
+    required this.user,
+    required this.api,
+    required this.on,
+    required this.onTap,
+  });
+
+  final ChatUser user;
+  final ChatApi api;
+  final bool on;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final motion = MotionScope.of(context);
+    return SpringPress(
+      onTap: onTap,
+      semanticLabel: user.displayName,
+      scale: 0.98,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 9, 14, 9),
+        child: Row(
+          children: [
+            UserAvatar(user: user, api: api, size: 40, showStatus: false),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                user.displayName,
+                style: theme.body.copyWith(fontSize: 17, color: theme.ink),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            SizedBox(
+              width: 26,
+              height: 26,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Icon(
+                    CupertinoIcons.circle,
+                    size: 26,
+                    color: theme.inkMuted.withValues(alpha: 0.6),
+                  ),
+                  AnimatedScale(
+                    scale: on ? 1 : 0,
+                    duration: motion.d(const Duration(milliseconds: 380)),
+                    curve: on ? Curves.elasticOut : Curves.easeIn,
+                    child: Icon(
+                      CupertinoIcons.checkmark_circle_fill,
+                      size: 26,
+                      color: theme.accent,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

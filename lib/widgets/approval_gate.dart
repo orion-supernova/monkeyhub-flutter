@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
-import 'ios_kit.dart' show groupedRadius;
+import 'ios_kit.dart' show groupedRadius, quietFill;
 import 'sheet_kit.dart' show SheetActionButton, sentenceCaseOf;
 
 // The guard error codes and `isChildGateError` live in models/family.dart so
@@ -186,7 +186,7 @@ class WaitingPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: theme.accentSoft,
+        color: quietFill(theme),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(

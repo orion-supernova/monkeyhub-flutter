@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'package:flutter/material.dart';
 
 import '../theme/layout.dart';
@@ -234,7 +235,7 @@ class ProfileActionTile extends StatelessWidget {
               SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2, color: tint),
+                child: CupertinoActivityIndicator(color: tint),
               )
             else
               Icon(icon, size: 22, color: ink),

@@ -1,14 +1,15 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../models/room_admin.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
-import 'sheet_surface.dart';
+import 'ios_kit.dart';
+import 'sheet_kit.dart';
 import 'user_avatar.dart';
 
 /// What the caller picked. The sheet decides what to OFFER; the screen that
@@ -95,7 +96,6 @@ class _MemberActionsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
 
     // The owner's row is the one nobody edits. Their seat moves through
@@ -122,91 +122,112 @@ class _MemberActionsSheet extends StatelessWidget {
         (!targetIsAdmin || permissions.isOwner);
 
     final hasModeration = canPromote || canDemote || canTransfer || canRemove;
+    void pick(RoomMemberAction a) => Navigator.of(context).pop(a);
 
-    return SheetSurface(
+    // A contact card, the iOS shape: the person large and centred, the
+    // everyday things you do with them as a row of quick-action tiles, and
+    // moderation in its own grouped block below — the destructive half never
+    // a thumb-width from "voice call".
+    return SheetFrame(
+      leading: const SheetCloseButton(),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _Header(
-            member: member,
-            memberRole: memberRole,
-            api: api,
-            isSelf: isSelf,
+          SheetRise(
+            child: _Header(
+              member: member,
+              memberRole: memberRole,
+              api: api,
+              isSelf: isSelf,
+            ),
           ),
-          const SizedBox(height: 18),
-          if (contactable) ...[
-            _ActionRow(
-              icon: Icons.chat_bubble_outline,
-              label: l10n.roomAdminActionMessage,
-              onTap: () => Navigator.of(context).pop(RoomMemberAction.message),
-            ),
-            _ActionRow(
-              icon: Icons.call_outlined,
-              label: l10n.roomAdminActionVoiceCall,
-              onTap: () => Navigator.of(context).pop(RoomMemberAction.voiceCall),
-            ),
-            _ActionRow(
-              icon: Icons.videocam_outlined,
-              label: l10n.roomAdminActionVideoCall,
-              onTap: () => Navigator.of(context).pop(RoomMemberAction.videoCall),
+          if (contactable || !isSelf) ...[
+            const SizedBox(height: 20),
+            SheetRise(
+              index: 1,
+              child: Row(
+                children: [
+                  if (contactable) ...[
+                    _QuickAction(
+                      icon: CupertinoIcons.chat_bubble_fill,
+                      label: l10n.roomAdminActionMessage,
+                      onTap: () => pick(RoomMemberAction.message),
+                    ),
+                    _QuickAction(
+                      icon: CupertinoIcons.phone_fill,
+                      label: l10n.roomAdminActionVoiceCall,
+                      onTap: () => pick(RoomMemberAction.voiceCall),
+                    ),
+                    _QuickAction(
+                      icon: CupertinoIcons.video_camera_solid,
+                      label: l10n.roomAdminActionVideoCall,
+                      onTap: () => pick(RoomMemberAction.videoCall),
+                    ),
+                  ],
+                  if (!isSelf)
+                    _QuickAction(
+                      icon: CupertinoIcons.person_crop_circle_fill,
+                      label: l10n.roomAdminActionViewProfile,
+                      onTap: () => pick(RoomMemberAction.openProfile),
+                    ),
+                ],
+              ),
             ),
           ],
-          if (!isSelf)
-            _ActionRow(
-              icon: Icons.person_outline,
-              label: l10n.roomAdminActionViewProfile,
-              onTap: () =>
-                  Navigator.of(context).pop(RoomMemberAction.openProfile),
-            ),
-          // The rule below the everyday rows. Promoting and removing are the
-          // two things in here somebody can regret, and putting them a
-          // thumb-width from "voice call" is how that happens.
           if (hasModeration) ...[
-            const SizedBox(height: 6),
-            Divider(height: 17, thickness: 1, color: theme.divider),
-            const SizedBox(height: 6),
-            if (canPromote)
-              _ActionRow(
-                icon: Icons.shield_outlined,
-                label: l10n.roomAdminActionPromote,
-                sub: l10n.roomAdminActionPromoteSub,
-                onTap: () => Navigator.of(context).pop(RoomMemberAction.promote),
+            const SizedBox(height: 20),
+            SheetRise(
+              index: 2,
+              child: SheetGroup(
+                children: [
+                  if (canPromote)
+                    GroupedRow(
+                      icon: CupertinoIcons.shield_lefthalf_fill,
+                      tone: TileTone.blue,
+                      title: l10n.roomAdminActionPromote,
+                      subtitle: l10n.roomAdminActionPromoteSub,
+                      chevron: false,
+                      onTap: () => pick(RoomMemberAction.promote),
+                    ),
+                  if (canDemote)
+                    GroupedRow(
+                      icon: CupertinoIcons.shield_slash_fill,
+                      tone: TileTone.gray,
+                      title: l10n.roomAdminActionDemote,
+                      subtitle: l10n.roomAdminActionDemoteSub,
+                      chevron: false,
+                      onTap: () => pick(RoomMemberAction.demote),
+                    ),
+                  if (canTransfer)
+                    GroupedRow(
+                      icon: CupertinoIcons.rosette,
+                      tone: TileTone.orange,
+                      title: l10n.roomAdminActionTransfer,
+                      subtitle: l10n.roomAdminActionTransferSub,
+                      chevron: false,
+                      onTap: () => pick(RoomMemberAction.transferOwnership),
+                    ),
+                  if (canRemove)
+                    GroupedRow(
+                      icon: CupertinoIcons.person_badge_minus_fill,
+                      title: l10n.roomAdminActionRemove,
+                      destructive: true,
+                      onTap: () => pick(RoomMemberAction.remove),
+                    ),
+                ],
               ),
-            if (canDemote)
-              _ActionRow(
-                icon: Icons.remove_moderator_outlined,
-                label: l10n.roomAdminActionDemote,
-                sub: l10n.roomAdminActionDemoteSub,
-                onTap: () => Navigator.of(context).pop(RoomMemberAction.demote),
-              ),
-            if (canTransfer)
-              _ActionRow(
-                icon: Icons.workspace_premium_outlined,
-                label: l10n.roomAdminActionTransfer,
-                sub: l10n.roomAdminActionTransferSub,
-                onTap: () => Navigator.of(context)
-                    .pop(RoomMemberAction.transferOwnership),
-              ),
-            if (canRemove)
-              _ActionRow(
-                icon: Icons.person_remove_outlined,
-                label: l10n.roomAdminActionRemove,
-                danger: true,
-                onTap: () => Navigator.of(context).pop(RoomMemberAction.remove),
-              ),
+            ),
           ],
+          const SizedBox(height: 4),
         ],
       ),
     );
   }
 }
 
-/// Who this sheet is about, stated once and large.
-///
-/// The avatar is deliberately bigger than the list row's — the sheet is a
-/// close-up of one person, and repeating the row's 32px would read as the list
-/// having simply grown a menu rather than focused on someone.
+/// Who this sheet is about, stated once and large: the contact card's face,
+/// name and handle, centred, with the role beneath.
 class _Header extends StatelessWidget {
   const _Header({
     required this.member,
@@ -224,43 +245,43 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    return Row(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        UserAvatar(user: member, size: 52, api: api),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      member.displayName,
-                      style: theme.displaySmall.copyWith(fontSize: 17),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (isSelf) ...[
-                    const SizedBox(width: 6),
-                    Text(l10n.roomAdminYouSuffix, style: theme.monoTiny),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 3),
-              Text(
-                '@${member.username}',
-                style: theme.mono.copyWith(color: theme.inkMuted),
+        UserAvatar(user: member, size: 76, api: api),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                member.displayName,
+                style: theme.displaySmall.copyWith(
+                  fontSize: 22,
+                  color: theme.ink,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
+            ),
+            if (isSelf) ...[
+              const SizedBox(width: 6),
+              Text(
+                '(${l10n.roomAdminYouSuffix})',
+                style: theme.bodySoft.copyWith(color: theme.inkMuted),
+              ),
             ],
-          ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          '@${member.username}',
+          style: theme.bodySoft.copyWith(fontSize: 15, color: theme.inkMuted),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         if (memberRole != RoomRole.member) ...[
-          const SizedBox(width: 8),
+          const SizedBox(height: 10),
           RoleChip(role: memberRole),
         ],
       ],
@@ -270,6 +291,13 @@ class _Header extends StatelessWidget {
 
 /// The owner/admin label, shared by the sheet header and the member row so the
 /// two cannot style the same fact differently.
+///
+/// A neutral capsule for both, with the owner marked by the medal — the same
+/// glyph `roomAdminActionTransfer` uses — in the accent. Accent FILLS are kept
+/// for primary actions: an accent wash on a dark page reads as navy.
+///
+/// Both read "Admin" — an owner is one, plus the medal. A separate word
+/// ("OWNER") read as property law once translated (SAHİP, PROPRIÉTAIRE, DONO).
 class RoleChip extends StatelessWidget {
   const RoleChip({super.key, required this.role, this.dense = false});
 
@@ -281,124 +309,92 @@ class RoleChip extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final isOwner = role == RoomRole.owner;
-    final color = isOwner ? theme.accentInk : theme.inkSoft;
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: dense ? 6 : 8,
-        vertical: dense ? 3 : 4,
+        horizontal: dense ? 7 : 9,
+        vertical: dense ? 2 : 3,
       ),
-      // Filled for the owner, outlined for an admin. One room has exactly one
-      // owner and can have many admins, so the rarer fact gets the louder
-      // treatment and a roster of admins does not turn into a wall of colour.
-      //
-      // Both read "ADMIN" — an owner is one, plus this badge. A separate word
-      // ("OWNER") read as property law once translated (SAHİP, PROPRIÉTAIRE,
-      // DONO); the medal — the same icon `roomAdminActionTransfer` uses — is
-      // what actually says "started this room now", and the footer under the
-      // roster spells that out once instead of leaning on the word.
-      decoration: theme.chipDecoration(filled: isOwner),
+      decoration: BoxDecoration(
+        color: theme.ink.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(999),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (isOwner) ...[
             Icon(
-              Icons.workspace_premium_outlined,
-              size: dense ? 11 : 12,
-              color: color,
+              CupertinoIcons.rosette,
+              size: dense ? 12 : 13,
+              color: theme.accent,
             ),
             const SizedBox(width: 3),
           ],
-          Text(l10n.roomAdminRoleAdmin, style: theme.monoTiny.copyWith(color: color)),
+          Text(
+            sentenceCaseOf(context, l10n.roomAdminRoleAdmin),
+            style: theme.bodySoft.copyWith(
+              fontSize: dense ? 12 : 13,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0,
+              color: theme.inkSoft,
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-/// One tappable row, with a press state.
-///
-/// Stateful purely for that. A row that does not visibly react between
-/// finger-down and the sheet closing reads as dead — it is the single cheapest
-/// thing that separates a native-feeling list from a web page, and its absence
-/// is most of what "looks too Android" means on a surface like this.
-///
-/// A tinted fill rather than the [AnimatedScale] the action menu's icon pills
-/// use: those are discrete circular targets that can grow without disturbing
-/// anything, where a full-width row scaling up would nudge its neighbours.
-class _ActionRow extends StatefulWidget {
-  const _ActionRow({
+/// One of the contact card's quick actions: a glyph over a word on a soft
+/// tile, equal widths across the row — iOS Contacts' Message / Call / Video.
+class _QuickAction extends StatelessWidget {
+  const _QuickAction({
     required this.icon,
     required this.label,
     required this.onTap,
-    this.sub,
-    this.danger = false,
   });
 
   final IconData icon;
   final String label;
-  final String? sub;
   final VoidCallback onTap;
-  final bool danger;
-
-  @override
-  State<_ActionRow> createState() => _ActionRowState();
-}
-
-class _ActionRowState extends State<_ActionRow> {
-  bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final icon = widget.icon;
-    final label = widget.label;
-    final sub = widget.sub;
-    final danger = widget.danger;
-    final onTap = widget.onTap;
-    final tint = danger ? theme.danger : theme.ink;
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: sub == null ? label : '$label. $sub',
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        onTapDown: (_) => setState(() => _pressed = true),
-        onTapCancel: () => setState(() => _pressed = false),
-        onTapUp: (_) => setState(() => _pressed = false),
-        child: AnimatedContainer(
-          duration: theme.motionFast,
-          decoration: BoxDecoration(
-            color: _pressed
-                ? tint.withValues(alpha: danger ? 0.14 : 0.10)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-          ),
-          // No negative margin. `AnimatedContainer` asserts
-          // `margin.isNonNegative`, and the first cut used one to bleed the
-          // highlight past the text column — which threw on every row of the
-          // sheet the moment it opened. The highlight spanning the row's
-          // natural width reads the same and is legal.
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Row(
-            children: [
-              Icon(icon, size: 21, color: tint),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(label, style: theme.body.copyWith(color: tint)),
-                    if (sub != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text(sub, style: theme.monoTiny),
-                      ),
-                  ],
-                ),
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: SpringPress(
+          onTap: onTap,
+          scale: 0.92,
+          semanticLabel: label,
+          child: Container(
+            height: 66,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            decoration: BoxDecoration(
+              color: sheetGroupFill(theme),
+              borderRadius: BorderRadius.circular(
+                (groupedRadius(theme) * 0.7).clamp(6.0, 16.0),
               ),
-            ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 22, color: theme.accent),
+                const SizedBox(height: 5),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: theme.bodySoft.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0,
+                    color: theme.accent,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

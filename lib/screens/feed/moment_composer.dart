@@ -2,7 +2,8 @@ import 'dart:typed_data';
 
 import 'package:camera/camera.dart' show CameraLensDirection;
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/cupertino.dart'
+    show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -686,7 +687,7 @@ class _SlotButton extends StatelessWidget {
                 height: 42,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: theme.accent.withValues(alpha: 0.16),
+                  color: quietFill(theme),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, size: 20, color: theme.accent),
@@ -739,9 +740,9 @@ class _PostButton extends StatelessWidget {
             ? SizedBox(
                 width: 18,
                 height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation(theme.accentInk),
+                child: CupertinoActivityIndicator(
+                  radius: 9,
+                  color: theme.accentInk,
                 ),
               )
             : Text(

@@ -75,17 +75,19 @@ class GroupCallButton extends StatelessWidget {
         ),
       );
     }
-    return IconButton(
-      tooltip: tooltip,
-      // Compact, like the classic header's back button and its 1:1 call
-      // buttons: two of these sit side by side, and the default 48px hit box
-      // left 30px of air between two 18px icons.
-      visualDensity: VisualDensity.compact,
-      onPressed: busy ? null : () => _open(context),
-      icon: Icon(
-        icon,
-        color: busy ? theme.inkMuted : theme.inkSoft,
-        size: 18,
+    // A glass circle, the same 40pt as the classic header's back button.
+    return Semantics(
+      button: true,
+      label: tooltip,
+      child: LiquidGlass(
+        shape: LiquidGlassShape.circle,
+        size: const Size(40, 40),
+        onTap: busy ? null : () => _open(context),
+        child: Icon(
+          icon,
+          color: busy ? theme.inkMuted : theme.inkSoft,
+          size: 18,
+        ),
       ),
     );
   }

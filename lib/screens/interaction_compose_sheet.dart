@@ -6,11 +6,12 @@ import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/enums.dart';
 import '../theme/app_theme.dart';
+import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/sheet_kit.dart';
-import '../widgets/ios_kit.dart' show groupedRadius;
+import '../widgets/ios_kit.dart' show groupedFill, groupedRadius;
 
 /// Everything the compose sheet collected, ready for `interactions:create`.
 ///
@@ -301,25 +302,10 @@ class _InteractionComposeSheetState extends State<InteractionComposeSheet> {
     final initial = seed.isBefore(first)
         ? first
         : (seed.isAfter(last) ? last : seed);
-    final date = await showDatePicker(
-      context: context,
-      initialDate: initial,
-      firstDate: first,
-      lastDate: last,
-    );
-    if (date == null || !mounted) return;
-    final time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(initial),
-    );
-    if (time == null || !mounted) return;
-    final picked = DateTime(
-      date.year,
-      date.month,
-      date.day,
-      time.hour,
-      time.minute,
-    );
+    // One iOS wheel for date and time together, in place of Material's
+    // calendar page followed by its clock face.
+    final picked = await _pickDateTime(initial, first, last);
+    if (picked == null || !mounted) return;
     setState(() {
       if (end) {
         // An end before its start is dropped rather than refused, matching the
@@ -334,6 +320,76 @@ class _InteractionComposeSheetState extends State<InteractionComposeSheet> {
         if (_endsAt != null && !_endsAt!.isAfter(picked)) _endsAt = null;
       }
     });
+  }
+
+  /// The iOS date-and-time wheel in a bottom popup with Cancel and Done.
+  /// Null when cancelled or dismissed.
+  Future<DateTime?> _pickDateTime(
+    DateTime initial,
+    DateTime first,
+    DateTime last,
+  ) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    var value = initial;
+    return showCupertinoModalPopup<DateTime>(
+      context: context,
+      builder: (ctx) => CupertinoTheme(
+        data: CupertinoThemeData(
+          brightness: theme.isLight ? Brightness.light : Brightness.dark,
+          primaryColor: theme.accent,
+          textTheme: CupertinoTextThemeData(
+            dateTimePickerTextStyle: TextStyle(
+              fontSize: 21,
+              color: theme.ink,
+            ),
+          ),
+        ),
+        child: Container(
+          height: 300 + MediaQuery.paddingOf(ctx).bottom,
+          padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(ctx).bottom),
+          decoration: BoxDecoration(
+            color: groupedFill(theme),
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(20),
+            ),
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  CupertinoButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: Text(
+                      sentenceCaseOf(ctx, l10n.roomContentScreenCancelTooltip),
+                      style: theme.body.copyWith(color: theme.accent),
+                    ),
+                  ),
+                  CupertinoButton(
+                    onPressed: () => Navigator.of(ctx).pop(value),
+                    child: Text(
+                      sentenceCaseOf(ctx, l10n.roomFilterDrawerPanelDone),
+                      style: theme.bodyEmph.copyWith(color: theme.accent),
+                    ),
+                  ),
+                ],
+              ),
+              Expanded(
+                child: CupertinoDatePicker(
+                  mode: CupertinoDatePickerMode.dateAndTime,
+                  initialDateTime: initial,
+                  minimumDate: first,
+                  maximumDate: last,
+                  use24hFormat: MediaQuery.alwaysUse24HourFormatOf(ctx),
+                  onDateTimeChanged: (v) => value = v,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override

@@ -202,7 +202,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ScheduleTimePicker), findsOneWidget);
-    expect(find.text(en.scheduleTimePickerTitle), findsOneWidget);
+    expect(_label(en.scheduleTimePickerTitle), findsOneWidget);
     // The quick chips are gone while the picker is up — one decision at a time.
     expect(find.text(en.schedulePresetInAnHour), findsNothing);
 

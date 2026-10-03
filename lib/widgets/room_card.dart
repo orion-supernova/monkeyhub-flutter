@@ -6,6 +6,7 @@ import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'ios_kit.dart' show quietFill;
 import 'count_badge.dart';
 import 'muted_badge.dart';
 import 'pinned_badge.dart';
@@ -114,7 +115,7 @@ class RoomCard extends StatelessWidget {
                 width: 32,
                 height: 32,
                 alignment: Alignment.center,
-                decoration: BoxDecoration(color: theme.accentSoft, shape: BoxShape.circle),
+                decoration: BoxDecoration(color: quietFill(theme), shape: BoxShape.circle),
                 child: Icon(CupertinoIcons.bookmark_fill, size: 16, color: theme.accent),
               ),
               const SizedBox(width: 10),

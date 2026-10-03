@@ -31,6 +31,7 @@ import '../widgets/prominent_button.dart';
 import '../widgets/self_host_badge.dart' show shortHost;
 import '../widgets/social_sign_in_buttons.dart';
 import '../widgets/username_status_label.dart';
+import '../widgets/ios_kit.dart' show quietFill;
 import 'child_pair_screen.dart';
 import 'device_login_screen.dart';
 import 'recovery_phrase_screen.dart';
@@ -677,7 +678,7 @@ class _ServerChip extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
                 decoration: BoxDecoration(
                   color: marked
-                      ? theme.accent.withValues(alpha: 0.10)
+                      ? quietFill(theme)
                       : Colors.transparent,
                   border: Border.all(
                     color: marked

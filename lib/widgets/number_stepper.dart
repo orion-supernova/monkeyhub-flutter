@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
+import 'ios_kit.dart' show quietFill;
 
 /// A whole number between [min] and [max], moved with a down and an up arrow.
 ///
@@ -274,7 +275,7 @@ class _ArrowState extends State<_Arrow> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: _pressed
-                      ? theme.accent.withValues(alpha: 0.22)
+                      ? quietFill(theme)
                       : (enabled ? theme.surfaceRaised : Colors.transparent),
                 ),
                 child: Icon(

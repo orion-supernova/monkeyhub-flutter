@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
@@ -193,7 +194,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
       // Debounce has fired, the request has not answered.
       expect(find.text('no friends match'), findsNothing);
-      expect(find.byType(CircularProgressIndicator), findsWidgets);
+      expect(find.byType(CupertinoActivityIndicator), findsWidgets);
 
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('@bela'), findsOneWidget);

@@ -12,6 +12,7 @@ import '../theme/app_theme.dart';
 import 'app_toast.dart';
 import 'location_map_preview.dart';
 import 'message_stamp.dart';
+import 'meta_text.dart';
 
 /// A location in the transcript: one fix, or a live share that is running, or
 /// one that has finished.
@@ -308,9 +309,11 @@ class _LocationBubbleState extends State<LocationBubble>
       ),
       child: Text(
         text,
-        style: theme.monoTiny.copyWith(
-          color: fg,
-          letterSpacing: 1.0,
+        // A status badge, so capitals are right here — but in the body face
+        // with light tracking, not a tracked monospace.
+        style: metaText(theme, color: fg).copyWith(
+          fontSize: 11,
+          letterSpacing: 0.4,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -412,7 +415,7 @@ class _LocationBubbleState extends State<LocationBubble>
               text,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: theme.monoTiny.copyWith(color: color, letterSpacing: 0.3),
+              style: metaText(theme, color: color),
             ),
           ),
         ],
@@ -431,19 +434,13 @@ class _LocationBubbleState extends State<LocationBubble>
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
-            color: theme.danger.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(theme.radiusSm),
-            border: Border.all(
-              color: theme.danger.withValues(alpha: 0.4),
-              width: 0.8,
-            ),
+            color: theme.danger.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(999),
           ),
           child: Text(
             l10n.locationBubbleStopSharing,
-            style: theme.monoTiny.copyWith(
-              color: theme.danger,
-              letterSpacing: 0.8,
-              fontWeight: FontWeight.w700,
+            style: metaText(theme, color: theme.danger).copyWith(
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),

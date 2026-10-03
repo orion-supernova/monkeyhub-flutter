@@ -240,7 +240,13 @@ void main() {
       // Back returns to the list rather than closing the sheet.
       await tester.tap(find.text(en.scheduledBack));
       await tester.pumpAndSettle();
-      expect(find.text(en.scheduledListTitle), findsOneWidget);
+      // The title reads in sentence case; the string is stored in capitals.
+      expect(
+        find.byWidgetPredicate((w) =>
+            w is Text &&
+            w.data?.toLowerCase() == en.scheduledListTitle.toLowerCase()),
+        findsOneWidget,
+      );
 
       // Put it back, so this test cannot leak into another through the
       // singleton.

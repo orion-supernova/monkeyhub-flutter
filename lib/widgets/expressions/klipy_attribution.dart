@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/theme_scope.dart';
+import '../meta_text.dart';
 
 /// "Powered by KLIPY", wherever KLIPY content is browsed.
 ///
@@ -18,7 +19,7 @@ class KlipyAttribution extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final base = (compact ? theme.monoTiny : theme.caption).copyWith(
+    final base = (compact ? metaText(theme) : theme.caption).copyWith(
       color: theme.inkMuted,
       decoration: TextDecoration.none,
     );

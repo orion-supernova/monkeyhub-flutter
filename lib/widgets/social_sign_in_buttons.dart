@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -277,10 +278,7 @@ class _GoogleButton extends StatelessWidget {
                 ? SizedBox(
                     width: _logoSize,
                     height: _logoSize,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: onDark ? _darkText : _lightText,
-                    ),
+                    child: CupertinoActivityIndicator(color: onDark ? _darkText : _lightText),
                   )
                 : Row(
                     mainAxisSize: MainAxisSize.min,

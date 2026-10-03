@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'dart:async';
 import 'dart:ui';
 
@@ -1310,9 +1311,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
                                       : const SizedBox(
                                           width: 22,
                                           height: 22,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
+                                          child: CupertinoActivityIndicator(radius: 11),
                                         ),
                                 )
                               : GestureDetector(
@@ -1447,7 +1446,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
                 child: SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CupertinoActivityIndicator(radius: 9),
                 ),
               ),
             );

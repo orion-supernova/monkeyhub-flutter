@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -331,7 +332,7 @@ class _Searching extends StatelessWidget {
         child: SizedBox(
           width: 16,
           height: 16,
-          child: CircularProgressIndicator(strokeWidth: 2, color: theme.accent),
+          child: CupertinoActivityIndicator(radius: 8, color: theme.inkMuted),
         ),
       ),
     );

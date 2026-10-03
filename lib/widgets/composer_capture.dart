@@ -17,6 +17,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../screens/room_items.dart' show formatClockDuration;
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'ios_kit.dart' show quietFill;
 import 'destructive_sheet.dart';
 import 'liquid_glass.dart';
 
@@ -1448,7 +1449,7 @@ class _LockAffordance extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
             decoration: BoxDecoration(
-              color: isLocked ? theme.accent.withValues(alpha: 0.18) : theme.surfaceRaised.withValues(alpha: 0.90),
+              color: isLocked ? quietFill(theme) : theme.surfaceRaised.withValues(alpha: 0.90),
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
                 color: Color.lerp(theme.divider, theme.accent, t)!,

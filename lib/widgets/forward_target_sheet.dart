@@ -8,6 +8,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'ios_kit.dart' show quietFill;
 import 'adaptive_sheet.dart';
 import 'destructive_sheet.dart' show SheetGrabber;
 import 'selection_check.dart';
@@ -289,7 +290,7 @@ class _RoomRow extends StatelessWidget {
           margin: const EdgeInsets.symmetric(vertical: 3),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
           decoration: BoxDecoration(
-            color: picked ? theme.accent.withValues(alpha: 0.12) : Colors.transparent,
+            color: picked ? quietFill(theme) : Colors.transparent,
             borderRadius: BorderRadius.circular(theme.radiusMd),
             border: Border.all(
               color: picked ? theme.accent : Colors.transparent,

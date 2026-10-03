@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/message_formatting.dart';
 import '../theme/theme_scope.dart';
+import 'ios_kit.dart' show quietFill;
 import 'link_input_sheet.dart';
 import 'mention_text_controller.dart';
 
@@ -126,7 +127,7 @@ class _ComposerContextMenuState extends State<_ComposerContextMenu> {
               height: 40,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: active ? theme.accentSoft : Colors.transparent,
+                color: active ? quietFill(theme) : Colors.transparent,
                 borderRadius: BorderRadius.circular(theme.radiusSm),
               ),
               child: child,

@@ -85,12 +85,12 @@ void main() {
     expect(service.started.single.inviteeIds, isNull);
   });
 
-  testWidgets('the VIDEO chip responds and changes the started call kind', (
+  testWidgets('the Video segment responds and changes the started call kind', (
     tester,
   ) async {
     await openSheet(tester);
-    await tester.tap(find.text('VIDEO'));
-    await tester.pump();
+    await tester.tap(find.text('Video'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Call everyone'));
     await tester.pumpAndSettle();
     expect(service.started.single.kind, CallMediaKind.video);

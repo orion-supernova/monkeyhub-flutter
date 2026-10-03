@@ -6,6 +6,7 @@ import '../keyboard/focusable_tap.dart';
 import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
+import 'ios_kit.dart' show quietFill;
 import 'sheet_kit.dart' show sentenceCaseOf;
 
 /// What a toast is *about*, which decides its glyph and its accent.
@@ -612,7 +613,7 @@ class _ActionButton extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
-            color: accent.withValues(alpha: 0.16),
+            color: quietFill(ThemeScope.of(context)),
             borderRadius: BorderRadius.circular(999),
           ),
           child: Text(

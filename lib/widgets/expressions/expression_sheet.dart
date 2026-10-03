@@ -1,13 +1,15 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../expressions/expression_store.dart';
-import '../../keyboard/focusable_tap.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/expression_item.dart';
 import '../adaptive_sheet.dart';
 import '../app_toast.dart';
-import '../destructive_sheet.dart' show SheetGrabber;
+import '../../theme/motion.dart';
+import '../ios_kit.dart' show GroupedRow, TileTone;
+import '../sheet_kit.dart' show SheetFrame, SheetGroup;
 import '../../theme/theme_scope.dart';
 import 'expression_media.dart';
 import 'klipy_attribution.dart';
@@ -75,50 +77,65 @@ class _ExpressionSheet extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final store = ExpressionStore.instance;
-    final bottomInset = MediaQuery.paddingOf(context).bottom;
-    return Material(
-      type: MaterialType.transparency,
-      child: Container(
-        decoration: theme.sheetDecoration(),
-        padding: EdgeInsets.fromLTRB(20, 10, 20, 18 + bottomInset),
-        child: DefaultTextStyle(
-          style: theme.body.copyWith(
-            color: theme.ink,
-            decoration: TextDecoration.none,
-          ),
-          child: ListenableBuilder(
-            listenable: store,
-            builder: (context, _) {
-              final pack = store.packOf(item.stickerId);
-              final starred = store.isFavorite(item);
-              final mine = pack?.personal ?? false;
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SheetGrabber(),
-                  const SizedBox(height: 8),
-                  _preview(context),
-                  const SizedBox(height: 12),
-                  if (pack != null) ...[
-                    Text(pack.title, style: theme.bodyEmph),
-                    if (pack.author != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text(
-                          l10n.expressionPackCredit(
-                              pack.author!, pack.license ?? ''),
-                          style: theme.caption.copyWith(color: theme.inkMuted),
-                          textAlign: TextAlign.center,
-                        ),
+    return SheetFrame(
+      child: ListenableBuilder(
+        listenable: store,
+        builder: (context, _) {
+          final pack = store.packOf(item.stickerId);
+          final starred = store.isFavorite(item);
+          final mine = pack?.personal ?? false;
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 4),
+              // The sticker pops in on a spring — it is the subject of the
+              // sheet, so it arrives like one.
+              Center(
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.8, end: 1),
+                  duration: MotionScope.of(context)
+                      .d(const Duration(milliseconds: 520)),
+                  curve: Curves.elasticOut,
+                  builder: (context, s, child) =>
+                      Transform.scale(scale: s, child: child),
+                  child: _preview(context),
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (pack != null) ...[
+                Text(
+                  pack.title,
+                  textAlign: TextAlign.center,
+                  style: theme.bodyEmph.copyWith(color: theme.ink),
+                ),
+                if (pack.author != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      l10n.expressionPackCredit(
+                          pack.author!, pack.license ?? ''),
+                      style: theme.bodySoft.copyWith(
+                        fontSize: 13,
+                        color: theme.inkMuted,
                       ),
-                  ] else if (item.source == ExpressionSource.klipy)
-                    const KlipyAttribution(),
-                  const SizedBox(height: 16),
-                  _Action(
-                    icon: starred ? Icons.star_rounded : Icons.star_outline_rounded,
-                    label: starred
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+              ] else if (item.source == ExpressionSource.klipy)
+                const Center(child: KlipyAttribution()),
+              const SizedBox(height: 18),
+              SheetGroup(
+                children: [
+                  GroupedRow(
+                    icon: starred
+                        ? CupertinoIcons.star_slash_fill
+                        : CupertinoIcons.star_fill,
+                    tone: TileTone.orange,
+                    title: starred
                         ? l10n.expressionUnfavorite
                         : l10n.expressionFavorite,
+                    chevron: false,
                     onTap: () async {
                       HapticFeedback.selectionClick();
                       try {
@@ -137,9 +154,11 @@ class _ExpressionSheet extends StatelessWidget {
                   if (pack != null &&
                       !pack.personal &&
                       !store.isInstalled(pack.id))
-                    _Action(
-                      icon: Icons.add_circle_outline_rounded,
-                      label: l10n.expressionAddPackFromSticker(pack.title),
+                    GroupedRow(
+                      icon: CupertinoIcons.plus_app_fill,
+                      tone: TileTone.blue,
+                      title: l10n.expressionAddPackFromSticker(pack.title),
+                      chevron: false,
                       onTap: () async {
                         HapticFeedback.selectionClick();
                         final toast = AppToast.of(context);
@@ -158,9 +177,11 @@ class _ExpressionSheet extends StatelessWidget {
                   if (item.source == ExpressionSource.klipy &&
                       item.ref != null &&
                       store.klipy != null)
-                    _Action(
-                      icon: Icons.flag_outlined,
-                      label: l10n.expressionReport,
+                    GroupedRow(
+                      icon: CupertinoIcons.flag_fill,
+                      tone: TileTone.gray,
+                      title: l10n.expressionReport,
+                      chevron: false,
                       onTap: () async {
                         final klipy = store.klipy!;
                         final toast = AppToast.of(context);
@@ -176,10 +197,11 @@ class _ExpressionSheet extends StatelessWidget {
                       },
                     ),
                   if (mine && item.stickerId != null)
-                    _Action(
-                      icon: Icons.delete_outline_rounded,
-                      label: l10n.expressionDeleteSticker,
-                      danger: true,
+                    GroupedRow(
+                      icon: CupertinoIcons.trash_fill,
+                      title: l10n.expressionDeleteSticker,
+                      destructive: true,
+                      chevron: false,
                       onTap: () async {
                         final toast = AppToast.of(context);
                         Navigator.of(context).pop();
@@ -192,10 +214,10 @@ class _ExpressionSheet extends StatelessWidget {
                       },
                     ),
                 ],
-              );
-            },
-          ),
-        ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -214,48 +236,5 @@ class _ExpressionSheet extends StatelessWidget {
     return url == null
         ? const SizedBox.shrink()
         : KlipyImage(url: url, width: w, height: h, semanticLabel: item.title);
-  }
-}
-
-class _Action extends StatelessWidget {
-  const _Action({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.danger = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final bool danger;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final color = danger ? theme.danger : theme.ink;
-    // FocusableTap + a bare GestureDetector, never InkWell — this app renders
-    // no ink anywhere.
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: label,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-          child: Row(
-            children: [
-              Icon(icon, size: 22, color: color),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(label, style: theme.body.copyWith(color: color)),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }

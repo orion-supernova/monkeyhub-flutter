@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'dart:async';
 import 'dart:io' show File;
 import 'dart:math' as math;
@@ -508,7 +509,7 @@ class _VideoNoteMessageState extends State<VideoNoteMessage> {
         child: SizedBox(
           width: 26,
           height: 26,
-          child: CircularProgressIndicator(strokeWidth: 2.5, color: theme.accent),
+          child: CupertinoActivityIndicator(radius: 13, color: theme.inkMuted),
         ),
       );
     }

@@ -10,7 +10,7 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'count_badge.dart';
 import 'sheet_kit.dart' show sentenceCaseOf;
-import 'ios_kit.dart' show groupedFill, groupedRadius;
+import 'ios_kit.dart' show groupedFill, groupedRadius, quietFill;
 
 /// The header affordance for [FilterStyle.drawer].
 ///
@@ -64,7 +64,7 @@ class RoomFilterButton extends StatelessWidget {
                 // Filled, never outlined — the toolbar circle beside the
                 // compose button.
                 color: active
-                    ? theme.accent.withValues(alpha: 0.18)
+                    ? quietFill(theme)
                     : theme.ink.withValues(alpha: 0.07),
               ),
               child: AnimatedRotation(
@@ -125,7 +125,7 @@ class ActiveFilterCue extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: theme.accent.withValues(alpha: 0.16),
+                color: quietFill(theme),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
@@ -489,7 +489,7 @@ class FilteredEmptyState extends StatelessWidget {
                   vertical: 10,
                 ),
                 decoration: BoxDecoration(
-                  color: theme.accent.withValues(alpha: 0.16),
+                  color: quietFill(theme),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(

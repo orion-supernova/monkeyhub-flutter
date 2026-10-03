@@ -23,7 +23,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// * In its place sit two call controls — video, then voice — always both on
 ///   show, closer together than the header's other gaps: the liquid pair
 ///   uses a gap smaller than the 12 around the capsule, the classic pair
-///   uses compact-density icon buttons instead of the default 48px boxes.
+///   uses 40pt glass circles, matching its glass back button.
 ///
 /// A source scan, like `room_header_title_tap_test.dart`, because both
 /// headers are private to `room_screen.dart` and need a live room, repo and
@@ -148,29 +148,25 @@ void main() {
         reason: 'the gap between video and voice must use _controlGap');
   });
 
-  test('the classic pair uses compact-density icon buttons', () {
-    // The classic header's spacing lives in the buttons themselves: an
-    // IconButton's default 48px hit box is what put 30px of air between two
-    // 18px icons. Both classic call buttons must opt into compact density.
+  test('the classic pair are 40pt glass circles, like the back beside them',
+      () {
+    // The classic header's call buttons sit in one toolbar group with its
+    // glass back button, so they are the same glass circle at the same size —
+    // not Material IconButtons with their ink and 48px hit boxes.
     final callButton = File('lib/calls/call_button.dart').readAsStringSync();
     final classicStart = callButton.indexOf('class _ClassicCallButton');
     expect(classicStart, isNonNegative, reason: '_ClassicCallButton missing');
     final classicEnd = callButton.indexOf('\nclass ', classicStart + 1);
     final classic = callButton.substring(classicStart, classicEnd);
-    expect(classic.contains('visualDensity: VisualDensity.compact,'), isTrue,
-        reason: 'the classic 1:1 call button must be compact');
+    expect(classic.contains('LiquidGlass('), isTrue);
+    expect(classic.contains('size: const Size(40, 40),'), isTrue);
+    expect(classic.contains('IconButton('), isFalse);
 
     final groupButton =
         File('lib/calls/group_call_button.dart').readAsStringSync();
-    final iconButton = groupButton.indexOf('return IconButton(');
-    expect(iconButton, isNonNegative, reason: 'classic group button missing');
-    expect(
-      groupButton
-          .substring(iconButton)
-          .contains('visualDensity: VisualDensity.compact,'),
-      isTrue,
-      reason: 'the classic group call button must be compact',
-    );
+    expect(groupButton.contains('IconButton('), isFalse,
+        reason: 'the classic group call button is glass too');
+    expect(groupButton.contains('size: const Size(40, 40),'), isTrue);
   });
 
   test('the call-kind picker is gone with nothing left pointing at it', () {

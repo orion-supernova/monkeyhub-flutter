@@ -1,4 +1,5 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/cupertino.dart'
+    show CupertinoIcons, CupertinoSliverRefreshControl;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -118,24 +119,30 @@ class _GamesHubScreenState extends State<GamesHubScreen> {
               maxWidth: context.isExpanded
                   ? ContentWidth.wide
                   : ContentWidth.readable,
-              child: RefreshIndicator(
-                color: theme.accent,
-                backgroundColor: theme.surfaceRaised,
-                onRefresh: () {
-                  HapticFeedback.lightImpact();
-                  return Future.wait([
-                    GamesStore.instance.load(widget.userId, force: true),
-                    RecordsStore.instance.load(widget.userId, force: true),
-                  ]);
-                },
-                child: ListView(
-                  padding: EdgeInsets.fromLTRB(
-                    16,
-                    4,
-                    16,
-                    edgeToEdgeBottom(context),
+              child: CustomScrollView(
+                // iOS pull-to-refresh: the bounce is what reveals the
+                // spinner, so it is asked for on every platform here.
+                physics: const BouncingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics(),
+                ),
+                slivers: [
+                  CupertinoSliverRefreshControl(
+                    onRefresh: () {
+                      HapticFeedback.lightImpact();
+                      return Future.wait([
+                        GamesStore.instance.load(widget.userId, force: true),
+                        RecordsStore.instance.load(widget.userId, force: true),
+                      ]);
+                    },
                   ),
-                  children: [
+                  SliverPadding(
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      4,
+                      16,
+                      edgeToEdgeBottom(context),
+                    ),
+                    sliver: SliverList.list(children: [
                     if (Navigator.of(context).canPop())
                       const Align(
                         alignment: Alignment.centerLeft,
@@ -258,8 +265,9 @@ class _GamesHubScreenState extends State<GamesHubScreen> {
                     // has ever done at them.
                     const SizedBox(height: 30),
                     RecordsSection(viewerId: widget.userId),
-                  ],
-                ),
+                  ]),
+                  ),
+                ],
               ),
             ),
           ),

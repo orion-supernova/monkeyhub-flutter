@@ -1,13 +1,12 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/location_share.dart';
-import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
+import 'ios_kit.dart' show GroupedRow, TileTone;
+import 'sheet_kit.dart';
 
 /// What the user picked in the location sheet.
 ///
@@ -58,9 +57,7 @@ class _LocationSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     String durationLabel(LiveShareDuration d) => switch (d) {
           LiveShareDuration.fifteenMinutes => l10n.locationShareFor15Minutes,
@@ -68,66 +65,54 @@ class _LocationSheet extends StatelessWidget {
           LiveShareDuration.eightHours => l10n.locationShareFor8Hours,
         };
 
-    return Material(
-      type: MaterialType.transparency,
-      child: Container(
-        decoration: theme.sheetDecoration(),
-        padding: EdgeInsets.fromLTRB(14, 8, 14, 12 + bottomInset),
-        child: DefaultTextStyle(
-          style: theme.body.copyWith(color: theme.ink),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (context.isCompact) ...[
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 3.5,
-                    decoration: BoxDecoration(
-                      color: theme.inkMuted.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
+    void pick(LocationShareChoice c) {
+      HapticFeedback.selectionClick();
+      Navigator.of(context).pop(c);
+    }
+
+    return SheetFrame(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SheetRise(
+            child: SheetGroup(
+              children: [
+                GroupedRow(
+                  icon: CupertinoIcons.location_fill,
+                  tone: TileTone.blue,
+                  title: l10n.locationSheetSendCurrent,
+                  subtitle: l10n.locationSheetSendCurrentDetail,
+                  chevron: false,
+                  onTap: () => pick(const LocationShareChoice.now()),
                 ),
-                const SizedBox(height: 14),
               ],
-              _Row(
-                icon: CupertinoIcons.location_fill,
-                title: l10n.locationSheetSendCurrent,
-                subtitle: l10n.locationSheetSendCurrentDetail,
-                onTap: () =>
-                    Navigator.of(context).pop(const LocationShareChoice.now()),
-              ),
-              if (allowLive) ...[
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.only(left: 4, bottom: 6),
-                  child: Text(
-                    l10n.locationSheetLiveHeading,
-                    style: theme.monoTiny.copyWith(
-                      color: theme.inkMuted,
-                      letterSpacing: 1.0,
-                    ),
-                  ),
-                ),
-                for (final d in LiveShareDuration.values) ...[
-                  _Row(
-                    icon: CupertinoIcons.dot_radiowaves_left_right,
-                    title: durationLabel(d),
-                    // Restated on every row rather than once above them,
-                    // because this is the promise the feature makes and each
-                    // row is a separate act of making it.
-                    subtitle: l10n.locationSheetLiveDetail,
-                    onTap: () =>
-                        Navigator.of(context).pop(LocationShareChoice.live(d)),
-                  ),
-                  const SizedBox(height: 6),
-                ],
-              ],
-            ],
+            ),
           ),
-        ),
+          if (allowLive) ...[
+            const SizedBox(height: 22),
+            SheetRise(
+              index: 1,
+              child: SheetGroup(
+                header: l10n.locationSheetLiveHeading,
+                children: [
+                  for (final d in LiveShareDuration.values)
+                    GroupedRow(
+                      icon: CupertinoIcons.dot_radiowaves_left_right,
+                      tone: TileTone.green,
+                      title: durationLabel(d),
+                      // Restated on every row rather than once above them,
+                      // because this is the promise the feature makes and
+                      // each row is a separate act of making it.
+                      subtitle: l10n.locationSheetLiveDetail,
+                      chevron: false,
+                      onTap: () => pick(LocationShareChoice.live(d)),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -175,141 +160,45 @@ class _BackgroundUpgradeSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    final bottomInset = MediaQuery.paddingOf(context).bottom;
-
-    return Material(
-      type: MaterialType.transparency,
-      child: Container(
-        decoration: theme.sheetDecoration(),
-        padding: EdgeInsets.fromLTRB(14, 8, 14, 12 + bottomInset),
-        child: DefaultTextStyle(
-          style: theme.body.copyWith(color: theme.ink),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+    return SheetFrame(
+      title: sentenceCaseOf(context, l10n.locationBackgroundSheetTitle),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            l10n.locationBackgroundSheetBody,
+            textAlign: TextAlign.center,
+            style: theme.bodySoft.copyWith(color: theme.inkMuted),
+          ),
+          const SizedBox(height: 18),
+          SheetGroup(
             children: [
-              if (context.isCompact) ...[
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 3.5,
-                    decoration: BoxDecoration(
-                      color: theme.inkMuted.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-              ],
-              Padding(
-                padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
-                child: Text(
-                  l10n.locationBackgroundSheetTitle,
-                  style: theme.label.copyWith(color: theme.ink),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(4, 0, 4, 14),
-                child: Text(
-                  l10n.locationBackgroundSheetBody,
-                  style: theme.bodySoft,
-                ),
-              ),
-              _Row(
+              GroupedRow(
                 icon: CupertinoIcons.dot_radiowaves_left_right,
+                tone: TileTone.green,
                 title: l10n.locationBackgroundSheetKeepRunning,
                 subtitle: l10n.locationBackgroundSheetKeepRunningDetail,
-                onTap: () => Navigator.of(context).pop(true),
+                chevron: false,
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  Navigator.of(context).pop(true);
+                },
               ),
-              const SizedBox(height: 6),
-              _Row(
-                icon: CupertinoIcons.app,
+              GroupedRow(
+                icon: CupertinoIcons.app_fill,
+                tone: TileTone.gray,
                 title: l10n.locationBackgroundSheetAppOnly,
                 subtitle: l10n.locationBackgroundSheetAppOnlyDetail,
-                onTap: () => Navigator.of(context).pop(false),
+                chevron: false,
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  Navigator.of(context).pop(false);
+                },
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Row extends StatefulWidget {
-  const _Row({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  State<_Row> createState() => _RowState();
-}
-
-class _RowState extends State<_Row> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    void fire() {
-      HapticFeedback.selectionClick();
-      widget.onTap();
-    }
-
-    return FocusableTap(
-      onTap: fire,
-      radius: theme.radiusMd,
-      semanticLabel: widget.title,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: (_) => setState(() => _pressed = true),
-        onTapUp: (_) => setState(() => _pressed = false),
-        onTapCancel: () => setState(() => _pressed = false),
-        onTap: fire,
-        child: AnimatedScale(
-          scale: _pressed ? 0.98 : 1.0,
-          duration: const Duration(milliseconds: 90),
-          curve: Curves.easeOut,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
-            decoration: BoxDecoration(
-              color: theme.surfaceRaised,
-              borderRadius: BorderRadius.circular(theme.radiusMd),
-              border: Border.all(color: theme.divider, width: 0.8),
-            ),
-            child: Row(
-              children: [
-                Icon(widget.icon, size: 19, color: theme.accent),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        widget.title,
-                        style: theme.body.copyWith(color: theme.ink),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        widget.subtitle,
-                        style: theme.monoTiny.copyWith(color: theme.inkMuted),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        ],
       ),
     );
   }

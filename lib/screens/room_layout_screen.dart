@@ -282,7 +282,7 @@ class _FilterPreview extends StatelessWidget {
           margin: const EdgeInsets.only(right: 4),
           decoration: BoxDecoration(
             color: on
-                ? theme.accent.withValues(alpha: 0.22)
+                ? quietFill(theme)
                 : theme.ink.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(999),
           ),

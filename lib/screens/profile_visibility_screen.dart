@@ -1,4 +1,5 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/cupertino.dart'
+    show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -146,10 +147,7 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
           child: SizedBox(
             width: 18,
             height: 18,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: theme.accent,
-            ),
+            child: CupertinoActivityIndicator(radius: 9, color: theme.inkMuted),
           ),
         ),
       ],
@@ -158,10 +156,7 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
               SliverFillRemaining(
                 hasScrollBody: false,
                 child: Center(
-                  child: CircularProgressIndicator(
-                    color: theme.accent,
-                    strokeWidth: 2,
-                  ),
+                  child: CupertinoActivityIndicator(color: theme.inkMuted),
                 ),
               ),
             ]

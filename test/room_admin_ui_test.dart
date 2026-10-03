@@ -73,12 +73,12 @@ void main() {
       expect(tester_exception(), isNull,
           reason: 'the sheet must build without throwing');
       // Everyone gets these — the sheet is not admin-only.
-      expect(find.byIcon(Icons.chat_bubble_outline), findsOneWidget);
-      expect(find.byIcon(Icons.call_outlined), findsOneWidget);
-      expect(find.byIcon(Icons.videocam_outlined), findsOneWidget);
+      expect(find.byIcon(CupertinoIcons.chat_bubble_fill), findsOneWidget);
+      expect(find.byIcon(CupertinoIcons.phone_fill), findsOneWidget);
+      expect(find.byIcon(CupertinoIcons.video_camera_solid), findsOneWidget);
       // ...and no moderation.
-      expect(find.byIcon(Icons.person_remove_outlined), findsNothing);
-      expect(find.byIcon(Icons.shield_outlined), findsNothing);
+      expect(find.byIcon(CupertinoIcons.person_badge_minus_fill), findsNothing);
+      expect(find.byIcon(CupertinoIcons.shield_lefthalf_fill), findsNothing);
     });
 
     testWidgets('adds the moderation rows for an admin', (t) async {
@@ -97,16 +97,16 @@ void main() {
         linkJoinPolicy: RoomJoinPolicy.open,
       ));
       expect(tester_exception(), isNull);
-      expect(find.byIcon(Icons.shield_outlined), findsOneWidget);
-      expect(find.byIcon(Icons.person_remove_outlined), findsOneWidget);
+      expect(find.byIcon(CupertinoIcons.shield_lefthalf_fill), findsOneWidget);
+      expect(find.byIcon(CupertinoIcons.person_badge_minus_fill), findsOneWidget);
     });
 
     testWidgets('pressing a row does not throw', (t) async {
-      // The press state is an AnimatedContainer; the bug that shipped was in
-      // its decoration. Exercise the down/up path explicitly.
+      // The quick actions are spring-pressed tiles; the bug that once shipped
+      // was in a row's press state. Exercise the down/up path explicitly.
       await open(t, RoomPermissions.none);
       final gesture =
-          await t.startGesture(t.getCenter(find.byIcon(Icons.chat_bubble_outline)));
+          await t.startGesture(t.getCenter(find.byIcon(CupertinoIcons.chat_bubble_fill)));
       await t.pump(const Duration(milliseconds: 80));
       await gesture.up();
       await t.pumpAndSettle();

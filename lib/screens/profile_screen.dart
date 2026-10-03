@@ -2,7 +2,8 @@ import 'dart:typed_data';
 
 import 'package:camera/camera.dart' show CameraLensDirection;
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/cupertino.dart'
+    show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:gal/gal.dart';
 import 'package:http/http.dart' as http;
@@ -1114,10 +1115,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Center(
-              child: CircularProgressIndicator(
-                color: theme.accent,
-                strokeWidth: 2,
-              ),
+              child: CupertinoActivityIndicator(color: theme.inkMuted),
             ),
           ),
       ],
@@ -1271,8 +1269,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: const SizedBox(
                     width: 26,
                     height: 26,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.4,
+                    child: CupertinoActivityIndicator(
+                      radius: 13,
                       color: Colors.white,
                     ),
                   ),
@@ -1648,7 +1646,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _spinner(AppTheme theme) => SizedBox(
         width: 16,
         height: 16,
-        child: CircularProgressIndicator(strokeWidth: 2, color: theme.accent),
+        child: CupertinoActivityIndicator(radius: 8, color: theme.inkMuted),
       );
 }
 

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -11,9 +12,13 @@ import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'app_toast.dart';
-import 'destructive_sheet.dart' show SheetGrabber;
 import 'schedule_message_sheet.dart';
 import 'sheet_buttons.dart';
+import 'ios_kit.dart' show groupedRadius;
+import 'labeled_field.dart' show fieldDecoration;
+import 'meta_text.dart';
+import 'sheet_kit.dart'
+    show SheetHandle, sentenceCaseOf, sheetFill, sheetGroupFill, sheetTopRadius;
 
 /// Turns one of the repository's schedule error codes into a sentence.
 ///
@@ -95,7 +100,12 @@ class _ScheduledListSheetState extends State<_ScheduledListSheet> {
         maxHeight: MediaQuery.sizeOf(context).height * 0.92,
       ),
       child: Container(
-        decoration: theme.sheetDecoration(),
+        decoration: BoxDecoration(
+          color: sheetFill(theme),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(sheetTopRadius(theme)),
+          ),
+        ),
         padding: EdgeInsets.fromLTRB(
           20,
           12,
@@ -145,8 +155,12 @@ class _ListView extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-          const SheetGrabber(),
-          Text(l10n.scheduledListTitle, style: theme.label),
+          const SheetHandle(),
+          Text(
+            sentenceCaseOf(context, l10n.scheduledListTitle),
+            textAlign: TextAlign.center,
+            style: theme.bodyEmph.copyWith(fontSize: 17, color: theme.ink),
+          ),
           const SizedBox(height: 8),
           Text(l10n.scheduledListSubtitle, style: theme.bodySoft),
           const SizedBox(height: 16),
@@ -232,7 +246,7 @@ class _ShowAsRow extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.tune, size: 16, color: theme.inkSoft),
+                  Icon(CupertinoIcons.slider_horizontal_3, size: 16, color: theme.inkSoft),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -242,10 +256,14 @@ class _ShowAsRow extends StatelessWidget {
                   ),
                   Text(
                     _indicatorLabel(l10n, current),
-                    style: theme.monoTiny.copyWith(color: theme.accent),
+                    style: metaText(theme).copyWith(color: theme.accent),
                   ),
                   const SizedBox(width: 4),
-                  Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
+                  Icon(
+                    CupertinoIcons.chevron_forward,
+                    size: 15,
+                    color: theme.inkMuted,
+                  ),
                 ],
               ),
             ),
@@ -294,7 +312,7 @@ class _IndicatorView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SheetGrabber(),
+            const SheetHandle(),
             // The sheet's own back affordance. Left-aligned with the title
             // centred on it, so the header reads as a navigation bar rather
             // than as a button that happens to sit above a title.
@@ -303,8 +321,11 @@ class _IndicatorView extends StatelessWidget {
                 _BackButton(onTap: onBack),
                 Expanded(
                   child: Text(
-                    l10n.scheduledListShowAs,
-                    style: theme.label,
+                    sentenceCaseOf(context, l10n.scheduledListShowAs),
+                    style: theme.bodyEmph.copyWith(
+                      fontSize: 17,
+                      color: theme.ink,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -362,7 +383,7 @@ class _BackButton extends StatelessWidget {
           height: 28,
           child: Align(
             alignment: AlignmentDirectional.centerStart,
-            child: Icon(Icons.chevron_left, size: 22, color: theme.accent),
+            child: Icon(CupertinoIcons.chevron_back, size: 22, color: theme.accent),
           ),
         ),
       ),
@@ -418,23 +439,15 @@ class _IndicatorCard extends StatelessWidget {
             duration: motion.d(theme.motionFast),
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: theme.surface,
-              borderRadius: BorderRadius.circular(theme.radiusLg),
+              color: sheetGroupFill(theme),
+              borderRadius: BorderRadius.circular(groupedRadius(theme)),
               border: Border.all(
-                color: active ? theme.accent : theme.divider,
+                color: active ? theme.accent : theme.ink.withValues(alpha: 0),
                 // Constant width across states: switching between 1 and 1.6
                 // shifts the card's contents by 0.6px on every toggle, which
                 // reads as a twitch. The room-info segments make the same note.
                 width: 1.6,
               ),
-              boxShadow: active
-                  ? [
-                      BoxShadow(
-                        color: theme.accent.withValues(alpha: 0.22),
-                        blurRadius: 18,
-                      ),
-                    ]
-                  : null,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -443,7 +456,8 @@ class _IndicatorCard extends StatelessWidget {
                   children: [
                     Text(
                       label,
-                      style: theme.label.copyWith(
+                      style: labelText(
+                        theme,
                         color: active ? theme.accent : theme.ink,
                       ),
                     ),
@@ -452,7 +466,7 @@ class _IndicatorCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 6),
-                Text(sub, style: theme.monoTiny),
+                Text(sub, style: metaText(theme)),
                 const SizedBox(height: 12),
                 _IndicatorPreview(indicator: indicator),
               ],
@@ -488,7 +502,7 @@ class _SelectionDot extends StatelessWidget {
           child: Container(
             decoration:
                 BoxDecoration(color: theme.accent, shape: BoxShape.circle),
-            child: Icon(Icons.check, size: 12, color: theme.accentInk),
+            child: Icon(CupertinoIcons.checkmark_alt, size: 12, color: theme.accentInk),
           ),
         ),
       ),
@@ -533,9 +547,8 @@ class _IndicatorPreview extends StatelessWidget {
                   height: 12,
                   width: 78,
                   decoration: BoxDecoration(
-                    color: theme.accentSoft,
+                    color: theme.ink.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: theme.divider),
                   ),
                 ),
               ),
@@ -711,7 +724,7 @@ class _ScheduledRowState extends State<_ScheduledRow> {
             Row(
               children: [
                 Icon(
-                  failed ? Icons.error_outline : Icons.schedule,
+                  failed ? CupertinoIcons.exclamationmark_circle : CupertinoIcons.clock,
                   size: 13,
                   color: failed ? theme.danger : theme.accent,
                 ),
@@ -719,7 +732,7 @@ class _ScheduledRowState extends State<_ScheduledRow> {
                 Expanded(
                   child: Text(
                     _headline(context, l10n, m),
-                    style: theme.monoTiny.copyWith(
+                    style: metaText(theme).copyWith(
                       color: failed ? theme.danger : theme.accent,
                     ),
                     maxLines: 1,
@@ -831,7 +844,7 @@ class _RowAction extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: Text(
             label,
-            style: theme.monoTiny.copyWith(
+            style: metaText(theme).copyWith(
               color: onTap == null ? theme.inkMuted : color,
             ),
           ),
@@ -896,7 +909,12 @@ class _ScheduledEditSheetState extends State<_ScheduledEditSheet> {
       // add for itself.
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: Container(
-        decoration: theme.sheetDecoration(),
+        decoration: BoxDecoration(
+          color: sheetFill(theme),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(sheetTopRadius(theme)),
+          ),
+        ),
         padding: EdgeInsets.fromLTRB(
           20,
           12,
@@ -907,11 +925,15 @@ class _ScheduledEditSheetState extends State<_ScheduledEditSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SheetGrabber(),
-            Text(l10n.scheduleEditTitle, style: theme.label),
+            const SheetHandle(),
+            Text(
+            sentenceCaseOf(context, l10n.scheduleEditTitle),
+            textAlign: TextAlign.center,
+            style: theme.bodyEmph.copyWith(fontSize: 17, color: theme.ink),
+          ),
             const SizedBox(height: 14),
             Container(
-              decoration: theme.inputDecoration(),
+              decoration: fieldDecoration(theme),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               child: TextField(
                 controller: _controller,

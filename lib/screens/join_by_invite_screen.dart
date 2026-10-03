@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -370,7 +371,10 @@ class _JoinByInviteScreenState extends State<JoinByInviteScreen> {
           child: SizedBox(
             width: 22,
             height: 22,
-            child: CircularProgressIndicator(strokeWidth: 2, color: theme.accent),
+            child: CupertinoActivityIndicator(
+              radius: 11,
+              color: theme.inkMuted,
+            ),
           ),
         ),
       );

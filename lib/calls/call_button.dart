@@ -144,17 +144,17 @@ class _ClassicCallButton extends StatelessWidget {
         ? theme.inkSoft
         : theme.inkSoft.withValues(alpha: 0.35);
     final face = _face(context, kind);
-    return IconButton(
-      tooltip: face.tooltip,
-      padding: EdgeInsets.zero,
-      iconSize: 18,
-      // Compact, like the header's back button: two of these sit side by
-      // side, and the default 48px hit box left 30px of air between two
-      // 18px icons. Compact density trims each box to 40 — still a
-      // comfortable target, and the pair reads as one group.
-      visualDensity: VisualDensity.compact,
-      icon: Icon(face.icon, color: color, size: 18),
-      onPressed: onTap,
+    // A glass circle, the same 40pt as the classic header's back button
+    // beside it — the two are one toolbar group.
+    return Semantics(
+      button: true,
+      label: face.tooltip,
+      child: LiquidGlass(
+        shape: LiquidGlassShape.circle,
+        size: const Size(40, 40),
+        onTap: onTap,
+        child: Icon(face.icon, color: color, size: 18),
+      ),
     );
   }
 }

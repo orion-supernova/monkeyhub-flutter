@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'dart:io' show File;
 
 import 'package:flutter/material.dart';
@@ -437,7 +438,7 @@ class _VideoPlayerSurfaceState extends State<VideoPlayerSurface> {
         SizedBox(
           width: 32,
           height: 32,
-          child: CircularProgressIndicator(strokeWidth: 2.5, color: theme.accent),
+          child: CupertinoActivityIndicator(radius: 14, color: theme.inkMuted),
         ),
         scrim: 0.25,
       );

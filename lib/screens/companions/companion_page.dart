@@ -358,7 +358,7 @@ class BrainRow extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
             decoration: BoxDecoration(
               color: isSelected && !unavailable
-                  ? theme.accent.withValues(alpha: 0.12)
+                  ? quietFill(theme)
                   : theme.surface,
               border: Border.all(
                 color: isSelected

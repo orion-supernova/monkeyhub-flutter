@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -455,7 +456,9 @@ class _ScheduleTimePickerState extends State<ScheduleTimePicker> {
             width: wheelsWidth,
             height: _kWheelRow,
             decoration: BoxDecoration(
-              color: theme.accent.withValues(alpha: 0.12),
+              // Neutral, as iOS draws it. An accent wash here was a navy bar
+              // on every dark theme.
+              color: theme.ink.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(theme.radiusMd),
             ),
           ),
@@ -481,7 +484,7 @@ class _ScheduleTimePickerState extends State<ScheduleTimePicker> {
                 child: Center(
                   child: Text(
                     ':',
-                    style: theme.monoLarge.copyWith(color: theme.inkMuted),
+                    style: _wheelStyle(theme).copyWith(color: theme.inkMuted),
                   ),
                 ),
               ),
@@ -539,7 +542,7 @@ class _MonthHeader extends StatelessWidget {
     final motion = MotionScope.of(context);
     return Row(
       children: [
-        _Arrow(icon: Icons.chevron_left, onTap: onPrevious),
+        _Arrow(icon: CupertinoIcons.chevron_left, onTap: onPrevious),
         Expanded(
           child: FocusableTap(
             onTap: onTapLabel,
@@ -557,19 +560,24 @@ class _MonthHeader extends StatelessWidget {
                     Flexible(
                       child: Text(
                         label,
-                        style: theme.label.copyWith(color: theme.ink),
+                        style: theme.bodyEmph.copyWith(
+                          fontSize: 17,
+                          color: theme.ink,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 4),
+                    // The iOS calendar's month disclosure: a chevron that
+                    // turns down while the month list is open.
                     AnimatedRotation(
-                      turns: expanded ? 0.5 : 0,
+                      turns: expanded ? 0.25 : 0,
                       duration: motion.d(theme.motionFast),
                       curve: motion.c(theme.motionEntrance),
                       child: Icon(
-                        Icons.expand_more,
-                        size: 16,
+                        CupertinoIcons.chevron_forward,
+                        size: 14,
                         color: theme.accent,
                       ),
                     ),
@@ -579,7 +587,7 @@ class _MonthHeader extends StatelessWidget {
             ),
           ),
         ),
-        _Arrow(icon: Icons.chevron_right, onTap: onNext),
+        _Arrow(icon: CupertinoIcons.chevron_right, onTap: onNext),
       ],
     );
   }
@@ -609,7 +617,9 @@ class _Arrow extends StatelessWidget {
           child: Icon(
             icon,
             size: 20,
-            color: enabled ? theme.inkSoft : theme.inkMuted.withValues(alpha: 0.4),
+            color: enabled
+                ? theme.accent
+                : theme.inkMuted.withValues(alpha: 0.4),
           ),
         ),
       ),
@@ -637,7 +647,11 @@ class _WeekdayStrip extends StatelessWidget {
                 // Sunday, and several locales on Saturday — a hardcoded order
                 // is wrong for most of the twelve.
                 material.narrowWeekdays[(material.firstDayOfWeekIndex + i) % 7],
-                style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                style: theme.bodySoft.copyWith(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: theme.inkMuted,
+                ),
               ),
             ),
           ),
@@ -856,7 +870,12 @@ class _MonthChip extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
             alignment: Alignment.center,
-            decoration: theme.chipDecoration(filled: selected),
+            decoration: BoxDecoration(
+              color: selected
+                  ? theme.accent
+                  : theme.ink.withValues(alpha: 0.07),
+              borderRadius: BorderRadius.circular(999),
+            ),
             // Shrink-to-fit rather than wrap or ellipsise. These hold a month
             // name, and "Setembro 2026" is a third longer than "May 2026" —
             // wrapping makes the cell two lines tall and truncating turns the
@@ -867,8 +886,10 @@ class _MonthChip extends StatelessWidget {
               child: Text(
                 label,
                 maxLines: 1,
-                style: theme.label.copyWith(
-                  color: selected ? theme.accentInk : theme.inkSoft,
+                style: theme.body.copyWith(
+                  fontSize: 15,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                  color: selected ? theme.accentInk : theme.ink,
                 ),
               ),
             ),
@@ -920,7 +941,7 @@ class _Wheel extends StatelessWidget {
           builder: (context, row) => Center(
             child: Text(
               label(row),
-              style: theme.monoLarge.copyWith(color: theme.ink),
+              style: _wheelStyle(theme),
             ),
           ),
         ),
@@ -928,3 +949,13 @@ class _Wheel extends StatelessWidget {
     );
   }
 }
+
+/// The figures on the time wheels: the body face at iOS's 21pt, tabular so a
+/// rolling digit never shifts its neighbours. Not `monoLarge`, which several
+/// themes set in a tracked monospace.
+TextStyle _wheelStyle(AppTheme theme) => theme.body.copyWith(
+      fontSize: 21,
+      color: theme.ink,
+      letterSpacing: 0,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );

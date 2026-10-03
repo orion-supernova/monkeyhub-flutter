@@ -554,7 +554,7 @@ class _ReactionSummary extends StatelessWidget {
             ),
             decoration: BoxDecoration(
               color: r.emoji == row.mine
-                  ? theme.accent.withValues(alpha: 0.18)
+                  ? quietFill(theme)
                   : theme.ink.withValues(alpha: 0.07),
               borderRadius: BorderRadius.circular(999),
             ),
@@ -625,7 +625,7 @@ class _ReactButton extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: active || mine != null
-                    ? theme.accent.withValues(alpha: 0.18)
+                    ? quietFill(theme)
                     : theme.ink.withValues(alpha: 0.07),
               ),
               child: mine != null
@@ -681,7 +681,7 @@ class _Palette extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: emoji == mine
-                      ? theme.accent.withValues(alpha: 0.18)
+                      ? quietFill(theme)
                       : theme.ink.withValues(alpha: 0.07),
                 ),
                 child: Text(emoji, style: const TextStyle(fontSize: 20)),

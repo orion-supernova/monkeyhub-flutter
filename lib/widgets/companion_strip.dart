@@ -33,6 +33,7 @@ import '../companions/companion.dart';
 import '../keyboard/focusable_tap.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
+import 'ios_kit.dart' show quietFill;
 import 'liquid_glass.dart';
 
 /// Total height of a visible strip.
@@ -424,7 +425,7 @@ class _ActionState extends State<_Action> {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: theme.accent.withValues(alpha: 0.14),
+                color: quietFill(theme),
                 borderRadius: BorderRadius.circular(theme.radiusSm),
               ),
               child: Padding(

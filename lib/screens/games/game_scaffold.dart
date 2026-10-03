@@ -284,7 +284,7 @@ class _PauseCover extends StatelessWidget {
             height: 64,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: theme.accent.withValues(alpha: 0.16),
+              color: quietFill(theme),
               shape: BoxShape.circle,
             ),
             child: Icon(CupertinoIcons.pause_fill, color: theme.accent, size: 28),
@@ -667,7 +667,7 @@ class _StandingRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final medal = rank <= 3 && row.solved ? _medals[rank - 1] : null;
     return Container(
-      color: isViewer ? theme.accent.withValues(alpha: 0.10) : null,
+      color: isViewer ? quietFill(theme) : null,
       padding: const EdgeInsets.fromLTRB(14, 10, 16, 10),
       child: Row(
         children: [

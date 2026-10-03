@@ -462,7 +462,7 @@ class _StripHeading extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
               decoration: BoxDecoration(
-                color: theme.accent.withValues(alpha: 0.16),
+                color: quietFill(theme),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(

@@ -354,9 +354,9 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                         child: SizedBox(
                           width: 18,
                           height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: theme.accent,
+                          child: CupertinoActivityIndicator(
+                            radius: 9,
+                            color: theme.inkMuted,
                           ),
                         ),
                       )

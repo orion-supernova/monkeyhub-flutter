@@ -22,6 +22,7 @@ import '../widgets/user_avatar.dart';
 import '../widgets/ios_kit.dart'
     show GlassBackButton, groupedFill, groupedRadius;
 import '../widgets/sheet_kit.dart' show SheetActionButton, sentenceCaseOf;
+import '../widgets/ios_kit.dart' show quietFill;
 
 /// Per-child controls, plus the list of what they've already been granted.
 ///
@@ -721,7 +722,7 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
                                   width: 32,
                                   height: 32,
                                   decoration: BoxDecoration(
-                                    color: theme.accentSoft,
+                                    color: quietFill(theme),
                                     borderRadius: BorderRadius.circular(
                                       theme.radiusMd,
                                     ),
@@ -864,7 +865,7 @@ class _AddByUsernameButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 13),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: theme.accent.withValues(alpha: 0.12),
+          color: quietFill(theme),
           borderRadius: BorderRadius.circular(999),
         ),
         child: Row(
@@ -1710,7 +1711,7 @@ class _RoomTile extends StatelessWidget {
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: theme.accentSoft,
+                color: quietFill(theme),
                 borderRadius: BorderRadius.circular(theme.radiusMd),
               ),
               alignment: Alignment.center,

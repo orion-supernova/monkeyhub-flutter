@@ -252,7 +252,7 @@ class _CompactPreview extends StatelessWidget {
                 end: Alignment.bottomRight,
                 colors: [
                   Colors.white.withValues(alpha: 0.35),
-                  Colors.transparent,
+                  Colors.white.withValues(alpha: 0),
                 ],
               ),
       ),
@@ -271,7 +271,10 @@ class _CompactPreview extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Colors.white.withValues(alpha: 0.35), Colors.transparent],
+          colors: [
+            Colors.white.withValues(alpha: 0.35),
+            Colors.white.withValues(alpha: 0),
+          ],
         ),
       ),
       child: Row(

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'dart:async';
 
 import 'package:flutter/foundation.dart' show setEquals;
@@ -849,9 +850,9 @@ class _ShareAction extends StatelessWidget {
                   ? SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: theme.accent,
+                      child: CupertinoActivityIndicator(
+                        radius: 9,
+                        color: theme.inkMuted,
                       ),
                     )
                   : Icon(Icons.ios_share, size: 18, color: theme.accent),

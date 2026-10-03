@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
@@ -94,7 +95,7 @@ void main() {
     await settle(tester);
 
     expect(
-      tester.getSize(find.byType(CircularProgressIndicator)),
+      tester.getSize(find.byType(CupertinoActivityIndicator)),
       const Size(32, 32),
       reason: 'StackFit.expand hands tight constraints to unwrapped children',
     );

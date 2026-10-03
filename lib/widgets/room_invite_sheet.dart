@@ -1,4 +1,5 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/cupertino.dart'
+    show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -325,10 +326,7 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
                   child: SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: theme.accent,
-                    ),
+                    child: CupertinoActivityIndicator(color: theme.inkMuted),
                   ),
                 ),
               )
@@ -910,7 +908,7 @@ class _Chip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
             color: active
-                ? theme.accent.withValues(alpha: 0.18)
+                ? quietFill(theme)
                 : theme.ink.withValues(alpha: 0.07),
             borderRadius: BorderRadius.circular(999),
           ),

@@ -7,6 +7,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/settings_pickers.dart';
+import '../widgets/ios_kit.dart' show quietFill;
 import 'navigation/destinations.dart';
 
 /// How you move between the app's sections: an always-visible tab bar, or the
@@ -142,7 +143,7 @@ class _PillPreview extends StatelessWidget {
                 child: Container(
                   decoration: BoxDecoration(
                     color: i == 0
-                        ? theme.accent.withValues(alpha: 0.22)
+                        ? quietFill(theme)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(999),
                   ),

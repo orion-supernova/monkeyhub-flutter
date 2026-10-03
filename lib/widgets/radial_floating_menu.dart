@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import '../data/settings_store.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'ios_kit.dart' show quietFill;
 import 'count_badge.dart';
 
 /// Gesture-driven radial pie menu for major-section switching.
@@ -419,7 +420,7 @@ class _Slice extends StatelessWidget {
       ];
       scale = 1.10;
     } else if (active) {
-      fill = theme.accentSoft;
+      fill = quietFill(theme);
       borderColor = theme.accent;
       borderWidth = 1;
       iconColor = theme.accent;

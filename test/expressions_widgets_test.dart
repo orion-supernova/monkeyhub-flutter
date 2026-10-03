@@ -414,14 +414,14 @@ void main() {
       await tester.pumpAndSettle(const Duration(milliseconds: 100));
       // The strip gives way to the results.
       expect(find.byTooltip('Sticker packs'), findsNothing);
-      expect(find.text('Your stickers'.toUpperCase()), findsOneWidget);
-      expect(find.text('More packs'.toUpperCase()), findsNothing);
+      expect(find.text('Your stickers'), findsOneWidget);
+      expect(find.text('More packs'), findsNothing);
 
       // Food is not added: its pizza turns up under "More packs", and sends.
       await tester.enterText(find.byType(TextField), '🍕');
       await tester.pumpAndSettle(const Duration(milliseconds: 100));
-      expect(find.text('Your stickers'.toUpperCase()), findsNothing);
-      expect(find.text('More packs'.toUpperCase()), findsOneWidget);
+      expect(find.text('Your stickers'), findsNothing);
+      expect(find.text('More packs'), findsOneWidget);
       await tester.tap(find.byType(StickerArt));
       expect(sent?.stickerId, 'f1');
 
@@ -446,7 +446,7 @@ void main() {
       await tester.pumpAndSettle(const Duration(milliseconds: 100));
       await tester.tap(find.byTooltip('Sticker packs'));
       await tester.pumpAndSettle(const Duration(milliseconds: 100));
-      expect(find.text('More packs'.toUpperCase()), findsOneWidget);
+      expect(find.text('More packs'), findsOneWidget);
       await tester.ensureVisible(find.text('Add'));
       await tester.pumpAndSettle(const Duration(milliseconds: 100));
       await tester.tap(find.text('Add'));
@@ -454,7 +454,7 @@ void main() {
       expect(store.isInstalled('food'), isTrue);
       // Straight to the pack just added: its grid's credit line is showing.
       expect(find.textContaining('Food & drink'), findsWidgets);
-      expect(find.text('More packs'.toUpperCase()), findsNothing);
+      expect(find.text('More packs'), findsNothing);
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(seconds: 1));
     });

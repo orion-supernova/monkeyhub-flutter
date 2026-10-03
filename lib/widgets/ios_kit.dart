@@ -1,4 +1,5 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/cupertino.dart'
+    show CupertinoIcons, CupertinoSliverRefreshControl;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -153,6 +154,7 @@ class IosPage extends StatefulWidget {
     this.subtitle,
     this.padding = const EdgeInsets.fromLTRB(16, 0, 16, 40),
     this.controller,
+    this.onRefresh,
   });
 
   final String title;
@@ -171,6 +173,10 @@ class IosPage extends StatefulWidget {
   final bool showBack;
   final EdgeInsets padding;
   final ScrollController? controller;
+
+  /// Pull-to-refresh, iOS-style: the spinner appears above the large title as
+  /// the page is pulled down. Null — most pages — and there is no gesture.
+  final Future<void> Function()? onRefresh;
 
   @override
   State<IosPage> createState() => _IosPageState();
@@ -275,7 +281,21 @@ class _IosPageState extends State<IosPage> {
                 Expanded(
                   child: CustomScrollView(
                     controller: _scroll,
-                    slivers: [header, ...body],
+                    // The bounce is what reveals the refresh spinner, so a
+                    // refreshable page asks for it on every platform.
+                    physics: widget.onRefresh == null
+                        ? null
+                        : const BouncingScrollPhysics(
+                            parent: AlwaysScrollableScrollPhysics(),
+                          ),
+                    slivers: [
+                      if (widget.onRefresh != null)
+                        CupertinoSliverRefreshControl(
+                          onRefresh: widget.onRefresh,
+                        ),
+                      header,
+                      ...body,
+                    ],
                   ),
                 ),
               ],
@@ -390,6 +410,15 @@ Color groupedFill(AppTheme theme) {
     theme.background,
   );
 }
+
+/// The fill of a quiet control — a chip, capsule, tag, icon disc or selected
+/// row — with the accent kept for the text or glyph on top.
+///
+/// Deliberately NOT the accent at low opacity. Over a near-black page a blue
+/// at 15% renders as navy, and enough of those made every dark theme read
+/// "dark blue" rather than black. iOS draws these as a neutral grey fill.
+Color quietFill(AppTheme theme) =>
+    theme.ink.withValues(alpha: theme.isLight ? 0.06 : 0.10);
 
 /// The colour of the little rounded tile behind a row's glyph — iOS Settings'
 /// coloured squares. Named roles rather than raw colours so every screen

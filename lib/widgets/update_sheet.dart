@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../keyboard/focusable_tap.dart';
@@ -7,7 +8,10 @@ import '../theme/theme_scope.dart';
 import '../update/release_channel.dart';
 import '../update/update_destination.dart';
 import 'adaptive_sheet.dart';
-import 'destructive_sheet.dart' show ChoiceTile, SheetGrabber;
+import 'destructive_sheet.dart' show ChoiceTile;
+import 'meta_text.dart';
+import 'sheet_kit.dart'
+    show SheetHandle, SheetRise, sentenceCaseOf, sheetFill, sheetTopRadius;
 
 /// "A newer version is out" — LATER and UPDATE.
 ///
@@ -91,9 +95,9 @@ class _UpdateSheet extends StatelessWidget {
       canPop: !mandatory,
       child: Container(
         decoration: BoxDecoration(
-          color: theme.surface,
+          color: sheetFill(theme),
           borderRadius: BorderRadius.vertical(
-            top: Radius.circular(theme.radiusLg),
+            top: Radius.circular(sheetTopRadius(theme)),
           ),
         ),
         padding: EdgeInsets.fromLTRB(
@@ -108,39 +112,92 @@ class _UpdateSheet extends StatelessWidget {
           children: [
             // Nothing to drag away when the update is mandatory, so don't
             // suggest otherwise.
-            if (!mandatory) const SheetGrabber(),
-            Text(
-              mandatory
-                  ? AppLocalizations.of(context).reportSheetUpdateRequiredTitle
-                  : AppLocalizations.of(
-                      context,
-                    ).reportSheetUpdateAvailableTitle,
-              style: theme.label.copyWith(
-                color: mandatory ? theme.danger : theme.accent,
+            if (!mandatory)
+              const SheetHandle()
+            else
+              const SizedBox(height: 14),
+            const SizedBox(height: 8),
+            // The App Store's update card: the app's own icon tile, a
+            // centred title, a line of why, and the version change in a
+            // quiet capsule.
+            Center(
+              child: SheetRise(
+                child: Container(
+                  width: 64,
+                  height: 64,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(15),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color.lerp(
+                          mandatory ? theme.danger : theme.accent,
+                          Colors.white,
+                          0.16,
+                        )!,
+                        mandatory ? theme.danger : theme.accent,
+                      ],
+                    ),
+                  ),
+                  child: const Icon(
+                    CupertinoIcons.arrow_down_to_line,
+                    size: 30,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 14),
+            Text(
+              sentenceCaseOf(
+                context,
+                mandatory
+                    ? AppLocalizations.of(context).reportSheetUpdateRequiredTitle
+                    : AppLocalizations.of(
+                        context,
+                      ).reportSheetUpdateAvailableTitle,
+              ),
+              textAlign: TextAlign.center,
+              style: theme.bodyEmph.copyWith(fontSize: 20, color: theme.ink),
+            ),
+            const SizedBox(height: 6),
             Text(
               mandatory
                   ? AppLocalizations.of(context).reportSheetUpdateMandatoryBody
                   : AppLocalizations.of(context).reportSheetUpdateAvailableBody,
-              style: theme.bodySoft,
+              textAlign: TextAlign.center,
+              style: theme.bodySoft.copyWith(color: theme.inkMuted),
             ),
-            const SizedBox(height: 8),
-            Text(
-              AppLocalizations.of(
-                context,
-              ).reportSheetUpdateVersionArrow(currentVersion, release.version),
-              style: theme.monoTiny,
+            const SizedBox(height: 12),
+            Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: theme.ink.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  AppLocalizations.of(context).reportSheetUpdateVersionArrow(
+                    currentVersion,
+                    release.version,
+                  ),
+                  style: metaText(theme, color: theme.inkSoft),
+                ),
+              ),
             ),
             if (notes != null && notes.isNotEmpty) ...[
-              const SizedBox(height: 10),
+              const SizedBox(height: 14),
               Text(notes, style: theme.bodySoft),
             ],
             const SizedBox(height: 20),
             ChoiceTile(
               color: theme.accent,
-              icon: Icons.system_update_alt_rounded,
+              icon: CupertinoIcons.arrow_down_circle_fill,
               title: AppLocalizations.of(context).reportSheetUpdateButtonTitle,
               sub: _actionSub(context),
               filled: true,
@@ -175,8 +232,14 @@ class _UpdateSheet extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     alignment: Alignment.center,
                     child: Text(
-                      AppLocalizations.of(context).reportSheetUpdateLaterButton,
-                      style: theme.label.copyWith(color: theme.inkMuted),
+                      sentenceCaseOf(
+                        context,
+                        AppLocalizations.of(context).reportSheetUpdateLaterButton,
+                      ),
+                      style: theme.body.copyWith(
+                        fontSize: 17,
+                        color: theme.accent,
+                      ),
                     ),
                   ),
                 ),

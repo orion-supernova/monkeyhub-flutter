@@ -1,4 +1,5 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/cupertino.dart'
+    show CupertinoActivityIndicator, CupertinoIcons;
 import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -8,6 +9,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../services/link_preview_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'ios_kit.dart' show quietFill;
 import 'sheet_kit.dart' show sentenceCaseOf;
 
 /// Premium OG-card preview for a single URL.
@@ -254,7 +256,7 @@ class _HeroLayout extends StatelessWidget {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Colors.transparent,
+                          tone.surface.withValues(alpha: 0),
                           tone.surface.withValues(alpha: 0.55),
                         ],
                         stops: const [0.75, 1],
@@ -334,10 +336,7 @@ class _HeroImage extends StatelessWidget {
         child: SizedBox(
           width: 22,
           height: 22,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation(theme.accent),
-          ),
+          child: CupertinoActivityIndicator(radius: 11, color: theme.inkMuted),
         ),
       ),
     );
@@ -443,7 +442,7 @@ class _BareLayout extends StatelessWidget {
             width: 26,
             height: 26,
             decoration: BoxDecoration(
-              color: theme.accent.withValues(alpha: 0.15),
+              color: quietFill(theme),
               borderRadius: BorderRadius.circular(8),
             ),
             alignment: Alignment.center,

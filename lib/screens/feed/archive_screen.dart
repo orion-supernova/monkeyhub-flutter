@@ -1,4 +1,5 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/cupertino.dart'
+    show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../../backend/chat_api.dart';
@@ -271,7 +272,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
   Widget _body(dynamic theme, AppLocalizations l10n) {
     if (_loading) {
       return Center(
-        child: CircularProgressIndicator(color: theme.accent, strokeWidth: 2),
+        child: CupertinoActivityIndicator(color: theme.inkMuted),
       );
     }
     if (_errorCode != null && _dayKeys.isEmpty) {
@@ -312,10 +313,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 24),
               child: Center(
-                child: CircularProgressIndicator(
-                  color: theme.accent,
-                  strokeWidth: 2,
-                ),
+                child: CupertinoActivityIndicator(color: theme.inkMuted),
               ),
             );
           }
@@ -718,7 +716,7 @@ class _Empty extends StatelessWidget {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: theme.accent.withValues(alpha: 0.14),
+                color: quietFill(theme),
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,

@@ -19,6 +19,7 @@ import '../services/link_opener.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/ios_kit.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/audio_message.dart';
@@ -524,24 +525,24 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
           ),
           child: Row(
             children: [
-              IconButton(
-                icon: Icon(
-                  selecting
+              Padding(
+                padding: const EdgeInsets.only(left: 6, right: 4),
+                child: GlassIconButton(
+                  icon: selecting
                       ? CupertinoIcons.xmark
-                      : CupertinoIcons.chevron_left,
-                  color: theme.ink,
-                  size: 20,
+                      : CupertinoIcons.chevron_back,
+                  iconSize: 20,
+                  semanticLabel: selecting
+                      ? l10n.roomContentScreenCancelTooltip
+                      : l10n.roomContentScreenBackTooltip,
+                  onTap: () {
+                    if (selecting) {
+                      _selection.clear();
+                    } else {
+                      Navigator.of(context).pop();
+                    }
+                  },
                 ),
-                tooltip: selecting
-                    ? l10n.roomContentScreenCancelTooltip
-                    : l10n.roomContentScreenBackTooltip,
-                onPressed: () {
-                  if (selecting) {
-                    _selection.clear();
-                  } else {
-                    Navigator.of(context).pop();
-                  }
-                },
               ),
               Expanded(
                 child: Column(
@@ -634,7 +635,7 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
 
     if (_c.isEmpty) {
       if (!_c.loadedOnce || _c.isLoading) {
-        return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+        return const Center(child: CupertinoActivityIndicator());
       }
       return _EmptyState(theme: theme, tab: _tab, failed: _c.error != null);
     }
@@ -866,7 +867,7 @@ class _TailSpinner extends StatelessWidget {
       child: SizedBox(
         width: 18,
         height: 18,
-        child: CircularProgressIndicator(strokeWidth: 2),
+        child: CupertinoActivityIndicator(radius: 9),
       ),
     ),
   );
@@ -1270,7 +1271,7 @@ class _SelectableRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
           decoration: BoxDecoration(
             color: selected
-                ? theme.accent.withValues(alpha: 0.12)
+                ? quietFill(theme)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(theme.radiusMd),
             border: Border.all(

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
@@ -136,12 +137,11 @@ class _MentionPickerState extends State<MentionPicker>
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(14),
+            // A raised plate with no outline — iOS popovers separate by
+            // elevation, not by a drawn border.
             child: Container(
-              decoration: BoxDecoration(
-                color: theme.surfaceRaised,
-                border: Border.all(color: theme.divider, width: 0.5),
-              ),
+              decoration: BoxDecoration(color: theme.surfaceRaised),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxHeight: MentionPicker.maxHeight),
                 child: AnimatedBuilder(
@@ -175,10 +175,14 @@ class _MentionPickerState extends State<MentionPicker>
               height: 28,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: theme.accent.withValues(alpha: 0.16),
+                color: theme.ink.withValues(alpha: 0.10),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.campaign_outlined, size: 15, color: theme.accent),
+              child: Icon(
+                CupertinoIcons.speaker_2_fill,
+                size: 14,
+                color: theme.accent,
+              ),
             ),
             title: AppLocalizations.of(context).cyberpunkThemeMentionPickerEveryoneTitle,
             handle: '@everyone',
@@ -232,7 +236,8 @@ class _Row extends StatelessWidget {
       child: Container(
         height: 44,
         padding: const EdgeInsets.symmetric(horizontal: 10),
-        color: active ? theme.accentSoft : null,
+        // A neutral highlight: an accent wash on a dark plate reads as navy.
+        color: active ? theme.ink.withValues(alpha: 0.08) : null,
         child: Row(
           children: [
             // Mirrors the reply card's 3px accent strip, so "this is the one"
@@ -260,7 +265,10 @@ class _Row extends StatelessWidget {
             Flexible(
               child: Text(
                 handle,
-                style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                style: theme.bodySoft.copyWith(
+                  fontSize: 13,
+                  color: theme.inkMuted,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -269,7 +277,10 @@ class _Row extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 trailing!,
-                style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                style: theme.bodySoft.copyWith(
+                  fontSize: 13,
+                  color: theme.inkMuted,
+                ),
               ),
             ],
           ],

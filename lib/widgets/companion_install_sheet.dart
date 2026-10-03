@@ -27,6 +27,7 @@ library;
 
 import 'dart:math' as math;
 
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../companions/brain_manager.dart';
@@ -39,6 +40,9 @@ import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'app_toast.dart';
+import 'ios_kit.dart' show GroupedRow, TileTone;
+import 'sheet_kit.dart'
+    show SheetActionButton, SheetGroup, SheetHandle, sheetFill, sheetTopRadius;
 
 /// Offers to install [companion]'s brain, and stays open until it is done.
 ///
@@ -88,25 +92,21 @@ class _CompanionInstallSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     return Container(
-      decoration: theme.sheetDecoration(),
-      padding: const EdgeInsets.fromLTRB(22, 18, 22, 26),
+      decoration: BoxDecoration(
+        color: sheetFill(theme),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(sheetTopRadius(theme)),
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 22),
       child: SafeArea(
         top: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: theme.inkMuted.withValues(alpha: 0.35),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 22),
+            const SheetHandle(),
+            const SizedBox(height: 14),
             CompanionInstallPanel(
               companion: companion,
               brain: brain,
@@ -211,8 +211,10 @@ class _CompanionInstallPanelState extends State<CompanionInstallPanel> {
           ),
           const SizedBox(height: 18),
           Center(
-            child:
-                Text(widget.companion.displayName, style: theme.displayMedium),
+            child: Text(
+              widget.companion.displayName,
+              style: theme.bodyEmph.copyWith(fontSize: 22, color: theme.ink),
+            ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -230,20 +232,24 @@ class _CompanionInstallPanelState extends State<CompanionInstallPanel> {
         ],
         // Present in every state including mid-download, because the download
         // is exactly when somebody wonders what they agreed to.
-        _Assurance(
-          theme: theme,
-          icon: Icons.phone_iphone,
-          label: l10n.companionAssuranceOnDevice,
-        ),
-        _Assurance(
-          theme: theme,
-          icon: Icons.lock_outline,
-          label: l10n.companionAssurancePrivate,
-        ),
-        _Assurance(
-          theme: theme,
-          icon: Icons.wifi_off,
-          label: l10n.companionAssuranceOffline,
+        SheetGroup(
+          children: [
+            GroupedRow(
+              icon: CupertinoIcons.device_phone_portrait,
+              tone: TileTone.blue,
+              title: l10n.companionAssuranceOnDevice,
+            ),
+            GroupedRow(
+              icon: CupertinoIcons.lock_fill,
+              tone: TileTone.gray,
+              title: l10n.companionAssurancePrivate,
+            ),
+            GroupedRow(
+              icon: CupertinoIcons.wifi_slash,
+              tone: TileTone.indigo,
+              title: l10n.companionAssuranceOffline,
+            ),
+          ],
         ),
         const SizedBox(height: 22),
         _action(context, theme, l10n, state),
@@ -529,35 +535,6 @@ class _RingPainter extends CustomPainter {
       old.progress != progress || old.arc != arc || old.track != track;
 }
 
-class _Assurance extends StatelessWidget {
-  const _Assurance({
-    required this.theme,
-    required this.icon,
-    required this.label,
-  });
-
-  final AppTheme theme;
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 5),
-        child: Row(
-          children: [
-            Icon(icon, size: 15, color: theme.accent),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                label,
-                style: theme.body.copyWith(color: theme.inkSoft),
-              ),
-            ),
-          ],
-        ),
-      );
-}
-
 class _StatusLine extends StatelessWidget {
   const _StatusLine({
     required this.theme,
@@ -592,29 +569,8 @@ class _PrimaryButton extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    return FocusableTap(
-      onTap: onTap,
-      shape: FocusRingShape.rounded,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          height: 50,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: theme.accent,
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-          ),
-          child: Text(
-            label,
-            style: theme.bodyEmph.copyWith(color: theme.accentInk),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      SheetActionButton(label: label, onTap: onTap);
 }
 
 class _TextButton extends StatelessWidget {
@@ -642,7 +598,7 @@ class _TextButton extends StatelessWidget {
           child: Text(
             label,
             textAlign: TextAlign.center,
-            style: theme.body.copyWith(color: theme.inkMuted),
+            style: theme.body.copyWith(fontSize: 17, color: theme.accent),
           ),
         ),
       ),

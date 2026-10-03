@@ -12,6 +12,7 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import '../theme/motion.dart';
+import 'ios_kit.dart' show quietFill;
 import 'sheet_kit.dart';
 import 'message_stamp.dart' show formatClockTime;
 import 'user_avatar.dart';
@@ -381,7 +382,7 @@ class _SoloSummary extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(
-            color: theme.accent.withValues(alpha: 0.16),
+            color: quietFill(theme),
             borderRadius: BorderRadius.circular(999),
           ),
           child: Row(
@@ -457,7 +458,7 @@ class _FilterPill extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
               color: selected
-                  ? theme.accent.withValues(alpha: 0.18)
+                  ? quietFill(theme)
                   : theme.ink.withValues(alpha: 0.07),
               borderRadius: BorderRadius.circular(999),
             ),
@@ -557,7 +558,7 @@ class _ReactorRowState extends State<_ReactorRow> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 7, vertical: 2),
                       decoration: BoxDecoration(
-                        color: theme.accent.withValues(alpha: 0.16),
+                        color: quietFill(theme),
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(

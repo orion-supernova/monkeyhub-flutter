@@ -1,10 +1,11 @@
+import 'package:flutter/cupertino.dart'
+    show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../auth/auth_errors.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../invites/room_admin_errors.dart';
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/room_admin.dart';
 import '../theme/app_theme.dart';
@@ -12,7 +13,8 @@ import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'app_toast.dart';
 import 'remote_image.dart';
-import 'sheet_surface.dart';
+import 'room_join_requests_sheet.dart' show DecisionCapsules;
+import 'sheet_kit.dart';
 import 'user_avatar.dart';
 
 /// The admin queue for suggested changes to the group's name, description and
@@ -139,51 +141,66 @@ class _ChangeRequestsSheetState extends State<_ChangeRequestsSheet> {
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) Navigator.of(context).pop(_anyDecided);
       },
-      child: SheetSurface(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l10n.roomChangeRequestsTitle, style: theme.displaySmall),
-            const SizedBox(height: 6),
-            Text(l10n.roomChangeRequestsBlurb, style: theme.bodySoft),
-            const SizedBox(height: 18),
-            if (_loading)
+      child: SheetFrame(
+        title: l10n.roomChangeRequestsTitle,
+        leading: SheetCloseButton(
+          onTap: () => Navigator.of(context).pop(_anyDecided),
+        ),
+        // One scroller for the whole sheet: the frame does not scroll, and
+        // a long queue must never overflow it.
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 30),
-                child: Center(
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: theme.accent,
-                    ),
-                  ),
-                ),
-              )
-            else if (_requests.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 30),
+                padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
                 child: Text(
-                  l10n.roomChangeRequestsEmpty,
-                  style: theme.bodySoft,
+                  l10n.roomChangeRequestsBlurb,
+                  style: theme.bodySoft.copyWith(color: theme.inkMuted),
                   textAlign: TextAlign.center,
                 ),
-              )
-            else
-              // Plain rows — see the note in the friend picker about not
-              // nesting a scroller inside the sheet's own.
-              for (final r in _requests)
-                _RequestRow(
-                  key: ValueKey(r.requestId),
-                  request: r,
-                  api: widget.api,
-                  busy: _deciding.contains(r.requestId),
-                  onApprove: () => _decide(r, true),
-                  onReject: () => _decide(r, false),
-                ),
-          ],
+              ),
+              if (_loading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 30),
+                  child: Center(child: CupertinoActivityIndicator()),
+                )
+              else if (_requests.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 30),
+                  child: Text(
+                    l10n.roomChangeRequestsEmpty,
+                    style: theme.bodySoft,
+                    textAlign: TextAlign.center,
+                  ),
+                )
+              else
+                // Plain rows — see the note in the friend picker about not
+                // nesting a scroller inside the sheet's own.
+                // One card per suggestion: each is a decision with a
+                // before/after to read, not a row in a list.
+                for (var i = 0; i < _requests.length; i++)
+                  Padding(
+                    key: ValueKey(_requests[i].requestId),
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: SheetRise(
+                      index: i,
+                      child: SheetGroup(
+                        children: [
+                          _RequestRow(
+                            request: _requests[i],
+                            api: widget.api,
+                            busy: _deciding.contains(_requests[i].requestId),
+                            onApprove: () => _decide(_requests[i], true),
+                            onReject: () => _decide(_requests[i], false),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+            ],
+          ),
         ),
       ),
     );
@@ -192,7 +209,6 @@ class _ChangeRequestsSheetState extends State<_ChangeRequestsSheet> {
 
 class _RequestRow extends StatelessWidget {
   const _RequestRow({
-    super.key,
     required this.request,
     required this.api,
     required this.busy,
@@ -228,7 +244,7 @@ class _RequestRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final who = request.user;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -243,7 +259,10 @@ class _RequestRow extends StatelessWidget {
                   who == null
                       ? _heading(l10n)
                       : l10n.roomChangeRequestsSuggestedBy(who.displayName),
-                  style: theme.monoTiny,
+                  style: theme.bodySoft.copyWith(
+                    fontSize: 13,
+                    color: theme.inkMuted,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -253,7 +272,7 @@ class _RequestRow extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             _heading(l10n),
-            style: theme.label.copyWith(color: theme.accent),
+            style: theme.bodyEmph.copyWith(fontSize: 17, color: theme.ink),
           ),
           const SizedBox(height: 8),
           if (request.field == RoomChangeField.avatar)
@@ -261,32 +280,14 @@ class _RequestRow extends StatelessWidget {
           else
             _TextComparison(request: request),
           const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              if (busy)
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: theme.accent,
-                  ),
-                )
-              else ...[
-                _DecideButton(
-                  label: l10n.roomChangeRequestsReject,
-                  color: theme.danger,
-                  onTap: onReject,
-                ),
-                const SizedBox(width: 8),
-                _DecideButton(
-                  label: l10n.roomChangeRequestsApprove,
-                  color: theme.accent,
-                  onTap: onApprove,
-                ),
-              ],
-            ],
+          Align(
+            alignment: Alignment.centerRight,
+            child: DecisionCapsules(
+              busy: busy,
+              approveLabel: l10n.changeRequestUseIos,
+              onApprove: onApprove,
+              onReject: onReject,
+            ),
           ),
         ],
       ),
@@ -294,14 +295,6 @@ class _RequestRow extends StatelessWidget {
   }
 }
 
-/// The room's picture beside the one being suggested.
-///
-/// Both at the same size, with an arrow between them, because an admin
-/// deciding on a group photo is comparing two images and nothing else on the
-/// row is worth the space. A room with no picture yet draws an empty well on
-/// the left rather than collapsing to one image — "there is nothing there now"
-/// is information, and a single image with no frame of reference reads as a
-/// preview rather than a choice.
 class _PhotoComparison extends StatelessWidget {
   const _PhotoComparison({required this.request, required this.api});
 
@@ -318,7 +311,7 @@ class _PhotoComparison extends StatelessWidget {
         _well(theme, request.currentStorageId),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Icon(Icons.arrow_forward, size: 16, color: theme.inkMuted),
+          child: Icon(CupertinoIcons.arrow_right, size: 16, color: theme.inkMuted),
         ),
         _well(theme, request.storageId),
       ],
@@ -331,9 +324,8 @@ class _PhotoComparison extends StatelessWidget {
       width: _size,
       height: _size,
       decoration: BoxDecoration(
-        color: theme.surfaceSunken,
+        color: theme.ink.withValues(alpha: 0.08),
         shape: BoxShape.circle,
-        border: Border.all(color: theme.divider),
       ),
       clipBehavior: Clip.antiAlias,
       child: has
@@ -344,7 +336,7 @@ class _PhotoComparison extends StatelessWidget {
               height: _size,
               borderRadius: BorderRadius.circular(_size),
             )
-          : Center(child: Icon(Icons.tag, size: 22, color: theme.inkMuted)),
+          : Center(child: Icon(CupertinoIcons.number, size: 22, color: theme.inkMuted)),
     );
   }
 }
@@ -396,42 +388,6 @@ class _TextComparison extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
         ),
       ],
-    );
-  }
-}
-
-/// Same outlined pill the join-request queue uses, so the two sheets an admin
-/// works through read as one surface rather than two features.
-class _DecideButton extends StatelessWidget {
-  const _DecideButton({
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: label,
-      radius: theme.radiusSm,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-          decoration: BoxDecoration(
-            border: Border.all(color: color, width: 1.2),
-            borderRadius: BorderRadius.circular(theme.radiusSm),
-          ),
-          child: Text(label, style: theme.monoTiny.copyWith(color: color)),
-        ),
-      ),
     );
   }
 }

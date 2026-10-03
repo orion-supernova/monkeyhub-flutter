@@ -12,6 +12,7 @@ import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../keyboard/overlay_modal_scope.dart';
 import '../theme/theme_scope.dart';
+import 'ios_kit.dart' show quietFill;
 import 'glass_surface.dart';
 import 'translation_slab.dart' show FrozenBubble;
 
@@ -749,7 +750,7 @@ class _PillMoreState extends State<_PillMore> {
           margin: const EdgeInsets.only(left: 2),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: widget.theme.accentSoft,
+            color: quietFill(widget.theme),
             shape: BoxShape.circle,
           ),
           child: Icon(CupertinoIcons.plus, size: 16, color: widget.theme.accent),

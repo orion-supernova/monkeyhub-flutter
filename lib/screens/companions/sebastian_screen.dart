@@ -25,6 +25,7 @@ import '../../theme/app_theme.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/companion_install_sheet.dart';
 import '../../widgets/destructive_sheet.dart';
+import '../../widgets/ios_kit.dart' show quietFill;
 import 'companion_page.dart';
 
 class SebastianScreen extends StatefulWidget {
@@ -392,7 +393,7 @@ class _LanguageRow extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.fromLTRB(16, 13, 16, 13),
         decoration: BoxDecoration(
-          color: selected ? theme.accent.withValues(alpha: 0.12) : theme.surface,
+          color: selected ? quietFill(theme) : theme.surface,
           border: Border.all(
             color: selected ? theme.accent.withValues(alpha: 0.4) : theme.divider,
           ),

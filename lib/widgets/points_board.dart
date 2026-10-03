@@ -6,6 +6,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/moment.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
+import 'ios_kit.dart' show quietFill;
 import 'moment_rail.dart';
 import 'odometer_number.dart';
 import 'meta_text.dart';
@@ -341,7 +342,7 @@ class _AddPointButton extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 13),
           decoration: BoxDecoration(
-            color: theme.accentSoft,
+            color: quietFill(theme),
             borderRadius: BorderRadius.circular(theme.radiusMd),
           ),
           child: Row(

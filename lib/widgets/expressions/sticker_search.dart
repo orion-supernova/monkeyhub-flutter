@@ -16,6 +16,8 @@ import '../../theme/theme_scope.dart';
 import 'expression_media.dart';
 import 'expression_sheet.dart';
 import 'klipy_attribution.dart';
+import '../search_field.dart' show searchFieldDecoration;
+import '../sheet_kit.dart' show sentenceCaseOf;
 
 String _bare(String s) => s.replaceAll('️', '').trim();
 
@@ -296,8 +298,12 @@ class _StickerSearchResultsState extends State<StickerSearchResults> {
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
         child: Semantics(
           header: true,
-          child: Text(label.toUpperCase(),
-              style: theme.monoTiny.copyWith(color: theme.inkMuted)),
+          child: Text(sentenceCaseOf(context, label),
+              style: theme.bodySoft.copyWith(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: theme.inkMuted,
+              )),
         ),
       ),
     );
@@ -325,7 +331,7 @@ class StickerSearchField extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 2, 12, 6),
       child: Container(
         height: 36,
-        decoration: theme.inputDecoration(),
+        decoration: searchFieldDecoration(theme),
         padding: const EdgeInsets.symmetric(horizontal: 10),
         child: Row(
           children: [

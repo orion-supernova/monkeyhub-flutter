@@ -26,6 +26,7 @@ import 'typing_indicator.dart';
 import 'user_avatar.dart';
 import 'visibility_badge.dart';
 import '../screens/navigation/native_tab_bar.dart' show NativeChrome;
+import 'ios_kit.dart' show quietFill;
 import 'sheet_kit.dart' show sentenceCaseOf;
 
 enum ChatRowAction {
@@ -841,7 +842,7 @@ class _ChatRowPreviewCardState extends State<ChatRowPreviewCard> {
         width: size,
         height: size,
         alignment: Alignment.center,
-        decoration: BoxDecoration(color: theme.accentSoft, shape: BoxShape.circle),
+        decoration: BoxDecoration(color: quietFill(theme), shape: BoxShape.circle),
         child: Icon(CupertinoIcons.bookmark_fill, size: 20, color: theme.accent),
       );
     }

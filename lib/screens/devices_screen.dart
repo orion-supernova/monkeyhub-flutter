@@ -1,4 +1,5 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/cupertino.dart'
+    show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../auth/auth_service.dart';
@@ -191,10 +192,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
           Padding(
             padding: const EdgeInsets.all(20),
             child: Center(
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: theme.accent,
-              ),
+              child: CupertinoActivityIndicator(color: theme.inkMuted),
             ),
           )
         else
@@ -222,8 +220,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     ? SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
+                        child: CupertinoActivityIndicator(
+                          radius: 8,
                           color: theme.inkMuted,
                         ),
                       )
@@ -287,8 +285,8 @@ class _DeviceRow extends StatelessWidget {
               ? SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
+                  child: CupertinoActivityIndicator(
+                    radius: 9,
                     color: theme.inkMuted,
                   ),
                 )

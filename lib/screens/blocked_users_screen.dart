@@ -1,4 +1,5 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/cupertino.dart'
+    show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
@@ -74,10 +75,7 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
           Padding(
             padding: const EdgeInsets.all(24),
             child: Center(
-              child: CircularProgressIndicator(
-                color: theme.accent,
-                strokeWidth: 2,
-              ),
+              child: CupertinoActivityIndicator(color: theme.inkMuted),
             ),
           )
         else if (_blocked.isEmpty)
@@ -139,9 +137,9 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
               ? SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: theme.accent,
+                  child: CupertinoActivityIndicator(
+                    radius: 9,
+                    color: theme.inkMuted,
                   ),
                 )
               : SpringPress(
@@ -153,7 +151,7 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: theme.accent.withValues(alpha: 0.14),
+                      color: quietFill(theme),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(

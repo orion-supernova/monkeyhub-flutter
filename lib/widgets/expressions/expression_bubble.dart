@@ -6,6 +6,7 @@ import '../../models/expression_item.dart';
 import '../../theme/theme_scope.dart';
 import '../message_stamp.dart';
 import 'expression_media.dart';
+import '../meta_text.dart';
 
 /// How big a sticker sits in the transcript. Telegram and WhatsApp both land
 /// around here — big enough to read as the message, small enough that a run of
@@ -89,7 +90,7 @@ class _GifMessageTileState extends State<GifMessageTile> {
                 ),
                 child: Text(
                   'GIF',
-                  style: theme.monoTiny.copyWith(
+                  style: metaText(theme).copyWith(
                     color: Colors.white,
                     decoration: TextDecoration.none,
                   ),

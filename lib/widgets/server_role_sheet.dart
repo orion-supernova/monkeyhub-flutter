@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../backend/server_directory.dart';
@@ -5,7 +6,8 @@ import '../backend/server_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
-import 'destructive_sheet.dart' show SheetGrabber;
+import 'ios_kit.dart';
+import 'sheet_kit.dart';
 
 /// What the badge opens: why this device is not on the ordinary server, and
 /// what follows from that.
@@ -55,38 +57,46 @@ class _ServerRoleSheet extends StatelessWidget {
     // verbatim and first, because a specific reason beats every generic
     // sentence below it.
     final note = homeserver ? ServerDirectory.instance.last?.note : null;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-      decoration: theme.sheetDecoration(),
+    final tone = homeserver ? TileTone.indigo : TileTone.teal;
+    return SheetFrame(
+      leading: const SheetCloseButton(),
       // Scrolls rather than overflows. Not defensive padding — the first render
       // of this sheet overflowed by 20px at a plain 390x620, and the two things
       // that make it taller are exactly the two nobody controls from here: the
       // reader's text-scale setting, and however long a note the operator chose
-      // to publish. `shrinkWrap` keeps a short sheet short.
+      // to publish.
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SheetGrabber(),
-            Row(
-              children: [
-                Icon(
-                  homeserver ? Icons.home_work_outlined : Icons.dns_outlined,
-                  size: 16,
-                  color: theme.inkSoft,
+            // An info card in the App Store shape: the subject as a large
+            // tile, its name centred under it.
+            Center(
+              child: Container(
+                width: 64,
+                height: 64,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: tileColor(theme, tone),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    homeserver
-                        ? l10n.serverRoleHomeserverTitle
-                        : l10n.serverRoleSelfHostedTitle,
-                    style: theme.displaySmall,
-                  ),
+                child: Icon(
+                  homeserver
+                      ? CupertinoIcons.house_fill
+                      : CupertinoIcons.cloud_fill,
+                  size: 32,
+                  color: Colors.white,
                 ),
-              ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              homeserver
+                  ? l10n.serverRoleHomeserverTitle
+                  : l10n.serverRoleSelfHostedTitle,
+              style: theme.displaySmall.copyWith(fontSize: 22, color: theme.ink),
+              textAlign: TextAlign.center,
             ),
             // The address, for the one server whose address is the user's.
             //
@@ -100,51 +110,77 @@ class _ServerRoleSheet extends StatelessWidget {
             // withholds it (see [serverMarkLabels]); this sheet was the one
             // place still publishing it.
             if (!homeserver) ...[
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Text(
                 store.host,
-                style: theme.mono.copyWith(color: theme.inkMuted),
+                style: theme.bodySoft.copyWith(
+                  fontSize: 15,
+                  color: theme.inkMuted,
+                ),
+                textAlign: TextAlign.center,
               ),
             ],
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             Text(
               homeserver
                   ? l10n.serverRoleHomeserverBody
                   : l10n.serverRoleSelfHostedBody,
               style: theme.body.copyWith(color: theme.inkSoft),
+              textAlign: TextAlign.center,
             ),
             if (note != null) ...[
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
+              // The operator's note on a neutral plate — a quotation, not an
+              // alert, so no accent rule.
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                 decoration: BoxDecoration(
-                  color: theme.surfaceSunken,
-                  border: Border(
-                    left: BorderSide(color: theme.accent, width: 2),
-                  ),
-                  borderRadius: BorderRadius.circular(theme.radiusMd),
+                  color: sheetGroupFill(theme),
+                  borderRadius: BorderRadius.circular(groupedRadius(theme)),
                 ),
-                child: Text(note, style: theme.body),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      CupertinoIcons.quote_bubble_fill,
+                      size: 18,
+                      color: theme.inkMuted,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        note,
+                        style: theme.body.copyWith(color: theme.ink),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
             if (homeserver) ...[
               const SizedBox(height: 18),
-              _Point(
-                icon: Icons.history_toggle_off,
-                text: l10n.serverRoleHomeserverWarnData,
-              ),
-              const SizedBox(height: 12),
-              _Point(
-                icon: Icons.speed_outlined,
-                text: l10n.serverRoleHomeserverWarnSpeed,
-              ),
-              const SizedBox(height: 12),
-              _Point(
-                icon: Icons.autorenew,
-                text: l10n.serverRoleHomeserverWarnAuto,
+              SheetGroup(
+                children: [
+                  _Point(
+                    icon: CupertinoIcons.clock_fill,
+                    tone: TileTone.orange,
+                    text: l10n.serverRoleHomeserverWarnData,
+                  ),
+                  _Point(
+                    icon: CupertinoIcons.speedometer,
+                    tone: TileTone.blue,
+                    text: l10n.serverRoleHomeserverWarnSpeed,
+                  ),
+                  _Point(
+                    icon: CupertinoIcons.arrow_2_circlepath,
+                    tone: TileTone.green,
+                    text: l10n.serverRoleHomeserverWarnAuto,
+                  ),
+                ],
               ),
             ],
+            const SizedBox(height: 8),
           ],
         ),
       ),
@@ -152,29 +188,49 @@ class _ServerRoleSheet extends StatelessWidget {
   }
 }
 
-/// One consequence, stated in a sentence. Icons carry no information a screen
-/// reader needs — the sentence beside each is the whole content — so they are
-/// excluded from semantics rather than given labels nobody wants read out.
+/// One fact about the server: a coloured tile and a sentence, a row of the
+/// grouped block.
 class _Point extends StatelessWidget {
-  const _Point({required this.icon, required this.text});
+  const _Point({required this.icon, required this.tone, required this.text});
   final IconData icon;
+  final TileTone tone;
   final String text;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ExcludeSemantics(
-          child: Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Icon(icon, size: 14, color: theme.inkMuted),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ExcludeSemantics(
+            child: Container(
+              width: 30,
+              height: 30,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: tileColor(theme, tone),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 17, color: Colors.white),
+            ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(child: Text(text, style: theme.bodySoft)),
-      ],
+          const SizedBox(width: 14),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                text,
+                style: theme.bodySoft.copyWith(
+                  fontSize: 15,
+                  color: theme.inkSoft,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

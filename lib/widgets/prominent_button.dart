@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../keyboard/focusable_tap.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
+import 'ios_kit.dart' show quietFill;
 
 /// The one big button on a first-run or sign-in screen: a full-width accent
 /// capsule with sentence-case text, the iOS 26 `.glassProminent` shape.
@@ -40,9 +41,11 @@ class _ProminentButtonState extends State<ProminentButton> {
     final theme = ThemeScope.of(context);
     final motion = MotionScope.of(context);
     final enabled = widget.onTap != null && !widget.busy;
-    final fill = widget.onTap == null
-        ? theme.accent.withValues(alpha: 0.4)
-        : theme.accent;
+    // Disabled is a neutral capsule with muted text, iOS-style — never a
+    // washed-out accent, which on a dark page is a navy slab.
+    final disabled = widget.onTap == null;
+    final fill = disabled ? quietFill(theme) : theme.accent;
+    final ink = disabled ? theme.inkMuted : theme.accentInk;
     return FocusableTap(
       onTap: enabled ? widget.onTap : null,
       enabled: enabled,
@@ -85,12 +88,12 @@ class _ProminentButtonState extends State<ProminentButton> {
               ),
             ),
             child: widget.busy
-                ? CupertinoActivityIndicator(color: theme.accentInk)
+                ? CupertinoActivityIndicator(color: ink)
                 : Text(
                     widget.label,
                     style: theme.bodyEmph.copyWith(
                       fontSize: 17,
-                      color: theme.accentInk,
+                      color: ink,
                       letterSpacing: -0.2,
                     ),
                   ),

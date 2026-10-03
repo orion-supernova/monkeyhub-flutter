@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../l10n/generated/app_localizations.dart';
@@ -72,7 +73,7 @@ class ScheduledPill extends StatelessWidget {
       child: Align(
         alignment: Alignment.topCenter,
         child: GlassPill(
-          icon: Icons.schedule,
+          icon: CupertinoIcons.clock,
           label: text,
           semanticLabel: l10n.scheduledPillSemantics(count),
           onTap: onTap,

@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 
 import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
+import 'ios_kit.dart' show quietFill;
 import 'sheet_kit.dart' show sentenceCaseOf;
 
 /// Mounts [child] only while it is visible or animating.
@@ -155,7 +156,7 @@ class GlassPill extends StatelessWidget {
               // Tinted glass with a hairline of light on the rim, not a grey
               // outline; the shadow inside a clip never painted anyway.
               decoration: BoxDecoration(
-                color: theme.accentSoft,
+                color: quietFill(theme),
                 border: Border.all(
                   color: const Color(0xFFFFFFFF).withValues(alpha: 0.12),
                   width: 0.5,

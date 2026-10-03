@@ -154,12 +154,12 @@ class _Chip extends StatelessWidget {
             curve: Curves.easeOutCubic,
             padding: const EdgeInsets.symmetric(horizontal: 14),
             alignment: Alignment.center,
-            // Soft filled capsules with no outline, the iOS 26 filter-chip
-            // treatment (Mail, WhatsApp). A hairline-bordered pill on a dark
-            // page is a Material chip; a tinted fill is a control.
+            // Soft neutral capsules at rest, the chosen one solid accent —
+            // the Apple Music filter treatment. The chosen chip used to be a
+            // 18% accent wash, which on a dark page is a navy blob.
             decoration: BoxDecoration(
               color: active
-                  ? theme.accent.withValues(alpha: 0.18)
+                  ? theme.accent
                   : theme.ink.withValues(alpha: 0.07),
               borderRadius: BorderRadius.circular(999),
             ),
@@ -173,7 +173,7 @@ class _Chip extends StatelessWidget {
                     fontWeight: active ? FontWeight.w600 : FontWeight.w500,
                     letterSpacing: -0.2,
                     color: active
-                        ? theme.accent
+                        ? theme.accentInk
                         // A facet matching nothing is dimmed rather than
                         // hidden — the row would otherwise reshuffle itself
                         // every time a room was read or archived.
@@ -190,7 +190,7 @@ class _Chip extends StatelessWidget {
                       fontWeight: FontWeight.w500,
                       fontFeatures: const [FontFeature.tabularFigures()],
                       color: active
-                          ? theme.accent.withValues(alpha: 0.75)
+                          ? theme.accentInk.withValues(alpha: 0.75)
                           : theme.inkMuted,
                     ),
                   ),

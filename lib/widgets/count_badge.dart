@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/theme_scope.dart';
+import 'ios_kit.dart' show quietFill;
 
 /// The small accent pill that carries a pending count.
 ///
@@ -61,7 +62,9 @@ class CountBadge extends StatelessWidget {
         : (onAccent ? theme.accentInk : theme.accent);
     final bg = mention
         ? (onAccent ? theme.accentInk : theme.accent)
-        : (onAccent ? theme.accent : theme.accent.withValues(alpha: 0.28));
+        // Off an accent surface: a neutral quiet fill with the number in the
+        // accent. A 28% accent wash read as a navy pill on a dark page.
+        : (onAccent ? theme.accent : quietFill(theme));
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
       constraints: const BoxConstraints(minWidth: 16),

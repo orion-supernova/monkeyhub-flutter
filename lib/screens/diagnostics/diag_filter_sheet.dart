@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../diagnostics/diag_event.dart';
 import '../../keyboard/focusable_tap.dart';
 import '../../theme/theme_scope.dart';
+import '../../widgets/ios_kit.dart' show quietFill;
 
 /// What the viewer is currently showing.
 ///
@@ -230,7 +231,7 @@ class _Chip extends StatelessWidget {
           // Filled capsules, the chat list's filter chips — no outline.
           decoration: BoxDecoration(
             color: on
-                ? theme.accent.withValues(alpha: 0.18)
+                ? quietFill(theme)
                 : theme.ink.withValues(alpha: 0.07),
             borderRadius: BorderRadius.circular(999),
           ),

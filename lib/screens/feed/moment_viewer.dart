@@ -25,6 +25,7 @@ import '../../widgets/route_landing.dart';
 import '../../widgets/sheet_kit.dart' show sentenceCaseOf;
 import '../../widgets/steady_hero.dart';
 import '../fullscreen_video_viewer.dart';
+import '../../widgets/ios_kit.dart' show quietFill;
 
 /// Reactions offered on a moment.
 ///
@@ -1801,7 +1802,7 @@ class _CardReactionPill extends StatelessWidget {
           duration: theme.motionFast,
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
           decoration: BoxDecoration(
-            color: active ? theme.accentSoft : theme.surfaceSunken,
+            color: active ? quietFill(theme) : theme.surfaceSunken,
             borderRadius: BorderRadius.circular(999),
             border: Border.all(color: active ? theme.accent : theme.divider),
           ),

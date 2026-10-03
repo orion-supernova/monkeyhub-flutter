@@ -18,6 +18,7 @@ import '../../models/sticker_pack.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
+import '../search_field.dart' show searchFieldDecoration;
 import '../reaction_picker_sheet.dart' show EmojiSearchBar, EmojiSearchView;
 import 'expression_media.dart';
 import 'expression_sheet.dart';
@@ -170,7 +171,13 @@ class _ExpressionPanelState extends State<ExpressionPanel> {
           padding: EdgeInsets.only(bottom: widget.bottomPadding),
           decoration: BoxDecoration(
             color: theme.surface,
-            border: Border(top: BorderSide(color: theme.divider)),
+            // A hairline, as the iOS keyboard draws its top edge.
+            border: Border(
+              top: BorderSide(
+                color: theme.ink.withValues(alpha: 0.08),
+                width: 1 / MediaQuery.devicePixelRatioOf(context),
+              ),
+            ),
           ),
           child: DefaultTextStyle(
             style: theme.body.copyWith(
@@ -187,25 +194,22 @@ class _ExpressionPanelState extends State<ExpressionPanel> {
                     padding: const EdgeInsets.fromLTRB(12, 2, 12, 4),
                     child: Row(
                       children: [
-                        _TabPill(
-                          label: l10n.expressionTabEmoji,
-                          selected: tab == _Tab.emoji,
-                          onTap: () => _select(_Tab.emoji),
-                        ),
-                        if (gifsAvailable)
-                          _TabPill(
-                            label: l10n.expressionTabGifs,
-                            selected: tab == _Tab.gifs,
-                            onTap: () => _select(_Tab.gifs),
+                        Expanded(
+                          child: _Segmented(
+                            tabs: [
+                              (_Tab.emoji, l10n.expressionTabEmoji),
+                              if (gifsAvailable)
+                                (_Tab.gifs, l10n.expressionTabGifs),
+                              (_Tab.stickers, l10n.expressionTabStickers),
+                            ],
+                            selected: tab,
+                            onSelect: _select,
                           ),
-                        _TabPill(
-                          label: l10n.expressionTabStickers,
-                          selected: tab == _Tab.stickers,
-                          onTap: () => _select(_Tab.stickers),
                         ),
-                        const Spacer(),
-                        if (widget.controller != null)
+                        if (widget.controller != null) ...[
+                          const SizedBox(width: 10),
                           _CloseButton(onTap: widget.controller!.hide),
+                        ],
                       ],
                     ),
                   ),
@@ -322,55 +326,118 @@ class _CloseButton extends StatelessWidget {
           HapticFeedback.selectionClick();
           onTap();
         },
-        child: Padding(
-          padding: const EdgeInsets.all(6),
+        child: Container(
+          width: 32,
+          height: 32,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: theme.ink.withValues(alpha: 0.08),
+          ),
           child: Icon(CupertinoIcons.chevron_down,
-              size: 20, color: theme.inkMuted),
+              size: 16, color: theme.inkSoft),
         ),
       ),
     );
   }
 }
 
-class _TabPill extends StatelessWidget {
-  const _TabPill({
-    required this.label,
+/// The iOS segmented control: a soft track with a raised thumb that slides
+/// to the chosen segment on a spring. Neutral, never accent-washed — the
+/// thumb is the selection.
+class _Segmented extends StatelessWidget {
+  const _Segmented({
+    required this.tabs,
     required this.selected,
-    required this.onTap,
+    required this.onSelect,
   });
 
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
+  final List<(_Tab, String)> tabs;
+  final _Tab selected;
+  final ValueChanged<_Tab> onSelect;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(right: 6),
-      child: FocusableTap(
-        onTap: onTap,
-        semanticLabel: label,
-        selected: selected,
-        radius: 999,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onTap,
-          child: AnimatedContainer(
-            duration: theme.motionFast,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            decoration: BoxDecoration(
-              color: selected ? theme.accentSoft : Colors.transparent,
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              label,
-              style: theme.label.copyWith(
-                color: selected ? theme.accent : theme.inkMuted,
+    final motion = MotionScope.of(context);
+    final light = theme.background.computeLuminance() > 0.5;
+    final index = math.max(0, tabs.indexWhere((t) => t.$1 == selected));
+    return Container(
+      height: 32,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: theme.ink.withValues(alpha: light ? 0.06 : 0.10),
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: LayoutBuilder(
+        builder: (context, box) {
+          final w = box.maxWidth / tabs.length;
+          return Stack(
+            children: [
+              AnimatedPositioned(
+                duration: motion.d(const Duration(milliseconds: 420)),
+                curve: Curves.easeOutBack,
+                left: w * index,
+                top: 0,
+                bottom: 0,
+                width: w,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: light
+                        ? Colors.white
+                        : theme.ink.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(7),
+                    boxShadow: light
+                        ? [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.10),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
+                  ),
+                ),
               ),
-            ),
-          ),
-        ),
+              Row(
+                children: [
+                  for (final t in tabs)
+                    Expanded(
+                      child: FocusableTap(
+                        onTap: () => onSelect(t.$1),
+                        semanticLabel: t.$2,
+                        selected: t.$1 == selected,
+                        radius: 7,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            if (t.$1 != selected) {
+                              HapticFeedback.selectionClick();
+                            }
+                            onSelect(t.$1);
+                          },
+                          child: Center(
+                            child: Text(
+                              t.$2,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.bodySoft.copyWith(
+                                fontSize: 13,
+                                fontWeight: t.$1 == selected
+                                    ? FontWeight.w600
+                                    : FontWeight.w500,
+                                color: theme.ink,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -430,7 +497,7 @@ class _EmojiTab extends StatelessWidget {
           noRecents: Center(
             child: Text(
               l10n.reactionBubbleNoRecentsPlaceholder,
-              style: theme.monoTiny,
+              style: theme.bodySoft.copyWith(fontSize: 13),
             ),
           ),
           buttonMode: ButtonMode.CUPERTINO,
@@ -742,7 +809,7 @@ class _KlipyBrowserState extends State<_KlipyBrowser> {
           padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
           child: Container(
             height: 36,
-            decoration: theme.inputDecoration(),
+            decoration: searchFieldDecoration(theme),
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Row(
               children: [
@@ -975,12 +1042,14 @@ class _ScopeTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: theme.accentSoft,
+        color: theme.ink.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(label,
-          style: theme.caption.copyWith(
-              color: theme.accent, fontWeight: FontWeight.w600)),
+          style: theme.bodySoft.copyWith(
+              fontSize: 12,
+              color: theme.inkSoft,
+              fontWeight: FontWeight.w600)),
     );
   }
 }
@@ -1001,7 +1070,9 @@ class _Chip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final color = selected ? theme.accent : theme.inkSoft;
+    // Solid accent when chosen, a neutral fill otherwise — no accent wash,
+    // which on a dark theme is a navy lozenge.
+    final color = selected ? theme.accentInk : theme.inkSoft;
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: FocusableTap(
@@ -1016,10 +1087,10 @@ class _Chip extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10),
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: selected ? theme.accentSoft : theme.surfaceRaised,
+              color: selected
+                  ? theme.accent
+                  : theme.ink.withValues(alpha: 0.07),
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                  color: selected ? Colors.transparent : theme.divider),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -1028,7 +1099,14 @@ class _Chip extends StatelessWidget {
                   Icon(icon, size: 13, color: color),
                   const SizedBox(width: 4),
                 ],
-                Text(label, style: theme.caption.copyWith(color: color)),
+                Text(
+                  label,
+                  style: theme.bodySoft.copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: color,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1077,9 +1155,15 @@ class _PressableTileState extends State<_PressableTile> {
           setState(() => _down = false);
           widget.onLongPress();
         },
+        // A quick dip and an overshooting return — the tile visibly lands.
         child: AnimatedScale(
-          scale: _down ? 0.92 : 1,
-          duration: const Duration(milliseconds: 90),
+          scale: _down ? 0.9 : 1,
+          duration: MotionScope.of(context).d(
+            _down
+                ? const Duration(milliseconds: 90)
+                : const Duration(milliseconds: 420),
+          ),
+          curve: _down ? Curves.easeOut : Curves.elasticOut,
           child: widget.child,
         ),
       ),
@@ -1515,7 +1599,9 @@ class _StripButton extends StatelessWidget {
             margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: selected ? theme.accentSoft : Colors.transparent,
+              color: selected
+                  ? theme.ink.withValues(alpha: 0.10)
+                  : theme.ink.withValues(alpha: 0),
               borderRadius: BorderRadius.circular(10),
             ),
             child: child,
@@ -1606,7 +1692,10 @@ class _PackGrid extends StatelessWidget {
                     : (pack.author == null
                         ? pack.title
                         : '${pack.title} · ${l10n.expressionPackCredit(pack.author!, pack.license ?? '')}'),
-                style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                style: theme.bodySoft.copyWith(
+                  fontSize: 13,
+                  color: theme.inkMuted,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),

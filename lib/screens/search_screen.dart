@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'dart:async';
 import 'package:flutter/material.dart';
 
@@ -218,10 +219,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         key: ValueKey(widget.mode),
                         child: _loading
                             ? Center(
-                                child: CircularProgressIndicator(
-                                  color: theme.accent,
-                                  strokeWidth: 2,
-                                ),
+                                child: CupertinoActivityIndicator(color: theme.inkMuted),
                               )
                             : (_people ? _peopleBody() : _roomsBody()),
                       ),

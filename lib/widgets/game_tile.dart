@@ -324,7 +324,9 @@ class StatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: tone.withValues(alpha: 0.14),
+        // Neutral, with the tone on the glyph and words: a 14% wash of a
+        // blue tone is a navy pill on a dark page.
+        color: quietFill(theme),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(

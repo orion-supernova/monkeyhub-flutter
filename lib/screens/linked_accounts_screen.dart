@@ -1,4 +1,5 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/cupertino.dart'
+    show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../auth/auth_errors.dart';
@@ -279,7 +280,7 @@ class _StatusPill extends StatelessWidget {
       return SizedBox(
         width: 14,
         height: 14,
-        child: CircularProgressIndicator(strokeWidth: 2, color: theme.inkMuted),
+        child: CupertinoActivityIndicator(radius: 7, color: theme.inkMuted),
       );
     }
     final on = linked!;
@@ -332,7 +333,7 @@ class _UnlinkButton extends StatelessWidget {
         child: SizedBox(
           width: 18,
           height: 18,
-          child: CircularProgressIndicator(strokeWidth: 2, color: theme.inkSoft),
+          child: CupertinoActivityIndicator(radius: 9, color: theme.inkSoft),
         ),
       );
     }

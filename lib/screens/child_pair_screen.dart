@@ -10,7 +10,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/code_field.dart';
-import '../widgets/ios_kit.dart' show groupedRadius;
+import '../widgets/ios_kit.dart' show groupedRadius, quietFill;
 import '../widgets/prominent_button.dart';
 import '../widgets/sheet_kit.dart' show sentenceCaseOf;
 
@@ -267,7 +267,7 @@ class _ScanButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 26),
         decoration: BoxDecoration(
-          color: theme.accent.withValues(alpha: 0.12),
+          color: quietFill(theme),
           borderRadius: BorderRadius.circular(groupedRadius(theme)),
         ),
         child: Column(

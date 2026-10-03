@@ -32,6 +32,7 @@ import '../widgets/chat_list_row.dart' show MonogramAvatar;
 import '../widgets/companion_install_sheet.dart';
 import '../widgets/editable_info_row.dart';
 import '../widgets/ios_kit.dart';
+import '../widgets/sheet_kit.dart';
 import '../widgets/mute_room_sheet.dart';
 import '../widgets/password_field.dart';
 import '../widgets/photo_chrome.dart';
@@ -954,61 +955,28 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     required String confirm,
     bool destructive = false,
   }) async {
-    final theme = ThemeScope.of(context);
-    final res = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: theme.surfaceRaised,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(theme.radiusLg)),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: theme.displayMedium),
-              const SizedBox(height: 8),
-              Text(body, style: theme.bodySoft),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(false),
-                    child: Text(AppLocalizations.of(ctx).roomInfoScreenConfirmCancelButton, style: theme.label.copyWith(color: theme.inkSoft)),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () {
-                      if (destructive) {
-                        HapticFeedback.heavyImpact();
-                      } else {
-                        HapticFeedback.mediumImpact();
-                      }
-                      Navigator.of(ctx).pop(true);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: destructive ? theme.danger : theme.accent,
-                        borderRadius: BorderRadius.circular(theme.radiusMd),
-                      ),
-                      child: Text(
-                        confirm,
-                        style: theme.label.copyWith(
-                          color: destructive ? Colors.white : theme.accentInk,
-                          letterSpacing: 2,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+    // The iOS action sheet, like every other confirmation in the app: the
+    // question as a quiet title, what it means under it, the answer (red when
+    // it destroys something) and Cancel on its own below.
+    final res = await showIosActionSheet<bool>(
+      context,
+      title: title,
+      message: body,
+      actions: [
+        IosSheetAction(
+          label: sentenceCaseOf(context, confirm),
+          value: true,
+          destructive: destructive,
         ),
-      ),
+      ],
     );
+    if (res == true) {
+      if (destructive) {
+        HapticFeedback.heavyImpact();
+      } else {
+        HapticFeedback.mediumImpact();
+      }
+    }
     return res ?? false;
   }
 
@@ -1820,7 +1788,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
             height: 38,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: theme.accentSoft,
+              color: quietFill(theme),
               shape: BoxShape.circle,
             ),
             clipBehavior: hasThumb ? Clip.antiAlias : Clip.none,
@@ -1866,9 +1834,9 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
             SizedBox(
               width: 16,
               height: 16,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: theme.accent,
+              child: CupertinoActivityIndicator(
+                radius: 8,
+                color: theme.inkMuted,
               ),
             )
           else
@@ -2367,7 +2335,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
             height: 38,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: theme.accent.withValues(alpha: 0.14),
+              color: quietFill(theme),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, size: 19, color: theme.accent),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'ios_kit.dart' show quietFill;
 
 /// One pill: a small icon, a short label, a rounded chip around both — and a
 /// sentence, on tap, saying what the pill actually means.
@@ -236,7 +237,7 @@ class JoinedBadge extends StatelessWidget {
       label: loc.enterPublicRoomJoinedBadgeLabel,
       tooltip: loc.roomBadgeJoinedTooltip,
       decoration: BoxDecoration(
-        color: theme.accentSoft,
+        color: quietFill(theme),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
           color: theme.accent.withValues(alpha: 0.32),

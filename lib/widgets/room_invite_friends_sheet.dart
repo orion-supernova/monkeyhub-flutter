@@ -1,16 +1,19 @@
+import 'package:flutter/cupertino.dart'
+    show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../auth/auth_errors.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../invites/room_admin_errors.dart';
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
+import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'app_toast.dart';
-import 'sheet_surface.dart';
+import 'ios_kit.dart';
+import 'sheet_kit.dart';
 import 'search_field.dart';
 import 'user_avatar.dart';
 
@@ -143,58 +146,42 @@ class _InviteFriendsSheetState extends State<_InviteFriendsSheet> {
     final l10n = AppLocalizations.of(context);
     final visible = _visible;
 
-    return SheetSurface(
-      child: Column(
+    return SheetFrame(
+      title: l10n.roomInviteFriendsTitle,
+      leading: SheetCloseButton(
+        onTap: () => Navigator.of(context).pop(_anySent),
+      ),
+      trailing: SheetConfirmButton(
+        label: l10n.roomInviteFriendsDone,
+        onTap: () => Navigator.of(context).pop(_anySent),
+      ),
+      // One scroller for the whole sheet: the frame itself does not scroll,
+      // and a long friend list must never overflow it.
+      child: SingleChildScrollView(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(l10n.roomInviteFriendsTitle, style: theme.displaySmall),
-                ),
-                FocusableTap(
-                  onTap: () => Navigator.of(context).pop(_anySent),
-                  semanticLabel: l10n.roomInviteFriendsDone,
-                  radius: theme.radiusSm,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => Navigator.of(context).pop(_anySent),
-                    child: Padding(
-                      padding: const EdgeInsets.all(6),
-                      child: Text(
-                        l10n.roomInviteFriendsDone,
-                        style: theme.label.copyWith(color: theme.accent),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 14),
+              child: Text(
+                l10n.roomInviteFriendsBlurb,
+                style: theme.bodySoft.copyWith(color: theme.inkMuted),
+                textAlign: TextAlign.center,
+              ),
             ),
-            const SizedBox(height: 4),
-            Text(l10n.roomInviteFriendsBlurb, style: theme.bodySoft),
-            const SizedBox(height: 14),
             if (_friends.length > 6) ...[
               SearchField(
                 controller: _search,
                 hintText: l10n.roomInviteFriendsSearchHint,
                 onChanged: (_) => setState(() {}),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
             ],
             if (_loading)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 30),
-                child: Center(
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: theme.accent,
-                    ),
-                  ),
-                ),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 30),
+                child: Center(child: CupertinoActivityIndicator()),
               )
             else if (visible.isEmpty)
               Padding(
@@ -212,20 +199,23 @@ class _InviteFriendsSheetState extends State<_InviteFriendsSheet> {
                 ),
               )
             else
-              // A plain Column, not a capped ListView. [SheetSurface] scrolls
-              // the whole sheet now, and a scroller inside a scroller means
-              // whichever one the finger happens to be over wins — the list
-              // moving while the sheet stays put, or the reverse.
-              for (final u in visible)
-                _FriendRow(
-                  key: ValueKey(u.id),
-                  user: u,
-                  api: widget.api,
-                  sending: _sending.contains(u.id),
-                  sent: _sent.contains(u.id),
-                  onInvite: () => _invite(u),
+              SheetRise(
+                child: SheetGroup(
+                  children: [
+                    for (final u in visible)
+                      _FriendRow(
+                        key: ValueKey(u.id),
+                        user: u,
+                        api: widget.api,
+                        sending: _sending.contains(u.id),
+                        sent: _sent.contains(u.id),
+                        onInvite: () => _invite(u),
+                      ),
+                  ],
                 ),
+              ),
           ],
+        ),
       ),
     );
   }
@@ -251,56 +241,104 @@ class _FriendRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
+    final Widget trailing;
+    if (sent) {
+      // Stays on screen rather than disappearing. A row that vanished on
+      // success would leave no record of who you just invited, and this list
+      // is exactly where someone double-checks that. The check springs in.
+      trailing = Row(
+        key: const ValueKey('sent'),
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            l10n.roomInviteFriendsSent,
+            style: theme.bodySoft.copyWith(
+              fontSize: 14,
+              color: theme.inkMuted,
+            ),
+          ),
+          const SizedBox(width: 6),
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: 1),
+            duration: MotionScope.of(context)
+                .d(const Duration(milliseconds: 460)),
+            curve: Curves.elasticOut,
+            builder: (context, v, child) =>
+                Transform.scale(scale: v, child: child),
+            child: Icon(
+              CupertinoIcons.checkmark_circle_fill,
+              size: 24,
+              color: theme.success,
+            ),
+          ),
+        ],
+      );
+    } else if (sending) {
+      trailing = const SizedBox(
+        key: ValueKey('sending'),
+        width: 44,
+        child: Center(child: CupertinoActivityIndicator()),
+      );
+    } else {
+      trailing = SpringPress(
+        key: const ValueKey('invite'),
+        onTap: onInvite,
+        semanticLabel: l10n.roomInviteFriendsInviteButton,
+        scale: 0.93,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 32),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: theme.ink.withValues(alpha: 0.09),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            sentenceCaseOf(context, l10n.roomInviteFriendsInviteButton),
+            style: theme.bodySoft.copyWith(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0,
+              color: theme.accent,
+            ),
+          ),
+        ),
+      );
+    }
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.fromLTRB(14, 9, 12, 9),
       child: Row(
         children: [
-          UserAvatar(user: user, size: 36, api: api),
-          const SizedBox(width: 10),
+          UserAvatar(user: user, size: 40, api: api),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(user.displayName, style: theme.body),
-                Text('@${user.username}', style: theme.monoTiny),
+                Text(
+                  user.displayName,
+                  style: theme.body.copyWith(fontSize: 17, color: theme.ink),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  '@${user.username}',
+                  style: theme.bodySoft.copyWith(
+                    fontSize: 13,
+                    color: theme.inkMuted,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
-          if (sent)
-            // Stays on screen rather than disappearing. A row that vanished on
-            // success would leave no record of who you just invited, and this
-            // list is exactly where someone double-checks that.
-            Text(
-              l10n.roomInviteFriendsSent,
-              style: theme.monoTiny.copyWith(color: theme.success),
-            )
-          else if (sending)
-            SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2, color: theme.accent),
-            )
-          else
-            FocusableTap(
-              onTap: onInvite,
-              semanticLabel: l10n.roomInviteFriendsInviteButton,
-              radius: theme.radiusSm,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: onInvite,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: theme.accent, width: 1.2),
-                    borderRadius: BorderRadius.circular(theme.radiusSm),
-                  ),
-                  child: Text(
-                    l10n.roomInviteFriendsInviteButton,
-                    style: theme.monoTiny.copyWith(color: theme.accent),
-                  ),
-                ),
-              ),
-            ),
+          const SizedBox(width: 8),
+          AnimatedSwitcher(
+            duration: MotionScope.of(context)
+                .d(const Duration(milliseconds: 200)),
+            child: trailing,
+          ),
         ],
       ),
     );

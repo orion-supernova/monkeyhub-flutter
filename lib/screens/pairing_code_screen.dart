@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'dart:async';
 import 'dart:math';
 
@@ -167,10 +168,7 @@ class _PairingCodeScreenState extends State<PairingCodeScreen> {
                             SizedBox(
                               height: 220,
                               child: Center(
-                                child: CircularProgressIndicator(
-                                  color: theme.accent,
-                                  strokeWidth: 2,
-                                ),
+                                child: CupertinoActivityIndicator(color: theme.inkMuted),
                               ),
                             )
                           else ...[

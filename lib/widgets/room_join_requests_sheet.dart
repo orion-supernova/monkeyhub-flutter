@@ -1,16 +1,18 @@
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'package:flutter/material.dart';
 
 import '../auth/auth_errors.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../invites/room_admin_errors.dart';
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/room_admin.dart';
+import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'app_toast.dart';
-import 'sheet_surface.dart';
+import 'ios_kit.dart';
+import 'sheet_kit.dart';
 import 'user_avatar.dart';
 
 /// The admin queue: people who redeemed the link on a room whose policy is
@@ -129,34 +131,34 @@ class _JoinRequestsSheetState extends State<_JoinRequestsSheet> {
     final l10n = AppLocalizations.of(context);
 
     return PopScope(
-      // The sheet can be dragged away mid-queue; the caller still needs to know
-      // whether anything changed so it can refresh the roster behind it.
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) Navigator.of(context).pop(_anyDecided);
       },
-      child: SheetSurface(
-        child: Column(
+      child: SheetFrame(
+        title: l10n.roomJoinRequestsTitle,
+        leading: SheetCloseButton(
+          onTap: () => Navigator.of(context).pop(_anyDecided),
+        ),
+        // One scroller for the whole sheet: the frame does not scroll, and
+        // a long queue must never overflow it.
+        child: SingleChildScrollView(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(l10n.roomJoinRequestsTitle, style: theme.displaySmall),
-              const SizedBox(height: 6),
-              Text(l10n.roomJoinRequestsBlurb, style: theme.bodySoft),
-              const SizedBox(height: 18),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
+                child: Text(
+                  l10n.roomJoinRequestsBlurb,
+                  style: theme.bodySoft.copyWith(color: theme.inkMuted),
+                  textAlign: TextAlign.center,
+                ),
+              ),
               if (_loading)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 30),
-                  child: Center(
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: theme.accent,
-                      ),
-                    ),
-                  ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 30),
+                  child: Center(child: CupertinoActivityIndicator()),
                 )
               else if (_requests.isEmpty)
                 Padding(
@@ -168,18 +170,23 @@ class _JoinRequestsSheetState extends State<_JoinRequestsSheet> {
                   ),
                 )
               else
-                // Plain rows — see the note in the friend picker about not
-                // nesting a scroller inside the sheet's own.
-                for (final r in _requests)
-                  _RequestRow(
-                    key: ValueKey(r.requestId),
-                    request: r,
-                    api: widget.api,
-                    busy: _deciding.contains(r.requestId),
-                    onApprove: () => _decide(r, true),
-                    onReject: () => _decide(r, false),
+                SheetRise(
+                  child: SheetGroup(
+                    children: [
+                      for (final r in _requests)
+                        _RequestRow(
+                          key: ValueKey(r.requestId),
+                          request: r,
+                          api: widget.api,
+                          busy: _deciding.contains(r.requestId),
+                          onApprove: () => _decide(r, true),
+                          onReject: () => _decide(r, false),
+                        ),
+                    ],
                   ),
+                ),
             ],
+          ),
         ),
       ),
     );
@@ -207,73 +214,133 @@ class _RequestRow extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.fromLTRB(14, 10, 12, 10),
       child: Row(
         children: [
-          UserAvatar(user: request.user, size: 38, api: api),
-          const SizedBox(width: 10),
+          UserAvatar(user: request.user, size: 40, api: api),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(request.user.displayName, style: theme.body),
-                Text('@${request.user.username}', style: theme.monoTiny),
+                Text(
+                  request.user.displayName,
+                  style: theme.body.copyWith(fontSize: 17, color: theme.ink),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  '@${request.user.username}',
+                  style: theme.bodySoft.copyWith(
+                    fontSize: 13,
+                    color: theme.inkMuted,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
-          if (busy)
-            SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2, color: theme.accent),
-            )
-          else ...[
-            _DecideButton(
-              label: l10n.roomJoinRequestsReject,
-              color: theme.danger,
-              onTap: onReject,
-            ),
-            const SizedBox(width: 8),
-            _DecideButton(
-              label: l10n.roomJoinRequestsApprove,
-              color: theme.accent,
-              onTap: onApprove,
-            ),
-          ],
+          const SizedBox(width: 8),
+          DecisionCapsules(
+            busy: busy,
+            approveLabel: l10n.joinRequestAllowIos,
+            onApprove: onApprove,
+            onReject: onReject,
+          ),
         ],
       ),
     );
   }
 }
 
-class _DecideButton extends StatelessWidget {
-  const _DecideButton({
+/// The two answers on a pending request: a quiet Decline and a solid primary.
+///
+/// Decline is a neutral capsule with red text rather than a red outline —
+/// an outlined pair read as two equal alarms. The primary is the outgoing-
+/// bubble colour, the theme's tone for "white text sits on this". Shared with
+/// the suggested-changes sheet so the two never answer differently.
+class DecisionCapsules extends StatelessWidget {
+  const DecisionCapsules({
+    super.key,
+    required this.busy,
+    required this.approveLabel,
+    required this.onApprove,
+    required this.onReject,
+  });
+
+  final bool busy;
+  final String approveLabel;
+  final VoidCallback onApprove;
+  final VoidCallback onReject;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    if (busy) {
+      return const SizedBox(
+        width: 44,
+        child: Center(child: CupertinoActivityIndicator()),
+      );
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _Capsule(
+          label: l10n.requestDeclineIos,
+          fill: theme.ink.withValues(alpha: 0.09),
+          ink: theme.danger,
+          onTap: onReject,
+        ),
+        const SizedBox(width: 6),
+        _Capsule(
+          label: approveLabel,
+          fill: theme.bubbleFill(isMine: true),
+          ink: theme.accentInk,
+          onTap: onApprove,
+        ),
+      ],
+    );
+  }
+}
+
+class _Capsule extends StatelessWidget {
+  const _Capsule({
     required this.label,
-    required this.color,
+    required this.fill,
+    required this.ink,
     required this.onTap,
   });
 
   final String label;
-  final Color color;
+  final Color fill;
+  final Color ink;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return FocusableTap(
+    return SpringPress(
       onTap: onTap,
       semanticLabel: label,
-      radius: theme.radiusSm,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-          decoration: BoxDecoration(
-            border: Border.all(color: color, width: 1.2),
-            borderRadius: BorderRadius.circular(theme.radiusSm),
+      scale: 0.93,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 32),
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: fill,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          label,
+          style: theme.bodySoft.copyWith(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0,
+            color: ink,
           ),
-          child: Text(label, style: theme.monoTiny.copyWith(color: color)),
         ),
       ),
     );

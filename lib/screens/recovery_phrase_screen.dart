@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -11,7 +12,7 @@ import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/account_kit.dart';
-import '../widgets/ios_kit.dart' show groupedFill;
+import '../widgets/ios_kit.dart' show groupedFill, quietFill;
 import '../widgets/app_toast.dart';
 import '../widgets/password_field.dart';
 
@@ -479,16 +480,13 @@ class _Cta extends StatelessWidget {
         height: 50,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: theme.accent.withValues(alpha: 0.35),
+          color: quietFill(theme),
           borderRadius: BorderRadius.circular(999),
         ),
         child: SizedBox(
           width: 18,
           height: 18,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: theme.accentInk,
-          ),
+          child: CupertinoActivityIndicator(radius: 9, color: theme.accentInk),
         ),
       );
     }

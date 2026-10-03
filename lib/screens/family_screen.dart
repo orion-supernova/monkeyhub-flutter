@@ -74,80 +74,76 @@ class _FamilyScreenState extends State<FamilyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final ctx = widget.family.context;
     final children = ctx.children;
     final waiting = ctx.pendingCount;
 
-    return RefreshIndicator(
-      color: theme.accent,
+    return IosPage(
       onRefresh: () {
         HapticFeedback.lightImpact();
         return widget.family.refresh();
       },
-      child: IosPage(
-        title: l10n.acctSectionFamily,
-        slivers: readableSlivers(context, [
-          GroupedSection(
-            children: [
-              GroupedRow(
-                icon: CupertinoIcons.checkmark_seal_fill,
-                tone: TileTone.orange,
-                title: l10n.acctRowApprovals,
-                subtitle: waiting > 0
-                    ? l10n.familyScreenPendingBanner(waiting)
-                    : l10n.apprEmptyTitle,
-                badge: waiting,
-                onTap: () => _open(ApprovalsScreen(
-                  api: widget.api,
-                  guardianId: widget.userId,
-                  family: widget.family,
-                )),
-              ),
-            ],
-          ),
-          if (children.isEmpty)
-            _EmptyState()
-          else
-            for (final c in children)
-              _ChildCard(
-                summary: c,
+      title: l10n.acctSectionFamily,
+      slivers: readableSlivers(context, [
+        GroupedSection(
+          children: [
+            GroupedRow(
+              icon: CupertinoIcons.checkmark_seal_fill,
+              tone: TileTone.orange,
+              title: l10n.acctRowApprovals,
+              subtitle: waiting > 0
+                  ? l10n.familyScreenPendingBanner(waiting)
+                  : l10n.apprEmptyTitle,
+              badge: waiting,
+              onTap: () => _open(ApprovalsScreen(
                 api: widget.api,
-                onOpen: () => _open(ChildPolicyScreen(
-                  api: widget.api,
-                  guardianId: widget.userId,
-                  child: c,
-                  family: widget.family,
-                )),
-                onPair: () => _open(PairingCodeScreen(
-                  api: widget.api,
-                  guardianId: widget.userId,
-                  child: c.user,
-                )),
-                onRelease: () => _open(PairingCodeScreen(
-                  api: widget.api,
-                  guardianId: widget.userId,
-                  child: c.user,
-                  purpose: CodePurpose.release,
-                )),
-              ),
-          GroupedSection(
-            children: [
-              GroupedRow(
-                icon: CupertinoIcons.person_crop_circle_badge_plus,
-                tone: TileTone.green,
-                title: l10n.famAddChild,
-                onTap: () => _open(ChildSetupScreen(
-                  api: widget.api,
-                  guardianId: widget.userId,
-                )),
-              ),
-            ],
-          ),
-        ]),
-      ),
-    );
+                guardianId: widget.userId,
+                family: widget.family,
+              )),
+            ),
+          ],
+        ),
+        if (children.isEmpty)
+          _EmptyState()
+        else
+          for (final c in children)
+            _ChildCard(
+              summary: c,
+              api: widget.api,
+              onOpen: () => _open(ChildPolicyScreen(
+                api: widget.api,
+                guardianId: widget.userId,
+                child: c,
+                family: widget.family,
+              )),
+              onPair: () => _open(PairingCodeScreen(
+                api: widget.api,
+                guardianId: widget.userId,
+                child: c.user,
+              )),
+              onRelease: () => _open(PairingCodeScreen(
+                api: widget.api,
+                guardianId: widget.userId,
+                child: c.user,
+                purpose: CodePurpose.release,
+              )),
+            ),
+        GroupedSection(
+          children: [
+            GroupedRow(
+              icon: CupertinoIcons.person_crop_circle_badge_plus,
+              tone: TileTone.green,
+              title: l10n.famAddChild,
+              onTap: () => _open(ChildSetupScreen(
+                api: widget.api,
+                guardianId: widget.userId,
+              )),
+            ),
+          ],
+        ),
+      ]),
+  );
   }
 }
 

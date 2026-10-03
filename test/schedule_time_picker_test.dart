@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
@@ -186,7 +187,7 @@ void main() {
     await tester.pumpWidget(host(picker()));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.expand_more));
+    await tester.tap(find.byIcon(CupertinoIcons.chevron_forward));
     await tester.pumpAndSettle();
 
     final material = materialOf(tester);
@@ -217,7 +218,7 @@ void main() {
 
     // The back arrow is disabled on the first page; tapping it must not page
     // into a month the window does not contain.
-    await tester.tap(find.byIcon(Icons.chevron_left));
+    await tester.tap(find.byIcon(CupertinoIcons.chevron_left));
     await tester.pumpAndSettle();
     expect(find.text(thisMonth), findsOneWidget);
   });
@@ -232,7 +233,7 @@ void main() {
     final now = DateTime.now();
     final next = DateTime(now.year, now.month + 1);
 
-    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.tap(find.byIcon(CupertinoIcons.chevron_right));
     await tester.pumpAndSettle();
 
     expect(find.text(material.formatMonthYear(next)), findsOneWidget);

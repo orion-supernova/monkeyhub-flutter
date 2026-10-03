@@ -1,4 +1,5 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/cupertino.dart'
+    show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -175,40 +176,34 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final loc = AppLocalizations.of(context);
-    return RefreshIndicator(
-      color: theme.accent,
+    return IosPage(
       onRefresh: () {
         HapticFeedback.lightImpact();
         return _load();
       },
-      child: IosPage(
-        title: loc.acctRowApprovals,
-        slivers: _loading
-            ? [
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: theme.accent,
-                      strokeWidth: 2,
-                    ),
-                  ),
+      title: loc.acctRowApprovals,
+      slivers: _loading
+          ? [
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: CupertinoActivityIndicator(color: theme.inkMuted),
                 ),
-              ]
-            : _items.isEmpty
-                ? [SliverFillRemaining(hasScrollBody: false, child: _EmptyState())]
-                : readableSlivers(context, [
-                    for (final item in _items)
-                      _QueueCard(
-                        key: ValueKey(item.id),
-                        item: item,
-                        api: widget.api,
-                        busy: _deciding.contains(item.id),
-                        onDecide: (ok) => _decide(item, ok),
-                      ),
-                  ]),
-      ),
-    );
+              ),
+            ]
+          : _items.isEmpty
+              ? [SliverFillRemaining(hasScrollBody: false, child: _EmptyState())]
+              : readableSlivers(context, [
+                  for (final item in _items)
+                    _QueueCard(
+                      key: ValueKey(item.id),
+                      item: item,
+                      api: widget.api,
+                      busy: _deciding.contains(item.id),
+                      onDecide: (ok) => _decide(item, ok),
+                    ),
+                ]),
+  );
   }
 }
 
@@ -347,7 +342,7 @@ class _QueueCard extends StatelessWidget {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: theme.accent.withValues(alpha: 0.14),
+                        color: quietFill(theme),
                         shape: BoxShape.circle,
                       ),
                       alignment: Alignment.center,
@@ -419,14 +414,14 @@ class _QueueCard extends StatelessWidget {
                             height: 50,
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              color: theme.accent.withValues(alpha: 0.35),
+                              color: quietFill(theme),
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: SizedBox(
                               width: 16,
                               height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
+                              child: CupertinoActivityIndicator(
+                                radius: 8,
                                 color: theme.accentInk,
                               ),
                             ),

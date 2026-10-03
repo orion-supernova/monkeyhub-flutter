@@ -12,7 +12,7 @@ import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/app_toast.dart';
 import 'room_items.dart' show formatClockDuration;
-import '../widgets/ios_kit.dart' show GlassIconButton, SpringPress;
+import '../widgets/ios_kit.dart' show GlassIconButton, SpringPress, quietFill;
 import '../widgets/sheet_kit.dart' show sentenceCaseOf;
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 
@@ -401,7 +401,7 @@ class _Capsule extends StatelessWidget {
         height: 52,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: filled ? theme.accent : theme.accent.withValues(alpha: 0.14),
+          color: filled ? theme.accent : quietFill(theme),
           borderRadius: BorderRadius.circular(999),
         ),
         child: Text(

@@ -674,7 +674,7 @@ class _Capsule extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: selected
-              ? theme.accent.withValues(alpha: 0.18)
+              ? quietFill(theme)
               : theme.ink.withValues(alpha: 0.07),
           borderRadius: BorderRadius.circular(999),
         ),
@@ -784,10 +784,7 @@ class _Composer extends StatelessWidget {
               child: busy
                   ? Padding(
                       padding: const EdgeInsets.all(11),
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: theme.inkMuted,
-                      ),
+                      child: CupertinoActivityIndicator(color: theme.inkMuted),
                     )
                   : Icon(
                       CupertinoIcons.arrow_up,
@@ -891,8 +888,8 @@ class _SendRequestBar extends StatelessWidget {
               child: SizedBox(
                 width: 18,
                 height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
+                child: CupertinoActivityIndicator(
+                  radius: 9,
                   color: theme.inkMuted,
                 ),
               ),

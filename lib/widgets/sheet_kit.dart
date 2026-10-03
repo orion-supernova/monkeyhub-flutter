@@ -559,7 +559,7 @@ class SheetGroup extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 7),
             child: Text(
               sentenceCaseOf(context, header!),
-              style: theme.caption.copyWith(
+              style: theme.bodySoft.copyWith(
                 fontSize: 13,
                 color: theme.inkMuted,
               ),

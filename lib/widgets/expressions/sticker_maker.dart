@@ -16,6 +16,7 @@ import '../../media/upload_service.dart';
 import '../../theme/theme_scope.dart';
 import '../app_toast.dart';
 import '../reaction_picker_sheet.dart';
+import '../meta_text.dart';
 
 /// How a photo becomes a sticker when its subject is not lifted out.
 enum StickerShape { circle, rounded, original }
@@ -327,21 +328,23 @@ class _StickerMakerScreenState extends State<StickerMakerScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 7),
                           decoration: BoxDecoration(
-                            color: ready ? theme.accent : theme.surfaceSunken,
+                            color: ready
+                                ? theme.accent
+                                : theme.ink.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: _saving
                               ? SizedBox(
                                   width: 16,
                                   height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
+                                  child: CupertinoActivityIndicator(
                                     color: theme.accentInk,
+                                    radius: 8,
                                   ),
                                 )
                               : Text(
                                   l10n.stickerMakerSave,
-                                  style: theme.label.copyWith(
+                                  style: labelText(theme).copyWith(
                                     color: ready
                                         ? theme.accentInk
                                         : theme.inkMuted,
@@ -513,9 +516,12 @@ class _EmojiChoice extends StatelessWidget {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: selected ? theme.accentSoft : Colors.transparent,
+            // A neutral disc with a ring when chosen, not an accent wash.
+            color: theme.ink.withValues(alpha: selected ? 0.12 : 0.06),
             border: Border.all(
-                color: selected ? theme.accent : theme.divider, width: 1.2),
+              color: selected ? theme.accent : theme.ink.withValues(alpha: 0),
+              width: 1.6,
+            ),
           ),
           child: emoji == null
               ? Icon(CupertinoIcons.ellipsis, size: 18, color: theme.inkMuted)

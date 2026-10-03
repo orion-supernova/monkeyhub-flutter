@@ -1174,9 +1174,9 @@ class _SwitchScrim extends StatelessWidget {
                     SizedBox(
                       width: 22,
                       height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: theme.accent,
+                      child: CupertinoActivityIndicator(
+                        radius: 11,
+                        color: theme.inkMuted,
                       ),
                     ),
                     const SizedBox(height: 18),
