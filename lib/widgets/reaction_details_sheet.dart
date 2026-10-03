@@ -16,6 +16,7 @@ import 'ios_kit.dart' show quietFill;
 import 'sheet_kit.dart';
 import 'message_stamp.dart' show formatClockTime;
 import 'user_avatar.dart';
+import 'teardown_safe.dart';
 
 /// Long-press a reaction chip and this names the people behind it.
 ///
@@ -520,7 +521,8 @@ class _ReactorRow extends StatefulWidget {
   State<_ReactorRow> createState() => _ReactorRowState();
 }
 
-class _ReactorRowState extends State<_ReactorRow> {
+class _ReactorRowState extends State<_ReactorRow>
+    with TeardownSafe<_ReactorRow> {
   bool _pressed = false;
 
   @override

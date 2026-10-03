@@ -6,6 +6,7 @@ import '../models/message_preview.dart';
 import '../models/room_pin.dart';
 import '../theme/theme_scope.dart';
 import 'liquid_glass.dart';
+import 'teardown_safe.dart';
 
 /// Height of the banner's content row, excluding the divider.
 ///
@@ -399,7 +400,8 @@ class _TapTarget extends StatefulWidget {
   State<_TapTarget> createState() => _TapTargetState();
 }
 
-class _TapTargetState extends State<_TapTarget> {
+class _TapTargetState extends State<_TapTarget>
+    with TeardownSafe<_TapTarget> {
   bool _pressed = false;
 
   @override

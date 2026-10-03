@@ -10,6 +10,7 @@ import 'package:flutter/material.dart' show CircularProgressIndicator;
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'sheet_kit.dart' show sentenceCaseOf;
+import 'teardown_safe.dart';
 
 /// Chrome that floats over a photograph — the camera preview and the post-
 /// capture editor share it, so the two screens read as one surface.
@@ -120,7 +121,8 @@ class PhotoGlassButton extends StatefulWidget {
   State<PhotoGlassButton> createState() => _PhotoGlassButtonState();
 }
 
-class _PhotoGlassButtonState extends State<PhotoGlassButton> {
+class _PhotoGlassButtonState extends State<PhotoGlassButton>
+    with TeardownSafe<PhotoGlassButton> {
   bool _pressed = false;
 
   @override
@@ -254,7 +256,8 @@ class PhotoGlassPill extends StatefulWidget {
   State<PhotoGlassPill> createState() => _PhotoGlassPillState();
 }
 
-class _PhotoGlassPillState extends State<PhotoGlassPill> {
+class _PhotoGlassPillState extends State<PhotoGlassPill>
+    with TeardownSafe<PhotoGlassPill> {
   bool _pressed = false;
 
   @override

@@ -8,6 +8,7 @@ import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
+import 'teardown_safe.dart';
 
 /// The pieces the first-launch picker and the theme screen are both built
 /// from, so the two can never describe the same choice two different ways.
@@ -227,7 +228,8 @@ class _Springy extends StatefulWidget {
   State<_Springy> createState() => _SpringyState();
 }
 
-class _SpringyState extends State<_Springy> {
+class _SpringyState extends State<_Springy>
+    with TeardownSafe<_Springy> {
   bool _down = false;
 
   void _set(bool v) {

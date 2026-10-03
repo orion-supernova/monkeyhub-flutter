@@ -20,6 +20,7 @@ import '../widgets/user_avatar.dart';
 import 'room_items.dart' show transcriptDay;
 import '../widgets/ios_kit.dart' show GlassBackButton;
 import '../widgets/sheet_kit.dart' show sentenceCaseOf;
+import '../widgets/teardown_safe.dart';
 
 /// Everything that has happened to one of your messages, person by person —
 /// the screen behind a left pull on your own bubble.
@@ -527,7 +528,8 @@ class _ReceiptRow extends StatefulWidget {
   State<_ReceiptRow> createState() => _ReceiptRowState();
 }
 
-class _ReceiptRowState extends State<_ReceiptRow> {
+class _ReceiptRowState extends State<_ReceiptRow>
+    with TeardownSafe<_ReceiptRow> {
   bool _pressed = false;
 
   void _open() => widget.onOpenProfile(widget.entry.user);

@@ -67,6 +67,7 @@ import 'room_layout_screen.dart';
 import 'server_screen.dart';
 import 'theme_screen.dart';
 import 'video_quality_screen.dart';
+import '../widgets/teardown_safe.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
@@ -1238,7 +1239,8 @@ class _ProfileCard extends StatefulWidget {
   State<_ProfileCard> createState() => _ProfileCardState();
 }
 
-class _ProfileCardState extends State<_ProfileCard> {
+class _ProfileCardState extends State<_ProfileCard>
+    with TeardownSafe<_ProfileCard> {
   bool _pressed = false;
 
   void _set(bool v) {
@@ -1392,7 +1394,8 @@ class _HubRow extends GroupedRow {
   State<GroupedRow> createState() => _HubRowState();
 }
 
-class _HubRowState extends State<GroupedRow> {
+class _HubRowState extends State<GroupedRow>
+    with TeardownSafe<GroupedRow> {
   bool _pressed = false;
 
   void _set(bool v) {

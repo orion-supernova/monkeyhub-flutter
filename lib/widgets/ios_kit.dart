@@ -9,6 +9,7 @@ import '../theme/motion.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import 'liquid_glass.dart';
+import 'teardown_safe.dart';
 
 // The app's shared iOS vocabulary: a page with a large title, inset grouped
 // sections, and the rows that live in them. Every secondary screen builds from
@@ -45,7 +46,8 @@ class SpringPress extends StatefulWidget {
   State<SpringPress> createState() => _SpringPressState();
 }
 
-class _SpringPressState extends State<SpringPress> {
+class _SpringPressState extends State<SpringPress>
+    with TeardownSafe<SpringPress> {
   bool _down = false;
 
   void _set(bool v) {
@@ -527,7 +529,8 @@ class GroupedRow extends StatefulWidget {
   State<GroupedRow> createState() => _GroupedRowState();
 }
 
-class _GroupedRowState extends State<GroupedRow> {
+class _GroupedRowState extends State<GroupedRow>
+    with TeardownSafe<GroupedRow> {
   bool _pressed = false;
 
   void _set(bool v) {

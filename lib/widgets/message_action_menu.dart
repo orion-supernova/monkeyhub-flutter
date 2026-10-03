@@ -15,6 +15,7 @@ import '../theme/theme_scope.dart';
 import 'ios_kit.dart' show quietFill;
 import 'glass_surface.dart';
 import 'translation_slab.dart' show FrozenBubble;
+import 'teardown_safe.dart';
 
 /// Actions surfaced by [showMessageActionMenu] (reactions are handled
 /// separately via [MessageActionResult.emoji] / `.fullPicker`).
@@ -694,7 +695,8 @@ class _PillEmoji extends StatefulWidget {
   State<_PillEmoji> createState() => _PillEmojiState();
 }
 
-class _PillEmojiState extends State<_PillEmoji> {
+class _PillEmojiState extends State<_PillEmoji>
+    with TeardownSafe<_PillEmoji> {
   bool _pressed = false;
 
   @override
@@ -729,7 +731,8 @@ class _PillMore extends StatefulWidget {
   State<_PillMore> createState() => _PillMoreState();
 }
 
-class _PillMoreState extends State<_PillMore> {
+class _PillMoreState extends State<_PillMore>
+    with TeardownSafe<_PillMore> {
   bool _pressed = false;
 
   @override
@@ -1105,7 +1108,8 @@ class _ActionRow extends StatefulWidget {
   State<_ActionRow> createState() => _ActionRowState();
 }
 
-class _ActionRowState extends State<_ActionRow> {
+class _ActionRowState extends State<_ActionRow>
+    with TeardownSafe<_ActionRow> {
   bool _pressed = false;
 
   @override

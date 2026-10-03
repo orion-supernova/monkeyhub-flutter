@@ -15,6 +15,7 @@ import '../media/video_poster.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/photo_chrome.dart';
 import 'room_items.dart' show formatClockDuration;
+import '../widgets/teardown_safe.dart';
 
 /// In-app camera. Shutter → the photo, immediately.
 ///
@@ -1379,7 +1380,8 @@ class _ShutterButton extends StatefulWidget {
   State<_ShutterButton> createState() => _ShutterButtonState();
 }
 
-class _ShutterButtonState extends State<_ShutterButton> {
+class _ShutterButtonState extends State<_ShutterButton>
+    with TeardownSafe<_ShutterButton> {
   bool _pressed = false;
 
   @override

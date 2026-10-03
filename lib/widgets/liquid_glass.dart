@@ -7,6 +7,7 @@ import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../screens/navigation/native_tab_bar.dart' show NativeChrome;
 import '../theme/theme_scope.dart';
+import 'teardown_safe.dart';
 
 enum LiquidGlassShape { circle, capsule, rounded }
 
@@ -53,7 +54,8 @@ class LiquidGlass extends StatefulWidget {
   State<LiquidGlass> createState() => _LiquidGlassState();
 }
 
-class _LiquidGlassState extends State<LiquidGlass> {
+class _LiquidGlassState extends State<LiquidGlass>
+    with TeardownSafe<LiquidGlass> {
   bool _pressed = false;
 
   /// Saturate first, then blur. The other order blurs the colour into its

@@ -14,6 +14,7 @@ import '../theme/theme_scope.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/photo_chrome.dart';
 import 'review_route.dart';
+import '../widgets/teardown_safe.dart';
 
 /// Shape of the crop window. [circle] is for avatars — every avatar display
 /// site clips to a circle, so the ghost ring shows exactly what will survive.
@@ -665,7 +666,8 @@ class _CropButton extends StatefulWidget {
   State<_CropButton> createState() => _CropButtonState();
 }
 
-class _CropButtonState extends State<_CropButton> {
+class _CropButtonState extends State<_CropButton>
+    with TeardownSafe<_CropButton> {
   bool _pressed = false;
 
   @override

@@ -5,6 +5,7 @@ import '../theme/layout.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'ios_kit.dart';
+import 'teardown_safe.dart';
 
 // The account-area half of the iOS vocabulary in ios_kit.dart: the Contacts /
 // Telegram profile shape (a big face, a name, a row of action tiles, then
@@ -506,7 +507,8 @@ class PressRow extends StatefulWidget {
   State<PressRow> createState() => _PressRowState();
 }
 
-class _PressRowState extends State<PressRow> {
+class _PressRowState extends State<PressRow>
+    with TeardownSafe<PressRow> {
   bool _down = false;
 
   void _set(bool v) {

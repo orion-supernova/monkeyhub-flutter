@@ -9,6 +9,7 @@ import '../theme/theme_scope.dart';
 import 'search_field.dart';
 import 'sheet_kit.dart' show sentenceCaseOf;
 import 'user_avatar.dart';
+import 'teardown_safe.dart';
 
 /// A search bar over a list of people, with the list virtualised underneath.
 ///
@@ -358,7 +359,8 @@ class _PersonTile extends StatefulWidget {
 /// A contact row the way Messages draws one: face, name, handle under it in
 /// muted ink, a hairline that starts at the text. No chevron — tapping a
 /// person starts the chat, it does not drill into anything.
-class _PersonTileState extends State<_PersonTile> {
+class _PersonTileState extends State<_PersonTile>
+    with TeardownSafe<_PersonTile> {
   bool _down = false;
 
   void _set(bool v) {

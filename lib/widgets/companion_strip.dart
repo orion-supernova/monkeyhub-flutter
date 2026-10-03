@@ -35,6 +35,7 @@ import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'ios_kit.dart' show quietFill;
 import 'liquid_glass.dart';
+import 'teardown_safe.dart';
 
 /// Total height of a visible strip.
 ///
@@ -397,7 +398,8 @@ class _Action extends StatefulWidget {
   State<_Action> createState() => _ActionState();
 }
 
-class _ActionState extends State<_Action> {
+class _ActionState extends State<_Action>
+    with TeardownSafe<_Action> {
   bool _pressed = false;
 
   @override

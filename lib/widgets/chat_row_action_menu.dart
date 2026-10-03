@@ -28,6 +28,7 @@ import 'visibility_badge.dart';
 import '../screens/navigation/native_tab_bar.dart' show NativeChrome;
 import 'ios_kit.dart' show quietFill;
 import 'sheet_kit.dart' show sentenceCaseOf;
+import 'teardown_safe.dart';
 
 enum ChatRowAction {
   pin,
@@ -1005,7 +1006,8 @@ class _ChatRowActionRow extends StatefulWidget {
   State<_ChatRowActionRow> createState() => _ChatRowActionRowState();
 }
 
-class _ChatRowActionRowState extends State<_ChatRowActionRow> {
+class _ChatRowActionRowState extends State<_ChatRowActionRow>
+    with TeardownSafe<_ChatRowActionRow> {
   bool _pressed = false;
 
   (IconData, String) _spec(AppLocalizations l10n) => switch (widget.action) {

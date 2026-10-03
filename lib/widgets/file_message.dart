@@ -14,6 +14,7 @@ import '../theme/theme_scope.dart';
 import 'app_toast.dart';
 import 'photo_chrome.dart';
 import 'remote_image.dart';
+import 'teardown_safe.dart';
 
 /// A received document, as a tappable row: type badge, name, size.
 ///
@@ -64,7 +65,8 @@ class FileMessage extends StatefulWidget {
   State<FileMessage> createState() => _FileMessageState();
 }
 
-class _FileMessageState extends State<FileMessage> {
+class _FileMessageState extends State<FileMessage>
+    with TeardownSafe<FileMessage> {
   bool _busy = false;
   bool _pressed = false;
 

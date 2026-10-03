@@ -11,6 +11,7 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'ios_kit.dart' show quietFill;
 import 'sheet_kit.dart' show sentenceCaseOf;
+import 'teardown_safe.dart';
 
 /// Premium OG-card preview for a single URL.
 ///
@@ -57,7 +58,8 @@ class LinkPreviewCard extends StatefulWidget {
   State<LinkPreviewCard> createState() => _LinkPreviewCardState();
 }
 
-class _LinkPreviewCardState extends State<LinkPreviewCard> {
+class _LinkPreviewCardState extends State<LinkPreviewCard>
+    with TeardownSafe<LinkPreviewCard> {
   LinkPreview? _preview;
   bool _loading = false;
   bool _failed = false;

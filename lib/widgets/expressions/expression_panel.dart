@@ -26,6 +26,7 @@ import 'klipy_ad_tile.dart';
 import 'klipy_attribution.dart';
 import 'sticker_pack_store.dart';
 import 'sticker_search.dart';
+import '../teardown_safe.dart';
 
 /// The composer's expression panel — emoji, GIFs and stickers — shown in place
 /// of the keyboard.
@@ -1135,7 +1136,8 @@ class _PressableTile extends StatefulWidget {
   State<_PressableTile> createState() => _PressableTileState();
 }
 
-class _PressableTileState extends State<_PressableTile> {
+class _PressableTileState extends State<_PressableTile>
+    with TeardownSafe<_PressableTile> {
   bool _down = false;
 
   @override

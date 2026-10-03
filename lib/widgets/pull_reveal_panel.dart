@@ -6,6 +6,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'search_field.dart';
 import 'sheet_kit.dart' show sentenceCaseOf;
+import 'teardown_safe.dart';
 
 /// Lives as the first child of the chat list's [ListView]. Hidden by default;
 /// pulling down at the top of the list (overscroll) reveals it — see
@@ -224,7 +225,8 @@ class _ArchivedRow extends StatefulWidget {
   State<_ArchivedRow> createState() => _ArchivedRowState();
 }
 
-class _ArchivedRowState extends State<_ArchivedRow> {
+class _ArchivedRowState extends State<_ArchivedRow>
+    with TeardownSafe<_ArchivedRow> {
   bool _pressed = false;
 
   @override

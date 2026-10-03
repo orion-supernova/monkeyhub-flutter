@@ -6,6 +6,7 @@ import '../keyboard/focusable_tap.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'ios_kit.dart' show quietFill;
+import 'teardown_safe.dart';
 
 /// The one big button on a first-run or sign-in screen: a full-width accent
 /// capsule with sentence-case text, the iOS 26 `.glassProminent` shape.
@@ -29,7 +30,8 @@ class ProminentButton extends StatefulWidget {
   State<ProminentButton> createState() => _ProminentButtonState();
 }
 
-class _ProminentButtonState extends State<ProminentButton> {
+class _ProminentButtonState extends State<ProminentButton>
+    with TeardownSafe<ProminentButton> {
   bool _down = false;
 
   void _set(bool v) {

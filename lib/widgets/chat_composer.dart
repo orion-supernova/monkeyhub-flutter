@@ -135,9 +135,27 @@ class _SendButtonState extends State<_SendButton>
   /// something; the user has just let go, and the honest rendering of an
   /// abandoned gesture is that it is gone. It also means a press that ends a
   /// millisecond after the lead-in leaves nothing lingering on screen.
+  /// True from [deactivate]: the hold recognizer can fire its cancel from
+  /// inside the unmount, and notifying [_hold]'s listeners then would mark a
+  /// builder dirty while the tree is locked (see TeardownSafe).
+  bool _leaving = false;
+
+  @override
+  void deactivate() {
+    _leaving = true;
+    super.deactivate();
+  }
+
+  @override
+  void activate() {
+    super.activate();
+    _leaving = false;
+  }
+
   void _endHold() {
     _leadIn?.cancel();
     _leadIn = null;
+    if (_leaving) return;
     if (_hold.value != 0) _hold.value = 0;
   }
 

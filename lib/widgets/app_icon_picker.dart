@@ -12,6 +12,7 @@ import 'app_brand_mark.dart' show canonicalLogoId;
 import 'brand_icon_canvas.dart';
 import 'monkey_collection.dart';
 import '../services/launcher_icon_names.dart' show kBorrowedIconThemeIds;
+import 'teardown_safe.dart';
 
 /// The choice that means "let the icon follow the theme" ([LogoMode.auto]).
 /// Every other choice is a concrete icon id: [canonicalLogoId], a monkey
@@ -249,7 +250,8 @@ class AppIconTile extends StatefulWidget {
   State<AppIconTile> createState() => _AppIconTileState();
 }
 
-class _AppIconTileState extends State<AppIconTile> {
+class _AppIconTileState extends State<AppIconTile>
+    with TeardownSafe<AppIconTile> {
   bool _down = false;
 
   void _set(bool v) {

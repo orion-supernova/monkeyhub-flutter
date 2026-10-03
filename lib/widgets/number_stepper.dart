@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
 import 'ios_kit.dart' show quietFill;
+import 'teardown_safe.dart';
 
 /// A whole number between [min] and [max], moved with a down and an up arrow.
 ///
@@ -225,7 +226,8 @@ class _Arrow extends StatefulWidget {
   State<_Arrow> createState() => _ArrowState();
 }
 
-class _ArrowState extends State<_Arrow> {
+class _ArrowState extends State<_Arrow>
+    with TeardownSafe<_Arrow> {
   bool _pressed = false;
 
   void _press(bool down) {

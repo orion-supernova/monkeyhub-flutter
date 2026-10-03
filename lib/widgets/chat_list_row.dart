@@ -13,6 +13,7 @@ import 'remote_image.dart';
 import 'room_identity.dart';
 import 'typing_indicator.dart';
 import 'user_avatar.dart';
+import 'teardown_safe.dart';
 
 /// Avatar diameter on a chat row. Telegram and Messages both sit between 52
 /// and 60; 54 keeps a two-line preview level with the avatar's own height.
@@ -64,7 +65,8 @@ class ChatListRow extends StatefulWidget {
   State<ChatListRow> createState() => _ChatListRowState();
 }
 
-class _ChatListRowState extends State<ChatListRow> {
+class _ChatListRowState extends State<ChatListRow>
+    with TeardownSafe<ChatListRow> {
   /// Pressed highlight — a flat fill, the iOS table-cell treatment. Never a
   /// ripple.
   bool _pressed = false;

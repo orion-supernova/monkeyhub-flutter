@@ -11,6 +11,7 @@ import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'ios_kit.dart';
+import 'teardown_safe.dart';
 
 // The furniture every sheet in the app is built from, in the iOS 26 shape: a
 // generously rounded top, a grabber, an optional bar with a glass close button
@@ -485,7 +486,8 @@ class _ActionSheetButton extends StatefulWidget {
   State<_ActionSheetButton> createState() => _ActionSheetButtonState();
 }
 
-class _ActionSheetButtonState extends State<_ActionSheetButton> {
+class _ActionSheetButtonState extends State<_ActionSheetButton>
+    with TeardownSafe<_ActionSheetButton> {
   bool _down = false;
 
   void _set(bool v) {
