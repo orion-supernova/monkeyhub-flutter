@@ -271,12 +271,27 @@ export const board = query({
         if (!allowHighlights && !allowPoints) continue;
       }
 
-      const rows = await ctx.db
-        .query("moments")
-        .withIndex("by_user_day", (q: any) =>
-          q.eq("userId", authorId).eq("dayKey", dayKey)
-        )
-        .collect();
+      // A friend's highlight is listed for its 24h life, not for the VIEWER's
+      // calendar day: the author's dayKey is THEIR local day, so a friend a
+      // timezone away — or anyone posting just before midnight — wrote under
+      // a key this viewer is not asking for, and the highlight was on the
+      // notification but missing from the board. Points stay day-scoped: the
+      // scoreboard is "today's" by definition.
+      const rows = mine
+        ? await ctx.db
+            .query("moments")
+            .withIndex("by_user_day", (q: any) =>
+              q.eq("userId", authorId).eq("dayKey", dayKey)
+            )
+            .collect()
+        : (
+            await ctx.db
+              .query("moments")
+              .withIndex("by_user_created", (q: any) =>
+                q.eq("userId", authorId).gt("createdAt", now - VISIBLE_MS)
+              )
+              .collect()
+          ).filter((m: any) => m.tag === undefined || m.dayKey === dayKey);
 
       for (const m of rows) {
         // Your own expired moments stay on your board for the rest of your
@@ -645,6 +660,19 @@ export const markSeen = mutation({
   },
 });
 
+/**
+ * Whether [emoji] is one emoji-ish glyph run rather than text: short (a ZWJ
+ * family or a toned couple runs to ~15 UTF-16 units; 32 leaves room), no
+ * letters, and digits only inside a keycap (1️⃣).
+ */
+export function isReactionEmoji(emoji: string): boolean {
+  if (emoji.length === 0 || emoji.length > 32) return false;
+  if (emoji.trim() !== emoji) return false;
+  if (/\p{L}/u.test(emoji)) return false;
+  if (/\p{N}/u.test(emoji) && !emoji.includes("\u20E3")) return false;
+  return true;
+}
+
 /** Adds a reaction. One row per (moment, user, emoji); re-adding is a no-op. */
 export const react = mutation({
   args: {
@@ -661,6 +689,10 @@ export const react = mutation({
     // server-side rather than trusted from the board payload — a client can
     // call this with any moment id, and the board is not an auth token.
     if (!(await canSeeMoment(ctx, userId, m))) throw new Error("NOT_A_FRIEND");
+
+    // Any emoji, now that the viewer opens the full picker — but an emoji,
+    // not a message smuggled into a reaction pill on someone's photo.
+    if (!isReactionEmoji(emoji)) throw new Error("INVALID_EMOJI");
 
     const existing = await ctx.db
       .query("momentReactions")

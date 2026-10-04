@@ -1,5 +1,5 @@
 import { convexTest } from "convex-test";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { api, internal } from "./_generated/api";
 import { SPOILER_MASK, maskSpoilers, roomPreviewFor } from "./messages";
 import type { Id } from "./_generated/dataModel";
@@ -195,5 +195,71 @@ describe("spoilers on the room card", () => {
       {}
     );
     expect(again.patched).toBe(0);
+  });
+});
+
+// The receipts screen showed "read" at exactly the sent time: `markRoomRead`
+// writes the read MESSAGE's createdAt as the cursor, and that cursor was what
+// the screen displayed. The wall-clock stamp beside it is the read time.
+describe("read receipts carry a real read time", () => {
+  test("reading later stamps later, while the cursor stays the message's", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2026-10-03T10:00:00Z"));
+      const t = convexTest(schema);
+      const me = await t.mutation(api.auth.signup, {
+        username: "reader",
+        name: "reader",
+        passwordHash: "hash-reader",
+        recoveryKeyHash: "recovery-reader",
+        deviceId: "device-a",
+      });
+      const roomId = await t.mutation(api.rooms.create, {
+        sessionToken: me.token,
+        userId: me.userId as any,
+        name: "room",
+        isPrivate: false,
+      });
+      await t.mutation(api.messages.send, {
+        sessionToken: me.token,
+        userId: me.userId as any,
+        roomId,
+        content: "hello",
+      });
+      const sent = (await t.run((ctx) =>
+        ctx.db.get(roomId as Id<"rooms">)
+      ))!.lastMessageTime!;
+
+      vi.setSystemTime(new Date("2026-10-03T10:20:00Z"));
+      // Rewind the cursor so this read is a real advance, whatever `send`
+      // did to the author's own row.
+      await t.run(async (ctx) => {
+        const row = await ctx.db
+          .query("roomMembers")
+          .withIndex("by_room_user", (q) =>
+            q.eq("roomId", roomId as any).eq("userId", me.userId as any)
+          )
+          .first();
+        await ctx.db.patch(row!._id, { lastReadAt: 0, lastDeliveredAt: 0 });
+      });
+      await t.mutation(api.messages.markRoomRead, {
+        sessionToken: me.token,
+        userId: me.userId as any,
+        roomId,
+        upTo: sent,
+      } as any);
+
+      const state: any[] = await t.query(api.messages.getReadState, {
+        sessionToken: me.token,
+        roomId,
+        viewerUserId: me.userId as any,
+      } as any);
+      const mine = state.find((r) => r.userId === me.userId);
+      expect(mine.lastReadAt).toBe(sent);
+      expect(mine.readClock).toBe(Date.parse("2026-10-03T10:20:00Z"));
+      expect(mine.deliveredClock).toBe(Date.parse("2026-10-03T10:20:00Z"));
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

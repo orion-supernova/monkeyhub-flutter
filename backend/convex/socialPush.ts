@@ -70,7 +70,7 @@ import { MAX_GUESSES } from "./puzzle";
  * short — a half-filled row would silently fall back to English for one tag
  * only, which is the kind of thing nobody notices for a year.
  */
-type SocialCopy = {
+export type SocialCopy = {
   /** An untagged moment with no caption of its own to show. */
   highlight: string;
   /** More than one moment from the same person today. `{count}` is how many. */
@@ -91,7 +91,7 @@ type SocialCopy = {
 
 const SOCIAL_COPY: Record<string, SocialCopy> = {
   en: {
-    highlight: "added a highlight",
+    highlight: "shared a highlight",
     more: "{count} new things today",
     gameSolved: "finished {game} in {time}",
     gameGaveUp: "gave up on {game}",
@@ -112,7 +112,7 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     },
   },
   tr: {
-    highlight: "bir kare ekledi",
+    highlight: "bir an paylaştı",
     more: "bugün {count} yeni şey",
     gameSolved: "{game} oyununu {time} içinde bitirdi",
     gameGaveUp: "{game} oyununda pes etti",
@@ -133,7 +133,7 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     },
   },
   es: {
-    highlight: "añadió un momento",
+    highlight: "ha publicado un momento",
     more: "{count} cosas nuevas hoy",
     gameSolved: "terminó {game} en {time}",
     gameGaveUp: "se rindió en {game}",
@@ -154,7 +154,7 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     },
   },
   fr: {
-    highlight: "a ajouté un moment",
+    highlight: "a publié un moment",
     more: "{count} nouveautés aujourd’hui",
     gameSolved: "a fini {game} en {time}",
     gameGaveUp: "a abandonné {game}",
@@ -175,7 +175,7 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     },
   },
   pt: {
-    highlight: "adicionou um momento",
+    highlight: "publicou um momento",
     more: "{count} coisas novas hoje",
     gameSolved: "terminou {game} em {time}",
     gameGaveUp: "desistiu de {game}",
@@ -196,7 +196,7 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     },
   },
   "pt-br": {
-    highlight: "adicionou um momento",
+    highlight: "publicou um momento",
     more: "{count} coisas novas hoje",
     gameSolved: "terminou {game} em {time}",
     gameGaveUp: "desistiu de {game}",
@@ -238,7 +238,7 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     },
   },
   ar: {
-    highlight: "أضاف لحظة",
+    highlight: "نشر لحظة",
     more: "{count} أشياء جديدة اليوم",
     gameSolved: "أنهى {game} في {time}",
     gameGaveUp: "استسلم في {game}",
@@ -259,7 +259,7 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     },
   },
   hi: {
-    highlight: "एक पल जोड़ा",
+    highlight: "एक पल साझा किया",
     more: "आज {count} नई चीज़ें",
     gameSolved: "{game} को {time} में पूरा किया",
     gameGaveUp: "{game} छोड़ दिया",
@@ -280,7 +280,7 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     },
   },
   ja: {
-    highlight: "ハイライトを追加しました",
+    highlight: "ハイライトを投稿しました",
     more: "今日の新着 {count} 件",
     gameSolved: "{game}を{time}でクリアしました",
     gameGaveUp: "{game}をあきらめました",
@@ -322,7 +322,7 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     },
   },
   zh: {
-    highlight: "发了一条动态",
+    highlight: "发布了一个瞬间",
     more: "今天有 {count} 条新动态",
     gameSolved: "用 {time} 完成了{game}",
     gameGaveUp: "放弃了{game}",
@@ -634,22 +634,21 @@ export const sendMomentPush = internalAction({
 /**
  * The one line under the author's name.
  *
- * Ordered by what is actually news. A caption is the author's own words and
- * beats anything we could write; a tag is the point of a point and comes with
- * the caption when there is one; and only when they have posted more than once
- * today does the count displace both, because by then the row is standing for
+ * Always says what happened first. A bare caption under a name is
+ * indistinguishable from a chat message — that is how this used to read — so
+ * the caption is quoted AFTER the action ("shared a highlight: “…”"), and a
+ * point leads with its tag. Only when they have posted more than once today
+ * does the count displace both, because by then the row is standing for
  * several things and quoting one of them is misleading.
  */
-function momentLine(copy: SocialCopy, plan: any): string {
+export function momentLine(copy: SocialCopy, plan: any): string {
   if (plan.countToday > 1) {
     return fill(copy.more, { count: String(plan.countToday) });
   }
   const tagLabel = plan.tag ? (copy.tags[plan.tag] ?? plan.tag) : null;
   const caption = typeof plan.caption === "string" ? plan.caption.trim() : "";
-  if (tagLabel && caption) return `${tagLabel} — ${caption}`;
-  if (tagLabel) return tagLabel;
-  if (caption) return caption;
-  return copy.highlight;
+  const lead = tagLabel ?? copy.highlight;
+  return caption ? `${lead}: “${caption}”` : lead;
 }
 
 // ────────────────────────── a shared game result ──────────────────────────

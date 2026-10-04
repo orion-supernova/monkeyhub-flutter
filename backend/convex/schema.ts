@@ -375,6 +375,15 @@ export default defineSchema({
     // which is behind every message, so those simply show one tick until the
     // recipient's client writes the cursor once. No backfill.
     lastDeliveredAt: v.optional(v.number()),
+    // WALL-CLOCK times the two cursors above last advanced — what the receipts
+    // screen shows. The cursors themselves cannot be shown: `markRoomRead`
+    // writes the newest read message's own `createdAt` as `lastReadAt` (an OCC
+    // fix, see there), so displaying it made every "read" time equal the
+    // message's sent time. Comparisons stay on the cursors; these are display
+    // only. Absent on rows not advanced since they were added; the client
+    // falls back to the cursor.
+    lastReadClock: v.optional(v.number()),
+    lastDeliveredClock: v.optional(v.number()),
     // Per-viewer chat-list organization. Lives here, not on `rooms`, because
     // pinning/archiving a chat is inherently per-member — the same room can
     // be pinned for one member and untouched for everyone else in it.

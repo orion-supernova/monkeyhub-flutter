@@ -573,6 +573,14 @@ class ChatRepository extends ChangeNotifier {
   /// have let a missing read silently read as "delivered at epoch".
   final Map<String, DateTime> _activeDeliveredState = {};
 
+  /// When each member's read / delivery cursor last ADVANCED, by the wall
+  /// clock. The cursors above are for comparing against `createdAt`; they
+  /// cannot be shown, because `markRoomRead` writes the read message's own
+  /// timestamp as the cursor, so a read time drawn from one always equalled
+  /// the sent time. Absent for a member whose row predates the stamp.
+  final Map<String, DateTime> _activeReadClock = {};
+  final Map<String, DateTime> _activeDeliveredClock = {};
+
   /// The latest `lastReadAt` of any user other than me in the current room.
   /// Used to render the "SEEN" indicator on my own messages. Returns null
   /// when the local "view read receipts" preference is off, suppressing the
@@ -618,6 +626,14 @@ class ChatRepository extends ChangeNotifier {
   /// [_activeDeliveredState] gives.
   Map<String, DateTime> get roomDeliveredCursors =>
       UnmodifiableMapView(_activeDeliveredState);
+
+  /// The wall-clock times behind [roomReadCursors] — what a receipt DISPLAYS.
+  Map<String, DateTime> get roomReadTimes =>
+      UnmodifiableMapView(_activeReadClock);
+
+  /// The wall-clock times behind [roomDeliveredCursors].
+  Map<String, DateTime> get roomDeliveredTimes =>
+      UnmodifiableMapView(_activeDeliveredClock);
 
   DateTime? _latestOthers(Map<String, DateTime> cursors) {
     final me = _userId;
@@ -2267,6 +2283,8 @@ class ChatRepository extends ChangeNotifier {
           final list = (data as List?) ?? const [];
           _activeReadState.clear();
           _activeDeliveredState.clear();
+          _activeReadClock.clear();
+          _activeDeliveredClock.clear();
           for (final e in list) {
             final m = (e as Map).cast<String, dynamic>();
             final uid = m['userId'].toString();
@@ -2283,6 +2301,16 @@ class ChatRepository extends ChangeNotifier {
             if (delivered != null) {
               _activeDeliveredState[uid] =
                   DateTime.fromMillisecondsSinceEpoch(delivered.toInt());
+            }
+            final readClock = m['readClock'] as num?;
+            if (readClock != null) {
+              _activeReadClock[uid] =
+                  DateTime.fromMillisecondsSinceEpoch(readClock.toInt());
+            }
+            final deliveredClock = m['deliveredClock'] as num?;
+            if (deliveredClock != null) {
+              _activeDeliveredClock[uid] =
+                  DateTime.fromMillisecondsSinceEpoch(deliveredClock.toInt());
             }
           }
           notifyListeners();

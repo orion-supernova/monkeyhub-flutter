@@ -14,6 +14,23 @@ import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:monkeyhub/l10n/text_case.dart';
+import 'package:monkeyhub/widgets/ios_kit.dart' show GroupedHeader;
+
+/// A section header — "Read", "Delivered" — as opposed to the same word on a
+/// row's stamp ("Read 14:35"), which now shares its casing.
+Finder _section(String label) => find.descendant(
+      of: find.byType(GroupedHeader),
+      matching: find.text(label),
+    );
+
+/// The same word on a row's stamp, outside any section header.
+Finder _stamp(String label) => find.byElementPredicate(
+      (e) =>
+          e.widget is Text &&
+          (e.widget as Text).data == label &&
+          e.findAncestorWidgetOfExactType<GroupedHeader>() == null,
+      description: 'stamp "$label"',
+    );
 
 /// What this pins is the one piece of judgement on the receipts screen: turning
 /// two ROOM-WIDE cursors into a per-person answer about ONE message.
@@ -33,11 +50,19 @@ import 'package:monkeyhub/l10n/text_case.dart';
 class _FakeApi extends Fake implements ChatApi {}
 
 class _FakeRepo extends ChangeNotifier implements ChatRepository {
-  _FakeRepo({required this.message, required this.reads, required this.delivers});
+  _FakeRepo({
+    required this.message,
+    required this.reads,
+    required this.delivers,
+    this.readTimes = const {},
+    this.deliverTimes = const {},
+  });
 
   final ChatMessage message;
   final Map<String, DateTime> reads;
   final Map<String, DateTime> delivers;
+  final Map<String, DateTime> readTimes;
+  final Map<String, DateTime> deliverTimes;
 
   @override
   ChatMessage? findMessageInRoom(String roomId, String id) => message;
@@ -47,6 +72,12 @@ class _FakeRepo extends ChangeNotifier implements ChatRepository {
 
   @override
   Map<String, DateTime> get roomDeliveredCursors => delivers;
+
+  @override
+  Map<String, DateTime> get roomReadTimes => readTimes;
+
+  @override
+  Map<String, DateTime> get roomDeliveredTimes => deliverTimes;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -125,10 +156,10 @@ void main() {
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
 
     // One section per state, in ladder order, and nothing for the viewer.
-    expect(find.text(sentenceCase(l10n.messageReceiptsSectionRead)), findsOneWidget);
-    expect(find.text(sentenceCase(l10n.messageReceiptsSectionDelivered)), findsOneWidget);
-    expect(find.text(sentenceCase(l10n.messageReceiptsSectionSent)), findsOneWidget);
-    expect(find.text(sentenceCase(l10n.messageReceiptsSectionHidden)), findsOneWidget);
+    expect(_section(sentenceCase(l10n.messageReceiptsSectionRead)), findsOneWidget);
+    expect(_section(sentenceCase(l10n.messageReceiptsSectionDelivered)), findsOneWidget);
+    expect(_section(sentenceCase(l10n.messageReceiptsSectionSent)), findsOneWidget);
+    expect(_section(sentenceCase(l10n.messageReceiptsSectionHidden)), findsOneWidget);
 
     expect(find.text('Ada'), findsOneWidget);
     expect(find.text('Lin'), findsOneWidget);
@@ -162,8 +193,8 @@ void main() {
     await tester.pumpAndSettle();
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    expect(find.text(sentenceCase(l10n.messageReceiptsSectionRead)), findsOneWidget);
-    expect(find.text(sentenceCase(l10n.messageReceiptsSectionDelivered)), findsNothing);
+    expect(_section(sentenceCase(l10n.messageReceiptsSectionRead)), findsOneWidget);
+    expect(_section(sentenceCase(l10n.messageReceiptsSectionDelivered)), findsNothing);
   });
 
   // The report: "sent and read are different things, I want to see all of it".
@@ -190,9 +221,9 @@ void main() {
     // Ada: delivered 14:22, read 14:35 — both, and both labelled.
     expect(find.text('14:35'), findsOneWidget);
     expect(find.text('14:22'), findsOneWidget);
-    expect(find.text(l10n.messageReceiptsStampRead), findsOneWidget);
+    expect(_stamp(l10n.messageReceiptsStampRead), findsOneWidget);
     // Ada's delivery and Lin's.
-    expect(find.text(l10n.messageReceiptsStampDelivered), findsNWidgets(2));
+    expect(_stamp(l10n.messageReceiptsStampDelivered), findsNWidgets(2));
     expect(find.text('14:24'), findsOneWidget);
 
     // The header counts both: one read, two reached (a reader counts as
@@ -238,7 +269,7 @@ void main() {
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
     expect(find.byType(CupertinoActivityIndicator), findsOneWidget);
-    expect(find.text(sentenceCase(l10n.messageReceiptsSectionHidden)), findsNothing);
+    expect(_section(sentenceCase(l10n.messageReceiptsSectionHidden)), findsNothing);
     expect(find.text('Ada'), findsNothing);
   });
 
@@ -271,5 +302,24 @@ void main() {
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
     expect(find.text(l10n.messageReceiptsEmptyState), findsOneWidget);
+  });
+
+  // The bug: `markRoomRead` writes the read message's own createdAt as the
+  // cursor, so a read twenty minutes later still SHOWED as the sent time.
+  // The cursor decides that it was read; the wall-clock stamp says when.
+  testWidgets('shows when it was read, not the cursor', (tester) async {
+    await tester.pumpWidget(host(_FakeRepo(
+      message: message,
+      reads: {'ada': sentAt},
+      delivers: {'ada': sentAt},
+      readTimes: {'ada': sentAt.add(const Duration(minutes: 20))},
+      deliverTimes: {'ada': sentAt.add(const Duration(seconds: 2))},
+    )));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('14:40'), findsOneWidget);
+    // Twice: the sent line in the header, and the delivery stamp two
+    // seconds after it.
+    expect(find.textContaining('14:20'), findsNWidgets(2));
   });
 }

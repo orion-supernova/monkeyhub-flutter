@@ -2948,10 +2948,18 @@ export const markRoomRead = mutation({
     }
     if ((membership.lastReadAt ?? 0) >= newest) return;
 
-    const cursor = upTo ?? Date.now();
+    // The cursor is the message's timestamp, but WHEN it was read is now —
+    // stamped separately so the receipts screen has a real read time rather
+    // than echoing the sent time. The delivery stamp moves only if this read
+    // is also what delivered it; an earlier delivery keeps its own time.
+    const clock = Date.now();
+    const cursor = upTo ?? clock;
+    const deliveredBefore = membership.lastDeliveredAt ?? 0;
     await ctx.db.patch(membership._id, {
       lastReadAt: cursor,
-      lastDeliveredAt: Math.max(membership.lastDeliveredAt ?? 0, cursor),
+      lastReadClock: clock,
+      lastDeliveredAt: Math.max(deliveredBefore, cursor),
+      ...(cursor > deliveredBefore ? { lastDeliveredClock: clock } : {}),
     });
 
     // Reading the room retires its outstanding notifications. The device that
@@ -3014,7 +3022,11 @@ export const markRoomDelivered = mutation({
     // to tell anyone.
     if (cursor >= newest) return;
 
-    await ctx.db.patch(membership._id, { lastDeliveredAt: Date.now() });
+    const clock = Date.now();
+    await ctx.db.patch(membership._id, {
+      lastDeliveredAt: clock,
+      lastDeliveredClock: clock,
+    });
   },
 });
 
@@ -3078,6 +3090,8 @@ export const getReadState = query({
       userId: any;
       lastReadAt: number | null;
       lastDeliveredAt: number | null;
+      readClock: number | null;
+      deliveredClock: number | null;
     }> = [];
     for (const m of members) {
       if (lens.isSelf(m.userId)) {
@@ -3085,6 +3099,8 @@ export const getReadState = query({
           userId: m.userId,
           lastReadAt: m.lastReadAt ?? 0,
           lastDeliveredAt: m.lastDeliveredAt ?? 0,
+          readClock: m.lastReadClock ?? null,
+          deliveredClock: m.lastDeliveredClock ?? null,
         });
         continue;
       }
@@ -3104,6 +3120,9 @@ export const getReadState = query({
         userId: m.userId,
         lastReadAt: read,
         lastDeliveredAt: delivered,
+        // Same gate as the cursors they stamp.
+        readClock: shares ? (m.lastReadClock ?? null) : null,
+        deliveredClock: shares ? (m.lastDeliveredClock ?? null) : null,
       });
     }
     return out;

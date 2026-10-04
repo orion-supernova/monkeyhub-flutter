@@ -2,7 +2,8 @@ import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
-import { formatDuration } from "./socialPush";
+import { isReactionEmoji } from "./feed";
+import { formatDuration, momentLine, socialCopyFor } from "./socialPush";
 
 /**
  * Who gets told when a friend posts, and who deliberately does not.
@@ -459,5 +460,87 @@ describe("the time in the body", () => {
     expect(formatDuration(3_787_400)).toBe("63:07");
     expect(formatDuration(undefined)).toBe("0:00");
     expect(formatDuration(-5)).toBe("0:00");
+  });
+});
+
+// A caption alone under a name reads exactly like a chat message, which is
+// how this push used to look. The action always comes first.
+describe("the line under a moment push", () => {
+  const en = socialCopyFor("en");
+
+  test("a captioned highlight says it is a highlight, then quotes", () => {
+    expect(momentLine(en, { countToday: 1, caption: " sunset " })).toBe(
+      "shared a highlight: “sunset”",
+    );
+  });
+
+  test("a bare highlight is just the action", () => {
+    expect(momentLine(en, { countToday: 1 })).toBe("shared a highlight");
+  });
+
+  test("a point leads with its tag", () => {
+    expect(momentLine(en, { countToday: 1, tag: "jinx", caption: "again" }))
+      .toBe("JINX: “again”");
+  });
+});
+
+// The highlight that was on the notification but not the board: the author's
+// dayKey is THEIR local day, and the board used to ask only for the viewer's.
+describe("the board across timezones", () => {
+  test("a friend's live highlight under another dayKey still shows", async () => {
+    const t = convexTest(schema);
+    const author = await signUp(t, "author");
+    const friend = await signUp(t, "friend");
+    await befriend(t, author, { ...friend, username: "friend" });
+
+    await t.mutation(api.feed.post, {
+      sessionToken: author.token,
+      userId: author.userId as any,
+      dayKey: "2026-09-05",
+      caption: "late night",
+    });
+    const board: any = await t.query(api.feed.board, {
+      sessionToken: friend.token,
+      userId: friend.userId as any,
+      dayKey: "2026-09-06",
+    } as any);
+    expect(board.moments.map((m: any) => m.caption)).toEqual(["late night"]);
+  });
+
+  test("a friend's point from another day stays off today's board", async () => {
+    const t = convexTest(schema);
+    const author = await signUp(t, "author");
+    const friend = await signUp(t, "friend");
+    await befriend(t, author, { ...friend, username: "friend" });
+
+    await t.mutation(api.feed.post, {
+      sessionToken: author.token,
+      userId: author.userId as any,
+      dayKey: "2026-09-05",
+      tag: "jinx",
+      caption: "again",
+    });
+    const board: any = await t.query(api.feed.board, {
+      sessionToken: friend.token,
+      userId: friend.userId as any,
+      dayKey: "2026-09-06",
+    } as any);
+    expect(board.moments).toEqual([]);
+  });
+});
+
+// The highlight viewer now offers the whole emoji picker, so the server is
+// what keeps a reaction an emoji.
+describe("a highlight reaction", () => {
+  test("any emoji is fine", () => {
+    for (const e of ["🦩", "👨‍👩‍👧‍👦", "🇹🇷", "1️⃣", "👍🏽"]) {
+      expect(isReactionEmoji(e)).toBe(true);
+    }
+  });
+
+  test("text is not a reaction", () => {
+    for (const e of ["", "lol", "hi 👋", " 🔥", "123", "🔥".repeat(20)]) {
+      expect(isReactionEmoji(e)).toBe(false);
+    }
   });
 });

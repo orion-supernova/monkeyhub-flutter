@@ -18,7 +18,8 @@ import '../widgets/message_stamp.dart' show formatClockTime;
 import '../widgets/remote_image.dart';
 import '../widgets/user_avatar.dart';
 import 'room_items.dart' show transcriptDay;
-import '../widgets/ios_kit.dart' show GlassBackButton;
+import '../widgets/ios_kit.dart' show GlassBackButton, GroupedHeader;
+import '../widgets/sheet_kit.dart' show sheetTitleStyle;
 
 import '../widgets/teardown_safe.dart';
 import '../l10n/text_case.dart';
@@ -48,7 +49,8 @@ import '../l10n/text_case.dart';
 /// The server keeps ONE read cursor per membership row, not one row per
 /// (message × reader) — `schema.ts` rules that fan-out out in as many words,
 /// twice. So "X read this" is exactly `X.lastReadAt >= message.createdAt`, and
-/// the time shown is that cursor: the last moment X was caught up in this room.
+/// the time shown is when that cursor last advanced (`readClock`) — not the
+/// cursor itself, which is the newest read message's own `createdAt`.
 /// For a message near the bottom of the transcript — which is very nearly
 /// always what someone checks receipts on — the cursor moved *because of* this
 /// message and the time is the read time. On an older message it is an upper
@@ -193,6 +195,8 @@ class MessageReceiptsScreen extends StatelessWidget {
   List<_Entry> _entriesFor(ChatMessage message) {
     final reads = repo.roomReadCursors;
     final delivers = repo.roomDeliveredCursors;
+    final readTimes = repo.roomReadTimes;
+    final deliverTimes = repo.roomDeliveredTimes;
     final at = message.createdAt;
 
     final out = <_Entry>[];
@@ -207,9 +211,13 @@ class MessageReceiptsScreen extends StatelessWidget {
       // time, and the row shows both.
       final hasRead = readAt != null && !readAt.isBefore(at);
       final hasDelivered = deliveredAt != null && !deliveredAt.isBefore(at);
+      // The cursor decides WHETHER; the wall-clock stamp says WHEN. The
+      // cursor is the read message's own timestamp, so showing it made every
+      // read time equal the sent time. Rows that predate the stamp fall back.
       final stamps = (
-        readAt: hasRead ? readAt : null,
-        deliveredAt: hasDelivered ? deliveredAt : null,
+        readAt: hasRead ? (readTimes[user.id] ?? readAt) : null,
+        deliveredAt:
+            hasDelivered ? (deliverTimes[user.id] ?? deliveredAt) : null,
       );
       if (hasRead) {
         out.add(_Entry(user, _ReceiptState.read, stamps));
@@ -274,21 +282,32 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
-      child: Row(
-        children: [
-          const GlassBackButton(),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              sentenceCaseOf(context, title),
-              style: theme.bodyEmph.copyWith(color: theme.ink),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+    // The iOS navigation bar IosPage draws, minus a large title this screen
+    // has no room for: the glass back leading and the title centred at
+    // 17/w600 — not left-aligned beside the chevron.
+    return SizedBox(
+      height: 52,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 56),
+              child: Text(
+                sentenceCaseOf(context, title),
+                style: sheetTitleStyle(theme),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-          ),
-        ],
+            const Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: GlassBackButton(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -435,8 +454,8 @@ class _MessageCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.check_rounded,
-                    size: 12,
+                    CupertinoIcons.checkmark,
+                    size: 13,
                     color: ink.withValues(alpha: 0.7),
                   ),
                   const SizedBox(width: 4),
@@ -445,7 +464,7 @@ class _MessageCard extends StatelessWidget {
                     '${transcriptDay(context, message.createdAt)} · '
                     '${formatClockTime(message.createdAt)}',
                     style: theme.bodySoft.copyWith(
-                      fontSize: 12,
+                      fontSize: 13,
                       color: ink.withValues(alpha: 0.7),
                       fontFeatures: const [FontFeature.tabularFigures()],
                     ),
@@ -625,21 +644,12 @@ class _ReceiptRowState extends State<_ReceiptRow>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // THE section header — "Read", "Delivered", "Sent" — 17/w600 ink,
+        // the voice every grouped list in the app speaks.
         if (widget.showSection)
           Padding(
-            padding: EdgeInsets.fromLTRB(8, widget.index == 0 ? 0 : 18, 8, 8),
-            child: Text(
-              sentenceCaseOf(context, _sectionLabel(l10n, entry.state)),
-              style: theme.bodySoft.copyWith(
-                fontSize: 13,
-                fontWeight: entry.state == _ReceiptState.read
-                    ? FontWeight.w600
-                    : FontWeight.w400,
-                color: entry.state == _ReceiptState.read
-                    ? theme.accent
-                    : theme.inkMuted,
-              ),
-            ),
+            padding: EdgeInsets.only(top: widget.index == 0 ? 0 : 14),
+            child: GroupedHeader(_sectionLabel(l10n, entry.state)),
           ),
         tappable,
       ],
@@ -725,7 +735,7 @@ class _Stamps extends StatelessWidget {
       children: [
         if (read != null)
           _StampLine(
-            icon: Icons.visibility_outlined,
+            icon: CupertinoIcons.eye,
             label: l10n.messageReceiptsStampRead,
             at: read,
             sentAt: sentAt,
@@ -734,7 +744,7 @@ class _Stamps extends StatelessWidget {
         if (read != null && delivered != null) const SizedBox(height: 3),
         if (delivered != null)
           _StampLine(
-            icon: Icons.done_all_rounded,
+            icon: CupertinoIcons.checkmark_circle,
             label: l10n.messageReceiptsStampDelivered,
             at: delivered,
             sentAt: sentAt,
@@ -774,19 +784,19 @@ class _StampLine extends StatelessWidget {
     final showDay = day != _dayOf(sentAt);
     final tiny = theme.bodySoft.copyWith(
       color: theme.inkMuted,
-      fontSize: 12,
+      fontSize: 13,
     );
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
           icon,
-          size: 12,
+          size: 13,
           color: strong ? theme.accent : theme.inkMuted,
         ),
         const SizedBox(width: 5),
-        // Lower case on purpose: an inline note beside the clock ("read
-        // 14:35"), not a heading — the section above already says "Read".
+        // An inline note beside the clock ("Read 14:35"), as iMessage words
+        // it — not a heading; the section above already says "Read".
         Text(label, style: tiny),
         const SizedBox(width: 6),
         if (showDay) ...[
